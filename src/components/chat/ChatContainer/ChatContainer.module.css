@@ -3,6 +3,7 @@
   flex-direction: column;
   flex: 1;
   overflow: hidden;
+  min-height: 0; /* Important for flex children to respect overflow */
 }
 
 .messages {
@@ -11,6 +12,11 @@
   padding: var(--spacing-lg);
   display: flex;
   flex-direction: column;
+  min-height: 0; /* Allow messages to scroll properly */
+}
+
+.inputWrapper {
+  flex-shrink: 0; /* Prevent input from shrinking */
 }
 
 @media (max-width: 768px) {

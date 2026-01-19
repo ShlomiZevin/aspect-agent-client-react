@@ -113,8 +113,7 @@
 }
 
 .markdownContent thead {
-  background: var(--primary);
-  color: white;
+  background: var(--primary-color);
 }
 
 .markdownContent th,
@@ -127,6 +126,7 @@
 .markdownContent th {
   font-weight: 600;
   white-space: nowrap;
+  color: white;
 }
 
 .markdownContent tbody tr:nth-child(even) {
