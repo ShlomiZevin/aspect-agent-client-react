@@ -1,0 +1,38 @@
+/* Freeda Theme - Warm & Caring */
+.theme-freeda {
+  --primary-color: #d97398;
+  --primary-hover: #c5628a;
+  --primary-light: rgba(217, 115, 152, 0.1);
+  --accent-color: #f5a97f;
+  --secondary-color: #8c7580;
+  --success-color: #7db9a8;
+  --warning-color: #f5a97f;
+  --error-color: #e57373;
+  --background: #fef7f4;
+  --surface: #ffffff;
+  --surface-light: #fff5f0;
+  --border: #f0d9e0;
+  --text-primary: #4a3b42;
+  --text-secondary: #8c7580;
+  --text-muted: #b5a3ab;
+  --shadow-sm: 0 1px 2px rgba(217, 115, 152, 0.08);
+  --shadow-md: 0 4px 6px rgba(217, 115, 152, 0.12);
+  --shadow-lg: 0 10px 15px rgba(217, 115, 152, 0.15);
+  --gradient: linear-gradient(135deg, #d97398 0%, #f5a97f 100%);
+}
+
+.theme-freeda[data-theme="dark"] {
+  --primary-color: #e591b0;
+  --primary-hover: #d97398;
+  --primary-light: rgba(229, 145, 176, 0.15);
+  --background: #2a1f25;
+  --surface: #3d2f36;
+  --surface-light: #4a3741;
+  --border: #5a4650;
+  --text-primary: #f5e6eb;
+  --text-secondary: #c9b5bf;
+  --text-muted: #9a8690;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+}
