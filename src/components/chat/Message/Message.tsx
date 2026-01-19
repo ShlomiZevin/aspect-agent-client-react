@@ -1,4 +1,5 @@
-import { formatMessage } from '../../../utils';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { Message as MessageType } from '../../../types';
 import styles from './Message.module.css';
 
@@ -14,10 +15,11 @@ export function Message({ message }: MessageProps) {
       {isUser ? (
         <span>{message.content}</span>
       ) : (
-        <div
-          className="message-content"
-          dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
-        />
+        <div className={styles.markdownContent}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {message.content}
+          </ReactMarkdown>
+        </div>
       )}
     </div>
   );

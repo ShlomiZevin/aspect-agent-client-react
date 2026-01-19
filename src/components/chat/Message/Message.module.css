@@ -44,3 +44,117 @@
     padding: var(--spacing-sm) var(--spacing-md);
   }
 }
+
+/* Markdown content styles */
+.markdownContent {
+  overflow-x: auto;
+}
+
+.markdownContent h1,
+.markdownContent h2,
+.markdownContent h3,
+.markdownContent h4 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+.markdownContent h1 { font-size: 1.5em; }
+.markdownContent h2 { font-size: 1.3em; }
+.markdownContent h3 { font-size: 1.15em; }
+.markdownContent h4 { font-size: 1.05em; }
+
+.markdownContent p {
+  margin: 0.5em 0;
+}
+
+.markdownContent ul,
+.markdownContent ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.markdownContent li {
+  margin: 0.25em 0;
+}
+
+.markdownContent strong {
+  font-weight: 600;
+}
+
+.markdownContent code {
+  background: var(--background);
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm);
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.markdownContent pre {
+  background: var(--background);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+
+.markdownContent pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Table styles */
+.markdownContent table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 0.9em;
+  min-width: 500px;
+}
+
+.markdownContent thead {
+  background: var(--primary);
+  color: white;
+}
+
+.markdownContent th,
+.markdownContent td {
+  padding: 0.6em 0.8em;
+  text-align: left;
+  border: 1px solid var(--border);
+}
+
+.markdownContent th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.markdownContent tbody tr:nth-child(even) {
+  background: var(--background);
+}
+
+.markdownContent tbody tr:hover {
+  background: var(--primary-light);
+}
+
+.markdownContent hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1em 0;
+}
+
+.markdownContent blockquote {
+  border-left: 4px solid var(--primary);
+  margin: 0.5em 0;
+  padding-left: 1em;
+  color: var(--text-secondary);
+}
+
+.markdownContent a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.markdownContent a:hover {
+  opacity: 0.8;
+}
