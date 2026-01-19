@@ -1,11 +1,16 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './HomePage.module.css';
 
 export function HomePage() {
+  useEffect(() => {
+    document.title = 'AI Agents Marketplace';
+  }, []);
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1>Aspect Agents</h1>
+        <h1>AI Agents Marketplace</h1>
         <p className={styles.subtitle}>Choose an AI assistant to get started</p>
       </header>
 

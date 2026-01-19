@@ -8,6 +8,10 @@ export const freedaConfig: AgentConfig = {
   storagePrefix: 'freeda_',
   baseURL: BASE_URL,
 
+  pageTitle: 'Freeda - Your Menopause Companion',
+  favicon: '/img/freeda-logo.png',
+  metaDescription: 'Supportive AI companion for menopause wellness, symptoms management, and personalized guidance.',
+
   logo: {
     src: '/img/freeda-logo.png',
     alt: 'Freeda Logo',

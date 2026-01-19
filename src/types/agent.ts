@@ -13,6 +13,11 @@ export interface AgentConfig {
   // Server
   baseURL: string;
 
+  // Page meta
+  pageTitle: string;
+  favicon: string;
+  metaDescription: string;
+
   // UI
   logo: {
     src: string;

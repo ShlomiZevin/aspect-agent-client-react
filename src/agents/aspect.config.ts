@@ -8,6 +8,10 @@ export const aspectConfig: AgentConfig = {
   storagePrefix: 'aspect_',
   baseURL: BASE_URL,
 
+  pageTitle: 'Aspect Insight - AI Business Intelligence',
+  favicon: '/img/aspect-logo-regular.png',
+  metaDescription: 'AI-powered business intelligence assistant for sales, inventory, and business analytics.',
+
   logo: {
     src: '/img/aspect-logo-regular.png',
     alt: 'Aspect Logo',
