@@ -3,10 +3,12 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   margin: var(--spacing-sm) 0;
-  overflow: hidden;
+  margin-bottom: var(--spacing-md);
+  overflow: visible;
   animation: slideIn 0.3s ease;
   align-self: flex-start;
   max-width: 300px;
+  flex-shrink: 0;
 }
 
 .completed {
@@ -57,6 +59,8 @@
 .steps {
   padding: 0 var(--spacing-md) var(--spacing-sm);
   border-top: 1px solid var(--border);
+  background-color: var(--surface);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .step {

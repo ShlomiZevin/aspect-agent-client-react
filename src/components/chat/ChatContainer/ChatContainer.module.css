@@ -9,7 +9,9 @@
 .messages {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: var(--spacing-lg);
+  padding-bottom: calc(var(--spacing-xl, 2rem) + 100px);
   display: flex;
   flex-direction: column;
   min-height: 0; /* Allow messages to scroll properly */
