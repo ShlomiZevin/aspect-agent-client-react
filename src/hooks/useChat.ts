@@ -1,7 +1,7 @@
-import { useReducer, useCallback, useEffect, useRef } from 'react';
+import { useReducer, useCallback, useEffect } from 'react';
 import { streamChat } from '../services/chatService';
 import { getConversationHistory } from '../services/conversationService';
-import type { Message, ChatState, ChatAction, AgentConfig } from '../types';
+import type { Message, ChatState, ChatAction, AgentConfig, ThinkingStep } from '../types';
 
 const initialState: ChatState = {
   messages: [],
@@ -9,6 +9,7 @@ const initialState: ChatState = {
   isLoading: false,
   isThinking: false,
   currentThinkingStep: '',
+  thinkingSteps: [],
   hasStartedChat: false,
   error: null,
 };
@@ -36,13 +37,15 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         isLoading: true,
         isThinking: true,
-        currentThinkingStep: action.payload,
+        currentThinkingStep: '',
+        thinkingSteps: [],
       };
 
-    case 'UPDATE_THINKING_STEP':
+    case 'ADD_THINKING_STEP':
       return {
         ...state,
-        currentThinkingStep: action.payload,
+        currentThinkingStep: action.payload.description,
+        thinkingSteps: [...state.thinkingSteps, action.payload],
       };
 
     case 'COMPLETE_THINKING':
@@ -61,6 +64,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
             role: 'assistant',
             content: '',
             timestamp: new Date(),
+            thinkingSteps: [...state.thinkingSteps],
           },
         ],
       };
@@ -81,6 +85,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return {
         ...state,
         isLoading: false,
+        thinkingSteps: [],
       };
 
     case 'LOAD_HISTORY':
@@ -89,12 +94,14 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         conversationId: action.payload.conversationId,
         messages: action.payload.messages,
         hasStartedChat: action.payload.messages.length > 0,
+        thinkingSteps: [],
       };
 
     case 'NEW_CHAT':
       return {
         ...initialState,
         conversationId: action.payload,
+        thinkingSteps: [],
       };
 
     case 'SET_ERROR':
@@ -128,6 +135,7 @@ export interface UseChatReturn {
   isLoading: boolean;
   isThinking: boolean;
   currentThinkingStep: string;
+  thinkingSteps: ThinkingStep[];
   hasStartedChat: boolean;
   error: string | null;
   sendMessage: (text: string) => Promise<void>;
@@ -146,8 +154,6 @@ export function useChat(options: UseChatOptions): UseChatReturn {
     conversationId,
   });
 
-  const thinkingIntervalRef = useRef<number | null>(null);
-
   // Update conversationId when it changes externally
   useEffect(() => {
     if (conversationId !== state.conversationId) {
@@ -155,49 +161,13 @@ export function useChat(options: UseChatOptions): UseChatReturn {
     }
   }, [conversationId, state.conversationId]);
 
-  // Get random thinking steps from config
-  const getRandomThinkingSteps = useCallback(() => {
-    const stepsArray = config.thinkingSteps;
-    return stepsArray[Math.floor(Math.random() * stepsArray.length)];
-  }, [config.thinkingSteps]);
-
-  // Start cycling through thinking steps
-  const startThinkingAnimation = useCallback(() => {
-    const steps = getRandomThinkingSteps();
-    let stepIndex = 0;
-
-    dispatch({ type: 'START_THINKING', payload: steps[0] });
-
-    thinkingIntervalRef.current = window.setInterval(() => {
-      stepIndex = (stepIndex + 1) % steps.length;
-      dispatch({ type: 'UPDATE_THINKING_STEP', payload: steps[stepIndex] });
-    }, 2000);
-  }, [getRandomThinkingSteps]);
-
-  // Stop thinking animation
-  const stopThinkingAnimation = useCallback(() => {
-    if (thinkingIntervalRef.current) {
-      clearInterval(thinkingIntervalRef.current);
-      thinkingIntervalRef.current = null;
-    }
-    dispatch({ type: 'COMPLETE_THINKING' });
-  }, []);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (thinkingIntervalRef.current) {
-        clearInterval(thinkingIntervalRef.current);
-      }
-    };
-  }, []);
-
   const sendMessage = useCallback(
     async (text: string) => {
       const messageId = crypto.randomUUID();
       dispatch({ type: 'ADD_USER_MESSAGE', payload: { id: messageId, content: text } });
 
-      startThinkingAnimation();
+      // Start thinking - steps will come from server
+      dispatch({ type: 'START_THINKING' });
 
       const botMessageId = crypto.randomUUID();
       let hasStartedStreaming = false;
@@ -213,26 +183,32 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             baseURL: config.baseURL,
           },
           {
+            onThinkingStep: (step) => {
+              dispatch({ type: 'ADD_THINKING_STEP', payload: step });
+            },
+            onThinkingComplete: () => {
+              // Server finished thinking - but we'll keep showing until streaming starts
+            },
             onChunk: (chunk) => {
               if (!hasStartedStreaming) {
-                stopThinkingAnimation();
+                dispatch({ type: 'COMPLETE_THINKING' });
                 dispatch({ type: 'START_STREAMING', payload: botMessageId });
                 hasStartedStreaming = true;
               }
               dispatch({ type: 'APPEND_CHUNK', payload: chunk });
             },
             onComplete: () => {
-              stopThinkingAnimation();
+              dispatch({ type: 'COMPLETE_THINKING' });
               dispatch({ type: 'COMPLETE_MESSAGE' });
             },
             onError: (error) => {
-              stopThinkingAnimation();
+              dispatch({ type: 'COMPLETE_THINKING' });
               dispatch({ type: 'SET_ERROR', payload: error.message });
             },
           }
         );
       } catch (error) {
-        stopThinkingAnimation();
+        dispatch({ type: 'COMPLETE_THINKING' });
         dispatch({
           type: 'SET_ERROR',
           payload: error instanceof Error ? error.message : 'An error occurred',
@@ -245,8 +221,6 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       conversationId,
       userId,
       useKnowledgeBase,
-      startThinkingAnimation,
-      stopThinkingAnimation,
     ]
   );
 
@@ -279,6 +253,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
     isLoading: state.isLoading,
     isThinking: state.isThinking,
     currentThinkingStep: state.currentThinkingStep,
+    thinkingSteps: state.thinkingSteps,
     hasStartedChat: state.hasStartedChat,
     error: state.error,
     sendMessage,

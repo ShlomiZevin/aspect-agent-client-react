@@ -1,14 +1,20 @@
 import { apiRequest, getBaseURL } from './api';
-import type { Message, Conversation } from '../types';
+import type { Message, Conversation, ThinkingStep } from '../types';
 
 interface ConversationHistoryResponse {
   conversationId: string;
   messageCount: number;
   messages: Array<{
-    id: string;
+    id: number | string;
     role: 'user' | 'assistant';
     content: string;
     createdAt: string;
+    thinkingSteps?: Array<{
+      stepType: string;
+      description: string;
+      stepOrder: number;
+      metadata?: Record<string, unknown>;
+    }>;
   }>;
 }
 
@@ -37,10 +43,16 @@ export async function getConversationHistory(
   return {
     conversationId: data.conversationId,
     messages: data.messages.map(msg => ({
-      id: msg.id,
+      id: String(msg.id),
       role: msg.role,
       content: msg.content,
       timestamp: new Date(msg.createdAt),
+      thinkingSteps: msg.thinkingSteps?.map(step => ({
+        stepType: step.stepType,
+        description: step.description,
+        stepOrder: step.stepOrder,
+        metadata: step.metadata,
+      })) || [],
     })),
   };
 }

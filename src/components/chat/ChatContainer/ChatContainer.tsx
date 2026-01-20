@@ -11,13 +11,13 @@ interface ChatContainerProps {
 }
 
 export function ChatContainer({ showKBToggle = false }: ChatContainerProps) {
-  const { messages, isThinking, currentThinkingStep, hasStartedChat } = useChatContext();
+  const { messages, isThinking, currentThinkingStep, thinkingSteps, hasStartedChat } = useChatContext();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive or thinking updates
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isThinking]);
+  }, [messages, isThinking, thinkingSteps.length]);
 
   return (
     <div className={styles.container}>
@@ -31,7 +31,10 @@ export function ChatContainer({ showKBToggle = false }: ChatContainerProps) {
             ))}
 
             {isThinking && (
-              <ThinkingIndicator currentStep={currentThinkingStep} />
+              <ThinkingIndicator
+                currentStep={currentThinkingStep}
+                steps={thinkingSteps}
+              />
             )}
 
             <div ref={messagesEndRef} />

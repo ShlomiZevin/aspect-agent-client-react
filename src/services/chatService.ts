@@ -1,4 +1,5 @@
 import { getBaseURL } from './api';
+import type { ThinkingStep } from '../types';
 
 export interface StreamChatOptions {
   message: string;
@@ -13,6 +14,8 @@ export interface StreamCallbacks {
   onChunk: (chunk: string) => void;
   onComplete: (fullText: string) => void;
   onError: (error: Error) => void;
+  onThinkingStep?: (step: ThinkingStep) => void;
+  onThinkingComplete?: () => void;
 }
 
 /**
@@ -23,7 +26,7 @@ export async function streamChat(
   callbacks: StreamCallbacks
 ): Promise<void> {
   const { message, conversationId, agentName, userId, useKnowledgeBase = false, baseURL } = options;
-  const { onChunk, onComplete, onError } = callbacks;
+  const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
 
@@ -75,11 +78,33 @@ export async function streamChat(
 
           try {
             const parsed = JSON.parse(data);
-            if (parsed.chunk) {
+
+            // Handle thinking step events
+            if (parsed.type === 'thinking_step' && parsed.step) {
+              onThinkingStep?.({
+                stepType: parsed.step.stepType,
+                description: parsed.step.description,
+                stepOrder: parsed.step.stepOrder,
+                metadata: parsed.step.metadata,
+              });
+            }
+            // Handle thinking complete event
+            else if (parsed.type === 'thinking_complete') {
+              onThinkingComplete?.();
+            }
+            // Handle text chunks
+            else if (parsed.chunk) {
               fullText += parsed.chunk;
               onChunk(parsed.chunk);
-            } else if (parsed.error) {
+            }
+            // Handle errors
+            else if (parsed.error) {
               throw new Error(parsed.error);
+            }
+            // Handle function call events (pass through for logging/UI purposes if needed)
+            else if (parsed.type === 'function_call' || parsed.type === 'function_result') {
+              // Function calls are already handled as thinking steps on server
+              // Could add additional handling here if needed
             }
           } catch {
             // Skip invalid JSON

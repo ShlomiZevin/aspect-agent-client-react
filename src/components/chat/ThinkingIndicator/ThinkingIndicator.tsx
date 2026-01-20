@@ -1,13 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './ThinkingIndicator.module.css';
+import type { ThinkingStep } from '../../../types';
 
 interface ThinkingIndicatorProps {
   currentStep: string;
+  steps?: ThinkingStep[];
   isComplete?: boolean;
 }
 
-export function ThinkingIndicator({ currentStep, isComplete = false }: ThinkingIndicatorProps) {
-  const [isCollapsed, setIsCollapsed] = useState(isComplete);
+export function ThinkingIndicator({ currentStep, steps = [], isComplete = false }: ThinkingIndicatorProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Auto-collapse when complete
+  useEffect(() => {
+    if (isComplete) {
+      setIsCollapsed(true);
+    }
+  }, [isComplete]);
+
+  // Show nothing if no steps and no current step
+  if (!currentStep && steps.length === 0) {
+    return null;
+  }
 
   return (
     <div className={`${styles.container} ${isComplete ? styles.completed : ''} ${isCollapsed ? styles.collapsed : ''}`}>
@@ -38,10 +52,20 @@ export function ThinkingIndicator({ currentStep, isComplete = false }: ThinkingI
 
       {!isCollapsed && (
         <div className={styles.steps}>
-          <div className={styles.step}>
-            {!isComplete && <span className={styles.dot} />}
-            {currentStep}
-          </div>
+          {steps.length > 0 ? (
+            steps.map((step, index) => (
+              <div key={step.stepOrder || index} className={styles.step}>
+                {!isComplete && index === steps.length - 1 && <span className={styles.dot} />}
+                {isComplete && <span className={styles.checkmark}>✓</span>}
+                {step.description}
+              </div>
+            ))
+          ) : (
+            <div className={styles.step}>
+              {!isComplete && <span className={styles.dot} />}
+              {currentStep || 'Processing...'}
+            </div>
+          )}
         </div>
       )}
     </div>

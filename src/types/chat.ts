@@ -3,6 +3,14 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  thinkingSteps?: ThinkingStep[];
+}
+
+export interface ThinkingStep {
+  stepType: string;
+  description: string;
+  stepOrder: number;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Conversation {
@@ -25,14 +33,15 @@ export type ChatState = {
   isLoading: boolean;
   isThinking: boolean;
   currentThinkingStep: string;
+  thinkingSteps: ThinkingStep[];
   hasStartedChat: boolean;
   error: string | null;
 };
 
 export type ChatAction =
   | { type: 'ADD_USER_MESSAGE'; payload: { id: string; content: string } }
-  | { type: 'START_THINKING'; payload: string }
-  | { type: 'UPDATE_THINKING_STEP'; payload: string }
+  | { type: 'START_THINKING' }
+  | { type: 'ADD_THINKING_STEP'; payload: ThinkingStep }
   | { type: 'COMPLETE_THINKING' }
   | { type: 'START_STREAMING'; payload: string }
   | { type: 'APPEND_CHUNK'; payload: string }

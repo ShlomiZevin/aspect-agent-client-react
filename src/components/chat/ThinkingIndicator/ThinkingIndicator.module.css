@@ -74,6 +74,13 @@
   background-color: var(--primary-color);
   border-radius: 50%;
   animation: pulse 1s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.checkmark {
+  color: var(--success-color, #22c55e);
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
 @keyframes slideIn {

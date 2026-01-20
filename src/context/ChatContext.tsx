@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { useChat, useConversation, type UseChatReturn, type UseConversationReturn } from '../hooks';
 import { useAgentContext } from './AgentContext';
 import { useUserContext } from './UserContext';
@@ -34,6 +34,28 @@ export function ChatProvider({ children }: ChatProviderProps) {
     useKnowledgeBase: useKB,
   });
 
+  // Track message count to detect when a new message is sent
+  const prevMessageCount = useRef(chat.messages.length);
+  const initialLoadDone = useRef(false);
+
+  // On mount: load history for the stored conversation ID
+  useEffect(() => {
+    if (!initialLoadDone.current && conversation.conversationId) {
+      initialLoadDone.current = true;
+      // Try to load history for the stored conversation
+      chat.loadHistory(conversation.conversationId);
+    }
+  }, [conversation.conversationId, chat]);
+
+  // Refresh conversation list when messages change (after sending a message)
+  useEffect(() => {
+    if (chat.messages.length > prevMessageCount.current && !chat.isLoading) {
+      // A new message was added and we're not loading - refresh the conversation list
+      conversation.loadConversations();
+    }
+    prevMessageCount.current = chat.messages.length;
+  }, [chat.messages.length, chat.isLoading, conversation]);
+
   // Override switchToChat to also load messages
   const switchToChat = useCallback(async (chatId: string) => {
     const messages = await conversation.switchToChat(chatId);
@@ -57,6 +79,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     isLoading: chat.isLoading,
     isThinking: chat.isThinking,
     currentThinkingStep: chat.currentThinkingStep,
+    thinkingSteps: chat.thinkingSteps,
     hasStartedChat: chat.hasStartedChat,
     error: chat.error,
     sendMessage: chat.sendMessage,
