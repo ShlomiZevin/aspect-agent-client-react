@@ -18,6 +18,9 @@ export function Message({ message }: MessageProps) {
         <span>{message.content}</span>
       ) : (
         <>
+          {message.crewMember && (
+            <div className={styles.crewLabel}>{message.crewMember}</div>
+          )}
           {hasThinkingSteps && (
             <ThinkingIndicator
               currentStep=""

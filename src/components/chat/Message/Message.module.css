@@ -27,6 +27,15 @@
   border-bottom-left-radius: var(--radius-sm);
 }
 
+.crewLabel {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: var(--spacing-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;

@@ -6,6 +6,16 @@
   min-height: 0; /* Important for flex children to respect overflow */
 }
 
+.crewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
 .messages {
   flex: 1;
   overflow-y: auto;

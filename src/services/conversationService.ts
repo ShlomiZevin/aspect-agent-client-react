@@ -9,6 +9,10 @@ interface ConversationHistoryResponse {
     role: 'user' | 'assistant';
     content: string;
     createdAt: string;
+    metadata?: {
+      crewMember?: string;
+      [key: string]: unknown;
+    };
     thinkingSteps?: Array<{
       stepType: string;
       description: string;
@@ -47,6 +51,7 @@ export async function getConversationHistory(
       role: msg.role,
       content: msg.content,
       timestamp: new Date(msg.createdAt),
+      crewMember: msg.metadata?.crewMember,
       thinkingSteps: msg.thinkingSteps?.map(step => ({
         stepType: step.stepType,
         description: step.description,

@@ -4,14 +4,29 @@ import { Message } from '../Message';
 import { ThinkingIndicator } from '../ThinkingIndicator';
 import { WelcomeSection } from '../WelcomeSection';
 import { ChatInput } from '../ChatInput';
+import { CrewMemberIndicator } from '../CrewMemberIndicator';
+import { CrewMemberSelector } from '../CrewMemberSelector';
 import styles from './ChatContainer.module.css';
 
 interface ChatContainerProps {
   showKBToggle?: boolean;
+  showCrewSelector?: boolean;
 }
 
-export function ChatContainer({ showKBToggle = false }: ChatContainerProps) {
-  const { messages, isThinking, currentThinkingStep, thinkingSteps, hasStartedChat } = useChatContext();
+export function ChatContainer({ showKBToggle = false, showCrewSelector = false }: ChatContainerProps) {
+  const {
+    messages,
+    isThinking,
+    currentThinkingStep,
+    thinkingSteps,
+    hasStartedChat,
+    crewMembers,
+    currentCrew,
+    selectedOverride,
+    setSelectedOverride,
+    hasCrew,
+    isLoading,
+  } = useChatContext();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -40,6 +55,22 @@ export function ChatContainer({ showKBToggle = false }: ChatContainerProps) {
 
   return (
     <div className={styles.container}>
+      {/* Crew header - shows when agent has crew members */}
+      {hasCrew && (
+        <div className={styles.crewHeader}>
+          <CrewMemberIndicator crew={currentCrew} isTransitioning={isThinking} />
+          {showCrewSelector && (
+            <CrewMemberSelector
+              crewMembers={crewMembers}
+              currentCrew={currentCrew}
+              selectedOverride={selectedOverride}
+              onSelect={setSelectedOverride}
+              disabled={isLoading}
+            />
+          )}
+        </div>
+      )}
+
       <div className={styles.messages} ref={messagesContainerRef}>
         {!hasStartedChat ? (
           <WelcomeSection />

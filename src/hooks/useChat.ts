@@ -1,7 +1,9 @@
-import { useReducer, useCallback, useEffect } from 'react';
+import { useReducer, useCallback, useEffect, useRef } from 'react';
 import { streamChat } from '../services/chatService';
 import { getConversationHistory } from '../services/conversationService';
 import type { Message, ChatState, ChatAction, AgentConfig, ThinkingStep } from '../types';
+import type { CrewMember } from '../types/crew';
+import type { CrewTransition } from '../services/chatService';
 
 const initialState: ChatState = {
   messages: [],
@@ -60,11 +62,12 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         messages: [
           ...state.messages,
           {
-            id: action.payload,
+            id: action.payload.id,
             role: 'assistant',
             content: '',
             timestamp: new Date(),
             thinkingSteps: [...state.thinkingSteps],
+            crewMember: action.payload.crewMember,
           },
         ],
       };
@@ -128,6 +131,9 @@ export interface UseChatOptions {
   conversationId: string;
   userId: string | null;
   useKnowledgeBase?: boolean;
+  overrideCrewMember?: string | null;
+  onCrewInfo?: (crew: CrewMember) => void;
+  onCrewTransition?: (transition: CrewTransition) => void;
 }
 
 export interface UseChatReturn {
@@ -148,7 +154,7 @@ export interface UseChatReturn {
  * Main chat hook - handles messaging, streaming, and thinking indicators
  */
 export function useChat(options: UseChatOptions): UseChatReturn {
-  const { config, conversationId, userId, useKnowledgeBase = false } = options;
+  const { config, conversationId, userId, useKnowledgeBase = false, overrideCrewMember, onCrewInfo, onCrewTransition } = options;
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
     conversationId,
@@ -171,6 +177,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
 
       const botMessageId = crypto.randomUUID();
       let hasStartedStreaming = false;
+      let currentCrewDisplayName: string | undefined;
 
       try {
         await streamChat(
@@ -181,6 +188,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             userId,
             useKnowledgeBase,
             baseURL: config.baseURL,
+            overrideCrewMember,
           },
           {
             onThinkingStep: (step) => {
@@ -192,7 +200,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             onChunk: (chunk) => {
               if (!hasStartedStreaming) {
                 dispatch({ type: 'COMPLETE_THINKING' });
-                dispatch({ type: 'START_STREAMING', payload: botMessageId });
+                dispatch({ type: 'START_STREAMING', payload: { id: botMessageId, crewMember: currentCrewDisplayName } });
                 hasStartedStreaming = true;
               }
               dispatch({ type: 'APPEND_CHUNK', payload: chunk });
@@ -205,6 +213,11 @@ export function useChat(options: UseChatOptions): UseChatReturn {
               dispatch({ type: 'COMPLETE_THINKING' });
               dispatch({ type: 'SET_ERROR', payload: error.message });
             },
+            onCrewInfo: (crew) => {
+              currentCrewDisplayName = crew.displayName;
+              onCrewInfo?.(crew);
+            },
+            onCrewTransition,
           }
         );
       } catch (error) {
@@ -221,6 +234,9 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       conversationId,
       userId,
       useKnowledgeBase,
+      overrideCrewMember,
+      onCrewInfo,
+      onCrewTransition,
     ]
   );
 

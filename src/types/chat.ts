@@ -4,6 +4,7 @@ export interface Message {
   content: string;
   timestamp: Date;
   thinkingSteps?: ThinkingStep[];
+  crewMember?: string;
 }
 
 export interface ThinkingStep {
@@ -43,7 +44,7 @@ export type ChatAction =
   | { type: 'START_THINKING' }
   | { type: 'ADD_THINKING_STEP'; payload: ThinkingStep }
   | { type: 'COMPLETE_THINKING' }
-  | { type: 'START_STREAMING'; payload: string }
+  | { type: 'START_STREAMING'; payload: { id: string; crewMember?: string } }
   | { type: 'APPEND_CHUNK'; payload: string }
   | { type: 'COMPLETE_MESSAGE' }
   | { type: 'LOAD_HISTORY'; payload: { conversationId: string; messages: Message[] } }

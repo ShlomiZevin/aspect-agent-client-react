@@ -1,12 +1,19 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
-import { useChat, useConversation, type UseChatReturn, type UseConversationReturn } from '../hooks';
+import { useChat, useConversation, useCrew, type UseChatReturn, type UseConversationReturn } from '../hooks';
 import { useAgentContext } from './AgentContext';
 import { useUserContext } from './UserContext';
+import type { CrewMember } from '../types/crew';
 
 interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 'switchToChat'> {
   useKnowledgeBase: boolean;
   setUseKnowledgeBase: (value: boolean) => void;
   switchToChat: (chatId: string) => Promise<void>;
+  // Crew state
+  crewMembers: CrewMember[];
+  currentCrew: CrewMember | null;
+  selectedOverride: string | null;
+  setSelectedOverride: (crewName: string | null) => void;
+  hasCrew: boolean;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -27,11 +34,26 @@ export function ChatProvider({ children }: ChatProviderProps) {
     config.baseURL
   );
 
+  // Crew state management
+  const crew = useCrew({
+    agentName: config.agentName,
+    baseURL: config.baseURL,
+  });
+
   const chat = useChat({
     config,
     conversationId: conversation.conversationId,
     userId,
     useKnowledgeBase: useKB,
+    overrideCrewMember: crew.selectedOverride,
+    onCrewInfo: crew.setCurrentCrew,
+    onCrewTransition: (transition) => {
+      // Find the new crew member and update current
+      const newCrew = crew.crewMembers.find(c => c.name === transition.to);
+      if (newCrew) {
+        crew.setCurrentCrew(newCrew);
+      }
+    },
   });
 
   // Track message count to detect when a new message is sent
@@ -99,6 +121,13 @@ export function ChatProvider({ children }: ChatProviderProps) {
     // KB toggle
     useKnowledgeBase: useKB,
     setUseKnowledgeBase: setUseKB,
+
+    // Crew state
+    crewMembers: crew.crewMembers,
+    currentCrew: crew.currentCrew,
+    selectedOverride: crew.selectedOverride,
+    setSelectedOverride: crew.setSelectedOverride,
+    hasCrew: crew.hasCrew,
   };
 
   return (

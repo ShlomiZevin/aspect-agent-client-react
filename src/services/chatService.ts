@@ -1,5 +1,6 @@
 import { getBaseURL } from './api';
 import type { ThinkingStep } from '../types';
+import type { CrewMember } from '../types/crew';
 
 export interface StreamChatOptions {
   message: string;
@@ -8,6 +9,14 @@ export interface StreamChatOptions {
   userId: string | null;
   useKnowledgeBase?: boolean;
   baseURL?: string;
+  overrideCrewMember?: string | null;
+}
+
+export interface CrewTransition {
+  from: string;
+  to: string;
+  reason: string;
+  timestamp: string;
 }
 
 export interface StreamCallbacks {
@@ -16,6 +25,8 @@ export interface StreamCallbacks {
   onError: (error: Error) => void;
   onThinkingStep?: (step: ThinkingStep) => void;
   onThinkingComplete?: () => void;
+  onCrewInfo?: (crew: CrewMember) => void;
+  onCrewTransition?: (transition: CrewTransition) => void;
 }
 
 /**
@@ -25,8 +36,8 @@ export async function streamChat(
   options: StreamChatOptions,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const { message, conversationId, agentName, userId, useKnowledgeBase = false, baseURL } = options;
-  const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete } = callbacks;
+  const { message, conversationId, agentName, userId, useKnowledgeBase = false, baseURL, overrideCrewMember } = options;
+  const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
 
@@ -40,6 +51,7 @@ export async function streamChat(
         useKnowledgeBase,
         userId,
         agentName,
+        ...(overrideCrewMember && { overrideCrewMember }),
       }),
     });
 
@@ -105,6 +117,14 @@ export async function streamChat(
             else if (parsed.type === 'function_call' || parsed.type === 'function_result') {
               // Function calls are already handled as thinking steps on server
               // Could add additional handling here if needed
+            }
+            // Handle crew info event
+            else if (parsed.type === 'crew_info' && parsed.crew) {
+              onCrewInfo?.(parsed.crew);
+            }
+            // Handle crew transition event
+            else if (parsed.type === 'crew_transition' && parsed.transition) {
+              onCrewTransition?.(parsed.transition);
             }
           } catch {
             // Skip invalid JSON
