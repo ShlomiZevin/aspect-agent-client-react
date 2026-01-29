@@ -1,4 +1,4 @@
-import { useReducer, useCallback, useEffect, useRef } from 'react';
+import { useReducer, useCallback, useEffect } from 'react';
 import { streamChat } from '../services/chatService';
 import { getConversationHistory } from '../services/conversationService';
 import type { Message, ChatState, ChatAction, AgentConfig, ThinkingStep } from '../types';

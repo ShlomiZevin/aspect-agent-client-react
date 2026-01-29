@@ -1,5 +1,5 @@
 import { apiRequest, getBaseURL } from './api';
-import type { Message, Conversation, ThinkingStep } from '../types';
+import type { Message, Conversation } from '../types';
 
 interface ConversationHistoryResponse {
   conversationId: string;
