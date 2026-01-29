@@ -87,6 +87,52 @@
   flex-shrink: 0;
 }
 
+.expandable {
+  cursor: pointer;
+}
+
+.expandable:hover {
+  color: var(--text-primary);
+}
+
+.stepToggle {
+  transition: transform var(--transition-fast);
+  flex-shrink: 0;
+  margin-left: auto;
+  opacity: 0.5;
+}
+
+.stepToggle.expanded {
+  transform: rotate(180deg);
+}
+
+.fileList {
+  padding: var(--spacing-xs) 0 var(--spacing-xs) calc(var(--spacing-sm) + 14px);
+}
+
+.fileItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: 2px 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.fileName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.fileScore {
+  flex-shrink: 0;
+  opacity: 0.6;
+  font-size: 10px;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;
