@@ -33,6 +33,12 @@
 
 @media (max-width: 768px) {
   .messages {
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    padding-bottom: calc(var(--spacing-lg) + 80px);
+  }
+
+  .crewHeader {
+    padding: var(--spacing-xs) var(--spacing-md);
+    gap: var(--spacing-sm);
   }
 }

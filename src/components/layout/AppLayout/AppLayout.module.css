@@ -20,3 +20,9 @@
   overflow: hidden;
   min-height: 0; /* Important for flex children to respect overflow */
 }
+
+@media (max-width: 768px) {
+  .layout, .main {
+    height: 100dvh;
+  }
+}

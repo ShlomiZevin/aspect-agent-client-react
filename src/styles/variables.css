@@ -39,6 +39,14 @@
   --z-toast: 1100;
 }
 
+/* Mobile overrides */
+@media (max-width: 768px) {
+  :root {
+    --header-height: 56px;
+    --input-height: 60px;
+  }
+}
+
 /* Default theme values - will be overridden by agent themes */
 :root {
   --primary-color: #2563eb;

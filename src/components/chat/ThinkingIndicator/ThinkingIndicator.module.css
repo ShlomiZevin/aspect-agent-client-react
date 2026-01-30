@@ -133,6 +133,24 @@
   font-size: 10px;
 }
 
+@media (max-width: 768px) {
+  .container {
+    max-width: 85%;
+  }
+
+  .header {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .steps {
+    padding: 0 var(--spacing-sm) var(--spacing-xs);
+  }
+
+  .fileList {
+    padding-left: calc(var(--spacing-xs) + 14px);
+  }
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;

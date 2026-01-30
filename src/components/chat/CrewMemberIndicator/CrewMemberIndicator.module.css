@@ -53,6 +53,22 @@
   text-overflow: ellipsis;
 }
 
+@media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    gap: var(--spacing-xs);
+  }
+
+  .description {
+    display: none;
+  }
+
+  .icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
 @keyframes pulse {
   0%, 100% {
     border-color: var(--primary-color);

@@ -49,9 +49,34 @@
 
 @media (max-width: 768px) {
   .message {
-    max-width: 85%;
+    max-width: 92%;
     padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 15px;
+    line-height: 1.5;
   }
+
+  .bot {
+    max-width: 100%;
+  }
+
+  .markdownContent table {
+    min-width: unset;
+    font-size: 0.8em;
+  }
+
+  .markdownContent th,
+  .markdownContent td {
+    padding: 0.4em 0.5em;
+  }
+
+  .markdownContent pre {
+    padding: var(--spacing-sm);
+    font-size: 0.85em;
+  }
+
+  .markdownContent h1 { font-size: 1.25em; }
+  .markdownContent h2 { font-size: 1.15em; }
+  .markdownContent h3 { font-size: 1.05em; }
 }
 
 /* Markdown content styles */

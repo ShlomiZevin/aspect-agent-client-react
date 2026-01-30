@@ -113,6 +113,24 @@
   margin: var(--spacing-xs) 0;
 }
 
+@media (max-width: 768px) {
+  .trigger {
+    padding: var(--spacing-xs) var(--spacing-md);
+    min-height: 44px;
+  }
+
+  .dropdown {
+    min-width: 200px;
+    max-width: calc(100vw - var(--spacing-lg) * 2);
+    right: 0;
+  }
+
+  .option {
+    padding: var(--spacing-md);
+    min-height: 44px;
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
