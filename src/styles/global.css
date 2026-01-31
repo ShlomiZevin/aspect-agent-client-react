@@ -187,13 +187,8 @@ textarea::placeholder {
   white-space: nowrap;
 }
 
-/* Mobile touch targets - ensure minimum 44px tap targets */
+/* Mobile adjustments */
 @media (max-width: 768px) {
-  button, a, [role="button"] {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
   /* Smooth scrolling for touch */
   * {
     -webkit-overflow-scrolling: touch;

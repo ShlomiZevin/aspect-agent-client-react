@@ -41,26 +41,6 @@
   color: var(--text-muted);
 }
 
-.kbToggle {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  cursor: pointer;
-  user-select: none;
-}
-
-.kbToggle input {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--primary-color);
-}
-
-.kbLabel {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
 .sendBtn {
   display: flex;
   align-items: center;
@@ -91,16 +71,8 @@
   }
 
   .inputWrapper {
-    padding: var(--spacing-xs) var(--spacing-sm);
+    padding: var(--spacing-sm);
     border-radius: var(--radius-md);
-  }
-
-  .input {
-    min-height: 20px;
-  }
-
-  .kbLabel {
-    display: none;
   }
 
   .sendBtn {

@@ -9,11 +9,10 @@ import { CrewMemberSelector } from '../CrewMemberSelector';
 import styles from './ChatContainer.module.css';
 
 interface ChatContainerProps {
-  showKBToggle?: boolean;
   showCrewSelector?: boolean;
 }
 
-export function ChatContainer({ showKBToggle = false, showCrewSelector = false }: ChatContainerProps) {
+export function ChatContainer({ showCrewSelector = false }: ChatContainerProps) {
   const {
     messages,
     isThinking,
@@ -92,7 +91,7 @@ export function ChatContainer({ showKBToggle = false, showCrewSelector = false }
         )}
       </div>
 
-      <ChatInput showKBToggle={showKBToggle} />
+      <ChatInput />
     </div>
   );
 }

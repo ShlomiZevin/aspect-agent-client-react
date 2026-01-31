@@ -21,7 +21,7 @@ export const aspectConfig: AgentConfig = {
   welcomeIcon: '💼',
   welcomeTitle: 'Welcome to your Aspect Assistant',
   welcomeMessage: 'Ask me anything about your business metrics, sales data, inventory, and more.',
-  inputPlaceholder: 'Ask about sales, inventory, branches, customers...',
+  inputPlaceholder: 'Ask about your business...',
 
   quickQuestions: [
     { icon: '💰', text: 'Sales Overview', question: 'What are my total sales this month?' },

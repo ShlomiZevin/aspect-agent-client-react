@@ -21,7 +21,7 @@ export const freedaConfig: AgentConfig = {
   welcomeIcon: '🌸',
   welcomeTitle: 'Welcome to Freeda',
   welcomeMessage: "I'm here to support you through your menopause journey with understanding, knowledge, and care.",
-  inputPlaceholder: 'Ask me anything about menopause, wellness, or self-care...',
+  inputPlaceholder: 'Ask about menopause...',
 
   quickQuestions: [
     { icon: '🌡️', text: 'Common Symptoms', question: 'What are the common symptoms of menopause?' },

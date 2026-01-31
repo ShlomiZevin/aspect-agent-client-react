@@ -17,7 +17,7 @@ export function FreedaPage() {
         <AgentProvider config={freedaConfig}>
           <ChatProvider>
             <AppLayout>
-              <ChatContainer showKBToggle={true} showCrewSelector={true} />
+              <ChatContainer showCrewSelector={true} />
             </AppLayout>
           </ChatProvider>
         </AgentProvider>

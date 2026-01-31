@@ -2,13 +2,9 @@ import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useAgentConfig, useChatContext } from '../../../context';
 import styles from './ChatInput.module.css';
 
-interface ChatInputProps {
-  showKBToggle?: boolean;
-}
-
-export function ChatInput({ showKBToggle = false }: ChatInputProps) {
+export function ChatInput() {
   const config = useAgentConfig();
-  const { sendMessage, isLoading, useKnowledgeBase, setUseKnowledgeBase } = useChatContext();
+  const { sendMessage, isLoading } = useChatContext();
   const [input, setInput] = useState('');
 
   const handleSubmit = (e: FormEvent) => {
@@ -39,17 +35,6 @@ export function ChatInput({ showKBToggle = false }: ChatInputProps) {
           disabled={isLoading}
           rows={1}
         />
-
-        {showKBToggle && config.features.kbToggleable && (
-          <label className={styles.kbToggle}>
-            <input
-              type="checkbox"
-              checked={useKnowledgeBase}
-              onChange={(e) => setUseKnowledgeBase(e.target.checked)}
-            />
-            <span className={styles.kbLabel}>Use KB</span>
-          </label>
-        )}
 
         <button
           type="submit"

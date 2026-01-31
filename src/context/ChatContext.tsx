@@ -1,12 +1,10 @@
-import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { useChat, useConversation, useCrew, type UseChatReturn, type UseConversationReturn } from '../hooks';
 import { useAgentContext } from './AgentContext';
 import { useUserContext } from './UserContext';
 import type { CrewMember } from '../types/crew';
 
 interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 'switchToChat'> {
-  useKnowledgeBase: boolean;
-  setUseKnowledgeBase: (value: boolean) => void;
   switchToChat: (chatId: string) => Promise<void>;
   // Crew state
   crewMembers: CrewMember[];
@@ -25,7 +23,7 @@ interface ChatProviderProps {
 export function ChatProvider({ children }: ChatProviderProps) {
   const { config } = useAgentContext();
   const { userId } = useUserContext();
-  const [useKB, setUseKB] = useState(config.features.hasKnowledgeBase && config.features.kbToggleable);
+  const useKB = config.features.hasKnowledgeBase;
 
   const conversation = useConversation(
     config.storagePrefix,
@@ -117,10 +115,6 @@ export function ChatProvider({ children }: ChatProviderProps) {
     deleteChat: conversation.deleteChat,
     updateTitle: conversation.updateTitle,
     loadConversations: conversation.loadConversations,
-
-    // KB toggle
-    useKnowledgeBase: useKB,
-    setUseKnowledgeBase: setUseKB,
 
     // Crew state
     crewMembers: crew.crewMembers,
