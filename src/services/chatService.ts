@@ -116,7 +116,11 @@ export async function streamChat(
             // Handle function call events (pass through for logging/UI purposes if needed)
             else if (parsed.type === 'function_call' || parsed.type === 'function_result') {
               // Function calls are already handled as thinking steps on server
-              // Could add additional handling here if needed
+            }
+            // Handle field extraction events (displayed via thinking steps on server)
+            else if (parsed.type === 'field_extracted') {
+              // Field extractions are sent as thinking_step events by the server
+              // No additional client handling needed
             }
             // Handle crew info event
             else if (parsed.type === 'crew_info' && parsed.crew) {
