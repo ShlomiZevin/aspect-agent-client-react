@@ -6,3 +6,4 @@ export { useChat, type UseChatOptions, type UseChatReturn } from './useChat';
 export { useKnowledgeBase, type UseKnowledgeBaseReturn } from './useKnowledgeBase';
 export { useDocumentMeta } from './useDocumentMeta';
 export { useCrew, type UseCrewOptions, type UseCrewReturn } from './useCrew';
+export { useDebugShortcut } from './useDebugMode';

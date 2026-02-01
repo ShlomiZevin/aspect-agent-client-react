@@ -6,6 +6,17 @@
   min-height: 0; /* Important for flex children to respect overflow */
 }
 
+.debugBadge {
+  background: var(--warning-color);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  text-align: center;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
 .crewHeader {
   display: flex;
   align-items: center;

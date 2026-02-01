@@ -1,5 +1,5 @@
-import { createContext, useContext, useCallback, useEffect, useRef, type ReactNode } from 'react';
-import { useChat, useConversation, useCrew, type UseChatReturn, type UseConversationReturn } from '../hooks';
+import { createContext, useContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useChat, useConversation, useCrew, useDebugShortcut, type UseChatReturn, type UseConversationReturn } from '../hooks';
 import { useAgentContext } from './AgentContext';
 import { useUserContext } from './UserContext';
 import type { CrewMember } from '../types/crew';
@@ -12,6 +12,9 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   selectedOverride: string | null;
   setSelectedOverride: (crewName: string | null) => void;
   hasCrew: boolean;
+  // Debug
+  debugMode: boolean;
+  toggleDebug: () => void;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -24,6 +27,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const { config } = useAgentContext();
   const { userId } = useUserContext();
   const useKB = config.features.hasKnowledgeBase;
+
+  // Debug mode (Ctrl+Shift+D easter egg)
+  const [debugMode, setDebugMode] = useState(false);
+  const toggleDebug = useCallback(() => setDebugMode(prev => !prev), []);
+  useDebugShortcut(toggleDebug);
 
   const conversation = useConversation(
     config.storagePrefix,
@@ -44,6 +52,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     userId,
     useKnowledgeBase: useKB,
     overrideCrewMember: crew.selectedOverride,
+    debug: debugMode,
     onCrewInfo: crew.setCurrentCrew,
     onCrewTransition: (transition) => {
       // Find the new crew member and update current
@@ -122,6 +131,10 @@ export function ChatProvider({ children }: ChatProviderProps) {
     selectedOverride: crew.selectedOverride,
     setSelectedOverride: crew.setSelectedOverride,
     hasCrew: crew.hasCrew,
+
+    // Debug
+    debugMode,
+    toggleDebug,
   };
 
   return (

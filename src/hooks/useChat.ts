@@ -1,7 +1,7 @@
 import { useReducer, useCallback, useEffect } from 'react';
 import { streamChat } from '../services/chatService';
 import { getConversationHistory } from '../services/conversationService';
-import type { Message, ChatState, ChatAction, AgentConfig, ThinkingStep } from '../types';
+import type { Message, ChatState, ChatAction, AgentConfig, ThinkingStep, PostExtractionContext } from '../types';
 import type { CrewMember } from '../types/crew';
 import type { CrewTransition } from '../services/chatService';
 
@@ -59,6 +59,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'START_STREAMING':
       return {
         ...state,
+        pendingDebugData: null,
         messages: [
           ...state.messages,
           {
@@ -68,6 +69,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
             timestamp: new Date(),
             thinkingSteps: [...state.thinkingSteps],
             crewMember: action.payload.crewMember,
+            debugData: state.pendingDebugData || undefined,
           },
         ],
       };
@@ -121,6 +123,27 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         error: null,
       };
 
+    case 'SET_DEBUG_DATA':
+      return {
+        ...state,
+        pendingDebugData: action.payload,
+      };
+
+    case 'UPDATE_DEBUG_CONTEXT': {
+      const messages = [...state.messages];
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage?.role === 'assistant' && lastMessage.debugData) {
+        messages[messages.length - 1] = {
+          ...lastMessage,
+          debugData: {
+            ...lastMessage.debugData,
+            postExtractionContext: action.payload,
+          },
+        };
+      }
+      return { ...state, messages };
+    }
+
     default:
       return state;
   }
@@ -132,6 +155,7 @@ export interface UseChatOptions {
   userId: string | null;
   useKnowledgeBase?: boolean;
   overrideCrewMember?: string | null;
+  debug?: boolean;
   onCrewInfo?: (crew: CrewMember) => void;
   onCrewTransition?: (transition: CrewTransition) => void;
 }
@@ -154,7 +178,7 @@ export interface UseChatReturn {
  * Main chat hook - handles messaging, streaming, and thinking indicators
  */
 export function useChat(options: UseChatOptions): UseChatReturn {
-  const { config, conversationId, userId, useKnowledgeBase = false, overrideCrewMember, onCrewInfo, onCrewTransition } = options;
+  const { config, conversationId, userId, useKnowledgeBase = false, overrideCrewMember, debug, onCrewInfo, onCrewTransition } = options;
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
     conversationId,
@@ -189,6 +213,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             useKnowledgeBase,
             baseURL: config.baseURL,
             overrideCrewMember,
+            debug,
           },
           {
             onThinkingStep: (step) => {
@@ -218,6 +243,12 @@ export function useChat(options: UseChatOptions): UseChatReturn {
               onCrewInfo?.(crew);
             },
             onCrewTransition,
+            onDebugData: (data) => {
+              dispatch({ type: 'SET_DEBUG_DATA', payload: data });
+            },
+            onDebugContextUpdate: (data) => {
+              dispatch({ type: 'UPDATE_DEBUG_CONTEXT', payload: data });
+            },
           }
         );
       } catch (error) {
@@ -235,6 +266,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       userId,
       useKnowledgeBase,
       overrideCrewMember,
+      debug,
       onCrewInfo,
       onCrewTransition,
     ]

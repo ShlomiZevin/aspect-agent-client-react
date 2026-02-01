@@ -1,5 +1,5 @@
 import { getBaseURL } from './api';
-import type { ThinkingStep } from '../types';
+import type { ThinkingStep, DebugPromptData, PostExtractionContext } from '../types';
 import type { CrewMember } from '../types/crew';
 
 export interface StreamChatOptions {
@@ -10,6 +10,7 @@ export interface StreamChatOptions {
   useKnowledgeBase?: boolean;
   baseURL?: string;
   overrideCrewMember?: string | null;
+  debug?: boolean;
 }
 
 export interface CrewTransition {
@@ -27,6 +28,8 @@ export interface StreamCallbacks {
   onThinkingComplete?: () => void;
   onCrewInfo?: (crew: CrewMember) => void;
   onCrewTransition?: (transition: CrewTransition) => void;
+  onDebugData?: (data: DebugPromptData) => void;
+  onDebugContextUpdate?: (data: PostExtractionContext) => void;
 }
 
 /**
@@ -36,8 +39,8 @@ export async function streamChat(
   options: StreamChatOptions,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const { message, conversationId, agentName, userId, useKnowledgeBase = false, baseURL, overrideCrewMember } = options;
-  const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition } = callbacks;
+  const { message, conversationId, agentName, userId, useKnowledgeBase = false, baseURL, overrideCrewMember, debug } = options;
+  const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onDebugContextUpdate } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
 
@@ -52,6 +55,7 @@ export async function streamChat(
         userId,
         agentName,
         ...(overrideCrewMember && { overrideCrewMember }),
+        ...(debug && { debug: true }),
       }),
     });
 
@@ -129,6 +133,14 @@ export async function streamChat(
             // Handle crew transition event
             else if (parsed.type === 'crew_transition' && parsed.transition) {
               onCrewTransition?.(parsed.transition);
+            }
+            // Handle debug prompt data (dev debug mode)
+            else if (parsed.type === 'debug_prompt' && parsed.data) {
+              onDebugData?.(parsed.data);
+            }
+            // Handle debug context update (post-extraction)
+            else if (parsed.type === 'debug_context_update' && parsed.data) {
+              onDebugContextUpdate?.(parsed.data);
             }
           } catch {
             // Skip invalid JSON

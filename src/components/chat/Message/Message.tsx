@@ -1,7 +1,9 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Message as MessageType } from '../../../types';
+import { useChatContext } from '../../../context';
 import { ThinkingIndicator } from '../ThinkingIndicator';
+import { DebugPanel } from '../DebugPanel';
 import styles from './Message.module.css';
 
 interface MessageProps {
@@ -16,6 +18,7 @@ function isRTL(text: string): boolean {
 }
 
 export function Message({ message }: MessageProps) {
+  const { debugMode } = useChatContext();
   const isUser = message.role === 'user';
   const hasThinkingSteps = !isUser && message.thinkingSteps && message.thinkingSteps.length > 0;
   const rtl = isRTL(message.content);
@@ -41,6 +44,9 @@ export function Message({ message }: MessageProps) {
               {message.content}
             </ReactMarkdown>
           </div>
+          {debugMode && message.debugData && (
+            <DebugPanel data={message.debugData} />
+          )}
         </>
       )}
     </div>

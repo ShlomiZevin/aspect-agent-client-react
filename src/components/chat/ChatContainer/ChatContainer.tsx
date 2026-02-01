@@ -25,6 +25,7 @@ export function ChatContainer({ showCrewSelector = false }: ChatContainerProps) 
     setSelectedOverride,
     hasCrew,
     isLoading,
+    debugMode,
   } = useChatContext();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -54,6 +55,12 @@ export function ChatContainer({ showCrewSelector = false }: ChatContainerProps) 
 
   return (
     <div className={styles.container}>
+      {debugMode && (
+        <div className={styles.debugBadge}>
+          DEBUG MODE (Ctrl+Shift+D to toggle)
+        </div>
+      )}
+
       {/* Crew header - shows when agent has crew members */}
       {hasCrew && (
         <div className={styles.crewHeader}>

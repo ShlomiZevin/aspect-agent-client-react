@@ -1,3 +1,21 @@
+export interface PostExtractionContext {
+  extractedFields: Record<string, string>;
+  allCollectedFields: Record<string, string>;
+  remainingFields: string[];
+}
+
+export interface DebugPromptData {
+  crewName: string;
+  crewDisplayName: string;
+  fullInstructions: string;
+  model: string;
+  maxTokens: number;
+  tools: Record<string, unknown>[];
+  knowledgeBase: { enabled: boolean; storeId: string | null } | null;
+  processedMessage: string;
+  postExtractionContext?: PostExtractionContext;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -5,6 +23,7 @@ export interface Message {
   timestamp: Date;
   thinkingSteps?: ThinkingStep[];
   crewMember?: string;
+  debugData?: DebugPromptData;
 }
 
 export interface ThinkingStep {
@@ -37,6 +56,7 @@ export type ChatState = {
   thinkingSteps: ThinkingStep[];
   hasStartedChat: boolean;
   error: string | null;
+  pendingDebugData?: DebugPromptData | null;
 };
 
 export type ChatAction =
@@ -50,4 +70,6 @@ export type ChatAction =
   | { type: 'LOAD_HISTORY'; payload: { conversationId: string; messages: Message[] } }
   | { type: 'NEW_CHAT'; payload: string }
   | { type: 'SET_ERROR'; payload: string }
-  | { type: 'CLEAR_ERROR' };
+  | { type: 'CLEAR_ERROR' }
+  | { type: 'SET_DEBUG_DATA'; payload: DebugPromptData }
+  | { type: 'UPDATE_DEBUG_CONTEXT'; payload: PostExtractionContext };
