@@ -2,7 +2,7 @@ import { createContext, useContext, useCallback, useEffect, useRef, useState, ty
 import { useChat, useConversation, useCrew, useDebugShortcut, type UseChatReturn, type UseConversationReturn } from '../hooks';
 import { useAgentContext } from './AgentContext';
 import { useUserContext } from './UserContext';
-import type { CrewMember } from '../types/crew';
+import type { CrewMember, CrewJourneyStep } from '../types/crew';
 
 interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 'switchToChat'> {
   switchToChat: (chatId: string) => Promise<void>;
@@ -12,6 +12,11 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   selectedOverride: string | null;
   setSelectedOverride: (crewName: string | null) => void;
   hasCrew: boolean;
+  // Journey state
+  journeySteps: CrewJourneyStep[];
+  isJourneyModalOpen: boolean;
+  openJourneyModal: () => void;
+  closeJourneyModal: () => void;
   // Debug
   debugMode: boolean;
   toggleDebug: () => void;
@@ -46,6 +51,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
     baseURL: config.baseURL,
   });
 
+  // Journey modal state
+  const [isJourneyModalOpen, setIsJourneyModalOpen] = useState(false);
+  const openJourneyModal = useCallback(() => setIsJourneyModalOpen(true), []);
+  const closeJourneyModal = useCallback(() => setIsJourneyModalOpen(false), []);
+
   const chat = useChat({
     config,
     conversationId: conversation.conversationId,
@@ -55,6 +65,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
     debug: debugMode,
     onCrewInfo: crew.setCurrentCrew,
     onCrewTransition: (transition) => {
+      // Record the departing crew as visited
+      crew.addVisitedCrew(transition.from);
       // Find the new crew member and update current
       const newCrew = crew.crewMembers.find(c => c.name === transition.to);
       if (newCrew) {
@@ -85,22 +97,45 @@ export function ChatProvider({ children }: ChatProviderProps) {
     prevMessageCount.current = chat.messages.length;
   }, [chat.messages.length, chat.isLoading, conversation]);
 
+  // Sync current crew from loaded message history (e.g., on page refresh or conversation switch)
+  const hasRestoredCrew = useRef(false);
+  useEffect(() => {
+    if (hasRestoredCrew.current || crew.crewMembers.length === 0 || chat.messages.length === 0) return;
+
+    // Find the last assistant message that has a crewMember tag
+    for (let i = chat.messages.length - 1; i >= 0; i--) {
+      const msg = chat.messages[i];
+      if (msg.role === 'assistant' && msg.crewMember) {
+        const match = crew.crewMembers.find(c => c.displayName === msg.crewMember);
+        if (match) {
+          crew.setCurrentCrew(match);
+          hasRestoredCrew.current = true;
+        }
+        break;
+      }
+    }
+  }, [chat.messages, crew.crewMembers, crew]);
+
   // Override switchToChat to also load messages
   const switchToChat = useCallback(async (chatId: string) => {
+    crew.resetJourney();
+    hasRestoredCrew.current = false;
     const messages = await conversation.switchToChat(chatId);
     if (messages.length > 0) {
       chat.loadHistory(chatId);
     } else {
       chat.newChat(chatId);
     }
-  }, [conversation, chat]);
+  }, [conversation, chat, crew]);
 
   // Handle new chat creation
   const handleCreateNewChat = useCallback(() => {
     const newId = conversation.createNewChat();
     chat.newChat(newId);
+    crew.resetJourney();
+    hasRestoredCrew.current = false;
     return newId;
-  }, [conversation, chat]);
+  }, [conversation, chat, crew]);
 
   const value: ChatContextValue = {
     // Chat state
@@ -131,6 +166,12 @@ export function ChatProvider({ children }: ChatProviderProps) {
     selectedOverride: crew.selectedOverride,
     setSelectedOverride: crew.setSelectedOverride,
     hasCrew: crew.hasCrew,
+
+    // Journey state
+    journeySteps: crew.journeySteps,
+    isJourneyModalOpen,
+    openJourneyModal,
+    closeJourneyModal,
 
     // Debug
     debugMode,

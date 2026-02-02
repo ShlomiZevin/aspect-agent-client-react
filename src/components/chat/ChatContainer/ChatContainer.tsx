@@ -6,6 +6,8 @@ import { WelcomeSection } from '../WelcomeSection';
 import { ChatInput } from '../ChatInput';
 import { CrewMemberIndicator } from '../CrewMemberIndicator';
 import { CrewMemberSelector } from '../CrewMemberSelector';
+import { CrewJourneyStepper } from '../CrewJourneyStepper';
+import { CrewJourneyModal } from '../CrewJourneyModal';
 import styles from './ChatContainer.module.css';
 
 interface ChatContainerProps {
@@ -26,6 +28,10 @@ export function ChatContainer({ showCrewSelector = false }: ChatContainerProps) 
     hasCrew,
     isLoading,
     debugMode,
+    journeySteps,
+    isJourneyModalOpen,
+    openJourneyModal,
+    closeJourneyModal,
   } = useChatContext();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -64,7 +70,11 @@ export function ChatContainer({ showCrewSelector = false }: ChatContainerProps) 
       {/* Crew header - shows when agent has crew members */}
       {hasCrew && (
         <div className={styles.crewHeader}>
-          <CrewMemberIndicator crew={currentCrew} isTransitioning={isThinking} />
+          {journeySteps.length >= 2 ? (
+            <CrewJourneyStepper steps={journeySteps} onStepperClick={openJourneyModal} />
+          ) : (
+            <CrewMemberIndicator crew={currentCrew} isTransitioning={isThinking} />
+          )}
           {showCrewSelector && (
             <CrewMemberSelector
               crewMembers={crewMembers}
@@ -76,6 +86,12 @@ export function ChatContainer({ showCrewSelector = false }: ChatContainerProps) 
           )}
         </div>
       )}
+
+      <CrewJourneyModal
+        steps={journeySteps}
+        isOpen={isJourneyModalOpen}
+        onClose={closeJourneyModal}
+      />
 
       <div className={styles.messages} ref={messagesContainerRef}>
         {!hasStartedChat ? (

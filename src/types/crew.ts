@@ -13,7 +13,18 @@ export interface CrewMember {
   description: string;
   isDefault: boolean;
   collectFields: string[];
+  fieldsToCollect: { name: string; description: string }[];
+  transitionTo: string | null;
   toolCount: number;
+  hasKnowledgeBase: boolean;
+}
+
+/**
+ * A single step in the crew journey visualization
+ */
+export interface CrewJourneyStep {
+  crew: CrewMember;
+  status: 'completed' | 'current' | 'upcoming';
 }
 
 /**

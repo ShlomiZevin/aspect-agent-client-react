@@ -4,9 +4,9 @@
  * Manages crew member state for the chat interface
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getAgentCrew } from '../services/crewService';
-import type { CrewMember } from '../types/crew';
+import type { CrewMember, CrewJourneyStep } from '../types/crew';
 
 export interface UseCrewOptions {
   agentName: string;
@@ -34,6 +34,55 @@ export interface UseCrewReturn {
   refreshCrew: () => Promise<void>;
   /** Check if agent has crew members */
   hasCrew: boolean;
+  /** Ordered journey steps for visualization */
+  journeySteps: CrewJourneyStep[];
+  /** Record a crew as visited (called on crew_transition) */
+  addVisitedCrew: (crewName: string) => void;
+  /** Reset visited crews (called on new chat) */
+  resetJourney: () => void;
+}
+
+/**
+ * Infer visited crews by walking the transitionTo chain from default to current.
+ * If currentCrew is reachable from the default via transitionTo, all intermediate
+ * crews are considered visited.
+ */
+function inferVisitedCrews(crewMembers: CrewMember[], currentCrewName: string | null): string[] {
+  if (!currentCrewName || crewMembers.length === 0) return [];
+
+  const byName = new Map(crewMembers.map(c => [c.name, c]));
+  const defaultCrew = crewMembers.find(c => c.isDefault) || crewMembers[0];
+
+  // If current IS the default, nothing has been visited yet
+  if (defaultCrew.name === currentCrewName) return [];
+
+  // Walk from default following transitionTo until we reach currentCrew
+  const visited: string[] = [];
+  let cursor = defaultCrew;
+  const seen = new Set<string>();
+
+  while (cursor && !seen.has(cursor.name)) {
+    seen.add(cursor.name);
+
+    if (cursor.name === currentCrewName) {
+      // Reached current crew — visited list is complete
+      return visited;
+    }
+
+    visited.push(cursor.name);
+
+    if (cursor.transitionTo) {
+      const next = byName.get(cursor.transitionTo);
+      if (next) {
+        cursor = next;
+        continue;
+      }
+    }
+    break;
+  }
+
+  // Could not reach currentCrew via chain — return what we walked
+  return visited;
 }
 
 export function useCrew(options: UseCrewOptions): UseCrewReturn {
@@ -44,6 +93,7 @@ export function useCrew(options: UseCrewOptions): UseCrewReturn {
   const [selectedOverride, setSelectedOverride] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [visitedCrewNames, setVisitedCrewNames] = useState<string[]>([]);
 
   // Load crew members on mount or when agent changes
   const loadCrew = useCallback(async () => {
@@ -72,6 +122,32 @@ export function useCrew(options: UseCrewOptions): UseCrewReturn {
     loadCrew();
   }, [agentName, baseURL]); // Don't include loadCrew to avoid infinite loop
 
+  // When currentCrew changes and visitedCrewNames is empty, infer the path
+  useEffect(() => {
+    if (currentCrew && crewMembers.length > 0 && visitedCrewNames.length === 0) {
+      const inferred = inferVisitedCrews(crewMembers, currentCrew.name);
+      if (inferred.length > 0) {
+        setVisitedCrewNames(inferred);
+      }
+    }
+  }, [currentCrew, crewMembers, visitedCrewNames.length]);
+
+  // Add a crew to the visited list (called on crew_transition from ChatContext)
+  const addVisitedCrew = useCallback((crewName: string) => {
+    setVisitedCrewNames(prev => {
+      if (prev.includes(crewName)) return prev;
+      return [...prev, crewName];
+    });
+  }, []);
+
+  // Reset journey (called on new chat or conversation switch)
+  const resetJourney = useCallback(() => {
+    setVisitedCrewNames([]);
+    // Reset to default crew — will be overridden by history restore if applicable
+    const defaultCrew = crewMembers.find(c => c.isDefault) || crewMembers[0] || null;
+    setCurrentCrew(defaultCrew);
+  }, [crewMembers]);
+
   // Clear override
   const clearOverride = useCallback(() => {
     setSelectedOverride(null);
@@ -79,6 +155,35 @@ export function useCrew(options: UseCrewOptions): UseCrewReturn {
 
   // Check if agent has crew
   const hasCrew = crewMembers.length > 0;
+
+  // Build journey steps from visited + current + next
+  const journeySteps = useMemo<CrewJourneyStep[]>(() => {
+    if (!currentCrew || crewMembers.length < 2) return [];
+
+    const byName = new Map(crewMembers.map(c => [c.name, c]));
+    const steps: CrewJourneyStep[] = [];
+
+    // Completed steps (visited crews)
+    for (const name of visitedCrewNames) {
+      const crew = byName.get(name);
+      if (crew) {
+        steps.push({ crew, status: 'completed' });
+      }
+    }
+
+    // Current step
+    steps.push({ crew: currentCrew, status: 'current' });
+
+    // Upcoming step (next crew from transitionTo)
+    if (currentCrew.transitionTo) {
+      const nextCrew = byName.get(currentCrew.transitionTo);
+      if (nextCrew) {
+        steps.push({ crew: nextCrew, status: 'upcoming' });
+      }
+    }
+
+    return steps;
+  }, [crewMembers, currentCrew, visitedCrewNames]);
 
   return {
     crewMembers,
@@ -90,6 +195,9 @@ export function useCrew(options: UseCrewOptions): UseCrewReturn {
     clearOverride,
     setCurrentCrew,
     refreshCrew: loadCrew,
-    hasCrew
+    hasCrew,
+    journeySteps,
+    addVisitedCrew,
+    resetJourney,
   };
 }
