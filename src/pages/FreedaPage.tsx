@@ -1,6 +1,7 @@
 import { AgentProvider, ThemeProvider, UserProvider, ChatProvider } from '../context';
 import { AppLayout } from '../components/layout';
 import { ChatContainer } from '../components/chat';
+import { PhoneLink } from '../components/chat/PhoneLink';
 import { freedaConfig } from '../agents';
 import { useDocumentMeta } from '../hooks';
 
@@ -16,7 +17,7 @@ export function FreedaPage() {
       <UserProvider storagePrefix={freedaConfig.storagePrefix} baseURL={freedaConfig.baseURL}>
         <AgentProvider config={freedaConfig}>
           <ChatProvider>
-            <AppLayout>
+            <AppLayout headerExtra={<PhoneLink />}>
               <ChatContainer showCrewSelector={true} />
             </AppLayout>
           </ChatProvider>

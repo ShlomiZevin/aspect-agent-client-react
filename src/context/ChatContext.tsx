@@ -1,8 +1,9 @@
 import { createContext, useContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { useChat, useConversation, useCrew, useDebugShortcut, type UseChatReturn, type UseConversationReturn } from '../hooks';
+import { useChat, useConversation, useCrew, useDebugShortcut, useLocalStorageString, type UseChatReturn, type UseConversationReturn } from '../hooks';
 import { useAgentContext } from './AgentContext';
 import { useUserContext } from './UserContext';
 import type { CrewMember, CrewJourneyStep } from '../types/crew';
+import { linkPhone as linkPhoneApi, goMobile as goMobileApi } from '../services/phoneService';
 
 interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 'switchToChat'> {
   switchToChat: (chatId: string) => Promise<void>;
@@ -17,6 +18,10 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   isJourneyModalOpen: boolean;
   openJourneyModal: () => void;
   closeJourneyModal: () => void;
+  // Phone linking
+  linkedPhone: string | null;
+  linkPhone: (phone: string) => Promise<void>;
+  goMobile: (phone: string) => Promise<void>;
   // Debug
   debugMode: boolean;
   toggleDebug: () => void;
@@ -30,8 +35,11 @@ interface ChatProviderProps {
 
 export function ChatProvider({ children }: ChatProviderProps) {
   const { config } = useAgentContext();
-  const { userId } = useUserContext();
+  const { userId, switchUser } = useUserContext();
   const useKB = config.features.hasKnowledgeBase;
+
+  // Phone linking state (persisted in localStorage)
+  const [linkedPhone, setLinkedPhone] = useLocalStorageString(`${config.storagePrefix}linked_phone`, null);
 
   // Debug mode (Ctrl+Shift+D easter egg)
   const [debugMode, setDebugMode] = useState(false);
@@ -128,6 +136,61 @@ export function ChatProvider({ children }: ChatProviderProps) {
     }
   }, [conversation, chat, crew]);
 
+  // Link phone number: switch session to WhatsApp user
+  const linkPhone = useCallback(async (phone: string) => {
+    const result = await linkPhoneApi(phone, config.agentName, config.baseURL);
+
+    // Switch to the WhatsApp user
+    switchUser(result.userId);
+    setLinkedPhone(phone);
+
+    // Reset crew journey for the new session
+    crew.resetJourney();
+    hasRestoredCrew.current = false;
+
+    // If there are conversations, switch to the most recent one
+    if (result.conversations.length > 0) {
+      const latest = result.conversations[0]; // sorted by updatedAt desc
+      const chatId = latest.externalId || latest.id;
+      const messages = await conversation.switchToChat(String(chatId));
+      if (messages.length > 0) {
+        chat.loadHistory(String(chatId));
+      } else {
+        chat.newChat(String(chatId));
+      }
+    }
+
+    // Reload conversations for the new user (will happen via useEffect on userId change too)
+    setTimeout(() => conversation.loadConversations(), 500);
+  }, [config.agentName, config.baseURL, switchUser, crew, conversation, chat]);
+
+  // Go Mobile: link current conversation to a phone number
+  const goMobile = useCallback(async (phone: string) => {
+    if (!conversation.conversationId) {
+      throw new Error('No active conversation to link');
+    }
+
+    const result = await goMobileApi(phone, conversation.conversationId, config.baseURL);
+
+    // Switch to the WhatsApp user
+    switchUser(result.userId);
+    setLinkedPhone(phone);
+
+    // Update the conversation ID to the new one (wa_<phone>_<uuid>)
+    crew.resetJourney();
+    hasRestoredCrew.current = false;
+
+    // Switch to the newly linked conversation
+    const messages = await conversation.switchToChat(result.conversationId);
+    if (messages.length > 0) {
+      chat.loadHistory(result.conversationId);
+    } else {
+      chat.newChat(result.conversationId);
+    }
+
+    setTimeout(() => conversation.loadConversations(), 500);
+  }, [conversation.conversationId, config.baseURL, switchUser, crew, conversation, chat]);
+
   // Handle new chat creation
   const handleCreateNewChat = useCallback(() => {
     const newId = conversation.createNewChat();
@@ -172,6 +235,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
     isJourneyModalOpen,
     openJourneyModal,
     closeJourneyModal,
+
+    // Phone linking
+    linkedPhone,
+    linkPhone,
+    goMobile,
 
     // Debug
     debugMode,

@@ -67,13 +67,14 @@ export function ChatContainer({ showCrewSelector = false }: ChatContainerProps) 
         </div>
       )}
 
-      {/* Crew header - shows when agent has crew members */}
-      {hasCrew && (
-        <div className={styles.crewHeader}>
-          {journeySteps.length >= 2 ? (
-            <CrewJourneyStepper steps={journeySteps} onStepperClick={openJourneyModal} />
-          ) : (
-            <CrewMemberIndicator crew={currentCrew} isTransitioning={isThinking} />
+      {/* Header bar with crew stepper and phone link */}
+      <div className={styles.crewHeader}>
+          {hasCrew && (
+            journeySteps.length >= 2 ? (
+              <CrewJourneyStepper steps={journeySteps} onStepperClick={openJourneyModal} />
+            ) : (
+              <CrewMemberIndicator crew={currentCrew} isTransitioning={isThinking} />
+            )
           )}
           {showCrewSelector && (
             <CrewMemberSelector
@@ -84,8 +85,7 @@ export function ChatContainer({ showCrewSelector = false }: ChatContainerProps) 
               disabled={isLoading}
             />
           )}
-        </div>
-      )}
+      </div>
 
       <CrewJourneyModal
         steps={journeySteps}
