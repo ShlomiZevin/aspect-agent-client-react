@@ -1,0 +1,60 @@
+.container {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+}
+
+.header {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--tag-color);
+  background-color: var(--tag-bg);
+  color: var(--tag-color);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.tag:hover {
+  background-color: var(--tag-bg-active);
+}
+
+.tagSelected {
+  background-color: var(--tag-color);
+  color: white;
+}
+
+.tagSelected:hover {
+  opacity: 0.9;
+  background-color: var(--tag-color);
+}
+
+.tagName {
+  line-height: 1;
+}
+
+.tagCount {
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.7;
+  line-height: 1;
+}

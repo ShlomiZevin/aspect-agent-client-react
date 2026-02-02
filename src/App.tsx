@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AspectPage, FreedaPage, HomePage, KBPage, NotFoundPage } from './pages';
+import { AspectPage, FreedaPage, HomePage, KBPage, DashboardPage, NotFoundPage } from './pages';
 import './styles/global.css';
 
 function App() {
@@ -12,6 +12,9 @@ function App() {
         {/* Main agent routes */}
         <Route path="/aspect" element={<AspectPage />} />
         <Route path="/freeda" element={<FreedaPage />} />
+
+        {/* Dashboard routes */}
+        <Route path="/:agent/dashboard/*" element={<DashboardPage />} />
 
         {/* Knowledge Base routes */}
         <Route path="/kb/:agent" element={<KBPage />} />

@@ -1,0 +1,134 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--background);
+}
+
+.sidebar {
+  width: 240px;
+  background-color: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+.agentName {
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.dashboardLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.nav {
+  flex: 1;
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.navItem:hover {
+  background-color: var(--surface-light);
+  color: var(--text-primary);
+}
+
+.navItemActive {
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.sidebarFooter {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px solid var(--border);
+}
+
+.backLink {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  transition: color var(--transition-fast);
+}
+
+.backLink:hover {
+  color: var(--primary-color);
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 56px;
+    overflow: hidden;
+  }
+
+  .sidebarHeader {
+    padding: var(--spacing-md);
+    justify-content: center;
+  }
+
+  .sidebarHeader > div {
+    display: none;
+  }
+
+  .navItem {
+    justify-content: center;
+    padding: var(--spacing-sm);
+  }
+
+  .navItem span,
+  .navItem::after {
+    display: none;
+  }
+
+  .sidebarFooter {
+    padding: var(--spacing-md);
+    text-align: center;
+  }
+
+  .backLink span {
+    display: none;
+  }
+}

@@ -1,0 +1,36 @@
+.bar {
+  display: grid;
+  grid-template-columns: repeat(var(--card-count, 4), 1fr);
+  gap: var(--spacing-md);
+}
+
+.card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  text-align: center;
+}
+
+.value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: var(--spacing-xs);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .value {
+    font-size: 22px;
+  }
+}
