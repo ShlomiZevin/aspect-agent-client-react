@@ -7,6 +7,7 @@ export interface UseUserReturn {
   isLoading: boolean;
   error: string | null;
   initializeUser: () => Promise<void>;
+  switchUser: (newUserId: string) => void;
 }
 
 /**
@@ -39,6 +40,11 @@ export function useUser(storagePrefix: string = '', baseURL?: string): UseUserRe
     }
   }, [storedUserId, setStoredUserId, baseURL]);
 
+  const switchUser = useCallback((newUserId: string) => {
+    setStoredUserId(newUserId);
+    console.log('🔄 Switched to user:', newUserId);
+  }, [setStoredUserId]);
+
   // Initialize user on mount if needed
   useEffect(() => {
     if (!storedUserId) {
@@ -51,5 +57,6 @@ export function useUser(storagePrefix: string = '', baseURL?: string): UseUserRe
     isLoading,
     error,
     initializeUser,
+    switchUser,
   };
 }
