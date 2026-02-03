@@ -151,7 +151,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     // If there are conversations, switch to the most recent one
     if (result.conversations.length > 0) {
       const latest = result.conversations[0]; // sorted by updatedAt desc
-      const chatId = latest.externalId || latest.id;
+      const chatId = latest.id;
       const messages = await conversation.switchToChat(String(chatId));
       if (messages.length > 0) {
         chat.loadHistory(String(chatId));

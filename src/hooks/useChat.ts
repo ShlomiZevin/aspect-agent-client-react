@@ -1,7 +1,7 @@
 import { useReducer, useCallback, useEffect } from 'react';
 import { streamChat } from '../services/chatService';
 import { getConversationHistory } from '../services/conversationService';
-import type { Message, ChatState, ChatAction, AgentConfig, ThinkingStep, PostExtractionContext } from '../types';
+import type { Message, ChatState, ChatAction, AgentConfig, ThinkingStep } from '../types';
 import type { CrewMember } from '../types/crew';
 import type { CrewTransition } from '../services/chatService';
 
