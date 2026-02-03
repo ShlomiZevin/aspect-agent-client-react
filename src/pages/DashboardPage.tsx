@@ -2,6 +2,7 @@ import { useParams, Navigate, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, AgentProvider } from '../context';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { FeedbackPage } from '../components/dashboard/FeedbackPage';
+import { UsersPage } from '../components/dashboard/UsersPage';
 import { aspectConfig, freedaConfig } from '../agents';
 import type { AgentConfig } from '../types';
 
@@ -34,6 +35,10 @@ export function DashboardPage() {
             <Route
               path="feedback"
               element={<FeedbackPage agentName={config.agentName} baseURL={config.baseURL} />}
+            />
+            <Route
+              path="users"
+              element={<UsersPage baseURL={config.baseURL} />}
             />
           </Routes>
         </DashboardLayout>
