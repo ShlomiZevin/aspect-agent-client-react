@@ -144,6 +144,18 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return { ...state, messages };
     }
 
+    case 'SET_MESSAGE_DB_ID': {
+      const messages = [...state.messages];
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage?.role === 'assistant') {
+        messages[messages.length - 1] = {
+          ...lastMessage,
+          dbId: action.payload,
+        };
+      }
+      return { ...state, messages };
+    }
+
     default:
       return state;
   }
@@ -248,6 +260,9 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             },
             onDebugContextUpdate: (data) => {
               dispatch({ type: 'UPDATE_DEBUG_CONTEXT', payload: data });
+            },
+            onMessageSaved: (messageId) => {
+              dispatch({ type: 'SET_MESSAGE_DB_ID', payload: messageId });
             },
           }
         );

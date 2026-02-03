@@ -48,6 +48,7 @@ export async function getConversationHistory(
     conversationId: data.conversationId,
     messages: data.messages.map(msg => ({
       id: String(msg.id),
+      dbId: typeof msg.id === 'number' ? msg.id : undefined,
       role: msg.role,
       content: msg.content,
       timestamp: new Date(msg.createdAt),

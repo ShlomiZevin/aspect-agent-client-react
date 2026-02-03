@@ -3,7 +3,7 @@ import { CrewFilter } from '../CrewFilter';
 import { TagCloud } from '../TagCloud';
 import { FeedbackFilters } from '../FeedbackFilters';
 import { FeedbackMessageCard } from '../FeedbackMessageCard';
-import { getFeedbackMessages, getFeedbackStats } from '../../../services/feedbackService';
+import { getFeedbackMessages, getFeedbackStats, deleteFeedback } from '../../../services/feedbackService';
 import type { FeedbackMessage, FeedbackStats } from '../../../types/feedback';
 import styles from './FeedbackPage.module.css';
 
@@ -26,12 +26,18 @@ export function FeedbackPage({ agentName, baseURL }: FeedbackPageProps) {
   useEffect(() => {
     async function load() {
       setIsLoading(true);
-      const [messages, feedbackStats] = await Promise.all([
-        getFeedbackMessages(agentName, baseURL),
-        getFeedbackStats(agentName, baseURL),
-      ]);
-      setFeedbackMessages(messages);
-      setStats(feedbackStats);
+      try {
+        const [messages, feedbackStats] = await Promise.all([
+          getFeedbackMessages(agentName, baseURL),
+          getFeedbackStats(agentName, baseURL),
+        ]);
+        setFeedbackMessages(messages);
+        setStats(feedbackStats);
+      } catch (err) {
+        console.error('Failed to load feedback:', err);
+        setFeedbackMessages([]);
+        setStats({ totalFeedback: 0, tagAggregations: [], crewAggregations: [] });
+      }
       setIsLoading(false);
     }
     load();
@@ -45,6 +51,19 @@ export function FeedbackPage({ agentName, baseURL }: FeedbackPageProps) {
         : [...prev, tagName]
     );
   }, []);
+
+  // Delete feedback
+  const handleDelete = useCallback(async (feedbackId: string) => {
+    try {
+      await deleteFeedback(parseInt(feedbackId), baseURL);
+      // Remove from local state
+      setFeedbackMessages(prev => prev.filter(fb => fb.id !== feedbackId));
+      // Update stats
+      setStats(prev => prev ? { ...prev, totalFeedback: prev.totalFeedback - 1 } : null);
+    } catch (err) {
+      console.error('Failed to delete feedback:', err);
+    }
+  }, [baseURL]);
 
   // Filtered messages
   const filteredMessages = useMemo(() => {
@@ -140,6 +159,7 @@ export function FeedbackPage({ agentName, baseURL }: FeedbackPageProps) {
                 <FeedbackMessageCard
                   key={fb.id}
                   feedback={fb}
+                  onDelete={handleDelete}
                 />
               ))
             )}

@@ -18,6 +18,7 @@ export interface DebugPromptData {
 
 export interface Message {
   id: string;
+  dbId?: number; // Database ID for feedback linking
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
@@ -72,4 +73,5 @@ export type ChatAction =
   | { type: 'SET_ERROR'; payload: string }
   | { type: 'CLEAR_ERROR' }
   | { type: 'SET_DEBUG_DATA'; payload: DebugPromptData }
-  | { type: 'UPDATE_DEBUG_CONTEXT'; payload: PostExtractionContext };
+  | { type: 'UPDATE_DEBUG_CONTEXT'; payload: PostExtractionContext }
+  | { type: 'SET_MESSAGE_DB_ID'; payload: number };

@@ -4,10 +4,19 @@ import type { FeedbackMessage } from '../../../types/feedback';
 
 interface FeedbackMessageCardProps {
   feedback: FeedbackMessage;
+  onDelete?: (feedbackId: string) => void;
 }
 
-export function FeedbackMessageCard({ feedback }: FeedbackMessageCardProps) {
+export function FeedbackMessageCard({ feedback, onDelete }: FeedbackMessageCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    setIsDeleting(true);
+    await onDelete(feedback.id);
+    setIsDeleting(false);
+  };
 
   const truncatedMessage = feedback.messageContent.length > 200 && !expanded
     ? feedback.messageContent.slice(0, 200) + '...'
@@ -21,13 +30,30 @@ export function FeedbackMessageCard({ feedback }: FeedbackMessageCardProps) {
             <span className={styles.crewBadge}>{feedback.crewMember}</span>
           )}
         </div>
-        <span className={styles.date}>
-          {feedback.createdAt.toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          })}
-        </span>
+        <div className={styles.headerRight}>
+          <span className={styles.date}>
+            {feedback.createdAt.toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })}
+          </span>
+          {onDelete && (
+            <button
+              className={styles.deleteButton}
+              onClick={handleDelete}
+              disabled={isDeleting}
+              type="button"
+              aria-label="Delete feedback"
+            >
+              {isDeleting ? '...' : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" />
+                </svg>
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className={styles.userMessage}>
