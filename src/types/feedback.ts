@@ -39,6 +39,10 @@ export interface FeedbackMessage {
   tags: FeedbackTag[];
   /** Which crew member handled this message (denormalized) */
   crewMember: string | null;
+  /** Conversation external ID for linking */
+  conversationId: string;
+  /** Agent URL slug for building conversation link */
+  agentUrlSlug: string | null;
   /** When the feedback was created */
   createdAt: Date;
 }
