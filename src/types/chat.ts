@@ -38,6 +38,7 @@ export interface Conversation {
   id: string;
   title: string;
   messageCount: number;
+  channel?: 'web' | 'whatsapp';
   createdAt: Date;
   updatedAt: Date;
 }

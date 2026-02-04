@@ -90,6 +90,20 @@
   background-color: var(--primary-light);
 }
 
+/* WhatsApp conversation styling */
+.item.whatsapp {
+  background-color: rgba(37, 211, 102, 0.08);
+  border-left: 3px solid #25d366;
+}
+
+.item.whatsapp:hover {
+  background-color: rgba(37, 211, 102, 0.15);
+}
+
+.item.whatsapp.active {
+  background-color: rgba(37, 211, 102, 0.2);
+}
+
 .itemContent {
   flex: 1;
   min-width: 0;
@@ -107,11 +121,32 @@
   text-overflow: ellipsis;
 }
 
+.itemMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
 .itemDate {
   font-size: var(--font-size-xs);
   color: var(--text-muted);
 }
 
+.whatsappBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #25d366;
+}
+
+.itemActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.editBtn,
 .deleteBtn {
   display: flex;
   align-items: center;
@@ -125,13 +160,36 @@
   flex-shrink: 0;
 }
 
+.item:hover .editBtn,
 .item:hover .deleteBtn {
   opacity: 1;
+}
+
+.editBtn:hover {
+  background-color: rgba(37, 99, 235, 0.1);
+  color: var(--primary-color);
 }
 
 .deleteBtn:hover {
   background-color: rgba(239, 68, 68, 0.1);
   color: var(--error-color);
+}
+
+/* Edit input styling */
+.editInput {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  background-color: var(--surface);
+  border: 1px solid var(--primary-color);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.editInput:focus {
+  box-shadow: 0 0 0 2px var(--primary-light);
 }
 
 @media (max-width: 768px) {
@@ -142,5 +200,11 @@
   .sidebar {
     width: 85%;
     max-width: 320px;
+  }
+
+  /* Always show action buttons on mobile for better touch experience */
+  .editBtn,
+  .deleteBtn {
+    opacity: 1;
   }
 }

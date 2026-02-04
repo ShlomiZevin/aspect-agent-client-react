@@ -64,6 +64,18 @@
   margin: 0;
 }
 
+.whatsappIndicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 4px 10px;
+  background-color: rgba(37, 211, 102, 0.15);
+  border-radius: var(--radius-md);
+  color: #25d366;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
 .right {
   display: flex;
   align-items: center;
@@ -95,5 +107,13 @@
 
   .title {
     font-size: var(--font-size-base);
+  }
+
+  .whatsappIndicator {
+    padding: 2px 6px;
+  }
+
+  .whatsappIndicator span {
+    display: none;
   }
 }

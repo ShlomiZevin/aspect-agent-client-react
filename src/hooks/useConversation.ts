@@ -17,6 +17,7 @@ export interface UseConversationReturn {
   switchToChat: (chatId: string) => Promise<Message[]>;
   deleteChat: (chatId: string) => Promise<void>;
   updateTitle: (title: string) => Promise<void>;
+  updateChatTitle: (chatId: string, title: string) => Promise<void>;
   loadConversations: () => Promise<void>;
 }
 
@@ -124,6 +125,23 @@ export function useConversation(
     [conversationId, baseURL]
   );
 
+  const updateChatTitle = useCallback(
+    async (chatId: string, title: string) => {
+      try {
+        await updateTitleApi(chatId, title, baseURL);
+        setConversations(prev =>
+          prev.map(c =>
+            c.id === chatId ? { ...c, title } : c
+          )
+        );
+      } catch (err) {
+        console.error('Error updating chat title:', err);
+        throw err;
+      }
+    },
+    [baseURL]
+  );
+
   return {
     conversationId,
     conversations,
@@ -133,6 +151,7 @@ export function useConversation(
     switchToChat,
     deleteChat,
     updateTitle,
+    updateChatTitle,
     loadConversations,
   };
 }

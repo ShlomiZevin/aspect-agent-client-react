@@ -221,6 +221,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     switchToChat,
     deleteChat: conversation.deleteChat,
     updateTitle: conversation.updateTitle,
+    updateChatTitle: conversation.updateChatTitle,
     loadConversations: conversation.loadConversations,
 
     // Crew state

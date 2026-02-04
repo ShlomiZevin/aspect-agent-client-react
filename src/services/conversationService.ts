@@ -29,6 +29,7 @@ interface UserConversationsResponse {
     externalId: string;
     title: string;
     messageCount: number;
+    channel?: 'web' | 'whatsapp';
     createdAt: string;
     updatedAt: string;
   }>;
@@ -78,6 +79,7 @@ export async function getUserConversations(
     id: conv.externalId,
     title: conv.title,
     messageCount: conv.messageCount,
+    channel: conv.channel,
     createdAt: new Date(conv.createdAt),
     updatedAt: new Date(conv.updatedAt),
   }));
