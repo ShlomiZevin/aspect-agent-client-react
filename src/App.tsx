@@ -9,9 +9,11 @@ function App() {
         {/* Home page - agent selection */}
         <Route path="/" element={<HomePage />} />
 
-        {/* Main agent routes */}
+        {/* Main agent routes with optional conversation ID */}
         <Route path="/aspect" element={<AspectPage />} />
+        <Route path="/aspect/conversations/:conversationId" element={<AspectPage />} />
         <Route path="/freeda" element={<FreedaPage />} />
+        <Route path="/freeda/conversations/:conversationId" element={<FreedaPage />} />
 
         {/* Dashboard routes */}
         <Route path="/:agent/dashboard/*" element={<DashboardPage />} />

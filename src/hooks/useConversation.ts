@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useLocalStorageString } from './useLocalStorage';
 import {
   getUserConversations,
@@ -22,7 +23,7 @@ export interface UseConversationReturn {
 }
 
 /**
- * Hook for managing conversations
+ * Hook for managing conversations with URL-based routing
  */
 export function useConversation(
   storagePrefix: string,
@@ -30,21 +31,52 @@ export function useConversation(
   userId: string | null,
   baseURL?: string
 ): UseConversationReturn {
+  const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const key = `${storagePrefix}current_conversation_id`;
   const [storedConversationId, setStoredConversationId] = useLocalStorageString(key, null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize conversation ID if not present
-  const conversationId = storedConversationId || crypto.randomUUID();
+  // Track if we've done initial URL sync
+  const hasInitialized = useRef(false);
 
-  // Ensure conversationId is stored
+  // Derive the base path from current location (e.g., /freeda or /aspect)
+  const getBasePath = useCallback(() => {
+    const pathParts = location.pathname.split('/');
+    // First non-empty part is the agent path
+    const agentPath = pathParts[1] || '';
+    return `/${agentPath}`;
+  }, [location.pathname]);
+
+  // Determine the active conversation ID (URL takes precedence)
+  const conversationId = urlConversationId || storedConversationId || crypto.randomUUID();
+
+  // Sync URL with conversation ID on initial load
   useEffect(() => {
-    if (!storedConversationId) {
-      setStoredConversationId(conversationId);
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
+    // If no URL conversation ID but we have a stored one, update URL
+    if (!urlConversationId && storedConversationId) {
+      const basePath = getBasePath();
+      navigate(`${basePath}/conversations/${storedConversationId}`, { replace: true });
     }
-  }, [storedConversationId, conversationId, setStoredConversationId]);
+    // If no URL conversation ID and no stored one, create new and update URL
+    else if (!urlConversationId && !storedConversationId) {
+      const newId = crypto.randomUUID();
+      setStoredConversationId(newId);
+      const basePath = getBasePath();
+      navigate(`${basePath}/conversations/${newId}`, { replace: true });
+    }
+    // If URL has conversation ID, sync to localStorage
+    else if (urlConversationId && urlConversationId !== storedConversationId) {
+      setStoredConversationId(urlConversationId);
+    }
+  }, [urlConversationId, storedConversationId, setStoredConversationId, navigate, getBasePath]);
 
   const loadConversations = useCallback(async () => {
     if (!userId) return;
@@ -73,12 +105,16 @@ export function useConversation(
   const createNewChat = useCallback(() => {
     const newId = crypto.randomUUID();
     setStoredConversationId(newId);
+    const basePath = getBasePath();
+    navigate(`${basePath}/conversations/${newId}`);
     return newId;
-  }, [setStoredConversationId]);
+  }, [setStoredConversationId, navigate, getBasePath]);
 
   const switchToChat = useCallback(
     async (chatId: string): Promise<Message[]> => {
       setStoredConversationId(chatId);
+      const basePath = getBasePath();
+      navigate(`${basePath}/conversations/${chatId}`);
 
       try {
         const history = await getConversationHistory(chatId, baseURL);
@@ -88,7 +124,7 @@ export function useConversation(
         return [];
       }
     },
-    [setStoredConversationId, baseURL]
+    [setStoredConversationId, navigate, getBasePath, baseURL]
   );
 
   const deleteChat = useCallback(
