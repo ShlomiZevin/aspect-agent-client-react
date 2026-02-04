@@ -41,13 +41,14 @@
   font-weight: 600;
   font-family: var(--font-family);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .addButton:hover {
-  background-color: #c4607f;
+  background-color: #b8567a;
+  color: #ffffff;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(217, 115, 152, 0.4);
 }
@@ -154,6 +155,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
+  table-layout: fixed;
 }
 
 .table th {
@@ -164,13 +166,30 @@
   background-color: var(--background);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+/* Column widths */
+.table th:nth-child(1) { width: 70px; }  /* Source */
+.table th:nth-child(2) { width: 120px; } /* External ID */
+.table th:nth-child(3) { width: 120px; } /* Phone */
+.table th:nth-child(4) { width: 120px; } /* Name */
+.table th:nth-child(5) { width: 70px; }  /* Role */
+.table th:nth-child(6) { width: 90px; }  /* Subscription */
+.table th:nth-child(7) { width: 100px; } /* Tenant */
+.table th:nth-child(8) { width: 90px; }  /* Conversations */
+.table th:nth-child(9) { width: 90px; }  /* Created */
+.table th:nth-child(10) { width: 90px; } /* Last Active */
+.table th:nth-child(11) { width: 80px; } /* Actions */
 
 .table td {
   padding: var(--spacing-sm) var(--spacing-md);
   border-bottom: 1px solid var(--border);
   color: var(--text-primary);
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .table tr:last-child td {
@@ -231,7 +250,8 @@
   background-color: var(--surface);
   color: var(--text-primary);
   width: 100%;
-  min-width: 80px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .editInput:focus,
