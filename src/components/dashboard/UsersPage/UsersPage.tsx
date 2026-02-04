@@ -3,6 +3,7 @@ import { getUsers, getStats, getTenants, updateUser } from '../../../services/ad
 import type { AdminUser, AdminUserFilters, AdminStats, UserSource, UserSubscription } from '../../../types/admin';
 import { AddUserModal } from '../AddUserModal';
 import { LinkWhatsAppModal } from '../LinkWhatsAppModal';
+import { DeleteUserModal } from '../DeleteUserModal';
 import styles from './UsersPage.module.css';
 
 interface UsersPageProps {
@@ -23,6 +24,7 @@ export function UsersPage({ baseURL }: UsersPageProps) {
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
   const [linkModalUser, setLinkModalUser] = useState<AdminUser | null>(null);
+  const [deleteModalUser, setDeleteModalUser] = useState<AdminUser | null>(null);
 
   // Editing state
   const [editingCell, setEditingCell] = useState<{ id: number; field: string } | null>(null);
@@ -111,6 +113,15 @@ export function UsersPage({ baseURL }: UsersPageProps) {
   const handleWhatsAppLinked = (updatedUser: AdminUser) => {
     setUsers(prev => prev.map(u => (u.id === updatedUser.id ? { ...u, ...updatedUser } : u)));
     setLinkModalUser(null);
+  };
+
+  // Handle user deleted
+  const handleUserDeleted = (userId: number) => {
+    setUsers(prev => prev.filter(u => u.id !== userId));
+    setTotal(prev => prev - 1);
+    setDeleteModalUser(null);
+    // Refresh stats
+    getStats(baseURL).then(setStats).catch(console.error);
   };
 
   // Format date
@@ -311,7 +322,7 @@ export function UsersPage({ baseURL }: UsersPageProps) {
                   <div className={styles.actions}>
                     {user.source === 'web' && !user.whatsappConversationId && (
                       <button
-                        className={styles.actionButton}
+                        className={`${styles.actionButton} ${styles.linkButton}`}
                         onClick={() => setLinkModalUser(user)}
                         title="Link WhatsApp"
                       >
@@ -325,6 +336,18 @@ export function UsersPage({ baseURL }: UsersPageProps) {
                         WA
                       </span>
                     )}
+                    <button
+                      className={`${styles.actionButton} ${styles.deleteButton}`}
+                      onClick={() => setDeleteModalUser(user)}
+                      title="Delete user"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -370,6 +393,15 @@ export function UsersPage({ baseURL }: UsersPageProps) {
           user={linkModalUser}
           onClose={() => setLinkModalUser(null)}
           onLinked={handleWhatsAppLinked}
+        />
+      )}
+
+      {deleteModalUser && (
+        <DeleteUserModal
+          baseURL={baseURL}
+          user={deleteModalUser}
+          onClose={() => setDeleteModalUser(null)}
+          onDeleted={handleUserDeleted}
         />
       )}
     </div>

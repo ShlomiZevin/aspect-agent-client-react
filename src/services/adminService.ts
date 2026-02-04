@@ -14,6 +14,7 @@ import type {
   CreateUserPayload,
   UpdateUserPayload,
   LinkWhatsAppPayload,
+  DeleteUserResponse,
 } from '../types/admin';
 
 /**
@@ -133,6 +134,20 @@ export async function unlinkWhatsApp(
 ): Promise<AdminUser> {
   return apiRequest<AdminUser>(
     `/api/admin/users/${userId}/link`,
+    { method: 'DELETE' },
+    baseURL || getBaseURL()
+  );
+}
+
+/**
+ * Delete user and all their conversations/messages
+ */
+export async function deleteUser(
+  userId: number,
+  baseURL?: string
+): Promise<DeleteUserResponse> {
+  return apiRequest<DeleteUserResponse>(
+    `/api/admin/users/${userId}`,
     { method: 'DELETE' },
     baseURL || getBaseURL()
   );

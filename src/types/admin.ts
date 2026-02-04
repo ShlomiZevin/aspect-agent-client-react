@@ -84,3 +84,9 @@ export interface UpdateUserPayload {
 export interface LinkWhatsAppPayload {
   phone: string;
 }
+
+export interface DeleteUserResponse {
+  userId: number;
+  deletedConversations: number;
+  deletedMessages: number;
+}
