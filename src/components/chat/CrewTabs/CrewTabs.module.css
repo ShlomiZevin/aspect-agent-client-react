@@ -1,0 +1,98 @@
+.tabs {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 72px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.tab:hover:not(.active) {
+  background-color: var(--surface-light);
+}
+
+.tab:hover:not(.active) .circle {
+  border-color: var(--primary-color);
+}
+
+/* Tab circle */
+.circle {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--surface);
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+  border: 2px solid var(--border);
+}
+
+.active .circle {
+  border-color: var(--primary-color);
+  background-color: var(--primary-color);
+}
+
+.activeDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: white;
+}
+
+/* Tab labels */
+.label {
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.2;
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+.active .label {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.tab:hover:not(.active) .label {
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .tab {
+    min-width: 56px;
+  }
+
+  .circle {
+    width: 20px;
+    height: 20px;
+  }
+
+  .activeDot {
+    width: 6px;
+    height: 6px;
+  }
+
+  .label {
+    font-size: 10px;
+  }
+}

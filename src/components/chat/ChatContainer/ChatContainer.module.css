@@ -52,11 +52,15 @@
 .crewHeader {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: var(--spacing-md);
   padding: var(--spacing-sm) var(--spacing-lg);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+}
+
+.crewHeaderRight {
+  justify-content: flex-end;
 }
 
 .messages {

@@ -10,13 +10,16 @@ import { CrewJourneyStepper } from '../CrewJourneyStepper';
 import { CrewJourneyModal } from '../CrewJourneyModal';
 import { PromptEditorPanel } from '../PromptEditorPanel';
 import { MOCK_CREW_MEMBERS } from '../../../mocks/promptMocks';
+import { CrewTabs } from '../CrewTabs';
 import styles from './ChatContainer.module.css';
 
 interface ChatContainerProps {
   showCrewSelector?: boolean;
+  crewMode?: 'journey' | 'tabs';
+  crewPosition?: 'left' | 'right';
 }
 
-export function ChatContainer({ showCrewSelector = false }: ChatContainerProps) {
+export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', crewPosition = 'left' }: ChatContainerProps) {
   const {
     messages,
     isThinking,
@@ -103,24 +106,31 @@ export function ChatContainer({ showCrewSelector = false }: ChatContainerProps) 
           </div>
         )}
 
-        {/* Header bar with crew stepper and phone link */}
-        <div className={styles.crewHeader}>
-            {hasCrew && (
-              journeySteps.length >= 2 ? (
-                <CrewJourneyStepper steps={journeySteps} onStepperClick={openJourneyModal} />
-              ) : (
-                <CrewMemberIndicator crew={currentCrew} isTransitioning={isThinking} />
-              )
-            )}
-            {showCrewSelector && (
-              <CrewMemberSelector
-                crewMembers={crewMembers}
-                currentCrew={currentCrew}
-                selectedOverride={selectedOverride}
-                onSelect={setSelectedOverride}
-                disabled={isLoading}
-              />
-            )}
+        {/* Header bar with crew stepper/tabs */}
+        <div className={`${styles.crewHeader} ${crewPosition === 'right' ? styles.crewHeaderRight : ''}`}>
+          {hasCrew && crewMode === 'tabs' ? (
+            <CrewTabs
+              crewMembers={crewMembers}
+              selectedCrew={selectedOverride}
+              onSelect={setSelectedOverride}
+              disabled={isLoading}
+            />
+          ) : hasCrew && (
+            journeySteps.length >= 2 ? (
+              <CrewJourneyStepper steps={journeySteps} onStepperClick={openJourneyModal} />
+            ) : (
+              <CrewMemberIndicator crew={currentCrew} isTransitioning={isThinking} />
+            )
+          )}
+          {showCrewSelector && (
+            <CrewMemberSelector
+              crewMembers={crewMembers}
+              currentCrew={currentCrew}
+              selectedOverride={selectedOverride}
+              onSelect={setSelectedOverride}
+              disabled={isLoading}
+            />
+          )}
         </div>
 
         <CrewJourneyModal
