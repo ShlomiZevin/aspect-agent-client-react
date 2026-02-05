@@ -1,3 +1,15 @@
+/* Wrapper to contain chat and optional panel side-by-side */
+.wrapper {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.wrapper.withPanel {
+  /* Panel is visible - chat takes remaining space */
+}
+
 .container {
   display: flex;
   flex-direction: column;
@@ -12,9 +24,29 @@
   font-size: 11px;
   font-weight: 700;
   padding: 4px 12px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
   letter-spacing: 0.05em;
   flex-shrink: 0;
+}
+
+.promptEditorToggle {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.promptEditorToggle:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .crewHeader {

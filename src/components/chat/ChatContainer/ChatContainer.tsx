@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { useChatContext } from '../../../context';
 import { Message } from '../Message';
 import { ThinkingIndicator } from '../ThinkingIndicator';
@@ -8,6 +8,8 @@ import { CrewMemberIndicator } from '../CrewMemberIndicator';
 import { CrewMemberSelector } from '../CrewMemberSelector';
 import { CrewJourneyStepper } from '../CrewJourneyStepper';
 import { CrewJourneyModal } from '../CrewJourneyModal';
+import { PromptEditorPanel } from '../PromptEditorPanel';
+import { MOCK_CREW_MEMBERS } from '../../../mocks/promptMocks';
 import styles from './ChatContainer.module.css';
 
 interface ChatContainerProps {
@@ -32,9 +34,35 @@ export function ChatContainer({ showCrewSelector = false }: ChatContainerProps) 
     isJourneyModalOpen,
     openJourneyModal,
     closeJourneyModal,
+    agentName,
+    baseURL,
+    setPromptOverride,
   } = useChatContext();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Prompt editor panel state (debug mode only)
+  const [isPromptPanelOpen, setIsPromptPanelOpen] = useState(false);
+
+  // Use real crew members if available, otherwise use mock data for debug mode
+  const effectiveCrewMembers = useMemo(() => {
+    return hasCrew ? crewMembers : MOCK_CREW_MEMBERS;
+  }, [hasCrew, crewMembers]);
+
+  const effectiveCurrentCrew = useMemo(() => {
+    if (currentCrew) return currentCrew;
+    // In debug mode without real crew, use first mock crew member
+    return debugMode ? MOCK_CREW_MEMBERS[0] : null;
+  }, [currentCrew, debugMode]);
+
+  // Auto-open prompt panel when entering debug mode
+  useEffect(() => {
+    if (debugMode) {
+      setIsPromptPanelOpen(true);
+    } else {
+      setIsPromptPanelOpen(false);
+    }
+  }, [debugMode]);
 
   // Auto-scroll to bottom when new messages arrive or thinking updates
   useEffect(() => {
@@ -60,61 +88,82 @@ export function ChatContainer({ showCrewSelector = false }: ChatContainerProps) 
   }, [messages, isThinking, currentThinkingStep, thinkingSteps.length]);
 
   return (
-    <div className={styles.container}>
-      {debugMode && (
-        <div className={styles.debugBadge}>
-          DEBUG MODE (Ctrl+Shift+D to toggle)
-        </div>
-      )}
+    <div className={`${styles.wrapper} ${isPromptPanelOpen ? styles.withPanel : ''}`}>
+      <div className={styles.container}>
+        {debugMode && (
+          <div className={styles.debugBadge}>
+            <span>DEBUG MODE (Ctrl+Shift+D to toggle)</span>
+            <button
+              className={styles.promptEditorToggle}
+              onClick={() => setIsPromptPanelOpen(!isPromptPanelOpen)}
+              title={isPromptPanelOpen ? 'Hide Prompt Editor' : 'Show Prompt Editor'}
+            >
+              {isPromptPanelOpen ? 'Hide' : 'Show'} Prompt Editor
+            </button>
+          </div>
+        )}
 
-      {/* Header bar with crew stepper and phone link */}
-      <div className={styles.crewHeader}>
-          {hasCrew && (
-            journeySteps.length >= 2 ? (
-              <CrewJourneyStepper steps={journeySteps} onStepperClick={openJourneyModal} />
-            ) : (
-              <CrewMemberIndicator crew={currentCrew} isTransitioning={isThinking} />
-            )
-          )}
-          {showCrewSelector && (
-            <CrewMemberSelector
-              crewMembers={crewMembers}
-              currentCrew={currentCrew}
-              selectedOverride={selectedOverride}
-              onSelect={setSelectedOverride}
-              disabled={isLoading}
-            />
-          )}
-      </div>
-
-      <CrewJourneyModal
-        steps={journeySteps}
-        isOpen={isJourneyModalOpen}
-        onClose={closeJourneyModal}
-      />
-
-      <div className={styles.messages} ref={messagesContainerRef}>
-        {!hasStartedChat ? (
-          <WelcomeSection />
-        ) : (
-          <>
-            {messages.map((msg) => (
-              <Message key={msg.id} message={msg} />
-            ))}
-
-            {isThinking && (
-              <ThinkingIndicator
-                currentStep={currentThinkingStep}
-                steps={thinkingSteps}
+        {/* Header bar with crew stepper and phone link */}
+        <div className={styles.crewHeader}>
+            {hasCrew && (
+              journeySteps.length >= 2 ? (
+                <CrewJourneyStepper steps={journeySteps} onStepperClick={openJourneyModal} />
+              ) : (
+                <CrewMemberIndicator crew={currentCrew} isTransitioning={isThinking} />
+              )
+            )}
+            {showCrewSelector && (
+              <CrewMemberSelector
+                crewMembers={crewMembers}
+                currentCrew={currentCrew}
+                selectedOverride={selectedOverride}
+                onSelect={setSelectedOverride}
+                disabled={isLoading}
               />
             )}
+        </div>
 
-            <div ref={messagesEndRef} style={{ height: 1, flexShrink: 0 }} />
-          </>
-        )}
+        <CrewJourneyModal
+          steps={journeySteps}
+          isOpen={isJourneyModalOpen}
+          onClose={closeJourneyModal}
+        />
+
+        <div className={styles.messages} ref={messagesContainerRef}>
+          {!hasStartedChat ? (
+            <WelcomeSection />
+          ) : (
+            <>
+              {messages.map((msg) => (
+                <Message key={msg.id} message={msg} />
+              ))}
+
+              {isThinking && (
+                <ThinkingIndicator
+                  currentStep={currentThinkingStep}
+                  steps={thinkingSteps}
+                />
+              )}
+
+              <div ref={messagesEndRef} style={{ height: 1, flexShrink: 0 }} />
+            </>
+          )}
+        </div>
+
+        <ChatInput />
       </div>
 
-      <ChatInput />
+      {/* Prompt Editor Panel - Debug Mode Only */}
+      {debugMode && isPromptPanelOpen && (
+        <PromptEditorPanel
+          crewMembers={effectiveCrewMembers}
+          currentCrew={effectiveCurrentCrew}
+          agentName={agentName}
+          baseURL={baseURL}
+          onClose={() => setIsPromptPanelOpen(false)}
+          onSessionOverride={setPromptOverride}
+        />
+      )}
     </div>
   );
 }

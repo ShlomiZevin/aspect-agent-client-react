@@ -25,6 +25,11 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   // Debug
   debugMode: boolean;
   toggleDebug: () => void;
+  // Config (for prompt editor)
+  agentName: string;
+  baseURL: string;
+  // Prompt overrides (debug mode)
+  setPromptOverride: (crewMemberId: string, prompt: string) => void;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -45,6 +50,21 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const [debugMode, setDebugMode] = useState(false);
   const toggleDebug = useCallback(() => setDebugMode(prev => !prev), []);
   useDebugShortcut(toggleDebug);
+
+  // Prompt overrides for debug mode (session-only)
+  const [promptOverrides, setPromptOverrides] = useState<Record<string, string>>({});
+  const setPromptOverride = useCallback((crewMemberId: string, prompt: string) => {
+    if (prompt) {
+      setPromptOverrides(prev => ({ ...prev, [crewMemberId]: prompt }));
+    } else {
+      // Clear override when empty string passed
+      setPromptOverrides(prev => {
+        const next = { ...prev };
+        delete next[crewMemberId];
+        return next;
+      });
+    }
+  }, []);
 
   const conversation = useConversation(
     config.storagePrefix,
@@ -71,6 +91,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     useKnowledgeBase: useKB,
     overrideCrewMember: crew.selectedOverride,
     debug: debugMode,
+    promptOverrides: debugMode ? promptOverrides : undefined, // Only use in debug mode
     onCrewInfo: crew.setCurrentCrew,
     onCrewTransition: (transition) => {
       // Record the departing crew as visited
@@ -245,6 +266,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
     // Debug
     debugMode,
     toggleDebug,
+    // Config (for prompt editor)
+    agentName: config.agentName,
+    baseURL: config.baseURL,
+    // Prompt overrides (debug mode)
+    setPromptOverride,
   };
 
   return (
