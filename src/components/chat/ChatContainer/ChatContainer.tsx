@@ -14,9 +14,10 @@ import styles from './ChatContainer.module.css';
 interface ChatContainerProps {
   showCrewSelector?: boolean;
   crewMode?: 'journey' | 'tabs';
+  crewPosition?: 'left' | 'right';
 }
 
-export function ChatContainer({ showCrewSelector = false, crewMode = 'journey' }: ChatContainerProps) {
+export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', crewPosition = 'left' }: ChatContainerProps) {
   const {
     messages,
     isThinking,
@@ -70,7 +71,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey' }
       )}
 
       {/* Header bar with crew stepper/tabs */}
-      <div className={styles.crewHeader}>
+      <div className={`${styles.crewHeader} ${crewPosition === 'right' ? styles.crewHeaderRight : ''}`}>
           {hasCrew && crewMode === 'tabs' ? (
             <CrewTabs
               crewMembers={crewMembers}
