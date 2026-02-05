@@ -8,13 +8,15 @@ import { CrewMemberIndicator } from '../CrewMemberIndicator';
 import { CrewMemberSelector } from '../CrewMemberSelector';
 import { CrewJourneyStepper } from '../CrewJourneyStepper';
 import { CrewJourneyModal } from '../CrewJourneyModal';
+import { CrewTabs } from '../CrewTabs';
 import styles from './ChatContainer.module.css';
 
 interface ChatContainerProps {
   showCrewSelector?: boolean;
+  crewMode?: 'journey' | 'tabs';
 }
 
-export function ChatContainer({ showCrewSelector = false }: ChatContainerProps) {
+export function ChatContainer({ showCrewSelector = false, crewMode = 'journey' }: ChatContainerProps) {
   const {
     messages,
     isThinking,
@@ -67,9 +69,16 @@ export function ChatContainer({ showCrewSelector = false }: ChatContainerProps) 
         </div>
       )}
 
-      {/* Header bar with crew stepper and phone link */}
+      {/* Header bar with crew stepper/tabs */}
       <div className={styles.crewHeader}>
-          {hasCrew && (
+          {hasCrew && crewMode === 'tabs' ? (
+            <CrewTabs
+              crewMembers={crewMembers}
+              selectedCrew={selectedOverride}
+              onSelect={setSelectedOverride}
+              disabled={isLoading}
+            />
+          ) : hasCrew && (
             journeySteps.length >= 2 ? (
               <CrewJourneyStepper steps={journeySteps} onStepperClick={openJourneyModal} />
             ) : (

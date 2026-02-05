@@ -18,7 +18,7 @@ export function AspectPage() {
         <AgentProvider config={aspectConfig}>
           <ChatProvider>
             <AppLayout headerExtra={<LogoUpload />}>
-              <ChatContainer />
+              <ChatContainer crewMode="tabs" />
             </AppLayout>
           </ChatProvider>
         </AgentProvider>
