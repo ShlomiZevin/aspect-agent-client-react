@@ -36,7 +36,8 @@ src/
 │   │   ├── ChatInput/          # Message input form
 │   │   ├── Message/            # Individual message bubble
 │   │   ├── ThinkingIndicator/  # "AI is thinking" animation
-│   │   └── WelcomeSection/     # Initial state with quick questions
+│   │   ├── WelcomeSection/     # Initial state with quick questions
+│   │   └── PromptEditorPanel/  # Debug mode prompt editor
 │   │
 │   ├── layout/                 # Layout components
 │   │   ├── AppLayout/          # Main app wrapper
@@ -77,6 +78,7 @@ src/
 │   ├── chatService.ts          # SSE streaming endpoint
 │   ├── conversationService.ts  # Conversation CRUD
 │   ├── kbService.ts            # Knowledge Base API
+│   ├── promptService.ts        # Prompt versioning API (debug mode)
 │   ├── userService.ts          # User creation
 │   └── index.ts
 │
@@ -300,6 +302,16 @@ deleteFile(kbId, fileId)        // DELETE /api/kb/:id/files/:fileId
 createUser()                    // POST /api/user/create
 ```
 
+### promptService
+```typescript
+getAgentPrompts(agentName)                    // GET /api/agents/:name/prompts
+getCrewPromptVersions(agent, crew)            // GET /api/agents/:name/crew/:crew/prompts
+activatePromptVersion(agent, crew, versionId) // POST .../prompts/:id/activate
+savePromptVersion(agent, crew, prompt, name)  // POST .../prompts
+updatePromptVersion(agent, crew, id, prompt)  // PATCH .../prompts/:id
+deletePromptVersion(agent, crew, versionId)   // DELETE .../prompts/:id
+```
+
 ## Styling System
 
 ### CSS Variables
@@ -352,6 +364,13 @@ VITE_API_URL=https://aspect-agent-server-1018338671074.europe-west1.run.app
 
 The app is configured for Firebase Hosting with SPA rewrites.
 
+### Firebase Projects
+
+| Alias | Project ID | URL |
+|-------|------------|-----|
+| `default` | aspect-agents | https://aspect-agents.web.app |
+| `freeda` | freeda-2b4af | https://freeda-2b4af.web.app |
+
 ### firebase.json
 ```json
 {
@@ -367,8 +386,27 @@ The app is configured for Firebase Hosting with SPA rewrites.
 
 ### Deploy Commands
 ```bash
-npm run build    # Build to dist/
-npm run deploy   # Build + firebase deploy
+# Build only
+npm run build
+
+# Deploy to aspect-agents (default)
+npm run deploy:aspect
+# Or manually:
+firebase deploy --only hosting --project aspect-agents
+
+# Deploy to freeda project
+npm run deploy:freeda
+# Or manually:
+firebase deploy --only hosting --project freeda-2b4af
+```
+
+### NPM Scripts
+```json
+{
+  "deploy": "npm run build && firebase deploy --only hosting",
+  "deploy:aspect": "npm run build && firebase use default && firebase deploy --only hosting",
+  "deploy:freeda": "npm run build && firebase use freeda && firebase deploy --only hosting"
+}
 ```
 
 ## Key Features
@@ -410,6 +448,34 @@ Converts markdown-like syntax:
 - Persisted in localStorage
 - CSS custom properties for easy theming
 
+### Debug Mode (Prompt Editor)
+
+Debug mode enables a prompt editing panel for testing prompt changes without modifying code.
+
+**Enabling Debug Mode:**
+Add `?debug=true` to the URL: `https://aspect-agents.web.app/freeda?debug=true`
+
+**Features:**
+- **Crew Member Selector** - Switch between different crew members
+- **Version Selector** - View and switch between prompt versions
+- **Real-time Override** - Edit prompt text, changes apply immediately (session only)
+- **Save Version** - Persist changes to database as new version
+- **Activate Version** - Make a version the default for all users
+- **Delete Version** - Remove old versions (cannot delete active version)
+
+**How Session Override Works:**
+1. Edit the prompt text in the textarea
+2. Changes are stored in browser memory (not database)
+3. The modified prompt is sent with each chat request
+4. Agent uses your modified prompt immediately
+5. Changes are lost on page refresh (unless saved)
+
+**UI Components:**
+- `PromptEditorPanel` - Main debug panel component
+- Collapsible panel on the right side of chat
+- Shows diff indicator when prompt is modified
+- Status messages for save/activate/delete operations
+
 ## Differences from Original
 
 | Feature | Original (Vanilla JS) | React Version |
@@ -446,17 +512,28 @@ npm run lint
 
 The client expects the server (aspect-agent-server) to provide:
 
+**User & Chat:**
 - `POST /api/user/create` - Create anonymous user
 - `POST /api/finance-assistant/stream` - SSE chat endpoint
 - `GET /api/conversation/:id/history` - Get messages
 - `GET /api/user/:id/conversations` - List conversations
 - `PATCH /api/conversation/:id` - Update title
 - `DELETE /api/conversation/:id` - Delete conversation
+
+**Knowledge Base:**
 - `GET /api/kb/list/:agent` - List knowledge bases
 - `GET /api/kb/:id/files` - List KB files
 - `POST /api/kb/create` - Create KB
 - `POST /api/kb/:id/upload` - Upload files
 - `DELETE /api/kb/:id/files/:fileId` - Delete file
+
+**Prompt Management (Debug Mode):**
+- `GET /api/agents/:name/prompts` - Get all prompts for agent
+- `GET /api/agents/:name/crew/:crew/prompts` - Get prompt versions
+- `POST /api/agents/:name/crew/:crew/prompts` - Create new version
+- `PATCH /api/agents/:name/crew/:crew/prompts/:id` - Update version
+- `POST /api/agents/:name/crew/:crew/prompts/:id/activate` - Activate version
+- `DELETE /api/agents/:name/crew/:crew/prompts/:id` - Delete version
 
 ## Browser Support
 
