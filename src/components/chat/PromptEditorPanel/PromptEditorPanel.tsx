@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { CrewMember } from '../../../types/crew';
 import type { CrewMemberPrompt } from '../../../types/promptEditor';
 import {
@@ -152,21 +152,32 @@ export function PromptEditorPanel({
     setStatus({ type: null, message: '' });
   }, []);
 
+  // Debounced session override to prevent re-rendering the entire context tree on every keystroke
+  const debouncedSessionOverride = useMemo(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    return (crewId: string, prompt: string) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        onSessionOverride(crewId, prompt);
+      }, 300);
+    };
+  }, [onSessionOverride]);
+
   // Handle prompt text change
   const handlePromptChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newPrompt = e.target.value;
     setEditedPrompt(newPrompt);
 
-    // Apply session override in real-time
+    // Apply session override with debouncing to avoid performance issues
     if (newPrompt !== originalPrompt) {
       setSessionOverrides(prev => ({ ...prev, [selectedCrewId]: newPrompt }));
-      onSessionOverride(selectedCrewId, newPrompt);
+      debouncedSessionOverride(selectedCrewId, newPrompt);
 
       if (!hasSessionOverride) {
         setStatus({ type: 'info', message: 'Session override active - this change is temporary' });
       }
     }
-  }, [selectedCrewId, originalPrompt, hasSessionOverride, onSessionOverride]);
+  }, [selectedCrewId, originalPrompt, hasSessionOverride, debouncedSessionOverride]);
 
   // Revert to original prompt
   const handleRevert = useCallback(() => {
