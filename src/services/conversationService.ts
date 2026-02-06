@@ -110,3 +110,42 @@ export async function deleteConversation(
     baseURL || getBaseURL()
   );
 }
+
+export async function deleteMessage(
+  conversationId: string,
+  messageId: number,
+  baseURL?: string
+): Promise<void> {
+  await apiRequest(
+    `/api/conversation/${conversationId}/message/${messageId}`,
+    { method: 'DELETE' },
+    baseURL || getBaseURL()
+  );
+}
+
+export async function deleteMessages(
+  conversationId: string,
+  messageIds: number[],
+  baseURL?: string
+): Promise<{ deletedCount: number }> {
+  return apiRequest(
+    `/api/conversation/${conversationId}/messages`,
+    {
+      method: 'DELETE',
+      body: JSON.stringify({ messageIds }),
+    },
+    baseURL || getBaseURL()
+  );
+}
+
+export async function deleteMessagesFrom(
+  conversationId: string,
+  messageId: number,
+  baseURL?: string
+): Promise<{ deletedCount: number }> {
+  return apiRequest(
+    `/api/conversation/${conversationId}/messages-from/${messageId}`,
+    { method: 'DELETE' },
+    baseURL || getBaseURL()
+  );
+}

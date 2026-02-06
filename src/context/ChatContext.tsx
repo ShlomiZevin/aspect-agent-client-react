@@ -234,6 +234,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
     loadHistory: chat.loadHistory,
     newChat: chat.newChat,
     clearError: chat.clearError,
+    deleteMessage: chat.deleteMessage,
+    deleteMessagesFrom: chat.deleteMessagesFrom,
 
     // Conversation state
     conversationId: conversation.conversationId,

@@ -1,6 +1,6 @@
 import { useReducer, useCallback, useEffect } from 'react';
 import { streamChat } from '../services/chatService';
-import { getConversationHistory } from '../services/conversationService';
+import { getConversationHistory, deleteMessage as deleteMessageApi, deleteMessagesFrom as deleteMessagesFromApi } from '../services/conversationService';
 import type { Message, ChatState, ChatAction, AgentConfig, ThinkingStep } from '../types';
 import type { CrewMember } from '../types/crew';
 import type { CrewTransition } from '../services/chatService';
@@ -156,6 +156,30 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return { ...state, messages };
     }
 
+    case 'SET_USER_MESSAGE_DB_ID': {
+      // Find the most recent user message without a dbId and set it
+      const messages = [...state.messages];
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === 'user' && !messages[i].dbId) {
+          messages[i] = { ...messages[i], dbId: action.payload };
+          break;
+        }
+      }
+      return { ...state, messages };
+    }
+
+    case 'DELETE_MESSAGE': {
+      const messages = state.messages.filter(m => m.id !== action.payload);
+      return { ...state, messages };
+    }
+
+    case 'DELETE_MESSAGES_FROM': {
+      const idx = state.messages.findIndex(m => m.id === action.payload);
+      if (idx === -1) return state;
+      const messages = state.messages.slice(0, idx);
+      return { ...state, messages };
+    }
+
     default:
       return state;
   }
@@ -185,6 +209,8 @@ export interface UseChatReturn {
   loadHistory: (conversationId: string) => Promise<void>;
   newChat: (conversationId: string) => void;
   clearError: () => void;
+  deleteMessage: (messageId: string, dbId?: number) => Promise<void>;
+  deleteMessagesFrom: (messageId: string, dbId?: number) => Promise<void>;
 }
 
 /**
@@ -266,6 +292,9 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             onMessageSaved: (messageId) => {
               dispatch({ type: 'SET_MESSAGE_DB_ID', payload: messageId });
             },
+            onUserMessageSaved: (messageId) => {
+              dispatch({ type: 'SET_USER_MESSAGE_DB_ID', payload: messageId });
+            },
           }
         );
       } catch (error) {
@@ -314,6 +343,42 @@ export function useChat(options: UseChatOptions): UseChatReturn {
     dispatch({ type: 'CLEAR_ERROR' });
   }, []);
 
+  const deleteMessage = useCallback(
+    async (messageId: string, dbId?: number) => {
+      // Delete from server if we have a database ID
+      if (dbId) {
+        try {
+          await deleteMessageApi(state.conversationId || conversationId, dbId, config.baseURL);
+        } catch (error) {
+          console.error('Error deleting message from server:', error);
+          dispatch({ type: 'SET_ERROR', payload: 'Failed to delete message' });
+          return;
+        }
+      }
+      // Remove from local state
+      dispatch({ type: 'DELETE_MESSAGE', payload: messageId });
+    },
+    [state.conversationId, conversationId, config.baseURL]
+  );
+
+  const deleteMessagesFrom = useCallback(
+    async (messageId: string, dbId?: number) => {
+      // Delete from server if we have a database ID
+      if (dbId) {
+        try {
+          await deleteMessagesFromApi(state.conversationId || conversationId, dbId, config.baseURL);
+        } catch (error) {
+          console.error('Error deleting messages from server:', error);
+          dispatch({ type: 'SET_ERROR', payload: 'Failed to delete messages' });
+          return;
+        }
+      }
+      // Remove from local state
+      dispatch({ type: 'DELETE_MESSAGES_FROM', payload: messageId });
+    },
+    [state.conversationId, conversationId, config.baseURL]
+  );
+
   return {
     messages: state.messages,
     isLoading: state.isLoading,
@@ -326,5 +391,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
     loadHistory,
     newChat,
     clearError,
+    deleteMessage,
+    deleteMessagesFrom,
   };
 }

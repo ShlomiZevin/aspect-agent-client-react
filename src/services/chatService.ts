@@ -32,6 +32,7 @@ export interface StreamCallbacks {
   onDebugData?: (data: DebugPromptData) => void;
   onDebugContextUpdate?: (data: PostExtractionContext) => void;
   onMessageSaved?: (messageId: number) => void;
+  onUserMessageSaved?: (messageId: number) => void;
 }
 
 /**
@@ -42,7 +43,7 @@ export async function streamChat(
   callbacks: StreamCallbacks
 ): Promise<void> {
   const { message, conversationId, agentName, userId, useKnowledgeBase = false, baseURL, overrideCrewMember, debug, promptOverrides } = options;
-  const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onDebugContextUpdate, onMessageSaved } = callbacks;
+  const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onDebugContextUpdate, onMessageSaved, onUserMessageSaved } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
 
@@ -148,6 +149,10 @@ export async function streamChat(
             // Handle message saved event (for feedback dbId)
             else if (parsed.type === 'message_saved' && parsed.messageId) {
               onMessageSaved?.(parsed.messageId);
+            }
+            // Handle user message saved event (for delete functionality)
+            else if (parsed.type === 'user_message_saved' && parsed.messageId) {
+              onUserMessageSaved?.(parsed.messageId);
             }
           } catch {
             // Skip invalid JSON

@@ -223,3 +223,114 @@
 .markdownContent a:hover {
   opacity: 0.8;
 }
+
+/* User message wrapper for actions */
+.userMessageWrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  position: relative;
+}
+
+.userMessageWrapper > span {
+  flex: 1;
+}
+
+/* Header actions container */
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  position: relative;
+}
+
+/* Message actions (for user messages) */
+.messageActions {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Delete button styles */
+.deleteButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: all var(--transition-fast);
+}
+
+.message:hover .deleteButton {
+  opacity: 0.6;
+}
+
+.deleteButton:hover {
+  opacity: 1 !important;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.user .deleteButton {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.user .deleteButton:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* Delete menu dropdown */
+.deleteMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 100;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: 180px;
+  overflow: hidden;
+  animation: fadeIn 0.15s ease;
+}
+
+.user .deleteMenu {
+  background: var(--background);
+}
+
+.deleteMenu button {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  transition: background var(--transition-fast);
+}
+
+.deleteMenu button:hover {
+  background: var(--primary-light);
+}
+
+.deleteMenu button:last-child {
+  color: #ef4444;
+}
+
+.deleteMenu button:last-child:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

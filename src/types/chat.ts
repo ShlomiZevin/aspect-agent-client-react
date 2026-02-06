@@ -75,4 +75,7 @@ export type ChatAction =
   | { type: 'CLEAR_ERROR' }
   | { type: 'SET_DEBUG_DATA'; payload: DebugPromptData }
   | { type: 'UPDATE_DEBUG_CONTEXT'; payload: PostExtractionContext }
-  | { type: 'SET_MESSAGE_DB_ID'; payload: number };
+  | { type: 'SET_MESSAGE_DB_ID'; payload: number }
+  | { type: 'SET_USER_MESSAGE_DB_ID'; payload: number }
+  | { type: 'DELETE_MESSAGE'; payload: string }
+  | { type: 'DELETE_MESSAGES_FROM'; payload: string };
