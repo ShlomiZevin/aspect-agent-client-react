@@ -1,6 +1,7 @@
 .stepper {
   display: flex;
   align-items: flex-start;
+  gap: var(--spacing-md);
   padding: var(--spacing-xs) var(--spacing-sm);
   background: none;
   border: 1px solid var(--border);
@@ -9,6 +10,7 @@
   transition: all var(--transition-fast);
   flex-shrink: 1;
   min-width: 0;
+  overflow-x: auto;
 }
 
 .stepper:hover {
@@ -21,7 +23,8 @@
   flex-direction: column;
   align-items: center;
   position: relative;
-  min-width: 72px;
+  min-width: 80px;
+  flex-shrink: 0;
 }
 
 /* Horizontal connector line between steps */
@@ -29,7 +32,7 @@
   position: absolute;
   top: 11px;
   right: 50%;
-  width: 100%;
+  width: calc(100% + var(--spacing-md));
   height: 2px;
   background-color: var(--border);
   z-index: 0;
@@ -80,7 +83,6 @@
 .label {
   margin-top: var(--spacing-xs);
   font-size: var(--font-size-xs);
-  white-space: nowrap;
   text-align: center;
   line-height: 1.2;
 }
@@ -110,7 +112,7 @@
 
 @media (max-width: 768px) {
   .step {
-    min-width: 56px;
+    min-width: 60px;
   }
 
   .circle {

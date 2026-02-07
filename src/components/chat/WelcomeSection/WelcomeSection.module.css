@@ -19,6 +19,15 @@
   animation: float 3s ease-in-out infinite;
 }
 
+.iconImage {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto var(--spacing-md);
+  animation: float 3s ease-in-out infinite;
+}
+
 .title {
   font-size: var(--font-size-xl);
   font-weight: 600;
@@ -114,6 +123,11 @@
 
   .icon {
     font-size: 36px;
+  }
+
+  .iconImage {
+    width: 60px;
+    height: 60px;
   }
 
   .title {

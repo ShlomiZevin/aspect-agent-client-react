@@ -77,6 +77,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const crew = useCrew({
     agentName: config.agentName,
     baseURL: config.baseURL,
+    showFullJourney: config.features.showFullJourney,
   });
 
   // Journey modal state

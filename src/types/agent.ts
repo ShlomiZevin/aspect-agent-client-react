@@ -41,6 +41,8 @@ export interface AgentConfig {
     hasLogoUpload: boolean;
     hasFileUpload: boolean;
     hasChatHistory: boolean;
+    /** Show full crew journey (all upcoming crews) instead of just current + next */
+    showFullJourney?: boolean;
   };
 
   // Theming

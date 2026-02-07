@@ -9,10 +9,17 @@ export function WelcomeSection() {
     sendMessage(question);
   };
 
+  // Check if welcomeIcon is an image path or an emoji
+  const isImagePath = config.welcomeIcon.startsWith('/') || config.welcomeIcon.startsWith('http');
+
   return (
     <div className={styles.welcome}>
       <div className={styles.header}>
-        <span className={styles.icon}>{config.welcomeIcon}</span>
+        {isImagePath ? (
+          <img src={config.welcomeIcon} alt="" className={styles.iconImage} />
+        ) : (
+          <span className={styles.icon}>{config.welcomeIcon}</span>
+        )}
         <h2 className={styles.title}>{config.welcomeTitle}</h2>
         <p className={styles.message}>{config.welcomeMessage}</p>
       </div>

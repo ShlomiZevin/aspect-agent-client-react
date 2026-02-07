@@ -11,6 +11,8 @@ import type { CrewMember, CrewJourneyStep } from '../types/crew';
 export interface UseCrewOptions {
   agentName: string;
   baseURL: string;
+  /** Show full journey (all upcoming crews) instead of just next */
+  showFullJourney?: boolean;
 }
 
 export interface UseCrewReturn {
@@ -86,7 +88,7 @@ function inferVisitedCrews(crewMembers: CrewMember[], currentCrewName: string | 
 }
 
 export function useCrew(options: UseCrewOptions): UseCrewReturn {
-  const { agentName, baseURL } = options;
+  const { agentName, baseURL, showFullJourney = false } = options;
 
   const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
   const [currentCrew, setCurrentCrew] = useState<CrewMember | null>(null);
@@ -156,7 +158,7 @@ export function useCrew(options: UseCrewOptions): UseCrewReturn {
   // Check if agent has crew
   const hasCrew = crewMembers.length > 0;
 
-  // Build journey steps from visited + current + next
+  // Build journey steps from visited + current + upcoming
   const journeySteps = useMemo<CrewJourneyStep[]>(() => {
     if (!currentCrew || crewMembers.length < 2) return [];
 
@@ -174,16 +176,32 @@ export function useCrew(options: UseCrewOptions): UseCrewReturn {
     // Current step
     steps.push({ crew: currentCrew, status: 'current' });
 
-    // Upcoming step (next crew from transitionTo)
-    if (currentCrew.transitionTo) {
-      const nextCrew = byName.get(currentCrew.transitionTo);
-      if (nextCrew) {
+    // Upcoming steps
+    if (showFullJourney) {
+      // Walk the entire transitionTo chain for full journey view
+      const seen = new Set<string>([currentCrew.name, ...visitedCrewNames]);
+      let cursor: CrewMember | undefined = currentCrew;
+
+      while (cursor?.transitionTo) {
+        const nextCrew = byName.get(cursor.transitionTo);
+        if (!nextCrew || seen.has(nextCrew.name)) break;
+
+        seen.add(nextCrew.name);
         steps.push({ crew: nextCrew, status: 'upcoming' });
+        cursor = nextCrew;
+      }
+    } else {
+      // Just show the next crew (default behavior)
+      if (currentCrew.transitionTo) {
+        const nextCrew = byName.get(currentCrew.transitionTo);
+        if (nextCrew) {
+          steps.push({ crew: nextCrew, status: 'upcoming' });
+        }
       }
     }
 
     return steps;
-  }, [crewMembers, currentCrew, visitedCrewNames]);
+  }, [crewMembers, currentCrew, visitedCrewNames, showFullJourney]);
 
   return {
     crewMembers,
