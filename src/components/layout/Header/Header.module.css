@@ -82,6 +82,45 @@
   gap: var(--spacing-md);
 }
 
+.fieldsButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.fieldsButton:hover {
+  background: var(--surface-light);
+  border-color: var(--primary-color);
+  color: var(--text-primary);
+}
+
+.fieldsButton.active {
+  background: var(--primary-light);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.fieldsButton .debugBadge {
+  background: var(--warning-color);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.05em;
+  margin-left: var(--spacing-xs);
+}
+
 @media (max-width: 768px) {
   .header {
     padding: var(--spacing-sm) var(--spacing-md);
@@ -114,6 +153,14 @@
   }
 
   .whatsappIndicator span {
+    display: none;
+  }
+
+  .fieldsButton {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .fieldsButtonText {
     display: none;
   }
 }

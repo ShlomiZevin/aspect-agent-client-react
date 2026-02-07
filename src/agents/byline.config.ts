@@ -9,7 +9,7 @@ export const bylineConfig: AgentConfig = {
   baseURL: BASE_URL,
 
   pageTitle: 'Byline Bank - Risk Due Diligence Assessment',
-  favicon: '/img/byline-logo.png',
+  favicon: '/img/byline-logo-trans-white.png',
   metaDescription: 'Complete your Risk Due Diligence Assessment with Byline Bank\'s AI-powered assistant.',
 
   logo: {
@@ -18,7 +18,7 @@ export const bylineConfig: AgentConfig = {
   },
   headerTitle: 'Byline Bank',
   headerSubtitle: 'Risk Due Diligence Assessment',
-  welcomeIcon: '/img/byline-logo.png',
+  welcomeIcon: '/img/byline-logo-trans-white.png',
   welcomeTitle: 'Welcome to Byline Bank RDDA',
   welcomeMessage: 'I\'ll guide you through our Risk Due Diligence Assessment process for Third Party Payment Processors.',
   inputPlaceholder: 'Type your response...',

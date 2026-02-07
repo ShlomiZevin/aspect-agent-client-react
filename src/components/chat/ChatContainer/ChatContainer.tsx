@@ -9,6 +9,7 @@ import { CrewMemberSelector } from '../CrewMemberSelector';
 import { CrewJourneyStepper } from '../CrewJourneyStepper';
 import { CrewJourneyModal } from '../CrewJourneyModal';
 import { PromptEditorPanel } from '../PromptEditorPanel';
+import { FieldsEditorPanel } from '../FieldsEditorPanel';
 import { MOCK_CREW_MEMBERS } from '../../../mocks/promptMocks';
 import { CrewTabs } from '../CrewTabs';
 import styles from './ChatContainer.module.css';
@@ -40,6 +41,10 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     agentName,
     baseURL,
     setPromptOverride,
+    conversationId,
+    isFieldsEditorOpen,
+    setFieldsEditorOpen,
+    canShowFieldsEditor,
   } = useChatContext();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -90,8 +95,11 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     };
   }, [messages, isThinking, currentThinkingStep, thinkingSteps.length]);
 
+  // Determine if any right panel is open
+  const hasOpenPanel = isPromptPanelOpen || isFieldsEditorOpen;
+
   return (
-    <div className={`${styles.wrapper} ${isPromptPanelOpen ? styles.withPanel : ''}`}>
+    <div className={`${styles.wrapper} ${hasOpenPanel ? styles.withPanel : ''}`}>
       <div className={styles.container}>
         {debugMode && (
           <div className={styles.debugBadge}>
@@ -172,6 +180,16 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           baseURL={baseURL}
           onClose={() => setIsPromptPanelOpen(false)}
           onSessionOverride={setPromptOverride}
+        />
+      )}
+
+      {/* Fields Editor Panel - Form mode crews or debug mode */}
+      {canShowFieldsEditor && isFieldsEditorOpen && conversationId && (
+        <FieldsEditorPanel
+          conversationId={conversationId}
+          baseURL={baseURL}
+          isDebugMode={debugMode}
+          onClose={() => setFieldsEditorOpen(false)}
         />
       )}
     </div>

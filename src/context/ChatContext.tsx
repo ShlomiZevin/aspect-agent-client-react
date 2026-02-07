@@ -30,6 +30,10 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   baseURL: string;
   // Prompt overrides (debug mode)
   setPromptOverride: (crewMemberId: string, prompt: string) => void;
+  // Fields editor
+  isFieldsEditorOpen: boolean;
+  setFieldsEditorOpen: (open: boolean) => void;
+  canShowFieldsEditor: boolean;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -84,6 +88,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const [isJourneyModalOpen, setIsJourneyModalOpen] = useState(false);
   const openJourneyModal = useCallback(() => setIsJourneyModalOpen(true), []);
   const closeJourneyModal = useCallback(() => setIsJourneyModalOpen(false), []);
+
+  // Fields editor state
+  const [isFieldsEditorOpen, setFieldsEditorOpen] = useState(false);
 
   const chat = useChat({
     config,
@@ -274,6 +281,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
     baseURL: config.baseURL,
     // Prompt overrides (debug mode)
     setPromptOverride,
+    // Fields editor
+    isFieldsEditorOpen,
+    setFieldsEditorOpen,
+    // Show fields editor for form mode crews OR in debug mode
+    canShowFieldsEditor: debugMode || (crew.currentCrew?.extractionMode === 'form'),
   };
 
   return (

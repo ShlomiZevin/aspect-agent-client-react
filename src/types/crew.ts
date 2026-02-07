@@ -17,6 +17,7 @@ export interface CrewMember {
   transitionTo: string | null;
   toolCount: number;
   hasKnowledgeBase: boolean;
+  extractionMode?: 'conversational' | 'form';
 }
 
 /**
