@@ -14,17 +14,25 @@ export interface DebugPromptData {
   knowledgeBase: { enabled: boolean; storeId: string | null } | null;
   processedMessage: string;
   postExtractionContext?: PostExtractionContext;
+  transitionSystemPrompt?: string;
+  transitionPromptInjected?: boolean;
 }
 
 export interface Message {
   id: string;
   dbId?: number; // Database ID for feedback linking
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'developer';
   content: string;
   timestamp: Date;
   thinkingSteps?: ThinkingStep[];
   crewMember?: string;
   debugData?: DebugPromptData;
+  /** For developer messages: metadata about injection */
+  injectionMeta?: {
+    injectedForTesting: boolean;
+    crewMemberName?: string;
+    injectedAt: string;
+  };
 }
 
 export interface ThinkingStep {
@@ -78,4 +86,5 @@ export type ChatAction =
   | { type: 'SET_MESSAGE_DB_ID'; payload: number }
   | { type: 'SET_USER_MESSAGE_DB_ID'; payload: number }
   | { type: 'DELETE_MESSAGE'; payload: string }
-  | { type: 'DELETE_MESSAGES_FROM'; payload: string };
+  | { type: 'DELETE_MESSAGES_FROM'; payload: string }
+  | { type: 'ADD_DEVELOPER_MESSAGE'; payload: Message };

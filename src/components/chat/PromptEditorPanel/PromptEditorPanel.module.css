@@ -585,3 +585,87 @@
   background: var(--surface-light);
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
+
+/* Transition System Prompt Section */
+.collapsibleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--spacing-xs) 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  margin-bottom: var(--spacing-xs);
+}
+
+.collapsibleHeader:hover {
+  opacity: 0.8;
+}
+
+.chevron {
+  transition: transform var(--transition-fast);
+  color: var(--text-secondary);
+}
+
+.chevron.expanded {
+  transform: rotate(180deg);
+}
+
+.hasContentBadge {
+  background: var(--warning-color);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  margin-left: var(--spacing-xs);
+}
+
+.helperText {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin: 0 0 var(--spacing-sm) 0;
+  line-height: 1.4;
+}
+
+.transitionTextarea {
+  flex: none;
+  min-height: 100px;
+  border-color: var(--warning-color);
+  margin-bottom: var(--spacing-xs);
+}
+
+.transitionActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.fireNowButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  background: var(--warning-color);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.fireNowButton:hover:not(:disabled) {
+  background: #d97706;
+  transform: translateY(-1px);
+}
+
+.fireNowButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

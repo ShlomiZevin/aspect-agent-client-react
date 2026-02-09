@@ -12,6 +12,7 @@ export interface PromptVersion {
   version: number;
   name?: string;  // Version name/tag (e.g., "Added empathy guidelines")
   prompt: string;
+  transitionSystemPrompt?: string;  // System prompt injected once when transitioning to this crew
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

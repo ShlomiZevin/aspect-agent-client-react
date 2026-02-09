@@ -22,6 +22,12 @@ export function DebugPanel({ data }: DebugPanelProps) {
   const post = data.postExtractionContext;
 
   const sections = [
+    // Show transition system prompt first if it was injected (most important for debugging)
+    ...(data.transitionSystemPrompt && data.transitionPromptInjected ? [{
+      key: 'transitionPrompt',
+      label: '** TRANSITION PROMPT (INJECTED) **',
+      content: data.transitionSystemPrompt,
+    }] : []),
     { key: 'instructions', label: 'Full Instructions (Sent to LLM)', content: data.fullInstructions },
     { key: 'message', label: 'Processed Message (User Input)', content: data.processedMessage },
     { key: 'tools', label: `Tools (${data.tools.length})`, content: JSON.stringify(data.tools, null, 2) },

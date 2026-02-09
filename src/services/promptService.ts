@@ -63,14 +63,15 @@ export async function createPromptVersion(
   crewName: string,
   prompt: string,
   name?: string,
-  baseURL?: string
+  baseURL?: string,
+  transitionSystemPrompt?: string
 ): Promise<PromptVersion> {
   const url = baseURL || getBaseURL();
   const response = await apiRequest<{ success: boolean; version: PromptVersion }>(
     `/api/agents/${encodeURIComponent(agentName)}/crew/${encodeURIComponent(crewName)}/prompts`,
     {
       method: 'POST',
-      body: JSON.stringify({ prompt, name }),
+      body: JSON.stringify({ prompt, name, transitionSystemPrompt }),
     },
     url
   );
@@ -85,14 +86,15 @@ export async function updatePromptVersion(
   crewName: string,
   versionId: string | number,
   prompt: string,
-  baseURL?: string
+  baseURL?: string,
+  transitionSystemPrompt?: string
 ): Promise<PromptVersion> {
   const url = baseURL || getBaseURL();
   const response = await apiRequest<{ success: boolean; version: PromptVersion }>(
     `/api/agents/${encodeURIComponent(agentName)}/crew/${encodeURIComponent(crewName)}/prompts/${versionId}`,
     {
       method: 'PATCH',
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ prompt, transitionSystemPrompt }),
     },
     url
   );

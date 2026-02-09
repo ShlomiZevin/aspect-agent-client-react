@@ -45,6 +45,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     isFieldsEditorOpen,
     setFieldsEditorOpen,
     canShowFieldsEditor,
+    injectTransitionPrompt,
   } = useChatContext();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -180,6 +181,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           baseURL={baseURL}
           onClose={() => setIsPromptPanelOpen(false)}
           onSessionOverride={setPromptOverride}
+          onFireTransitionPrompt={injectTransitionPrompt}
         />
       )}
 

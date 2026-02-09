@@ -17,6 +17,7 @@ interface PromptEditorPanelProps {
   baseURL: string;
   onClose: () => void;
   onSessionOverride: (crewMemberId: string, prompt: string) => void;
+  onFireTransitionPrompt?: (content: string, crewMemberName?: string) => Promise<void>;
 }
 
 type StatusType = 'success' | 'error' | 'info' | null;
@@ -33,6 +34,7 @@ export function PromptEditorPanel({
   baseURL,
   onClose,
   onSessionOverride,
+  onFireTransitionPrompt,
 }: PromptEditorPanelProps) {
   // Prompts data from API
   const [prompts, setPrompts] = useState<CrewMemberPrompt[]>([]);
@@ -65,6 +67,12 @@ export function PromptEditorPanel({
   // Selected version ID (for version switching)
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
 
+  // Transition system prompt state
+  const [editedTransitionPrompt, setEditedTransitionPrompt] = useState<string>('');
+  const [originalTransitionPrompt, setOriginalTransitionPrompt] = useState<string>('');
+  const [showTransitionPrompt, setShowTransitionPrompt] = useState(false);
+  const [isFiring, setIsFiring] = useState(false);
+
   // Load prompts from API
   useEffect(() => {
     async function loadPrompts() {
@@ -93,7 +101,13 @@ export function PromptEditorPanel({
     || selectedPromptData?.currentVersion;
 
   // Check if the current prompt is dirty (modified)
-  const isDirty = editedPrompt !== originalPrompt;
+  const isMainDirty = editedPrompt !== originalPrompt;
+
+  // Check if transition prompt is dirty
+  const isTransitionDirty = editedTransitionPrompt !== originalTransitionPrompt;
+
+  // Either prompt is dirty
+  const isDirty = isMainDirty || isTransitionDirty;
 
   // Check if there's a session override for the selected crew
   const hasSessionOverride = selectedCrewId in sessionOverrides;
@@ -119,6 +133,9 @@ export function PromptEditorPanel({
         const prompt = override || selectedVersion.prompt;
         setEditedPrompt(prompt);
         setOriginalPrompt(selectedVersion.prompt);
+        // Load transition system prompt
+        setEditedTransitionPrompt(selectedVersion.transitionSystemPrompt || '');
+        setOriginalTransitionPrompt(selectedVersion.transitionSystemPrompt || '');
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -183,6 +200,7 @@ export function PromptEditorPanel({
   const handleRevert = useCallback(() => {
     if (selectedVersion) {
       setEditedPrompt(selectedVersion.prompt);
+      setEditedTransitionPrompt(selectedVersion.transitionSystemPrompt || '');
       // Remove session override if reverting active version
       if (selectedVersion.isActive) {
         setSessionOverrides(prev => {
@@ -209,9 +227,10 @@ export function PromptEditorPanel({
     setIsSaving(true);
     try {
       const versionId = selectedVersion.id;
-      await updatePromptVersion(agentName, selectedCrewId, versionId, editedPrompt, baseURL);
+      await updatePromptVersion(agentName, selectedCrewId, versionId, editedPrompt, baseURL, editedTransitionPrompt || undefined);
 
       setOriginalPrompt(editedPrompt);
+      setOriginalTransitionPrompt(editedTransitionPrompt);
       // Remove session override since it's now saved
       setSessionOverrides(prev => {
         const next = { ...prev };
@@ -229,7 +248,7 @@ export function PromptEditorPanel({
     } finally {
       setIsSaving(false);
     }
-  }, [selectedCrewId, editedPrompt, selectedVersion, isCodeVersion, agentName, baseURL]);
+  }, [selectedCrewId, editedPrompt, editedTransitionPrompt, selectedVersion, isCodeVersion, agentName, baseURL]);
 
   // Open modal to save as new version
   const handleOpenVersionModal = useCallback(() => {
@@ -255,10 +274,12 @@ export function PromptEditorPanel({
         selectedCrewId,
         editedPrompt,
         versionName.trim(),
-        baseURL
+        baseURL,
+        editedTransitionPrompt || undefined
       );
 
       setOriginalPrompt(editedPrompt);
+      setOriginalTransitionPrompt(editedTransitionPrompt);
       // Remove session override since it's now saved
       setSessionOverrides(prev => {
         const next = { ...prev };
@@ -280,7 +301,7 @@ export function PromptEditorPanel({
     } finally {
       setIsSaving(false);
     }
-  }, [selectedCrewId, editedPrompt, versionName, agentName, baseURL]);
+  }, [selectedCrewId, editedPrompt, editedTransitionPrompt, versionName, agentName, baseURL]);
 
   // Activate selected version (make it the active one)
   const handleActivateVersion = useCallback(async () => {
@@ -443,22 +464,96 @@ export function PromptEditorPanel({
           <p className={styles.emptyText}>Loading prompts...</p>
         </div>
       ) : selectedPromptData ? (
-        /* Prompt Editor */
-        <div className={styles.editorSection}>
-          <div className={styles.editorLabel}>
-            <span className={styles.editorLabelText}>Prompt Content</span>
-            <span className={styles.charCount}>
-              {editedPrompt.length} chars
-            </span>
+        <>
+          {/* Main Prompt Editor */}
+          <div className={styles.editorSection}>
+            <div className={styles.editorLabel}>
+              <span className={styles.editorLabelText}>Prompt Content</span>
+              <span className={styles.charCount}>
+                {editedPrompt.length} chars
+              </span>
+            </div>
+            <textarea
+              className={`${styles.promptTextarea} ${isDirty ? styles.dirty : ''}`}
+              value={editedPrompt}
+              onChange={handlePromptChange}
+              placeholder="Enter the crew member's prompt..."
+              spellCheck={false}
+            />
           </div>
-          <textarea
-            className={`${styles.promptTextarea} ${isDirty ? styles.dirty : ''}`}
-            value={editedPrompt}
-            onChange={handlePromptChange}
-            placeholder="Enter the crew member's prompt..."
-            spellCheck={false}
-          />
-        </div>
+
+          {/* Transition System Prompt (Collapsible) */}
+          <div className={styles.editorSection}>
+            <button
+              className={styles.collapsibleHeader}
+              onClick={() => setShowTransitionPrompt(!showTransitionPrompt)}
+              type="button"
+            >
+              <span className={styles.editorLabelText}>
+                Transition System Prompt
+                {editedTransitionPrompt && <span className={styles.hasContentBadge}>SET</span>}
+              </span>
+              <svg
+                className={`${styles.chevron} ${showTransitionPrompt ? styles.expanded : ''}`}
+                width="14" height="14" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" strokeWidth="2"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {showTransitionPrompt && (
+              <>
+                <p className={styles.helperText}>
+                  Injected once when transitioning to this crew. Uses &apos;developer&apos; role for highest authority.
+                </p>
+                <textarea
+                  className={`${styles.promptTextarea} ${styles.transitionTextarea} ${isTransitionDirty ? styles.dirty : ''}`}
+                  value={editedTransitionPrompt}
+                  onChange={(e) => setEditedTransitionPrompt(e.target.value)}
+                  placeholder="e.g., [CONTEXT SWITCH] Your role has changed. Disregard previous conversation patterns..."
+                  spellCheck={false}
+                  rows={4}
+                />
+                <div className={styles.transitionActions}>
+                  <span className={styles.charCount}>
+                    {editedTransitionPrompt.length} chars
+                  </span>
+                  {onFireTransitionPrompt && (
+                    <button
+                      className={styles.fireNowButton}
+                      onClick={async () => {
+                        if (!editedTransitionPrompt.trim()) return;
+                        setIsFiring(true);
+                        try {
+                          await onFireTransitionPrompt(editedTransitionPrompt, selectedCrewId);
+                          setStatus({ type: 'success', message: 'Transition prompt injected into chat!' });
+                        } catch {
+                          setStatus({ type: 'error', message: 'Failed to inject prompt' });
+                        } finally {
+                          setIsFiring(false);
+                        }
+                      }}
+                      disabled={!editedTransitionPrompt.trim() || isFiring}
+                      title="Inject this prompt into the conversation now (for testing)"
+                      type="button"
+                    >
+                      {isFiring ? (
+                        'Firing...'
+                      ) : (
+                        <>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polygon points="5 3 19 12 5 21 5 3" />
+                          </svg>
+                          Fire Now
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </>
       ) : (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>no data</div>

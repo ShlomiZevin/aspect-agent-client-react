@@ -6,11 +6,14 @@ interface ConversationHistoryResponse {
   messageCount: number;
   messages: Array<{
     id: number | string;
-    role: 'user' | 'assistant';
+    role: 'user' | 'assistant' | 'developer';
     content: string;
     createdAt: string;
     metadata?: {
       crewMember?: string;
+      injectedForTesting?: boolean;
+      crewMemberName?: string;
+      injectedAt?: string;
       [key: string]: unknown;
     };
     thinkingSteps?: Array<{
@@ -60,6 +63,14 @@ export async function getConversationHistory(
         stepOrder: step.stepOrder,
         metadata: step.metadata,
       })) || [],
+      // Developer message injection metadata
+      ...(msg.role === 'developer' && msg.metadata?.injectedForTesting ? {
+        injectionMeta: {
+          injectedForTesting: true,
+          crewMemberName: msg.metadata.crewMemberName || undefined,
+          injectedAt: msg.metadata.injectedAt || new Date().toISOString(),
+        },
+      } : {}),
     })),
   };
 }
@@ -148,4 +159,36 @@ export async function deleteMessagesFrom(
     { method: 'DELETE' },
     baseURL || getBaseURL()
   );
+}
+
+export interface InjectedMessage {
+  id: number;
+  role: 'developer';
+  content: string;
+  metadata: {
+    injectedForTesting: boolean;
+    crewMemberName?: string;
+    injectedAt: string;
+  };
+  createdAt: string;
+}
+
+/**
+ * Inject a developer-role message into conversation history (for testing transition prompts)
+ */
+export async function injectDeveloperMessage(
+  conversationId: string,
+  content: string,
+  crewMemberName?: string,
+  baseURL?: string
+): Promise<InjectedMessage> {
+  const response = await apiRequest<{ success: boolean; message: InjectedMessage }>(
+    `/api/conversation/${conversationId}/inject-developer-message`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ content, crewMemberName }),
+    },
+    baseURL || getBaseURL()
+  );
+  return response.message;
 }

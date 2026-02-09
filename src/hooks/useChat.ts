@@ -1,6 +1,6 @@
 import { useReducer, useCallback, useEffect } from 'react';
 import { streamChat } from '../services/chatService';
-import { getConversationHistory, deleteMessage as deleteMessageApi, deleteMessagesFrom as deleteMessagesFromApi } from '../services/conversationService';
+import { getConversationHistory, deleteMessage as deleteMessageApi, deleteMessagesFrom as deleteMessagesFromApi, injectDeveloperMessage as injectDeveloperMessageApi } from '../services/conversationService';
 import type { Message, ChatState, ChatAction, AgentConfig, ThinkingStep } from '../types';
 import type { CrewMember } from '../types/crew';
 import type { CrewTransition } from '../services/chatService';
@@ -180,6 +180,12 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return { ...state, messages };
     }
 
+    case 'ADD_DEVELOPER_MESSAGE':
+      return {
+        ...state,
+        messages: [...state.messages, action.payload],
+      };
+
     default:
       return state;
   }
@@ -211,6 +217,8 @@ export interface UseChatReturn {
   clearError: () => void;
   deleteMessage: (messageId: string, dbId?: number) => Promise<void>;
   deleteMessagesFrom: (messageId: string, dbId?: number) => Promise<void>;
+  /** Inject a developer message (for testing transition prompts) */
+  addDeveloperMessage: (content: string, crewMemberName?: string) => Promise<void>;
 }
 
 /**
@@ -379,6 +387,38 @@ export function useChat(options: UseChatOptions): UseChatReturn {
     [state.conversationId, conversationId, config.baseURL]
   );
 
+  const addDeveloperMessage = useCallback(
+    async (content: string, crewMemberName?: string) => {
+      try {
+        const result = await injectDeveloperMessageApi(
+          state.conversationId || conversationId,
+          content,
+          crewMemberName,
+          config.baseURL
+        );
+
+        // Add to local state
+        const message: Message = {
+          id: String(result.id),
+          dbId: result.id,
+          role: 'developer',
+          content: result.content,
+          timestamp: new Date(result.createdAt),
+          injectionMeta: {
+            injectedForTesting: result.metadata.injectedForTesting,
+            crewMemberName: result.metadata.crewMemberName || undefined,
+            injectedAt: result.metadata.injectedAt,
+          },
+        };
+        dispatch({ type: 'ADD_DEVELOPER_MESSAGE', payload: message });
+      } catch (error) {
+        console.error('Error injecting developer message:', error);
+        dispatch({ type: 'SET_ERROR', payload: 'Failed to inject developer message' });
+      }
+    },
+    [state.conversationId, conversationId, config.baseURL]
+  );
+
   return {
     messages: state.messages,
     isLoading: state.isLoading,
@@ -393,5 +433,6 @@ export function useChat(options: UseChatOptions): UseChatReturn {
     clearError,
     deleteMessage,
     deleteMessagesFrom,
+    addDeveloperMessage,
   };
 }
