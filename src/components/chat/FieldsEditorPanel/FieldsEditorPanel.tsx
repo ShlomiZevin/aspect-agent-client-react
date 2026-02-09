@@ -39,7 +39,7 @@ export function FieldsEditorPanel({
 
   // Edit state - track pending edits before save
   const [editedFields, setEditedFields] = useState<Record<string, string>>({});
-  const [editingField, setEditingField] = useState<string | null>(null);
+  const [/* editingField */, setEditingField] = useState<string | null>(null);
 
   // Status message
   const [status, setStatus] = useState<Status>({ type: null, message: '' });

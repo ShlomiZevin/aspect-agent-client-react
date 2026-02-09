@@ -15,6 +15,7 @@ export const MOCK_CREW_MEMBERS: CrewMember[] = [
     displayName: 'Freeda - Receptionist',
     description: 'Warmly greets users and understands their needs',
     isDefault: true,
+    model: 'gpt-4o',
     collectFields: ['name', 'symptoms'],
     fieldsToCollect: [
       { name: 'name', description: 'User name' },
@@ -29,6 +30,7 @@ export const MOCK_CREW_MEMBERS: CrewMember[] = [
     displayName: 'Freeda - Guide',
     description: 'Menopause expert and personal wellness guide',
     isDefault: false,
+    model: 'gpt-4o',
     collectFields: ['treatments_tried', 'treatment_preferences'],
     fieldsToCollect: [
       { name: 'treatments_tried', description: 'Previous treatments' },
@@ -43,6 +45,7 @@ export const MOCK_CREW_MEMBERS: CrewMember[] = [
     displayName: 'Freeda - Symptom Tracker',
     description: 'Helps track and understand symptoms over time',
     isDefault: false,
+    model: 'gpt-4o',
     collectFields: ['symptom_severity', 'symptom_frequency'],
     fieldsToCollect: [
       { name: 'symptom_severity', description: 'Severity rating 1-10' },
