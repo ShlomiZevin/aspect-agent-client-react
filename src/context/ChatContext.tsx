@@ -30,6 +30,7 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   baseURL: string;
   // Prompt overrides (debug mode)
   setPromptOverride: (crewMemberId: string, prompt: string) => void;
+  setModelOverride: (crewMemberId: string, model: string) => void;
   // Fields editor
   isFieldsEditorOpen: boolean;
   setFieldsEditorOpen: (open: boolean) => void;
@@ -72,6 +73,20 @@ export function ChatProvider({ children }: ChatProviderProps) {
     }
   }, []);
 
+  // Model overrides for debug mode (session-only)
+  const [modelOverrides, setModelOverrides] = useState<Record<string, string>>({});
+  const setModelOverride = useCallback((crewMemberId: string, model: string) => {
+    if (model) {
+      setModelOverrides(prev => ({ ...prev, [crewMemberId]: model }));
+    } else {
+      setModelOverrides(prev => {
+        const next = { ...prev };
+        delete next[crewMemberId];
+        return next;
+      });
+    }
+  }, []);
+
   const conversation = useConversation(
     config.storagePrefix,
     config.agentName,
@@ -102,6 +117,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     overrideCrewMember: crew.selectedOverride,
     debug: debugMode,
     promptOverrides: debugMode ? promptOverrides : undefined, // Only use in debug mode
+    modelOverrides: debugMode ? modelOverrides : undefined,
     onCrewInfo: crew.setCurrentCrew,
     onCrewTransition: (transition) => {
       // Record the departing crew as visited
@@ -283,6 +299,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     baseURL: config.baseURL,
     // Prompt overrides (debug mode)
     setPromptOverride,
+    setModelOverride,
     // Fields editor
     isFieldsEditorOpen,
     setFieldsEditorOpen,

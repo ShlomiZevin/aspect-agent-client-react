@@ -10,6 +10,24 @@ import {
 } from '../../../services/promptService';
 import styles from './PromptEditorPanel.module.css';
 
+const AVAILABLE_MODELS = [
+  // GPT-4 family
+  'gpt-4o',
+  'gpt-4o-mini',
+  'gpt-4.1',
+  'gpt-4.1-mini',
+  'gpt-4.1-nano',
+  // GPT-5 family
+  'gpt-5',
+  'gpt-5-mini',
+  'gpt-5-nano',
+  // Reasoning models
+  'o3-mini',
+  'o4-mini',
+];
+
+const AVAILABLE_PROVIDERS = ['openai'];
+
 interface PromptEditorPanelProps {
   crewMembers: CrewMember[];
   currentCrew: CrewMember | null;
@@ -17,6 +35,7 @@ interface PromptEditorPanelProps {
   baseURL: string;
   onClose: () => void;
   onSessionOverride: (crewMemberId: string, prompt: string) => void;
+  onModelOverride: (crewMemberId: string, model: string) => void;
   onFireTransitionPrompt?: (content: string, crewMemberName?: string) => Promise<void>;
 }
 
@@ -34,6 +53,7 @@ export function PromptEditorPanel({
   baseURL,
   onClose,
   onSessionOverride,
+  onModelOverride,
   onFireTransitionPrompt,
 }: PromptEditorPanelProps) {
   // Prompts data from API
@@ -53,6 +73,10 @@ export function PromptEditorPanel({
 
   // Session override state
   const [sessionOverrides, setSessionOverrides] = useState<Record<string, string>>({});
+
+  // Model/provider override state
+  const [modelOverrides, setModelOverrides] = useState<Record<string, string>>({});
+  const [providerOverrides, setProviderOverrides] = useState<Record<string, string>>({});
 
   // Status message
   const [status, setStatus] = useState<Status>({ type: null, message: '' });
@@ -111,6 +135,13 @@ export function PromptEditorPanel({
 
   // Check if there's a session override for the selected crew
   const hasSessionOverride = selectedCrewId in sessionOverrides;
+  const hasModelOverride = selectedCrewId in modelOverrides;
+
+  // Get default model for the selected crew
+  const selectedCrewMember = crewMembers.find(c => c.name === selectedCrewId);
+  const defaultModel = selectedCrewMember?.model || 'gpt-4';
+  const currentModel = modelOverrides[selectedCrewId] || defaultModel;
+  const currentProvider = providerOverrides[selectedCrewId] || 'openai';
 
   // Check if selected version is from code (v0 = not in DB yet)
   const isCodeVersion = selectedVersion?.version === 0;
@@ -196,7 +227,31 @@ export function PromptEditorPanel({
     }
   }, [selectedCrewId, originalPrompt, hasSessionOverride, debouncedSessionOverride]);
 
-  // Revert to original prompt
+  // Handle model change
+  const handleModelChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newModel = e.target.value;
+    if (newModel === defaultModel) {
+      // Revert to default - clear override
+      setModelOverrides(prev => {
+        const next = { ...prev };
+        delete next[selectedCrewId];
+        return next;
+      });
+      onModelOverride(selectedCrewId, '');
+    } else {
+      setModelOverrides(prev => ({ ...prev, [selectedCrewId]: newModel }));
+      onModelOverride(selectedCrewId, newModel);
+      setStatus({ type: 'info', message: `Model override: ${newModel}` });
+    }
+  }, [selectedCrewId, defaultModel, onModelOverride]);
+
+  // Handle provider change (future use)
+  const handleProviderChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newProvider = e.target.value;
+    setProviderOverrides(prev => ({ ...prev, [selectedCrewId]: newProvider }));
+  }, [selectedCrewId]);
+
+  // Revert to original prompt and model
   const handleRevert = useCallback(() => {
     if (selectedVersion) {
       setEditedPrompt(selectedVersion.prompt);
@@ -210,9 +265,21 @@ export function PromptEditorPanel({
         });
         onSessionOverride(selectedCrewId, ''); // Clear the override
       }
-      setStatus({ type: 'success', message: 'Reverted to original prompt' });
+      // Also revert model override
+      setModelOverrides(prev => {
+        const next = { ...prev };
+        delete next[selectedCrewId];
+        return next;
+      });
+      onModelOverride(selectedCrewId, '');
+      setProviderOverrides(prev => {
+        const next = { ...prev };
+        delete next[selectedCrewId];
+        return next;
+      });
+      setStatus({ type: 'success', message: 'Reverted to original' });
     }
-  }, [selectedVersion, selectedCrewId, onSessionOverride]);
+  }, [selectedVersion, selectedCrewId, onSessionOverride, onModelOverride]);
 
   // Save current version (overwrite) - only for DB versions
   const handleSave = useCallback(async () => {
@@ -455,6 +522,42 @@ export function PromptEditorPanel({
             )}
           </div>
         )}
+
+        {/* Model & Provider Selectors */}
+        <div className={styles.modelProviderRow}>
+          <div className={styles.modelSection}>
+            <label className={styles.selectorLabel}>Model</label>
+            <select
+              className={styles.crewSelect}
+              value={currentModel}
+              onChange={handleModelChange}
+            >
+              {AVAILABLE_MODELS.map(model => (
+                <option key={model} value={model}>
+                  {model}{model === defaultModel ? ' (default)' : ''}
+                </option>
+              ))}
+            </select>
+            {hasModelOverride && (
+              <span className={styles.sessionOverrideBadge}>
+                OVERRIDE
+              </span>
+            )}
+          </div>
+          <div className={styles.providerSection}>
+            <label className={styles.selectorLabel}>Provider</label>
+            <select
+              className={styles.crewSelect}
+              value={currentProvider}
+              onChange={handleProviderChange}
+              disabled={AVAILABLE_PROVIDERS.length <= 1}
+            >
+              {AVAILABLE_PROVIDERS.map(provider => (
+                <option key={provider} value={provider}>{provider}</option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Loading State */}
@@ -572,7 +675,7 @@ export function PromptEditorPanel({
             <button
               className={`${styles.actionButton} ${styles.revertButton}`}
               onClick={handleRevert}
-              disabled={!isDirty && !hasSessionOverride}
+              disabled={!isDirty && !hasSessionOverride && !hasModelOverride}
               title="Discard changes and reload original prompt"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

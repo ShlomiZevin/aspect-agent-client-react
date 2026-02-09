@@ -231,6 +231,21 @@
   50% { opacity: 0.7; }
 }
 
+/* Model & Provider Row */
+.modelProviderRow {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.modelSection {
+  flex: 1;
+}
+
+.providerSection {
+  flex: 1;
+}
+
 /* Editor Section */
 .editorSection {
   flex: 1;

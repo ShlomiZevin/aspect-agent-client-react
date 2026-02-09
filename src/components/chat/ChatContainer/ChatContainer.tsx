@@ -41,6 +41,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     agentName,
     baseURL,
     setPromptOverride,
+    setModelOverride,
     conversationId,
     isFieldsEditorOpen,
     setFieldsEditorOpen,
@@ -181,6 +182,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           baseURL={baseURL}
           onClose={() => setIsPromptPanelOpen(false)}
           onSessionOverride={setPromptOverride}
+          onModelOverride={setModelOverride}
           onFireTransitionPrompt={injectTransitionPrompt}
         />
       )}

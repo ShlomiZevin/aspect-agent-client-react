@@ -12,6 +12,7 @@ export interface CrewMember {
   displayName: string;
   description: string;
   isDefault: boolean;
+  model: string;
   collectFields: string[];
   fieldsToCollect: { name: string; description: string }[];
   transitionTo: string | null;
