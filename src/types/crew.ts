@@ -19,6 +19,7 @@ export interface CrewMember {
   toolCount: number;
   hasKnowledgeBase: boolean;
   extractionMode?: 'conversational' | 'form';
+  source?: 'file' | 'database';
 }
 
 /**
@@ -66,5 +67,121 @@ export interface CrewState {
   currentCrew: CrewMember | null;
   selectedOverride: string | null;
   isLoading: boolean;
+  error: string | null;
+}
+
+// ============================================
+// Dashboard Crew Management Types
+// ============================================
+
+/**
+ * Knowledge base configuration for a crew member
+ */
+export interface CrewKnowledgeBase {
+  storeId: string;
+  searchInstructions?: string;
+}
+
+/**
+ * Field to collect from user during conversation
+ */
+export interface FieldToCollect {
+  name: string;
+  description: string;
+}
+
+/**
+ * Full crew member configuration from database
+ * Used for dashboard editing
+ */
+export interface CrewMemberConfig {
+  id?: number;
+  name: string;
+  displayName: string;
+  description: string;
+  isDefault: boolean;
+  guidance: string;
+  model: string;
+  maxTokens: number;
+  knowledgeBase: CrewKnowledgeBase | null;
+  fieldsToCollect: FieldToCollect[];
+  transitionTo: string | null;
+  transitionSystemPrompt: string | null;
+  tools: string[];
+  isActive: boolean;
+  source: 'database' | 'file';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Request to generate a crew member from description
+ */
+export interface CrewGenerateRequest {
+  description: string;
+}
+
+/**
+ * Response from crew generation endpoint
+ */
+export interface CrewGenerateResponse {
+  success: boolean;
+  config?: CrewMemberConfig;
+  error?: string;
+}
+
+/**
+ * Response from crew export endpoint
+ */
+export interface CrewExportResponse {
+  success: boolean;
+  code?: string;
+  filename?: string;
+  error?: string;
+}
+
+/**
+ * Request to create/update a crew member
+ */
+export interface CrewMemberCreateRequest {
+  name: string;
+  displayName: string;
+  description?: string;
+  isDefault?: boolean;
+  guidance: string;
+  model?: string;
+  maxTokens?: number;
+  knowledgeBase?: CrewKnowledgeBase | null;
+  fieldsToCollect?: FieldToCollect[];
+  transitionTo?: string | null;
+  transitionSystemPrompt?: string | null;
+  tools?: string[];
+}
+
+/**
+ * Request to update a crew member (partial)
+ */
+export interface CrewMemberUpdateRequest {
+  displayName?: string;
+  description?: string;
+  isDefault?: boolean;
+  guidance?: string;
+  model?: string;
+  maxTokens?: number;
+  knowledgeBase?: CrewKnowledgeBase | null;
+  fieldsToCollect?: FieldToCollect[];
+  transitionTo?: string | null;
+  transitionSystemPrompt?: string | null;
+  tools?: string[];
+  isActive?: boolean;
+}
+
+/**
+ * State for the crew generator wizard
+ */
+export interface CrewGeneratorState {
+  step: 'input' | 'generating' | 'review' | 'error';
+  description: string;
+  generatedConfig: CrewMemberConfig | null;
   error: string | null;
 }
