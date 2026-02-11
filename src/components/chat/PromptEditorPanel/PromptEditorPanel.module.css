@@ -63,11 +63,17 @@
   color: var(--text-primary);
 }
 
+/* Scrollable Content Area */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
 /* Crew Selector Section */
 .selectorSection {
   padding: var(--spacing-md);
   border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
 }
 
 .selectorLabel {
@@ -248,12 +254,9 @@
 
 /* Editor Section */
 .editorSection {
-  flex: 1;
   display: flex;
   flex-direction: column;
   padding: var(--spacing-md);
-  min-height: 0;
-  overflow: hidden;
 }
 
 .editorLabel {
@@ -278,8 +281,8 @@
 }
 
 .promptTextarea {
-  flex: 1;
   width: 100%;
+  min-height: 150px;
   padding: var(--spacing-md);
   font-size: var(--font-size-sm);
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
@@ -288,7 +291,7 @@
   border-radius: var(--radius-md);
   background: var(--background);
   color: var(--text-primary);
-  resize: none;
+  resize: vertical;
   transition: all var(--transition-fast);
 }
 

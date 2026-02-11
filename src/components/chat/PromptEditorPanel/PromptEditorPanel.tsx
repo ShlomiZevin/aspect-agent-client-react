@@ -457,8 +457,10 @@ export function PromptEditorPanel({
         </button>
       </div>
 
-      {/* Crew Member Selector */}
-      <div className={styles.selectorSection}>
+      {/* Scrollable Content */}
+      <div className={styles.content}>
+        {/* Crew Member Selector */}
+        <div className={styles.selectorSection}>
         <label className={styles.selectorLabel}>Crew Member</label>
         <select
           className={styles.crewSelect}
@@ -667,6 +669,7 @@ export function PromptEditorPanel({
           </p>
         </div>
       )}
+      </div>
 
       {/* Action Buttons */}
       <div className={styles.actionsSection}>
