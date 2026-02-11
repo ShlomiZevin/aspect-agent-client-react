@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent } from 'react';
 import { useAgentConfig, useChatContext } from '../../../context';
 import styles from './ChatInput.module.css';
 
@@ -6,6 +6,13 @@ export function ChatInput() {
   const config = useAgentConfig();
   const { sendMessage, isLoading } = useChatContext();
   const [input, setInput] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!isLoading) {
+      textareaRef.current?.focus();
+    }
+  }, [isLoading]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -27,6 +34,7 @@ export function ChatInput() {
     <form className={styles.form} onSubmit={handleSubmit}>
       <div className={styles.inputWrapper}>
         <textarea
+          ref={textareaRef}
           className={styles.input}
           value={input}
           onChange={(e) => setInput(e.target.value)}
