@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AspectPage, BylinePage, FreedaPage, HomePage, KBPage, DashboardPage, NotFoundPage } from './pages';
+import { AspectPage, BankingOnboarderPage, BylinePage, FreedaPage, HomePage, KBPage, DashboardPage, NotFoundPage } from './pages';
 import './styles/global.css';
 
 function App() {
@@ -12,6 +12,8 @@ function App() {
         {/* Main agent routes with optional conversation ID */}
         <Route path="/aspect" element={<AspectPage />} />
         <Route path="/aspect/conversations/:conversationId" element={<AspectPage />} />
+        <Route path="/banking" element={<BankingOnboarderPage />} />
+        <Route path="/banking/conversations/:conversationId" element={<BankingOnboarderPage />} />
         <Route path="/byline" element={<BylinePage />} />
         <Route path="/byline/conversations/:conversationId" element={<BylinePage />} />
         <Route path="/freeda" element={<FreedaPage />} />
