@@ -1,0 +1,66 @@
+/**
+ * Banking Onboarder Theme
+ * Professional banking colors with trust and security emphasis
+ */
+
+.theme-banking-onboarder {
+  /* Primary - Professional Blue */
+  --primary: #1e40af;
+  --primary-hover: #1e3a8a;
+  --primary-light: #3b82f6;
+
+  /* Accent - Trust Green */
+  --accent: #059669;
+  --accent-hover: #047857;
+
+  /* Background */
+  --background: #ffffff;
+  --surface: #f9fafb;
+  --surface-hover: #f3f4f6;
+
+  /* Text */
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+
+  /* Borders */
+  --border: #e5e7eb;
+  --border-light: #f3f4f6;
+
+  /* Status colors */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
+}
+
+.theme-banking-onboarder[data-theme="dark"] {
+  /* Primary - Lighter Blue for dark mode */
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --primary-light: #93c5fd;
+
+  /* Accent - Brighter Green */
+  --accent: #10b981;
+  --accent-hover: #34d399;
+
+  /* Background */
+  --background: #111827;
+  --surface: #1f2937;
+  --surface-hover: #374151;
+
+  /* Text */
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+
+  /* Borders */
+  --border: #374151;
+  --border-light: #4b5563;
+
+  /* Status colors - slightly brighter for dark mode */
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --info: #60a5fa;
+}

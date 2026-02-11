@@ -2,6 +2,7 @@
 
 @import './variables.css';
 @import './themes/aspect-theme.css';
+@import './themes/banking-onboarder-theme.css';
 @import './themes/byline-theme.css';
 @import './themes/freeda-theme.css';
 @import './animations.css';
