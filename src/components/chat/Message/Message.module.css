@@ -393,3 +393,109 @@
 .developer:hover .deleteButton {
   opacity: 1;
 }
+
+/* Delete Confirmation Modal */
+.deleteModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.deleteModal {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 320px;
+  padding: 24px;
+  text-align: center;
+  animation: modalPop 0.2s ease;
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.deleteModalIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: #ef4444;
+}
+
+.deleteModalTitle {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.deleteModalText {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.deleteModalActions {
+  display: flex;
+  gap: 12px;
+}
+
+.deleteModalCancel,
+.deleteModalConfirm {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.deleteModalCancel {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.deleteModalCancel:hover {
+  background: var(--background);
+}
+
+.deleteModalCancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.deleteModalConfirm {
+  border: none;
+  background: #ef4444;
+  color: white;
+}
+
+.deleteModalConfirm:hover {
+  background: #dc2626;
+}
+
+.deleteModalConfirm:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
