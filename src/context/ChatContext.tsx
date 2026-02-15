@@ -37,6 +37,8 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   canShowFieldsEditor: boolean;
   // Developer message injection (debug mode)
   injectTransitionPrompt: (content: string, crewMemberName?: string) => Promise<void>;
+  // Fields refresh key (increments when fields are extracted)
+  fieldsRefreshKey: number;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -108,6 +110,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
   // Fields editor state
   const [isFieldsEditorOpen, setFieldsEditorOpen] = useState(false);
+  const [fieldsRefreshKey, setFieldsRefreshKey] = useState(0);
 
   const chat = useChat({
     config,
@@ -127,6 +130,10 @@ export function ChatProvider({ children }: ChatProviderProps) {
       if (newCrew) {
         crew.setCurrentCrew(newCrew);
       }
+    },
+    onFieldExtracted: () => {
+      // Increment refresh key to trigger FieldsEditorPanel reload
+      setFieldsRefreshKey(prev => prev + 1);
     },
   });
 
@@ -308,6 +315,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
     // Developer message injection (debug mode)
     injectTransitionPrompt: chat.addDeveloperMessage,
     addDeveloperMessage: chat.addDeveloperMessage,
+    // Fields refresh key (increments when fields are extracted)
+    fieldsRefreshKey,
   };
 
   return (

@@ -47,6 +47,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     setFieldsEditorOpen,
     canShowFieldsEditor,
     injectTransitionPrompt,
+    fieldsRefreshKey,
   } = useChatContext();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -194,6 +195,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           baseURL={baseURL}
           isDebugMode={debugMode}
           onClose={() => setFieldsEditorOpen(false)}
+          refreshKey={fieldsRefreshKey}
         />
       )}
     </div>

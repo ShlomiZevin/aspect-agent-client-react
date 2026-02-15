@@ -14,6 +14,7 @@ interface FieldsEditorPanelProps {
   isDebugMode?: boolean;
   onClose: () => void;
   onFieldsUpdated?: () => void;
+  refreshKey?: number; // Increments when fields are extracted during chat
 }
 
 type StatusType = 'success' | 'error' | 'info' | null;
@@ -29,6 +30,7 @@ export function FieldsEditorPanel({
   isDebugMode = false,
   onClose,
   onFieldsUpdated,
+  refreshKey,
 }: FieldsEditorPanelProps) {
   // Fields data
   const [collectedFields, setCollectedFields] = useState<Record<string, string>>({});
@@ -67,10 +69,10 @@ export function FieldsEditorPanel({
     }
   }, [conversationId, baseURL]);
 
-  // Load fields on mount
+  // Load fields on mount and when refreshKey changes (e.g., field extracted during chat)
   useEffect(() => {
     loadFields();
-  }, [loadFields]);
+  }, [loadFields, refreshKey]);
 
   // Get the value to display (edited or original)
   const getDisplayValue = (fieldName: string): string => {

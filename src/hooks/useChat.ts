@@ -202,6 +202,7 @@ export interface UseChatOptions {
   modelOverrides?: Record<string, string>;  // Session overrides: { crewName: modelName }
   onCrewInfo?: (crew: CrewMember) => void;
   onCrewTransition?: (transition: CrewTransition) => void;
+  onFieldExtracted?: (field: string, value: string) => void;
 }
 
 export interface UseChatReturn {
@@ -226,7 +227,7 @@ export interface UseChatReturn {
  * Main chat hook - handles messaging, streaming, and thinking indicators
  */
 export function useChat(options: UseChatOptions): UseChatReturn {
-  const { config, conversationId, userId, useKnowledgeBase = false, overrideCrewMember, debug, promptOverrides, modelOverrides, onCrewInfo, onCrewTransition } = options;
+  const { config, conversationId, userId, useKnowledgeBase = false, overrideCrewMember, debug, promptOverrides, modelOverrides, onCrewInfo, onCrewTransition, onFieldExtracted } = options;
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
     conversationId,
@@ -305,6 +306,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             onUserMessageSaved: (messageId) => {
               dispatch({ type: 'SET_USER_MESSAGE_DB_ID', payload: messageId });
             },
+            onFieldExtracted,
           }
         );
       } catch (error) {
@@ -327,6 +329,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       modelOverrides,
       onCrewInfo,
       onCrewTransition,
+      onFieldExtracted,
     ]
   );
 

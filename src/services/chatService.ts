@@ -34,6 +34,7 @@ export interface StreamCallbacks {
   onDebugContextUpdate?: (data: PostExtractionContext) => void;
   onMessageSaved?: (messageId: number) => void;
   onUserMessageSaved?: (messageId: number) => void;
+  onFieldExtracted?: (field: string, value: string) => void;
 }
 
 /**
@@ -44,7 +45,7 @@ export async function streamChat(
   callbacks: StreamCallbacks
 ): Promise<void> {
   const { message, conversationId, agentName, userId, useKnowledgeBase = false, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides } = options;
-  const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onDebugContextUpdate, onMessageSaved, onUserMessageSaved } = callbacks;
+  const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onFieldExtracted } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
 
@@ -127,10 +128,10 @@ export async function streamChat(
             else if (parsed.type === 'function_call' || parsed.type === 'function_result') {
               // Function calls are already handled as thinking steps on server
             }
-            // Handle field extraction events (displayed via thinking steps on server)
+            // Handle field extraction events
             else if (parsed.type === 'field_extracted') {
-              // Field extractions are sent as thinking_step events by the server
-              // No additional client handling needed
+              // Notify callback so UI can refresh (e.g., fields panel)
+              onFieldExtracted?.(parsed.field, parsed.value);
             }
             // Handle crew info event
             else if (parsed.type === 'crew_info' && parsed.crew) {
