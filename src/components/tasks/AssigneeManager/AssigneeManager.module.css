@@ -1,0 +1,79 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.list {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.chip {
+  font-size: var(--font-size-xs);
+  background: var(--surface-light);
+  color: var(--text-primary);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-weight: 500;
+}
+
+.plusBtn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.plusBtn:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+.inputWrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.input {
+  width: 100px;
+  padding: 4px 8px;
+  border: 1px solid var(--primary-color);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  outline: none;
+}
+
+.addBtn {
+  padding: 4px 10px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.addBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

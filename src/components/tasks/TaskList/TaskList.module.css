@@ -1,0 +1,163 @@
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.table th,
+.table td {
+  padding: var(--spacing-md);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.table th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  background: var(--surface-light);
+}
+
+.table tbody tr {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.table tbody tr:hover {
+  background: var(--surface-light);
+}
+
+.titleCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.description {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+.domain {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.badge.bug {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.badge.feature {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+}
+
+.badge.idea {
+  background: rgba(168, 85, 247, 0.1);
+  color: #a855f7;
+}
+
+.assignee {
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.unassigned {
+  color: var(--text-muted);
+}
+
+.priority {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: white;
+}
+
+.priority.low {
+  background: #10b981;
+}
+
+.priority.medium {
+  background: #f59e0b;
+}
+
+.priority.high {
+  background: #f97316;
+}
+
+.priority.critical {
+  background: #ef4444;
+}
+
+.status {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.status.todo {
+  background: var(--surface-light);
+  color: var(--text-secondary);
+}
+
+.status.in_progress {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+}
+
+.status.done {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: all var(--transition-fast);
+}
+
+.deleteBtn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.empty {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}

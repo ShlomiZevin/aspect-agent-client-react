@@ -1,10 +1,17 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AspectPage, BankingOnboarderPage, BylinePage, FreedaPage, HomePage, KBPage, DashboardPage, NotFoundPage } from './pages';
+import { useTaskBoard } from './hooks';
+import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
 import './styles/global.css';
 
 function App() {
+  const { isOpen, closeModal } = useTaskBoard();
+
   return (
     <BrowserRouter>
+      {/* Global Task Board Modal - Ctrl+Shift+Space to toggle */}
+      <TaskBoardModal isOpen={isOpen} onClose={closeModal} />
+
       <Routes>
         {/* Home page - agent selection */}
         <Route path="/" element={<HomePage />} />

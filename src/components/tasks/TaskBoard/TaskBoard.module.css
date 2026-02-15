@@ -1,0 +1,73 @@
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+  height: 100%;
+  min-height: 400px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.columnHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.columnTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.columnCount {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface-light);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.columnContent {
+  flex: 1;
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  overflow-y: auto;
+  min-height: 100px;
+}
+
+/* Drag and drop styles */
+.column.dragOver {
+  background: var(--primary-light);
+  border: 2px dashed var(--primary-color);
+}
+
+.column.dragOver .columnContent {
+  background: transparent;
+}
+
+.draggableCard {
+  cursor: grab;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.draggableCard:active {
+  cursor: grabbing;
+}
+
+.draggableCard.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
