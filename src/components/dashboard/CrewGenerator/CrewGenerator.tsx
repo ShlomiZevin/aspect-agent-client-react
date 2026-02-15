@@ -41,7 +41,7 @@ export function CrewGenerator({ agentName, baseURL, onCrewCreated, onCancel }: C
         setState(prev => ({
           ...prev,
           step: 'review',
-          generatedConfig: result.config,
+          generatedConfig: result.config ?? null,
         }));
       } else {
         setState(prev => ({

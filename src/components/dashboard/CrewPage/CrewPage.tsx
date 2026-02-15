@@ -68,7 +68,7 @@ export function CrewPage({ agentName, baseURL }: CrewPageProps) {
     setSelectedCrew(null);
   };
 
-  const handleCrewCreated = (crew: CrewMemberConfig) => {
+  const handleCrewCreated = (_crew: CrewMemberConfig) => {
     // Reload the list and go back to list view
     loadCrewMembers();
     setViewMode('list');
