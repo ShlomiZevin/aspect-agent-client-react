@@ -2,8 +2,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-md);
-  height: 100%;
-  min-height: 400px;
+  height: calc(90vh - 220px); /* Fixed height for scrolling to work */
 }
 
 .column {
@@ -12,6 +11,7 @@
   background: var(--surface-light);
   border-radius: var(--radius-md);
   overflow: hidden;
+  height: 100%; /* Take full height of board */
 }
 
 .columnHeader {
@@ -21,6 +21,7 @@
   padding: var(--spacing-md);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0; /* Keep header fixed */
 }
 
 .columnTitle {
@@ -45,7 +46,6 @@
   flex-direction: column;
   gap: var(--spacing-sm);
   overflow-y: auto;
-  min-height: 100px;
 }
 
 /* Drag and drop styles */

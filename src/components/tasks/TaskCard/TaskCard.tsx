@@ -19,6 +19,37 @@ const PRIORITY_COLORS: Record<string, string> = {
   critical: '#ef4444', // red
 };
 
+// Strip HTML tags for plain text preview
+function stripHtml(html: string): string {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent || div.innerText || '';
+}
+
+// Format date for display
+function formatDueDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const dateOnly = new Date(date);
+  dateOnly.setHours(0, 0, 0, 0);
+
+  if (dateOnly.getTime() === today.getTime()) return 'Today';
+  if (dateOnly.getTime() === tomorrow.getTime()) return 'Tomorrow';
+
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// Check if date is overdue
+function isOverdue(dateStr: string): boolean {
+  const date = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date < today;
+}
+
 export function TaskCard({ task, onClick }: TaskCardProps) {
   return (
     <div className={styles.card} onClick={onClick}>
@@ -40,11 +71,16 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
       </div>
       <h4 className={styles.title}>{task.title}</h4>
       {task.description && (
-        <p className={styles.description}>{task.description}</p>
+        <p className={styles.description}>{stripHtml(task.description)}</p>
       )}
       <div className={styles.footer}>
         {task.assignee && (
           <span className={styles.assignee}>@{task.assignee}</span>
+        )}
+        {task.dueDate && (
+          <span className={`${styles.dueDate} ${isOverdue(task.dueDate) ? styles.overdue : ''}`}>
+            {formatDueDate(task.dueDate)}
+          </span>
         )}
         {task.tags.length > 0 && (
           <div className={styles.tags}>

@@ -138,6 +138,20 @@
   color: #10b981;
 }
 
+.dueDate {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.dueDate.overdue {
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.noDueDate {
+  color: var(--text-muted);
+}
+
 .deleteBtn {
   background: none;
   border: none;

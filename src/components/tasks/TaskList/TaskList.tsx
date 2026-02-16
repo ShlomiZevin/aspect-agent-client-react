@@ -26,6 +26,45 @@ const PRIORITY_LABELS: Record<string, string> = {
   critical: 'Critical',
 };
 
+// Format due date for display
+function formatDueDate(dueDate: string | Date | null | undefined): { text: string; isOverdue: boolean } | null {
+  if (!dueDate) return null;
+
+  const date = typeof dueDate === 'string' ? new Date(dueDate) : dueDate;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const dueDay = new Date(date);
+  dueDay.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.ceil((dueDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  const isOverdue = diffDays < 0;
+
+  let text: string;
+  if (diffDays === 0) {
+    text = 'Today';
+  } else if (diffDays === 1) {
+    text = 'Tomorrow';
+  } else if (diffDays === -1) {
+    text = 'Yesterday';
+  } else if (diffDays < -1) {
+    text = `${Math.abs(diffDays)} days ago`;
+  } else if (diffDays <= 7) {
+    text = `In ${diffDays} days`;
+  } else {
+    text = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  return { text, isOverdue };
+}
+
+// Strip HTML tags for plain text preview
+function stripHtml(html: string): string {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent || div.innerText || '';
+}
+
 export function TaskList({ tasks, onTaskClick, onDeleteTask }: TaskListProps) {
   if (tasks.length === 0) {
     return (
@@ -45,6 +84,7 @@ export function TaskList({ tasks, onTaskClick, onDeleteTask }: TaskListProps) {
             <th>Type</th>
             <th>Assignee</th>
             <th>Priority</th>
+            <th>Due Date</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -55,7 +95,7 @@ export function TaskList({ tasks, onTaskClick, onDeleteTask }: TaskListProps) {
               <td className={styles.titleCell}>
                 <span className={styles.title}>{task.title}</span>
                 {task.description && (
-                  <span className={styles.description}>{task.description}</span>
+                  <span className={styles.description}>{stripHtml(task.description)}</span>
                 )}
               </td>
               <td>
@@ -79,6 +119,17 @@ export function TaskList({ tasks, onTaskClick, onDeleteTask }: TaskListProps) {
                 <span className={`${styles.priority} ${styles[task.priority]}`}>
                   {PRIORITY_LABELS[task.priority]}
                 </span>
+              </td>
+              <td>
+                {(() => {
+                  const due = formatDueDate(task.dueDate);
+                  if (!due) return <span className={styles.noDueDate}>—</span>;
+                  return (
+                    <span className={`${styles.dueDate} ${due.isOverdue ? styles.overdue : ''}`}>
+                      {due.text}
+                    </span>
+                  );
+                })()}
               </td>
               <td>
                 <span className={`${styles.status} ${styles[task.status]}`}>

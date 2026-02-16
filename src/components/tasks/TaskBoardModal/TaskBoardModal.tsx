@@ -38,9 +38,39 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showAllDomains, setShowAllDomains] = useState(false);
+  const [filterDomain, setFilterDomain] = useState<string>('current');
 
   // Detect current domain when modal opens
   const currentDomain = useMemo(() => (isOpen ? getCurrentDomain() : 'general'), [isOpen]);
+
+  // Filter tasks by domain
+  const filteredTasks = useMemo(() => {
+    if (filterDomain === 'all') return tasks;
+    if (filterDomain === 'general') return tasks.filter(t => t.domain === 'general');
+    if (filterDomain === 'current') return tasks.filter(t => t.domain === currentDomain || t.domain === 'general');
+    return tasks.filter(t => t.domain === filterDomain);
+  }, [tasks, filterDomain, currentDomain]);
+
+  // Ctrl+Shift+A to toggle all domains option
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        setShowAllDomains(prev => {
+          const newValue = !prev;
+          // When enabling, switch to 'all'; when disabling, switch back to 'current'
+          setFilterDomain(newValue ? 'all' : 'current');
+          return newValue;
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -162,48 +192,70 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
             </button>
           </div>
 
+          <select
+            className={styles.domainFilter}
+            value={filterDomain}
+            onChange={(e) => setFilterDomain(e.target.value)}
+          >
+            {showAllDomains ? (
+              <>
+                {KNOWN_DOMAINS.map(domain => (
+                  <option key={domain} value={domain}>
+                    {domain.charAt(0).toUpperCase() + domain.slice(1)}
+                  </option>
+                ))}
+              </>
+            ) : (
+              <option value="current">
+                {currentDomain === 'general' ? 'General' : currentDomain.charAt(0).toUpperCase() + currentDomain.slice(1)}
+              </option>
+            )}
+            <option value="general">General (Engine)</option>
+            <option value="all">All Domains</option>
+          </select>
+
           <AssigneeManager assignees={assignees} onAddAssignee={handleAddAssignee} />
         </div>
 
         {/* Content */}
-        <div className={`${styles.content} ${showForm ? styles.contentWithPanel : ''}`}>
+        <div className={styles.content}>
           {isLoading ? (
             <div className={styles.loading}>Loading...</div>
           ) : (
-            <>
-              {/* Main board/list area */}
-              <div className={styles.boardArea}>
-                {viewMode === 'board' ? (
-                  <TaskBoard tasks={tasks} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
-                ) : (
-                  <TaskList
-                    tasks={tasks}
-                    onTaskClick={handleTaskClick}
-                    onDeleteTask={handleDeleteTask}
-                  />
-                )}
-              </div>
-
-              {/* Side panel for form */}
-              {showForm && (
-                <div className={styles.formPanel}>
-                  <TaskForm
-                    task={editingTask}
-                    assignees={assignees}
-                    currentDomain={currentDomain}
-                    onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
-                    onCancel={handleCloseForm}
-                    onDelete={editingTask ? () => handleDeleteTask(editingTask) : undefined}
-                  />
-                </div>
+            <div className={styles.boardArea}>
+              {viewMode === 'board' ? (
+                <TaskBoard tasks={filteredTasks} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+              ) : (
+                <TaskList
+                  tasks={filteredTasks}
+                  onTaskClick={handleTaskClick}
+                  onDeleteTask={handleDeleteTask}
+                />
               )}
-            </>
+            </div>
           )}
         </div>
 
+        {/* Form overlay */}
+        {showForm && (
+          <div className={styles.formOverlay} onClick={handleCloseForm}>
+            <div className={styles.formContainer} onClick={(e) => e.stopPropagation()}>
+              <TaskForm
+                task={editingTask}
+                assignees={assignees}
+                currentDomain={currentDomain}
+                showAllDomains={showAllDomains}
+                onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
+                onCancel={handleCloseForm}
+                onDelete={editingTask ? () => handleDeleteTask(editingTask) : undefined}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Footer hint */}
         <div className={styles.footer}>
-          <span className={styles.hint}>Press Ctrl+Shift+Space to toggle • Esc to close</span>
+          <span className={styles.hint}>Ctrl+Shift+Space toggle • Ctrl+Shift+A all domains • Esc close</span>
         </div>
       </div>
     </div>

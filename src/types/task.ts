@@ -17,6 +17,7 @@ export interface Task {
   type: TaskType;
   domain: string; // 'general', 'freeda', 'aspect', etc.
   assignee?: string;
+  dueDate?: string; // ISO date string
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -30,6 +31,7 @@ export interface CreateTaskData {
   type?: TaskType;
   domain?: string;
   assignee?: string;
+  dueDate?: string;
   tags?: string[];
 }
 
@@ -41,6 +43,7 @@ export interface UpdateTaskData {
   type?: TaskType;
   domain?: string;
   assignee?: string | null;
+  dueDate?: string | null;
   tags?: string[];
 }
 
