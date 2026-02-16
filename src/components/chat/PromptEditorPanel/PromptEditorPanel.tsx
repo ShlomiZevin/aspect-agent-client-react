@@ -26,7 +26,7 @@ const AVAILABLE_MODELS = [
   'o4-mini',
 ];
 
-const AVAILABLE_PROVIDERS = ['openai'];
+const AVAILABLE_PROVIDERS = ['openai', 'anthropic'];
 
 interface PromptEditorPanelProps {
   crewMembers: CrewMember[];
