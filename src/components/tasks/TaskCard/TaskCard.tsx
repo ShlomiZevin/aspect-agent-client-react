@@ -4,6 +4,7 @@ import styles from './TaskCard.module.css';
 interface TaskCardProps {
   task: Task;
   onClick?: () => void;
+  onAtRiskToggle?: (taskId: number, atRisk: boolean) => void;
 }
 
 const TYPE_ICONS: Record<string, string> = {
@@ -50,9 +51,24 @@ function isOverdue(dateStr: string): boolean {
   return date < today;
 }
 
-export function TaskCard({ task, onClick }: TaskCardProps) {
+export function TaskCard({ task, onClick, onAtRiskToggle }: TaskCardProps) {
+  const handleAtRiskClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onAtRiskToggle?.(task.id, !task.atRisk);
+  };
+
   return (
-    <div className={styles.card} onClick={onClick}>
+    <div className={`${styles.card} ${task.atRisk ? styles.atRisk : ''}`} onClick={onClick}>
+      {/* At Risk toggle - visible on hover */}
+      {onAtRiskToggle && (
+        <button
+          className={`${styles.atRiskToggle} ${task.atRisk ? styles.active : ''}`}
+          onClick={handleAtRiskClick}
+          title={task.atRisk ? 'Remove at risk flag' : 'Mark as at risk'}
+        >
+          ⚠
+        </button>
+      )}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           <span className={`${styles.type} ${styles[task.type]}`}>

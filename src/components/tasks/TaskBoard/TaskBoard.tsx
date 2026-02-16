@@ -7,6 +7,7 @@ interface TaskBoardProps {
   tasks: Task[];
   onTaskClick: (task: Task) => void;
   onStatusChange?: (taskId: number, newStatus: TaskStatus) => void;
+  onAtRiskToggle?: (taskId: number, atRisk: boolean) => void;
 }
 
 const COLUMNS: { status: TaskStatus; label: string }[] = [
@@ -15,7 +16,7 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: 'done', label: 'DONE' },
 ];
 
-export function TaskBoard({ tasks, onTaskClick, onStatusChange }: TaskBoardProps) {
+export function TaskBoard({ tasks, onTaskClick, onStatusChange, onAtRiskToggle }: TaskBoardProps) {
   const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
 
@@ -85,6 +86,7 @@ export function TaskBoard({ tasks, onTaskClick, onStatusChange }: TaskBoardProps
                 <TaskCard
                   task={task}
                   onClick={() => onTaskClick(task)}
+                  onAtRiskToggle={onAtRiskToggle}
                 />
               </div>
             ))}

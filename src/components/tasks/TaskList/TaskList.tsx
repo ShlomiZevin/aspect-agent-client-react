@@ -91,9 +91,12 @@ export function TaskList({ tasks, onTaskClick, onDeleteTask }: TaskListProps) {
         </thead>
         <tbody>
           {tasks.map(task => (
-            <tr key={task.id} onClick={() => onTaskClick(task)}>
+            <tr key={task.id} className={task.atRisk ? styles.atRiskRow : ''} onClick={() => onTaskClick(task)}>
               <td className={styles.titleCell}>
-                <span className={styles.title}>{task.title}</span>
+                <span className={styles.titleWrapper}>
+                  {task.atRisk && <span className={styles.atRiskIcon}>⚠</span>}
+                  <span className={styles.title}>{task.title}</span>
+                </span>
                 {task.description && (
                   <span className={styles.description}>{stripHtml(task.description)}</span>
                 )}

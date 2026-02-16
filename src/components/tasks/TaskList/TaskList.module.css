@@ -32,10 +32,30 @@
   background: var(--surface-light);
 }
 
+/* At Risk row styling */
+.table tbody tr.atRiskRow {
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.table tbody tr.atRiskRow:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
 .titleCell {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.titleWrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.atRiskIcon {
+  color: #ef4444;
+  font-size: 14px;
 }
 
 .title {

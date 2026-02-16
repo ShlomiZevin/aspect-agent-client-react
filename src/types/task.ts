@@ -18,6 +18,7 @@ export interface Task {
   domain: string; // 'general', 'freeda', 'aspect', etc.
   assignee?: string;
   dueDate?: string; // ISO date string
+  atRisk: boolean; // Flag for tasks at risk of missing deadline
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -32,6 +33,7 @@ export interface CreateTaskData {
   domain?: string;
   assignee?: string;
   dueDate?: string;
+  atRisk?: boolean;
   tags?: string[];
 }
 
@@ -44,6 +46,7 @@ export interface UpdateTaskData {
   domain?: string;
   assignee?: string | null;
   dueDate?: string | null;
+  atRisk?: boolean;
   tags?: string[];
 }
 

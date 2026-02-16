@@ -141,6 +141,19 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
     }
   };
 
+  const handleAtRiskToggle = async (taskId: number, atRisk: boolean) => {
+    // Optimistic update
+    setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, atRisk } : t)));
+
+    try {
+      await taskService.updateTask(taskId, { atRisk });
+    } catch (err) {
+      console.error('Failed to update task at-risk status:', err);
+      // Revert on error
+      loadData();
+    }
+  };
+
   const handleCloseForm = () => {
     setEditingTask(null);
     setShowForm(false);
@@ -224,7 +237,7 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
           ) : (
             <div className={styles.boardArea}>
               {viewMode === 'board' ? (
-                <TaskBoard tasks={filteredTasks} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+                <TaskBoard tasks={filteredTasks} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} onAtRiskToggle={handleAtRiskToggle} />
               ) : (
                 <TaskList
                   tasks={filteredTasks}

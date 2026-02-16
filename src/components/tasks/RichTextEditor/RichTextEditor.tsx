@@ -213,8 +213,49 @@ export function RichTextEditor({ value, onChange, placeholder, expanded }: RichT
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
+    // Check for images in clipboard
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const base64 = event.target?.result as string;
+            // Insert image at cursor position
+            const img = document.createElement('img');
+            img.src = base64;
+            img.style.maxWidth = '100%';
+            img.style.borderRadius = '4px';
+            img.style.margin = '4px 0';
+
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+              range.deleteContents();
+              range.insertNode(img);
+              range.setStartAfter(img);
+              range.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(range);
+            } else if (editorRef.current) {
+              editorRef.current.appendChild(img);
+            }
+
+            if (editorRef.current) {
+              isInternalChange.current = true;
+              onChange(editorRef.current.innerHTML);
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+        return;
+      }
+    }
+
+    // No image - paste as plain text to avoid messy HTML
     e.preventDefault();
-    // Paste as plain text to avoid messy HTML
     const text = e.clipboardData.getData('text/plain');
     document.execCommand('insertText', false, text);
     if (editorRef.current) {

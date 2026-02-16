@@ -44,6 +44,7 @@ export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSub
   const [domain, setDomain] = useState<string>('general');
   const [assignee, setAssignee] = useState<string>('');
   const [dueDate, setDueDate] = useState<string>('');
+  const [atRisk, setAtRisk] = useState(false);
   const [tagsInput, setTagsInput] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -67,11 +68,13 @@ export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSub
       setDomain(task.domain || 'general');
       setAssignee(task.assignee || '');
       setDueDate(task.dueDate || '');
+      setAtRisk(task.atRisk || false);
       setTagsInput(task.tags.join(', '));
     } else {
       // Default to general for new tasks
       setDomain('general');
       setDueDate('');
+      setAtRisk(false);
     }
   }, [task]);
 
@@ -93,6 +96,7 @@ export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSub
       domain,
       assignee: assignee || undefined,
       dueDate: dueDate || undefined,
+      atRisk,
       tags,
     });
   };
@@ -199,15 +203,29 @@ export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSub
             </div>
           </div>
 
-          <div className={styles.field}>
-            <label htmlFor="tags">Tags (comma-separated)</label>
-            <input
-              id="tags"
-              type="text"
-              value={tagsInput}
-              onChange={(e) => setTagsInput(e.target.value)}
-              placeholder="e.g., urgent, backend, ui"
-            />
+          <div className={styles.row2}>
+            <div className={styles.field}>
+              <label htmlFor="tags">Tags (comma-separated)</label>
+              <input
+                id="tags"
+                type="text"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                placeholder="e.g., urgent, backend, ui"
+              />
+            </div>
+
+            <div className={styles.checkboxField}>
+              <label className={`${styles.checkboxLabel} ${atRisk ? styles.atRiskActive : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={atRisk}
+                  onChange={(e) => setAtRisk(e.target.checked)}
+                />
+                <span className={styles.checkboxIcon}>⚠</span>
+                At Risk
+              </label>
+            </div>
           </div>
         </div>
 
