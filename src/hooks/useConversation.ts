@@ -5,6 +5,7 @@ import {
   getUserConversations,
   getConversationHistory,
   deleteConversation as deleteConversationApi,
+  deleteAllConversations as deleteAllConversationsApi,
   updateConversationTitle as updateTitleApi,
 } from '../services/conversationService';
 import type { Conversation, Message } from '../types';
@@ -17,6 +18,7 @@ export interface UseConversationReturn {
   createNewChat: () => string;
   switchToChat: (chatId: string) => Promise<Message[]>;
   deleteChat: (chatId: string) => Promise<void>;
+  deleteAllChats: () => Promise<void>;
   updateTitle: (title: string) => Promise<void>;
   updateChatTitle: (chatId: string, title: string) => Promise<void>;
   loadConversations: () => Promise<void>;
@@ -145,6 +147,22 @@ export function useConversation(
     [conversationId, createNewChat, baseURL]
   );
 
+  const deleteAllChats = useCallback(
+    async () => {
+      if (!userId) return;
+
+      try {
+        await deleteAllConversationsApi(userId, agentName, baseURL);
+        setConversations([]);
+        createNewChat();
+      } catch (err) {
+        console.error('Error deleting all conversations:', err);
+        throw err;
+      }
+    },
+    [userId, agentName, baseURL, createNewChat]
+  );
+
   const updateTitle = useCallback(
     async (title: string) => {
       try {
@@ -186,6 +204,7 @@ export function useConversation(
     createNewChat,
     switchToChat,
     deleteChat,
+    deleteAllChats,
     updateTitle,
     updateChatTitle,
     loadConversations,

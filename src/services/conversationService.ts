@@ -124,6 +124,18 @@ export async function deleteConversation(
   );
 }
 
+export async function deleteAllConversations(
+  userId: string,
+  agentName: string,
+  baseURL?: string
+): Promise<{ deletedCount: number; conversationIds: string[] }> {
+  return apiRequest(
+    `/api/user/${userId}/conversations?agentName=${encodeURIComponent(agentName)}`,
+    { method: 'DELETE' },
+    baseURL || getBaseURL()
+  );
+}
+
 export async function deleteMessage(
   conversationId: string,
   messageId: number,
