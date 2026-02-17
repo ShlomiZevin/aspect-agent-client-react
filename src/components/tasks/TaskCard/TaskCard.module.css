@@ -59,6 +59,53 @@
   color: #ef4444;
 }
 
+/* Mark Complete button - only for done tasks, positioned below at risk */
+.markCompleteBtn {
+  position: absolute;
+  top: 6px;
+  right: 34px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-light);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.card:hover .markCompleteBtn {
+  opacity: 1;
+}
+
+.markCompleteBtn:hover {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.markCompleteBtn.active {
+  opacity: 1;
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+/* Completed state - subtle green tint with checkmark feel */
+.card.completed {
+  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.card.completed:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
 .header {
   display: flex;
   justify-content: space-between;
