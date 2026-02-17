@@ -10,7 +10,7 @@ import {
 } from '../../../services/promptService';
 import styles from './PromptEditorPanel.module.css';
 
-const BASE_MODELS = [
+const OPENAI_MODELS = [
   // GPT-4 family
   'gpt-4o',
   'gpt-4o-mini',
@@ -26,6 +26,19 @@ const BASE_MODELS = [
   'o3-mini',
   'o4-mini',
 ];
+
+const ANTHROPIC_MODELS = [
+  'claude-opus-4-6',
+  'claude-sonnet-4-5-20250929',
+  'claude-haiku-4-5-20251001',
+  'claude-sonnet-3-7-20250219',
+  'claude-haiku-3-5-20241022',
+];
+
+const MODELS_BY_PROVIDER: Record<string, string[]> = {
+  openai: OPENAI_MODELS,
+  anthropic: ANTHROPIC_MODELS,
+};
 
 const AVAILABLE_PROVIDERS = ['openai', 'anthropic'];
 
@@ -141,17 +154,24 @@ export function PromptEditorPanel({
   // Get default model for the selected crew - prefer from prompts API (server), fallback to crew list
   const selectedCrewMember = crewMembers.find(c => c.name === selectedCrewId);
   const defaultModel = selectedPromptData?.model || selectedCrewMember?.model || 'gpt-4';
-  const currentModel = modelOverrides[selectedCrewId] || defaultModel;
   const currentProvider = providerOverrides[selectedCrewId] || 'openai';
 
-  // Build available models list - include server's model if not already in base list
+  // Build available models list - filter by provider and include server's model if not already in list
   const availableModels = useMemo(() => {
-    const models = [...BASE_MODELS];
+    const baseModels = MODELS_BY_PROVIDER[currentProvider] || OPENAI_MODELS;
+    const models = [...baseModels];
     if (defaultModel && !models.includes(defaultModel)) {
       models.unshift(defaultModel); // Add server's model at the top
     }
     return models;
-  }, [defaultModel]);
+  }, [currentProvider, defaultModel]);
+
+  let currentModel = modelOverrides[selectedCrewId] || defaultModel;
+
+  // If current model is not available for the selected provider, use the first available model
+  if (!availableModels.includes(currentModel)) {
+    currentModel = availableModels[0];
+  }
 
   // Check if selected version is from code (v0 = not in DB yet)
   const isCodeVersion = selectedVersion?.version === 0;
@@ -255,11 +275,19 @@ export function PromptEditorPanel({
     }
   }, [selectedCrewId, defaultModel, onModelOverride]);
 
-  // Handle provider change (future use)
+  // Handle provider change
   const handleProviderChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newProvider = e.target.value;
     setProviderOverrides(prev => ({ ...prev, [selectedCrewId]: newProvider }));
-  }, [selectedCrewId]);
+
+    // Reset model to first available model for the new provider
+    const newAvailableModels = MODELS_BY_PROVIDER[newProvider] || OPENAI_MODELS;
+    const newModel = newAvailableModels[0];
+    setModelOverrides(prev => ({ ...prev, [selectedCrewId]: newModel }));
+    onModelOverride(selectedCrewId, newModel);
+
+    setStatus({ type: 'info', message: `Provider changed to ${newProvider}, model set to ${newModel}` });
+  }, [selectedCrewId, onModelOverride]);
 
   // Revert to original prompt and model
   const handleRevert = useCallback(() => {
