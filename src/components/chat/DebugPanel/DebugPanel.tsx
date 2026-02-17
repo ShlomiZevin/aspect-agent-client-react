@@ -48,7 +48,10 @@ export function DebugPanel({ data }: DebugPanelProps) {
       <button className={styles.header} onClick={() => setIsExpanded(!isExpanded)}>
         <span className={styles.badge}>DEBUG</span>
         <span className={styles.meta}>
-          {data.crewDisplayName} | {data.model} | {data.maxTokens} tokens
+          {data.crewDisplayName} | {data.model}
+          {data.modelSource === 'session_override' && ' (OVERRIDE)'}
+          {data.modelSource === 'crew_default' && data.defaultModel && data.defaultModel !== data.model && ` (was: ${data.defaultModel})`}
+          {' '}| {data.maxTokens} tokens
         </span>
         <svg
           className={`${styles.chevron} ${isExpanded ? styles.expanded : ''}`}

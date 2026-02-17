@@ -145,10 +145,18 @@ export function ChatProvider({ children }: ChatProviderProps) {
   useEffect(() => {
     if (!initialLoadDone.current && conversation.conversationId) {
       initialLoadDone.current = true;
-      // Try to load history for the stored conversation
-      chat.loadHistory(conversation.conversationId);
+      // Try to load history for the stored conversation and restore crew state
+      chat.loadHistory(conversation.conversationId).then(({ currentCrewMember }) => {
+        if (currentCrewMember && crew.crewMembers.length > 0) {
+          const match = crew.crewMembers.find(c => c.name === currentCrewMember);
+          if (match) {
+            crew.setCurrentCrew(match);
+            hasRestoredCrew.current = true;
+          }
+        }
+      });
     }
-  }, [conversation.conversationId, chat]);
+  }, [conversation.conversationId, chat, crew]);
 
   // Refresh conversation list when messages change (after sending a message)
   useEffect(() => {
@@ -178,13 +186,21 @@ export function ChatProvider({ children }: ChatProviderProps) {
     }
   }, [chat.messages, crew.crewMembers, crew]);
 
-  // Override switchToChat to also load messages
+  // Override switchToChat to also load messages and restore crew state
   const switchToChat = useCallback(async (chatId: string) => {
     crew.resetJourney();
     hasRestoredCrew.current = false;
     const messages = await conversation.switchToChat(chatId);
     if (messages.length > 0) {
-      chat.loadHistory(chatId);
+      const { currentCrewMember } = await chat.loadHistory(chatId);
+      // Restore crew state from conversation's currentCrewMember
+      if (currentCrewMember) {
+        const match = crew.crewMembers.find(c => c.name === currentCrewMember);
+        if (match) {
+          crew.setCurrentCrew(match);
+          hasRestoredCrew.current = true;
+        }
+      }
     } else {
       chat.newChat(chatId);
     }
@@ -208,7 +224,14 @@ export function ChatProvider({ children }: ChatProviderProps) {
       const chatId = latest.id;
       const messages = await conversation.switchToChat(String(chatId));
       if (messages.length > 0) {
-        chat.loadHistory(String(chatId));
+        const { currentCrewMember } = await chat.loadHistory(String(chatId));
+        if (currentCrewMember) {
+          const match = crew.crewMembers.find(c => c.name === currentCrewMember);
+          if (match) {
+            crew.setCurrentCrew(match);
+            hasRestoredCrew.current = true;
+          }
+        }
       } else {
         chat.newChat(String(chatId));
       }
@@ -237,7 +260,14 @@ export function ChatProvider({ children }: ChatProviderProps) {
     // Switch to the newly linked conversation
     const messages = await conversation.switchToChat(result.conversationId);
     if (messages.length > 0) {
-      chat.loadHistory(result.conversationId);
+      const { currentCrewMember } = await chat.loadHistory(result.conversationId);
+      if (currentCrewMember) {
+        const match = crew.crewMembers.find(c => c.name === currentCrewMember);
+        if (match) {
+          crew.setCurrentCrew(match);
+          hasRestoredCrew.current = true;
+        }
+      }
     } else {
       chat.newChat(result.conversationId);
     }

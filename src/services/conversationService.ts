@@ -23,6 +23,7 @@ interface ConversationHistoryResponse {
       metadata?: Record<string, unknown>;
     }>;
   }>;
+  currentCrewMember?: string | null; // Current crew member name from conversation state
 }
 
 interface UserConversationsResponse {
@@ -41,7 +42,7 @@ interface UserConversationsResponse {
 export async function getConversationHistory(
   conversationId: string,
   baseURL?: string
-): Promise<{ conversationId: string; messages: Message[] }> {
+): Promise<{ conversationId: string; messages: Message[]; currentCrewMember?: string | null }> {
   const data = await apiRequest<ConversationHistoryResponse>(
     `/api/conversation/${conversationId}/history`,
     { method: 'GET' },
@@ -50,6 +51,7 @@ export async function getConversationHistory(
 
   return {
     conversationId: data.conversationId,
+    currentCrewMember: data.currentCrewMember,
     messages: data.messages.map(msg => ({
       id: String(msg.id),
       dbId: typeof msg.id === 'number' ? msg.id : undefined,

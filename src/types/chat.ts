@@ -8,7 +8,10 @@ export interface DebugPromptData {
   crewName: string;
   crewDisplayName: string;
   fullInstructions: string;
+  promptSource?: string; // 'code', 'database', or 'session_override'
   model: string;
+  modelSource?: string; // 'crew_default' or 'session_override'
+  defaultModel?: string; // Original hardcoded model for comparison
   maxTokens: number;
   tools: Record<string, unknown>[];
   knowledgeBase: { enabled: boolean; storeId: string | null } | null;

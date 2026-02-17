@@ -214,7 +214,7 @@ export interface UseChatReturn {
   hasStartedChat: boolean;
   error: string | null;
   sendMessage: (text: string) => Promise<void>;
-  loadHistory: (conversationId: string) => Promise<void>;
+  loadHistory: (conversationId: string) => Promise<{ currentCrewMember?: string | null }>;
   newChat: (conversationId: string) => void;
   clearError: () => void;
   deleteMessage: (messageId: string, dbId?: number) => Promise<void>;
@@ -334,16 +334,18 @@ export function useChat(options: UseChatOptions): UseChatReturn {
   );
 
   const loadHistory = useCallback(
-    async (convId: string) => {
+    async (convId: string): Promise<{ currentCrewMember?: string | null }> => {
       try {
         const history = await getConversationHistory(convId, config.baseURL);
         dispatch({
           type: 'LOAD_HISTORY',
           payload: { conversationId: convId, messages: history.messages },
         });
+        return { currentCrewMember: history.currentCrewMember };
       } catch (error) {
         console.error('Error loading history:', error);
         dispatch({ type: 'LOAD_HISTORY', payload: { conversationId: convId, messages: [] } });
+        return { currentCrewMember: null };
       }
     },
     [config.baseURL]

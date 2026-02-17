@@ -10,7 +10,7 @@ import {
 } from '../../../services/promptService';
 import styles from './PromptEditorPanel.module.css';
 
-const AVAILABLE_MODELS = [
+const BASE_MODELS = [
   // GPT-4 family
   'gpt-4o',
   'gpt-4o-mini',
@@ -21,6 +21,7 @@ const AVAILABLE_MODELS = [
   'gpt-5',
   'gpt-5-mini',
   'gpt-5-nano',
+  'gpt-5-chat-latest',
   // Reasoning models
   'o3-mini',
   'o4-mini',
@@ -137,11 +138,20 @@ export function PromptEditorPanel({
   const hasSessionOverride = selectedCrewId in sessionOverrides;
   const hasModelOverride = selectedCrewId in modelOverrides;
 
-  // Get default model for the selected crew
+  // Get default model for the selected crew - prefer from prompts API (server), fallback to crew list
   const selectedCrewMember = crewMembers.find(c => c.name === selectedCrewId);
-  const defaultModel = selectedCrewMember?.model || 'gpt-4';
+  const defaultModel = selectedPromptData?.model || selectedCrewMember?.model || 'gpt-4';
   const currentModel = modelOverrides[selectedCrewId] || defaultModel;
   const currentProvider = providerOverrides[selectedCrewId] || 'openai';
+
+  // Build available models list - include server's model if not already in base list
+  const availableModels = useMemo(() => {
+    const models = [...BASE_MODELS];
+    if (defaultModel && !models.includes(defaultModel)) {
+      models.unshift(defaultModel); // Add server's model at the top
+    }
+    return models;
+  }, [defaultModel]);
 
   // Check if selected version is from code (v0 = not in DB yet)
   const isCodeVersion = selectedVersion?.version === 0;
@@ -534,7 +544,7 @@ export function PromptEditorPanel({
               value={currentModel}
               onChange={handleModelChange}
             >
-              {AVAILABLE_MODELS.map(model => (
+              {availableModels.map(model => (
                 <option key={model} value={model}>
                   {model}{model === defaultModel ? ' (default)' : ''}
                 </option>

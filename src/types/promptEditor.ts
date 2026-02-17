@@ -25,6 +25,7 @@ export interface CrewMemberPrompt {
   crewMemberId: string;
   crewMemberName: string;
   displayName: string;
+  model?: string; // The crew's default model from server
   versions: PromptVersion[];
   currentVersion: PromptVersion;
 }
