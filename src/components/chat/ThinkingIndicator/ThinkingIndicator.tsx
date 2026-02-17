@@ -47,6 +47,14 @@ export function ThinkingIndicator({ currentStep, steps = [], isComplete = false 
       ((step.metadata as Record<string, unknown>).files as FileResult[]).length > 0;
   };
 
+  const hasDataQuery = (step: ThinkingStep): step is ThinkingStep & { metadata: { question: string; sql: string; explanation?: string } } => {
+    return step.stepType === 'function_call' &&
+      typeof (step.metadata as Record<string, unknown>)?.question === 'string' &&
+      typeof (step.metadata as Record<string, unknown>)?.sql === 'string';
+  };
+
+  const isExpandable = (step: ThinkingStep) => hasFiles(step) || hasDataQuery(step);
+
   return (
     <div className={`${styles.container} ${isComplete ? styles.completed : ''} ${isCollapsed ? styles.collapsed : ''}`}>
       <button
@@ -80,13 +88,13 @@ export function ThinkingIndicator({ currentStep, steps = [], isComplete = false 
             steps.map((step, index) => (
               <div key={step.stepOrder || index}>
                 <div
-                  className={`${styles.step} ${hasFiles(step) ? styles.expandable : ''}`}
-                  onClick={hasFiles(step) ? () => toggleStepExpand(index) : undefined}
+                  className={`${styles.step} ${isExpandable(step) ? styles.expandable : ''}`}
+                  onClick={isExpandable(step) ? () => toggleStepExpand(index) : undefined}
                 >
                   {!isComplete && index === steps.length - 1 && <span className={styles.dot} />}
                   {isComplete && <span className={styles.checkmark}>✓</span>}
                   <span>{step.description}</span>
-                  {hasFiles(step) && (
+                  {isExpandable(step) && (
                     <svg
                       className={`${styles.stepToggle} ${expandedSteps.has(index) ? styles.expanded : ''}`}
                       width="12"
@@ -108,6 +116,24 @@ export function ThinkingIndicator({ currentStep, steps = [], isComplete = false 
                         <span className={styles.fileScore}>{Math.round(file.score * 100)}%</span>
                       </div>
                     ))}
+                  </div>
+                )}
+                {hasDataQuery(step) && expandedSteps.has(index) && (
+                  <div className={styles.dataQueryDetails}>
+                    <div className={styles.querySection}>
+                      <div className={styles.queryLabel}>Business Question:</div>
+                      <div className={styles.queryValue}>{step.metadata.question}</div>
+                    </div>
+                    <div className={styles.querySection}>
+                      <div className={styles.queryLabel}>SQL Query:</div>
+                      <pre className={styles.sqlCode}>{step.metadata.sql}</pre>
+                    </div>
+                    {step.metadata.explanation && (
+                      <div className={styles.querySection}>
+                        <div className={styles.queryLabel}>Explanation:</div>
+                        <div className={styles.queryValue}>{step.metadata.explanation}</div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
