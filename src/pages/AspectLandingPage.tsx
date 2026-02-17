@@ -10,9 +10,28 @@ export function AspectLandingPage() {
     document.documentElement.lang = 'he';
     document.documentElement.dir = 'rtl';
 
+    // Enable scrolling for landing page (override global overflow:hidden)
+    document.documentElement.style.overflow = 'auto';
+    document.documentElement.style.height = 'auto';
+    document.body.style.overflow = 'auto';
+    document.body.style.height = 'auto';
+    const root = document.getElementById('root');
+    if (root) {
+      root.style.overflow = 'auto';
+      root.style.height = 'auto';
+    }
+
     return () => {
       document.documentElement.lang = 'en';
       document.documentElement.dir = 'ltr';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.height = '';
+      document.body.style.overflow = '';
+      document.body.style.height = '';
+      if (root) {
+        root.style.overflow = '';
+        root.style.height = '';
+      }
     };
   }, []);
 
