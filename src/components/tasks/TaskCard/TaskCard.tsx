@@ -5,6 +5,7 @@ interface TaskCardProps {
   task: Task;
   onClick?: () => void;
   onAtRiskToggle?: (taskId: number, atRisk: boolean) => void;
+  onMarkComplete?: (taskId: number, isCompleted: boolean) => void;
 }
 
 const TYPE_ICONS: Record<string, string> = {
@@ -51,14 +52,19 @@ function isOverdue(dateStr: string): boolean {
   return date < today;
 }
 
-export function TaskCard({ task, onClick, onAtRiskToggle }: TaskCardProps) {
+export function TaskCard({ task, onClick, onAtRiskToggle, onMarkComplete }: TaskCardProps) {
   const handleAtRiskClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onAtRiskToggle?.(task.id, !task.atRisk);
   };
 
+  const handleMarkCompleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onMarkComplete?.(task.id, !task.isCompleted);
+  };
+
   return (
-    <div className={`${styles.card} ${task.atRisk ? styles.atRisk : ''}`} onClick={onClick}>
+    <div className={`${styles.card} ${task.atRisk ? styles.atRisk : ''} ${task.isCompleted ? styles.completed : ''}`} onClick={onClick}>
       {/* At Risk toggle - visible on hover */}
       {onAtRiskToggle && (
         <button
@@ -67,6 +73,16 @@ export function TaskCard({ task, onClick, onAtRiskToggle }: TaskCardProps) {
           title={task.atRisk ? 'Remove at risk flag' : 'Mark as at risk'}
         >
           ⚠
+        </button>
+      )}
+      {/* Mark Complete button - only for done tasks */}
+      {onMarkComplete && task.status === 'done' && (
+        <button
+          className={`${styles.markCompleteBtn} ${task.isCompleted ? styles.active : ''}`}
+          onClick={handleMarkCompleteClick}
+          title={task.isCompleted ? 'Unmark as completed' : 'Mark as completed (PM approved)'}
+        >
+          ✓
         </button>
       )}
       <div className={styles.header}>

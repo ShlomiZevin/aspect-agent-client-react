@@ -45,6 +45,7 @@ export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSub
   const [assignee, setAssignee] = useState<string>('');
   const [dueDate, setDueDate] = useState<string>('');
   const [atRisk, setAtRisk] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
   const [tagsInput, setTagsInput] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -69,12 +70,14 @@ export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSub
       setAssignee(task.assignee || '');
       setDueDate(task.dueDate || '');
       setAtRisk(task.atRisk || false);
+      setIsCompleted(task.isCompleted || false);
       setTagsInput(task.tags.join(', '));
     } else {
       // Default to general for new tasks
       setDomain('general');
       setDueDate('');
       setAtRisk(false);
+      setIsCompleted(false);
     }
   }, [task]);
 
@@ -97,6 +100,7 @@ export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSub
       assignee: assignee || undefined,
       dueDate: dueDate || undefined,
       atRisk,
+      isCompleted,
       tags,
     });
   };
@@ -226,6 +230,21 @@ export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSub
                 At Risk
               </label>
             </div>
+
+            {/* Only show "Completed" checkbox for done tasks */}
+            {status === 'done' && (
+              <div className={styles.checkboxField}>
+                <label className={`${styles.checkboxLabel} ${isCompleted ? styles.completedActive : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={isCompleted}
+                    onChange={(e) => setIsCompleted(e.target.checked)}
+                  />
+                  <span className={styles.checkboxIcon}>✓</span>
+                  Completed
+                </label>
+              </div>
+            )}
           </div>
         </div>
 

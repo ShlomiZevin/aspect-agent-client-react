@@ -143,8 +143,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
     },
   });
 
-  // Track message count to detect when a new message is sent
+  // Track message count and loading state for conversation list refresh
   const prevMessageCount = useRef(chat.messages.length);
+  const wasLoading = useRef(false);
   const initialLoadDone = useRef(false);
 
   // On mount: load history for the stored conversation ID
@@ -164,13 +165,26 @@ export function ChatProvider({ children }: ChatProviderProps) {
     }
   }, [conversation.conversationId, chat, crew]);
 
-  // Refresh conversation list when messages change (after sending a message)
+  // Refresh conversation list when a message exchange completes
   useEffect(() => {
-    if (chat.messages.length > prevMessageCount.current && !chat.isLoading) {
-      // A new message was added and we're not loading - refresh the conversation list
-      conversation.loadConversations();
+    // Detect when loading transitions from true to false (message exchange completed)
+    const loadingJustFinished = wasLoading.current && !chat.isLoading;
+    const hasNewMessages = chat.messages.length > prevMessageCount.current;
+
+    if (loadingJustFinished && hasNewMessages) {
+      // Message exchange completed - refresh conversation list
+      // Small delay ensures server has time to persist new conversations
+      setTimeout(() => conversation.loadConversations(), 300);
+      prevMessageCount.current = chat.messages.length;
     }
-    prevMessageCount.current = chat.messages.length;
+
+    // Update tracking refs
+    wasLoading.current = chat.isLoading;
+
+    // Also update prevMessageCount when not loading (e.g., after history load)
+    if (!chat.isLoading) {
+      prevMessageCount.current = chat.messages.length;
+    }
   }, [chat.messages.length, chat.isLoading, conversation]);
 
   // Sync current crew from loaded message history (e.g., on page refresh or conversation switch)
@@ -312,6 +326,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     createNewChat: handleCreateNewChat,
     switchToChat,
     deleteChat: conversation.deleteChat,
+    deleteAllChats: conversation.deleteAllChats,
     updateTitle: conversation.updateTitle,
     updateChatTitle: conversation.updateChatTitle,
     loadConversations: conversation.loadConversations,

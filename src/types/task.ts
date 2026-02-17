@@ -19,6 +19,7 @@ export interface Task {
   assignee?: string;
   dueDate?: string; // ISO date string
   atRisk: boolean; // Flag for tasks at risk of missing deadline
+  isCompleted: boolean; // PM approval - task fully completed and reviewed
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -34,6 +35,7 @@ export interface CreateTaskData {
   assignee?: string;
   dueDate?: string;
   atRisk?: boolean;
+  isCompleted?: boolean;
   tags?: string[];
 }
 
@@ -47,6 +49,7 @@ export interface UpdateTaskData {
   assignee?: string | null;
   dueDate?: string | null;
   atRisk?: boolean;
+  isCompleted?: boolean;
   tags?: string[];
 }
 

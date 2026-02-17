@@ -123,11 +123,24 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         error: null,
       };
 
-    case 'SET_DEBUG_DATA':
+    case 'SET_DEBUG_DATA': {
+      // If last message is a newly created transition message (empty content, no debugData),
+      // attach debug data directly to it. Otherwise, store as pending for START_STREAMING.
+      const messages = [...state.messages];
+      const lastMessage = messages[messages.length - 1];
+      // Only attach directly if it's an empty assistant message (just created by CREW_TRANSITION)
+      if (lastMessage?.role === 'assistant' && !lastMessage.debugData && lastMessage.content === '') {
+        messages[messages.length - 1] = {
+          ...lastMessage,
+          debugData: action.payload,
+        };
+        return { ...state, messages, pendingDebugData: null };
+      }
       return {
         ...state,
         pendingDebugData: action.payload,
       };
+    }
 
     case 'UPDATE_DEBUG_CONTEXT': {
       const messages = [...state.messages];
@@ -185,6 +198,50 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         messages: [...state.messages, action.payload],
       };
+
+    case 'CREW_TRANSITION': {
+      // Check if this is the first assistant message of the turn (last message is user)
+      // If so, attach thinking steps to this message; otherwise leave empty (first message has them)
+      const lastMessage = state.messages[state.messages.length - 1];
+      const isFirstAssistantMessage = lastMessage?.role === 'user';
+
+      const newMessage: Message = {
+        id: `msg-${Date.now()}-transition`,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        crewMember: action.payload.displayName || action.payload.to,
+        thinkingSteps: isFirstAssistantMessage ? [...state.thinkingSteps] : [],
+      };
+      return {
+        ...state,
+        messages: [...state.messages, newMessage],
+        // Set isThinking=false to prevent the flash where indicator shows below message
+        // Thinking steps will accumulate and be attached to message when content starts
+        isThinking: false,
+        // For postMessageTransfer, clear thinkingSteps so new crew starts fresh
+        thinkingSteps: isFirstAssistantMessage ? state.thinkingSteps : [],
+        currentThinkingStep: '',
+      };
+    }
+
+    case 'FINALIZE_TRANSITION_THINKING': {
+      // Copy current thinkingSteps to the last assistant message (transition message)
+      // and set isThinking to false
+      const messages = [...state.messages];
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage?.role === 'assistant') {
+        messages[messages.length - 1] = {
+          ...lastMessage,
+          thinkingSteps: [...state.thinkingSteps],
+        };
+      }
+      return {
+        ...state,
+        messages,
+        isThinking: false,
+      };
+    }
 
     default:
       return state;
@@ -251,6 +308,8 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       const botMessageId = crypto.randomUUID();
       let hasStartedStreaming = false;
       let currentCrewDisplayName: string | undefined;
+      let pendingTransitionTo: string | null = null; // Track crew transition waiting for crew_info
+      let transitionNeedsThinking = false; // Track if we need to finalize thinking on first chunk after transition
 
       try {
         await streamChat(
@@ -278,6 +337,10 @@ export function useChat(options: UseChatOptions): UseChatReturn {
                 dispatch({ type: 'COMPLETE_THINKING' });
                 dispatch({ type: 'START_STREAMING', payload: { id: botMessageId, crewMember: currentCrewDisplayName } });
                 hasStartedStreaming = true;
+              } else if (transitionNeedsThinking) {
+                // First chunk after transition - finalize thinking with all accumulated steps
+                dispatch({ type: 'FINALIZE_TRANSITION_THINKING' });
+                transitionNeedsThinking = false;
               }
               dispatch({ type: 'APPEND_CHUNK', payload: chunk });
             },
@@ -290,10 +353,32 @@ export function useChat(options: UseChatOptions): UseChatReturn {
               dispatch({ type: 'SET_ERROR', payload: error.message });
             },
             onCrewInfo: (crew) => {
+              // Check if this is crew_info after a transition - create message with displayName
+              if (pendingTransitionTo && crew.name === pendingTransitionTo) {
+                // DON'T complete thinking yet - crew B's thinking steps may follow
+                // Instead, mark that we need to finalize thinking when first chunk arrives
+                dispatch({
+                  type: 'CREW_TRANSITION',
+                  payload: {
+                    to: crew.name,
+                    displayName: crew.displayName,
+                  },
+                });
+                pendingTransitionTo = null;
+                // Mark as streaming so onChunk doesn't create another message via START_STREAMING
+                hasStartedStreaming = true;
+                // Mark that we need to finalize thinking when content starts
+                transitionNeedsThinking = true;
+              }
               currentCrewDisplayName = crew.displayName;
               onCrewInfo?.(crew);
             },
-            onCrewTransition,
+            onCrewTransition: (transition) => {
+              // Don't create message yet - wait for crew_info to get displayName
+              pendingTransitionTo = transition.to;
+              // Call the external callback for context updates
+              onCrewTransition?.(transition);
+            },
             onDebugData: (data) => {
               dispatch({ type: 'SET_DEBUG_DATA', payload: data });
             },

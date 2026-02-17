@@ -4,8 +4,14 @@ import { ChatContainer } from '../components/chat';
 import { aspectConfig } from '../agents';
 import { LogoUpload } from '../components/agent-specific/aspect/LogoUpload';
 import { useDocumentMeta } from '../hooks';
+import { useSearchParams } from 'react-router-dom';
 
 export function AspectPage() {
+  const [searchParams] = useSearchParams();
+  // Check both URL param and if we're in an iframe
+  const isEmbed = searchParams.get('embed') === 'true' ||
+    (typeof window !== 'undefined' && window.self !== window.top);
+
   useDocumentMeta({
     title: aspectConfig.pageTitle,
     favicon: aspectConfig.favicon,
@@ -17,7 +23,7 @@ export function AspectPage() {
       <UserProvider storagePrefix={aspectConfig.storagePrefix} baseURL={aspectConfig.baseURL}>
         <AgentProvider config={aspectConfig}>
           <ChatProvider>
-            <AppLayout headerExtra={<LogoUpload />}>
+            <AppLayout headerExtra={!isEmbed ? <LogoUpload /> : undefined}>
               <ChatContainer crewMode="tabs" crewPosition="right" />
             </AppLayout>
           </ChatProvider>

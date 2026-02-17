@@ -1,0 +1,814 @@
+/* Aspect Landing Page - Hebrew RTL Marketing Page */
+
+.container {
+  direction: rtl;
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  background: #0f172a;
+  color: #f1f5f9;
+  min-height: 100vh;
+}
+
+/* Navigation */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.navContent {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.75rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navLogo {
+  background: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+}
+
+.navLogo img {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.navLinks a {
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+}
+
+.navLinks a:hover {
+  color: #ffffff;
+}
+
+.navCta {
+  background: #3b82f6;
+  color: #ffffff;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.2s;
+}
+
+.navCta:hover {
+  background: #2563eb;
+}
+
+/* Hero Section */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 4rem;
+  padding: 7rem 4rem 4rem;
+  min-height: 90vh;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.heroContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #1a1a1a;
+  padding: 0.5rem 1.2rem;
+  border-radius: 2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.heroTitle {
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+  color: #ffffff;
+}
+
+.highlight {
+  color: #60a5fa;
+}
+
+.heroSubtitle {
+  font-size: 1.25rem;
+  line-height: 1.7;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.heroCta {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 2rem;
+  background: #3b82f6;
+  color: white;
+  text-decoration: none;
+  border-radius: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.primaryButton:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+}
+
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 2rem;
+  background: transparent;
+  color: #60a5fa;
+  text-decoration: none;
+  border-radius: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: 2px solid #3b82f6;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.secondaryButton:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+/* Hero Visual - Chat Demo */
+.heroVisual {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.chatDemo {
+  background: #1e293b;
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 550px;
+  border: 1px solid #334155;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.chatHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: #0f172a;
+  border-bottom: 1px solid #334155;
+}
+
+.chatLogoWrapper {
+  background: #ffffff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.chatLogo {
+  height: 20px;
+  width: auto;
+  display: block;
+}
+
+.chatHeader span {
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.chatMessages {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+.chatBubbleUser {
+  align-self: flex-start;
+  background: #3b82f6;
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem 1rem 0.25rem 1rem;
+  max-width: 90%;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.chatBubbleBot {
+  align-self: flex-end;
+  background: #0f172a;
+  color: #f1f5f9;
+  padding: 1rem;
+  border-radius: 1rem 1rem 1rem 0.25rem;
+  max-width: 95%;
+  font-size: 0.9rem;
+  border: 1px solid #334155;
+}
+
+.botAnswer p {
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
+}
+
+.dataTable {
+  background: #1e293b;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.dataRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #334155;
+}
+
+.dataRow:last-child {
+  border-bottom: none;
+}
+
+.dataValue {
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.dataChange {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.dataChangeNeg {
+  color: #f87171;
+  font-weight: 600;
+}
+
+.insight {
+  display: flex;
+  gap: 0.75rem;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.insightIcon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.insight p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #fbbf24;
+}
+
+.findings {
+  margin: 0.5rem 0;
+  padding-right: 1.25rem;
+  color: #cbd5e1;
+}
+
+.findings li {
+  margin-bottom: 0.4rem;
+  line-height: 1.4;
+}
+
+.recommendation {
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-top: 0.75rem !important;
+  color: #4ade80;
+}
+
+/* Benefits Section */
+.benefitsSection {
+  padding: 5rem 4rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.benefitsSection h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 3rem;
+  color: #ffffff;
+}
+
+.benefitsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.benefitCard {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 1rem;
+  padding: 2rem;
+  text-align: center;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.benefitCard:hover {
+  transform: translateY(-4px);
+  border-color: #3b82f6;
+}
+
+.benefitIcon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.benefitCard h3 {
+  color: #ffffff;
+  margin-bottom: 0.75rem;
+  font-size: 1.2rem;
+}
+
+.benefitCard p {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Demo Section */
+.demoSection {
+  padding: 5rem 4rem;
+  background: #1e293b;
+}
+
+.demoSection h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 3rem;
+  color: #ffffff;
+}
+
+.demoGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.demoCard {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.demoCard:hover {
+  transform: translateY(-4px);
+  border-color: #3b82f6;
+}
+
+.demoIcon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.demoCard h3 {
+  color: #ffffff;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.demoQuestions p {
+  background: #1e293b;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+  border: 1px solid #334155;
+}
+
+.demoQuestions p:last-child {
+  margin-bottom: 0;
+}
+
+/* Comparison Section - Advantages Grid */
+.compareSection {
+  padding: 5rem 0;
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+}
+
+.compareSectionInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 4rem;
+}
+
+.compareSection h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #ffffff;
+}
+
+.compareSubtitle {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 1.15rem;
+  margin-bottom: 3rem;
+  line-height: 1.7;
+}
+
+.advantagesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.advantageCard {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 1rem;
+  padding: 2rem;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.advantageCard:hover {
+  transform: translateY(-4px);
+  border-color: #4ade80;
+}
+
+.advantageIcon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.advantageCard h3 {
+  color: #4ade80;
+  margin-bottom: 0.75rem;
+  font-size: 1.2rem;
+}
+
+.advantageCard p {
+  color: #cbd5e1;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.advantageCard strong {
+  color: #ffffff;
+}
+
+.bottomLine {
+  background: #3b82f6;
+  border-radius: 1rem;
+  padding: 2.5rem;
+  text-align: center;
+}
+
+.bottomLine h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #ffffff;
+}
+
+.bottomLine p {
+  font-size: 1.2rem;
+  line-height: 1.7;
+  color: #ffffff;
+  margin: 0 0 0.5rem 0;
+}
+
+.bottomLine strong {
+  color: #fbbf24;
+}
+
+/* CTA Section */
+.ctaSection {
+  padding: 5rem 4rem;
+  text-align: center;
+  background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
+}
+
+.ctaSection h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #ffffff;
+}
+
+.ctaSection p {
+  font-size: 1.3rem;
+  color: #e2e8f0;
+  margin-bottom: 2rem;
+}
+
+.ctaButtons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.ctaSection .primaryButton {
+  background: white;
+  color: #1e40af;
+}
+
+.ctaSection .primaryButton:hover {
+  background: #f1f5f9;
+}
+
+.ctaSection .secondaryButton {
+  border-color: white;
+  color: white;
+}
+
+.ctaSection .secondaryButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Footer */
+.footer {
+  background: #0f172a;
+  padding: 3rem 4rem;
+  border-top: 1px solid #334155;
+}
+
+.footerContent {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.footerLogo {
+  background: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+}
+
+.footerLogo img {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
+.footerLinks {
+  display: flex;
+  gap: 2rem;
+}
+
+.footerLinks a {
+  color: #94a3b8;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footerLinks a:hover {
+  color: #60a5fa;
+}
+
+.footerCopyright {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Floating Chat Button */
+.floatingChatButton {
+  position: fixed;
+  bottom: 2rem;
+  left: 2rem;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 3rem;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
+  transition: all 0.2s;
+}
+
+.floatingChatButton:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 15px 40px rgba(59, 130, 246, 0.5);
+}
+
+.floatingChatIcon {
+  font-size: 1.25rem;
+}
+
+/* Chat Widget Overlay */
+.chatOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: 1rem;
+}
+
+.chatWidget {
+  width: 450px;
+  max-width: 100%;
+  height: 100%;
+  background: #1e293b;
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+}
+
+.chatWidgetHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: #0f172a;
+  border-bottom: 1px solid #334155;
+}
+
+.chatWidgetTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.chatWidgetTitle .chatLogoWrapper {
+  background: #ffffff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.chatWidgetTitle .chatLogoWrapper img {
+  height: 20px;
+  width: auto;
+  display: block;
+}
+
+.chatWidgetTitle span {
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.chatCloseButton {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.chatCloseButton:hover {
+  color: #ffffff;
+}
+
+.chatIframe {
+  flex: 1;
+  border: none;
+  background: #0f172a;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding: 6rem 2rem 3rem;
+    min-height: auto;
+    gap: 3rem;
+  }
+
+  .heroVisual {
+    order: -1;
+  }
+
+  .benefitsGrid,
+  .demoGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .advantagesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .navLinks a:not(.navCta) {
+    display: none;
+  }
+
+  .hero {
+    padding: 5rem 1.5rem 2rem;
+  }
+
+  .heroTitle {
+    font-size: 2.2rem;
+  }
+
+  .heroCta {
+    flex-direction: column;
+  }
+
+  .benefitsSection,
+  .demoSection,
+  .compareSection,
+  .ctaSection,
+  .footer {
+    padding: 3rem 1.5rem;
+  }
+
+  .compareSectionInner {
+    padding: 0 1.5rem;
+  }
+
+  .benefitsGrid,
+  .demoGrid,
+  .advantagesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .ctaButtons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .chatMessages {
+    max-height: 350px;
+  }
+
+  .chatWidget {
+    width: 100%;
+  }
+
+  .floatingChatButton {
+    bottom: 1rem;
+    left: 1rem;
+    padding: 0.75rem 1.25rem;
+  }
+
+  .floatingChatText {
+    display: none;
+  }
+}

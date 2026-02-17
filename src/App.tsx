@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AspectPage, BankingOnboarderPage, BylinePage, FreedaPage, HomePage, KBPage, DashboardPage, NotFoundPage } from './pages';
+import { AspectPage, AspectLandingPage, BankingOnboarderPage, BylinePage, FreedaPage, HomePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage } from './pages';
 import { useTaskBoard } from './hooks';
 import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
 import './styles/global.css';
@@ -15,6 +15,10 @@ function App() {
       <Routes>
         {/* Home page - agent selection */}
         <Route path="/" element={<HomePage />} />
+
+        {/* Landing Pages - Marketing */}
+        <Route path="/aspect/ai" element={<AspectLandingPage />} />
+        <Route path="/lybi" element={<LybiLandingPage />} />
 
         {/* Main agent routes with optional conversation ID */}
         <Route path="/aspect" element={<AspectPage />} />

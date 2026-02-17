@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChatContext } from '../../../context';
+import { ConfirmDialog } from '../../common';
 import { formatDate } from '../../../utils';
 import styles from './HistorySidebar.module.css';
 
@@ -8,10 +9,21 @@ interface HistorySidebarProps {
   onClose: () => void;
 }
 
+interface DeleteConfirmState {
+  isOpen: boolean;
+  type: 'single' | 'all';
+  chatId?: string;
+}
+
 export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
-  const { conversations, conversationId, switchToChat, deleteChat, updateChatTitle } = useChatContext();
+  const { conversations, conversationId, switchToChat, deleteChat, deleteAllChats, updateChatTitle } = useChatContext();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState>({
+    isOpen: false,
+    type: 'single',
+  });
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Focus input when editing starts
@@ -22,10 +34,35 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
     }
   }, [editingId]);
 
-  const handleDelete = async (e: React.MouseEvent, chatId: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
-    if (window.confirm('Delete this conversation?')) {
-      await deleteChat(chatId);
+    setDeleteConfirm({ isOpen: true, type: 'single', chatId });
+  };
+
+  const handleDeleteAllClick = () => {
+    if (conversations.length === 0) return;
+    setDeleteConfirm({ isOpen: true, type: 'all' });
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      if (deleteConfirm.type === 'single' && deleteConfirm.chatId) {
+        await deleteChat(deleteConfirm.chatId);
+      } else if (deleteConfirm.type === 'all') {
+        await deleteAllChats();
+      }
+      setDeleteConfirm({ isOpen: false, type: 'single' });
+    } catch (err) {
+      console.error('Error deleting:', err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    if (!isDeleting) {
+      setDeleteConfirm({ isOpen: false, type: 'single' });
     }
   };
 
@@ -61,6 +98,24 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
     handleSaveEdit(chatId);
   };
 
+  // Get dialog content based on delete type
+  const getDeleteDialogContent = () => {
+    if (deleteConfirm.type === 'all') {
+      return {
+        title: 'Delete All Conversations',
+        message: `Are you sure you want to delete all ${conversations.length} conversations? This action cannot be undone.`,
+        confirmText: 'Delete All',
+      };
+    }
+    return {
+      title: 'Delete Conversation',
+      message: 'Are you sure you want to delete this conversation? This action cannot be undone.',
+      confirmText: 'Delete',
+    };
+  };
+
+  const dialogContent = getDeleteDialogContent();
+
   return (
     <>
       {/* Overlay for mobile */}
@@ -78,6 +133,21 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
         </div>
 
         <div className={styles.list}>
+          {conversations.length > 0 && (
+            <div className={styles.deleteAllRow}>
+              <button
+                className={styles.deleteAllBtn}
+                onClick={handleDeleteAllClick}
+                aria-label="Delete all conversations"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+                Delete All
+              </button>
+            </div>
+          )}
           {conversations.length === 0 ? (
             <div className={styles.empty}>
               <p>No chat history yet</p>
@@ -140,7 +210,7 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
                       )}
                       <button
                         className={styles.deleteBtn}
-                        onClick={(e) => handleDelete(e, conv.id)}
+                        onClick={(e) => handleDeleteClick(e, conv.id)}
                         aria-label="Delete conversation"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -155,6 +225,19 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
           )}
         </div>
       </aside>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title={dialogContent.title}
+        message={dialogContent.message}
+        confirmText={dialogContent.confirmText}
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </>
   );
 }

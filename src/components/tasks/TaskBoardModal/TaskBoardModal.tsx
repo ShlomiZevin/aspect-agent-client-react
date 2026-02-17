@@ -40,17 +40,26 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
   const [showForm, setShowForm] = useState(false);
   const [showAllDomains, setShowAllDomains] = useState(false);
   const [filterDomain, setFilterDomain] = useState<string>('current');
+  const [showCompleted, setShowCompleted] = useState(false);
 
   // Detect current domain when modal opens
   const currentDomain = useMemo(() => (isOpen ? getCurrentDomain() : 'general'), [isOpen]);
 
-  // Filter tasks by domain
+  // Filter tasks by domain and completed status
   const filteredTasks = useMemo(() => {
-    if (filterDomain === 'all') return tasks;
-    if (filterDomain === 'general') return tasks.filter(t => t.domain === 'general');
-    if (filterDomain === 'current') return tasks.filter(t => t.domain === currentDomain || t.domain === 'general');
-    return tasks.filter(t => t.domain === filterDomain);
-  }, [tasks, filterDomain, currentDomain]);
+    let result = tasks;
+
+    // Filter by completed status first (hide completed by default)
+    if (!showCompleted) {
+      result = result.filter(t => !t.isCompleted);
+    }
+
+    // Then filter by domain
+    if (filterDomain === 'all') return result;
+    if (filterDomain === 'general') return result.filter(t => t.domain === 'general');
+    if (filterDomain === 'current') return result.filter(t => t.domain === currentDomain || t.domain === 'general');
+    return result.filter(t => t.domain === filterDomain);
+  }, [tasks, filterDomain, currentDomain, showCompleted]);
 
   // Ctrl+Shift+A to toggle all domains option
   useEffect(() => {
@@ -154,6 +163,19 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
     }
   };
 
+  const handleMarkComplete = async (taskId: number, isCompleted: boolean) => {
+    // Optimistic update
+    setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, isCompleted } : t)));
+
+    try {
+      await taskService.updateTask(taskId, { isCompleted });
+    } catch (err) {
+      console.error('Failed to update task completion status:', err);
+      // Revert on error
+      loadData();
+    }
+  };
+
   const handleCloseForm = () => {
     setEditingTask(null);
     setShowForm(false);
@@ -228,6 +250,15 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
           </select>
 
           <AssigneeManager assignees={assignees} onAddAssignee={handleAddAssignee} />
+
+          <label className={styles.showCompletedLabel}>
+            <input
+              type="checkbox"
+              checked={showCompleted}
+              onChange={(e) => setShowCompleted(e.target.checked)}
+            />
+            Show Completed
+          </label>
         </div>
 
         {/* Content */}
@@ -237,7 +268,7 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
           ) : (
             <div className={styles.boardArea}>
               {viewMode === 'board' ? (
-                <TaskBoard tasks={filteredTasks} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} onAtRiskToggle={handleAtRiskToggle} />
+                <TaskBoard tasks={filteredTasks} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} onAtRiskToggle={handleAtRiskToggle} onMarkComplete={handleMarkComplete} />
               ) : (
                 <TaskList
                   tasks={filteredTasks}
