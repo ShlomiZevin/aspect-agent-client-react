@@ -47,10 +47,12 @@ export function ThinkingIndicator({ currentStep, steps = [], isComplete = false 
       ((step.metadata as Record<string, unknown>).files as FileResult[]).length > 0;
   };
 
-  const hasDataQuery = (step: ThinkingStep): step is ThinkingStep & { metadata: { question: string; sql: string; explanation?: string } } => {
+  const hasDataQuery = (step: ThinkingStep): step is ThinkingStep & { metadata: { params: { question: string; sql: string; explanation?: string } } } => {
+    const metadata = step.metadata as Record<string, unknown>;
+    const params = metadata?.params as Record<string, unknown>;
     return step.stepType === 'function_call' &&
-      typeof (step.metadata as Record<string, unknown>)?.question === 'string' &&
-      typeof (step.metadata as Record<string, unknown>)?.sql === 'string';
+      typeof params?.question === 'string' &&
+      typeof params?.sql === 'string';
   };
 
   const isExpandable = (step: ThinkingStep) => hasFiles(step) || hasDataQuery(step);
@@ -122,16 +124,16 @@ export function ThinkingIndicator({ currentStep, steps = [], isComplete = false 
                   <div className={styles.dataQueryDetails}>
                     <div className={styles.querySection}>
                       <div className={styles.queryLabel}>Business Question:</div>
-                      <div className={styles.queryValue}>{step.metadata.question}</div>
+                      <div className={styles.queryValue}>{step.metadata.params.question}</div>
                     </div>
                     <div className={styles.querySection}>
                       <div className={styles.queryLabel}>SQL Query:</div>
-                      <pre className={styles.sqlCode}>{step.metadata.sql}</pre>
+                      <pre className={styles.sqlCode}>{step.metadata.params.sql}</pre>
                     </div>
-                    {step.metadata.explanation && (
+                    {step.metadata.params.explanation && (
                       <div className={styles.querySection}>
                         <div className={styles.queryLabel}>Explanation:</div>
-                        <div className={styles.queryValue}>{step.metadata.explanation}</div>
+                        <div className={styles.queryValue}>{step.metadata.params.explanation}</div>
                       </div>
                     )}
                   </div>
