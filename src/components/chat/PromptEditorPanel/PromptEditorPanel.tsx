@@ -160,11 +160,15 @@ export function PromptEditorPanel({
   const availableModels = useMemo(() => {
     const baseModels = MODELS_BY_PROVIDER[currentProvider] || OPENAI_MODELS;
     const models = [...baseModels];
-    if (defaultModel && !models.includes(defaultModel)) {
+
+    // Only add defaultModel if it's not already in the list AND there's no explicit provider override
+    // (If provider is explicitly set, respect that choice and don't mix models from different providers)
+    const hasProviderOverride = selectedCrewId in providerOverrides;
+    if (!hasProviderOverride && defaultModel && !models.includes(defaultModel)) {
       models.unshift(defaultModel); // Add server's model at the top
     }
     return models;
-  }, [currentProvider, defaultModel]);
+  }, [currentProvider, defaultModel, selectedCrewId, providerOverrides]);
 
   let currentModel = modelOverrides[selectedCrewId] || defaultModel;
 
