@@ -90,4 +90,6 @@ export type ChatAction =
   | { type: 'SET_USER_MESSAGE_DB_ID'; payload: number }
   | { type: 'DELETE_MESSAGE'; payload: string }
   | { type: 'DELETE_MESSAGES_FROM'; payload: string }
-  | { type: 'ADD_DEVELOPER_MESSAGE'; payload: Message };
+  | { type: 'ADD_DEVELOPER_MESSAGE'; payload: Message }
+  | { type: 'CREW_TRANSITION'; payload: { to: string; displayName?: string } }
+  | { type: 'FINALIZE_TRANSITION_THINKING' };
