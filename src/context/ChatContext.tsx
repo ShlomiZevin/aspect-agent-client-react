@@ -121,7 +121,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
     debug: debugMode,
     promptOverrides: debugMode ? promptOverrides : undefined, // Only use in debug mode
     modelOverrides: debugMode ? modelOverrides : undefined,
-    onCrewInfo: crew.setCurrentCrew,
+    onCrewInfo: (crewInfo) => {
+      crew.setCurrentCrew(crewInfo);
+      // Refresh fields panel when crew is set (including initial crew)
+      setFieldsRefreshKey(prev => prev + 1);
+    },
     onCrewTransition: (transition) => {
       // Record the departing crew as visited
       crew.addVisitedCrew(transition.from);
@@ -130,6 +134,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
       if (newCrew) {
         crew.setCurrentCrew(newCrew);
       }
+      // Refresh fields panel to show new crew's field definitions
+      setFieldsRefreshKey(prev => prev + 1);
     },
     onFieldExtracted: () => {
       // Increment refresh key to trigger FieldsEditorPanel reload

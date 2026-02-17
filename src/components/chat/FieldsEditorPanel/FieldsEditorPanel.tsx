@@ -61,9 +61,19 @@ export function FieldsEditorPanel({
       setCrewMember(data.currentCrewMember);
       setTotalFieldsToCurrentCrew(data.totalFieldsToCurrentCrew || 0);
       setEditedFields({}); // Clear pending edits on reload
-    } catch (error) {
-      console.error('Failed to load fields:', error);
-      setStatus({ type: 'error', message: 'Failed to load fields' });
+    } catch (error: unknown) {
+      // Handle 404 gracefully - conversation may not exist yet (no messages sent)
+      const is404 = error instanceof Error && error.message.includes('404');
+      if (is404) {
+        // Clear state - conversation doesn't exist yet
+        setCollectedFields({});
+        setFieldDefinitions([]);
+        setCrewMember(null);
+        setTotalFieldsToCurrentCrew(0);
+      } else {
+        console.error('Failed to load fields:', error);
+        setStatus({ type: 'error', message: 'Failed to load fields' });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -281,7 +291,7 @@ export function FieldsEditorPanel({
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>-</div>
           <p className={styles.emptyText}>
-            No fields to collect for this crew member.
+            {crewMember ? 'No fields to collect for this crew member.' : 'Send a message to start collecting fields.'}
           </p>
         </div>
       ) : (
