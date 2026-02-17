@@ -1,4 +1,5 @@
 export { AspectPage } from './AspectPage';
+export { AspectLandingPage } from './AspectLandingPage';
 export { BankingOnboarderPage } from './BankingOnboarderPage';
 export { BylinePage } from './BylinePage';
 export { FreedaPage } from './FreedaPage';
