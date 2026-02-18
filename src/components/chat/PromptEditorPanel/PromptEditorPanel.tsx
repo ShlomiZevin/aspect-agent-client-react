@@ -35,12 +35,25 @@ const ANTHROPIC_MODELS = [
   'claude-haiku-3-5-20241022',
 ];
 
+const GOOGLE_MODELS = [
+  // Gemini 2.5 family
+  'gemini-2.5-pro',
+  'gemini-2.5-flash',
+  // Gemini 2.0 family (no Pro version exists)
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+  // Gemini 1.5 family
+  'gemini-1.5-pro',
+  'gemini-1.5-flash',
+];
+
 const MODELS_BY_PROVIDER: Record<string, string[]> = {
   openai: OPENAI_MODELS,
   anthropic: ANTHROPIC_MODELS,
+  google: GOOGLE_MODELS,
 };
 
-const AVAILABLE_PROVIDERS = ['openai', 'anthropic'];
+const AVAILABLE_PROVIDERS = ['openai', 'anthropic', 'google'];
 
 interface PromptEditorPanelProps {
   crewMembers: CrewMember[];
