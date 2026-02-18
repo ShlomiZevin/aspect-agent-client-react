@@ -8,6 +8,7 @@ interface TaskListProps {
 }
 
 const TYPE_LABELS: Record<string, string> = {
+  task: 'Task',
   bug: 'Bug',
   feature: 'Feature',
   idea: 'Idea',

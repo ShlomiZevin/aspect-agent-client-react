@@ -137,6 +137,11 @@
   text-transform: uppercase;
 }
 
+.type.task {
+  background: rgba(100, 116, 139, 0.1);
+  color: #64748b;
+}
+
 .type.bug {
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;

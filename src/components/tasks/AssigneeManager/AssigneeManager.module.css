@@ -24,6 +24,22 @@
   padding: 4px 10px;
   border-radius: var(--radius-full);
   font-weight: 500;
+  border: none;
+}
+
+.chip.clickable {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.chip.clickable:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.chip.active {
+  background: var(--primary-color);
+  color: white;
 }
 
 .plusBtn {

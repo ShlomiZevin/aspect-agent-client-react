@@ -17,6 +17,9 @@ type ViewMode = 'board' | 'list';
 // Known domains (agents) in the system
 const KNOWN_DOMAINS = ['freeda', 'aspect', 'banking', 'byline'];
 
+// Lybi domains - when on any of these, show all of them in filter
+const LYBI_DOMAINS = ['freeda', 'banking'];
+
 /**
  * Detect current domain from URL path
  * e.g., /freeda/... -> 'freeda', /aspect/... -> 'aspect', / -> 'general'
@@ -40,12 +43,13 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
   const [showForm, setShowForm] = useState(false);
   const [showAllDomains, setShowAllDomains] = useState(false);
   const [filterDomain, setFilterDomain] = useState<string>('current');
+  const [filterAssignee, setFilterAssignee] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
 
   // Detect current domain when modal opens
   const currentDomain = useMemo(() => (isOpen ? getCurrentDomain() : 'general'), [isOpen]);
 
-  // Filter tasks by domain and completed status
+  // Filter tasks by domain, assignee, and completed status
   const filteredTasks = useMemo(() => {
     let result = tasks;
 
@@ -54,12 +58,29 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
       result = result.filter(t => !t.isCompleted);
     }
 
+    // Filter by assignee
+    if (filterAssignee) {
+      result = result.filter(t => t.assignee === filterAssignee);
+    }
+
     // Then filter by domain
-    if (filterDomain === 'all') return result;
+    if (filterDomain === 'all') {
+      // "All Domains" means all domains currently visible in the dropdown
+      if (showAllDomains) {
+        // All known domains + general
+        return result.filter(t => t.domain === 'general' || KNOWN_DOMAINS.includes(t.domain));
+      } else if (LYBI_DOMAINS.includes(currentDomain)) {
+        // Lybi domains + general
+        return result.filter(t => t.domain === 'general' || LYBI_DOMAINS.includes(t.domain));
+      } else {
+        // Just current domain + general
+        return result.filter(t => t.domain === currentDomain || t.domain === 'general');
+      }
+    }
     if (filterDomain === 'general') return result.filter(t => t.domain === 'general');
     if (filterDomain === 'current') return result.filter(t => t.domain === currentDomain || t.domain === 'general');
     return result.filter(t => t.domain === filterDomain);
-  }, [tasks, filterDomain, currentDomain, showCompleted]);
+  }, [tasks, filterDomain, filterAssignee, currentDomain, showCompleted, showAllDomains]);
 
   // Ctrl+Shift+A to toggle all domains option
   useEffect(() => {
@@ -240,6 +261,14 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
                   </option>
                 ))}
               </>
+            ) : LYBI_DOMAINS.includes(currentDomain) ? (
+              <>
+                {LYBI_DOMAINS.map(domain => (
+                  <option key={domain} value={domain}>
+                    {domain.charAt(0).toUpperCase() + domain.slice(1)}
+                  </option>
+                ))}
+              </>
             ) : (
               <option value="current">
                 {currentDomain === 'general' ? 'General' : currentDomain.charAt(0).toUpperCase() + currentDomain.slice(1)}
@@ -249,7 +278,12 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
             <option value="all">All Domains</option>
           </select>
 
-          <AssigneeManager assignees={assignees} onAddAssignee={handleAddAssignee} />
+          <AssigneeManager
+            assignees={assignees}
+            onAddAssignee={handleAddAssignee}
+            selectedAssignee={filterAssignee}
+            onAssigneeClick={setFilterAssignee}
+          />
 
           <label className={styles.showCompletedLabel}>
             <input

@@ -9,6 +9,7 @@ interface TaskCardProps {
 }
 
 const TYPE_ICONS: Record<string, string> = {
+  task: 'TASK',
   bug: 'BUG',
   feature: 'FEATURE',
   idea: 'IDEA',

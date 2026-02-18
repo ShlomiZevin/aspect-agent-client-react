@@ -6,6 +6,24 @@ import styles from './TaskForm.module.css';
 // All known domains in the system
 const ALL_DOMAINS = ['freeda', 'aspect', 'banking', 'byline'];
 
+// Lybi domains - when on any of these, show all of them + general
+const LYBI_DOMAINS = ['freeda', 'banking'];
+
+/**
+ * Convert plain URLs in text/HTML to clickable anchor tags
+ */
+function linkifyHtml(html: string): string {
+  // URL regex - matches http(s) URLs not already inside href or src attributes
+  const urlRegex = /(?<!href="|src="|">)(https?:\/\/[^\s<>"]+)/g;
+
+  return html.replace(urlRegex, (url) => {
+    // Clean up trailing punctuation that might have been captured
+    const cleanUrl = url.replace(/[.,;:!?)]+$/, '');
+    const trailing = url.slice(cleanUrl.length);
+    return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>${trailing}`;
+  });
+}
+
 interface TaskFormProps {
   task?: Task | null;
   assignees: Assignee[];
@@ -30,6 +48,7 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
 ];
 
 const TYPE_OPTIONS: { value: TaskType; label: string }[] = [
+  { value: 'task', label: 'Task' },
   { value: 'feature', label: 'Feature' },
   { value: 'bug', label: 'Bug' },
   { value: 'idea', label: 'Idea' },
@@ -49,15 +68,24 @@ export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSub
   const [tagsInput, setTagsInput] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Domain options: when showAllDomains is true, show all domains; otherwise current + general
+  // Domain options:
+  // - If showAllDomains (Ctrl+Shift+A), show all domains
+  // - If on a lybi domain (freeda/byline/banking), show all lybi domains + general
+  // - Otherwise show current + general
+  const isLybiDomain = LYBI_DOMAINS.includes(currentDomain);
   const domainOptions = showAllDomains
     ? [
         { value: 'general', label: 'General (Engine)' },
         ...ALL_DOMAINS.map(d => ({ value: d, label: d.charAt(0).toUpperCase() + d.slice(1) }))
       ]
-    : currentDomain && currentDomain !== 'general'
-      ? [{ value: 'general', label: 'General (Engine)' }, { value: currentDomain, label: currentDomain.charAt(0).toUpperCase() + currentDomain.slice(1) }]
-      : [{ value: 'general', label: 'General (Engine)' }];
+    : isLybiDomain
+      ? [
+          { value: 'general', label: 'General (Engine)' },
+          ...LYBI_DOMAINS.map(d => ({ value: d, label: d.charAt(0).toUpperCase() + d.slice(1) }))
+        ]
+      : currentDomain && currentDomain !== 'general'
+        ? [{ value: 'general', label: 'General (Engine)' }, { value: currentDomain, label: currentDomain.charAt(0).toUpperCase() + currentDomain.slice(1) }]
+        : [{ value: 'general', label: 'General (Engine)' }];
 
   useEffect(() => {
     if (task) {
@@ -90,9 +118,12 @@ export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSub
       .map(t => t.trim())
       .filter(t => t.length > 0);
 
+    // Linkify URLs in description before saving
+    const processedDescription = description.trim() ? linkifyHtml(description.trim()) : undefined;
+
     onSubmit({
       title: title.trim(),
-      description: description.trim() || undefined,
+      description: processedDescription,
       status,
       priority,
       type,

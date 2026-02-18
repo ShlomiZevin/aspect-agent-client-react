@@ -212,6 +212,18 @@ export function RichTextEditor({ value, onChange, placeholder, expanded }: RichT
     }
   };
 
+  // Handle clicks on links - open in new tab
+  const handleClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+
+    // Check if clicked on a link or inside a link
+    const link = target.closest('a');
+    if (link && link.href) {
+      e.preventDefault();
+      window.open(link.href, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const handlePaste = (e: React.ClipboardEvent) => {
     // Check for images in clipboard
     const items = e.clipboardData.items;
@@ -314,6 +326,7 @@ export function RichTextEditor({ value, onChange, placeholder, expanded }: RichT
         contentEditable
         onInput={handleInput}
         onPaste={handlePaste}
+        onClick={handleClick}
         data-placeholder={placeholder}
         suppressContentEditableWarning
       />
