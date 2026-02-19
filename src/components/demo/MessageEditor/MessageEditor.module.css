@@ -1,0 +1,227 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.rtl {
+  direction: rtl;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.closeButton:hover {
+  color: #1e293b;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.input {
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1e293b;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.textarea {
+  min-height: 100px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.sideToggle {
+  display: flex;
+  gap: 8px;
+}
+
+.sideButton {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sideButton:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.sideButtonActive {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.button {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.primaryButton {
+  background: #2563eb;
+  color: white;
+}
+
+.primaryButton:hover {
+  background: #1d4ed8;
+}
+
+.secondaryButton {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.secondaryButton:hover {
+  background: #e2e8f0;
+}
+
+.dangerButton {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.dangerButton:hover {
+  background: #fecaca;
+}
+
+/* Quick add form */
+.quickAdd {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.quickAdd .field {
+  flex: 1;
+}
+
+.addButton {
+  padding: 10px 20px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.addButton:hover {
+  background: #1d4ed8;
+}
+
+.addButton:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* Date/time picker styles */
+.checkbox {
+  margin-right: 8px;
+  accent-color: #2563eb;
+}
+
+.dateTimeRow {
+  display: flex;
+  gap: 8px;
+}
+
+.dateInput {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1e293b;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dateInput:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.timeInput {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1e293b;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.timeInput:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}

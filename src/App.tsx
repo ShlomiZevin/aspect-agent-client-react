@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AspectPage, AspectLandingPage, BankingOnboarderPage, BylinePage, FreedaPage, HomePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage } from './pages';
+import { AspectPage, AspectLandingPage, BankingOnboarderPage, BylinePage, DemoPage, FreedaPage, HomePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage } from './pages';
 import { useTaskBoard } from './hooks';
 import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
 import './styles/global.css';
@@ -35,6 +35,12 @@ function App() {
 
         {/* Knowledge Base routes */}
         <Route path="/kb/:agent" element={<KBPage />} />
+
+        {/* Demo Mockup routes */}
+        <Route path="/demo" element={<DemoPage />} />
+        <Route path="/demo/:id" element={<DemoPage />} />
+        <Route path="/demo/:id/edit" element={<DemoPage />} />
+        <Route path="/demo/:id/embed" element={<DemoPage />} />
 
         {/* Legacy URL redirects */}
         <Route path="/aspect.html" element={<Navigate to="/aspect" replace />} />

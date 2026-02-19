@@ -1,0 +1,1 @@
+export { RegularView } from './RegularView';

@@ -2,6 +2,7 @@ export { AspectPage } from './AspectPage';
 export { AspectLandingPage } from './AspectLandingPage';
 export { BankingOnboarderPage } from './BankingOnboarderPage';
 export { BylinePage } from './BylinePage';
+export { DemoPage } from './DemoPage';
 export { FreedaPage } from './FreedaPage';
 export { HomePage } from './HomePage';
 export { LybiLandingPage } from './LybiLandingPage';
