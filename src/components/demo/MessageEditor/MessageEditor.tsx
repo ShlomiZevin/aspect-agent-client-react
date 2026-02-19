@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import type { DemoMessage, MessageSide, Language } from '../../../types/demo';
+import type { DemoMessage, MessageSide } from '../../../types/demo';
 import styles from './MessageEditor.module.css';
 
 interface MessageEditorProps {
   message?: DemoMessage | null;
   defaultSenderName?: string;
-  language?: Language;
   onSave: (message: DemoMessage) => void;
   onDelete?: () => void;
   onCancel: () => void;
@@ -55,13 +54,11 @@ function parseTimestampToTime(timestamp: string): string {
 export function MessageEditor({
   message,
   defaultSenderName = 'User',
-  language = 'en',
   onSave,
   onDelete,
   onCancel,
 }: MessageEditorProps) {
   const isEditing = !!message;
-  const isRtl = language === 'he';
 
   const [senderName, setSenderName] = useState(message?.senderName || defaultSenderName);
   const [text, setText] = useState(message?.text || '');
@@ -239,12 +236,10 @@ export function MessageEditor({
 }
 
 interface QuickAddProps {
-  defaultSenderName?: string;
   onAdd: (message: DemoMessage) => void;
 }
 
 export function QuickAddMessage({
-  defaultSenderName = 'User',
   onAdd,
 }: QuickAddProps) {
   const [text, setText] = useState('');

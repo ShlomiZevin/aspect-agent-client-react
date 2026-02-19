@@ -504,7 +504,6 @@ export function DemoEditor({ mockupId, isViewOnly = false, isEmbed = false }: De
 
         <div className={styles.quickAddBar}>
           <QuickAddMessage
-            defaultSenderName={config.senderName}
             onAdd={handleAddMessage}
           />
         </div>
@@ -517,7 +516,6 @@ export function DemoEditor({ mockupId, isViewOnly = false, isEmbed = false }: De
             <MessageEditor
               message={editingMessage}
               defaultSenderName={config.senderName}
-              language={config.language}
               onSave={handleUpdateMessage}
               onDelete={() => handleDeleteMessage(editingMessage.id)}
               onCancel={() => setEditingMessage(null)}
