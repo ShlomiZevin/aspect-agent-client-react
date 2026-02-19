@@ -17,7 +17,7 @@ export function Header({
   extraContent,
 }: HeaderProps) {
   const config = useAgentConfig();
-  const { conversations, conversationId, canShowFieldsEditor, isFieldsEditorOpen, setFieldsEditorOpen, debugMode } = useChatContext();
+  const { conversations, conversationId, canShowFieldsEditor, isFieldsEditorOpen, setFieldsEditorOpen, isContextEditorOpen, setContextEditorOpen, debugMode } = useChatContext();
 
   // Check if current conversation is a WhatsApp conversation
   const currentConversation = conversations.find(c => c.id === conversationId);
@@ -70,6 +70,22 @@ export function Header({
             </svg>
             <span className={styles.fieldsButtonText}>Fields</span>
             {debugMode && <span className={styles.debugBadge}>DEBUG</span>}
+          </button>
+        )}
+
+        {debugMode && (
+          <button
+            className={`${styles.fieldsButton} ${isContextEditorOpen ? styles.active : ''}`}
+            onClick={() => setContextEditorOpen(!isContextEditorOpen)}
+            title={isContextEditorOpen ? 'Close context viewer' : 'View context data'}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 16v-4" />
+              <path d="M12 8h.01" />
+            </svg>
+            <span className={styles.fieldsButtonText}>Context</span>
+            <span className={styles.debugBadge}>DEBUG</span>
           </button>
         )}
 

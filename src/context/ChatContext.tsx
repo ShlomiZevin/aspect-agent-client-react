@@ -35,6 +35,9 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   isFieldsEditorOpen: boolean;
   setFieldsEditorOpen: (open: boolean) => void;
   canShowFieldsEditor: boolean;
+  // Context editor (debug mode only)
+  isContextEditorOpen: boolean;
+  setContextEditorOpen: (open: boolean) => void;
   // Developer message injection (debug mode)
   injectTransitionPrompt: (content: string, crewMemberName?: string) => Promise<void>;
   // Fields refresh key (increments when fields are extracted)
@@ -111,6 +114,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
   // Fields editor state
   const [isFieldsEditorOpen, setFieldsEditorOpen] = useState(false);
   const [fieldsRefreshKey, setFieldsRefreshKey] = useState(0);
+
+  // Context editor state (debug mode only)
+  const [isContextEditorOpen, setContextEditorOpen] = useState(false);
 
   const chat = useChat({
     config,
@@ -363,6 +369,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
     setFieldsEditorOpen,
     // Show fields editor for form mode crews OR in debug mode
     canShowFieldsEditor: debugMode || (crew.currentCrew?.extractionMode === 'form'),
+    // Context editor (debug mode only)
+    isContextEditorOpen,
+    setContextEditorOpen,
     // Developer message injection (debug mode)
     injectTransitionPrompt: chat.addDeveloperMessage,
     addDeveloperMessage: chat.addDeveloperMessage,

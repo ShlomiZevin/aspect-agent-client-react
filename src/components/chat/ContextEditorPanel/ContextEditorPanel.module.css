@@ -1,0 +1,441 @@
+/* Context Editor Panel - Right side panel for viewing/editing context data */
+
+.panel {
+  width: 400px;
+  min-width: 320px;
+  max-width: 500px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-light);
+  flex-shrink: 0;
+}
+
+.headerTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.headerTitle h3 {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.debugBadge {
+  background: var(--warning-color);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.05em;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  padding: var(--spacing-xs);
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.closeButton:hover {
+  background: var(--background);
+  color: var(--text-primary);
+}
+
+/* Context Section */
+.contextSection {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+/* Level Sections (User / Conversation) */
+.levelSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.levelHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.levelIcon {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+}
+
+.countBadge {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--primary-color);
+  padding: 2px 8px;
+  background: var(--primary-light);
+  border-radius: var(--radius-sm);
+  margin-left: auto;
+}
+
+/* Namespace Items */
+.namespaceItem {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+  transition: all var(--transition-fast);
+}
+
+.namespaceItem:hover {
+  border-color: var(--primary-color);
+}
+
+.namespaceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  background: var(--background);
+  transition: background var(--transition-fast);
+}
+
+.namespaceHeader:hover {
+  background: var(--surface-light);
+}
+
+.namespaceInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.chevron {
+  transition: transform var(--transition-fast);
+  color: var(--text-muted);
+}
+
+.chevron.expanded {
+  transform: rotate(90deg);
+}
+
+.namespaceName {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.levelBadge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.levelBadge.user {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary-color);
+}
+
+.levelBadge.conversation {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success-color);
+}
+
+.namespaceActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.editButton,
+.deleteButton {
+  background: none;
+  border: none;
+  padding: var(--spacing-xs);
+  cursor: pointer;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.editButton:hover:not(:disabled) {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.deleteButton:hover:not(:disabled) {
+  background: var(--error-color);
+  color: white;
+}
+
+.editButton:disabled,
+.deleteButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Namespace Content */
+.namespaceContent {
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.jsonContent {
+  margin: 0;
+  padding: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Edit Mode */
+.editContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.editTextarea {
+  width: 100%;
+  padding: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  color: var(--text-primary);
+  resize: vertical;
+  min-height: 150px;
+  transition: all var(--transition-fast);
+}
+
+.editTextarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.editTextarea.invalid {
+  border-color: var(--error-color);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+}
+
+.editTextarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.invalidHint {
+  font-size: var(--font-size-xs);
+  color: var(--error-color);
+}
+
+.editActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+}
+
+.cancelButton,
+.saveButton {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.cancelButton {
+  background: var(--surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.cancelButton:hover:not(:disabled) {
+  background: var(--background);
+  color: var(--text-primary);
+}
+
+.saveButton {
+  background: var(--primary-color);
+  color: white;
+}
+
+.saveButton:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.cancelButton:disabled,
+.saveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Actions Section */
+.actionsSection {
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--border);
+  background: var(--surface-light);
+  flex-shrink: 0;
+}
+
+.actionButtons {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.refreshButton {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  background: var(--surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.refreshButton:hover:not(:disabled) {
+  background: var(--background);
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+.refreshButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Status Messages */
+.statusMessage {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.statusMessage.success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success-color);
+}
+
+.statusMessage.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error-color);
+}
+
+.statusMessage.info {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary-color);
+}
+
+/* Empty State */
+.emptyState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.5;
+  font-family: var(--font-mono);
+}
+
+.emptyText {
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+.emptyHint {
+  font-size: var(--font-size-xs);
+  margin: var(--spacing-xs) 0 0 0;
+  color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .panel {
+    width: 350px;
+    min-width: 280px;
+  }
+}
+
+@media (max-width: 900px) {
+  .panel {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 400px;
+    z-index: 100;
+    box-shadow: var(--shadow-lg);
+  }
+}

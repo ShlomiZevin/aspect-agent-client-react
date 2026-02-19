@@ -10,6 +10,7 @@ import { CrewJourneyStepper } from '../CrewJourneyStepper';
 import { CrewJourneyModal } from '../CrewJourneyModal';
 import { PromptEditorPanel } from '../PromptEditorPanel';
 import { FieldsEditorPanel } from '../FieldsEditorPanel';
+import { ContextEditorPanel } from '../ContextEditorPanel';
 import { MOCK_CREW_MEMBERS } from '../../../mocks/promptMocks';
 import { CrewTabs } from '../CrewTabs';
 import styles from './ChatContainer.module.css';
@@ -46,6 +47,8 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     isFieldsEditorOpen,
     setFieldsEditorOpen,
     canShowFieldsEditor,
+    isContextEditorOpen,
+    setContextEditorOpen,
     injectTransitionPrompt,
     fieldsRefreshKey,
   } = useChatContext();
@@ -99,7 +102,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
   }, [messages, isThinking, currentThinkingStep, thinkingSteps.length]);
 
   // Determine if any right panel is open
-  const hasOpenPanel = isPromptPanelOpen || isFieldsEditorOpen;
+  const hasOpenPanel = isPromptPanelOpen || isFieldsEditorOpen || isContextEditorOpen;
 
   return (
     <div className={`${styles.wrapper} ${hasOpenPanel ? styles.withPanel : ''}`}>
@@ -196,6 +199,16 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           isDebugMode={debugMode}
           onClose={() => setFieldsEditorOpen(false)}
           refreshKey={fieldsRefreshKey}
+        />
+      )}
+
+      {/* Context Editor Panel - Debug mode only */}
+      {debugMode && isContextEditorOpen && conversationId && (
+        <ContextEditorPanel
+          conversationId={conversationId}
+          baseURL={baseURL}
+          isDebugMode={debugMode}
+          onClose={() => setContextEditorOpen(false)}
         />
       )}
     </div>
