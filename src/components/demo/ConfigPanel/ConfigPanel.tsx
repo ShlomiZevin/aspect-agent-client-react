@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { DemoConfig, ViewMode, ColorScheme, Language } from '../../../types/demo';
+import type { DemoConfig, ViewMode, ColorScheme } from '../../../types/demo';
 import { uploadLogo } from '../../../services/demoService';
 import styles from './ConfigPanel.module.css';
 

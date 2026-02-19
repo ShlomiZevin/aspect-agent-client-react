@@ -414,7 +414,6 @@ export function DemoEditor({ mockupId, isViewOnly = false, isEmbed = false }: De
         <div className={styles.quickAddBar}>
           <QuickAddMessage
             defaultSenderName={config.senderName}
-            language={config.language}
             onAdd={handleAddMessage}
           />
         </div>
