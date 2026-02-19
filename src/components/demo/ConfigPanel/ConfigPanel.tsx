@@ -98,6 +98,29 @@ export function ConfigPanel({
         </div>
       </div>
 
+      {/* Save Section */}
+      <div className={styles.section}>
+        <div className={styles.saveSection}>
+          <div className={styles.autoSaveStatus}>
+            {isSaving ? (
+              <span className={styles.saving}>⏳ Auto-saving...</span>
+            ) : hasChanges ? (
+              <span className={styles.unsaved}>● Unsaved changes</span>
+            ) : (
+              <span className={styles.saved}>✓ All changes saved</span>
+            )}
+          </div>
+          <button
+            type="button"
+            className={`${styles.button} ${styles.primaryButton}`}
+            onClick={onSave}
+            disabled={isSaving || !hasChanges}
+          >
+            {isSaving ? 'Saving...' : '💾 Save Now'}
+          </button>
+        </div>
+      </div>
+
       <div className={styles.divider} />
 
       {/* View Mode */}
@@ -285,14 +308,6 @@ export function ConfigPanel({
           onClick={onParseClick}
         >
           📋 Paste & Parse Text
-        </button>
-        <button
-          type="button"
-          className={`${styles.button} ${styles.primaryButton}`}
-          onClick={onSave}
-          disabled={isSaving || !hasChanges}
-        >
-          {isSaving ? 'Saving...' : hasChanges ? '💾 Save Mockup' : 'Saved'}
         </button>
       </div>
 

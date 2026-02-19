@@ -94,7 +94,7 @@ export function WhatsAppView({
                     <div className={`${styles.message} ${isAgent ? styles.messageAgent : styles.messageUser}`}>
                       {isAgent && (
                         <div className={styles.senderName}>
-                          {config.agentName || 'Assistant'}
+                          {msg.senderName || config.agentName || 'Assistant'}
                         </div>
                       )}
                       <div

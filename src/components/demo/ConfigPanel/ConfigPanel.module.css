@@ -210,6 +210,35 @@
   border-top: 1px solid #e2e8f0;
 }
 
+.saveSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.autoSaveStatus {
+  font-size: 12px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.saving {
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+.unsaved {
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.saved {
+  color: #10b981;
+  font-weight: 500;
+}
+
 .button {
   padding: 12px 16px;
   border: none;

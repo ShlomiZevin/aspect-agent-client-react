@@ -87,6 +87,18 @@ export function DemoEditor({ mockupId, isViewOnly = false, isEmbed = false }: De
     setHasChanges(true);
   }, []);
 
+  // Auto-save effect
+  useEffect(() => {
+    if (!hasChanges || !mockup || isViewOnly) return;
+
+    // Debounce auto-save by 2 seconds
+    const timeoutId = setTimeout(() => {
+      handleSave();
+    }, 2000);
+
+    return () => clearTimeout(timeoutId);
+  }, [title, viewMode, config, messages, hasChanges, mockup, isViewOnly]);
+
   // Handlers
   const handleTitleChange = (newTitle: string) => {
     setTitle(newTitle);

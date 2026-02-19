@@ -97,13 +97,32 @@
 
 .sideButton:hover {
   border-color: #cbd5e1;
-  background: #f8fafc;
 }
 
-.sideButtonActive {
+.userButton {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.userButton.sideButtonActive {
+  border-color: #10b981;
+  background: #10b981;
+  color: white;
+  font-weight: 600;
+}
+
+.agentButton {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.agentButton.sideButtonActive {
   border-color: #2563eb;
-  background: #eff6ff;
-  color: #2563eb;
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
 }
 
 .actions {

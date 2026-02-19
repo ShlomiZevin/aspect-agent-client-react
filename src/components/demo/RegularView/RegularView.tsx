@@ -77,7 +77,7 @@ export function RegularView({
                   >
                     <div className={`${styles.message} ${styles.messageBot}`}>
                       <div className={`${styles.senderName} ${isRtl ? styles.senderNameRtl : ''}`}>
-                        {config.agentName || 'Assistant'}
+                        {msg.senderName || config.agentName || 'Assistant'}
                       </div>
                       <div
                         className={styles.messageText}

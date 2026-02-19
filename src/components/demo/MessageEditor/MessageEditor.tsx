@@ -80,7 +80,7 @@ export function MessageEditor({
 
   useEffect(() => {
     if (message) {
-      setSenderName(message.senderName);
+      setSenderName(message.senderName || defaultSenderName);
       setText(message.text);
       setSide(message.side);
       const parsedDate = parseTimestampToDate(message.timestamp);
@@ -160,21 +160,21 @@ export function MessageEditor({
           <div className={styles.sideToggle}>
             <button
               type="button"
-              className={`${styles.sideButton} ${
+              className={`${styles.sideButton} ${styles.userButton} ${
                 side === 'right' ? styles.sideButtonActive : ''
               }`}
               onClick={() => setSide('right')}
             >
-              {isRtl ? '← Left (User)' : 'Right (User) →'}
+              User
             </button>
             <button
               type="button"
-              className={`${styles.sideButton} ${
+              className={`${styles.sideButton} ${styles.agentButton} ${
                 side === 'left' ? styles.sideButtonActive : ''
               }`}
               onClick={() => setSide('left')}
             >
-              {isRtl ? 'Right (Agent) →' : '← Left (Agent)'}
+              Agent
             </button>
           </div>
         </div>
@@ -255,7 +255,7 @@ export function QuickAddMessage({
 
     onAdd({
       id: generateId(),
-      senderName: defaultSenderName,
+      senderName: '', // Empty = use global config until edited
       text: text.trim(),
       side,
       timestamp: getCurrentTime(),
