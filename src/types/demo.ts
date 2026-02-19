@@ -8,10 +8,12 @@ export type ColorScheme =
   | 'light-green'
   | 'light-purple'
   | 'light-coral'
+  | 'light-freeda'
   | 'dark-blue'
   | 'dark-green'
   | 'dark-purple'
-  | 'dark-slate';
+  | 'dark-slate'
+  | 'dark-freeda';
 
 export interface DemoMessage {
   id: string;

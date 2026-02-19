@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { DemoConfig, ViewMode, ColorScheme } from '../../../types/demo';
 import { uploadLogo } from '../../../services/demoService';
+import { ImageCropModal } from '../ImageCropModal';
 import styles from './ConfigPanel.module.css';
 
 interface ConfigPanelProps {
@@ -22,11 +23,13 @@ const colorSchemes: { id: ColorScheme; className: string; label: string; group: 
   { id: 'light-green', className: styles.lightGreen, label: 'Mint', group: 'light' },
   { id: 'light-purple', className: styles.lightPurple, label: 'Lavender', group: 'light' },
   { id: 'light-coral', className: styles.lightCoral, label: 'Peach', group: 'light' },
+  { id: 'light-freeda', className: styles.lightFreeda, label: 'Freeda', group: 'light' },
   // Dark themes
   { id: 'dark-blue', className: styles.darkBlue, label: 'Ocean', group: 'dark' },
   { id: 'dark-green', className: styles.darkGreen, label: 'Forest', group: 'dark' },
   { id: 'dark-purple', className: styles.darkPurple, label: 'Cosmic', group: 'dark' },
   { id: 'dark-slate', className: styles.darkSlate, label: 'Slate', group: 'dark' },
+  { id: 'dark-freeda', className: styles.darkFreeda, label: 'Freeda', group: 'dark' },
 ];
 
 export function ConfigPanel({
@@ -43,23 +46,38 @@ export function ConfigPanel({
 }: ConfigPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Read file and show crop modal
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageToCrop(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setImageToCrop(null);
     setIsUploading(true);
+
     try {
+      // Convert blob to file
+      const file = new File([croppedBlob], 'logo.png', { type: 'image/png' });
       const url = await uploadLogo(file);
       onConfigChange({ agentLogoUrl: url });
     } catch (err) {
       console.error('Failed to upload logo:', err);
     } finally {
       setIsUploading(false);
-      // Reset input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   };
 
@@ -277,6 +295,15 @@ export function ConfigPanel({
           {isSaving ? 'Saving...' : hasChanges ? '💾 Save Mockup' : 'Saved'}
         </button>
       </div>
+
+      {/* Image Crop Modal */}
+      {imageToCrop && (
+        <ImageCropModal
+          imageSrc={imageToCrop}
+          onCropComplete={handleCropComplete}
+          onClose={() => setImageToCrop(null)}
+        />
+      )}
     </div>
   );
 }

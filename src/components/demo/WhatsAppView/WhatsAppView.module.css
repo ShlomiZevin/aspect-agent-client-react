@@ -126,11 +126,12 @@
   word-wrap: break-word;
 }
 
-.messageRowLeft .message {
+/* Agent/User styling - independent of position */
+.messageAgent {
   background: white;
 }
 
-.messageRowRight .message {
+.messageUser {
   background: #dcf8c6;
 }
 
@@ -141,7 +142,7 @@
   margin-bottom: 2px;
 }
 
-.messageRowRight .senderName {
+.messageUser .senderName {
   color: #128c7e;
 }
 
@@ -158,6 +159,10 @@
   align-items: center;
   gap: 4px;
   margin-top: 2px;
+}
+
+.messageFooterLtr {
+  justify-content: flex-start;
 }
 
 .timestamp {

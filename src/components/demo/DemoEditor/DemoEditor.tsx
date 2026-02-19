@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import html2canvas from 'html2canvas';
 import type { DemoMockup, DemoMessage, DemoConfig, ViewMode } from '../../../types/demo';
 import { DEFAULT_CONFIG } from '../../../types/demo';
 import { getMockup, createMockup, updateMockup } from '../../../services/demoService';
@@ -21,6 +22,8 @@ interface DemoEditorProps {
 
 export function DemoEditor({ mockupId, isViewOnly = false, isEmbed = false }: DemoEditorProps) {
   const navigate = useNavigate();
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // State
   const [loading, setLoading] = useState(!!mockupId);
@@ -160,6 +163,39 @@ export function DemoEditor({ mockupId, isViewOnly = false, isEmbed = false }: De
     }
   };
 
+  const handleExportToImage = async () => {
+    if (!chatContainerRef.current) return;
+
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(chatContainerRef.current, {
+        backgroundColor: null, // Transparent background
+        scale: 2, // Higher resolution
+        useCORS: true, // Allow cross-origin images
+        logging: false,
+      });
+
+      // Convert to PNG blob
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${title || 'mockup'}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    } catch (err) {
+      console.error('Failed to export image:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Loading state
   if (loading) {
     return <div className={styles.loading}>Loading...</div>;
@@ -286,6 +322,14 @@ export function DemoEditor({ mockupId, isViewOnly = false, isEmbed = false }: De
         <div className={styles.viewOnlyHeader}>
           <span className={styles.viewOnlyTitle}>{title}</span>
           <div className={styles.viewOnlyActions}>
+            <button
+              className={styles.exportButton}
+              onClick={handleExportToImage}
+              disabled={isExporting}
+              title="Export as PNG image"
+            >
+              {isExporting ? 'Exporting...' : '📷 Export Image'}
+            </button>
             <div className={styles.displayModeToggle}>
               <button
                 className={`${styles.modeButton} ${styles.modeButtonActive}`}
@@ -318,7 +362,7 @@ export function DemoEditor({ mockupId, isViewOnly = false, isEmbed = false }: De
           </div>
         </div>
         <div className={styles.viewOnlyContent}>
-          <div className={styles.viewOnlyFrame}>
+          <div className={styles.viewOnlyFrame} ref={chatContainerRef}>
             {viewMode === 'whatsapp' ? (
               <WhatsAppView messages={messages} config={config} />
             ) : (

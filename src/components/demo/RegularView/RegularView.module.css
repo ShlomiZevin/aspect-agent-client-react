@@ -22,6 +22,7 @@
   --bot-text: #1e293b;
   --bot-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   --header-bg: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  --header-text: white;
   --bg-main: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
   --input-bg: white;
   --input-border: #e2e8f0;
@@ -39,6 +40,7 @@
   --bot-text: #064e3b;
   --bot-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   --header-bg: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --header-text: white;
   --bg-main: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
   --input-bg: white;
   --input-border: #a7f3d0;
@@ -56,6 +58,7 @@
   --bot-text: #4c1d95;
   --bot-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   --header-bg: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  --header-text: white;
   --bg-main: linear-gradient(180deg, #faf5ff 0%, #f3e8ff 100%);
   --input-bg: white;
   --input-border: #ddd6fe;
@@ -73,10 +76,29 @@
   --bot-text: #7c2d12;
   --bot-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   --header-bg: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  --header-text: white;
   --bg-main: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
   --input-bg: white;
   --input-border: #fdba74;
   --input-text: #7c2d12;
+}
+
+.schemeLightFreeda {
+  --primary: #FC7D67;
+  --primary-light: #FFA799;
+  --user-bg: linear-gradient(135deg, #FFA799 0%, #FC7D67 100%);
+  --user-shadow: 0 4px 14px rgba(252, 125, 103, 0.15);
+  --user-text: white;
+  --bot-bg: white;
+  --bot-border: #FFE8E4;
+  --bot-text: #5C3D38;
+  --bot-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --header-bg: white;
+  --header-text: #5C3D38;
+  --bg-main: #FFF5F3;
+  --input-bg: white;
+  --input-border: #FFE0DB;
+  --input-text: #5C3D38;
 }
 
 /* ============================================
@@ -94,6 +116,7 @@
   --bot-text: #e2e8f0;
   --bot-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   --header-bg: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+  --header-text: white;
   --bg-main: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
   --input-bg: rgba(30, 41, 59, 0.9);
   --input-border: rgba(59, 130, 246, 0.3);
@@ -111,6 +134,7 @@
   --bot-text: #d1fae5;
   --bot-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   --header-bg: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+  --header-text: white;
   --bg-main: linear-gradient(180deg, #022c22 0%, #064e3b 100%);
   --input-bg: rgba(6, 78, 59, 0.8);
   --input-border: rgba(16, 185, 129, 0.3);
@@ -128,6 +152,7 @@
   --bot-text: #ede9fe;
   --bot-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   --header-bg: linear-gradient(135deg, #4c1d95 0%, #5b21b6 100%);
+  --header-text: white;
   --bg-main: linear-gradient(180deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
   --input-bg: rgba(76, 29, 149, 0.7);
   --input-border: rgba(139, 92, 246, 0.3);
@@ -145,10 +170,29 @@
   --bot-text: #e2e8f0;
   --bot-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   --header-bg: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --header-text: white;
   --bg-main: linear-gradient(180deg, #020617 0%, #0f172a 100%);
   --input-bg: rgba(15, 23, 42, 0.9);
   --input-border: rgba(148, 163, 184, 0.2);
   --input-text: #e2e8f0;
+}
+
+.schemeDarkFreeda {
+  --primary: #FFA799;
+  --primary-light: #FFCCC4;
+  --user-bg: linear-gradient(135deg, #FC7D67 0%, #C94D3A 100%);
+  --user-shadow: 0 4px 20px rgba(252, 125, 103, 0.4);
+  --user-text: white;
+  --bot-bg: rgba(74, 30, 24, 0.7);
+  --bot-border: rgba(252, 125, 103, 0.2);
+  --bot-text: #FFE8E4;
+  --bot-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  --header-bg: linear-gradient(135deg, #5C1F15 0%, #7A2E1F 100%);
+  --header-text: white;
+  --bg-main: linear-gradient(180deg, #2A0F0A 0%, #4A1E14 100%);
+  --input-bg: rgba(74, 30, 24, 0.8);
+  --input-border: rgba(252, 125, 103, 0.3);
+  --input-text: #FFE8E4;
 }
 
 /* ============================================
@@ -161,7 +205,7 @@
   gap: 16px;
   padding: 18px 24px;
   background: var(--header-bg);
-  color: white;
+  color: var(--header-text);
   flex-shrink: 0;
   position: relative;
   z-index: 10;
@@ -246,18 +290,26 @@
   position: relative;
 }
 
-.messageLeft .message {
+/* Bot/User styling - independent of position */
+.messageBot {
   background: var(--bot-bg);
   color: var(--bot-text);
   border: 1px solid var(--bot-border);
   box-shadow: var(--bot-shadow);
+}
+
+.messageUser {
+  background: var(--user-bg);
+  color: var(--user-text);
+  box-shadow: var(--user-shadow);
+}
+
+/* Corner radius based on position */
+.messageLeft .message {
   border-bottom-left-radius: 4px;
 }
 
 .messageRight .message {
-  background: var(--user-bg);
-  color: var(--user-text);
-  box-shadow: var(--user-shadow);
   border-bottom-right-radius: 4px;
 }
 
@@ -280,6 +332,10 @@
   display: flex;
   justify-content: flex-end;
   margin-top: 6px;
+}
+
+.messageFooterLtr {
+  justify-content: flex-start;
 }
 
 .timestamp {

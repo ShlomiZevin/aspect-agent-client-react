@@ -149,6 +149,10 @@
   background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
 }
 
+.lightFreeda {
+  background: linear-gradient(135deg, #FFA799 0%, #FC7D67 100%);
+}
+
 /* Dark themes */
 .darkBlue {
   background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
@@ -164,6 +168,10 @@
 
 .darkSlate {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+.darkFreeda {
+  background: linear-gradient(135deg, #5C1F15 0%, #7A2E1F 100%);
 }
 
 /* Scheme group */

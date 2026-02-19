@@ -64,12 +64,16 @@ export function WhatsAppView({
 
             {messages.map((msg) => {
               const isAgent = msg.side === 'left';
+              const isRtl = config.language === 'he';
+              // For RTL (Hebrew): agent left, user right
+              // For LTR (English): agent right, user left
+              const displayOnLeft = isRtl ? isAgent : !isAgent;
 
               return (
                 <div
                   key={msg.id}
                   className={`${styles.messageRow} ${
-                    isAgent ? styles.messageRowLeft : styles.messageRowRight
+                    displayOnLeft ? styles.messageRowLeft : styles.messageRowRight
                   }`}
                   onClick={() => isEditable && onMessageClick?.(msg)}
                   style={{ cursor: isEditable ? 'pointer' : 'default' }}
@@ -87,7 +91,7 @@ export function WhatsAppView({
                   )}
 
                   <div className={styles.messageWrapper}>
-                    <div className={styles.message}>
+                    <div className={`${styles.message} ${isAgent ? styles.messageAgent : styles.messageUser}`}>
                       {isAgent && (
                         <div className={styles.senderName}>
                           {config.agentName || 'Assistant'}
@@ -99,11 +103,11 @@ export function WhatsAppView({
                       >
                         {msg.text}
                       </div>
-                      <div className={styles.messageFooter}>
+                      <div className={`${styles.messageFooter} ${!isRtl ? styles.messageFooterLtr : ''}`}>
+                        {/* LTR: checkmarks before timestamp, RTL: timestamp before checkmarks */}
+                        {!isAgent && !isRtl && <span className={styles.checkmarks}>✓✓</span>}
                         <span className={styles.timestamp}>{msg.timestamp}</span>
-                        {!isAgent && (
-                          <span className={styles.checkmarks}>✓✓</span>
-                        )}
+                        {!isAgent && isRtl && <span className={styles.checkmarks}>✓✓</span>}
                       </div>
                     </div>
                   </div>
