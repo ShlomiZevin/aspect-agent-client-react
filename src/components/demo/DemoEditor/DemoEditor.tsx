@@ -232,14 +232,49 @@ export function DemoEditor({ mockupId, isViewOnly = false, isEmbed = false }: De
     if (displayMode === 'fullscreen') {
       return (
         <div className={styles.fullscreenOverlay}>
-          <button
-            className={styles.fullscreenClose}
-            onClick={() => setDisplayMode('framed')}
-            aria-label="Exit fullscreen"
-          >
-            ✕
-          </button>
-          <div className={styles.fullscreenChat}>
+          <div className={styles.fullscreenHeader}>
+            <span className={styles.viewOnlyTitle}>{title}</span>
+            <div className={styles.viewOnlyActions}>
+              <button
+                className={styles.exportButton}
+                onClick={handleExportToImage}
+                disabled={isExporting}
+                title="Export as PNG image"
+              >
+                {isExporting ? 'Exporting...' : '📷 Export Image'}
+              </button>
+              <div className={styles.displayModeToggle}>
+                <button
+                  className={styles.modeButton}
+                  onClick={() => setDisplayMode('framed')}
+                  title="Phone frame"
+                >
+                  📱
+                </button>
+                <button
+                  className={`${styles.modeButton} ${styles.modeButtonActive}`}
+                  onClick={() => setDisplayMode('fullscreen')}
+                  title="Fullscreen"
+                >
+                  ⛶
+                </button>
+                <button
+                  className={styles.modeButton}
+                  onClick={() => setDisplayMode('embedded')}
+                  title="Website embed"
+                >
+                  🌐
+                </button>
+              </div>
+              <button
+                className={styles.iconButton}
+                onClick={() => navigate('/demo')}
+              >
+                ← Back
+              </button>
+            </div>
+          </div>
+          <div className={styles.fullscreenChat} ref={chatContainerRef}>
             {viewMode === 'whatsapp' ? (
               <WhatsAppView messages={messages} config={config} />
             ) : (

@@ -76,7 +76,7 @@ export function RegularView({
                     onClick={() => isEditable && onMessageClick?.(msg)}
                   >
                     <div className={`${styles.message} ${styles.messageBot}`}>
-                      <div className={styles.senderName}>
+                      <div className={`${styles.senderName} ${isRtl ? styles.senderNameRtl : ''}`}>
                         {config.agentName || 'Assistant'}
                       </div>
                       <div
@@ -104,7 +104,7 @@ export function RegularView({
                 onClick={() => isEditable && onMessageClick?.(msg)}
               >
                 <div className={`${styles.message} ${isBot ? styles.messageBot : styles.messageUser}`}>
-                  <div className={styles.senderName}>
+                  <div className={`${styles.senderName} ${isRtl ? styles.senderNameRtl : ''}`}>
                     {isBot
                       ? config.agentName || 'Assistant'
                       : msg.senderName || config.senderName || 'User'}
