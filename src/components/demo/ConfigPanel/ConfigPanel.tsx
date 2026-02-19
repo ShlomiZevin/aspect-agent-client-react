@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { DemoConfig, ViewMode, ColorScheme } from '../../../types/demo';
+import type { DemoConfig, ViewMode, ColorScheme, Language } from '../../../types/demo';
 import { uploadLogo } from '../../../services/demoService';
 import styles from './ConfigPanel.module.css';
 
@@ -133,6 +133,33 @@ export function ConfigPanel({
             onChange={(e) => onConfigChange({ senderName: e.target.value })}
             placeholder="e.g., Customer"
           />
+        </div>
+      </div>
+
+      <div className={styles.divider} />
+
+      {/* Language */}
+      <div className={styles.section}>
+        <div className={styles.sectionTitle}>Text Direction</div>
+        <div className={styles.viewModeToggle}>
+          <button
+            type="button"
+            className={`${styles.viewModeButton} ${
+              config.language === 'en' ? styles.viewModeButtonActive : ''
+            }`}
+            onClick={() => onConfigChange({ language: 'en' })}
+          >
+            <div className={styles.viewModeLabel}>English (LTR)</div>
+          </button>
+          <button
+            type="button"
+            className={`${styles.viewModeButton} ${
+              config.language === 'he' ? styles.viewModeButtonActive : ''
+            }`}
+            onClick={() => onConfigChange({ language: 'he' })}
+          >
+            <div className={styles.viewModeLabel}>Hebrew (RTL)</div>
+          </button>
         </div>
       </div>
 

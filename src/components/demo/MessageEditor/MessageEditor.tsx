@@ -240,18 +240,15 @@ export function MessageEditor({
 
 interface QuickAddProps {
   defaultSenderName?: string;
-  language?: Language;
   onAdd: (message: DemoMessage) => void;
 }
 
 export function QuickAddMessage({
   defaultSenderName = 'User',
-  language = 'en',
   onAdd,
 }: QuickAddProps) {
   const [text, setText] = useState('');
   const [side, setSide] = useState<MessageSide>('right');
-  const isRtl = language === 'he';
 
   const handleAdd = () => {
     if (!text.trim()) return;

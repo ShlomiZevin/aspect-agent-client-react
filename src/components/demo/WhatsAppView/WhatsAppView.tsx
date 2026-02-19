@@ -93,7 +93,12 @@ export function WhatsAppView({
                           {config.agentName || 'Assistant'}
                         </div>
                       )}
-                      <div className={styles.messageText}>{msg.text}</div>
+                      <div
+                        className={styles.messageText}
+                        dir={config.language === 'he' ? 'rtl' : 'ltr'}
+                      >
+                        {msg.text}
+                      </div>
                       <div className={styles.messageFooter}>
                         <span className={styles.timestamp}>{msg.timestamp}</span>
                         {!isAgent && (

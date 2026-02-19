@@ -73,7 +73,12 @@ export function RegularView({
                       <div className={styles.senderName}>
                         {config.agentName || 'Assistant'}
                       </div>
-                      <div className={styles.messageText}>{msg.text}</div>
+                      <div
+                      className={styles.messageText}
+                      dir={config.language === 'he' ? 'rtl' : 'ltr'}
+                    >
+                      {msg.text}
+                    </div>
                       <div className={styles.messageFooter}>
                         <span className={styles.timestamp}>{msg.timestamp}</span>
                       </div>
@@ -98,7 +103,12 @@ export function RegularView({
                       ? config.agentName || 'Assistant'
                       : msg.senderName || config.senderName || 'User'}
                   </div>
-                  <div className={styles.messageText}>{msg.text}</div>
+                  <div
+                      className={styles.messageText}
+                      dir={config.language === 'he' ? 'rtl' : 'ltr'}
+                    >
+                      {msg.text}
+                    </div>
                   <div className={styles.messageFooter}>
                     <span className={styles.timestamp}>{msg.timestamp}</span>
                   </div>
