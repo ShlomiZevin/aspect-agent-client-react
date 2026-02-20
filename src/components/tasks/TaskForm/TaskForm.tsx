@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { Task, Assignee, CreateTaskData, TaskStatus, TaskPriority, TaskType } from '../../../types/task';
 import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
 import styles from './TaskForm.module.css';
@@ -27,6 +27,7 @@ function linkifyHtml(html: string): string {
 interface TaskFormProps {
   task?: Task | null;
   assignees: Assignee[];
+  allTasks: Task[]; // All tasks for dependency selector
   currentDomain: string; // Current domain from URL (e.g., 'freeda', 'aspect')
   showAllDomains?: boolean; // When true, show all domain options (Ctrl+Shift+A mode)
   onSubmit: (data: CreateTaskData) => void;
@@ -54,7 +55,7 @@ const TYPE_OPTIONS: { value: TaskType; label: string }[] = [
   { value: 'idea', label: 'Idea' },
 ];
 
-export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSubmit, onCancel, onDelete }: TaskFormProps) {
+export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, onSubmit, onCancel, onDelete }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('todo');
@@ -65,8 +66,101 @@ export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSub
   const [dueDate, setDueDate] = useState<string>('');
   const [atRisk, setAtRisk] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [dependsOn, setDependsOn] = useState<number | null>(null);
+  const [dependsOnSearch, setDependsOnSearch] = useState('');
+  const [showDependsOnDropdown, setShowDependsOnDropdown] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [tagsInput, setTagsInput] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const dependsOnRef = useRef<HTMLDivElement>(null);
+
+  // Filter out current task from dependency options (can't depend on self)
+  const dependencyOptions = useMemo(() =>
+    allTasks.filter(t => t.id !== task?.id),
+    [allTasks, task?.id]
+  );
+
+  // Autocomplete suggestions - show after 3+ characters
+  const dependsOnSuggestions = useMemo(() => {
+    if (dependsOnSearch.length < 3) return [];
+    const search = dependsOnSearch.toLowerCase();
+    return dependencyOptions.filter(t =>
+      t.title.toLowerCase().includes(search)
+    ).slice(0, 8); // Limit to 8 suggestions
+  }, [dependsOnSearch, dependencyOptions]);
+
+  // Get the selected dependency task name for display
+  const selectedDependencyName = useMemo(() => {
+    if (!dependsOn) return '';
+    const depTask = allTasks.find(t => t.id === dependsOn);
+    return depTask?.title || '';
+  }, [dependsOn, allTasks]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dependsOnRef.current && !dependsOnRef.current.contains(e.target as Node)) {
+        setShowDependsOnDropdown(false);
+        setHighlightedIndex(-1);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Reset highlighted index when suggestions change
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [dependsOnSuggestions]);
+
+  // Use ref for suggestions to avoid stale closure issues
+  const suggestionsRef = useRef(dependsOnSuggestions);
+  suggestionsRef.current = dependsOnSuggestions;
+
+  // Handle keyboard navigation for autocomplete
+  const handleDependsOnKeyDown = useCallback((e: React.KeyboardEvent) => {
+    const suggestions = suggestionsRef.current;
+
+    // Handle Escape even if no suggestions
+    if (e.key === 'Escape') {
+      setShowDependsOnDropdown(false);
+      setHighlightedIndex(-1);
+      return;
+    }
+
+    // Only handle navigation if dropdown is visible with suggestions
+    if (suggestions.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        e.stopPropagation();
+        setHighlightedIndex(prev =>
+          prev < suggestions.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        e.stopPropagation();
+        setHighlightedIndex(prev =>
+          prev > 0 ? prev - 1 : suggestions.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        e.stopPropagation();
+        setHighlightedIndex(currentIndex => {
+          if (currentIndex >= 0 && currentIndex < suggestions.length) {
+            const selected = suggestions[currentIndex];
+            setDependsOn(selected.id);
+            setDependsOnSearch('');
+            setShowDependsOnDropdown(false);
+          }
+          return -1;
+        });
+        break;
+    }
+  }, []);
 
   // Domain options:
   // - If showAllDomains (Ctrl+Shift+A), show all domains
@@ -99,6 +193,8 @@ export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSub
       setDueDate(task.dueDate || '');
       setAtRisk(task.atRisk || false);
       setIsCompleted(task.isCompleted || false);
+      setDependsOn(task.dependsOn || null);
+      setDependsOnSearch(''); // Clear search - we show chip when selected
       setTagsInput(task.tags.join(', '));
     } else {
       // Default to general for new tasks
@@ -106,8 +202,10 @@ export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSub
       setDueDate('');
       setAtRisk(false);
       setIsCompleted(false);
+      setDependsOn(null);
+      setDependsOnSearch('');
     }
-  }, [task]);
+  }, [task, allTasks]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,6 +230,7 @@ export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSub
       dueDate: dueDate || undefined,
       atRisk,
       isCompleted,
+      dependsOn, // Pass null to clear, number to set
       tags,
     });
   };
@@ -235,6 +334,68 @@ export function TaskForm({ task, assignees, currentDomain, showAllDomains, onSub
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
               />
+            </div>
+          </div>
+
+          <div className={styles.dependsOnRow} ref={dependsOnRef}>
+            <label htmlFor="dependsOn">Depends On</label>
+            <div className={styles.dependsOnField}>
+              {dependsOn ? (
+                <div className={styles.selectedDependency}>
+                  <span className={styles.dependencyChip}>
+                    {selectedDependencyName}
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.removeDepBtn}
+                    onClick={() => {
+                      setDependsOn(null);
+                      setDependsOnSearch('');
+                    }}
+                    title="Remove dependency"
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <div className={styles.autocompleteWrapper}>
+                  <input
+                    id="dependsOn"
+                    type="text"
+                    value={dependsOnSearch}
+                    onChange={(e) => {
+                      setDependsOnSearch(e.target.value);
+                      setShowDependsOnDropdown(true);
+                    }}
+                    onFocus={() => setShowDependsOnDropdown(true)}
+                    onKeyDown={handleDependsOnKeyDown}
+                    placeholder="Type 3+ letters to search..."
+                    autoComplete="off"
+                  />
+                  {showDependsOnDropdown && dependsOnSuggestions.length > 0 && (
+                    <div className={styles.autocompleteDropdown}>
+                      {dependsOnSuggestions.map((t, index) => (
+                        <div
+                          key={t.id}
+                          className={`${styles.autocompleteItem} ${index === highlightedIndex ? styles.highlighted : ''}`}
+                          onClick={() => {
+                            setDependsOn(t.id);
+                            setDependsOnSearch('');
+                            setShowDependsOnDropdown(false);
+                            setHighlightedIndex(-1);
+                          }}
+                          onMouseEnter={() => setHighlightedIndex(index)}
+                        >
+                          <span className={styles.autocompleteTitle}>{t.title}</span>
+                          <span className={`${styles.autocompleteStatus} ${styles[t.status]}`}>
+                            {t.status === 'done' ? '✓' : t.status === 'in_progress' ? '⏳' : '○'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

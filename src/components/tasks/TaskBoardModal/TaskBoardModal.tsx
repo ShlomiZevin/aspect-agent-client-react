@@ -302,7 +302,7 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
           ) : (
             <div className={styles.boardArea}>
               {viewMode === 'board' ? (
-                <TaskBoard tasks={filteredTasks} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} onAtRiskToggle={handleAtRiskToggle} onMarkComplete={handleMarkComplete} />
+                <TaskBoard tasks={filteredTasks} allTasks={tasks} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} onAtRiskToggle={handleAtRiskToggle} onMarkComplete={handleMarkComplete} />
               ) : (
                 <TaskList
                   tasks={filteredTasks}
@@ -321,6 +321,7 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
               <TaskForm
                 task={editingTask}
                 assignees={assignees}
+                allTasks={tasks}
                 currentDomain={currentDomain}
                 showAllDomains={showAllDomains}
                 onSubmit={editingTask ? handleUpdateTask : handleCreateTask}

@@ -3,6 +3,7 @@ import styles from './TaskCard.module.css';
 
 interface TaskCardProps {
   task: Task;
+  dependencyInfo?: { name: string; satisfied: boolean }; // Info about task dependency
   onClick?: () => void;
   onAtRiskToggle?: (taskId: number, atRisk: boolean) => void;
   onMarkComplete?: (taskId: number, isCompleted: boolean) => void;
@@ -53,7 +54,7 @@ function isOverdue(dateStr: string): boolean {
   return date < today;
 }
 
-export function TaskCard({ task, onClick, onAtRiskToggle, onMarkComplete }: TaskCardProps) {
+export function TaskCard({ task, dependencyInfo, onClick, onAtRiskToggle, onMarkComplete }: TaskCardProps) {
   const handleAtRiskClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onAtRiskToggle?.(task.id, !task.atRisk);
@@ -93,6 +94,14 @@ export function TaskCard({ task, onClick, onAtRiskToggle, onMarkComplete }: Task
           </span>
           {task.domain && task.domain !== 'general' && (
             <span className={styles.domain}>{task.domain}</span>
+          )}
+          {dependencyInfo && (
+            <span
+              className={`${styles.dependency} ${dependencyInfo.satisfied ? styles.satisfied : styles.blocked}`}
+              title={`Depends on: ${dependencyInfo.name}${dependencyInfo.satisfied ? ' (done)' : ' (not done)'}`}
+            >
+              {dependencyInfo.satisfied ? '🔗' : '🔒'}
+            </span>
           )}
         </div>
         <span

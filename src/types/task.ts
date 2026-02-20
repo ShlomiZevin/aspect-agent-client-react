@@ -20,6 +20,7 @@ export interface Task {
   dueDate?: string; // ISO date string
   atRisk: boolean; // Flag for tasks at risk of missing deadline
   isCompleted: boolean; // PM approval - task fully completed and reviewed
+  dependsOn?: number; // ID of task this depends on (must be done first)
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -36,6 +37,7 @@ export interface CreateTaskData {
   dueDate?: string;
   atRisk?: boolean;
   isCompleted?: boolean;
+  dependsOn?: number | null; // null to clear dependency
   tags?: string[];
 }
 
@@ -50,6 +52,7 @@ export interface UpdateTaskData {
   dueDate?: string | null;
   atRisk?: boolean;
   isCompleted?: boolean;
+  dependsOn?: number | null;
   tags?: string[];
 }
 

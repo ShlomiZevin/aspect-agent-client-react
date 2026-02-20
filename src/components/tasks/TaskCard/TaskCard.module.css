@@ -129,6 +129,19 @@
   text-transform: capitalize;
 }
 
+.dependency {
+  font-size: 10px;
+  cursor: help;
+}
+
+.dependency.satisfied {
+  opacity: 0.6;
+}
+
+.dependency.blocked {
+  color: #f59e0b;
+}
+
 .type {
   font-size: var(--font-size-xs);
   font-weight: 600;

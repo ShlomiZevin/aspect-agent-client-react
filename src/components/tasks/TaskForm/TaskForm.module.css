@@ -312,3 +312,144 @@
   border-top: 1px solid var(--border);
   gap: var(--spacing-sm);
 }
+
+/* Depends On - inline row layout */
+.dependsOnRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.dependsOnRow > label {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dependsOnField {
+  flex: 1;
+  position: relative;
+}
+
+/* Selected dependency chip */
+.selectedDependency {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dependencyChip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--primary-color);
+  color: white;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.removeDepBtn {
+  background: var(--surface-light);
+  border: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.removeDepBtn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+/* Autocomplete for Depends On */
+.autocompleteWrapper {
+  position: relative;
+}
+
+.autocompleteWrapper input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.autocompleteWrapper input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.autocompleteDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 2px;
+}
+
+.autocompleteItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.autocompleteItem:hover,
+.autocompleteItem.highlighted {
+  background: var(--surface-light);
+}
+
+.autocompleteTitle {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  margin-right: 8px;
+}
+
+.autocompleteStatus {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.autocompleteStatus.done {
+  color: #10b981;
+}
+
+.autocompleteStatus.in_progress {
+  color: #f59e0b;
+}
+
+.autocompleteStatus.todo {
+  color: var(--text-muted);
+}
