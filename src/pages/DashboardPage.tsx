@@ -4,6 +4,7 @@ import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { FeedbackPage } from '../components/dashboard/FeedbackPage';
 import { UsersPage } from '../components/dashboard/UsersPage';
 import { CrewPage } from '../components/dashboard/CrewPage';
+import { QueryOptimizerPage } from '../components/dashboard/QueryOptimizerPage';
 import { aspectConfig, freedaConfig } from '../agents';
 import type { AgentConfig } from '../types';
 
@@ -22,6 +23,8 @@ export function DashboardPage() {
 
   const basePath = `/${agent}/dashboard`;
 
+  const showQueryOptimizer = !!config.database?.schema;
+
   return (
     <ThemeProvider storagePrefix={config.storagePrefix}>
       <AgentProvider config={config}>
@@ -30,6 +33,7 @@ export function DashboardPage() {
           agentDisplayName={config.displayName}
           agentLogo={config.logo.src}
           basePath={basePath}
+          showQueryOptimizer={showQueryOptimizer}
         >
           <Routes>
             <Route index element={<Navigate to="feedback" replace />} />
@@ -45,6 +49,12 @@ export function DashboardPage() {
               path="crew"
               element={<CrewPage agentName={config.agentName} baseURL={config.baseURL} />}
             />
+            {showQueryOptimizer && (
+              <Route
+                path="query-optimizer"
+                element={<QueryOptimizerPage agentName={config.agentName} baseURL={config.baseURL} />}
+              />
+            )}
           </Routes>
         </DashboardLayout>
       </AgentProvider>

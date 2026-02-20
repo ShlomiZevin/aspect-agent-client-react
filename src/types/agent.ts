@@ -47,4 +47,10 @@ export interface AgentConfig {
 
   // Theming
   themeClass: string;
+
+  // Database connection (enables Query Optimizer in dashboard)
+  database?: {
+    schema: string;           // e.g. 'zer4u'
+    enableQueryLogging?: boolean;
+  };
 }

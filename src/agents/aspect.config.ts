@@ -75,4 +75,9 @@ export const aspectConfig: AgentConfig = {
   },
 
   themeClass: 'theme-aspect',
+
+  database: {
+    schema: 'zer4u',
+    enableQueryLogging: true,
+  },
 };

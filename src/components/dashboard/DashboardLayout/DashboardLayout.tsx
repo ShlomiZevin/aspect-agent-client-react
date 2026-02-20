@@ -7,16 +7,27 @@ interface DashboardLayoutProps {
   agentDisplayName: string;
   agentLogo: string;
   basePath: string;
+  showQueryOptimizer?: boolean;
   children: ReactNode;
 }
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { path: 'feedback', label: 'Feedback', icon: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z' },
   { path: 'users', label: 'Users', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75' },
   { path: 'crew', label: 'Crew', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
 ];
 
-export function DashboardLayout({ agentDisplayName, agentLogo, basePath, children }: DashboardLayoutProps) {
+const QUERY_OPTIMIZER_ITEM = {
+  path: 'query-optimizer',
+  label: 'Query Optimizer',
+  icon: 'M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z M13 2v7h7 M9 17l2-2 4-4',
+};
+
+export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, children }: DashboardLayoutProps) {
+  const navItems = showQueryOptimizer
+    ? [...BASE_NAV_ITEMS, QUERY_OPTIMIZER_ITEM]
+    : BASE_NAV_ITEMS;
+
   return (
     <div className={styles.layout}>
       <aside className={styles.sidebar}>
@@ -29,7 +40,7 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, childre
         </div>
 
         <nav className={styles.nav}>
-          {NAV_ITEMS.map(item => (
+          {navItems.map(item => (
             <NavLink
               key={item.path}
               to={`${basePath}/${item.path}`}
