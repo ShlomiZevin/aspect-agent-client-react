@@ -6,8 +6,9 @@
 .theme-banking-onboarder {
   /* Primary - Professional Blue */
   --primary: #1e40af;
+  --primary-color: #1e40af;
   --primary-hover: #1e3a8a;
-  --primary-light: #3b82f6;
+  --primary-light: rgba(30, 64, 175, 0.1);
 
   /* Accent - Trust Green */
   --accent: #059669;
@@ -17,6 +18,7 @@
   --background: #ffffff;
   --surface: #f9fafb;
   --surface-hover: #f3f4f6;
+  --surface-light: #f3f4f6;
 
   /* Text */
   --text-primary: #111827;
@@ -29,16 +31,20 @@
 
   /* Status colors */
   --success: #10b981;
+  --success-color: #10b981;
   --warning: #f59e0b;
+  --warning-color: #f59e0b;
   --error: #ef4444;
+  --error-color: #ef4444;
   --info: #3b82f6;
 }
 
 .theme-banking-onboarder[data-theme="dark"] {
   /* Primary - Lighter Blue for dark mode */
   --primary: #3b82f6;
+  --primary-color: #3b82f6;
   --primary-hover: #60a5fa;
-  --primary-light: #93c5fd;
+  --primary-light: rgba(59, 130, 246, 0.15);
 
   /* Accent - Brighter Green */
   --accent: #10b981;
@@ -48,6 +54,7 @@
   --background: #111827;
   --surface: #1f2937;
   --surface-hover: #374151;
+  --surface-light: #374151;
 
   /* Text */
   --text-primary: #f9fafb;
@@ -60,7 +67,10 @@
 
   /* Status colors - slightly brighter for dark mode */
   --success: #34d399;
+  --success-color: #34d399;
   --warning: #fbbf24;
+  --warning-color: #fbbf24;
   --error: #f87171;
+  --error-color: #f87171;
   --info: #60a5fa;
 }

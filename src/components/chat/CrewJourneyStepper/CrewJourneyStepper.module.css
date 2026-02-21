@@ -10,7 +10,24 @@
   transition: all var(--transition-fast);
   flex-shrink: 1;
   min-width: 0;
-  overflow-x: auto;
+  overflow: hidden;
+}
+
+/* Badge showing count of hidden steps */
+.hiddenCount {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: var(--surface-light);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .stepper:hover {

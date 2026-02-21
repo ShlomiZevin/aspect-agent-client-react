@@ -16,6 +16,7 @@ const statusLabels: Record<CrewJourneyStep['status'], string> = {
 
 export function CrewJourneyModal({ steps, isOpen, onClose }: CrewJourneyModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const currentStepRef = useRef<HTMLDivElement>(null);
 
   // Close on Escape key
   useEffect(() => {
@@ -28,6 +29,23 @@ export function CrewJourneyModal({ steps, isOpen, onClose }: CrewJourneyModalPro
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
+
+  // Scroll to current step when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Small delay to ensure the modal is rendered and animated
+    const timeoutId = setTimeout(() => {
+      if (currentStepRef.current && modalRef.current) {
+        currentStepRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -50,7 +68,11 @@ export function CrewJourneyModal({ steps, isOpen, onClose }: CrewJourneyModalPro
 
         <div className={styles.timeline}>
           {steps.map((step, index) => (
-            <div key={step.crew.name} className={styles.timelineItem}>
+            <div
+              key={step.crew.name}
+              className={styles.timelineItem}
+              ref={step.status === 'current' ? currentStepRef : undefined}
+            >
               {/* Vertical connector line */}
               {index < steps.length - 1 && (
                 <div
