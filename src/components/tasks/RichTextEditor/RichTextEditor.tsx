@@ -28,6 +28,7 @@ export function RichTextEditor({ value, onChange, placeholder, expanded }: RichT
     code: false,
     heading: false,
   });
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   // Check if selection is inside a specific element
   const isInElement = useCallback((tagName: string) => {
@@ -85,6 +86,20 @@ export function RichTextEditor({ value, onChange, placeholder, expanded }: RichT
     document.addEventListener('selectionchange', handleSelectionChange);
     return () => document.removeEventListener('selectionchange', handleSelectionChange);
   }, [updateActiveFormats]);
+
+  // Close lightbox on Escape key
+  useEffect(() => {
+    if (!lightboxImage) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setLightboxImage(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxImage]);
 
   const execCommand = useCallback((command: FormatCommand, val?: string) => {
     document.execCommand(command, false, val);
@@ -212,9 +227,20 @@ export function RichTextEditor({ value, onChange, placeholder, expanded }: RichT
     }
   };
 
-  // Handle clicks on links - open in new tab
+  // Handle clicks on links and images
   const handleClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
+
+    // Check if clicked on an image - open lightbox
+    if (target.tagName === 'IMG') {
+      e.preventDefault();
+      e.stopPropagation();
+      const imgSrc = (target as HTMLImageElement).src;
+      if (imgSrc) {
+        setLightboxImage(imgSrc);
+      }
+      return;
+    }
 
     // Check if clicked on a link or inside a link
     const link = target.closest('a');
@@ -277,59 +303,80 @@ export function RichTextEditor({ value, onChange, placeholder, expanded }: RichT
   };
 
   return (
-    <div className={`${styles.editor} ${expanded ? styles.expanded : ''}`}>
-      <div className={styles.toolbar}>
-        <button
-          type="button"
-          className={`${styles.toolbarBtn} ${activeFormats.heading ? styles.active : ''}`}
-          onClick={() => handleFormat('heading')}
-          title="Heading (larger text)"
-        >
-          H
-        </button>
-        <button
-          type="button"
-          className={`${styles.toolbarBtn} ${activeFormats.bold ? styles.active : ''}`}
-          onClick={() => handleFormat('bold')}
-          title="Bold"
-        >
-          <strong>B</strong>
-        </button>
-        <button
-          type="button"
-          className={`${styles.toolbarBtn} ${activeFormats.underline ? styles.active : ''}`}
-          onClick={() => handleFormat('underline')}
-          title="Underline"
-        >
-          <u>U</u>
-        </button>
-        <button
-          type="button"
-          className={`${styles.toolbarBtn} ${activeFormats.list ? styles.active : ''}`}
-          onClick={() => handleFormat('list')}
-          title="Bullet List"
-        >
-          &bull;
-        </button>
-        <button
-          type="button"
-          className={`${styles.toolbarBtn} ${activeFormats.code ? styles.active : ''}`}
-          onClick={() => handleFormat('code')}
-          title="Code"
-        >
-          {'</>'}
-        </button>
+    <>
+      <div className={`${styles.editor} ${expanded ? styles.expanded : ''}`}>
+        <div className={styles.toolbar}>
+          <button
+            type="button"
+            className={`${styles.toolbarBtn} ${activeFormats.heading ? styles.active : ''}`}
+            onClick={() => handleFormat('heading')}
+            title="Heading (larger text)"
+          >
+            H
+          </button>
+          <button
+            type="button"
+            className={`${styles.toolbarBtn} ${activeFormats.bold ? styles.active : ''}`}
+            onClick={() => handleFormat('bold')}
+            title="Bold"
+          >
+            <strong>B</strong>
+          </button>
+          <button
+            type="button"
+            className={`${styles.toolbarBtn} ${activeFormats.underline ? styles.active : ''}`}
+            onClick={() => handleFormat('underline')}
+            title="Underline"
+          >
+            <u>U</u>
+          </button>
+          <button
+            type="button"
+            className={`${styles.toolbarBtn} ${activeFormats.list ? styles.active : ''}`}
+            onClick={() => handleFormat('list')}
+            title="Bullet List"
+          >
+            &bull;
+          </button>
+          <button
+            type="button"
+            className={`${styles.toolbarBtn} ${activeFormats.code ? styles.active : ''}`}
+            onClick={() => handleFormat('code')}
+            title="Code"
+          >
+            {'</>'}
+          </button>
+        </div>
+        <div
+          ref={editorRef}
+          className={`${styles.content} ${expanded ? styles.expandedContent : ''}`}
+          contentEditable
+          onInput={handleInput}
+          onPaste={handlePaste}
+          onClick={handleClick}
+          data-placeholder={placeholder}
+          suppressContentEditableWarning
+        />
       </div>
-      <div
-        ref={editorRef}
-        className={`${styles.content} ${expanded ? styles.expandedContent : ''}`}
-        contentEditable
-        onInput={handleInput}
-        onPaste={handlePaste}
-        onClick={handleClick}
-        data-placeholder={placeholder}
-        suppressContentEditableWarning
-      />
-    </div>
+
+      {/* Image Lightbox */}
+      {lightboxImage && (
+        <div className={styles.lightboxOverlay} onClick={() => setLightboxImage(null)}>
+          <button
+            className={styles.lightboxClose}
+            onClick={() => setLightboxImage(null)}
+            title="Close"
+          >
+            ×
+          </button>
+          <img
+            src={lightboxImage}
+            alt="Full size"
+            className={styles.lightboxImage}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </>
   );
 }
