@@ -78,6 +78,7 @@ export function AgentBugModal({
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Source crew - the crew that generated the message (editable, defaults to message.crewMember)
   const [sourceCrew, setSourceCrew] = useState('');
@@ -374,7 +375,17 @@ export function AgentBugModal({
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit}>
           <div className={styles.header}>
-            <h3>Report Agent Bug</h3>
+            <div className={styles.headerLeft}>
+              <h3>Report Agent Bug</h3>
+              <button
+                type="button"
+                className={styles.helpBtn}
+                onClick={() => setShowHelp(!showHelp)}
+                title="How to use this form"
+              >
+                ?
+              </button>
+            </div>
             <button type="button" className={styles.closeBtn} onClick={onClose}>
               ×
             </button>
@@ -601,6 +612,67 @@ export function AgentBugModal({
           </div>
         </form>
       </div>
+
+      {/* Help Modal */}
+      {showHelp && (
+        <div className={styles.helpModalOverlay} onClick={() => setShowHelp(false)}>
+          <div className={styles.helpModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.helpHeader}>
+              <h3>Agent Bug Reporting Guide</h3>
+              <button type="button" className={styles.closeBtn} onClick={() => setShowHelp(false)}>
+                ×
+              </button>
+            </div>
+            <div className={styles.helpBody}>
+              <div className={styles.helpGroup}>
+                <h4>Group 1: Prompting & Knowledge Issues</h4>
+                <p className={styles.groupDesc}>Issues with what the agent says or how it responds.</p>
+                <ul>
+                  <li><strong>Wrong Reply</strong> - Nonsense, hallucinations, unclear phrasing, or incorrect information</li>
+                  <li><strong>Didn't Use KB</strong> - Should have used knowledge base but didn't reference it</li>
+                </ul>
+                <div className={styles.groupTip}>
+                  <strong>Tip:</strong> Write a clear, short title describing what went wrong.
+                </div>
+              </div>
+
+              <div className={`${styles.helpGroup} ${styles.critical}`}>
+                <h4>⚠️ Group 2: Transition Issues (MOST IMPORTANT)</h4>
+                <p className={styles.groupDesc}>
+                  <strong>Pay careful attention!</strong> Monitor that we're always in the hands of the right crew member.
+                </p>
+                <ul>
+                  <li><strong>Transitioned Too Early</strong> - Moved to next crew before completing current task</li>
+                  <li><strong>Didn't Transition</strong> - Should have moved to another crew but didn't</li>
+                  <li><strong>Wrong Crew Transition</strong> - Transitioned to the wrong crew member</li>
+                </ul>
+                <p className={styles.criticalNote}>
+                  If the wrong crew member replies, everything else doesn't matter. Always verify: Are we with the right crew? Did the transition happen at the right time? Did we go to the correct next crew?
+                </p>
+                <div className={styles.groupTip}>
+                  <strong>Tip:</strong> Note which crew was active (Source Crew) and where it should have gone (Target Crew).
+                </div>
+              </div>
+
+              <div className={styles.helpGroup}>
+                <h4>Group 3: Field Collection Issues</h4>
+                <p className={styles.groupDesc}>Problems with extracting user information.</p>
+                <ul>
+                  <li><strong>Field Not Caught</strong> - Failed to extract a field it should have</li>
+                  <li><strong>Field Falsely Caught</strong> - Incorrectly extracted or wrong value for a field</li>
+                </ul>
+                <div className={styles.groupTip}>
+                  <strong>Tip:</strong> Select the field from autocomplete and note expected vs actual values.
+                </div>
+              </div>
+
+              <button type="button" className={styles.helpCloseBtn} onClick={() => setShowHelp(false)}>
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -37,7 +37,7 @@ function getDomainFromUrl(): string {
 }
 
 export function Message({ message }: MessageProps) {
-  const { debugMode, deleteMessagesFrom, crewMembers, currentCrew, agentName, conversationId } = useChatContext();
+  const { debugMode, deleteMessagesFrom, crewMembers, conversationId } = useChatContext();
   const [showFeedback, setShowFeedback] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showBugModal, setShowBugModal] = useState(false);

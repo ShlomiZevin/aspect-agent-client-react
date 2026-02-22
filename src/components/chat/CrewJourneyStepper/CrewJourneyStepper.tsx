@@ -62,7 +62,6 @@ export function CrewJourneyStepper({ steps, onStepperClick, maxVisibleSteps = 5 
       )}
 
       {visibleSteps.map((step, index) => {
-        const originalIndex = 'originalIndex' in step ? step.originalIndex : index;
         const isFirstVisible = index === 0;
 
         return (
