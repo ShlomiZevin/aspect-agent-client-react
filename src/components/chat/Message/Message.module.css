@@ -67,6 +67,31 @@
   color: var(--primary-color);
 }
 
+/* Bug report button - debug mode only */
+.bugButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: all var(--transition-fast);
+}
+
+.message:hover .bugButton {
+  opacity: 1;
+}
+
+.bugButton:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;

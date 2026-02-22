@@ -106,6 +106,61 @@
   border-color: rgba(16, 185, 129, 0.5);
 }
 
+/* Orphan/Unassigned state - gray, sad, needs attention */
+.card.orphan {
+  background: rgba(100, 116, 139, 0.04);
+  border-color: rgba(100, 116, 139, 0.3);
+  border-left: 3px solid #94a3b8;
+}
+
+.card.orphan:hover {
+  border-color: rgba(100, 116, 139, 0.5);
+}
+
+.card.orphan .title {
+  color: var(--text-secondary);
+}
+
+.card.orphan .description {
+  color: var(--text-muted);
+}
+
+/* Orphan indicator - subtle gray corner */
+.card.orphan::after {
+  content: '?';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  font-weight: bold;
+  color: #94a3b8;
+  background: rgba(100, 116, 139, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Assigned state - colored border based on assignee */
+.card.assigned {
+  border-left: 3px solid var(--assignee-color, var(--border));
+}
+
+.card.assigned::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 16px 16px 0;
+  border-color: transparent var(--assignee-color, transparent) transparent transparent;
+  border-radius: 0 var(--radius-md) 0 0;
+}
+
 .header {
   display: flex;
   justify-content: space-between;

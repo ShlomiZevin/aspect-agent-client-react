@@ -45,9 +45,19 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
   const [filterDomain, setFilterDomain] = useState<string>('current');
   const [filterAssignee, setFilterAssignee] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
+
+  // Delete confirmation modal state
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Detect current domain when modal opens
   const currentDomain = useMemo(() => (isOpen ? getCurrentDomain() : 'general'), [isOpen]);
+
+  // Count unassigned tasks (orphans) - not completed, no assignee
+  const unassignedCount = useMemo(() => {
+    return tasks.filter(t => !t.assignee && !t.isCompleted).length;
+  }, [tasks]);
 
   // Filter tasks by domain, assignee, and completed status
   const filteredTasks = useMemo(() => {
@@ -58,8 +68,12 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
       result = result.filter(t => !t.isCompleted);
     }
 
-    // Filter by assignee
-    if (filterAssignee) {
+    // Filter by unassigned only
+    if (showUnassignedOnly) {
+      result = result.filter(t => !t.assignee);
+    }
+    // Or filter by specific assignee
+    else if (filterAssignee) {
       result = result.filter(t => t.assignee === filterAssignee);
     }
 
@@ -80,7 +94,7 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
     if (filterDomain === 'general') return result.filter(t => t.domain === 'general');
     if (filterDomain === 'current') return result.filter(t => t.domain === currentDomain || t.domain === 'general');
     return result.filter(t => t.domain === filterDomain);
-  }, [tasks, filterDomain, filterAssignee, currentDomain, showCompleted, showAllDomains]);
+  }, [tasks, filterDomain, filterAssignee, currentDomain, showCompleted, showAllDomains, showUnassignedOnly]);
 
   // Ctrl+Shift+A to toggle all domains option
   useEffect(() => {
@@ -144,13 +158,27 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
   };
 
   const handleDeleteTask = async (task: Task) => {
-    if (!confirm(`Delete "${task.title}"?`)) return;
-    await taskService.deleteTask(task.id);
-    setTasks(prev => prev.filter(t => t.id !== task.id));
-    if (editingTask?.id === task.id) {
-      setEditingTask(null);
-      setShowForm(false);
+    setTaskToDelete(task);
+  };
+
+  const confirmDeleteTask = async () => {
+    if (!taskToDelete) return;
+    setIsDeleting(true);
+    try {
+      await taskService.deleteTask(taskToDelete.id);
+      setTasks(prev => prev.filter(t => t.id !== taskToDelete.id));
+      if (editingTask?.id === taskToDelete.id) {
+        setEditingTask(null);
+        setShowForm(false);
+      }
+    } finally {
+      setIsDeleting(false);
+      setTaskToDelete(null);
     }
+  };
+
+  const cancelDeleteTask = () => {
+    setTaskToDelete(null);
   };
 
   const handleTaskClick = (task: Task) => {
@@ -282,8 +310,27 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
             assignees={assignees}
             onAddAssignee={handleAddAssignee}
             selectedAssignee={filterAssignee}
-            onAssigneeClick={setFilterAssignee}
+            onAssigneeClick={(assignee) => {
+              setShowUnassignedOnly(false);
+              setFilterAssignee(assignee);
+            }}
           />
+
+          <button
+            className={`${styles.unassignedBtn} ${showUnassignedOnly ? styles.active : ''}`}
+            onClick={() => {
+              setShowUnassignedOnly(!showUnassignedOnly);
+              if (!showUnassignedOnly) {
+                setFilterAssignee(null); // Clear assignee filter when showing unassigned
+              }
+            }}
+            title="Show unassigned tasks"
+          >
+            Unassigned
+            {unassignedCount > 0 && (
+              <span className={styles.unassignedBadge}>{unassignedCount}</span>
+            )}
+          </button>
 
           <label className={styles.showCompletedLabel}>
             <input
@@ -336,6 +383,44 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
         <div className={styles.footer}>
           <span className={styles.hint}>Ctrl+Shift+Space toggle • Ctrl+Shift+A all domains • Esc close</span>
         </div>
+
+        {/* Delete confirmation modal */}
+        {taskToDelete && (
+          <div className={styles.deleteOverlay} onClick={cancelDeleteTask}>
+            <div className={styles.deleteModal} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.deleteIcon}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+              </div>
+              <h3 className={styles.deleteTitle}>Delete task?</h3>
+              <p className={styles.deleteText}>
+                "{taskToDelete.title}" will be permanently deleted.
+              </p>
+              <div className={styles.deleteActions}>
+                <button
+                  type="button"
+                  className={styles.deleteCancelBtn}
+                  onClick={cancelDeleteTask}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={styles.deleteConfirmBtn}
+                  onClick={confirmDeleteTask}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,16 +1,42 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AspectPage, AspectLandingPage, BankingOnboarderPage, BylinePage, DemoPage, FreedaPage, HomePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage } from './pages';
-import { useTaskBoard } from './hooks';
+import { useTaskBoard, useQuickBug } from './hooks';
 import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
+import { QuickBugModal } from './components/tasks/QuickBugModal/QuickBugModal';
+import { createTask } from './services/taskService';
+import type { CreateTaskData } from './types/task';
 import './styles/global.css';
 
-function App() {
-  const { isOpen, closeModal } = useTaskBoard();
+// Inner component that has access to router context
+function AppContent() {
+  const location = useLocation();
+  const { isOpen: isTaskBoardOpen, closeModal: closeTaskBoard } = useTaskBoard();
+  const { isOpen: isQuickBugOpen, closeModal: closeQuickBug } = useQuickBug();
+
+  // Extract domain from URL path (e.g., /freeda -> freeda, /aspect -> aspect)
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const currentDomain = pathParts[0] || 'general';
+
+  // Get current conversation URL
+  const conversationUrl = window.location.href;
+
+  const handleQuickBugSubmit = async (data: CreateTaskData) => {
+    await createTask(data);
+  };
 
   return (
-    <BrowserRouter>
+    <>
       {/* Global Task Board Modal - Ctrl+Shift+Space to toggle */}
-      <TaskBoardModal isOpen={isOpen} onClose={closeModal} />
+      <TaskBoardModal isOpen={isTaskBoardOpen} onClose={closeTaskBoard} />
+
+      {/* Quick Bug Modal - Ctrl+Shift+Q to open */}
+      <QuickBugModal
+        isOpen={isQuickBugOpen}
+        onClose={closeQuickBug}
+        onSubmit={handleQuickBugSubmit}
+        currentDomain={currentDomain}
+        conversationUrl={conversationUrl}
+      />
 
       <Routes>
         {/* Home page - agent selection */}
@@ -50,6 +76,14 @@ function App() {
         {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   );
 }

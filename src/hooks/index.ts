@@ -8,3 +8,4 @@ export { useDocumentMeta } from './useDocumentMeta';
 export { useCrew, type UseCrewOptions, type UseCrewReturn } from './useCrew';
 export { useDebugShortcut } from './useDebugMode';
 export { useTaskBoard } from './useTaskBoard';
+export { useQuickBug } from './useQuickBug';

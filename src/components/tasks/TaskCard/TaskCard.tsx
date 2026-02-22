@@ -54,7 +54,31 @@ function isOverdue(dateStr: string): boolean {
   return date < today;
 }
 
+// Generate a consistent, visually distinct color from assignee name
+const ASSIGNEE_COLORS = [
+  '#2563eb', // blue (strong)
+  '#dc2626', // red
+  '#16a34a', // green
+  '#9333ea', // purple
+  '#ea580c', // orange
+  '#0891b2', // cyan
+  '#c026d3', // fuchsia
+  '#65a30d', // lime
+];
+
+function getAssigneeColor(assignee: string): string {
+  // Hash using prime multiplier for better distribution on short strings
+  let hash = 0;
+  for (let i = 0; i < assignee.length; i++) {
+    hash += assignee.charCodeAt(i) * (i + 1) * 31;
+  }
+  return ASSIGNEE_COLORS[Math.abs(hash) % ASSIGNEE_COLORS.length];
+}
+
 export function TaskCard({ task, dependencyInfo, onClick, onAtRiskToggle, onMarkComplete }: TaskCardProps) {
+  const isOrphan = !task.assignee;
+  const assigneeColor = task.assignee ? getAssigneeColor(task.assignee) : undefined;
+
   const handleAtRiskClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onAtRiskToggle?.(task.id, !task.atRisk);
@@ -65,8 +89,17 @@ export function TaskCard({ task, dependencyInfo, onClick, onAtRiskToggle, onMark
     onMarkComplete?.(task.id, !task.isCompleted);
   };
 
+  // Inline styles for assigned tasks with dynamic color
+  const cardStyle = assigneeColor ? {
+    '--assignee-color': assigneeColor,
+  } as React.CSSProperties : undefined;
+
   return (
-    <div className={`${styles.card} ${task.atRisk ? styles.atRisk : ''} ${task.isCompleted ? styles.completed : ''}`} onClick={onClick}>
+    <div
+      className={`${styles.card} ${task.atRisk ? styles.atRisk : ''} ${task.isCompleted ? styles.completed : ''} ${isOrphan ? styles.orphan : styles.assigned}`}
+      style={cardStyle}
+      onClick={onClick}
+    >
       {/* At Risk toggle - visible on hover */}
       {onAtRiskToggle && (
         <button
@@ -117,7 +150,7 @@ export function TaskCard({ task, dependencyInfo, onClick, onAtRiskToggle, onMark
       )}
       <div className={styles.footer}>
         {task.assignee && (
-          <span className={styles.assignee}>@{task.assignee}</span>
+          <span className={styles.assignee} style={{ color: assigneeColor }}>@{task.assignee}</span>
         )}
         {task.dueDate && (
           <span className={`${styles.dueDate} ${isOverdue(task.dueDate) ? styles.overdue : ''}`}>

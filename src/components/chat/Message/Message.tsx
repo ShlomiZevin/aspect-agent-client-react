@@ -6,6 +6,9 @@ import { useChatContext } from '../../../context';
 import { ThinkingIndicator } from '../ThinkingIndicator';
 import { DebugPanel } from '../DebugPanel';
 import { FeedbackPanel } from '../FeedbackPanel';
+import { AgentBugModal } from '../AgentBugModal/AgentBugModal';
+import { createTask } from '../../../services/taskService';
+import type { CreateTaskData } from '../../../types/task';
 import styles from './Message.module.css';
 
 interface MessageProps {
@@ -19,16 +22,32 @@ function isRTL(text: string): boolean {
   return rtlChar.test(stripped.charAt(0));
 }
 
+// Known domains for task filtering
+const KNOWN_DOMAINS = ['freeda', 'aspect', 'banking', 'byline'];
+
+// Get domain from URL path (matches TaskBoardModal logic)
+function getDomainFromUrl(): string {
+  const path = window.location.pathname.toLowerCase();
+  for (const domain of KNOWN_DOMAINS) {
+    if (path.startsWith(`/${domain}`)) {
+      return domain;
+    }
+  }
+  return 'general';
+}
+
 export function Message({ message }: MessageProps) {
-  const { debugMode, deleteMessagesFrom } = useChatContext();
+  const { debugMode, deleteMessagesFrom, crewMembers, currentCrew, agentName, conversationId } = useChatContext();
   const [showFeedback, setShowFeedback] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showBugModal, setShowBugModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const isUser = message.role === 'user';
   const isDeveloper = message.role === 'developer';
   const hasThinkingSteps = !isUser && !isDeveloper && message.thinkingSteps && message.thinkingSteps.length > 0;
   const rtl = isRTL(message.content);
   const canFeedback = !isUser && !isDeveloper && message.dbId;
+  const canReportBug = debugMode && !isUser && !isDeveloper;
 
   const handleDeleteClick = () => {
     setShowDeleteConfirm(true);
@@ -131,6 +150,24 @@ export function Message({ message }: MessageProps) {
                 <div className={styles.crewLabel}>{message.crewMember}</div>
               )}
               <div className={styles.headerActions}>
+                {canReportBug && (
+                  <button
+                    className={styles.bugButton}
+                    onClick={() => setShowBugModal(true)}
+                    title="Report agent bug"
+                    type="button"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 2L8 5" />
+                      <path d="M16 2L16 5" />
+                      <path d="M3 10H21" />
+                      <path d="M3 14H21" />
+                      <path d="M5 18L2 21" />
+                      <path d="M19 18L22 21" />
+                      <rect x="4" y="5" width="16" height="16" rx="4" />
+                    </svg>
+                  </button>
+                )}
                 {canFeedback && (
                   <button
                     className={styles.feedbackButton}
@@ -172,6 +209,20 @@ export function Message({ message }: MessageProps) {
         )}
       </div>
       {showDeleteConfirm && <DeleteConfirmModal />}
+      {showBugModal && (
+        <AgentBugModal
+          isOpen={showBugModal}
+          onClose={() => setShowBugModal(false)}
+          onSubmit={async (data: CreateTaskData) => {
+            await createTask(data);
+          }}
+          message={message}
+          currentDomain={getDomainFromUrl()}
+          conversationUrl={window.location.href}
+          crewMembers={crewMembers}
+          conversationId={conversationId}
+        />
+      )}
     </>
   );
 }

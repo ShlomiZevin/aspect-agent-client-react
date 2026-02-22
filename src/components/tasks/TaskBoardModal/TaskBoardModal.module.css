@@ -136,6 +136,47 @@
   border-color: var(--primary-color);
 }
 
+/* Unassigned/Orphan filter button */
+.unassignedBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.unassignedBtn:hover {
+  background: var(--surface);
+  border-color: var(--text-muted);
+}
+
+.unassignedBtn.active {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.unassignedBadge {
+  background: #f59e0b;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  min-width: 18px;
+  text-align: center;
+}
+
+.unassignedBtn.active .unassignedBadge {
+  background: #f59e0b;
+}
+
 .showCompletedLabel {
   display: flex;
   align-items: center;
@@ -221,4 +262,99 @@
 .hint {
   font-size: var(--font-size-xs);
   color: var(--text-muted);
+}
+
+/* Delete Confirmation Modal */
+.deleteOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.deleteModal {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 340px;
+  padding: 24px;
+  text-align: center;
+  animation: scaleIn 0.2s ease;
+}
+
+.deleteIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: #ef4444;
+}
+
+.deleteTitle {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.deleteText {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.deleteActions {
+  display: flex;
+  gap: 12px;
+}
+
+.deleteCancelBtn,
+.deleteConfirmBtn {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.deleteCancelBtn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.deleteCancelBtn:hover {
+  background: var(--background);
+}
+
+.deleteCancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.deleteConfirmBtn {
+  border: none;
+  background: #ef4444;
+  color: white;
+}
+
+.deleteConfirmBtn:hover {
+  background: #dc2626;
+}
+
+.deleteConfirmBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
