@@ -1,4 +1,8 @@
 import { useEffect, useRef } from 'react';
+import { useLanguage } from '../../../context/LanguageContext';
+import { useAgentConfig } from '../../../context';
+import { translations } from '../../../i18n/translations';
+import { getTranslatedCrewName, getTranslatedCrewDescription } from '../../../i18n/crewTranslations';
 import styles from './CrewJourneyModal.module.css';
 import type { CrewJourneyStep } from '../../../types/crew';
 
@@ -8,15 +12,18 @@ interface CrewJourneyModalProps {
   onClose: () => void;
 }
 
-const statusLabels: Record<CrewJourneyStep['status'], string> = {
-  completed: 'Completed',
-  current: 'In Progress',
-  upcoming: 'Upcoming',
-};
-
 export function CrewJourneyModal({ steps, isOpen, onClose }: CrewJourneyModalProps) {
+  const { language } = useLanguage();
+  const config = useAgentConfig();
   const modalRef = useRef<HTMLDivElement>(null);
   const currentStepRef = useRef<HTMLDivElement>(null);
+
+  // Dynamic status labels based on language
+  const statusLabels: Record<CrewJourneyStep['status'], string> = {
+    completed: translations[language]['crew.journey.statusCompleted'],
+    current: translations[language]['crew.journey.statusInProgress'],
+    upcoming: translations[language]['crew.journey.statusUpcoming'],
+  };
 
   // Close on Escape key
   useEffect(() => {
@@ -55,9 +62,9 @@ export function CrewJourneyModal({ steps, isOpen, onClose }: CrewJourneyModalPro
 
   return (
     <div className={styles.backdrop} onClick={handleBackdropClick}>
-      <div className={styles.modal} ref={modalRef} role="dialog" aria-label="Crew Journey">
+      <div className={styles.modal} ref={modalRef} role="dialog" aria-label={translations[language]['crew.journey.modalTitle']}>
         <div className={styles.header}>
-          <h3 className={styles.title}>Crew Journey</h3>
+          <h3 className={styles.title}>{translations[language]['crew.journey.modalTitle']}</h3>
           <button className={styles.closeButton} onClick={onClose} aria-label="Close">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -96,8 +103,12 @@ export function CrewJourneyModal({ steps, isOpen, onClose }: CrewJourneyModalPro
 
               {/* Content */}
               <div className={styles.timelineContent}>
-                <div className={styles.crewName}>{step.crew.displayName}</div>
-                <div className={styles.crewDescription}>{step.crew.description}</div>
+                <div className={styles.crewName}>
+                  {getTranslatedCrewName(config.agentName, step.crew.name, language, step.crew.displayName)}
+                </div>
+                <div className={styles.crewDescription}>
+                  {getTranslatedCrewDescription(config.agentName, step.crew.name, language, step.crew.description)}
+                </div>
                 <span className={`${styles.statusBadge} ${styles[`badge_${step.status}`]}`}>
                   {statusLabels[step.status]}
                 </span>

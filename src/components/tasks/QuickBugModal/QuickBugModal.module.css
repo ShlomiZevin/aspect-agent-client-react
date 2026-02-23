@@ -15,6 +15,8 @@
   max-width: 500px;
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+  text-align: left;
+  direction: ltr;
 }
 
 .header {

@@ -1,6 +1,7 @@
 import { bankingOnboarderConfig } from '../agents/banking-onboarder.config';
 import { useDocumentMeta } from '../hooks';
 import { ThemeProvider } from '../context/ThemeContext';
+import { LanguageProvider } from '../context/LanguageContext';
 import { UserProvider } from '../context/UserContext';
 import { AgentProvider } from '../context/AgentContext';
 import { ChatProvider } from '../context/ChatContext';
@@ -16,15 +17,17 @@ export function BankingOnboarderPage() {
 
   return (
     <ThemeProvider storagePrefix={bankingOnboarderConfig.storagePrefix}>
-      <UserProvider storagePrefix={bankingOnboarderConfig.storagePrefix} baseURL={bankingOnboarderConfig.baseURL}>
-        <AgentProvider config={bankingOnboarderConfig}>
-          <ChatProvider>
-            <AppLayout>
-              <ChatContainer showCrewSelector={true} />
-            </AppLayout>
-          </ChatProvider>
-        </AgentProvider>
-      </UserProvider>
+      <LanguageProvider storagePrefix={bankingOnboarderConfig.storagePrefix}>
+        <UserProvider storagePrefix={bankingOnboarderConfig.storagePrefix} baseURL={bankingOnboarderConfig.baseURL}>
+          <AgentProvider config={bankingOnboarderConfig}>
+            <ChatProvider>
+              <AppLayout>
+                <ChatContainer showCrewSelector={true} />
+              </AppLayout>
+            </ChatProvider>
+          </AgentProvider>
+        </UserProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

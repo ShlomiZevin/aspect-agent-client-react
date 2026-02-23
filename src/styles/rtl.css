@@ -1,0 +1,111 @@
+/* RTL Support Styles */
+
+/* Base RTL overrides */
+[dir="rtl"] {
+  text-align: right;
+}
+
+/* Flexbox direction reversals for RTL */
+[dir="rtl"] .flex-row-reverse {
+  flex-direction: row-reverse;
+}
+
+/* Margin and padding logical properties helpers */
+[dir="rtl"] .ml-auto {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .mr-auto {
+  margin-right: 0;
+  margin-left: auto;
+}
+
+/* Text alignment */
+[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+[dir="rtl"] .text-right {
+  text-align: left;
+}
+
+/* Border radius flipping for RTL */
+[dir="rtl"] .border-radius-flip {
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
+  border-bottom-left-radius: 0;
+}
+
+/* Icons and buttons positioning */
+[dir="rtl"] .icon-flip {
+  transform: scaleX(-1);
+}
+
+/* Chat-specific RTL adjustments */
+[dir="rtl"] .chat-user-message {
+  align-self: flex-end;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+[dir="rtl"] .chat-bot-message {
+  align-self: flex-start;
+  margin-right: auto;
+  margin-left: 0;
+}
+
+/* Sidebar positioning */
+[dir="rtl"] .sidebar-left {
+  left: auto;
+  right: 0;
+}
+
+/* Input groups - flip button positions */
+[dir="rtl"] .input-group {
+  flex-direction: row-reverse;
+}
+
+/* Dropdown menus */
+[dir="rtl"] .dropdown-menu {
+  left: auto;
+  right: 0;
+}
+
+/* Navigation arrows */
+[dir="rtl"] .arrow-right::before {
+  content: '←';
+}
+
+[dir="rtl"] .arrow-left::before {
+  content: '→';
+}
+
+/* Tables */
+[dir="rtl"] table {
+  direction: rtl;
+}
+
+/* Forms */
+[dir="rtl"] input[type="checkbox"],
+[dir="rtl"] input[type="radio"] {
+  margin-left: 8px;
+  margin-right: 0;
+}
+
+/* Tooltips */
+[dir="rtl"] .tooltip {
+  left: auto;
+  right: 0;
+}
+
+/* Hebrew font support */
+[data-lang="he"] {
+  font-family: 'Heebo', 'Arial', sans-serif;
+}
+
+/* Ensure proper rendering of mixed LTR/RTL content */
+[dir="rtl"] .mixed-content {
+  unicode-bidi: plaintext;
+}

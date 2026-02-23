@@ -1,9 +1,12 @@
-import { useAgentConfig, useChatContext } from '../../../context';
+import { useChatContext } from '../../../context';
+import { useLanguage } from '../../../context/LanguageContext';
+import { useLocalizedConfig } from '../../../hooks';
 import styles from './WelcomeSection.module.css';
 
 export function WelcomeSection() {
-  const config = useAgentConfig();
+  const config = useLocalizedConfig();
   const { sendMessage } = useChatContext();
+  const { t } = useLanguage();
 
   const handleQuickQuestion = (question: string) => {
     sendMessage(question);
@@ -25,18 +28,22 @@ export function WelcomeSection() {
       </div>
 
       <div className={styles.questions}>
-        <h3 className={styles.questionsTitle}>Quick questions to get started:</h3>
+        <h3 className={styles.questionsTitle}>{t('welcome.quickQuestions')}</h3>
         <div className={styles.grid}>
-          {config.quickQuestions.map((q, index) => (
-            <button
-              key={index}
-              className={styles.quickBtn}
-              onClick={() => handleQuickQuestion(q.question)}
-            >
-              <span className={styles.quickIcon}>{q.icon}</span>
-              <span className={styles.quickText}>{q.text}</span>
-            </button>
-          ))}
+          {config.quickQuestions.map((q, index) => {
+            const text = q.textKey ? t(q.textKey) : q.text || '';
+            const question = q.questionKey ? t(q.questionKey) : q.question || '';
+            return (
+              <button
+                key={index}
+                className={styles.quickBtn}
+                onClick={() => handleQuickQuestion(question)}
+              >
+                <span className={styles.quickIcon}>{q.icon}</span>
+                <span className={styles.quickText}>{text}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

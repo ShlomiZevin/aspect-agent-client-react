@@ -4,3 +4,4 @@ export * from './kb';
 export * from './admin';
 export * from './promptEditor';
 export * from './task';
+export * from './language';

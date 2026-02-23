@@ -10,6 +10,13 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  order: 999; /* Keep on right side in both LTR and RTL */
+}
+
+/* RTL: Keep panel on the right (same as LTR) */
+[dir="rtl"] .panel {
+  border-left: none;
+  border-right: 1px solid var(--border);
 }
 
 .header {
@@ -172,6 +179,7 @@
   color: var(--text-muted);
   margin: 0 0 var(--spacing-xs) 0;
   line-height: 1.4;
+  text-align: left;
 }
 
 .fieldInput {
@@ -184,6 +192,8 @@
   color: var(--text-primary);
   font-family: inherit;
   transition: all var(--transition-fast);
+  text-align: left;
+  direction: ltr;
 }
 
 .fieldInput:focus {

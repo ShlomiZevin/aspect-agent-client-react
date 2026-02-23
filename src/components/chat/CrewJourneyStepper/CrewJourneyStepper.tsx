@@ -1,4 +1,7 @@
 import { useMemo } from 'react';
+import { useLanguage } from '../../../context/LanguageContext';
+import { useAgentConfig } from '../../../context';
+import { getTranslatedCrewName } from '../../../i18n/crewTranslations';
 import styles from './CrewJourneyStepper.module.css';
 import type { CrewJourneyStep } from '../../../types/crew';
 
@@ -9,6 +12,9 @@ interface CrewJourneyStepperProps {
 }
 
 export function CrewJourneyStepper({ steps, onStepperClick, maxVisibleSteps = 5 }: CrewJourneyStepperProps) {
+  const { language } = useLanguage();
+  const config = useAgentConfig();
+
   if (steps.length === 0) return null;
 
   // Calculate which steps to show, centered on current
@@ -91,7 +97,7 @@ export function CrewJourneyStepper({ steps, onStepperClick, maxVisibleSteps = 5 
 
             {/* Label */}
             <span className={`${styles.label} ${styles[`label_${step.status}`]}`}>
-              {step.crew.displayName}
+              {getTranslatedCrewName(config.agentName, step.crew.name, language, step.crew.displayName)}
             </span>
           </div>
         );

@@ -14,6 +14,7 @@
   color: white;
   align-self: flex-end;
   margin-left: auto;
+  margin-right: 0;
   box-shadow: var(--shadow-md);
   border-bottom-right-radius: var(--radius-sm);
 }
@@ -22,9 +23,28 @@
   background-color: var(--surface);
   color: var(--text-primary);
   align-self: flex-start;
+  margin-left: 0;
+  margin-right: auto;
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
   border-bottom-left-radius: var(--radius-sm);
+}
+
+/* LTR layout (English) - flip message positions */
+[dir="ltr"] .user {
+  align-self: flex-start;
+  margin-left: 0;
+  margin-right: auto;
+  border-bottom-right-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-sm);
+}
+
+[dir="ltr"] .bot {
+  align-self: flex-end;
+  margin-left: auto;
+  margin-right: 0;
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-sm);
 }
 
 .messageHeader {

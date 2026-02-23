@@ -238,7 +238,7 @@ export function FieldsEditorPanel({
   const currentCrewTotal = fieldDefinitions.length;
 
   return (
-    <div className={styles.panel}>
+    <div className={styles.panel} dir="ltr">
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerTitle}>

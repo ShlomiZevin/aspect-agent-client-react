@@ -1,4 +1,5 @@
 import { AgentProvider, ThemeProvider, UserProvider, ChatProvider } from '../context';
+import { LanguageProvider } from '../context/LanguageContext';
 import { AppLayout } from '../components/layout';
 import { ChatContainer } from '../components/chat';
 import { PhoneLink } from '../components/chat/PhoneLink';
@@ -20,15 +21,17 @@ export function FreedaPage() {
 
   return (
     <ThemeProvider storagePrefix={freedaConfig.storagePrefix}>
-      <UserProvider storagePrefix={freedaConfig.storagePrefix} baseURL={freedaConfig.baseURL}>
-        <AgentProvider config={freedaConfig}>
-          <ChatProvider>
-            <AppLayout headerExtra={!isEmbed ? <PhoneLink /> : undefined}>
-              <ChatContainer showCrewSelector={!isEmbed} />
-            </AppLayout>
-          </ChatProvider>
-        </AgentProvider>
-      </UserProvider>
+      <LanguageProvider storagePrefix={freedaConfig.storagePrefix}>
+        <UserProvider storagePrefix={freedaConfig.storagePrefix} baseURL={freedaConfig.baseURL}>
+          <AgentProvider config={freedaConfig}>
+            <ChatProvider>
+              <AppLayout headerExtra={!isEmbed ? <PhoneLink /> : undefined}>
+                <ChatContainer showCrewSelector={!isEmbed} />
+              </AppLayout>
+            </ChatProvider>
+          </AgentProvider>
+        </UserProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

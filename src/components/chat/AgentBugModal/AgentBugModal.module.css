@@ -18,6 +18,8 @@
   flex-direction: column;
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+  text-align: left;
+  direction: ltr;
 }
 
 .header {

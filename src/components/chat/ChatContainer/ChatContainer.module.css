@@ -52,7 +52,7 @@
 .crewHeader {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: flex-start; /* Left in LTR, Right in RTL (flex-start in RTL = physical right) */
   gap: var(--spacing-md);
   padding: var(--spacing-sm) var(--spacing-lg);
   border-bottom: 1px solid var(--border);
@@ -60,7 +60,7 @@
 }
 
 .crewHeaderRight {
-  justify-content: flex-end;
+  /* Removed justify-content override - flex-start naturally handles both LTR and RTL correctly */
 }
 
 .messages {

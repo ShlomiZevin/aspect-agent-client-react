@@ -10,6 +10,13 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  order: 999; /* Keep on right side in both LTR and RTL */
+}
+
+/* RTL: Keep panel on the right (same as LTR) */
+[dir="rtl"] .panel {
+  border-left: none;
+  border-right: 1px solid var(--border);
 }
 
 .header {
@@ -232,6 +239,8 @@
   word-break: break-word;
   max-height: 300px;
   overflow-y: auto;
+  text-align: left;
+  direction: ltr;
 }
 
 /* Edit Mode */
@@ -253,6 +262,8 @@
   resize: vertical;
   min-height: 150px;
   transition: all var(--transition-fast);
+  text-align: left;
+  direction: ltr;
 }
 
 .editTextarea:focus {

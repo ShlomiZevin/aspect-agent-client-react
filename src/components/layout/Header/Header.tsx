@@ -1,6 +1,8 @@
 import { type ReactNode } from 'react';
-import { useAgentConfig, useChatContext } from '../../../context';
-import { ThemeToggle, StatusIndicator, Button } from '../../common';
+import { useChatContext } from '../../../context';
+import { useLanguage } from '../../../context/LanguageContext';
+import { useLocalizedConfig } from '../../../hooks';
+import { ThemeToggle, LanguageToggle, StatusIndicator, Button } from '../../common';
 import styles from './Header.module.css';
 
 interface HeaderProps {
@@ -16,7 +18,8 @@ export function Header({
   showNewChatButton = false,
   extraContent,
 }: HeaderProps) {
-  const config = useAgentConfig();
+  const config = useLocalizedConfig();
+  const { t } = useLanguage();
   const { conversations, conversationId, canShowFieldsEditor, isFieldsEditorOpen, setFieldsEditorOpen, isContextEditorOpen, setContextEditorOpen, debugMode } = useChatContext();
 
   // Check if current conversation is a WhatsApp conversation
@@ -59,7 +62,7 @@ export function Header({
           <button
             className={`${styles.fieldsButton} ${isFieldsEditorOpen ? styles.active : ''}`}
             onClick={() => setFieldsEditorOpen(!isFieldsEditorOpen)}
-            title={isFieldsEditorOpen ? 'Close fields editor' : 'View collected fields'}
+            title={isFieldsEditorOpen ? t('header.fieldsEditor') : t('header.fieldsEditor')}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -68,7 +71,7 @@ export function Header({
               <line x1="16" y1="17" x2="8" y2="17" />
               <polyline points="10 9 9 9 8 9" />
             </svg>
-            <span className={styles.fieldsButtonText}>Fields</span>
+            <span className={styles.fieldsButtonText}>{t('header.fieldsEditor')}</span>
             {debugMode && <span className={styles.debugBadge}>DEBUG</span>}
           </button>
         )}
@@ -77,14 +80,14 @@ export function Header({
           <button
             className={`${styles.fieldsButton} ${isContextEditorOpen ? styles.active : ''}`}
             onClick={() => setContextEditorOpen(!isContextEditorOpen)}
-            title={isContextEditorOpen ? 'Close context viewer' : 'View context data'}
+            title={isContextEditorOpen ? t('header.contextViewer') : t('header.contextViewer')}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="10" />
               <path d="M12 16v-4" />
               <path d="M12 8h.01" />
             </svg>
-            <span className={styles.fieldsButtonText}>Context</span>
+            <span className={styles.fieldsButtonText}>{t('header.contextViewer')}</span>
             <span className={styles.debugBadge}>DEBUG</span>
           </button>
         )}
@@ -101,12 +104,13 @@ export function Header({
               </svg>
             }
           >
-            New Chat
+            {t('header.newChat')}
           </Button>
         )}
 
+        <LanguageToggle />
         <ThemeToggle />
-        <StatusIndicator status="online" label="Online" />
+        <StatusIndicator status="online" label={t('header.online')} />
       </div>
     </header>
   );

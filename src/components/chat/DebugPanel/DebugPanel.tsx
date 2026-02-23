@@ -44,7 +44,7 @@ export function DebugPanel({ data }: DebugPanelProps) {
   ];
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} dir="ltr">
       <button className={styles.header} onClick={() => setIsExpanded(!isExpanded)}>
         <span className={styles.badge}>DEBUG</span>
         <span className={styles.meta}>

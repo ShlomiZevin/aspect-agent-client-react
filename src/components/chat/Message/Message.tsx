@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Message as MessageType } from '../../../types';
 import { useChatContext } from '../../../context';
+import { useLanguage } from '../../../context/LanguageContext';
 import { ThinkingIndicator } from '../ThinkingIndicator';
 import { DebugPanel } from '../DebugPanel';
 import { FeedbackPanel } from '../FeedbackPanel';
@@ -38,6 +39,7 @@ function getDomainFromUrl(): string {
 
 export function Message({ message }: MessageProps) {
   const { debugMode, deleteMessagesFrom, crewMembers, conversationId } = useChatContext();
+  const { t } = useLanguage();
   const [showFeedback, setShowFeedback] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showBugModal, setShowBugModal] = useState(false);
@@ -73,7 +75,7 @@ export function Message({ message }: MessageProps) {
     <button
       className={styles.deleteButton}
       onClick={handleDeleteClick}
-      title="Delete from here"
+      title={t('message.delete')}
       type="button"
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -94,9 +96,9 @@ export function Message({ message }: MessageProps) {
             <line x1="14" y1="11" x2="14" y2="17" />
           </svg>
         </div>
-        <h3 className={styles.deleteModalTitle}>Delete messages?</h3>
+        <h3 className={styles.deleteModalTitle}>{t('message.delete')}</h3>
         <p className={styles.deleteModalText}>
-          This will remove this message and all messages after it.
+          {t('message.confirmDelete')}
         </p>
         <div className={styles.deleteModalActions}>
           <button
@@ -105,7 +107,7 @@ export function Message({ message }: MessageProps) {
             onClick={handleCancelDelete}
             disabled={isDeleting}
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="button"
@@ -113,7 +115,7 @@ export function Message({ message }: MessageProps) {
             onClick={handleConfirmDelete}
             disabled={isDeleting}
           >
-            {isDeleting ? 'Deleting...' : 'Delete'}
+            {isDeleting ? `${t('common.loading')}...` : t('common.delete')}
           </button>
         </div>
       </div>

@@ -1,3 +1,6 @@
+import { useLanguage } from '../../../context/LanguageContext';
+import { useAgentConfig } from '../../../context';
+import { getTranslatedCrewName } from '../../../i18n/crewTranslations';
 import styles from './CrewTabs.module.css';
 import type { CrewMember } from '../../../types/crew';
 
@@ -9,6 +12,9 @@ interface CrewTabsProps {
 }
 
 export function CrewTabs({ crewMembers, selectedCrew, onSelect, disabled = false }: CrewTabsProps) {
+  const { language } = useLanguage();
+  const config = useAgentConfig();
+
   if (crewMembers.length === 0) return null;
 
   // Find default crew if nothing selected
@@ -28,7 +34,9 @@ export function CrewTabs({ crewMembers, selectedCrew, onSelect, disabled = false
           <div className={styles.circle}>
             {activeCrew === crew.name && <div className={styles.activeDot} />}
           </div>
-          <span className={styles.label}>{crew.displayName}</span>
+          <span className={styles.label}>
+            {getTranslatedCrewName(config.agentName, crew.name, language, crew.displayName)}
+          </span>
         </button>
       ))}
     </div>

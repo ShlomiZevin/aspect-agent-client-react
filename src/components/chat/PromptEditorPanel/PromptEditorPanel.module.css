@@ -10,6 +10,13 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  order: 999; /* Keep on right side in both LTR and RTL */
+}
+
+/* RTL: Keep panel on the right (same as LTR) */
+[dir="rtl"] .panel {
+  border-left: none;
+  border-right: 1px solid var(--border);
 }
 
 .header {
@@ -293,6 +300,8 @@
   color: var(--text-primary);
   resize: vertical;
   transition: all var(--transition-fast);
+  text-align: left;
+  direction: ltr;
 }
 
 .promptTextarea:focus {

@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent } from 'react';
-import { useAgentConfig, useChatContext } from '../../../context';
+import { useChatContext } from '../../../context';
+import { useLanguage } from '../../../context/LanguageContext';
+import { useLocalizedConfig } from '../../../hooks';
 import styles from './ChatInput.module.css';
 
 export function ChatInput() {
-  const config = useAgentConfig();
+  const config = useLocalizedConfig();
   const { sendMessage, isLoading } = useChatContext();
+  const { t } = useLanguage();
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -48,7 +51,7 @@ export function ChatInput() {
           type="submit"
           className={styles.sendBtn}
           disabled={!input.trim() || isLoading}
-          aria-label="Send message"
+          aria-label={t('chat.send')}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="22" y1="2" x2="11" y2="13" />

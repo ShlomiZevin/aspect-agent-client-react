@@ -5,6 +5,9 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { useLanguage } from '../../../context/LanguageContext';
+import { useAgentConfig } from '../../../context';
+import { getTranslatedCrewName, getTranslatedCrewDescription } from '../../../i18n/crewTranslations';
 import styles from './CrewMemberSelector.module.css';
 import type { CrewMember } from '../../../types/crew';
 
@@ -25,6 +28,8 @@ export function CrewMemberSelector({
 }: CrewMemberSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { language } = useLanguage();
+  const config = useAgentConfig();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -42,8 +47,11 @@ export function CrewMemberSelector({
   if (crewMembers.length === 0) return null;
 
   const displayName = selectedOverride
-    ? crewMembers.find(c => c.name === selectedOverride)?.displayName || selectedOverride
-    : 'Auto';
+    ? (() => {
+        const crew = crewMembers.find(c => c.name === selectedOverride);
+        return crew ? getTranslatedCrewName(config.agentName, crew.name, language, crew.displayName) : selectedOverride;
+      })()
+    : getTranslatedCrewName(config.agentName, 'auto', language, 'Auto');
 
   return (
     <div className={styles.container} ref={containerRef}>
@@ -81,9 +89,9 @@ export function CrewMemberSelector({
             role="option"
             aria-selected={!selectedOverride}
           >
-            <span className={styles.optionName}>Auto</span>
+            <span className={styles.optionName}>{getTranslatedCrewName(config.agentName, 'auto', language, 'Auto')}</span>
             <span className={styles.optionDescription}>
-              Automatic routing (currently: {currentCrew?.displayName || 'none'})
+              {getTranslatedCrewDescription(config.agentName, 'auto', language, 'Automatic routing')} (currently: {currentCrew ? getTranslatedCrewName(config.agentName, currentCrew.name, language, currentCrew.displayName) : 'none'})
             </span>
           </button>
 
@@ -102,11 +110,13 @@ export function CrewMemberSelector({
               aria-selected={selectedOverride === crew.name}
             >
               <span className={styles.optionName}>
-                {crew.displayName}
+                {getTranslatedCrewName(config.agentName, crew.name, language, crew.displayName)}
                 {crew.isDefault && <span className={styles.badge}>Default</span>}
               </span>
               {crew.description && (
-                <span className={styles.optionDescription}>{crew.description}</span>
+                <span className={styles.optionDescription}>
+                  {getTranslatedCrewDescription(config.agentName, crew.name, language, crew.description)}
+                </span>
               )}
             </button>
           ))}

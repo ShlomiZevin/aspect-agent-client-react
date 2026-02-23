@@ -4,30 +4,30 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'https://aspect-agent-server-10
 
 export const bankingOnboarderConfig: AgentConfig = {
   agentName: 'Banking Onboarder',
-  displayName: 'Banking Onboarder',
+  displayName: 'מערכת פתיחת חשבון',
   storagePrefix: 'banking_onboarder_',
   baseURL: BASE_URL,
 
-  pageTitle: 'Banking Onboarder - New Customer Onboarding',
+  pageTitle: 'מערכת פתיחת חשבון - תהליך קליטת לקוחות חדשים',
   favicon: '/img/banking-logo.svg',
-  metaDescription: 'Complete your bank account opening process with our AI-powered onboarding assistant.',
+  metaDescription: 'השלימו את תהליך פתיחת חשבון הבנק שלכם עם העוזר החכם שלנו המונע בינה מלאכותית.',
 
   logo: {
     src: '/img/banking-logo.svg',
-    alt: 'Banking Onboarder Logo',
+    alt: 'לוגו מערכת פתיחת חשבון',
   },
-  headerTitle: 'Banking Onboarder',
-  headerSubtitle: 'Your Personal Banking Assistant',
+  headerTitle: 'מערכת פתיחת חשבון',
+  headerSubtitle: 'העוזר הבנקאי האישי שלך',
   welcomeIcon: '/img/banking-welcome.svg',
-  welcomeTitle: 'Welcome to Your Banking Journey',
-  welcomeMessage: 'I\'m here to guide you through opening your new bank account. The process is simple, secure, and tailored to your needs.',
-  inputPlaceholder: 'Type your response...',
+  welcomeTitle: 'ברוכים הבאים למסע הבנקאי שלך',
+  welcomeMessage: 'אני כאן כדי להדריך אותך בפתיחת חשבון הבנק החדש שלך. התהליך פשוט, מאובטח ומותאם לצרכים שלך.',
+  inputPlaceholder: 'הקלד את תשובתך...',
 
   quickQuestions: [
-    { icon: '🏦', text: 'Start Onboarding', question: 'I\'m ready to open a new bank account.' },
-    { icon: '📋', text: 'What Do I Need?', question: 'What information do I need to provide?' },
-    { icon: '⏱️', text: 'How Long?', question: 'How long does the account opening process take?' },
-    { icon: '❓', text: 'Account Types', question: 'What types of accounts can I open?' },
+    { icon: '🏦', textKey: 'quick.banking.startOnboarding.text', questionKey: 'quick.banking.startOnboarding.question' },
+    { icon: '📋', textKey: 'quick.banking.whatDoINeed.text', questionKey: 'quick.banking.whatDoINeed.question' },
+    { icon: '⏱️', textKey: 'quick.banking.howLong.text', questionKey: 'quick.banking.howLong.question' },
+    { icon: '❓', textKey: 'quick.banking.accountTypes.text', questionKey: 'quick.banking.accountTypes.question' },
   ],
 
   thinkingSteps: [

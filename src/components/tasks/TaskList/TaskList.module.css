@@ -1,5 +1,7 @@
 .tableWrapper {
   overflow-x: auto;
+  text-align: left;
+  direction: ltr;
 }
 
 .table {

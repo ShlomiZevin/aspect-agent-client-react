@@ -28,6 +28,19 @@
   transform: translateX(0);
 }
 
+/* RTL: Sidebar opens from the right */
+[dir="rtl"] .sidebar {
+  left: auto;
+  right: 0;
+  border-right: none;
+  border-left: 1px solid var(--border);
+  transform: translateX(100%);
+}
+
+[dir="rtl"] .sidebar.open {
+  transform: translateX(0);
+}
+
 .header {
   display: flex;
   align-items: center;

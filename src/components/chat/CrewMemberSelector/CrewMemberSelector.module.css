@@ -55,6 +55,12 @@
   animation: fadeIn 0.15s ease;
 }
 
+/* RTL: Dropdown aligns to the left */
+[dir="rtl"] .dropdown {
+  right: auto;
+  left: 0;
+}
+
 .option {
   display: flex;
   flex-direction: column;
@@ -68,6 +74,12 @@
   border: none;
   cursor: pointer;
   transition: background-color var(--transition-fast);
+}
+
+/* RTL: Options align to the right */
+[dir="rtl"] .option {
+  align-items: flex-end;
+  text-align: right;
 }
 
 .option:hover {

@@ -6,6 +6,7 @@
 @import './themes/byline-theme.css';
 @import './themes/freeda-theme.css';
 @import './animations.css';
+@import './rtl.css';
 
 /* Reset & Base Styles */
 *,

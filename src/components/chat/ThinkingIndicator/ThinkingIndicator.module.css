@@ -7,8 +7,17 @@
   overflow: visible;
   animation: slideIn 0.3s ease;
   align-self: flex-start;
+  margin-left: 0;
+  margin-right: auto;
   max-width: 300px;
   flex-shrink: 0;
+}
+
+/* In RTL (Hebrew), thinking indicator should be on the right like bot messages in RTL */
+[dir="rtl"] .container {
+  align-self: flex-end;
+  margin-left: auto;
+  margin-right: 0;
 }
 
 .completed {
@@ -24,6 +33,11 @@
   text-align: left;
   color: var(--text-secondary);
   transition: background-color var(--transition-fast);
+}
+
+/* RTL support */
+[dir="rtl"] .header {
+  text-align: right;
 }
 
 .header:hover {

@@ -1,4 +1,5 @@
 import { AgentProvider, ThemeProvider, UserProvider, ChatProvider } from '../context';
+import { LanguageProvider } from '../context/LanguageContext';
 import { AppLayout } from '../components/layout';
 import { ChatContainer } from '../components/chat';
 import { aspectConfig } from '../agents';
@@ -20,15 +21,17 @@ export function AspectPage() {
 
   return (
     <ThemeProvider storagePrefix={aspectConfig.storagePrefix}>
-      <UserProvider storagePrefix={aspectConfig.storagePrefix} baseURL={aspectConfig.baseURL}>
-        <AgentProvider config={aspectConfig}>
-          <ChatProvider>
-            <AppLayout headerExtra={!isEmbed ? <LogoUpload /> : undefined}>
-              <ChatContainer crewMode="tabs" crewPosition="right" />
-            </AppLayout>
-          </ChatProvider>
-        </AgentProvider>
-      </UserProvider>
+      <LanguageProvider storagePrefix={aspectConfig.storagePrefix}>
+        <UserProvider storagePrefix={aspectConfig.storagePrefix} baseURL={aspectConfig.baseURL}>
+          <AgentProvider config={aspectConfig}>
+            <ChatProvider>
+              <AppLayout headerExtra={!isEmbed ? <LogoUpload /> : undefined}>
+                <ChatContainer crewMode="tabs" crewPosition="right" />
+              </AppLayout>
+            </ChatProvider>
+          </AgentProvider>
+        </UserProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

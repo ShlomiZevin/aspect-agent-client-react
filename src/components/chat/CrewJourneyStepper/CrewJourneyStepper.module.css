@@ -30,6 +30,11 @@
   z-index: 2;
 }
 
+/* RTL: Flip arrows horizontally */
+[dir="rtl"] .hiddenCount svg {
+  transform: scaleX(-1);
+}
+
 .stepper:hover {
   border-color: var(--primary-color);
   background-color: var(--surface-light);
@@ -53,6 +58,12 @@
   height: 2px;
   background-color: var(--border);
   z-index: 0;
+}
+
+/* RTL: Flip connector position */
+[dir="rtl"] .connector {
+  right: auto;
+  left: 50%;
 }
 
 .connectorActive {

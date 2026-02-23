@@ -1,7 +1,9 @@
 export interface QuickQuestion {
   icon: string;
-  text: string;
-  question: string;
+  text?: string;
+  question?: string;
+  textKey?: string;
+  questionKey?: string;
 }
 
 export interface AgentConfig {

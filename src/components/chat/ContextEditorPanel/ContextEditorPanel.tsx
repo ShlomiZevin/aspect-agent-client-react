@@ -275,7 +275,7 @@ export function ContextEditorPanel({
   const hasAnyContext = userNamespaces.length > 0 || convNamespaces.length > 0;
 
   return (
-    <div className={styles.panel}>
+    <div className={styles.panel} dir="ltr">
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerTitle}>

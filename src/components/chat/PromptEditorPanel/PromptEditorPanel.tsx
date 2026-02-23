@@ -493,7 +493,7 @@ export function PromptEditorPanel({
   }, [status]);
 
   return (
-    <div className={styles.panel}>
+    <div className={styles.panel} dir="ltr">
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerTitle}>

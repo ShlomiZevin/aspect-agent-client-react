@@ -240,7 +240,7 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
 
   return (
     <div className={styles.overlay} onClick={handleBackdropClick}>
-      <div className={styles.modal}>
+      <div className={styles.modal} dir="ltr">
         {/* Header */}
         <div className={styles.header}>
           <h2 className={styles.title}>Task Board</h2>
