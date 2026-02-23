@@ -64,6 +64,11 @@
   cursor: not-allowed;
 }
 
+/* RTL: Flip send arrow to point left (forward in RTL context) */
+[dir="rtl"] .sendBtn svg {
+  transform: scaleX(-1);
+}
+
 @media (max-width: 768px) {
   .form {
     padding: var(--spacing-sm);
