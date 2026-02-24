@@ -30,6 +30,11 @@ function stripHtml(html: string): string {
   return div.textContent || div.innerText || '';
 }
 
+// Check if text contains Hebrew characters
+function containsHebrew(text: string): boolean {
+  return /[\u0590-\u05FF]/.test(text);
+}
+
 // Format date for display
 function formatDueDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -54,25 +59,51 @@ function isOverdue(dateStr: string): boolean {
   return date < today;
 }
 
-// ONLY PRIMARY COLORS - MAXIMUM POSSIBLE DISTINCTION
+// Manual color assignments for known assignees - maximally distinct
+const KNOWN_ASSIGNEE_COLORS: Record<string, string> = {
+  'shlomi': '#FB8C00',  // Orange
+  'kosta': '#1E88E5',   // Blue
+  'noa': '#E53935',     // Red
+};
+
+// Extended color palette for other assignees - 16 highly distinct colors
 const ASSIGNEE_COLORS = [
-  '#FF0000', // PURE RED
-  '#00FF00', // PURE GREEN
-  '#0000FF', // PURE BLUE
-  '#FFFF00', // PURE YELLOW
-  '#FF00FF', // PURE MAGENTA
-  '#00FFFF', // PURE CYAN
-  '#FF8000', // PURE ORANGE
-  '#000000', // BLACK
+  '#43A047', // Green
+  '#8E24AA', // Purple
+  '#00ACC1', // Cyan
+  '#D81B60', // Pink
+  '#6D4C41', // Brown
+  '#3949AB', // Indigo
+  '#00897B', // Teal
+  '#C0CA33', // Lime
+  '#F4511E', // Deep Orange
+  '#5E35B1', // Deep Purple
+  '#039BE5', // Light Blue
+  '#7CB342', // Light Green
+  '#546E7A', // Blue Grey
+  '#FFB300', // Amber
+  '#EC407A', // Pink 400
+  '#26A69A', // Teal 400
 ];
 
-function getAssigneeColor(assignee: string): string {
-  // Simple character sum with position weighting to avoid collisions
-  let hash = 0;
-  for (let i = 0; i < assignee.length; i++) {
-    // Weight by position using prime number to maximize distribution
-    hash = (hash + assignee.charCodeAt(i) * (i * 7 + 13)) % 9999991;
+// FNV-1a hash - better distribution than simple sum
+function fnv1aHash(str: string): number {
+  let hash = 2166136261; // FNV offset basis
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = (hash * 16777619) >>> 0; // FNV prime, unsigned
   }
+  return hash;
+}
+
+function getAssigneeColor(assignee: string): string {
+  const name = assignee.toLowerCase();
+  // Use manual assignment for known assignees
+  if (KNOWN_ASSIGNEE_COLORS[name]) {
+    return KNOWN_ASSIGNEE_COLORS[name];
+  }
+  // Fall back to hash for unknown assignees
+  const hash = fnv1aHash(name);
   return ASSIGNEE_COLORS[hash % ASSIGNEE_COLORS.length];
 }
 
@@ -145,7 +176,7 @@ export function TaskCard({ task, dependencyInfo, onClick, onAtRiskToggle, onMark
           {task.priority.toUpperCase()}
         </span>
       </div>
-      <h4 className={styles.title}>{task.title}</h4>
+      <h4 className={styles.title} style={containsHebrew(task.title) ? { direction: 'rtl', textAlign: 'right' } : undefined}>{task.title}</h4>
       {task.description && (
         <p className={styles.description}>{stripHtml(task.description)}</p>
       )}

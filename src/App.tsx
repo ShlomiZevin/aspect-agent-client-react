@@ -10,7 +10,7 @@ import './styles/global.css';
 // Inner component that has access to router context
 function AppContent() {
   const location = useLocation();
-  const { isOpen: isTaskBoardOpen, closeModal: closeTaskBoard } = useTaskBoard();
+  const { isOpen: isTaskBoardOpen, closeModal: closeTaskBoard, openInDraftsMode, clearDraftsMode } = useTaskBoard();
   const { isOpen: isQuickBugOpen, closeModal: closeQuickBug } = useQuickBug();
 
   // Extract domain from URL path (e.g., /freeda -> freeda, /aspect -> aspect)
@@ -27,7 +27,7 @@ function AppContent() {
   return (
     <>
       {/* Global Task Board Modal - Ctrl+Shift+Space to toggle */}
-      <TaskBoardModal isOpen={isTaskBoardOpen} onClose={closeTaskBoard} />
+      <TaskBoardModal isOpen={isTaskBoardOpen} onClose={closeTaskBoard} openInDraftsMode={openInDraftsMode} onDraftsModeAcknowledged={clearDraftsMode} />
 
       {/* Quick Bug Modal - Ctrl+Shift+Q to open */}
       <QuickBugModal

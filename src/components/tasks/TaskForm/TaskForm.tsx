@@ -56,8 +56,14 @@ const TYPE_OPTIONS: { value: TaskType; label: string }[] = [
   { value: 'idea', label: 'Idea' },
 ];
 
+// Check if text contains Hebrew characters
+function containsHebrew(text: string): boolean {
+  return /[\u0590-\u05FF]/.test(text);
+}
+
 export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, onSubmit, onCancel, onDelete }: TaskFormProps) {
   const [title, setTitle] = useState('');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('todo');
   const [priority, setPriority] = useState<TaskPriority>('medium');
@@ -75,6 +81,15 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDraft, setIsDraft] = useState(getDraftDefault());
   const dependsOnRef = useRef<HTMLDivElement>(null);
+  const titleInputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize title textarea
+  useEffect(() => {
+    if (titleInputRef.current) {
+      titleInputRef.current.style.height = 'auto';
+      titleInputRef.current.style.height = titleInputRef.current.scrollHeight + 'px';
+    }
+  }, [title, isEditingTitle]);
 
   // Filter out current task from dependency options (can't depend on self)
   const dependencyOptions = useMemo(() =>
@@ -251,17 +266,44 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
         </div>
 
         <div className={styles.formBody}>
-          <div className={styles.field}>
-            <label htmlFor="title">Title *</label>
-            <input
-              id="title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Task title..."
-              autoFocus
-              required
-            />
+          <div className={styles.titleField}>
+            <label>Title *</label>
+            {/* For new tasks or when editing: show textarea */}
+            {(!task || isEditingTitle) ? (
+              <textarea
+                ref={titleInputRef}
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onBlur={() => {
+                  if (task && title.trim()) {
+                    setIsEditingTitle(false);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape' && task) {
+                    setIsEditingTitle(false);
+                  }
+                }}
+                placeholder="Task title..."
+                autoFocus
+                className={styles.titleTextarea}
+                rows={1}
+                style={containsHebrew(title) ? { direction: 'rtl', textAlign: 'right' } : undefined}
+              />
+            ) : (
+              /* For existing tasks: show as clickable text */
+              <div
+                className={styles.titleDisplay}
+                onClick={() => {
+                  setIsEditingTitle(true);
+                  setTimeout(() => titleInputRef.current?.focus(), 0);
+                }}
+                style={containsHebrew(title) ? { direction: 'rtl', textAlign: 'right' } : undefined}
+              >
+                {title || <span className={styles.titlePlaceholder}>Click to add title...</span>}
+              </div>
+            )}
           </div>
 
           <div className={styles.descriptionField}>

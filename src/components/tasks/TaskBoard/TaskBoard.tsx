@@ -118,7 +118,7 @@ export function TaskBoard({ tasks, allTasks, onTaskClick, onStatusChange, onAtRi
   };
 
   return (
-    <>
+    <div className={styles.boardWrapper}>
       <div className={styles.board}>
         {COLUMNS.map(column => (
           <div
@@ -181,6 +181,6 @@ export function TaskBoard({ tasks, allTasks, onTaskClick, onStatusChange, onAtRi
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

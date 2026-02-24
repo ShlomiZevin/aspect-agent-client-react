@@ -16,6 +16,26 @@
   padding: var(--spacing-md);
   text-align: left;
   border-bottom: 1px solid var(--border);
+  vertical-align: middle; /* Fix alignment */
+}
+
+/* Checkbox column */
+.checkboxCol {
+  width: 40px;
+  padding: var(--spacing-sm) !important;
+}
+
+.checkboxCell {
+  width: 40px;
+  padding: var(--spacing-sm) !important;
+  text-align: center;
+}
+
+.draftCheckbox {
+  cursor: pointer;
+  accent-color: #a855f7;
+  width: 16px;
+  height: 16px;
 }
 
 .table th {
@@ -24,6 +44,9 @@
   font-size: var(--font-size-xs);
   text-transform: uppercase;
   background: var(--surface-light);
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .table tbody tr {
@@ -45,9 +68,7 @@
 }
 
 .titleCell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  /* Remove flex to fix table alignment */
 }
 
 .titleWrapper {
@@ -67,12 +88,16 @@
 }
 
 .description {
+  display: block;
   font-size: var(--font-size-xs);
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 300px;
+  margin-top: 2px;
+  direction: ltr !important;
+  text-align: left;
 }
 
 .domain {

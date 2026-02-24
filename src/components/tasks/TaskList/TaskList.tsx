@@ -5,6 +5,10 @@ interface TaskListProps {
   tasks: Task[];
   onTaskClick: (task: Task) => void;
   onDeleteTask: (task: Task) => void;
+  // Draft selection props
+  showDraftCheckboxes?: boolean;
+  selectedDrafts?: Set<number>;
+  onToggleDraftSelection?: (taskId: number) => void;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -66,7 +70,12 @@ function stripHtml(html: string): string {
   return div.textContent || div.innerText || '';
 }
 
-export function TaskList({ tasks, onTaskClick, onDeleteTask }: TaskListProps) {
+// Check if text contains Hebrew characters
+function containsHebrew(text: string): boolean {
+  return /[\u0590-\u05FF]/.test(text);
+}
+
+export function TaskList({ tasks, onTaskClick, onDeleteTask, showDraftCheckboxes, selectedDrafts, onToggleDraftSelection }: TaskListProps) {
   if (tasks.length === 0) {
     return (
       <div className={styles.empty}>
@@ -80,6 +89,7 @@ export function TaskList({ tasks, onTaskClick, onDeleteTask }: TaskListProps) {
       <table className={styles.table}>
         <thead>
           <tr>
+            {showDraftCheckboxes && <th className={styles.checkboxCol}></th>}
             <th>Title</th>
             <th>Domain</th>
             <th>Type</th>
@@ -93,10 +103,24 @@ export function TaskList({ tasks, onTaskClick, onDeleteTask }: TaskListProps) {
         <tbody>
           {tasks.map(task => (
             <tr key={task.id} className={task.atRisk ? styles.atRiskRow : ''} onClick={() => onTaskClick(task)}>
+              {showDraftCheckboxes && (
+                <td className={styles.checkboxCell}>
+                  <input
+                    type="checkbox"
+                    checked={selectedDrafts?.has(task.id) || false}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      onToggleDraftSelection?.(task.id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={styles.draftCheckbox}
+                  />
+                </td>
+              )}
               <td className={styles.titleCell}>
                 <span className={styles.titleWrapper}>
                   {task.atRisk && <span className={styles.atRiskIcon}>⚠</span>}
-                  <span className={styles.title}>{task.title}</span>
+                  <span className={styles.title} style={containsHebrew(task.title) ? { direction: 'rtl', textAlign: 'right' } : undefined}>{task.title}</span>
                 </span>
                 {task.description && (
                   <span className={styles.description}>{stripHtml(task.description)}</span>

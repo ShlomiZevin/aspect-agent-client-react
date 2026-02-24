@@ -5,12 +5,14 @@ import { TaskBoard } from '../TaskBoard/TaskBoard';
 import { TaskList } from '../TaskList/TaskList';
 import { TaskForm } from '../TaskForm/TaskForm';
 import { AssigneeManager } from '../AssigneeManager/AssigneeManager';
-import { getUserId } from '../../../utils/userIdentifier';
+import { getUserId, getDraftDefault, setDraftDefault } from '../../../utils/userIdentifier';
 import styles from './TaskBoardModal.module.css';
 
 interface TaskBoardModalProps {
   isOpen: boolean;
   onClose: () => void;
+  openInDraftsMode?: boolean;
+  onDraftsModeAcknowledged?: () => void;
 }
 
 type ViewMode = 'board' | 'list';
@@ -35,7 +37,7 @@ function getCurrentDomain(): string {
   return 'general';
 }
 
-export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
+export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsModeAcknowledged }: TaskBoardModalProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [assignees, setAssignees] = useState<Assignee[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('board');
@@ -49,6 +51,7 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
   const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
   const [showDraftsOnly, setShowDraftsOnly] = useState(false);
   const [selectedDrafts, setSelectedDrafts] = useState<Set<number>>(new Set());
+  const [draftByDefault, setDraftByDefault] = useState(() => getDraftDefault());
 
   // Delete confirmation modal state
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
@@ -116,47 +119,16 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
     return result.filter(t => t.domain === filterDomain);
   }, [tasks, filterDomain, filterAssignee, currentDomain, showCompleted, showAllDomains, showUnassignedOnly, showDraftsOnly, currentUserId]);
 
-  // Ctrl+Shift+A to toggle all domains, Ctrl+Shift+L to toggle drafts view
+  // Handle opening in drafts mode (from Ctrl+Shift+L global shortcut)
   useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if typing in an input/textarea
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-        return;
-      }
-
-      // Ctrl+Shift+A: Toggle all domains
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
-        e.preventDefault();
-        setShowAllDomains(prev => {
-          const newValue = !prev;
-          // When enabling, switch to 'all'; when disabling, switch back to 'current'
-          setFilterDomain(newValue ? 'all' : 'current');
-          return newValue;
-        });
-      }
-      // Ctrl+Shift+L: Toggle drafts view
-      else if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'L' || e.key === 'l')) {
-        e.preventDefault();
-        setShowDraftsOnly(prev => {
-          const newValue = !prev;
-          // Clear selection when toggling
-          setSelectedDrafts(new Set());
-          // Clear other filters when entering drafts mode
-          if (newValue) {
-            setShowUnassignedOnly(false);
-            setFilterAssignee(null);
-          }
-          return newValue;
-        });
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+    if (isOpen && openInDraftsMode) {
+      setShowDraftsOnly(true);
+      setViewMode('list'); // Show list view for easier selection
+      setShowUnassignedOnly(false);
+      setFilterAssignee(null);
+      onDraftsModeAcknowledged?.();
+    }
+  }, [isOpen, openInDraftsMode, onDraftsModeAcknowledged]);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -416,6 +388,22 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
             )}
           </button>
 
+          <label
+            className={styles.draftDefaultLabel}
+            title="When enabled, new tasks are created as drafts by default"
+          >
+            <input
+              type="checkbox"
+              checked={draftByDefault}
+              onChange={(e) => {
+                const newValue = e.target.checked;
+                setDraftByDefault(newValue);
+                setDraftDefault(newValue);
+              }}
+            />
+            Draft by default
+          </label>
+
           <label className={styles.showCompletedLabel}>
             <input
               type="checkbox"
@@ -500,6 +488,9 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
                   tasks={filteredTasks}
                   onTaskClick={handleTaskClick}
                   onDeleteTask={handleDeleteTask}
+                  showDraftCheckboxes={showDraftsOnly}
+                  selectedDrafts={selectedDrafts}
+                  onToggleDraftSelection={handleToggleDraftSelection}
                 />
               )}
             </div>
@@ -526,7 +517,7 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
 
         {/* Footer hint */}
         <div className={styles.footer}>
-          <span className={styles.hint}>Ctrl+Shift+Space toggle • Esc close</span>
+          <span className={styles.hint}>Ctrl+Shift+Space toggle • Ctrl+Shift+L drafts • Esc close</span>
         </div>
 
         {/* Delete confirmation modal */}

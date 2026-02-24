@@ -48,9 +48,25 @@
   color: var(--text-primary);
   line-height: 1.5;
   outline: none;
-  direction: ltr;
-  text-align: left;
-  unicode-bidi: plaintext;
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: embed !important;
+}
+
+/* Force LTR on all child elements inside content */
+.content * {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+.content table,
+.content thead,
+.content tbody,
+.content tr,
+.content th,
+.content td {
+  direction: ltr !important;
+  text-align: left !important;
 }
 
 .content:empty::before {

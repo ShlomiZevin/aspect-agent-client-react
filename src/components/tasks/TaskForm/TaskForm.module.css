@@ -45,6 +45,67 @@
   color: var(--text-primary);
 }
 
+/* Title field - inline editable */
+.titleField {
+  margin-bottom: var(--spacing-sm);
+}
+
+.titleField label {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.titleTextarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast);
+  resize: none;
+  overflow: hidden;
+  min-height: 36px;
+  line-height: 1.4;
+}
+
+.titleTextarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.titleDisplay {
+  padding: 8px 10px;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--surface-light);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.titleDisplay:hover {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.titlePlaceholder {
+  color: var(--text-muted);
+  font-style: italic;
+  font-weight: 400;
+}
+
 .field {
   margin-bottom: var(--spacing-sm);
 }
