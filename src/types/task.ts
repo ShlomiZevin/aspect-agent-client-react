@@ -58,6 +58,8 @@ export interface UpdateTaskData {
   isCompleted?: boolean;
   dependsOn?: number | null;
   tags?: string[];
+  isDraft?: boolean;
+  createdBy?: string;
 }
 
 export interface TaskFilters {

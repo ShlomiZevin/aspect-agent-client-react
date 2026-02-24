@@ -2,8 +2,9 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Message as MessageType } from '../../../types';
-import { useChatContext } from '../../../context';
+import { useChatContext, useAgentConfig } from '../../../context';
 import { useLanguage } from '../../../context/LanguageContext';
+import { getTranslatedCrewName } from '../../../i18n/crewTranslations';
 import { ThinkingIndicator } from '../ThinkingIndicator';
 import { DebugPanel } from '../DebugPanel';
 import { FeedbackPanel } from '../FeedbackPanel';
@@ -39,7 +40,8 @@ function getDomainFromUrl(): string {
 
 export function Message({ message }: MessageProps) {
   const { debugMode, deleteMessagesFrom, crewMembers, conversationId } = useChatContext();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const config = useAgentConfig();
   const [showFeedback, setShowFeedback] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showBugModal, setShowBugModal] = useState(false);
@@ -149,7 +151,9 @@ export function Message({ message }: MessageProps) {
           <>
             <div className={styles.messageHeader}>
               {message.crewMember && (
-                <div className={styles.crewLabel}>{message.crewMember}</div>
+                <div className={styles.crewLabel}>
+                  {getTranslatedCrewName(config.agentName, message.crewMember, language, message.crewMember)}
+                </div>
               )}
               <div className={styles.headerActions}>
                 {canReportBug && (

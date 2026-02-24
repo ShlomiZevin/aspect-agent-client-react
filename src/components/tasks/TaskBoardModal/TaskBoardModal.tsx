@@ -130,6 +130,22 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     }
   }, [isOpen, openInDraftsMode, onDraftsModeAcknowledged]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.code === 'KeyA') {
+        e.preventDefault();
+        setShowAllDomains(prev => {
+          const newValue = !prev;
+          if (newValue) setFilterDomain('all');
+          return newValue;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -162,7 +178,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     const taskData = {
       ...data,
       isDraft: data.isDraft || false,
-      createdBy: data.isDraft ? currentUserId : null,
+      createdBy: data.isDraft ? currentUserId : undefined,
     };
     const task = await taskService.createTask(taskData);
     setTasks(prev => [task, ...prev]);

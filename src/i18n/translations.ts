@@ -170,6 +170,7 @@ export const translations: LanguageConfig = {
     // Crew Members - Banking Onboarder
     'crew.banking.auto': 'Auto',
     'crew.banking.autoDescription': 'Automatic routing',
+    'crew.banking.welcome': 'Welcome',
     'crew.banking.entryIntroduction': 'Welcome',
     'crew.banking.entryIntroductionDescription': 'Introduction and eligibility check',
     'crew.banking.accountType': 'Account Selection',
@@ -358,6 +359,7 @@ export const translations: LanguageConfig = {
     // Crew Members - Banking Onboarder
     'crew.banking.auto': 'אוטומטי',
     'crew.banking.autoDescription': 'ניתוב אוטומטי',
+    'crew.banking.welcome': 'ברוכים הבאים',
     'crew.banking.entryIntroduction': 'ברוכים הבאים',
     'crew.banking.entryIntroductionDescription': 'היכרות ובדיקת זכאות',
     'crew.banking.accountType': 'בחירת חשבון',
