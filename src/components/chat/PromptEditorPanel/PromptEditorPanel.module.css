@@ -745,6 +745,8 @@
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+  text-align: left;
+  direction: ltr;
 }
 
 .transitionLogicModal .modalBody {
@@ -857,4 +859,6 @@
   margin: 0;
   color: var(--text-primary);
   border: 1px solid var(--border);
+  text-align: left;
+  direction: ltr;
 }

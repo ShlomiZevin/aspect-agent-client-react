@@ -924,7 +924,7 @@ export function PromptEditorPanel({
       {/* Transition Logic Modal */}
       {showTransitionLogicModal && transitionLogic && (
         <div className={styles.modalOverlay} onClick={() => setShowTransitionLogicModal(false)}>
-          <div className={`${styles.modal} ${styles.transitionLogicModal}`} onClick={e => e.stopPropagation()}>
+          <div className={`${styles.modal} ${styles.transitionLogicModal}`} dir="ltr" onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h4>
                 Transition Logic
