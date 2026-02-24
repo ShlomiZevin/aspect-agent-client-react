@@ -126,6 +126,12 @@
 }
 
 /* Form Fields */
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+}
+
 .field {
   margin-bottom: var(--spacing-sm);
 }

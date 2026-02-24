@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import type { CreateTaskData, TaskPriority } from '../../../types/task';
+import type { CreateTaskData, TaskPriority, TaskType } from '../../../types/task';
 import type { Message } from '../../../types/chat';
 import type { CrewMember, FieldToCollect } from '../../../types/crew';
 import { getFields } from '../../../services/fieldsService';
@@ -41,6 +41,13 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
   { value: 'critical', label: 'Critical' },
 ];
 
+const TYPE_OPTIONS: { value: TaskType; label: string }[] = [
+  { value: 'bug', label: 'Bug' },
+  { value: 'task', label: 'Task' },
+  { value: 'feature', label: 'Feature' },
+  { value: 'idea', label: 'Idea' },
+];
+
 interface FieldIssue {
   fieldName: string;
   actualValue: string;
@@ -77,6 +84,7 @@ export function AgentBugModal({
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<AgentBugCategory>('wrong_reply');
   const [priority, setPriority] = useState<TaskPriority>('medium');
+  const [taskType, setTaskType] = useState<TaskType>('bug');
   const [notes, setNotes] = useState('');
   const [isDraft, setIsDraft] = useState(getDraftDefault());
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -355,7 +363,7 @@ export function AgentBugModal({
       await onSubmit({
         title: title.trim(),
         description: buildDescription(),
-        type: 'bug',
+        type: taskType,
         priority,
         domain: currentDomain,
         status: 'todo',
@@ -579,18 +587,32 @@ export function AgentBugModal({
               </div>
             )}
 
-            {/* Priority */}
-            <div className={styles.field}>
-              <label htmlFor="ab-priority">Priority</label>
-              <select
-                id="ab-priority"
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as TaskPriority)}
-              >
-                {PRIORITY_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+            {/* Type & Priority */}
+            <div className={styles.row}>
+              <div className={styles.field}>
+                <label htmlFor="ab-type">Type</label>
+                <select
+                  id="ab-type"
+                  value={taskType}
+                  onChange={(e) => setTaskType(e.target.value as TaskType)}
+                >
+                  {TYPE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="ab-priority">Priority</label>
+                <select
+                  id="ab-priority"
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value as TaskPriority)}
+                >
+                  {PRIORITY_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Additional Notes */}
