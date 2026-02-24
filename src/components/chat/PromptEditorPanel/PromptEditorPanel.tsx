@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { CrewMember } from '../../../types/crew';
 import type { CrewMemberPrompt } from '../../../types/promptEditor';
+import type { TransitionLogicConfig } from '../../../types/chat';
 import {
   getAgentPrompts,
   createPromptVersion,
@@ -8,6 +9,7 @@ import {
   activatePromptVersion,
   deletePromptVersion,
 } from '../../../services/promptService';
+import { getCrewTransitionLogic } from '../../../services/crewService';
 import styles from './PromptEditorPanel.module.css';
 
 const OPENAI_MODELS = [
@@ -124,6 +126,11 @@ export function PromptEditorPanel({
   const [showTransitionPrompt, setShowTransitionPrompt] = useState(false);
   const [isFiring, setIsFiring] = useState(false);
 
+  // Transition logic state (fetched from API per crew member)
+  const [transitionLogic, setTransitionLogic] = useState<TransitionLogicConfig | null>(null);
+  const [isLoadingTransitionLogic, setIsLoadingTransitionLogic] = useState(false);
+  const [showTransitionLogicModal, setShowTransitionLogicModal] = useState(false);
+
   // Load prompts from API
   useEffect(() => {
     async function loadPrompts() {
@@ -143,6 +150,16 @@ export function PromptEditorPanel({
 
     loadPrompts();
   }, [agentName, baseURL]);
+
+  // Fetch transition logic when crew member selection changes
+  useEffect(() => {
+    if (!agentName || !selectedCrewId) return;
+
+    setIsLoadingTransitionLogic(true);
+    getCrewTransitionLogic(agentName, selectedCrewId, baseURL)
+      .then(data => setTransitionLogic(data))
+      .finally(() => setIsLoadingTransitionLogic(false));
+  }, [agentName, selectedCrewId, baseURL]);
 
   // Get the selected crew member's prompt data
   const selectedPromptData = prompts.find(p => p.crewMemberId === selectedCrewId);
@@ -713,6 +730,41 @@ export function PromptEditorPanel({
               </>
             )}
           </div>
+
+          {/* Transition Logic (Clickable - opens modal) */}
+          <div className={styles.editorSection}>
+            <button
+              className={styles.transitionLogicButton}
+              onClick={() => setShowTransitionLogicModal(true)}
+              disabled={!transitionLogic && !isLoadingTransitionLogic}
+              type="button"
+            >
+              <div className={styles.transitionLogicButtonContent}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="16 3 21 3 21 8" />
+                  <line x1="4" y1="20" x2="21" y2="3" />
+                  <polyline points="21 16 21 21 16 21" />
+                  <line x1="15" y1="15" x2="21" y2="21" />
+                  <line x1="4" y1="4" x2="9" y2="9" />
+                </svg>
+                <span>Transition Logic</span>
+                {isLoadingTransitionLogic ? (
+                  <span className={styles.transitionLogicMeta}>Loading...</span>
+                ) : transitionLogic ? (
+                  <span className={styles.transitionLogicMeta}>
+                    {transitionLogic.transitionTo ? `\u2192 ${transitionLogic.transitionTo}` : 'No target'}
+                    {transitionLogic.hasStructuredRules ? ' (rules)' : ' (code)'}
+                  </span>
+                ) : (
+                  <span className={styles.transitionLogicMeta}>No transitions</span>
+                )}
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <line x1="9" y1="3" x2="9" y2="21" />
+              </svg>
+            </button>
+          </div>
         </>
       ) : (
         <div className={styles.emptyState}>
@@ -863,6 +915,112 @@ export function PromptEditorPanel({
                 disabled={!versionName.trim() || isSaving}
               >
                 {isSaving ? 'Saving...' : 'Save Version'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transition Logic Modal */}
+      {showTransitionLogicModal && transitionLogic && (
+        <div className={styles.modalOverlay} onClick={() => setShowTransitionLogicModal(false)}>
+          <div className={`${styles.modal} ${styles.transitionLogicModal}`} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h4>
+                Transition Logic
+                <span className={styles.tlCrewName}>{selectedCrewId}</span>
+              </h4>
+              <button
+                className={styles.modalCloseButton}
+                onClick={() => setShowTransitionLogicModal(false)}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              {/* Meta info row */}
+              <div className={styles.tlMetaRow}>
+                <span className={styles.tlMetaLabel}>Target:</span>
+                <strong>{transitionLogic.transitionTo || 'none'}</strong>
+                {transitionLogic.oneShot && <span className={styles.tlTag}>oneShot</span>}
+                {transitionLogic.hasPreTransfer && <span className={styles.tlTag}>pre</span>}
+                {transitionLogic.hasPostTransfer && <span className={styles.tlTag}>post</span>}
+              </div>
+
+              {/* Mode 1: Structured rule definitions */}
+              {transitionLogic.hasStructuredRules && transitionLogic.ruleDefinitions && (
+                <>
+                  {transitionLogic.ruleDefinitions.pre.length > 0 && (
+                    <div className={styles.tlSection}>
+                      <div className={styles.tlSectionLabel}>preMessageTransfer</div>
+                      {transitionLogic.ruleDefinitions.pre.map(rule => (
+                        <div key={rule.id} className={styles.tlRule}>
+                          <span className={styles.tlRuleDesc}>{rule.description}</span>
+                          {rule.fields.length > 0 && (
+                            <span className={styles.tlRuleFields}>({rule.fields.join(', ')})</span>
+                          )}
+                          {rule.result?.target && (
+                            <span className={styles.tlRuleTarget}>{'\u2192'} {rule.result.target}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {transitionLogic.ruleDefinitions.post.length > 0 && (
+                    <div className={styles.tlSection}>
+                      <div className={styles.tlSectionLabel}>postMessageTransfer</div>
+                      {transitionLogic.ruleDefinitions.post.map(rule => (
+                        <div key={rule.id} className={styles.tlRule}>
+                          <span className={styles.tlRuleDesc}>{rule.description}</span>
+                          {rule.fields.length > 0 && (
+                            <span className={styles.tlRuleFields}>({rule.fields.join(', ')})</span>
+                          )}
+                          {rule.result?.target && (
+                            <span className={styles.tlRuleTarget}>{'\u2192'} {rule.result.target}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Mode 2: Raw code fallback */}
+              {!transitionLogic.hasStructuredRules && transitionLogic.rawCode && (
+                <>
+                  {transitionLogic.rawCode.pre && (
+                    <div className={styles.tlSection}>
+                      <div className={styles.tlSectionLabel}>preMessageTransfer</div>
+                      <pre className={styles.tlCodeBlock}>{transitionLogic.rawCode.pre}</pre>
+                    </div>
+                  )}
+                  {transitionLogic.rawCode.post && (
+                    <div className={styles.tlSection}>
+                      <div className={styles.tlSectionLabel}>postMessageTransfer</div>
+                      <pre className={styles.tlCodeBlock}>{transitionLogic.rawCode.post}</pre>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* One-shot info */}
+              {transitionLogic.oneShot && !transitionLogic.hasPreTransfer && !transitionLogic.hasPostTransfer && (
+                <div className={styles.tlSection}>
+                  <div className={styles.tlSectionLabel}>oneShot</div>
+                  <pre className={styles.tlCodeBlock}>Delivers one response, then auto-transitions to &quot;{transitionLogic.transitionTo}&quot; on next message.</pre>
+                </div>
+              )}
+            </div>
+            <div className={styles.modalFooter}>
+              <button
+                className={`${styles.actionButton} ${styles.revertButton}`}
+                onClick={() => setShowTransitionLogicModal(false)}
+                style={{ flex: 'none' }}
+              >
+                Close
               </button>
             </div>
           </div>

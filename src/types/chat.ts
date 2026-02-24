@@ -4,6 +4,69 @@ export interface PostExtractionContext {
   remainingFields: string[];
 }
 
+// Structured transition rule evaluation result (when transitionRules are defined)
+export interface TransitionRuleEval {
+  id: string;
+  description: string;
+  fields: string[];
+  passed: boolean;
+  result: {
+    action: 'transition' | 'stay' | 'block';
+    target?: string;
+  };
+}
+
+// Transition logic debug data (from SSE debug_prompt events - includes runtime evaluation)
+export interface TransitionLogicData {
+  transitionTo: string | null;
+  oneShot: boolean;
+  hasPreTransfer: boolean;
+  hasPostTransfer: boolean;
+  hasStructuredRules: boolean;
+  // Structured rules evaluation (if transitionRules defined)
+  evaluatedRules: {
+    pre: TransitionRuleEval[];
+    post: TransitionRuleEval[];
+  } | null;
+  // Raw function code fallback (if no transitionRules)
+  rawCode: {
+    pre: string | null;
+    post: string | null;
+  } | null;
+  collectedFields: Record<string, string>;
+}
+
+// Transition rule definition (static, from API - no runtime evaluation)
+export interface TransitionRuleDefinition {
+  id: string;
+  description: string;
+  fields: string[];
+  result: {
+    action: 'transition' | 'stay' | 'block';
+    target?: string;
+  };
+  priority: number;
+}
+
+// Transition logic from API (static crew configuration, not runtime evaluation)
+export interface TransitionLogicConfig {
+  transitionTo: string | null;
+  oneShot: boolean;
+  hasPreTransfer: boolean;
+  hasPostTransfer: boolean;
+  hasStructuredRules: boolean;
+  // Rule definitions (if transitionRules defined)
+  ruleDefinitions: {
+    pre: TransitionRuleDefinition[];
+    post: TransitionRuleDefinition[];
+  } | null;
+  // Raw function code fallback (if no transitionRules)
+  rawCode: {
+    pre: string | null;
+    post: string | null;
+  } | null;
+}
+
 export interface DebugPromptData {
   crewName: string;
   crewDisplayName: string;
@@ -19,6 +82,7 @@ export interface DebugPromptData {
   postExtractionContext?: PostExtractionContext;
   transitionSystemPrompt?: string;
   transitionPromptInjected?: boolean;
+  transitionLogic?: TransitionLogicData | null;
 }
 
 export interface Message {

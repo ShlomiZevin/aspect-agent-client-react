@@ -13,6 +13,7 @@ import type {
   CrewGenerateResponse,
   CrewExportResponse
 } from '../types/crew';
+import type { TransitionLogicConfig } from '../types/chat';
 
 /**
  * Get all crew members for an agent
@@ -231,6 +232,36 @@ export async function generateCrewMember(
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
     };
+  }
+}
+
+/**
+ * Get transition logic for a specific crew member (for debug panel)
+ *
+ * @param agentName - Name of the agent
+ * @param crewName - Name of the crew member
+ * @param baseURL - API base URL
+ * @returns Transition logic config or null
+ */
+export async function getCrewTransitionLogic(
+  agentName: string,
+  crewName: string,
+  baseURL: string
+): Promise<TransitionLogicConfig | null> {
+  try {
+    const response = await fetch(
+      `${baseURL}/api/agents/${encodeURIComponent(agentName)}/crew-members/${encodeURIComponent(crewName)}/transition-logic`
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch transition logic: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.transitionLogic || null;
+  } catch (error) {
+    console.error('Error fetching transition logic:', error);
+    return null;
   }
 }
 

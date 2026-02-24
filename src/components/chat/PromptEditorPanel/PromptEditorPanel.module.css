@@ -696,3 +696,165 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Transition Logic Button */
+.transitionLogicButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  color: var(--text-secondary);
+}
+
+.transitionLogicButton:hover:not(:disabled) {
+  border-color: var(--primary-color);
+  background: var(--surface-light);
+  color: var(--text-primary);
+}
+
+.transitionLogicButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.transitionLogicButtonContent {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.transitionLogicMeta {
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+/* Transition Logic Modal */
+.transitionLogicModal {
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.transitionLogicModal .modalBody {
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.tlCrewName {
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-left: var(--spacing-sm);
+  font-family: monospace;
+}
+
+.tlMetaRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--spacing-md);
+  font-family: monospace;
+}
+
+.tlMetaLabel {
+  color: var(--text-muted);
+}
+
+.tlTag {
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.tlSection {
+  margin-bottom: var(--spacing-md);
+}
+
+.tlSectionLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+  font-family: monospace;
+}
+
+.tlRule {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  font-family: monospace;
+  border-radius: var(--radius-sm);
+  margin-bottom: 2px;
+}
+
+.tlRulePassed {
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.tlRuleFailed {
+  color: var(--text-secondary);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.tlRuleStatus {
+  font-weight: 700;
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+}
+
+.tlRuleDesc {
+  flex: 1;
+}
+
+.tlRuleFields {
+  color: var(--text-muted);
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.tlRuleTarget {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.tlCodeBlock {
+  background: var(--background);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}

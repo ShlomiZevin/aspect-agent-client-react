@@ -1,9 +1,99 @@
 import { useState } from 'react';
-import type { DebugPromptData } from '../../../types';
+import type { DebugPromptData, TransitionLogicData } from '../../../types';
 import styles from './DebugPanel.module.css';
 
 interface DebugPanelProps {
   data: DebugPromptData;
+}
+
+function TransitionLogicSection({ logic }: { logic: TransitionLogicData }) {
+  const { hasStructuredRules, evaluatedRules, rawCode, collectedFields, transitionTo, oneShot, hasPreTransfer, hasPostTransfer } = logic;
+
+  return (
+    <div className={styles.transitionContent}>
+      {/* Meta info */}
+      <div className={styles.transitionMeta}>
+        <span>Target: <strong>{transitionTo || 'none'}</strong></span>
+        {oneShot && <span className={styles.transitionTag}>oneShot</span>}
+        {hasPreTransfer && <span className={styles.transitionTag}>pre</span>}
+        {hasPostTransfer && <span className={styles.transitionTag}>post</span>}
+      </div>
+
+      {/* Mode 1: Structured rules */}
+      {hasStructuredRules && evaluatedRules && (
+        <>
+          {evaluatedRules.pre.length > 0 && (
+            <div className={styles.ruleGroup}>
+              <div className={styles.ruleType}>preMessageTransfer</div>
+              {evaluatedRules.pre.map(rule => (
+                <div key={rule.id} className={`${styles.rule} ${rule.passed ? styles.rulePassed : styles.ruleFailed}`}>
+                  <span className={styles.ruleStatus}>{rule.passed ? '\u2713' : '\u2717'}</span>
+                  <span className={styles.ruleDesc}>{rule.description}</span>
+                  {rule.fields.length > 0 && (
+                    <span className={styles.ruleFields}>({rule.fields.join(', ')})</span>
+                  )}
+                  {rule.passed && rule.result?.target && (
+                    <span className={styles.ruleTarget}>{'\u2192'} {rule.result.target}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {evaluatedRules.post.length > 0 && (
+            <div className={styles.ruleGroup}>
+              <div className={styles.ruleType}>postMessageTransfer</div>
+              {evaluatedRules.post.map(rule => (
+                <div key={rule.id} className={`${styles.rule} ${rule.passed ? styles.rulePassed : styles.ruleFailed}`}>
+                  <span className={styles.ruleStatus}>{rule.passed ? '\u2713' : '\u2717'}</span>
+                  <span className={styles.ruleDesc}>{rule.description}</span>
+                  {rule.fields.length > 0 && (
+                    <span className={styles.ruleFields}>({rule.fields.join(', ')})</span>
+                  )}
+                  {rule.passed && rule.result?.target && (
+                    <span className={styles.ruleTarget}>{'\u2192'} {rule.result.target}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Mode 2: Raw code fallback */}
+      {!hasStructuredRules && rawCode && (
+        <>
+          {rawCode.pre && (
+            <div className={styles.codeGroup}>
+              <div className={styles.ruleType}>preMessageTransfer</div>
+              <pre className={styles.codeBlock}>{rawCode.pre}</pre>
+            </div>
+          )}
+          {rawCode.post && (
+            <div className={styles.codeGroup}>
+              <div className={styles.ruleType}>postMessageTransfer</div>
+              <pre className={styles.codeBlock}>{rawCode.post}</pre>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* One-shot info */}
+      {oneShot && !hasPreTransfer && !hasPostTransfer && (
+        <div className={styles.codeGroup}>
+          <div className={styles.ruleType}>oneShot</div>
+          <pre className={styles.codeBlock}>Delivers one response, then auto-transitions to &quot;{transitionTo}&quot; on next message.</pre>
+        </div>
+      )}
+
+      {/* Current fields state */}
+      {Object.keys(collectedFields).length > 0 && (
+        <div className={styles.codeGroup}>
+          <div className={styles.ruleType}>Collected Fields</div>
+          <pre className={styles.codeBlock}>{JSON.stringify(collectedFields, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function DebugPanel({ data }: DebugPanelProps) {
@@ -20,6 +110,7 @@ export function DebugPanel({ data }: DebugPanelProps) {
   };
 
   const post = data.postExtractionContext;
+  const transition = data.transitionLogic;
 
   const sections = [
     // Show transition system prompt first if it was injected (most important for debugging)
@@ -63,6 +154,30 @@ export function DebugPanel({ data }: DebugPanelProps) {
       </button>
       {isExpanded && (
         <div className={styles.body}>
+          {/* Transition Logic section (custom rendering) */}
+          {transition && (
+            <div className={styles.section}>
+              <button className={styles.sectionHeader} onClick={() => toggleSection('transitionLogic')}>
+                <span>
+                  Transition Logic
+                  {transition.transitionTo ? ` \u2192 ${transition.transitionTo}` : ''}
+                  {transition.hasStructuredRules ? ' (rules)' : ' (code)'}
+                </span>
+                <svg
+                  className={`${styles.chevron} ${expandedSections.has('transitionLogic') ? styles.expanded : ''}`}
+                  width="12" height="12" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" strokeWidth="2"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {expandedSections.has('transitionLogic') && (
+                <TransitionLogicSection logic={transition} />
+              )}
+            </div>
+          )}
+
+          {/* Standard text sections */}
           {sections.map(({ key, label, content }) => (
             <div key={key} className={styles.section}>
               <button className={styles.sectionHeader} onClick={() => toggleSection(key)}>
