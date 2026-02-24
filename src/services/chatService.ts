@@ -102,8 +102,14 @@ export async function streamChat(
           try {
             const parsed = JSON.parse(data);
 
+            // Handle stream errors from server (LLM failures, etc.)
+            if (parsed.type === 'stream_error' || parsed.error) {
+              const errorMessage = parsed.error || 'Unknown streaming error';
+              onError(new Error(errorMessage));
+              return; // Stop processing
+            }
             // Handle thinking step events
-            if (parsed.type === 'thinking_step' && parsed.step) {
+            else if (parsed.type === 'thinking_step' && parsed.step) {
               onThinkingStep?.({
                 stepType: parsed.step.stepType,
                 description: parsed.step.description,
@@ -119,10 +125,6 @@ export async function streamChat(
             else if (parsed.chunk) {
               fullText += parsed.chunk;
               onChunk(parsed.chunk);
-            }
-            // Handle errors
-            else if (parsed.error) {
-              throw new Error(parsed.error);
             }
             // Handle function call events (pass through for logging/UI purposes if needed)
             else if (parsed.type === 'function_call' || parsed.type === 'function_result') {

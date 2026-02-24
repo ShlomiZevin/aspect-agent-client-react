@@ -89,3 +89,24 @@
     gap: var(--spacing-sm);
   }
 }
+
+/* Stream error display */
+.streamError {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin: var(--spacing-sm) 0;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  color: #dc2626;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.streamError svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #dc2626;
+}
