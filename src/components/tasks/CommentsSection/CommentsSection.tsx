@@ -109,14 +109,16 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
   return (
     <div className={styles.section}>
       <div className={styles.header}>
-        <span className={styles.title}>Comments {comments.length > 0 && <span className={styles.count}>({comments.length})</span>}</span>
+        <span className={styles.title}>
+          Comments {comments.length > 0 && <span className={styles.count}>({comments.length})</span>}
+        </span>
         {identity && (
-          <span className={styles.identity}>
-            Commenting as <strong>{identity}</strong>
+          <div className={styles.identity}>
+            <span>Commenting as <strong>{identity}</strong></span>
             <button className={styles.changeIdentityBtn} onClick={() => setShowIdentityPicker(true)}>
               Not {identity}?
             </button>
-          </span>
+          </div>
         )}
       </div>
 
