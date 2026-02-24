@@ -3,7 +3,7 @@ import type { CreateTaskData, TaskPriority } from '../../../types/task';
 import type { Message } from '../../../types/chat';
 import type { CrewMember, FieldToCollect } from '../../../types/crew';
 import { getFields } from '../../../services/fieldsService';
-import { getDraftDefault } from '../../../utils/userIdentifier';
+import { getDraftDefault, getUserId } from '../../../utils/userIdentifier';
 import styles from './AgentBugModal.module.css';
 
 // Bug categories for agent issues
@@ -361,6 +361,7 @@ export function AgentBugModal({
         status: 'todo',
         tags: ['agent-bug', category, sourceCrew || 'unknown-crew'].filter(Boolean),
         isDraft,
+        createdBy: isDraft ? getUserId() : undefined,
       });
       onClose();
     } finally {

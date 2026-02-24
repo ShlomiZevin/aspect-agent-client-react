@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { CreateTaskData, TaskPriority, TaskType } from '../../../types/task';
 import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
-import { getDraftDefault } from '../../../utils/userIdentifier';
+import { getDraftDefault, getUserId } from '../../../utils/userIdentifier';
 import styles from './QuickBugModal.module.css';
 
 interface QuickBugModalProps {
@@ -79,6 +79,7 @@ export function QuickBugModal({ isOpen, onClose, onSubmit, currentDomain, conver
         status: 'todo',
         tags: [],
         isDraft,
+        createdBy: isDraft ? getUserId() : undefined,
       });
       onClose();
     } finally {
