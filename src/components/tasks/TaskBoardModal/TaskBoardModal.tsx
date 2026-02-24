@@ -516,7 +516,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
         {/* Form overlay */}
         {showForm && (
           <div className={styles.formOverlay} onClick={handleCloseForm}>
-            <div className={styles.formContainer} onClick={(e) => e.stopPropagation()}>
+            <div className={`${styles.formContainer} ${editingTask ? styles.formContainerEdit : ''}`} onClick={(e) => e.stopPropagation()}>
               <TaskForm
                 task={editingTask}
                 assignees={assignees}

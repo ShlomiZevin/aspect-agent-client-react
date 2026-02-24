@@ -258,6 +258,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
 
   return (
     <>
+      <div className={task ? styles.twoColumn : undefined}>
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.header}>
           <h3>{task ? 'Edit Task' : 'New Task'}</h3>
@@ -516,10 +517,13 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
         </div>
       </form>
 
-      {/* Comments — only for existing tasks */}
+      {/* Comments column — only for existing tasks */}
       {task && (
-        <CommentsSection taskId={task.id} assignees={assignees} />
+        <div className={styles.commentsColumn}>
+          <CommentsSection taskId={task.id} assignees={assignees} />
+        </div>
       )}
+      </div>
 
       {/* Expanded description editor */}
       {isExpanded && (

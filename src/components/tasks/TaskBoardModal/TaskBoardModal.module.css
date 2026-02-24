@@ -385,6 +385,10 @@
   overflow: hidden;
 }
 
+.formContainerEdit {
+  max-width: 880px;
+}
+
 @keyframes scaleIn {
   from {
     opacity: 0;
