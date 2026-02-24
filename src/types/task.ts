@@ -35,7 +35,7 @@ export interface CreateTaskData {
   priority?: TaskPriority;
   type?: TaskType;
   domain?: string;
-  assignee?: string;
+  assignee?: string | null;
   dueDate?: string;
   atRisk?: boolean;
   isCompleted?: boolean;

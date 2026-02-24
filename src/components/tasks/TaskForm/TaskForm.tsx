@@ -245,7 +245,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       priority,
       type,
       domain,
-      assignee: assignee || undefined,
+      assignee: assignee || null,
       dueDate: dueDate || undefined,
       atRisk,
       isCompleted,
