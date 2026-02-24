@@ -494,6 +494,11 @@ export function QueryOptimizerPage({ agentName: _agentName, baseURL }: QueryOpti
                     <span className={`${styles.jobStatusBadge} ${JOB_STATUS_LABELS[job.status].className}`}>
                       {JOB_STATUS_LABELS[job.status].label}
                     </span>
+                    {job.status === 'failed' && job.error_message && (
+                      <div className={styles.jobErrorMessage} title={job.error_message}>
+                        {job.error_message}
+                      </div>
+                    )}
                   </td>
                   <td className={styles.cellMuted}>{job.started_at ? formatTime(job.started_at) : '—'}</td>
                   <td className={styles.cellMuted}>{formatJobDuration(job)}</td>

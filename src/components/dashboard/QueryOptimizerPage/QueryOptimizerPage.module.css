@@ -223,8 +223,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  direction: rtl;
-  text-align: right;
+  text-align: left;
+  direction: ltr;
 }
 
 .emptyCell {
@@ -320,6 +320,14 @@
 .jobRunning { background: #fff8e1; color: #f57f17; }
 .jobCompleted { background: #e8f5e9; color: #2e7d32; }
 .jobFailed { background: #ffebee; color: #c62828; }
+
+.jobErrorMessage {
+  margin-top: 4px;
+  font-size: var(--font-size-xs);
+  color: #c62828;
+  white-space: normal;
+  line-height: 1.4;
+}
 
 .jobTypeBadge {
   display: inline-block;
