@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { Task, Assignee, CreateTaskData, TaskStatus, TaskPriority, TaskType } from '../../../types/task';
 import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
+import { CommentsSection } from '../CommentsSection/CommentsSection';
 import { getDraftDefault } from '../../../utils/userIdentifier';
 import styles from './TaskForm.module.css';
 
@@ -514,6 +515,11 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
           </div>
         </div>
       </form>
+
+      {/* Comments — only for existing tasks */}
+      {task && (
+        <CommentsSection taskId={task.id} assignees={assignees} />
+      )}
 
       {/* Expanded description editor */}
       {isExpanded && (

@@ -69,3 +69,12 @@ export interface TaskFilters {
   priority?: TaskPriority;
   domain?: string;
 }
+
+export interface TaskComment {
+  id: number;
+  taskId: number;
+  author: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
