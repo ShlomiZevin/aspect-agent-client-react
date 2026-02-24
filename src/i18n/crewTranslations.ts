@@ -18,17 +18,21 @@ function getCrewKeyPrefix(agentName: string): string {
  * Convert crew member name to camelCase for translation key
  * "entry-introduction" -> "entryIntroduction"
  * "IDENTITY VERIFICATION" -> "identityVerification"
+ * "ACCOUNT TERMS & OFFERS" -> "accountTermsOffers"
  * "WELCOME" -> "welcome"
  * "kyc" -> "kyc"
  */
 function crewNameToKey(crewName: string): string {
   // Convert to lowercase first to handle uppercase crew names
-  const lowerName = crewName.toLowerCase();
+  let lowerName = crewName.toLowerCase();
 
   // Handle special cases
   if (lowerName === 'auto') return 'auto';
 
-  // Replace spaces with dashes first
+  // Remove special characters (keep only letters, numbers, spaces, and dashes)
+  lowerName = lowerName.replace(/[^a-z0-9\s-]/g, '');
+
+  // Replace spaces with dashes
   const dashedName = lowerName.replace(/\s+/g, '-');
 
   // Convert kebab-case to camelCase
