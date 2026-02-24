@@ -22,6 +22,8 @@ export interface Task {
   isCompleted: boolean; // PM approval - task fully completed and reviewed
   dependsOn?: number; // ID of task this depends on (must be done first)
   tags: string[];
+  isDraft: boolean; // Draft mode - only visible to creator
+  createdBy?: string; // Browser-based user identifier
   createdAt: Date;
   updatedAt: Date;
 }
@@ -39,6 +41,8 @@ export interface CreateTaskData {
   isCompleted?: boolean;
   dependsOn?: number | null; // null to clear dependency
   tags?: string[];
+  isDraft?: boolean;
+  createdBy?: string;
 }
 
 export interface UpdateTaskData {

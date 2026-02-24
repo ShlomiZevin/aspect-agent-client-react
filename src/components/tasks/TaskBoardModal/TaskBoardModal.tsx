@@ -5,6 +5,7 @@ import { TaskBoard } from '../TaskBoard/TaskBoard';
 import { TaskList } from '../TaskList/TaskList';
 import { TaskForm } from '../TaskForm/TaskForm';
 import { AssigneeManager } from '../AssigneeManager/AssigneeManager';
+import { getUserId } from '../../../utils/userIdentifier';
 import styles from './TaskBoardModal.module.css';
 
 interface TaskBoardModalProps {
@@ -46,22 +47,41 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
   const [filterAssignee, setFilterAssignee] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
+  const [showDraftsOnly, setShowDraftsOnly] = useState(false);
+  const [selectedDrafts, setSelectedDrafts] = useState<Set<number>>(new Set());
 
   // Delete confirmation modal state
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Get current user ID for draft filtering
+  const currentUserId = useMemo(() => getUserId(), []);
+
   // Detect current domain when modal opens
   const currentDomain = useMemo(() => (isOpen ? getCurrentDomain() : 'general'), [isOpen]);
 
-  // Count unassigned tasks (orphans) - not completed, no assignee
+  // Count unassigned tasks (orphans) - not completed, no assignee, not draft
   const unassignedCount = useMemo(() => {
-    return tasks.filter(t => !t.assignee && !t.isCompleted).length;
+    return tasks.filter(t => !t.assignee && !t.isCompleted && !t.isDraft).length;
   }, [tasks]);
+
+  // Count draft tasks created by current user
+  const draftCount = useMemo(() => {
+    return tasks.filter(t => t.isDraft && t.createdBy === currentUserId).length;
+  }, [tasks, currentUserId]);
 
   // Filter tasks by domain, assignee, and completed status
   const filteredTasks = useMemo(() => {
     let result = tasks;
+
+    // Draft filtering - mutually exclusive with other modes
+    if (showDraftsOnly) {
+      // Show only drafts created by current user
+      return result.filter(t => t.isDraft && t.createdBy === currentUserId);
+    }
+
+    // Hide all drafts in normal views (only show non-draft tasks OR own drafts)
+    result = result.filter(t => !t.isDraft || t.createdBy === currentUserId);
 
     // Filter by completed status first (hide completed by default)
     if (!showCompleted) {
@@ -94,19 +114,41 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
     if (filterDomain === 'general') return result.filter(t => t.domain === 'general');
     if (filterDomain === 'current') return result.filter(t => t.domain === currentDomain || t.domain === 'general');
     return result.filter(t => t.domain === filterDomain);
-  }, [tasks, filterDomain, filterAssignee, currentDomain, showCompleted, showAllDomains, showUnassignedOnly]);
+  }, [tasks, filterDomain, filterAssignee, currentDomain, showCompleted, showAllDomains, showUnassignedOnly, showDraftsOnly, currentUserId]);
 
-  // Ctrl+Shift+A to toggle all domains option
+  // Ctrl+Shift+A to toggle all domains, Ctrl+Shift+L to toggle drafts view
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+      // Ignore if typing in an input/textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
+      // Ctrl+Shift+A: Toggle all domains
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
         e.preventDefault();
         setShowAllDomains(prev => {
           const newValue = !prev;
           // When enabling, switch to 'all'; when disabling, switch back to 'current'
           setFilterDomain(newValue ? 'all' : 'current');
+          return newValue;
+        });
+      }
+      // Ctrl+Shift+L: Toggle drafts view
+      else if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'L' || e.key === 'l')) {
+        e.preventDefault();
+        setShowDraftsOnly(prev => {
+          const newValue = !prev;
+          // Clear selection when toggling
+          setSelectedDrafts(new Set());
+          // Clear other filters when entering drafts mode
+          if (newValue) {
+            setShowUnassignedOnly(false);
+            setFilterAssignee(null);
+          }
           return newValue;
         });
       }
@@ -144,14 +186,25 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
   };
 
   const handleCreateTask = async (data: CreateTaskData) => {
-    const task = await taskService.createTask(data);
+    // Add createdBy for draft tasks - always set it if isDraft is true
+    const taskData = {
+      ...data,
+      isDraft: data.isDraft || false,
+      createdBy: data.isDraft ? currentUserId : null,
+    };
+    const task = await taskService.createTask(taskData);
     setTasks(prev => [task, ...prev]);
     setShowForm(false);
   };
 
   const handleUpdateTask = async (data: CreateTaskData) => {
     if (!editingTask) return;
-    const updated = await taskService.updateTask(editingTask.id, data);
+    // Set createdBy when marking as draft
+    const taskData = {
+      ...data,
+      createdBy: data.isDraft ? (editingTask.createdBy || currentUserId) : data.createdBy,
+    };
+    const updated = await taskService.updateTask(editingTask.id, taskData);
     setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
     setEditingTask(null);
     setShowForm(false);
@@ -225,6 +278,45 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
     }
   };
 
+  const handleToggleDraftSelection = (taskId: number) => {
+    setSelectedDrafts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAllDrafts = () => {
+    const allDraftIds = filteredTasks.filter(t => t.isDraft).map(t => t.id);
+    setSelectedDrafts(new Set(allDraftIds));
+  };
+
+  const handleDeselectAllDrafts = () => {
+    setSelectedDrafts(new Set());
+  };
+
+  const handleFireDrafts = async (taskIds: number[]) => {
+    try {
+      // Fire all selected drafts in parallel
+      await Promise.all(
+        taskIds.map(id => taskService.updateTask(id, { isDraft: false }))
+      );
+
+      // Update local state
+      setTasks(prev => prev.map(t => (taskIds.includes(t.id) ? { ...t, isDraft: false } : t)));
+
+      // Clear selection
+      setSelectedDrafts(new Set());
+    } catch (err) {
+      console.error('Failed to fire drafts:', err);
+      loadData();
+    }
+  };
+
   const handleCloseForm = () => {
     setEditingTask(null);
     setShowForm(false);
@@ -249,8 +341,8 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
           </button>
         </div>
 
-        {/* Toolbar */}
-        <div className={styles.toolbar}>
+        {/* Toolbar - Row 1: Main Controls */}
+        <div className={styles.toolbarRow1}>
           <button
             className={styles.addBtn}
             onClick={() => {
@@ -306,29 +398,21 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
             <option value="all">All Domains</option>
           </select>
 
-          <AssigneeManager
-            assignees={assignees}
-            onAddAssignee={handleAddAssignee}
-            selectedAssignee={filterAssignee}
-            onAssigneeClick={(assignee) => {
-              setShowUnassignedOnly(false);
-              setFilterAssignee(assignee);
-            }}
-          />
-
           <button
-            className={`${styles.unassignedBtn} ${showUnassignedOnly ? styles.active : ''}`}
+            className={`${styles.draftsBtn} ${showDraftsOnly ? styles.active : ''}`}
             onClick={() => {
-              setShowUnassignedOnly(!showUnassignedOnly);
-              if (!showUnassignedOnly) {
-                setFilterAssignee(null); // Clear assignee filter when showing unassigned
+              setShowDraftsOnly(!showDraftsOnly);
+              setSelectedDrafts(new Set());
+              if (!showDraftsOnly) {
+                setShowUnassignedOnly(false);
+                setFilterAssignee(null);
               }
             }}
-            title="Show unassigned tasks"
+            title="Show draft tasks (Ctrl+Shift+L)"
           >
-            Unassigned
-            {unassignedCount > 0 && (
-              <span className={styles.unassignedBadge}>{unassignedCount}</span>
+            Drafts
+            {draftCount > 0 && (
+              <span className={styles.draftBadge}>{draftCount}</span>
             )}
           </button>
 
@@ -341,6 +425,67 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
             Show Completed
           </label>
         </div>
+
+        {/* Toolbar - Row 2: Assignee Filter */}
+        <div className={styles.toolbarRow2}>
+          <AssigneeManager
+            assignees={assignees}
+            onAddAssignee={handleAddAssignee}
+            selectedAssignee={filterAssignee}
+            onAssigneeClick={(assignee) => {
+              setShowUnassignedOnly(false);
+              setFilterAssignee(assignee);
+            }}
+          />
+          <button
+            className={`${styles.unassignedBtn} ${showUnassignedOnly ? styles.active : ''}`}
+            onClick={() => {
+              setShowUnassignedOnly(!showUnassignedOnly);
+              if (!showUnassignedOnly) {
+                setFilterAssignee(null);
+              }
+            }}
+            title="Show unassigned tasks"
+          >
+            Unassigned
+            {unassignedCount > 0 && (
+              <span className={styles.unassignedBadge}>{unassignedCount}</span>
+            )}
+          </button>
+        </div>
+
+        {/* Bulk Fire Drafts Toolbar */}
+        {showDraftsOnly && filteredTasks.length > 0 && (
+          <div className={styles.bulkActions}>
+            <div className={styles.bulkInfo}>
+              <label className={styles.selectAllLabel}>
+                <input
+                  type="checkbox"
+                  checked={selectedDrafts.size === filteredTasks.length && filteredTasks.length > 0}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      handleSelectAllDrafts();
+                    } else {
+                      handleDeselectAllDrafts();
+                    }
+                  }}
+                />
+                Select All ({filteredTasks.length})
+              </label>
+              {selectedDrafts.size > 0 && (
+                <span className={styles.selectedCount}>{selectedDrafts.size} selected</span>
+              )}
+            </div>
+            {selectedDrafts.size > 0 && (
+              <button
+                className={styles.fireBtn}
+                onClick={() => handleFireDrafts(Array.from(selectedDrafts))}
+              >
+                🔥 Fire {selectedDrafts.size} Draft{selectedDrafts.size > 1 ? 's' : ''}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Content */}
         <div className={styles.content}>
@@ -381,7 +526,7 @@ export function TaskBoardModal({ isOpen, onClose }: TaskBoardModalProps) {
 
         {/* Footer hint */}
         <div className={styles.footer}>
-          <span className={styles.hint}>Ctrl+Shift+Space toggle • Ctrl+Shift+A all domains • Esc close</span>
+          <span className={styles.hint}>Ctrl+Shift+Space toggle • Esc close</span>
         </div>
 
         {/* Delete confirmation modal */}

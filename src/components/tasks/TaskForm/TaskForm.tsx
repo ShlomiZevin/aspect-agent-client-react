@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { Task, Assignee, CreateTaskData, TaskStatus, TaskPriority, TaskType } from '../../../types/task';
 import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
+import { getDraftDefault } from '../../../utils/userIdentifier';
 import styles from './TaskForm.module.css';
 
 // All known domains in the system
@@ -72,6 +73,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [tagsInput, setTagsInput] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isDraft, setIsDraft] = useState(getDraftDefault());
   const dependsOnRef = useRef<HTMLDivElement>(null);
 
   // Filter out current task from dependency options (can't depend on self)
@@ -196,6 +198,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       setDependsOn(task.dependsOn || null);
       setDependsOnSearch(''); // Clear search - we show chip when selected
       setTagsInput(task.tags.join(', '));
+      setIsDraft(task.isDraft || false);
     } else {
       // Default to general for new tasks
       setDomain('general');
@@ -204,6 +207,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       setIsCompleted(false);
       setDependsOn(null);
       setDependsOnSearch('');
+      setIsDraft(getDraftDefault());
     }
   }, [task, allTasks]);
 
@@ -232,6 +236,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       isCompleted,
       dependsOn, // Pass null to clear, number to set
       tags,
+      isDraft,
     });
   };
 
@@ -446,6 +451,17 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
               Delete
             </button>
           )}
+          <label className={styles.draftToggle}>
+            <input
+              type="checkbox"
+              checked={isDraft}
+              onChange={(e) => setIsDraft(e.target.checked)}
+            />
+            <span className={styles.draftLabel}>
+              Draft
+              <span className={styles.draftHint}>(only you see it)</span>
+            </span>
+          </label>
           <div className={styles.rightActions}>
             <button type="button" className={styles.cancelBtn} onClick={onCancel}>
               Cancel

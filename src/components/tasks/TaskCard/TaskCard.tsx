@@ -54,25 +54,26 @@ function isOverdue(dateStr: string): boolean {
   return date < today;
 }
 
-// Generate a consistent, visually distinct color from assignee name
+// ONLY PRIMARY COLORS - MAXIMUM POSSIBLE DISTINCTION
 const ASSIGNEE_COLORS = [
-  '#2563eb', // blue (strong)
-  '#dc2626', // red
-  '#16a34a', // green
-  '#9333ea', // purple
-  '#ea580c', // orange
-  '#0891b2', // cyan
-  '#c026d3', // fuchsia
-  '#65a30d', // lime
+  '#FF0000', // PURE RED
+  '#00FF00', // PURE GREEN
+  '#0000FF', // PURE BLUE
+  '#FFFF00', // PURE YELLOW
+  '#FF00FF', // PURE MAGENTA
+  '#00FFFF', // PURE CYAN
+  '#FF8000', // PURE ORANGE
+  '#000000', // BLACK
 ];
 
 function getAssigneeColor(assignee: string): string {
-  // Hash using prime multiplier for better distribution on short strings
+  // Simple character sum with position weighting to avoid collisions
   let hash = 0;
   for (let i = 0; i < assignee.length; i++) {
-    hash += assignee.charCodeAt(i) * (i + 1) * 31;
+    // Weight by position using prime number to maximize distribution
+    hash = (hash + assignee.charCodeAt(i) * (i * 7 + 13)) % 9999991;
   }
-  return ASSIGNEE_COLORS[Math.abs(hash) % ASSIGNEE_COLORS.length];
+  return ASSIGNEE_COLORS[hash % ASSIGNEE_COLORS.length];
 }
 
 export function TaskCard({ task, dependencyInfo, onClick, onAtRiskToggle, onMarkComplete }: TaskCardProps) {
@@ -96,7 +97,7 @@ export function TaskCard({ task, dependencyInfo, onClick, onAtRiskToggle, onMark
 
   return (
     <div
-      className={`${styles.card} ${task.atRisk ? styles.atRisk : ''} ${task.isCompleted ? styles.completed : ''} ${isOrphan ? styles.orphan : styles.assigned}`}
+      className={`${styles.card} ${task.atRisk ? styles.atRisk : ''} ${task.isCompleted ? styles.completed : ''} ${isOrphan ? styles.orphan : styles.assigned} ${task.isDraft ? styles.draft : ''}`}
       style={cardStyle}
       onClick={onClick}
     >

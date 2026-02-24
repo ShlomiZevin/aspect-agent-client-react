@@ -1,13 +1,14 @@
 .tableWrapper {
   overflow-x: auto;
   text-align: left;
-  direction: ltr;
+  direction: ltr !important;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
+  direction: ltr !important;
 }
 
 .table th,

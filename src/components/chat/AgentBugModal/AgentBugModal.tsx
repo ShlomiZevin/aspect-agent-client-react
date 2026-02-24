@@ -3,6 +3,7 @@ import type { CreateTaskData, TaskPriority } from '../../../types/task';
 import type { Message } from '../../../types/chat';
 import type { CrewMember, FieldToCollect } from '../../../types/crew';
 import { getFields } from '../../../services/fieldsService';
+import { getDraftDefault } from '../../../utils/userIdentifier';
 import styles from './AgentBugModal.module.css';
 
 // Bug categories for agent issues
@@ -77,6 +78,7 @@ export function AgentBugModal({
   const [category, setCategory] = useState<AgentBugCategory>('wrong_reply');
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [notes, setNotes] = useState('');
+  const [isDraft, setIsDraft] = useState(getDraftDefault());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
@@ -358,6 +360,7 @@ export function AgentBugModal({
         domain: currentDomain,
         status: 'todo',
         tags: ['agent-bug', category, sourceCrew || 'unknown-crew'].filter(Boolean),
+        isDraft,
       });
       onClose();
     } finally {
@@ -603,12 +606,25 @@ export function AgentBugModal({
           </div>
 
           <div className={styles.footer}>
-            <button type="button" className={styles.cancelBtn} onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" className={styles.submitBtn} disabled={isSubmitting || !title.trim()}>
-              {isSubmitting ? 'Creating...' : 'Create Bug Report'}
-            </button>
+            <label className={styles.draftToggle}>
+              <input
+                type="checkbox"
+                checked={isDraft}
+                onChange={(e) => setIsDraft(e.target.checked)}
+              />
+              <span className={styles.draftLabel}>
+                Save as Draft
+                <span className={styles.draftHint}>(only you can see it)</span>
+              </span>
+            </label>
+            <div className={styles.footerButtons}>
+              <button type="button" className={styles.cancelBtn} onClick={onClose}>
+                Cancel
+              </button>
+              <button type="submit" className={styles.submitBtn} disabled={isSubmitting || !title.trim()}>
+                {isSubmitting ? 'Creating...' : 'Create Bug Report'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

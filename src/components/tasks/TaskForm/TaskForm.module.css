@@ -172,6 +172,33 @@
   margin-left: auto;
 }
 
+.draftToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.draftToggle input {
+  cursor: pointer;
+  accent-color: #a855f7;
+}
+
+.draftLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.draftHint {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .cancelBtn,
 .submitBtn,
 .deleteBtn {

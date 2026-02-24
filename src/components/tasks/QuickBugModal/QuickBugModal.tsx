@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { CreateTaskData, TaskPriority, TaskType } from '../../../types/task';
 import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
+import { getDraftDefault } from '../../../utils/userIdentifier';
 import styles from './QuickBugModal.module.css';
 
 interface QuickBugModalProps {
@@ -30,6 +31,7 @@ export function QuickBugModal({ isOpen, onClose, onSubmit, currentDomain, conver
   const [description, setDescription] = useState('');
   const [type, setType] = useState<TaskType>('bug');
   const [priority, setPriority] = useState<TaskPriority>('medium');
+  const [isDraft, setIsDraft] = useState(getDraftDefault());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset form when opened
@@ -38,6 +40,7 @@ export function QuickBugModal({ isOpen, onClose, onSubmit, currentDomain, conver
       setTitle('');
       setType('bug');
       setPriority('medium');
+      setIsDraft(getDraftDefault());
       // Set default description with conversation link if available
       if (conversationUrl) {
         setDescription(`<p><br></p><p>---</p><p>Conversation: <a href="${conversationUrl}" target="_blank">${conversationUrl}</a></p>`);
@@ -75,6 +78,7 @@ export function QuickBugModal({ isOpen, onClose, onSubmit, currentDomain, conver
         domain: currentDomain,
         status: 'todo',
         tags: [],
+        isDraft,
       });
       onClose();
     } finally {
@@ -145,12 +149,25 @@ export function QuickBugModal({ isOpen, onClose, onSubmit, currentDomain, conver
           </div>
 
           <div className={styles.footer}>
-            <button type="button" className={styles.cancelBtn} onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" className={styles.submitBtn} disabled={isSubmitting || !title.trim()}>
-              {isSubmitting ? 'Creating...' : 'Create'}
-            </button>
+            <label className={styles.draftToggle}>
+              <input
+                type="checkbox"
+                checked={isDraft}
+                onChange={(e) => setIsDraft(e.target.checked)}
+              />
+              <span className={styles.draftLabel}>
+                Save as Draft
+                <span className={styles.draftHint}>(only you can see it)</span>
+              </span>
+            </label>
+            <div className={styles.footerButtons}>
+              <button type="button" className={styles.cancelBtn} onClick={onClose}>
+                Cancel
+              </button>
+              <button type="submit" className={styles.submitBtn} disabled={isSubmitting || !title.trim()}>
+                {isSubmitting ? 'Creating...' : 'Create'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

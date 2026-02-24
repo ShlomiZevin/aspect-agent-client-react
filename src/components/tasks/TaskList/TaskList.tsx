@@ -76,7 +76,7 @@ export function TaskList({ tasks, onTaskClick, onDeleteTask }: TaskListProps) {
   }
 
   return (
-    <div className={styles.tableWrapper}>
+    <div className={styles.tableWrapper} dir="ltr">
       <table className={styles.table}>
         <thead>
           <tr>

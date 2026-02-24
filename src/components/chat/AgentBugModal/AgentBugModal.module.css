@@ -329,12 +329,45 @@
 /* Footer */
 .footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-md);
   border-top: 1px solid var(--border);
   background: var(--surface-light);
   flex-shrink: 0;
+}
+
+.footerButtons {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.draftToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.draftToggle input {
+  cursor: pointer;
+  accent-color: #a855f7;
+}
+
+.draftLabel {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.draftHint {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 .cancelBtn,

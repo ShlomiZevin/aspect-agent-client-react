@@ -161,6 +161,23 @@
   border-radius: 0 var(--radius-md) 0 0;
 }
 
+/* Draft state - faded appearance */
+.card.draft {
+  opacity: 0.6;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--surface),
+    var(--surface) 10px,
+    rgba(168, 85, 247, 0.03) 10px,
+    rgba(168, 85, 247, 0.03) 20px
+  );
+  border-style: dashed;
+}
+
+.card.draft:hover {
+  opacity: 0.8;
+}
+
 .header {
   display: flex;
   justify-content: space-between;
