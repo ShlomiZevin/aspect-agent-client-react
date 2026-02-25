@@ -261,7 +261,10 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       <div className={task ? styles.twoColumn : undefined}>
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.header}>
-          <h3>{task ? 'Edit Task' : 'New Task'}</h3>
+          <h3>
+            {task ? 'Edit Task' : 'New Task'}
+            {task && <span className={styles.taskId}>#{task.id}</span>}
+          </h3>
           <button type="button" className={styles.closeBtn} onClick={onCancel}>
             ×
           </button>
