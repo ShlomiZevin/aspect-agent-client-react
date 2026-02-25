@@ -7,8 +7,16 @@
  */
 import { useState, useEffect } from 'react';
 import { updateCrewMember, deleteCrewMember, exportCrewMember } from '../../../services/crewService';
+import { getKnowledgeBases } from '../../../services/kbService';
 import type { CrewMemberConfig, CrewMemberUpdateRequest } from '../../../types/crew';
+import type { KnowledgeBase } from '../../../types';
 import styles from './CrewEditor.module.css';
+
+const PROVIDER_LABELS: Record<string, string> = {
+  openai: 'OpenAI',
+  google: 'Google',
+  both: 'OpenAI + Google',
+};
 
 interface CrewEditorProps {
   agentName: string;
@@ -29,6 +37,7 @@ export function CrewEditor({ agentName, crew, baseURL, onSaved, onDeleted, onCan
     isDefault: crew.isDefault,
     transitionTo: crew.transitionTo,
     transitionSystemPrompt: crew.transitionSystemPrompt,
+    knowledgeBase: crew.knowledgeBase,
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -36,6 +45,8 @@ export function CrewEditor({ agentName, crew, baseURL, onSaved, onDeleted, onCan
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [availableKBs, setAvailableKBs] = useState<KnowledgeBase[]>([]);
+  const [isLoadingKBs, setIsLoadingKBs] = useState(false);
 
   const isFileSource = crew.source === 'file';
   const isReadOnly = isFileSource;
@@ -51,10 +62,41 @@ export function CrewEditor({ agentName, crew, baseURL, onSaved, onDeleted, onCan
       isDefault: crew.isDefault,
       transitionTo: crew.transitionTo,
       transitionSystemPrompt: crew.transitionSystemPrompt,
+      knowledgeBase: crew.knowledgeBase,
     });
     setError(null);
     setSuccess(null);
   }, [crew]);
+
+  useEffect(() => {
+    const load = async () => {
+      setIsLoadingKBs(true);
+      try {
+        const kbs = await getKnowledgeBases(agentName, baseURL);
+        setAvailableKBs(kbs);
+      } catch {
+        // Non-critical — KB list just won't show
+      } finally {
+        setIsLoadingKBs(false);
+      }
+    };
+    load();
+  }, [agentName, baseURL]);
+
+  const handleKBChange = (kbId: string) => {
+    if (!kbId) {
+      handleChange('knowledgeBase', null);
+      return;
+    }
+    const kb = availableKBs.find(k => String(k.id) === kbId);
+    if (!kb) return;
+    handleChange('knowledgeBase', {
+      enabled: true,
+      kbId: kb.id,
+      storeId: kb.vectorStoreId,
+      googleCorpusId: kb.googleCorpusId,
+    });
+  };
 
   const handleChange = <K extends keyof CrewMemberUpdateRequest>(
     field: K,
@@ -248,6 +290,47 @@ export function CrewEditor({ agentName, crew, baseURL, onSaved, onDeleted, onCan
               />
             </div>
           </div>
+        </div>
+
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Knowledge Base</h3>
+
+          <div className={styles.field}>
+            <label className={styles.label}>Assign Knowledge Base</label>
+            <select
+              className={styles.select}
+              value={formData.knowledgeBase?.kbId ? String(formData.knowledgeBase.kbId) : ''}
+              onChange={e => handleKBChange(e.target.value)}
+              disabled={isReadOnly || isLoadingKBs}
+            >
+              <option value="">{isLoadingKBs ? 'Loading...' : 'None (no KB)'}</option>
+              {availableKBs.map(kb => (
+                <option key={kb.id} value={String(kb.id)}>
+                  {kb.name} — {PROVIDER_LABELS[kb.provider] ?? kb.provider}
+                </option>
+              ))}
+            </select>
+            <span className={styles.hint}>
+              The crew member will search this knowledge base when answering questions.
+            </span>
+          </div>
+
+          {formData.knowledgeBase && (
+            <div className={styles.kbInfo}>
+              {formData.knowledgeBase.storeId && (
+                <div className={styles.kbIdRow}>
+                  <span className={styles.kbIdLabel}>OpenAI Store:</span>
+                  <code className={styles.kbIdValue}>{formData.knowledgeBase.storeId}</code>
+                </div>
+              )}
+              {formData.knowledgeBase.googleCorpusId && (
+                <div className={styles.kbIdRow}>
+                  <span className={styles.kbIdLabel}>Google Corpus:</span>
+                  <code className={styles.kbIdValue}>{formData.knowledgeBase.googleCorpusId}</code>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className={styles.section}>

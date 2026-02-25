@@ -3,7 +3,21 @@ import { useAgentConfig } from '../../../context';
 import { useKnowledgeBase } from '../../../hooks';
 import { formatBytes } from '../../../utils';
 import { Button, Modal } from '../../common';
+import { SyncKBModal } from '../SyncKBModal';
+import type { KBProvider } from '../../../types';
 import styles from './KBManager.module.css';
+
+const PROVIDER_LABELS: Record<KBProvider, string> = {
+  openai: 'OpenAI',
+  google: 'Gemini',
+  both: 'Both',
+};
+
+const PROVIDER_HINTS: Record<KBProvider, string> = {
+  openai: 'Uses OpenAI vector stores for semantic search',
+  google: 'Uses Google File Search (free storage)',
+  both: 'Creates on both OpenAI and Google simultaneously',
+};
 
 export function KBManager() {
   const config = useAgentConfig();
@@ -13,27 +27,32 @@ export function KBManager() {
     files,
     isLoading,
     isUploading,
+    isSyncing,
     error,
     selectKnowledgeBase,
     createKnowledgeBase,
     uploadFiles,
     deleteFile,
+    syncKnowledgeBase,
     clearError,
   } = useKnowledgeBase(config.agentName, config.baseURL);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
   const [newKBName, setNewKBName] = useState('');
   const [newKBDescription, setNewKBDescription] = useState('');
+  const [newKBProvider, setNewKBProvider] = useState<KBProvider>('openai');
   const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
 
   const handleCreateKB = async () => {
     if (!newKBName.trim()) return;
     try {
-      await createKnowledgeBase(newKBName.trim(), newKBDescription.trim());
+      await createKnowledgeBase(newKBName.trim(), newKBDescription.trim(), newKBProvider);
       setShowCreateModal(false);
       setNewKBName('');
       setNewKBDescription('');
+      setNewKBProvider('openai');
     } catch {
       // Error handled by hook
     }
@@ -46,15 +65,19 @@ export function KBManager() {
     setShowUploadModal(false);
   };
 
+  const handleSync = async (targetProvider: KBProvider) => {
+    if (!selectedKB) return;
+    await syncKnowledgeBase(selectedKB.id, targetProvider);
+    setShowSyncModal(false);
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    const droppedFiles = Array.from(e.dataTransfer.files);
-    setFilesToUpload(prev => [...prev, ...droppedFiles]);
+    setFilesToUpload(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(e.target.files || []);
-    setFilesToUpload(prev => [...prev, ...selected]);
+    setFilesToUpload(prev => [...prev, ...Array.from(e.target.files || [])]);
   };
 
   const removeFileFromUpload = (index: number) => {
@@ -69,6 +92,13 @@ export function KBManager() {
     if (type.includes('text')) return '📃';
     return '📎';
   };
+
+  // Determine which provider(s) the selected KB can still sync to
+  const syncTargetProvider: KBProvider | null = selectedKB
+    ? selectedKB.provider === 'openai' ? 'google'
+    : selectedKB.provider === 'google' ? 'openai'
+    : null // 'both' — already on all providers
+    : null;
 
   return (
     <div className={styles.container}>
@@ -101,7 +131,15 @@ export function KBManager() {
                   className={`${styles.kbCard} ${selectedKB?.id === kb.id ? styles.active : ''}`}
                   onClick={() => selectKnowledgeBase(kb)}
                 >
-                  <div className={styles.kbName}>{kb.name}</div>
+                  <div className={styles.kbCardHeader}>
+                    <div className={styles.kbName}>{kb.name}</div>
+                    <span
+                      className={styles.providerBadge}
+                      data-provider={kb.provider}
+                    >
+                      {PROVIDER_LABELS[kb.provider]}
+                    </span>
+                  </div>
                   <div className={styles.kbMeta}>
                     {kb.fileCount} files • {formatBytes(kb.totalSize)}
                   </div>
@@ -121,10 +159,41 @@ export function KBManager() {
                   {selectedKB.description && (
                     <p className={styles.description}>{selectedKB.description}</p>
                   )}
+                  <div className={styles.kbIds}>
+                    {selectedKB.vectorStoreId && (
+                      <div className={styles.idRow}>
+                        <span className={styles.idLabel}>OpenAI:</span>
+                        <span className={styles.idValue} title={selectedKB.vectorStoreId}>
+                          {selectedKB.vectorStoreId}
+                        </span>
+                      </div>
+                    )}
+                    {selectedKB.googleCorpusId && (
+                      <div className={styles.idRow}>
+                        <span className={styles.idLabel}>Google:</span>
+                        <span className={styles.idValue} title={selectedKB.googleCorpusId}>
+                          {selectedKB.googleCorpusId}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <Button onClick={() => setShowUploadModal(true)}>
-                  Upload Files
-                </Button>
+                <div className={styles.headerActions}>
+                  {syncTargetProvider && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setShowSyncModal(true)}
+                      disabled={isSyncing}
+                      isLoading={isSyncing}
+                    >
+                      Sync to {PROVIDER_LABELS[syncTargetProvider]}
+                    </Button>
+                  )}
+                  <Button onClick={() => setShowUploadModal(true)}>
+                    Upload Files
+                  </Button>
+                </div>
               </div>
 
               <div className={styles.fileList}>
@@ -158,7 +227,8 @@ export function KBManager() {
                             <Button
                               variant="danger"
                               size="sm"
-                              onClick={() => deleteFile(file.id)}
+                              onClick={() => file.id !== null && deleteFile(file.id)}
+                              disabled={file.id === null}
                             >
                               Delete
                             </Button>
@@ -204,11 +274,24 @@ export function KBManager() {
               rows={3}
             />
           </div>
+          <div className={styles.field}>
+            <label>Provider</label>
+            <select
+              className={styles.providerSelect}
+              value={newKBProvider}
+              onChange={(e) => setNewKBProvider(e.target.value as KBProvider)}
+            >
+              <option value="openai">OpenAI</option>
+              <option value="google">Google Gemini</option>
+              <option value="both">Both (OpenAI + Google)</option>
+            </select>
+            <span className={styles.providerHint}>{PROVIDER_HINTS[newKBProvider]}</span>
+          </div>
           <div className={styles.actions}>
             <Button variant="secondary" onClick={() => setShowCreateModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateKB} disabled={!newKBName.trim()}>
+            <Button onClick={handleCreateKB} disabled={!newKBName.trim() || isLoading} isLoading={isLoading}>
               Create
             </Button>
           </div>
@@ -218,10 +301,7 @@ export function KBManager() {
       {/* Upload Modal */}
       <Modal
         isOpen={showUploadModal}
-        onClose={() => {
-          setShowUploadModal(false);
-          setFilesToUpload([]);
-        }}
+        onClose={() => { setShowUploadModal(false); setFilesToUpload([]); }}
         title="Upload Files"
         size="md"
       >
@@ -260,13 +340,7 @@ export function KBManager() {
           )}
 
           <div className={styles.actions}>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setShowUploadModal(false);
-                setFilesToUpload([]);
-              }}
-            >
+            <Button variant="secondary" onClick={() => { setShowUploadModal(false); setFilesToUpload([]); }}>
               Cancel
             </Button>
             <Button
@@ -279,6 +353,18 @@ export function KBManager() {
           </div>
         </div>
       </Modal>
+
+      {/* Sync Modal */}
+      {selectedKB && syncTargetProvider && (
+        <SyncKBModal
+          isOpen={showSyncModal}
+          sourceKB={selectedKB}
+          targetProvider={syncTargetProvider}
+          isSyncing={isSyncing}
+          onSync={handleSync}
+          onClose={() => setShowSyncModal(false)}
+        />
+      )}
     </div>
   );
 }

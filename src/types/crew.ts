@@ -78,7 +78,10 @@ export interface CrewState {
  * Knowledge base configuration for a crew member
  */
 export interface CrewKnowledgeBase {
-  storeId: string;
+  enabled: boolean;
+  kbId?: number;
+  storeId?: string;
+  googleCorpusId?: string;
   searchInstructions?: string;
 }
 

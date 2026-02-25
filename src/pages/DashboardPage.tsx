@@ -5,6 +5,7 @@ import { FeedbackPage } from '../components/dashboard/FeedbackPage';
 import { UsersPage } from '../components/dashboard/UsersPage';
 import { CrewPage } from '../components/dashboard/CrewPage';
 import { QueryOptimizerPage } from '../components/dashboard/QueryOptimizerPage';
+import { KBManager } from '../components/kb';
 import { aspectConfig, freedaConfig } from '../agents';
 import type { AgentConfig } from '../types';
 
@@ -48,6 +49,10 @@ export function DashboardPage() {
             <Route
               path="crew"
               element={<CrewPage agentName={config.agentName} baseURL={config.baseURL} />}
+            />
+            <Route
+              path="knowledge-base"
+              element={<KBManager />}
             />
             {showQueryOptimizer && (
               <Route

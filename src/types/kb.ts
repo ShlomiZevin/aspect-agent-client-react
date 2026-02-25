@@ -1,8 +1,15 @@
+export type KBProvider = 'openai' | 'google' | 'both';
+
 export interface KnowledgeBase {
   id: number;
   name: string;
   description: string;
   agentName: string;
+  provider: KBProvider;
+  vectorStoreId?: string;       // OpenAI vector store ID
+  googleCorpusId?: string;      // Google File Search Store name
+  syncedFromId?: number;
+  lastSyncedAt?: Date;
   fileCount: number;
   totalSize: number;
   createdAt: Date;
@@ -10,7 +17,9 @@ export interface KnowledgeBase {
 }
 
 export interface KBFile {
-  id: string;
+  id: number | null;            // DB numeric ID (null for legacy files not yet in DB)
+  openaiFileId?: string;        // OpenAI file ID
+  googleDocumentId?: string;    // Google document name
   name: string;
   size: number;
   type: string;

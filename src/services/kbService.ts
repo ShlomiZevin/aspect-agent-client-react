@@ -1,5 +1,5 @@
 import { apiRequest, getBaseURL } from './api';
-import type { KnowledgeBase, KBFile } from '../types';
+import type { KnowledgeBase, KBFile, KBProvider } from '../types';
 
 interface KBListResponse {
   knowledgeBases: Array<{
@@ -7,6 +7,11 @@ interface KBListResponse {
     name: string;
     description: string;
     agentName: string;
+    provider: KBProvider;
+    vectorStoreId?: string;
+    googleCorpusId?: string;
+    syncedFromId?: number;
+    lastSyncedAt?: string;
     createdAt: string;
     updatedAt: string;
     fileCount: number;
@@ -18,7 +23,8 @@ interface KBFilesResponse {
   knowledgeBaseId: number;
   files: Array<{
     id: number;
-    openaiFileId: string;
+    openaiFileId?: string;
+    googleDocumentId?: string;
     fileName: string;
     fileSize: number;
     fileType: string;
@@ -27,6 +33,24 @@ interface KBFilesResponse {
     createdAt: string;
     updatedAt: string;
   }>;
+}
+
+function mapKB(kb: KBListResponse['knowledgeBases'][0]): KnowledgeBase {
+  return {
+    id: kb.id,
+    name: kb.name,
+    description: kb.description,
+    agentName: kb.agentName || '',
+    provider: kb.provider || 'openai',
+    vectorStoreId: kb.vectorStoreId,
+    googleCorpusId: kb.googleCorpusId,
+    syncedFromId: kb.syncedFromId,
+    lastSyncedAt: kb.lastSyncedAt ? new Date(kb.lastSyncedAt) : undefined,
+    fileCount: kb.fileCount,
+    totalSize: kb.totalSize,
+    createdAt: new Date(kb.createdAt),
+    updatedAt: new Date(kb.updatedAt),
+  };
 }
 
 export async function getKnowledgeBases(
@@ -38,17 +62,7 @@ export async function getKnowledgeBases(
     { method: 'GET' },
     baseURL || getBaseURL()
   );
-
-  return data.knowledgeBases.map(kb => ({
-    id: kb.id,
-    name: kb.name,
-    description: kb.description,
-    agentName: kb.agentName,
-    fileCount: kb.fileCount,
-    totalSize: kb.totalSize,
-    createdAt: new Date(kb.createdAt),
-    updatedAt: new Date(kb.updatedAt),
-  }));
+  return data.knowledgeBases.map(mapKB);
 }
 
 export async function getKBFiles(
@@ -62,12 +76,14 @@ export async function getKBFiles(
   );
 
   return data.files.map(file => ({
-    id: file.openaiFileId,  // Use openaiFileId for delete operations
+    id: file.id ?? null,
+    openaiFileId: file.openaiFileId,
+    googleDocumentId: file.googleDocumentId,
     name: file.fileName,
     size: file.fileSize,
     type: file.fileType,
     tags: file.tags || [],
-    uploadedAt: new Date(file.createdAt),
+    uploadedAt: file.createdAt ? new Date(file.createdAt) : new Date(),
   }));
 }
 
@@ -75,18 +91,18 @@ export async function createKnowledgeBase(
   name: string,
   description: string,
   agentName: string,
+  provider: KBProvider,
   baseURL?: string
 ): Promise<KnowledgeBase> {
-  const data = await apiRequest<{ success: boolean; knowledgeBase: KnowledgeBase }>(
+  const data = await apiRequest<{ success: boolean; knowledgeBase: KBListResponse['knowledgeBases'][0] }>(
     '/api/kb/create',
     {
       method: 'POST',
-      body: JSON.stringify({ name, description, agentName }),
+      body: JSON.stringify({ name, description, agentName, provider }),
     },
     baseURL || getBaseURL()
   );
-
-  return data.knowledgeBase;
+  return mapKB(data.knowledgeBase);
 }
 
 export async function uploadFiles(
@@ -95,21 +111,16 @@ export async function uploadFiles(
   tags: string[] = [],
   baseURL?: string
 ): Promise<void> {
-  // Server expects single file uploads with field name 'file'
-  // Upload files sequentially
   for (const file of files) {
     const formData = new FormData();
-    formData.append('file', file);  // Server expects 'file' (singular)
+    formData.append('file', file);
     if (tags.length > 0) {
       formData.append('tags', JSON.stringify(tags));
     }
 
     const response = await fetch(
       `${baseURL || getBaseURL()}/api/kb/${kbId}/upload`,
-      {
-        method: 'POST',
-        body: formData,
-      }
+      { method: 'POST', body: formData }
     );
 
     if (!response.ok) {
@@ -121,7 +132,7 @@ export async function uploadFiles(
 
 export async function deleteFile(
   kbId: number,
-  fileId: string,
+  fileId: number,
   baseURL?: string
 ): Promise<void> {
   await apiRequest(
@@ -129,4 +140,30 @@ export async function deleteFile(
     { method: 'DELETE' },
     baseURL || getBaseURL()
   );
+}
+
+export async function syncKnowledgeBase(
+  kbId: number,
+  targetProvider: KBProvider,
+  baseURL?: string
+): Promise<{ syncedCount: number; totalFiles: number; knowledgeBase: KnowledgeBase }> {
+  const data = await apiRequest<{
+    success: boolean;
+    syncedCount: number;
+    totalFiles: number;
+    knowledgeBase: KBListResponse['knowledgeBases'][0];
+  }>(
+    `/api/kb/${kbId}/sync`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ targetProvider }),
+    },
+    baseURL || getBaseURL()
+  );
+
+  return {
+    syncedCount: data.syncedCount,
+    totalFiles: data.totalFiles,
+    knowledgeBase: mapKB(data.knowledgeBase),
+  };
 }
