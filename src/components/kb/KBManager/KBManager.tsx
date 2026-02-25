@@ -227,8 +227,8 @@ export function KBManager() {
                             <Button
                               variant="danger"
                               size="sm"
-                              onClick={() => file.id !== null && deleteFile(file.id)}
-                              disabled={file.id === null}
+                              onClick={() => deleteFile(file)}
+                              disabled={file.id === null && !file.openaiFileId}
                             >
                               Delete
                             </Button>

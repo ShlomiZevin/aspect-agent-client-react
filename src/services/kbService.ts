@@ -142,6 +142,18 @@ export async function deleteFile(
   );
 }
 
+export async function deleteFileLegacy(
+  kbId: number,
+  openaiFileId: string,
+  baseURL?: string
+): Promise<void> {
+  await apiRequest(
+    `/api/kb/${kbId}/files/openai/${encodeURIComponent(openaiFileId)}`,
+    { method: 'DELETE' },
+    baseURL || getBaseURL()
+  );
+}
+
 export async function syncKnowledgeBase(
   kbId: number,
   targetProvider: KBProvider,

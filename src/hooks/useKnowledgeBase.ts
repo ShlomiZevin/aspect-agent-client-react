@@ -5,6 +5,7 @@ import {
   createKnowledgeBase as createKBApi,
   uploadFiles as uploadFilesApi,
   deleteFile as deleteFileApi,
+  deleteFileLegacy as deleteFileLegacyApi,
   syncKnowledgeBase as syncKBApi,
 } from '../services/kbService';
 import type { KnowledgeBase, KBFile, KBProvider } from '../types';
@@ -21,7 +22,7 @@ export interface UseKnowledgeBaseReturn {
   selectKnowledgeBase: (kb: KnowledgeBase | null) => Promise<void>;
   createKnowledgeBase: (name: string, description: string, provider: KBProvider) => Promise<KnowledgeBase>;
   uploadFiles: (files: File[], tags?: string[]) => Promise<void>;
-  deleteFile: (fileId: number) => Promise<void>;
+  deleteFile: (file: KBFile) => Promise<void>;
   syncKnowledgeBase: (kbId: number, targetProvider: KBProvider) => Promise<void>;
   clearError: () => void;
 }
@@ -115,12 +116,17 @@ export function useKnowledgeBase(
   );
 
   const deleteFile = useCallback(
-    async (fileId: number) => {
+    async (file: KBFile) => {
       if (!selectedKB) { setError('No knowledge base selected'); return; }
 
       try {
-        await deleteFileApi(selectedKB.id, fileId, baseURL);
-        setFiles(prev => prev.filter(f => f.id !== fileId));
+        if (file.id !== null) {
+          await deleteFileApi(selectedKB.id, file.id, baseURL);
+          setFiles(prev => prev.filter(f => f.id !== file.id));
+        } else if (file.openaiFileId) {
+          await deleteFileLegacyApi(selectedKB.id, file.openaiFileId, baseURL);
+          setFiles(prev => prev.filter(f => f.openaiFileId !== file.openaiFileId));
+        }
         await loadKnowledgeBases();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to delete file');
