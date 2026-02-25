@@ -152,7 +152,15 @@ export function Message({ message }: MessageProps) {
             <div className={styles.messageHeader}>
               {message.crewMember && (
                 <div className={styles.crewLabel}>
-                  {getTranslatedCrewName(config.agentName, message.crewMember, language, message.crewMember)}
+                  {(() => {
+                    // Look up the actual crew name from the crewMembers list
+                    // message.crewMember is the displayName, but translations use the file-based name
+                    const match = crewMembers.find(c =>
+                      c.displayName.toLowerCase() === message.crewMember?.toLowerCase()
+                    );
+                    const crewName = match?.name ?? message.crewMember;
+                    return getTranslatedCrewName(config.agentName, crewName, language, message.crewMember);
+                  })()}
                 </div>
               )}
               <div className={styles.headerActions}>
