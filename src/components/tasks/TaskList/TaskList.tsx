@@ -9,6 +9,10 @@ interface TaskListProps {
   showDraftCheckboxes?: boolean;
   selectedDrafts?: Set<number>;
   onToggleDraftSelection?: (taskId: number) => void;
+  // Export selection props
+  showExportCheckboxes?: boolean;
+  selectedExports?: Set<number>;
+  onToggleExportSelection?: (taskId: number) => void;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -75,7 +79,8 @@ function containsHebrew(text: string): boolean {
   return /[\u0590-\u05FF]/.test(text);
 }
 
-export function TaskList({ tasks, onTaskClick, onDeleteTask, showDraftCheckboxes, selectedDrafts, onToggleDraftSelection }: TaskListProps) {
+export function TaskList({ tasks, onTaskClick, onDeleteTask, showDraftCheckboxes, selectedDrafts, onToggleDraftSelection, showExportCheckboxes, selectedExports, onToggleExportSelection }: TaskListProps) {
+  const showCheckboxes = showDraftCheckboxes || showExportCheckboxes;
   if (tasks.length === 0) {
     return (
       <div className={styles.empty}>
@@ -89,7 +94,7 @@ export function TaskList({ tasks, onTaskClick, onDeleteTask, showDraftCheckboxes
       <table className={styles.table}>
         <thead>
           <tr>
-            {showDraftCheckboxes && <th className={styles.checkboxCol}></th>}
+            {showCheckboxes && <th className={styles.checkboxCol}></th>}
             <th>Title</th>
             <th>Domain</th>
             <th>Type</th>
@@ -103,18 +108,31 @@ export function TaskList({ tasks, onTaskClick, onDeleteTask, showDraftCheckboxes
         <tbody>
           {tasks.map(task => (
             <tr key={task.id} className={task.atRisk ? styles.atRiskRow : ''} onClick={() => onTaskClick(task)}>
-              {showDraftCheckboxes && (
+              {showCheckboxes && (
                 <td className={styles.checkboxCell}>
-                  <input
-                    type="checkbox"
-                    checked={selectedDrafts?.has(task.id) || false}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      onToggleDraftSelection?.(task.id);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    className={styles.draftCheckbox}
-                  />
+                  {showDraftCheckboxes ? (
+                    <input
+                      type="checkbox"
+                      checked={selectedDrafts?.has(task.id) || false}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        onToggleDraftSelection?.(task.id);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className={styles.draftCheckbox}
+                    />
+                  ) : (
+                    <input
+                      type="checkbox"
+                      checked={selectedExports?.has(task.id) || false}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        onToggleExportSelection?.(task.id);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className={styles.exportCheckbox}
+                    />
+                  )}
                 </td>
               )}
               <td className={styles.titleCell}>

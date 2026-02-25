@@ -51,6 +51,8 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
   const [showDraftsOnly, setShowDraftsOnly] = useState(false);
   const [selectedDrafts, setSelectedDrafts] = useState<Set<number>>(new Set());
+  const [selectedExports, setSelectedExports] = useState<Set<number>>(new Set());
+  const [exportCopied, setExportCopied] = useState(false);
   const [draftByDefault, setDraftByDefault] = useState(() => getDraftDefault());
 
   // Delete confirmation modal state
@@ -305,6 +307,55 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     }
   };
 
+  // Export selection handlers
+  const handleToggleExportSelection = (taskId: number) => {
+    setSelectedExports(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAllExports = () => {
+    setSelectedExports(new Set(filteredTasks.map(t => t.id)));
+  };
+
+  const handleDeselectAllExports = () => {
+    setSelectedExports(new Set());
+  };
+
+  const stripHtml = (html: string): string => {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div.textContent || div.innerText || '';
+  };
+
+  const handleExportTasks = async () => {
+    const tasksToExport = filteredTasks.filter(t => selectedExports.has(t.id));
+    if (tasksToExport.length === 0) return;
+
+    const lines: string[] = ['## Tasks', ''];
+    tasksToExport.forEach((task, index) => {
+      lines.push(`### ${index + 1}. ${task.title}`);
+      if (task.description) {
+        lines.push(stripHtml(task.description));
+      }
+      lines.push('');
+    });
+
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      setExportCopied(true);
+      setTimeout(() => setExportCopied(false), 2000);
+    } catch {
+      console.error('Failed to copy to clipboard');
+    }
+  };
+
   const handleCloseForm = () => {
     setEditingTask(null);
     setShowForm(false);
@@ -344,13 +395,13 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
           <div className={styles.viewToggle}>
             <button
               className={`${styles.viewBtn} ${viewMode === 'list' ? styles.active : ''}`}
-              onClick={() => setViewMode('list')}
+              onClick={() => { setViewMode('list'); }}
             >
               List
             </button>
             <button
               className={`${styles.viewBtn} ${viewMode === 'board' ? styles.active : ''}`}
-              onClick={() => setViewMode('board')}
+              onClick={() => { setViewMode('board'); setSelectedExports(new Set()); }}
             >
               Board
             </button>
@@ -491,6 +542,39 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
           </div>
         )}
 
+        {/* Export Bulk Action Bar */}
+        {viewMode === 'list' && !showDraftsOnly && filteredTasks.length > 0 && (
+          <div className={styles.exportActions}>
+            <div className={styles.bulkInfo}>
+              <label className={styles.exportSelectAllLabel}>
+                <input
+                  type="checkbox"
+                  checked={selectedExports.size === filteredTasks.length && filteredTasks.length > 0}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      handleSelectAllExports();
+                    } else {
+                      handleDeselectAllExports();
+                    }
+                  }}
+                />
+                Select All ({filteredTasks.length})
+              </label>
+              {selectedExports.size > 0 && (
+                <span className={styles.exportSelectedCount}>{selectedExports.size} selected</span>
+              )}
+            </div>
+            {selectedExports.size > 0 && (
+              <button
+                className={styles.exportBtn}
+                onClick={handleExportTasks}
+              >
+                {exportCopied ? 'Copied!' : `Copy ${selectedExports.size} Task${selectedExports.size > 1 ? 's' : ''} for Claude Code`}
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Content */}
         <div className={styles.content}>
           {isLoading ? (
@@ -507,6 +591,9 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                   showDraftCheckboxes={showDraftsOnly}
                   selectedDrafts={selectedDrafts}
                   onToggleDraftSelection={handleToggleDraftSelection}
+                  showExportCheckboxes={!showDraftsOnly}
+                  selectedExports={selectedExports}
+                  onToggleExportSelection={handleToggleExportSelection}
                 />
               )}
             </div>
