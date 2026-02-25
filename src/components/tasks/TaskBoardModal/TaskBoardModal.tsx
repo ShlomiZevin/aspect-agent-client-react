@@ -53,6 +53,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const [selectedDrafts, setSelectedDrafts] = useState<Set<number>>(new Set());
   const [selectedExports, setSelectedExports] = useState<Set<number>>(new Set());
   const [exportCopied, setExportCopied] = useState(false);
+  const [idSearch, setIdSearch] = useState('');
   const [draftByDefault, setDraftByDefault] = useState(() => getDraftDefault());
 
   // Delete confirmation modal state
@@ -340,7 +341,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
 
     const lines: string[] = ['## Tasks', ''];
     tasksToExport.forEach((task, index) => {
-      lines.push(`### ${index + 1}. ${task.title}`);
+      lines.push(`### ${index + 1}. [#${task.id}] ${task.title}`);
       if (task.description) {
         lines.push(stripHtml(task.description));
       }
@@ -353,6 +354,18 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
       setTimeout(() => setExportCopied(false), 2000);
     } catch {
       console.error('Failed to copy to clipboard');
+    }
+  };
+
+  const handleIdSearchSubmit = () => {
+    const id = parseInt(idSearch, 10);
+    if (!isNaN(id) && id > 0) {
+      const task = tasks.find(t => t.id === id);
+      if (task) {
+        setEditingTask(task);
+        setShowForm(true);
+        setIdSearch('');
+      }
     }
   };
 
@@ -406,6 +419,16 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
               Board
             </button>
           </div>
+
+          <input
+            className={styles.idSearch}
+            type="text"
+            placeholder="#ID"
+            value={idSearch}
+            onChange={(e) => setIdSearch(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleIdSearchSubmit(); }}
+            onClick={(e) => e.stopPropagation()}
+          />
 
           <select
             className={styles.domainFilter}
