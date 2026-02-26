@@ -1,14 +1,17 @@
 .section {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
   gap: 10px;
-  height: 100%;
 }
 
 .header {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .title {
@@ -60,6 +63,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .identityPrompt {
@@ -116,13 +120,14 @@
   text-decoration: underline;
 }
 
-/* ─── Comment list ────────────────────────────────────────────────────────── */
+/* ─── Comment list ─────────────────────────────────────────────────────────── */
 
 .list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: 280px;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding-right: 2px;
 }
@@ -130,13 +135,22 @@
 .empty {
   font-size: 12px;
   color: var(--text-muted, #9ca3af);
-  padding: 4px 0;
+  padding: 8px 0;
 }
 
 .comment {
   display: flex;
   gap: 8px;
   align-items: flex-start;
+  background: white;
+  border-radius: 8px;
+  padding: 8px 10px;
+  border: 1px solid #f0f2f5;
+  transition: border-color 0.15s;
+}
+
+.comment:hover {
+  border-color: #e5e7eb;
 }
 
 .avatar {
@@ -162,7 +176,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 
 .commentAuthor {
@@ -202,40 +216,52 @@
   font-size: 13px;
   color: var(--text-secondary, #374151);
   line-height: 1.5;
-  white-space: pre-wrap;
   word-break: break-word;
 }
 
-/* ─── Input area ──────────────────────────────────────────────────────────── */
+/* Images pasted into comments */
+.commentContent img {
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 4px 0;
+  display: block;
+  cursor: zoom-in;
+}
+
+/* Rich text formatting in comments */
+.commentContent strong, .commentContent b {
+  font-weight: 600;
+}
+
+.commentContent u {
+  text-decoration: underline;
+}
+
+.commentContent ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+.commentContent li {
+  margin: 2px 0;
+}
+
+.commentContent code {
+  background: #f3f4f6;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+  font-size: 0.9em;
+  color: #4f46e5;
+}
+
+/* ─── Input area — sticky at bottom ──────────────────────────────────────── */
 
 .inputArea {
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.textarea {
-  width: 100%;
-  resize: vertical;
-  padding: 8px 10px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 6px;
-  font-size: 13px;
-  font-family: inherit;
-  color: var(--text-primary, #111827);
-  background: white;
-  transition: border-color 0.15s;
-  box-sizing: border-box;
-  min-height: 60px;
-}
-
-.textarea:focus {
-  outline: none;
-  border-color: var(--color-primary, #4f46e5);
-}
-
-.textarea:disabled {
-  opacity: 0.6;
+  flex-shrink: 0;
 }
 
 .inputActions {

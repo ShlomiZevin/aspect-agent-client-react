@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { TaskComment, Assignee } from '../../../types/task';
 import * as commentsService from '../../../services/commentsService';
 import { useCommenterIdentity } from '../../../hooks/useCommenterIdentity';
+import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
 import styles from './CommentsSection.module.css';
 
 interface CommentsSectionProps {
@@ -33,6 +34,13 @@ function authorColor(name: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
+function isHtmlEmpty(html: string): boolean {
+  if (!html || html === '<br>') return true;
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return !div.textContent?.trim() && !div.querySelector('img');
+}
+
 export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
   const { identity, setIdentity } = useCommenterIdentity();
   const [comments, setComments] = useState<TaskComment[]>([]);
@@ -52,7 +60,7 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
   }, [taskId]);
 
   const handleSubmit = async () => {
-    if (!text.trim()) return;
+    if (isHtmlEmpty(text)) return;
 
     // If no identity yet, show picker first
     if (!identity) {
@@ -86,7 +94,7 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
     setIdentity(name);
     setShowIdentityPicker(false);
     // If there was pending text, submit it now
-    if (text.trim()) {
+    if (!isHtmlEmpty(text)) {
       setSubmitting(true);
       commentsService.addComment(taskId, name, text.trim())
         .then(comment => {
@@ -96,13 +104,6 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
         })
         .catch(console.error)
         .finally(() => setSubmitting(false));
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      handleSubmit();
     }
   };
 
@@ -148,7 +149,7 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
         </div>
       )}
 
-      {/* Comment list */}
+      {/* Comment list — scrollable, grows to fill space */}
       <div className={styles.list}>
         {loading && <div className={styles.empty}>Loading…</div>}
         {!loading && comments.length === 0 && (
@@ -175,30 +176,39 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
                   </button>
                 )}
               </div>
-              <p className={styles.commentContent}>{c.content}</p>
+              <div
+                className={styles.commentContent}
+                dangerouslySetInnerHTML={{ __html: c.content }}
+              />
             </div>
           </div>
         ))}
         <div ref={bottomRef} />
       </div>
 
-      {/* Input area */}
+      {/* Input area — sticky at bottom */}
       {!showIdentityPicker && (
         <div className={styles.inputArea}>
-          <textarea
-            className={styles.textarea}
-            value={text}
-            onChange={e => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={identity ? 'Add a comment… (Ctrl+Enter to submit)' : 'Add a comment…'}
-            rows={2}
-            disabled={submitting}
-          />
+          {/* Ctrl+Enter submit via keydown bubbling */}
+          <div
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+          >
+            <RichTextEditor
+              value={text}
+              onChange={setText}
+              placeholder={identity ? 'Add a comment… (Ctrl+Enter to submit)' : 'Add a comment…'}
+            />
+          </div>
           <div className={styles.inputActions}>
             <button
               className={styles.submitBtn}
               onClick={handleSubmit}
-              disabled={submitting || !text.trim()}
+              disabled={submitting || isHtmlEmpty(text)}
             >
               {submitting ? 'Posting…' : 'Comment'}
             </button>

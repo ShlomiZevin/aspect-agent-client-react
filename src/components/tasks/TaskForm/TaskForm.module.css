@@ -12,7 +12,7 @@
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden;
   padding: var(--spacing-md);
   background: var(--surface-light, #f9fafb);
 }
