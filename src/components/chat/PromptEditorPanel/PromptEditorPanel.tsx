@@ -10,6 +10,8 @@ import {
   deletePromptVersion,
 } from '../../../services/promptService';
 import { getCrewTransitionLogic } from '../../../services/crewService';
+import { getKnowledgeBases } from '../../../services/kbService';
+import type { KnowledgeBase } from '../../../types';
 import styles from './PromptEditorPanel.module.css';
 
 const OPENAI_MODELS = [
@@ -65,6 +67,7 @@ interface PromptEditorPanelProps {
   onClose: () => void;
   onSessionOverride: (crewMemberId: string, prompt: string) => void;
   onModelOverride: (crewMemberId: string, model: string) => void;
+  onKBOverride: (crewMemberId: string, sources: string[]) => void;
   onFireTransitionPrompt?: (content: string, crewMemberName?: string) => Promise<void>;
   personaOverride: string | null;
   onPersonaOverride: (persona: string | null) => void;
@@ -85,6 +88,7 @@ export function PromptEditorPanel({
   onClose,
   onSessionOverride,
   onModelOverride,
+  onKBOverride,
   onFireTransitionPrompt,
   personaOverride,
   onPersonaOverride,
@@ -144,6 +148,44 @@ export function PromptEditorPanel({
       setEditedPersona(codePersona);
     }
   }, [codePersona, personaOverride]);
+
+  // KB override state - { crewName: string[] }
+  const [kbOverrides, setKbOverrides] = useState<Record<string, string[]>>({});
+  // Available KBs for this agent (loaded once)
+  const [availableKBs, setAvailableKBs] = useState<KnowledgeBase[]>([]);
+  const [showKBOverride, setShowKBOverride] = useState(false);
+
+  // Load available KBs once on mount
+  useEffect(() => {
+    if (!agentName) return;
+    getKnowledgeBases(agentName, baseURL)
+      .then(setAvailableKBs)
+      .catch(err => console.warn('Could not load KBs:', err.message));
+  }, [agentName, baseURL]);
+
+  // Toggle a KB source override for the selected crew
+  const handleKBToggle = useCallback((kbName: string) => {
+    setKbOverrides(prev => {
+      const current = prev[selectedCrewId] || [];
+      const next = current.includes(kbName)
+        ? current.filter(n => n !== kbName)
+        : [...current, kbName];
+      const updated = { ...prev, [selectedCrewId]: next };
+      onKBOverride(selectedCrewId, next);
+      return updated;
+    });
+  }, [selectedCrewId, onKBOverride]);
+
+  // Get current crew's configured KB sources (from crew member definition)
+  const crewKBSources: string[] = useMemo(() => {
+    const crew = crewMembers.find(c => c.name === selectedCrewId);
+    return crew?.knowledgeBase?.sources || [];
+  }, [crewMembers, selectedCrewId]);
+
+  // Current effective KB sources (override or crew config)
+  const activeKBSources = kbOverrides[selectedCrewId] !== undefined
+    ? kbOverrides[selectedCrewId]
+    : crewKBSources;
 
   // Enlarge modal state
   const [showPromptModal, setShowPromptModal] = useState(false);
@@ -655,6 +697,111 @@ export function PromptEditorPanel({
             </select>
           </div>
         </div>
+      </div>
+
+      {/* Knowledge Base Section */}
+      <div className={styles.editorSection}>
+        <button
+          className={styles.collapsibleHeader}
+          onClick={() => setShowKBOverride(!showKBOverride)}
+          type="button"
+        >
+          <span className={styles.editorLabelText}>
+            Knowledge Bases
+            {kbOverrides[selectedCrewId] !== undefined && (
+              <span className={styles.hasContentBadge}>OVERRIDE</span>
+            )}
+          </span>
+          <svg
+            className={`${styles.chevron} ${showKBOverride ? styles.expanded : ''}`}
+            width="14" height="14" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" strokeWidth="2"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        {showKBOverride && (
+          <div className={styles.kbSection}>
+            {/* Current crew's configured KB sources */}
+            {crewKBSources.length === 0 ? (
+              <p className={styles.kbNone}>No knowledge bases configured for this crew</p>
+            ) : (
+              <div className={styles.kbSourceList}>
+                {crewKBSources.map(sourceName => {
+                  const kb = availableKBs.find(k => k.name === sourceName);
+                  const providerOk = currentProvider === 'openai'
+                    ? kb?.vectorStoreId
+                    : currentProvider === 'google'
+                    ? kb?.googleCorpusId
+                    : false;
+                  return (
+                    <div key={sourceName} className={styles.kbSourceItem}>
+                      <span className={styles.kbSourceName}>{sourceName}</span>
+                      {currentProvider === 'anthropic' ? (
+                        <span className={styles.kbWarning}>KB not supported with Claude</span>
+                      ) : kb ? (
+                        providerOk
+                          ? <span className={styles.kbOk}>✓ {currentProvider}</span>
+                          : <span className={styles.kbWarning}>⚠ No {currentProvider} ID</span>
+                      ) : (
+                        <span className={styles.kbMissing}>Not found in DB</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Override checkboxes - all available KBs */}
+            {availableKBs.length > 0 && (
+              <>
+                <p className={styles.helperText}>
+                  Override KB sources for this session:
+                </p>
+                <div className={styles.kbCheckboxes}>
+                  {availableKBs.map(kb => {
+                    const isChecked = activeKBSources.includes(kb.name);
+                    return (
+                      <label key={kb.id} className={styles.kbCheckboxLabel}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleKBToggle(kb.name)}
+                        />
+                        <span>{kb.name}</span>
+                        <span className={styles.kbMeta}>
+                          {kb.fileCount} files
+                          {!kb.vectorStoreId && ' (no OpenAI)'}
+                          {!kb.googleCorpusId && ' (no Google)'}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {kbOverrides[selectedCrewId] !== undefined && (
+                  <button
+                    className={styles.fireNowButton}
+                    onClick={() => {
+                      setKbOverrides(prev => {
+                        const next = { ...prev };
+                        delete next[selectedCrewId];
+                        return next;
+                      });
+                      onKBOverride(selectedCrewId, []);
+                    }}
+                    type="button"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                      <path d="M3 3v5h5" />
+                    </svg>
+                    Clear KB Override
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Agent Persona (Collapsible, agent-level) */}

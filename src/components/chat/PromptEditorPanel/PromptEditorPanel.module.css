@@ -947,3 +947,86 @@
   color: var(--primary-color);
   background: var(--surface-light);
 }
+
+/* KB Section */
+.kbSection {
+  padding: var(--spacing-sm) var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.kbNone {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.kbSourceList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: var(--spacing-xs);
+}
+
+.kbSourceItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  gap: var(--spacing-sm);
+}
+
+.kbSourceName {
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kbOk {
+  font-size: 11px;
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+.kbWarning {
+  font-size: 11px;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.kbMissing {
+  font-size: 11px;
+  color: var(--error-color, #ef4444);
+  flex-shrink: 0;
+}
+
+.kbCheckboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kbCheckboxLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.kbCheckboxLabel input[type="checkbox"] {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.kbMeta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+  flex-shrink: 0;
+}

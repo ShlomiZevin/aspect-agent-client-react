@@ -33,6 +33,7 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   setModelOverride: (crewMemberId: string, model: string) => void;
   personaOverride: string | null;
   setPersonaOverride: (persona: string | null) => void;
+  setKBOverride: (crewMemberId: string, sources: string[]) => void;
   // Fields editor
   isFieldsEditorOpen: boolean;
   setFieldsEditorOpen: (open: boolean) => void;
@@ -94,6 +95,20 @@ export function ChatProvider({ children }: ChatProviderProps) {
     }
   }, []);
 
+  // KB overrides for debug mode (session-only)
+  const [kbOverrides, setKBOverrides] = useState<Record<string, string[]>>({});
+  const setKBOverride = useCallback((crewMemberId: string, sources: string[]) => {
+    if (sources && sources.length > 0) {
+      setKBOverrides(prev => ({ ...prev, [crewMemberId]: sources }));
+    } else {
+      setKBOverrides(prev => {
+        const next = { ...prev };
+        delete next[crewMemberId];
+        return next;
+      });
+    }
+  }, []);
+
   const conversation = useConversation(
     config.storagePrefix,
     config.agentName,
@@ -133,6 +148,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     promptOverrides: debugMode ? promptOverrides : undefined, // Only use in debug mode
     modelOverrides: debugMode ? modelOverrides : undefined,
     personaOverride: debugMode ? (personaOverride || undefined) : undefined,
+    kbOverrides: debugMode ? kbOverrides : undefined,
     onCrewInfo: (crewInfo) => {
       crew.setCurrentCrew(crewInfo);
       // Refresh fields panel when crew is set (including initial crew)
@@ -372,6 +388,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     setModelOverride,
     personaOverride,
     setPersonaOverride,
+    setKBOverride,
     // Fields editor
     isFieldsEditorOpen,
     setFieldsEditorOpen,

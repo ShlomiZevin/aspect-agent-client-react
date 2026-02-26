@@ -6,11 +6,12 @@ import { UsersPage } from '../components/dashboard/UsersPage';
 import { CrewPage } from '../components/dashboard/CrewPage';
 import { QueryOptimizerPage } from '../components/dashboard/QueryOptimizerPage';
 import { KBManager } from '../components/kb';
-import { aspectConfig, freedaConfig } from '../agents';
+import { aspectConfig, compassConfig, freedaConfig } from '../agents';
 import type { AgentConfig } from '../types';
 
 const agentConfigs: Record<string, AgentConfig> = {
   aspect: aspectConfig,
+  compass: compassConfig,
   freeda: freedaConfig,
 };
 
