@@ -44,7 +44,7 @@ function AppContent() {
 
         {/* Landing Pages - Marketing */}
         <Route path="/aspect/ai" element={<AspectLandingPage />} />
-        <Route path="/lybi" element={<LybiLandingPage />} />
+        <Route path="/lybi/*" element={<LybiLandingPage />} />
 
         {/* Main agent routes with optional conversation ID */}
         <Route path="/aspect" element={<AspectPage />} />

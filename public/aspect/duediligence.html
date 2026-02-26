@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aspect — סקירת רכיבי קוד פתוח | Due Diligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f8f9fb;
+      --surface: #ffffff;
+      --border: #e2e6ed;
+      --border-light: #f0f2f5;
+      --text: #1a1d23;
+      --text-secondary: #5a6170;
+      --text-muted: #8b93a1;
+      --accent: #2563eb;
+      --accent-light: #eff4ff;
+      --green: #16a34a;
+      --green-bg: #f0fdf4;
+      --green-border: #bbf7d0;
+      --amber: #d97706;
+      --amber-bg: #fffbeb;
+      --amber-border: #fde68a;
+      --section-num: #94a3b8;
+    }
+
+    body {
+      font-family: 'Heebo', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      padding: 48px 0 40px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+    }
+    .header-label {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-light);
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .header .subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+    .header .date {
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Sections */
+    .section {
+      margin-bottom: 40px;
+    }
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border-light);
+    }
+    .section-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--section-num);
+      flex-shrink: 0;
+    }
+    .section-header h2 {
+      font-size: 19px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .subsection {
+      margin: 20px 0;
+    }
+    .subsection h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+      padding-right: 4px;
+    }
+
+    p {
+      margin-bottom: 12px;
+      color: var(--text-secondary);
+    }
+    p strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    code {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      background: #f1f5f9;
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      margin: 16px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    thead {
+      background: #f6f8fa;
+    }
+    th {
+      padding: 10px 14px;
+      text-align: right;
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-light);
+      vertical-align: top;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    tbody tr:hover {
+      background: #fafbfc;
+    }
+    .pkg-name {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    .version {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .license-badge {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .license-mit { background: #eff4ff; color: #2563eb; }
+    .license-apache { background: #fef3c7; color: #92400e; }
+    .license-bsd { background: #f0fdf4; color: #166534; }
+    .license-isc { background: #f5f3ff; color: #5b21b6; }
+    .license-other { background: #f1f5f9; color: #475569; }
+
+    /* Callout boxes */
+    .callout {
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .callout p { margin-bottom: 6px; }
+    .callout p:last-child { margin-bottom: 0; }
+    .callout-green {
+      background: var(--green-bg);
+      border: 1px solid var(--green-border);
+      color: #15803d;
+    }
+    .callout-amber {
+      background: var(--amber-bg);
+      border: 1px solid var(--amber-border);
+      color: #92400e;
+    }
+
+    /* Summary cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+    .summary-card .label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .summary-card .value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .summary-card .value.green { color: var(--green); }
+    .summary-card .value.accent { color: var(--accent); }
+
+    /* List */
+    ul, ol {
+      padding-right: 20px;
+      margin: 8px 0 12px;
+      color: var(--text-secondary);
+    }
+    li { margin-bottom: 4px; }
+    li strong { color: var(--text); }
+
+    /* Footer */
+    .footer {
+      margin-top: 60px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Print */
+    @media print {
+      body { background: #fff; font-size: 12px; }
+      .page { max-width: 100%; padding: 0; }
+      .header { padding: 24px 0; }
+      .section { break-inside: avoid; }
+      .table-wrap { border: 1px solid #ccc; }
+    }
+
+    @media (max-width: 640px) {
+      .page { padding: 20px 16px 60px; }
+      .header h1 { font-size: 22px; }
+      .summary-grid { grid-template-columns: 1fr; }
+      table { font-size: 13px; }
+      th, td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-label">Due Diligence</div>
+      <h1>סקירת רכיבי קוד פתוח — Aspect</h1>
+      <div class="subtitle">ניתוח רישיונות, תלויות ועמידה ברגולציה</div>
+      <div class="date">פברואר 2026</div>
+    </header>
+
+    <!-- Executive Summary -->
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="label">סה״כ רכיבי קוד פתוח (ישירים)</div>
+        <div class="value accent">42</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">רכיבי Copyleft (GPL/LGPL/AGPL)</div>
+        <div class="value green">אפס</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">רכיבים ששונו/תוקנו</div>
+        <div class="value green">אין</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">תלונות/דרישות רישיון</div>
+        <div class="value green">לא התקבלו</div>
+      </div>
+    </div>
+
+    <!-- Section 1 -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-num">01</span>
+        <h2>רשימה מלאה של רכיבי קוד פתוח</h2>
+      </div>
+
+      <div class="subsection">
+        <h3>שרת (Server) — תלויות ריצה</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>רכיב</th><th>גרסה</th><th>רישיון</th><th>תיאור שימוש</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td class="pkg-name">@anthropic-ai/sdk</td><td class="version">^0.74.0</td><td><span class="license-badge license-mit">MIT</span></td><td>ספריית לקוח ל-API של Anthropic Claude (ספק LLM)</td></tr>
+              <tr><td>2</td><td class="pkg-name">@google-cloud/storage</td><td class="version">^7.19.0</td><td><span class="license-badge license-apache">Apache-2.0</span></td><td>גישה לאחסון קבצים ב-Google Cloud Storage</td></tr>
+              <tr><td>3</td><td class="pkg-name">@google/genai</td><td class="version">^1.42.0</td><td><span class="license-badge license-apache">Apache-2.0</span></td><td>ספריית לקוח ל-Google Gemini (ספק LLM)</td></tr>
+              <tr><td>4</td><td class="pkg-name">axios</td><td class="version">^1.12.2</td><td><span class="license-badge license-mit">MIT</span></td><td>לקוח HTTP לקריאות API</td></tr>
+              <tr><td>5</td><td class="pkg-name">body-parser</td><td class="version">^1.20.2</td><td><span class="license-badge license-mit">MIT</span></td><td>Middleware לפרסור גוף בקשות HTTP</td></tr>
+              <tr><td>6</td><td class="pkg-name">cors</td><td class="version">^2.8.5</td><td><span class="license-badge license-mit">MIT</span></td><td>Middleware לניהול הרשאות Cross-Origin</td></tr>
+              <tr><td>7</td><td class="pkg-name">csv-parser</td><td class="version">^3.2.0</td><td><span class="license-badge license-mit">MIT</span></td><td>פרסור קבצי CSV (stream-based)</td></tr>
+              <tr><td>8</td><td class="pkg-name">dotenv</td><td class="version">^17.2.2</td><td><span class="license-badge license-bsd">BSD-2-Clause</span></td><td>טעינת משתני סביבה מקובץ .env</td></tr>
+              <tr><td>9</td><td class="pkg-name">drizzle-orm</td><td class="version">^0.36.4</td><td><span class="license-badge license-apache">Apache-2.0</span></td><td>ORM לגישה למסד נתונים PostgreSQL</td></tr>
+              <tr><td>10</td><td class="pkg-name">express</td><td class="version">^5.1.0</td><td><span class="license-badge license-mit">MIT</span></td><td>מסגרת שרת HTTP ראשית</td></tr>
+              <tr><td>11</td><td class="pkg-name">fast-csv</td><td class="version">^5.0.5</td><td><span class="license-badge license-mit">MIT</span></td><td>עיבוד וכתיבת קבצי CSV</td></tr>
+              <tr><td>12</td><td class="pkg-name">googleapis</td><td class="version">^144.0.0</td><td><span class="license-badge license-apache">Apache-2.0</span></td><td>גישה ל-Google APIs (Sheets, Drive)</td></tr>
+              <tr><td>13</td><td class="pkg-name">multer</td><td class="version">^1.4.5-lts.1</td><td><span class="license-badge license-mit">MIT</span></td><td>Middleware להעלאת קבצים</td></tr>
+              <tr><td>14</td><td class="pkg-name">openai</td><td class="version">^6.15.0</td><td><span class="license-badge license-apache">Apache-2.0</span></td><td>ספריית לקוח ל-API של OpenAI (ספק LLM)</td></tr>
+              <tr><td>15</td><td class="pkg-name">pg</td><td class="version">^8.11.3</td><td><span class="license-badge license-mit">MIT</span></td><td>מנהל חיבור PostgreSQL עבור Node.js</td></tr>
+              <tr><td>16</td><td class="pkg-name">pg-copy-streams</td><td class="version">^7.0.0</td><td><span class="license-badge license-mit">MIT</span></td><td>העתקה מהירה של נתונים ל-PostgreSQL</td></tr>
+              <tr><td>17</td><td class="pkg-name">qvdjs</td><td class="version">^0.9.0</td><td><span class="license-badge license-mit">MIT</span></td><td>קריאת קבצי QVD (פורמט Qlik)</td></tr>
+              <tr><td>18</td><td class="pkg-name">xml2js</td><td class="version">^0.6.2</td><td><span class="license-badge license-mit">MIT</span></td><td>פרסור XML ל-JavaScript objects</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3>שרת — תלויות פיתוח</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>רכיב</th><th>גרסה</th><th>רישיון</th><th>תיאור שימוש</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>19</td><td class="pkg-name">drizzle-kit</td><td class="version">^0.29.0</td><td><span class="license-badge license-mit">MIT</span></td><td>כלי CLI ליצירת ומיגרציית סכמת מסד נתונים</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3>קליינט (Client) — תלויות ריצה</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>רכיב</th><th>גרסה</th><th>רישיון</th><th>תיאור שימוש</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>20</td><td class="pkg-name">html2canvas</td><td class="version">^1.4.1</td><td><span class="license-badge license-mit">MIT</span></td><td>יצירת צילומי מסך מרכיבי HTML</td></tr>
+              <tr><td>21</td><td class="pkg-name">react</td><td class="version">^19.2.0</td><td><span class="license-badge license-mit">MIT</span></td><td>מסגרת UI ראשית לבניית ממשק המשתמש</td></tr>
+              <tr><td>22</td><td class="pkg-name">react-dom</td><td class="version">^19.2.0</td><td><span class="license-badge license-mit">MIT</span></td><td>רנדור React ל-DOM בדפדפן</td></tr>
+              <tr><td>23</td><td class="pkg-name">react-image-crop</td><td class="version">^11.0.10</td><td><span class="license-badge license-isc">ISC</span></td><td>רכיב UI לחיתוך תמונות</td></tr>
+              <tr><td>24</td><td class="pkg-name">react-markdown</td><td class="version">^10.1.0</td><td><span class="license-badge license-mit">MIT</span></td><td>רנדור Markdown בממשק הצ׳אט</td></tr>
+              <tr><td>25</td><td class="pkg-name">react-router-dom</td><td class="version">^6.30.3</td><td><span class="license-badge license-mit">MIT</span></td><td>ניווט וניתוב בצד הלקוח (SPA)</td></tr>
+              <tr><td>26</td><td class="pkg-name">remark-gfm</td><td class="version">^4.0.1</td><td><span class="license-badge license-mit">MIT</span></td><td>תמיכה ב-GitHub Flavored Markdown</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3>קליינט — תלויות פיתוח ובנייה</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>רכיב</th><th>גרסה</th><th>רישיון</th><th>תיאור שימוש</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>27</td><td class="pkg-name">@eslint/js</td><td class="version">^9.39.1</td><td><span class="license-badge license-mit">MIT</span></td><td>ליבת כלי בדיקת איכות קוד</td></tr>
+              <tr><td>28</td><td class="pkg-name">@types/node</td><td class="version">^24.10.1</td><td><span class="license-badge license-mit">MIT</span></td><td>הגדרות TypeScript ל-Node.js</td></tr>
+              <tr><td>29</td><td class="pkg-name">@types/react</td><td class="version">^19.2.5</td><td><span class="license-badge license-mit">MIT</span></td><td>הגדרות TypeScript ל-React</td></tr>
+              <tr><td>30</td><td class="pkg-name">@types/react-dom</td><td class="version">^19.2.3</td><td><span class="license-badge license-mit">MIT</span></td><td>הגדרות TypeScript ל-React DOM</td></tr>
+              <tr><td>31</td><td class="pkg-name">@vitejs/plugin-react</td><td class="version">^4.7.0</td><td><span class="license-badge license-mit">MIT</span></td><td>תוסף Vite לתמיכה ב-React</td></tr>
+              <tr><td>32</td><td class="pkg-name">eslint</td><td class="version">^9.39.1</td><td><span class="license-badge license-mit">MIT</span></td><td>כלי בדיקת איכות קוד (linting)</td></tr>
+              <tr><td>33</td><td class="pkg-name">eslint-plugin-react-hooks</td><td class="version">^7.0.1</td><td><span class="license-badge license-mit">MIT</span></td><td>כללי ESLint ל-React Hooks</td></tr>
+              <tr><td>34</td><td class="pkg-name">eslint-plugin-react-refresh</td><td class="version">^0.4.24</td><td><span class="license-badge license-mit">MIT</span></td><td>כללי ESLint ל-React Refresh</td></tr>
+              <tr><td>35</td><td class="pkg-name">globals</td><td class="version">^16.5.0</td><td><span class="license-badge license-mit">MIT</span></td><td>הגדרות משתנים גלובליים ל-ESLint</td></tr>
+              <tr><td>36</td><td class="pkg-name">typescript</td><td class="version">~5.9.3</td><td><span class="license-badge license-apache">Apache-2.0</span></td><td>מהדר TypeScript</td></tr>
+              <tr><td>37</td><td class="pkg-name">typescript-eslint</td><td class="version">^8.46.4</td><td><span class="license-badge license-mit">MIT</span></td><td>תמיכה ב-TypeScript עבור ESLint</td></tr>
+              <tr><td>38</td><td class="pkg-name">vite</td><td class="version">^5.4.21</td><td><span class="license-badge license-mit">MIT</span></td><td>כלי בנייה ושרת פיתוח</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3>תשתית ופלטפורמה</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>רכיב</th><th>גרסה</th><th>רישיון</th><th>תיאור שימוש</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>39</td><td class="pkg-name">Node.js</td><td class="version">22.x</td><td><span class="license-badge license-mit">MIT</span></td><td>סביבת הריצה של השרת</td></tr>
+              <tr><td>40</td><td class="pkg-name">PostgreSQL</td><td class="version">שירות מנוהל</td><td><span class="license-badge license-other">PostgreSQL</span></td><td>מסד נתונים ראשי</td></tr>
+              <tr><td>41</td><td class="pkg-name">Docker</td><td class="version">node:22-slim</td><td><span class="license-badge license-apache">Apache-2.0</span></td><td>קונטיינר להרצת השרת ב-Cloud Run</td></tr>
+              <tr><td>42</td><td class="pkg-name">npm</td><td class="version">מובנה</td><td><span class="license-badge license-other">Artistic-2.0</span></td><td>מנהל חבילות</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2 -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-num">02</span>
+        <h2>סיכום רישיונות</h2>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>סוג רישיון</th><th>סוג</th><th>כמות</th><th>רכיבים עיקריים</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="license-badge license-mit">MIT</span></td><td>מתירני</td><td><strong>32</strong></td><td>express, react, axios, pg, multer, cors, vite ועוד</td></tr>
+            <tr><td><span class="license-badge license-apache">Apache-2.0</span></td><td>מתירני</td><td><strong>7</strong></td><td>@google-cloud/storage, @google/genai, drizzle-orm, googleapis, openai, typescript, Docker</td></tr>
+            <tr><td><span class="license-badge license-bsd">BSD-2-Clause</span></td><td>מתירני</td><td><strong>1</strong></td><td>dotenv</td></tr>
+            <tr><td><span class="license-badge license-isc">ISC</span></td><td>מתירני</td><td><strong>1</strong></td><td>react-image-crop</td></tr>
+            <tr><td><span class="license-badge license-other">PostgreSQL</span></td><td>מתירני</td><td><strong>1</strong></td><td>PostgreSQL</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout callout-green">
+        <p><strong>כל הרישיונות הם מתירניים (permissive) בלבד.</strong> אין שום רכיב עם רישיון Copyleft מסוג GPL, LGPL או AGPL.</p>
+      </div>
+    </section>
+
+    <!-- Section 3 -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-num">03</span>
+        <h2>אופן השימוש בכל רכיב</h2>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>קטגוריה</th><th>מספר רכיבים</th><th>הסבר</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Runtime — שרת</strong></td>
+              <td>18</td>
+              <td>רצים בסביבת הייצור כחלק מהשרת. נארזים בתוך Docker image ומופעלים כשירות ענן ב-Google Cloud Run. אינם מופצים ללקוחות.</td>
+            </tr>
+            <tr>
+              <td><strong>Runtime — קליינט</strong></td>
+              <td>7</td>
+              <td>נארזים (bundled) ע״י Vite ונשלחים לדפדפן המשתמש כקבצי JavaScript סטטיים דרך Firebase Hosting.</td>
+            </tr>
+            <tr>
+              <td><strong>Build בלבד</strong></td>
+              <td>3</td>
+              <td>משמשים רק בזמן הידור ובנייה (vite, @vitejs/plugin-react, typescript). לא נשלחים לייצור ולא מגיעים ללקוח.</td>
+            </tr>
+            <tr>
+              <td><strong>Dev בלבד</strong></td>
+              <td>10</td>
+              <td>משמשים בסביבת פיתוח בלבד (eslint, @types/*, drizzle-kit). לא נכללים ב-build ולא מגיעים לייצור.</td>
+            </tr>
+            <tr>
+              <td><strong>תשתית</strong></td>
+              <td>4</td>
+              <td>רכיבי תשתית (Node.js, PostgreSQL, Docker, npm). מופעלים בשרת בלבד או בסביבת פיתוח.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 4 -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-num">04</span>
+        <h2>הפצה לצדדים שלישיים</h2>
+      </div>
+
+      <div class="subsection">
+        <h3>רכיבי צד-שרת</h3>
+        <p><strong>לא מופצים ללקוחות.</strong> השרת מופעל כשירות ענן (SaaS) על גבי Google Cloud Run. הלקוחות ניגשים לשירות דרך API בלבד ואינם מקבלים עותק של הקוד או של רכיבי הקוד הפתוח. מדובר במודל שימוש מסוג <strong>שירות על גבי הרשת (network service / SaaS)</strong> — אין מדובר בהפצה (distribution) כהגדרתה ברוב רישיונות הקוד הפתוח.</p>
+      </div>
+
+      <div class="subsection">
+        <h3>רכיבי צד-לקוח</h3>
+        <p><strong>מועברים בעקיפין.</strong> קוד ה-JavaScript הבנוי (bundled &amp; minified) כולל את קוד הרכיבים react, react-dom, react-router-dom, react-markdown, remark-gfm, html2canvas ו-react-image-crop. קבצים אלו מוגשים לדפדפן המשתמש הקצה דרך Firebase Hosting.</p>
+        <p>כל רכיבים אלו מורשים תחת רישיונות <strong>MIT / ISC</strong> שמתירים הפצה ללא מגבלות, בתנאי שהודעות הרישיון נשמרות.</p>
+      </div>
+
+      <div class="subsection">
+        <h3>רכיבי Build ו-Dev</h3>
+        <p><strong>לא מופצים כלל.</strong> כלים כמו vite, eslint, typescript, drizzle-kit ו-@types/* משמשים בסביבת הפיתוח בלבד ואינם חלק מהמוצר המסופק ללקוחות.</p>
+      </div>
+    </section>
+
+    <!-- Section 5 -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-num">05</span>
+        <h2>שינויים/תיקונים ברכיבי קוד פתוח</h2>
+      </div>
+
+      <div class="callout callout-green">
+        <p><strong>Aspect לא שינתה ולא תיקנה (modified / forked) אף רכיב קוד פתוח.</strong></p>
+      </div>
+
+      <p>כל הרכיבים מותקנים ישירות מ-npm registry בגרסאותיהם המקוריות, ללא patches, forks או שינויים:</p>
+      <ul>
+        <li>כל הרכיבים מוגדרים ב-<code>package.json</code> עם גרסאות סמנטיות סטנדרטיות (^ / ~)</li>
+        <li>לא קיימים קבצי patch (אין תיקיית <code>patches/</code>)</li>
+        <li>לא קיימים forks או הפניות ל-git repositories מותאמים</li>
+        <li>תיקיית <code>node_modules</code> נוצרת מחדש ע״י <code>npm install</code> מהרגיסטרי הציבורי</li>
+      </ul>
+      <p>כיוון שלא בוצעו שינויים — <strong>אין חובה לפרסם קוד מקור או שינויים</strong> תחת אף רישיון.</p>
+    </section>
+
+    <!-- Section 6 -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-num">06</span>
+        <h2>עמידה בחובות רישיונות קוד פתוח</h2>
+      </div>
+
+      <div class="subsection">
+        <h3>הודעות זכויות יוצרים ו-Attribution</h3>
+        <ul>
+          <li>כל רכיב קוד פתוח בתיקיית <code>node_modules</code> כולל את קובץ ה-LICENSE המקורי שלו</li>
+          <li>קבצי הרישיון נשמרים כחלק מהתקנת npm ולא נמחקים או שונו</li>
+        </ul>
+      </div>
+
+      <div class="subsection">
+        <h3>צד שרת</h3>
+        <p>השרת מופעל כשירות SaaS ולא מופץ כתוכנה. לפיכך, החובות הנדרשות מרישיונות MIT ו-Apache-2.0 (attribution בהפצה) אינן חלות באופן ישיר. עם זאת, קבצי ה-LICENSE נשמרים ב-node_modules.</p>
+      </div>
+
+      <div class="subsection">
+        <h3>צד לקוח</h3>
+        <p>ה-bundle שנוצר ע״י Vite כולל קוד מינימלי (minified). רישיונות MIT ו-ISC דורשים שמירת הודעת הרישיון בכל העותקים או חלקים מהותיים מהתוכנה.</p>
+      </div>
+
+      <div class="callout callout-amber">
+        <p><strong>המלצה:</strong> כדאי לשקול הוספת קובץ <code>THIRD_PARTY_LICENSES.txt</code> ל-build של הקליינט, שיכלול את הודעות הרישיון של כל הספריות הכלולות ב-bundle. ניתן לעשות זאת באמצעות תוסף Vite כמו <code>rollup-plugin-license</code>.</p>
+      </div>
+    </section>
+
+    <!-- Section 7 -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-num">07</span>
+        <h2>רכיבי Copyleft</h2>
+      </div>
+
+      <div class="callout callout-green">
+        <p><strong>לא נעשה שימוש ברכיבי Copyleft (GPL / LGPL / AGPL) כלל.</strong></p>
+      </div>
+
+      <p>כל רכיבי הקוד הפתוח בפרויקט מורשים תחת רישיונות מתירניים (permissive) בלבד:</p>
+      <ul>
+        <li><strong>MIT</strong> (32 רכיבים) — מתירני לחלוטין</li>
+        <li><strong>Apache-2.0</strong> (7 רכיבים) — מתירני, דורש attribution ו-NOTICE</li>
+        <li><strong>BSD-2-Clause</strong> (1 רכיב) — מתירני</li>
+        <li><strong>ISC</strong> (1 רכיב) — מתירני, דומה ל-MIT</li>
+        <li><strong>PostgreSQL License</strong> (1 רכיב) — מתירני</li>
+      </ul>
+      <p><strong>אין סיכון לחשיפה כפויה של קוד מקור קנייני של Aspect</strong>, ואין מגבלות על מסחור הנובעות מרישיונות הקוד הפתוח בשימוש.</p>
+    </section>
+
+    <!-- Section 8 -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-num">08</span>
+        <h2>תהליך וכלי ניהול קוד פתוח (SCA)</h2>
+      </div>
+
+      <p>ניהול הקוד הפתוח מתבצע במספר שכבות:</p>
+      <ul>
+        <li><strong>npm audit</strong> — הכלי המובנה ב-npm זמין לסריקת פגיעויות אבטחה בתלויות</li>
+        <li><strong>בקרת גרסאות</strong> — כל התלויות מנוהלות דרך package.json עם version pinning</li>
+        <li><strong>lock files</strong> — קבצי package-lock.json מבטיחים עקביות בין סביבות</li>
+        <li><strong>אישור הכנסת רכיב חדש</strong> — מתבצע ע״י צוות הפיתוח כחלק מתהליך ה-code review</li>
+      </ul>
+
+      <div class="callout callout-amber">
+        <p><strong>המלצות לחיזוק התהליך:</strong></p>
+        <p>1. הטמעת כלי SCA ייעודי (כגון Snyk או FOSSA) כחלק מתהליך ה-CI/CD לאיתור אוטומטי של רישיונות ופגיעויות</p>
+        <p>2. יצירת מדיניות רשמית המגדירה אילו סוגי רישיונות מותרים ולחסום רישיונות Copyleft</p>
+        <p>3. הוספת קובץ THIRD_PARTY_LICENSES.txt לפרויקט</p>
+      </div>
+    </section>
+
+    <!-- Section 9 -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-num">09</span>
+        <h2>דרישות או תלונות בנושא הפרת רישיון</h2>
+      </div>
+
+      <div class="callout callout-green">
+        <p><strong>לא.</strong> לא התקבלו מעולם דרישות, תלונות, מכתבים או בקשות למסירת קוד מקור בקשר להפרת רישיון קוד פתוח.</p>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Aspect &copy; 2026 — מסמך סקירת קוד פתוח לצורכי Due Diligence</p>
+    </footer>
+
+  </div>
+</body>
+</html>
