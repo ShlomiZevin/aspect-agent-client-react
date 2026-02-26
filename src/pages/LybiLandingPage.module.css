@@ -1027,7 +1027,7 @@
 }
 
 .v3 .navCta {
-  background: #0F172A;
+  background: #680662;
   border-radius: 6px;
   font-size: 13px;
   letter-spacing: 0.02em;
@@ -1035,7 +1035,7 @@
 }
 
 .v3 .navCta:hover {
-  background: #680662;
+  background: #520650;
   box-shadow: 0 4px 16px rgba(104, 6, 98, 0.3);
   transform: translateY(-1px);
 }
@@ -1226,7 +1226,7 @@
 
 /* ---- V3 Buttons ---- */
 .v3 .primaryButton {
-  background: #0F172A;
+  background: #680662;
   border-radius: 6px;
   padding: 15px 30px;
   font-size: 14px;
@@ -1236,7 +1236,7 @@
 }
 
 .v3 .primaryButton:hover {
-  background: #680662;
+  background: #520650;
   transform: translateY(-1px);
   box-shadow: 0 4px 20px rgba(104, 6, 98, 0.25);
 }
@@ -1411,6 +1411,15 @@
 .v3 .divider {
   border-top-color: rgba(104, 6, 98, 0.12);
   margin: 48px 0;
+}
+
+/* Hide divider inside V3 two-column grid sections — use spacing instead */
+.v3 .sectionContent .divider {
+  display: none;
+}
+
+.v3 .sectionContent .textLink {
+  margin-top: 32px;
 }
 
 /* ---- V3 Team ---- */
