@@ -80,6 +80,8 @@ export interface DebugPromptData {
   knowledgeBase: { enabled: boolean; storeId: string | null } | null;
   processedMessage: string;
   postExtractionContext?: PostExtractionContext;
+  persona?: string | null;
+  personaSource?: string; // 'code', 'session_override', or 'none'
   transitionSystemPrompt?: string;
   transitionPromptInjected?: boolean;
   transitionLogic?: TransitionLogicData | null;

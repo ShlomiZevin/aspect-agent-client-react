@@ -119,6 +119,12 @@ export function DebugPanel({ data }: DebugPanelProps) {
       label: '** TRANSITION PROMPT (INJECTED) **',
       content: data.transitionSystemPrompt,
     }] : []),
+    // Show persona separately when available
+    ...(data.persona ? [{
+      key: 'persona',
+      label: `Agent Persona${data.personaSource === 'session_override' ? ' (OVERRIDE)' : ''}`,
+      content: data.persona,
+    }] : []),
     { key: 'instructions', label: 'Full Instructions (Sent to LLM)', content: data.fullInstructions },
     { key: 'message', label: 'Processed Message (User Input)', content: data.processedMessage },
     { key: 'tools', label: `Tools (${data.tools.length})`, content: JSON.stringify(data.tools, null, 2) },

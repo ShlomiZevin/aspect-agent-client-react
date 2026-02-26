@@ -13,6 +13,7 @@ export interface StreamChatOptions {
   debug?: boolean;
   promptOverrides?: Record<string, string>; // Session overrides: { crewName: prompt }
   modelOverrides?: Record<string, string>;  // Session overrides: { crewName: modelName }
+  personaOverride?: string; // Session override for agent-level persona (applies to all crews)
 }
 
 export interface CrewTransition {
@@ -44,7 +45,7 @@ export async function streamChat(
   options: StreamChatOptions,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const { message, conversationId, agentName, userId, useKnowledgeBase = false, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides } = options;
+  const { message, conversationId, agentName, userId, useKnowledgeBase = false, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, personaOverride } = options;
   const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onFieldExtracted } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
@@ -63,6 +64,7 @@ export async function streamChat(
         ...(debug && { debug: true }),
         ...(promptOverrides && Object.keys(promptOverrides).length > 0 && { promptOverrides }),
         ...(modelOverrides && Object.keys(modelOverrides).length > 0 && { modelOverrides }),
+        ...(personaOverride && { personaOverride }),
       }),
     });
 

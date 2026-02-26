@@ -31,6 +31,8 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   // Prompt overrides (debug mode)
   setPromptOverride: (crewMemberId: string, prompt: string) => void;
   setModelOverride: (crewMemberId: string, model: string) => void;
+  personaOverride: string | null;
+  setPersonaOverride: (persona: string | null) => void;
   // Fields editor
   isFieldsEditorOpen: boolean;
   setFieldsEditorOpen: (open: boolean) => void;
@@ -118,6 +120,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
   // Context editor state (debug mode only)
   const [isContextEditorOpen, setContextEditorOpen] = useState(false);
 
+  // Persona override for debug mode (session-only, agent-level)
+  const [personaOverride, setPersonaOverride] = useState<string | null>(null);
+
   const chat = useChat({
     config,
     conversationId: conversation.conversationId,
@@ -127,6 +132,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     debug: debugMode,
     promptOverrides: debugMode ? promptOverrides : undefined, // Only use in debug mode
     modelOverrides: debugMode ? modelOverrides : undefined,
+    personaOverride: debugMode ? (personaOverride || undefined) : undefined,
     onCrewInfo: (crewInfo) => {
       crew.setCurrentCrew(crewInfo);
       // Refresh fields panel when crew is set (including initial crew)
@@ -364,6 +370,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
     // Prompt overrides (debug mode)
     setPromptOverride,
     setModelOverride,
+    personaOverride,
+    setPersonaOverride,
     // Fields editor
     isFieldsEditorOpen,
     setFieldsEditorOpen,

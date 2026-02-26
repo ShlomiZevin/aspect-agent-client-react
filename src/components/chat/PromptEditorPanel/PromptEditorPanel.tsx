@@ -66,6 +66,8 @@ interface PromptEditorPanelProps {
   onSessionOverride: (crewMemberId: string, prompt: string) => void;
   onModelOverride: (crewMemberId: string, model: string) => void;
   onFireTransitionPrompt?: (content: string, crewMemberName?: string) => Promise<void>;
+  personaOverride: string | null;
+  onPersonaOverride: (persona: string | null) => void;
 }
 
 type StatusType = 'success' | 'error' | 'info' | null;
@@ -84,6 +86,8 @@ export function PromptEditorPanel({
   onSessionOverride,
   onModelOverride,
   onFireTransitionPrompt,
+  personaOverride,
+  onPersonaOverride,
 }: PromptEditorPanelProps) {
   // Prompts data from API
   const [prompts, setPrompts] = useState<CrewMemberPrompt[]>([]);
@@ -125,6 +129,25 @@ export function PromptEditorPanel({
   const [originalTransitionPrompt, setOriginalTransitionPrompt] = useState<string>('');
   const [showTransitionPrompt, setShowTransitionPrompt] = useState(false);
   const [isFiring, setIsFiring] = useState(false);
+
+  // Persona editor state (agent-level, not per-crew)
+  const [showPersona, setShowPersona] = useState(false);
+  // Get the code-defined persona from any crew member (it's agent-level, shared across all)
+  const codePersona = crewMembers.find(c => c.persona)?.persona || '';
+  const [editedPersona, setEditedPersona] = useState<string>(personaOverride || codePersona);
+
+  // Sync edited persona when code persona loads from API (initial load)
+  const personaInitialized = useRef(false);
+  useEffect(() => {
+    if (!personaInitialized.current && codePersona && !personaOverride) {
+      personaInitialized.current = true;
+      setEditedPersona(codePersona);
+    }
+  }, [codePersona, personaOverride]);
+
+  // Enlarge modal state
+  const [showPromptModal, setShowPromptModal] = useState(false);
+  const [showPersonaModal, setShowPersonaModal] = useState(false);
 
   // Transition logic state (fetched from API per crew member)
   const [transitionLogic, setTransitionLogic] = useState<TransitionLogicConfig | null>(null);
@@ -634,6 +657,88 @@ export function PromptEditorPanel({
         </div>
       </div>
 
+      {/* Agent Persona (Collapsible, agent-level) */}
+      <div className={styles.editorSection}>
+        <button
+          className={styles.collapsibleHeader}
+          onClick={() => setShowPersona(!showPersona)}
+          type="button"
+        >
+          <span className={styles.editorLabelText}>
+            Agent Persona
+            {editedPersona !== codePersona && <span className={styles.hasContentBadge}>OVERRIDE</span>}
+            {showPersona && (
+              <button
+                className={styles.expandButton}
+                onClick={(e) => { e.stopPropagation(); setShowPersonaModal(true); }}
+                title="Open in larger view"
+                type="button"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="15 3 21 3 21 9" />
+                  <polyline points="9 21 3 21 3 15" />
+                  <line x1="21" y1="3" x2="14" y2="10" />
+                  <line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              </button>
+            )}
+          </span>
+          <svg
+            className={`${styles.chevron} ${showPersona ? styles.expanded : ''}`}
+            width="14" height="14" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" strokeWidth="2"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        {showPersona && (
+          <>
+            <p className={styles.helperText}>
+              Shared persona injected into all crews. Edit to override for this session.
+            </p>
+            <textarea
+              className={`${styles.promptTextarea} ${styles.transitionTextarea} ${editedPersona !== codePersona ? styles.dirty : ''}`}
+              value={editedPersona}
+              onChange={(e) => {
+                const val = e.target.value;
+                setEditedPersona(val);
+                // Set override if different from code persona (including empty = remove persona)
+                if (val !== codePersona) {
+                  onPersonaOverride(val);
+                } else {
+                  onPersonaOverride(null);
+                }
+              }}
+              placeholder="No persona defined for this agent."
+              spellCheck={false}
+              rows={6}
+            />
+            <div className={styles.transitionActions}>
+              <span className={styles.charCount}>
+                {editedPersona.length} chars
+              </span>
+              {editedPersona !== codePersona && (
+                <button
+                  className={styles.fireNowButton}
+                  onClick={() => {
+                    setEditedPersona(codePersona);
+                    onPersonaOverride(null);
+                  }}
+                  title="Clear persona override and revert to code default"
+                  type="button"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                  </svg>
+                  Revert to Code
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
       {/* Loading State */}
       {isLoadingPrompts ? (
         <div className={styles.emptyState}>
@@ -645,18 +750,58 @@ export function PromptEditorPanel({
           {/* Main Prompt Editor */}
           <div className={styles.editorSection}>
             <div className={styles.editorLabel}>
-              <span className={styles.editorLabelText}>Prompt Content</span>
-              <span className={styles.charCount}>
-                {editedPrompt.length} chars
+              <span className={styles.editorLabelText}>
+                Prompt Content
+                {isMainDirty && <span className={styles.hasContentBadge}>OVERRIDE</span>}
+                <button
+                  className={styles.expandButton}
+                  onClick={() => setShowPromptModal(true)}
+                  title="Open in larger view"
+                  type="button"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="15 3 21 3 21 9" />
+                    <polyline points="9 21 3 21 3 15" />
+                    <line x1="21" y1="3" x2="14" y2="10" />
+                    <line x1="3" y1="21" x2="10" y2="14" />
+                  </svg>
+                </button>
               </span>
             </div>
             <textarea
-              className={`${styles.promptTextarea} ${isDirty ? styles.dirty : ''}`}
+              className={`${styles.promptTextarea} ${isMainDirty ? styles.dirty : ''}`}
               value={editedPrompt}
               onChange={handlePromptChange}
               placeholder="Enter the crew member's prompt..."
               spellCheck={false}
             />
+            <div className={styles.transitionActions}>
+              <span className={styles.charCount}>
+                {editedPrompt.length} chars
+              </span>
+              {isMainDirty && (
+                <button
+                  className={styles.fireNowButton}
+                  onClick={() => {
+                    setEditedPrompt(originalPrompt);
+                    setSessionOverrides(prev => {
+                      const next = { ...prev };
+                      delete next[selectedCrewId];
+                      return next;
+                    });
+                    onSessionOverride(selectedCrewId, '');
+                  }}
+                  title="Clear prompt override and revert to base version"
+                  type="button"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                  </svg>
+                  Revert to Code
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Transition System Prompt (Collapsible) */}
@@ -1022,6 +1167,146 @@ export function PromptEditorPanel({
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Prompt Enlarge Modal */}
+      {showPromptModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowPromptModal(false)}>
+          <div className={`${styles.modal} ${styles.promptModal}`} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h4>
+                Prompt Content
+                <span className={styles.tlCrewName}>
+                  {selectedCrewMember?.displayName || selectedCrewId}
+                </span>
+              </h4>
+              <button
+                className={styles.modalCloseButton}
+                onClick={() => setShowPromptModal(false)}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <textarea
+                className={`${styles.promptModalTextarea} ${isMainDirty ? styles.dirty : ''}`}
+                value={editedPrompt}
+                onChange={handlePromptChange}
+                placeholder="Enter the crew member's prompt..."
+                spellCheck={false}
+                autoFocus
+              />
+            </div>
+            <div className={styles.promptModalFooter}>
+              <span className={styles.charCount}>
+                {editedPrompt.length} chars
+                {isMainDirty && (
+                  <span className={styles.sessionOverrideBadge} style={{ marginLeft: '8px' }}>
+                    OVERRIDE
+                  </span>
+                )}
+              </span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {isMainDirty && (
+                  <button
+                    className={`${styles.actionButton} ${styles.revertButton}`}
+                    onClick={() => {
+                      setEditedPrompt(originalPrompt);
+                      setSessionOverrides(prev => {
+                        const next = { ...prev };
+                        delete next[selectedCrewId];
+                        return next;
+                      });
+                      onSessionOverride(selectedCrewId, '');
+                    }}
+                    style={{ flex: 'none' }}
+                  >
+                    Revert to Code
+                  </button>
+                )}
+                <button
+                  className={`${styles.actionButton} ${styles.revertButton}`}
+                  onClick={() => setShowPromptModal(false)}
+                  style={{ flex: 'none' }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Persona Enlarge Modal */}
+      {showPersonaModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowPersonaModal(false)}>
+          <div className={`${styles.modal} ${styles.promptModal}`} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h4>Agent Persona</h4>
+              <button
+                className={styles.modalCloseButton}
+                onClick={() => setShowPersonaModal(false)}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <textarea
+                className={`${styles.promptModalTextarea} ${editedPersona !== codePersona ? styles.dirty : ''}`}
+                value={editedPersona}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setEditedPersona(val);
+                  if (val !== codePersona) {
+                    onPersonaOverride(val);
+                  } else {
+                    onPersonaOverride(null);
+                  }
+                }}
+                placeholder="No persona defined for this agent."
+                spellCheck={false}
+                autoFocus
+              />
+            </div>
+            <div className={styles.promptModalFooter}>
+              <span className={styles.charCount}>
+                {editedPersona.length} chars
+                {editedPersona !== codePersona && (
+                  <span className={styles.sessionOverrideBadge} style={{ marginLeft: '8px' }}>
+                    OVERRIDE
+                  </span>
+                )}
+              </span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {editedPersona !== codePersona && (
+                  <button
+                    className={`${styles.actionButton} ${styles.revertButton}`}
+                    onClick={() => {
+                      setEditedPersona(codePersona);
+                      onPersonaOverride(null);
+                    }}
+                    style={{ flex: 'none' }}
+                  >
+                    Revert to Code
+                  </button>
+                )}
+                <button
+                  className={`${styles.actionButton} ${styles.revertButton}`}
+                  onClick={() => setShowPersonaModal(false)}
+                  style={{ flex: 'none' }}
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
