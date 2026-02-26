@@ -201,6 +201,15 @@
   text-transform: capitalize;
 }
 
+.crewMember {
+  font-size: 10px;
+  font-weight: 500;
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
 .dependency {
   font-size: 10px;
   cursor: help;

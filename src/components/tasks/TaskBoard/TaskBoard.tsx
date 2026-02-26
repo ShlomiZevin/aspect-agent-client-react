@@ -6,6 +6,7 @@ import styles from './TaskBoard.module.css';
 interface TaskBoardProps {
   tasks: Task[];
   allTasks: Task[]; // All tasks for dependency checking
+  crewDisplayNames?: Record<string, string>;
   onTaskClick: (task: Task) => void;
   onStatusChange?: (taskId: number, newStatus: TaskStatus) => void;
   onAtRiskToggle?: (taskId: number, atRisk: boolean) => void;
@@ -25,7 +26,7 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: 'done', label: 'DONE' },
 ];
 
-export function TaskBoard({ tasks, allTasks, onTaskClick, onStatusChange, onAtRiskToggle, onMarkComplete }: TaskBoardProps) {
+export function TaskBoard({ tasks, allTasks, crewDisplayNames, onTaskClick, onStatusChange, onAtRiskToggle, onMarkComplete }: TaskBoardProps) {
   const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
@@ -146,6 +147,7 @@ export function TaskBoard({ tasks, allTasks, onTaskClick, onStatusChange, onAtRi
                   <TaskCard
                     task={task}
                     dependencyInfo={getDependencyInfo(task)}
+                    crewDisplayNames={crewDisplayNames}
                     onClick={() => onTaskClick(task)}
                     onAtRiskToggle={onAtRiskToggle}
                     onMarkComplete={onMarkComplete}

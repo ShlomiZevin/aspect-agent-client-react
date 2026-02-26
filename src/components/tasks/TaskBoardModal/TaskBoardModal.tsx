@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Task, Assignee, CreateTaskData, TaskStatus } from '../../../types/task';
+import type { CrewMember } from '../../../types/crew';
 import * as taskService from '../../../services/taskService';
+import { getAgentCrew } from '../../../services/crewService';
 import { TaskBoard } from '../TaskBoard/TaskBoard';
 import { TaskList } from '../TaskList/TaskList';
 import { TaskForm } from '../TaskForm/TaskForm';
@@ -22,6 +24,14 @@ const KNOWN_DOMAINS = ['freeda', 'aspect', 'banking', 'byline'];
 
 // Lybi domains - when on any of these, show all of them in filter
 const LYBI_DOMAINS = ['freeda', 'banking'];
+
+// Map URL domain slugs to actual server agent names (used for crew API calls)
+const DOMAIN_TO_AGENT_NAME: Record<string, string> = {
+  freeda: 'Freeda 2.0',
+  aspect: 'Aspect',
+  banking: 'Banking Onboarder',
+  byline: 'Byline',
+};
 
 /**
  * Detect current domain from URL path
@@ -55,6 +65,8 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const [exportCopied, setExportCopied] = useState(false);
   const [idSearch, setIdSearch] = useState('');
   const [draftByDefault, setDraftByDefault] = useState(() => getDraftDefault());
+  const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
+  const [filterCrewMember, setFilterCrewMember] = useState<string | null>(null);
 
   // Delete confirmation modal state
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
@@ -75,6 +87,15 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const draftCount = useMemo(() => {
     return tasks.filter(t => t.isDraft && t.createdBy === currentUserId).length;
   }, [tasks, currentUserId]);
+
+  // Map crew technical names to display names
+  const crewDisplayNames = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const crew of crewMembers) {
+      if (crew.displayName) map[crew.name] = crew.displayName;
+    }
+    return map;
+  }, [crewMembers]);
 
   // Filter tasks by domain, assignee, and completed status
   const filteredTasks = useMemo(() => {
@@ -103,6 +124,11 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
       result = result.filter(t => t.assignee === filterAssignee);
     }
 
+    // Filter by crew member
+    if (filterCrewMember) {
+      result = result.filter(t => t.crewMember === filterCrewMember);
+    }
+
     // Then filter by domain
     if (filterDomain === 'all') {
       // "All Domains" means all domains currently visible in the dropdown
@@ -120,7 +146,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     if (filterDomain === 'general') return result.filter(t => t.domain === 'general');
     if (filterDomain === 'current') return result.filter(t => t.domain === currentDomain || t.domain === 'general');
     return result.filter(t => t.domain === filterDomain);
-  }, [tasks, filterDomain, filterAssignee, currentDomain, showCompleted, showAllDomains, showUnassignedOnly, showDraftsOnly, currentUserId]);
+  }, [tasks, filterDomain, filterAssignee, filterCrewMember, currentDomain, showCompleted, showAllDomains, showUnassignedOnly, showDraftsOnly, currentUserId]);
 
   // Handle opening in drafts mode (from Ctrl+Shift+L global shortcut)
   useEffect(() => {
@@ -164,6 +190,33 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
       setIsLoading(false);
     }
   }, []);
+
+  // Determine the best domain to fetch crews from
+  const crewFetchDomain = useMemo(() => {
+    // If a specific domain is selected in the filter, use that
+    if (filterDomain && filterDomain !== 'current' && filterDomain !== 'all' && filterDomain !== 'general') {
+      return filterDomain;
+    }
+    // If we're on a specific agent page, use that
+    if (currentDomain !== 'general') {
+      return currentDomain;
+    }
+    // Fallback: try first lybi domain so crews are still available
+    return LYBI_DOMAINS[0];
+  }, [filterDomain, currentDomain]);
+
+  // Fetch crew members for the active domain
+  useEffect(() => {
+    if (!isOpen) {
+      setCrewMembers([]);
+      return;
+    }
+    const baseURL = import.meta.env.DEV
+      ? 'http://localhost:3000'
+      : (import.meta.env.VITE_API_URL || 'https://aspect-server-138665194481.us-central1.run.app');
+    const agentName = DOMAIN_TO_AGENT_NAME[crewFetchDomain] || crewFetchDomain;
+    getAgentCrew(agentName, baseURL).then(setCrewMembers);
+  }, [isOpen, crewFetchDomain]);
 
   useEffect(() => {
     if (isOpen) {
@@ -430,36 +483,6 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
             onClick={(e) => e.stopPropagation()}
           />
 
-          <select
-            className={styles.domainFilter}
-            value={filterDomain}
-            onChange={(e) => setFilterDomain(e.target.value)}
-          >
-            {showAllDomains ? (
-              <>
-                {KNOWN_DOMAINS.map(domain => (
-                  <option key={domain} value={domain}>
-                    {domain.charAt(0).toUpperCase() + domain.slice(1)}
-                  </option>
-                ))}
-              </>
-            ) : LYBI_DOMAINS.includes(currentDomain) ? (
-              <>
-                {LYBI_DOMAINS.map(domain => (
-                  <option key={domain} value={domain}>
-                    {domain.charAt(0).toUpperCase() + domain.slice(1)}
-                  </option>
-                ))}
-              </>
-            ) : (
-              <option value="current">
-                {currentDomain === 'general' ? 'General' : currentDomain.charAt(0).toUpperCase() + currentDomain.slice(1)}
-              </option>
-            )}
-            <option value="general">General (Engine)</option>
-            <option value="all">All Domains</option>
-          </select>
-
           <button
             className={`${styles.draftsBtn} ${showDraftsOnly ? styles.active : ''}`}
             onClick={() => {
@@ -504,8 +527,53 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
           </label>
         </div>
 
-        {/* Toolbar - Row 2: Assignee Filter */}
+        {/* Toolbar - Row 2: Domain, Crew & Assignee Filters */}
         <div className={styles.toolbarRow2}>
+          <select
+            className={styles.domainFilter}
+            value={filterDomain}
+            onChange={(e) => setFilterDomain(e.target.value)}
+          >
+            {showAllDomains ? (
+              <>
+                {KNOWN_DOMAINS.map(domain => (
+                  <option key={domain} value={domain}>
+                    {domain.charAt(0).toUpperCase() + domain.slice(1)}
+                  </option>
+                ))}
+              </>
+            ) : LYBI_DOMAINS.includes(currentDomain) ? (
+              <>
+                {LYBI_DOMAINS.map(domain => (
+                  <option key={domain} value={domain}>
+                    {domain.charAt(0).toUpperCase() + domain.slice(1)}
+                  </option>
+                ))}
+              </>
+            ) : (
+              <option value="current">
+                {currentDomain === 'general' ? 'General' : currentDomain.charAt(0).toUpperCase() + currentDomain.slice(1)}
+              </option>
+            )}
+            <option value="general">General (Engine)</option>
+            <option value="all">All Domains</option>
+          </select>
+
+          {crewMembers.length > 0 && (
+            <select
+              className={styles.crewFilter}
+              value={filterCrewMember || ''}
+              onChange={(e) => setFilterCrewMember(e.target.value || null)}
+            >
+              <option value="">All Crews</option>
+              {crewMembers.map(crew => (
+                <option key={crew.name} value={crew.name}>
+                  {crew.displayName || crew.name}
+                </option>
+              ))}
+            </select>
+          )}
+
           <AssigneeManager
             assignees={assignees}
             onAddAssignee={handleAddAssignee}
@@ -605,10 +673,11 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
           ) : (
             <div className={styles.boardArea}>
               {viewMode === 'board' ? (
-                <TaskBoard tasks={filteredTasks} allTasks={tasks} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} onAtRiskToggle={handleAtRiskToggle} onMarkComplete={handleMarkComplete} />
+                <TaskBoard tasks={filteredTasks} allTasks={tasks} crewDisplayNames={crewDisplayNames} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} onAtRiskToggle={handleAtRiskToggle} onMarkComplete={handleMarkComplete} />
               ) : (
                 <TaskList
                   tasks={filteredTasks}
+                  crewDisplayNames={crewDisplayNames}
                   onTaskClick={handleTaskClick}
                   onDeleteTask={handleDeleteTask}
                   showDraftCheckboxes={showDraftsOnly}
@@ -633,6 +702,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                 allTasks={tasks}
                 currentDomain={currentDomain}
                 showAllDomains={showAllDomains}
+                crewMembers={crewMembers}
                 onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
                 onCancel={handleCloseForm}
                 onDelete={editingTask ? () => handleDeleteTask(editingTask) : undefined}

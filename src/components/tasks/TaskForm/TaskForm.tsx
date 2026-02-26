@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { Task, Assignee, CreateTaskData, TaskStatus, TaskPriority, TaskType } from '../../../types/task';
+import type { CrewMember } from '../../../types/crew';
 import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
 import { CommentsSection } from '../CommentsSection/CommentsSection';
 import { getDraftDefault } from '../../../utils/userIdentifier';
@@ -32,6 +33,7 @@ interface TaskFormProps {
   allTasks: Task[]; // All tasks for dependency selector
   currentDomain: string; // Current domain from URL (e.g., 'freeda', 'aspect')
   showAllDomains?: boolean; // When true, show all domain options (Ctrl+Shift+A mode)
+  crewMembers?: CrewMember[];
   onSubmit: (data: CreateTaskData) => void;
   onCancel: () => void;
   onDelete?: () => void;
@@ -62,7 +64,7 @@ function containsHebrew(text: string): boolean {
   return /[\u0590-\u05FF]/.test(text);
 }
 
-export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, onSubmit, onCancel, onDelete }: TaskFormProps) {
+export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, onSubmit, onCancel, onDelete }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [description, setDescription] = useState('');
@@ -81,6 +83,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const [tagsInput, setTagsInput] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDraft, setIsDraft] = useState(getDraftDefault());
+  const [crewMember, setCrewMember] = useState<string>('');
   const dependsOnRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -214,6 +217,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       setDependsOn(task.dependsOn || null);
       setDependsOnSearch(''); // Clear search - we show chip when selected
       setTagsInput(task.tags.join(', '));
+      setCrewMember(task.crewMember || '');
       setIsDraft(task.isDraft || false);
     } else {
       // Default to general for new tasks
@@ -223,6 +227,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       setIsCompleted(false);
       setDependsOn(null);
       setDependsOnSearch('');
+      setCrewMember('');
       setIsDraft(getDraftDefault());
     }
   }, [task, allTasks]);
@@ -252,6 +257,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       isCompleted,
       dependsOn, // Pass null to clear, number to set
       tags,
+      crewMember: crewMember || null,
       isDraft,
     });
   };
@@ -389,6 +395,35 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
             </div>
           </div>
 
+          <div className={styles.inlineRow}>
+            <label htmlFor="crewMember">Crew</label>
+            <div className={styles.inlineField}>
+              {crewMembers && crewMembers.length > 0 ? (
+                <select id="crewMember" value={crewMember} onChange={(e) => setCrewMember(e.target.value)}>
+                  <option value="">None</option>
+                  {crewMembers.map(c => (
+                    <option key={c.name} value={c.name}>{c.displayName || c.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input id="crewMember" type="text" value={crewMember} onChange={(e) => setCrewMember(e.target.value)} placeholder="No crews available" />
+              )}
+            </div>
+          </div>
+
+          <div className={styles.inlineRow}>
+            <label htmlFor="tags">Tags</label>
+            <div className={styles.inlineField}>
+              <input
+                id="tags"
+                type="text"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                placeholder="e.g., urgent, backend, ui"
+              />
+            </div>
+          </div>
+
           <div className={styles.dependsOnRow} ref={dependsOnRef}>
             <label htmlFor="dependsOn">Depends On</label>
             <div className={styles.dependsOnField}>
@@ -451,45 +486,6 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
             </div>
           </div>
 
-          <div className={styles.row2}>
-            <div className={styles.field}>
-              <label htmlFor="tags">Tags (comma-separated)</label>
-              <input
-                id="tags"
-                type="text"
-                value={tagsInput}
-                onChange={(e) => setTagsInput(e.target.value)}
-                placeholder="e.g., urgent, backend, ui"
-              />
-            </div>
-
-            <div className={styles.checkboxField}>
-              <label className={`${styles.checkboxLabel} ${atRisk ? styles.atRiskActive : ''}`}>
-                <input
-                  type="checkbox"
-                  checked={atRisk}
-                  onChange={(e) => setAtRisk(e.target.checked)}
-                />
-                <span className={styles.checkboxIcon}>⚠</span>
-                At Risk
-              </label>
-            </div>
-
-            {/* Only show "Completed" checkbox for done tasks */}
-            {status === 'done' && (
-              <div className={styles.checkboxField}>
-                <label className={`${styles.checkboxLabel} ${isCompleted ? styles.completedActive : ''}`}>
-                  <input
-                    type="checkbox"
-                    checked={isCompleted}
-                    onChange={(e) => setIsCompleted(e.target.checked)}
-                  />
-                  <span className={styles.checkboxIcon}>✓</span>
-                  Completed
-                </label>
-              </div>
-            )}
-          </div>
         </div>
 
         <div className={styles.actions}>
@@ -509,6 +505,26 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
               <span className={styles.draftHint}>(only you see it)</span>
             </span>
           </label>
+          <label className={`${styles.checkboxLabel} ${atRisk ? styles.atRiskActive : ''}`}>
+            <input
+              type="checkbox"
+              checked={atRisk}
+              onChange={(e) => setAtRisk(e.target.checked)}
+            />
+            <span className={styles.checkboxIcon}>⚠</span>
+            At Risk
+          </label>
+          {status === 'done' && (
+            <label className={`${styles.checkboxLabel} ${isCompleted ? styles.completedActive : ''}`}>
+              <input
+                type="checkbox"
+                checked={isCompleted}
+                onChange={(e) => setIsCompleted(e.target.checked)}
+              />
+              <span className={styles.checkboxIcon}>✓</span>
+              Completed
+            </label>
+          )}
           <div className={styles.rightActions}>
             <button type="button" className={styles.cancelBtn} onClick={onCancel}>
               Cancel

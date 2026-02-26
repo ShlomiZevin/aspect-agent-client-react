@@ -170,6 +170,22 @@
   border-color: var(--primary-color);
 }
 
+.crewFilter {
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-width: 100px;
+}
+
+.crewFilter:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
 /* Unassigned/Orphan filter button */
 .unassignedBtn {
   display: flex;

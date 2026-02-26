@@ -3,6 +3,7 @@ import styles from './TaskList.module.css';
 
 interface TaskListProps {
   tasks: Task[];
+  crewDisplayNames?: Record<string, string>;
   onTaskClick: (task: Task) => void;
   onDeleteTask: (task: Task) => void;
   // Draft selection props
@@ -79,7 +80,7 @@ function containsHebrew(text: string): boolean {
   return /[\u0590-\u05FF]/.test(text);
 }
 
-export function TaskList({ tasks, onTaskClick, onDeleteTask, showDraftCheckboxes, selectedDrafts, onToggleDraftSelection, showExportCheckboxes, selectedExports, onToggleExportSelection }: TaskListProps) {
+export function TaskList({ tasks, crewDisplayNames, onTaskClick, onDeleteTask, showDraftCheckboxes, selectedDrafts, onToggleDraftSelection, showExportCheckboxes, selectedExports, onToggleExportSelection }: TaskListProps) {
   const showCheckboxes = showDraftCheckboxes || showExportCheckboxes;
   if (tasks.length === 0) {
     return (
@@ -97,6 +98,7 @@ export function TaskList({ tasks, onTaskClick, onDeleteTask, showDraftCheckboxes
             {showCheckboxes && <th className={styles.checkboxCol}></th>}
             <th>Title</th>
             <th>Domain</th>
+            <th>Crew</th>
             <th>Type</th>
             <th>Assignee</th>
             <th>Priority</th>
@@ -148,6 +150,13 @@ export function TaskList({ tasks, onTaskClick, onDeleteTask, showDraftCheckboxes
                 <span className={styles.domain}>
                   {task.domain === 'general' ? 'General' : task.domain.charAt(0).toUpperCase() + task.domain.slice(1)}
                 </span>
+              </td>
+              <td>
+                {task.crewMember ? (
+                  <span className={styles.crewMember}>{crewDisplayNames?.[task.crewMember] || task.crewMember}</span>
+                ) : (
+                  <span className={styles.unassigned}>—</span>
+                )}
               </td>
               <td>
                 <span className={`${styles.badge} ${styles[task.type]}`}>

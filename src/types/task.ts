@@ -22,6 +22,7 @@ export interface Task {
   isCompleted: boolean; // PM approval - task fully completed and reviewed
   dependsOn?: number; // ID of task this depends on (must be done first)
   tags: string[];
+  crewMember?: string; // Crew member related to this task
   isDraft: boolean; // Draft mode - only visible to creator
   createdBy?: string; // Browser-based user identifier
   createdAt: Date;
@@ -41,6 +42,7 @@ export interface CreateTaskData {
   isCompleted?: boolean;
   dependsOn?: number | null; // null to clear dependency
   tags?: string[];
+  crewMember?: string | null;
   isDraft?: boolean;
   createdBy?: string;
 }
@@ -58,6 +60,7 @@ export interface UpdateTaskData {
   isCompleted?: boolean;
   dependsOn?: number | null;
   tags?: string[];
+  crewMember?: string | null;
   isDraft?: boolean;
   createdBy?: string;
 }
@@ -68,6 +71,7 @@ export interface TaskFilters {
   type?: TaskType;
   priority?: TaskPriority;
   domain?: string;
+  crewMember?: string;
 }
 
 export interface TaskComment {

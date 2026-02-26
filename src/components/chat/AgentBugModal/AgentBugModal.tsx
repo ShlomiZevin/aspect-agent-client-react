@@ -368,6 +368,7 @@ export function AgentBugModal({
         domain: currentDomain,
         status: 'todo',
         tags: ['agent-bug', category, sourceCrew || 'unknown-crew'].filter(Boolean),
+        crewMember: sourceCrew || null,
         isDraft,
         createdBy: isDraft ? getUserId() : undefined,
       });
@@ -446,43 +447,53 @@ export function AgentBugModal({
               </span>
             </div>
 
-            {/* Transition-specific: Crew selector */}
-            {isTransitionBug && (
+            {/* Crew Member (always visible) */}
+            <div className={styles.field}>
+              <label htmlFor="ab-crew">Crew Member</label>
+              {crewMembers.length > 0 ? (
+                <select
+                  id="ab-crew"
+                  value={sourceCrew}
+                  onChange={(e) => setSourceCrew(e.target.value)}
+                >
+                  <option value="">None</option>
+                  {crewMembers.map(crew => (
+                    <option key={crew.name} value={crew.name}>
+                      {crew.displayName || crew.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  id="ab-crew"
+                  type="text"
+                  value={sourceCrew}
+                  onChange={(e) => setSourceCrew(e.target.value)}
+                  placeholder="Crew member name..."
+                />
+              )}
+            </div>
+
+            {/* Transition-specific: Target crew selector */}
+            {isTransitionBug && category === 'false_wrong_crew' && (
               <div className={styles.conditionalSection}>
                 <div className={styles.field}>
-                  <label htmlFor="ab-source-crew">Source Crew (who generated this message)</label>
+                  <label htmlFor="ab-target-crew">Should Have Transitioned To</label>
                   <select
-                    id="ab-source-crew"
-                    value={sourceCrew}
-                    onChange={(e) => setSourceCrew(e.target.value)}
+                    id="ab-target-crew"
+                    value={targetCrew}
+                    onChange={(e) => setTargetCrew(e.target.value)}
                   >
                     <option value="">Select crew...</option>
-                    {crewMembers.map(crew => (
-                      <option key={crew.name} value={crew.name}>
-                        {crew.displayName || crew.name}
-                      </option>
-                    ))}
+                    {crewMembers
+                      .filter(c => c.name !== sourceCrew)
+                      .map(crew => (
+                        <option key={crew.name} value={crew.name}>
+                          {crew.displayName || crew.name}
+                        </option>
+                      ))}
                   </select>
                 </div>
-                {category === 'false_wrong_crew' && (
-                  <div className={styles.field}>
-                    <label htmlFor="ab-target-crew">Should Have Transitioned To</label>
-                    <select
-                      id="ab-target-crew"
-                      value={targetCrew}
-                      onChange={(e) => setTargetCrew(e.target.value)}
-                    >
-                      <option value="">Select crew...</option>
-                      {crewMembers
-                        .filter(c => c.name !== sourceCrew)
-                        .map(crew => (
-                          <option key={crew.name} value={crew.name}>
-                            {crew.displayName || crew.name}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                )}
               </div>
             )}
 

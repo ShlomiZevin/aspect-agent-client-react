@@ -190,25 +190,6 @@
   gap: var(--spacing-sm);
 }
 
-.row2 {
-  display: flex;
-  gap: var(--spacing-sm);
-  align-items: end;
-  flex-wrap: wrap;
-}
-
-.row2 > .field {
-  flex: 1;
-  min-width: 150px;
-}
-
-/* At Risk checkbox field */
-.checkboxField {
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: 6px;
-}
-
 .checkboxLabel {
   display: flex;
   align-items: center;
@@ -441,6 +422,46 @@
   gap: var(--spacing-sm);
 }
 
+/* Inline row layout (shared by crew, tags, depends on) */
+.inlineRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.inlineRow > label {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.inlineField {
+  flex: 1;
+  position: relative;
+}
+
+.inlineField select,
+.inlineField input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.inlineField select:focus,
+.inlineField input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
 /* Depends On - inline row layout */
 .dependsOnRow {
   display: flex;
@@ -455,6 +476,7 @@
   color: var(--text-secondary);
   white-space: nowrap;
   flex-shrink: 0;
+  min-width: 70px;
 }
 
 .dependsOnField {

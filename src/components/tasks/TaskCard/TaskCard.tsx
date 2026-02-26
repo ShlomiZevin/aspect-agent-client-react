@@ -4,6 +4,7 @@ import styles from './TaskCard.module.css';
 interface TaskCardProps {
   task: Task;
   dependencyInfo?: { name: string; satisfied: boolean }; // Info about task dependency
+  crewDisplayNames?: Record<string, string>;
   onClick?: () => void;
   onAtRiskToggle?: (taskId: number, atRisk: boolean) => void;
   onMarkComplete?: (taskId: number, isCompleted: boolean) => void;
@@ -107,7 +108,7 @@ function getAssigneeColor(assignee: string): string {
   return ASSIGNEE_COLORS[hash % ASSIGNEE_COLORS.length];
 }
 
-export function TaskCard({ task, dependencyInfo, onClick, onAtRiskToggle, onMarkComplete }: TaskCardProps) {
+export function TaskCard({ task, dependencyInfo, crewDisplayNames, onClick, onAtRiskToggle, onMarkComplete }: TaskCardProps) {
   const isOrphan = !task.assignee;
   const assigneeColor = task.assignee ? getAssigneeColor(task.assignee) : undefined;
 
@@ -159,6 +160,9 @@ export function TaskCard({ task, dependencyInfo, onClick, onAtRiskToggle, onMark
           </span>
           {task.domain && task.domain !== 'general' && (
             <span className={styles.domain}>{task.domain}</span>
+          )}
+          {task.crewMember && (
+            <span className={styles.crewMember}>{crewDisplayNames?.[task.crewMember] || task.crewMember}</span>
           )}
           {dependencyInfo && (
             <span
