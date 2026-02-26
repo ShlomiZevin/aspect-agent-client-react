@@ -1669,3 +1669,268 @@
     gap: 32px;
   }
 }
+
+/* =============================================
+   Contact Modal
+   ============================================= */
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translate(-50%, -48%); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.5);
+  animation: modalFadeIn 0.25s ease both;
+}
+
+.modalBox {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 201;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 48px;
+  width: 480px;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+  animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.modalClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: #57534E;
+  transition: background 0.2s, color 0.2s;
+}
+
+.modalClose:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #1C1917;
+}
+
+.modalClose svg {
+  width: 18px;
+  height: 18px;
+}
+
+.modalTitle {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #1C1917;
+  margin: 0 0 8px 0;
+}
+
+.modalSubtitle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: #57534E;
+  margin: 0 0 32px 0;
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formLabel {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1C1917;
+  letter-spacing: 0.02em;
+}
+
+.formLabelOptional {
+  font-weight: 400;
+  color: #9C9489;
+  margin-left: 4px;
+}
+
+.formInput {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: #1C1917;
+  background: #FAF7F7;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  padding: 12px 16px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.formInput:focus {
+  border-color: #680662;
+  box-shadow: 0 0 0 3px rgba(104, 6, 98, 0.08);
+}
+
+.formInput::placeholder {
+  color: #9C9489;
+}
+
+.formTextarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.formSubmit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: #680662;
+  color: #ffffff;
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 4px;
+}
+
+.formSubmit:hover {
+  background: #520650;
+}
+
+.formSubmit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Success state */
+.modalSuccess {
+  text-align: center;
+  padding: 32px 0;
+}
+
+.modalSuccessIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(104, 6, 98, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  color: #680662;
+}
+
+.modalSuccessIcon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.modalSuccessText {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: #1C1917;
+  margin: 0;
+}
+
+/* ---- V2 Modal overrides ---- */
+.v2 .modalBox {
+  background: #110D1B;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(104, 6, 98, 0.15);
+}
+
+.v2 .modalClose {
+  color: rgba(240, 236, 245, 0.5);
+}
+
+.v2 .modalClose:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #F0ECF5;
+}
+
+.v2 .modalTitle {
+  color: #F0ECF5;
+}
+
+.v2 .modalSubtitle {
+  color: rgba(240, 236, 245, 0.5);
+}
+
+.v2 .formLabel {
+  color: #F0ECF5;
+}
+
+.v2 .formLabelOptional {
+  color: rgba(240, 236, 245, 0.3);
+}
+
+.v2 .formInput {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(104, 6, 98, 0.2);
+  color: #F0ECF5;
+}
+
+.v2 .formInput:focus {
+  border-color: #9D1687;
+  box-shadow: 0 0 0 3px rgba(104, 6, 98, 0.15);
+}
+
+.v2 .formInput::placeholder {
+  color: rgba(240, 236, 245, 0.25);
+}
+
+.v2 .formSubmit {
+  background: linear-gradient(135deg, #680662 0%, #9D1687 50%, #F948C6 100%);
+  border-radius: 100px;
+}
+
+.v2 .formSubmit:hover {
+  background: linear-gradient(135deg, #520650 0%, #680662 50%, #9D1687 100%);
+}
+
+.v2 .modalSuccessIcon {
+  background: rgba(104, 6, 98, 0.15);
+  color: #F948C6;
+}
+
+.v2 .modalSuccessText {
+  color: #F0ECF5;
+}
+
+/* ---- Modal responsive ---- */
+@media (max-width: 768px) {
+  .modalBox {
+    padding: 32px 24px;
+    width: calc(100vw - 32px);
+  }
+}

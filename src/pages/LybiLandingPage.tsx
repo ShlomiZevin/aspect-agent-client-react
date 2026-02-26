@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, type FormEvent } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import styles from './LybiLandingPage.module.css';
 
@@ -59,7 +59,7 @@ function Logo({ className }: { className?: string }) {
   );
 }
 
-function Nav() {
+function Nav({ onOpenContact }: { onOpenContact: () => void }) {
   const location = useLocation();
   const path = location.pathname;
 
@@ -88,9 +88,9 @@ function Nav() {
               About
             </Link>
           </div>
-          <a href="mailto:hello@lybi.ai" className={styles.navCta}>
+          <button className={styles.navCta} onClick={onOpenContact}>
             Let's talk
-          </a>
+          </button>
         </div>
       </div>
     </nav>
@@ -129,9 +129,133 @@ function Footer() {
   );
 }
 
+/* ===== Contact Modal ===== */
+
+function ContactModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [company, setCompany] = useState('');
+  const [message, setMessage] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      const timer = setTimeout(() => {
+        setName('');
+        setEmail('');
+        setCompany('');
+        setMessage('');
+        setSubmitted(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    // Client-side only for now — server integration later
+    setSubmitted(true);
+  };
+
+  return (
+    <>
+      <div className={styles.modalOverlay} onClick={onClose} />
+      <div className={styles.modalBox} role="dialog" aria-modal="true">
+        <button className={styles.modalClose} onClick={onClose} aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+
+        {submitted ? (
+          <div className={styles.modalSuccess}>
+            <div className={styles.modalSuccessIcon}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <p className={styles.modalSuccessText}>Thank you, we'll be in touch.</p>
+          </div>
+        ) : (
+          <>
+            <h2 className={styles.modalTitle}>Let's talk</h2>
+            <p className={styles.modalSubtitle}>We'd love to hear from you.</p>
+            <form className={styles.modalForm} onSubmit={handleSubmit}>
+              <div className={styles.formField}>
+                <label className={styles.formLabel} htmlFor="contact-name">Full name</label>
+                <input
+                  id="contact-name"
+                  className={styles.formInput}
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your full name"
+                />
+              </div>
+              <div className={styles.formField}>
+                <label className={styles.formLabel} htmlFor="contact-email">Email address</label>
+                <input
+                  id="contact-email"
+                  className={styles.formInput}
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@company.com"
+                />
+              </div>
+              <div className={styles.formField}>
+                <label className={styles.formLabel} htmlFor="contact-company">
+                  Company <span className={styles.formLabelOptional}>(optional)</span>
+                </label>
+                <input
+                  id="contact-company"
+                  className={styles.formInput}
+                  type="text"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  placeholder="Company name"
+                />
+              </div>
+              <div className={styles.formField}>
+                <label className={styles.formLabel} htmlFor="contact-message">
+                  Message <span className={styles.formLabelOptional}>(optional)</span>
+                </label>
+                <textarea
+                  id="contact-message"
+                  className={`${styles.formInput} ${styles.formTextarea}`}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Tell us what you're looking for..."
+                />
+              </div>
+              <button type="submit" className={styles.formSubmit}>Send</button>
+            </form>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
 /* ===== Page 1: Home ===== */
 
-function HomePage() {
+function HomePage({ onOpenContact }: { onOpenContact: () => void }) {
   return (
     <>
       {/* Section 1 — Hero */}
@@ -245,9 +369,9 @@ function HomePage() {
           <p className={styles.ctaSubheadline}>
             Their relationship with your organization doesn't have to stay behind.
           </p>
-          <a href="mailto:hello@lybi.ai" className={styles.primaryButton}>
+          <button className={styles.primaryButton} onClick={onOpenContact}>
             Let's talk <span aria-hidden="true">&rarr;</span>
-          </a>
+          </button>
         </div>
       </section>
     </>
@@ -613,7 +737,11 @@ export function LybiLandingPage() {
   const location = useLocation();
   const [version, setVersion] = useState<'v1' | 'v2' | 'v3'>('v1');
   const [pageKey, setPageKey] = useState(0);
+  const [contactOpen, setContactOpen] = useState(false);
   const revealRef = useScrollReveal(version, pageKey);
+
+  const openContact = () => setContactOpen(true);
+  const closeContact = () => setContactOpen(false);
 
   useEffect(() => {
     document.title = 'Lybi — The Intelligent Relationship System';
@@ -657,16 +785,17 @@ export function LybiLandingPage() {
 
   return (
     <div className={containerClass} ref={revealRef}>
-      <Nav />
+      <Nav onOpenContact={openContact} />
       <div key={pageKey} className={pageContentClass}>
         <Routes>
-          <Route index element={<HomePage />} />
+          <Route index element={<HomePage onOpenContact={openContact} />} />
           <Route path="belief" element={<BeliefPage />} />
           <Route path="enable" element={<EnablePage />} />
           <Route path="about" element={<AboutPage />} />
         </Routes>
       </div>
       <Footer />
+      <ContactModal isOpen={contactOpen} onClose={closeContact} />
 
       {/* Version Toggle */}
       <div className={styles.versionToggle}>
