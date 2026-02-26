@@ -143,8 +143,8 @@
   gap: 8px;
   align-items: flex-start;
   background: white;
-  border-radius: 8px;
-  padding: 8px 10px;
+  border-radius: 6px;
+  padding: 6px 8px;
   border: 1px solid #f0f2f5;
   transition: border-color 0.15s;
 }
