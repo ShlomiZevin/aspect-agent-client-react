@@ -190,62 +190,63 @@
   gap: var(--spacing-sm);
 }
 
-.checkboxLabel {
+.toggleChip {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 3px;
   cursor: pointer;
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
   border: 1px solid var(--border);
   transition: all var(--transition-fast);
   user-select: none;
+  white-space: nowrap;
 }
 
-.checkboxLabel:hover {
+.toggleChip:hover {
   background: var(--surface-light);
+  color: var(--text-secondary);
 }
 
-.checkboxLabel input {
+.toggleChip input {
   display: none;
 }
 
-.checkboxIcon {
-  font-size: 14px;
-  opacity: 0.5;
-}
-
-.checkboxLabel.atRiskActive {
+.toggleChip.atRiskActive {
   background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.4);
+  border-color: rgba(239, 68, 68, 0.3);
   color: #ef4444;
 }
 
-.checkboxLabel.atRiskActive .checkboxIcon {
-  opacity: 1;
-}
-
-.checkboxLabel.completedActive {
+.toggleChip.completedActive {
   background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.4);
+  border-color: rgba(16, 185, 129, 0.3);
   color: #10b981;
 }
 
-.checkboxLabel.completedActive .checkboxIcon {
-  opacity: 1;
+.toggleChip.draftActive {
+  background: rgba(168, 85, 247, 0.1);
+  border-color: rgba(168, 85, 247, 0.3);
+  color: #a855f7;
 }
 
 .actions {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
   border-top: 1px solid var(--border);
   gap: var(--spacing-sm);
   flex-shrink: 0;
   background: var(--surface);
+}
+
+.toggles {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
 }
 
 .rightActions {
@@ -254,32 +255,6 @@
   margin-left: auto;
 }
 
-.draftToggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.draftToggle input {
-  cursor: pointer;
-  accent-color: #a855f7;
-}
-
-.draftLabel {
-  font-size: var(--font-size-xs);
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.draftHint {
-  font-size: 10px;
-  color: var(--text-muted);
-  font-style: italic;
-}
 
 .cancelBtn,
 .submitBtn,

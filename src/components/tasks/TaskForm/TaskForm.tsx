@@ -494,43 +494,40 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
               Delete
             </button>
           )}
-          <label className={styles.draftToggle}>
-            <input
-              type="checkbox"
-              checked={isDraft}
-              onChange={(e) => setIsDraft(e.target.checked)}
-            />
-            <span className={styles.draftLabel}>
-              Draft
-              <span className={styles.draftHint}>(only you see it)</span>
-            </span>
-          </label>
-          <label className={`${styles.checkboxLabel} ${atRisk ? styles.atRiskActive : ''}`}>
-            <input
-              type="checkbox"
-              checked={atRisk}
-              onChange={(e) => setAtRisk(e.target.checked)}
-            />
-            <span className={styles.checkboxIcon}>⚠</span>
-            At Risk
-          </label>
-          {status === 'done' && (
-            <label className={`${styles.checkboxLabel} ${isCompleted ? styles.completedActive : ''}`}>
+          <div className={styles.toggles}>
+            <label className={`${styles.toggleChip} ${isDraft ? styles.draftActive : ''}`}>
               <input
                 type="checkbox"
-                checked={isCompleted}
-                onChange={(e) => setIsCompleted(e.target.checked)}
+                checked={isDraft}
+                onChange={(e) => setIsDraft(e.target.checked)}
               />
-              <span className={styles.checkboxIcon}>✓</span>
-              Completed
+              Draft
             </label>
-          )}
+            <label className={`${styles.toggleChip} ${atRisk ? styles.atRiskActive : ''}`}>
+              <input
+                type="checkbox"
+                checked={atRisk}
+                onChange={(e) => setAtRisk(e.target.checked)}
+              />
+              ⚠ Risk
+            </label>
+            {status === 'done' && (
+              <label className={`${styles.toggleChip} ${isCompleted ? styles.completedActive : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={isCompleted}
+                  onChange={(e) => setIsCompleted(e.target.checked)}
+                />
+                ✓ Done
+              </label>
+            )}
+          </div>
           <div className={styles.rightActions}>
             <button type="button" className={styles.cancelBtn} onClick={onCancel}>
               Cancel
             </button>
             <button type="submit" className={styles.submitBtn}>
-              {task ? 'Save Changes' : 'Create Task'}
+              {task ? 'Save' : 'Create'}
             </button>
           </div>
         </div>
