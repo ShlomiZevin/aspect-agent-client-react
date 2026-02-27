@@ -43,12 +43,28 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         thinkingSteps: [],
       };
 
-    case 'ADD_THINKING_STEP':
+    case 'ADD_THINKING_STEP': {
+      const newThinkingSteps = [...state.thinkingSteps, action.payload];
+
+      // If streaming already started (assistant message exists), also append
+      // to the message's thinkingSteps so late-arriving steps (e.g. Google
+      // file_search results from the final chunk) are not lost.
+      const msgs = [...state.messages];
+      const last = msgs[msgs.length - 1];
+      if (last?.role === 'assistant') {
+        msgs[msgs.length - 1] = {
+          ...last,
+          thinkingSteps: [...(last.thinkingSteps || []), action.payload],
+        };
+      }
+
       return {
         ...state,
+        messages: msgs,
         currentThinkingStep: action.payload.description,
-        thinkingSteps: [...state.thinkingSteps, action.payload],
+        thinkingSteps: newThinkingSteps,
       };
+    }
 
     case 'COMPLETE_THINKING':
       return {

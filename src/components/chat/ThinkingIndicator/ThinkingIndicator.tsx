@@ -4,7 +4,7 @@ import type { ThinkingStep } from '../../../types';
 
 interface FileResult {
   name: string;
-  score: number;
+  score?: number;
 }
 
 interface ThinkingIndicatorProps {
@@ -115,7 +115,7 @@ export function ThinkingIndicator({ currentStep, steps = [], isComplete = false 
                     {(step.metadata.files as FileResult[]).map((file, fi) => (
                       <div key={fi} className={styles.fileItem}>
                         <span className={styles.fileName}>{file.name}</span>
-                        <span className={styles.fileScore}>{Math.round(file.score * 100)}%</span>
+                        {file.score != null && <span className={styles.fileScore}>{Math.round(file.score * 100)}%</span>}
                       </div>
                     ))}
                   </div>
