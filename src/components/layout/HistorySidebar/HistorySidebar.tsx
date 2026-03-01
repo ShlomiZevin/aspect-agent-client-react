@@ -165,7 +165,7 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
                   <div
                     key={conv.id}
                     className={`${styles.item} ${conv.id === conversationId ? styles.active : ''} ${isWhatsApp ? styles.whatsapp : ''}`}
-                    onClick={() => !isEditing && switchToChat(conv.id)}
+                    onClick={() => { if (!isEditing) { switchToChat(conv.id); onClose(); } }}
                   >
                     <div className={styles.itemContent}>
                       {isEditing ? (
