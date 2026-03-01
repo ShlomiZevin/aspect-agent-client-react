@@ -60,6 +60,7 @@ function AppContent() {
 
         {/* Dashboard routes */}
         <Route path="/:agent/dashboard/*" element={<DashboardPage />} />
+        <Route path="/:agent/admin/*" element={<DashboardPage />} />
 
         {/* Knowledge Base routes */}
         <Route path="/kb/:agent" element={<KBPage />} />

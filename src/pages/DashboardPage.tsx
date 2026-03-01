@@ -22,10 +22,24 @@ export function DashboardPage() {
   const config = agent ? agentConfigs[agent.toLowerCase()] : null;
 
   if (!config) {
+    // Browser may have cached old JS bundle that doesn't know this agent.
+    // Try one hard reload to fetch the latest bundle before giving up.
+    const reloadKey = `dashboard_reload_${agent}`;
+    if (!sessionStorage.getItem(reloadKey)) {
+      sessionStorage.setItem(reloadKey, '1');
+      const url = new URL(window.location.href);
+      url.searchParams.set('_r', Date.now().toString());
+      window.location.replace(url.toString());
+      return null;
+    }
+    sessionStorage.removeItem(reloadKey);
     return <Navigate to="/" replace />;
   }
 
-  const basePath = `/${agent}/dashboard`;
+  // Support both /:agent/dashboard/* and /:agent/admin/* URL patterns
+  const pathSegments = window.location.pathname.split('/');
+  const routePrefix = pathSegments[2] === 'admin' ? 'admin' : 'dashboard';
+  const basePath = `/${agent}/${routePrefix}`;
 
   const showQueryOptimizer = !!config.database?.schema;
 
