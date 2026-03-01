@@ -314,6 +314,7 @@
 
 .chatInputArea {
   display: flex;
+  align-items: flex-end;
   gap: var(--spacing-sm);
   padding: var(--spacing-md);
   border-top: 1px solid var(--border);
@@ -330,10 +331,11 @@
   font-family: var(--font-family);
   background-color: var(--surface);
   color: var(--text-primary);
-  resize: none;
-  min-height: 40px;
-  max-height: 120px;
+  resize: vertical;
+  min-height: 80px;
+  max-height: 300px;
   line-height: 1.5;
+  overflow-y: auto;
 }
 
 .chatInput:focus {

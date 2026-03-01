@@ -553,11 +553,16 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
               ref={inputRef}
               className={styles.chatInput}
               value={inputValue}
-              onChange={e => setInputValue(e.target.value)}
+              onChange={e => {
+                setInputValue(e.target.value);
+                // Auto-resize: reset height then set to scrollHeight
+                e.target.style.height = 'auto';
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 300)}px`;
+              }}
               onKeyDown={handleKeyDown}
-              placeholder={selectedCrew ? 'Describe what you want to change...' : 'Select a crew member first'}
+              placeholder={selectedCrew ? 'Paste conversation feedback or describe what you want to change...' : 'Select a crew member first'}
               disabled={!selectedCrew || isChatting || isApplying || isLoadingSource}
-              rows={1}
+              rows={3}
             />
             <button
               className={styles.sendButton}
