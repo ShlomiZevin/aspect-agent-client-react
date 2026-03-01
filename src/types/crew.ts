@@ -190,3 +190,51 @@ export interface CrewGeneratorState {
   generatedConfig: CrewMemberConfig | null;
   error: string | null;
 }
+
+// ============================================
+// Crew Editor (AI-assisted file editing) Types
+// ============================================
+
+/**
+ * A message in the crew editor chat with Claude
+ */
+export interface CrewEditorMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/**
+ * Response from GET /api/admin/crew/:agentName/:crewName/source
+ */
+export interface CrewSourceResponse {
+  source: string;
+  filePath: string;
+  lastModified: string;
+}
+
+/**
+ * Response from POST /api/admin/crew/:agentName/:crewName/chat
+ */
+export interface CrewChatResponse {
+  response: string;
+  updatedSource?: string;
+}
+
+/**
+ * Response from POST /api/admin/crew/:agentName/:crewName/apply
+ */
+export interface CrewApplyResponse {
+  success: boolean;
+  error?: string;
+  backupVersion?: string;
+}
+
+/**
+ * A backed-up version of a crew file in GCS
+ */
+export interface CrewVersionInfo {
+  timestamp: string;
+  name: string;
+  size: number;
+  created: string | null;
+}

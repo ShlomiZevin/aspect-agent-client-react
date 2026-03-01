@@ -4,6 +4,7 @@ import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { FeedbackPage } from '../components/dashboard/FeedbackPage';
 import { UsersPage } from '../components/dashboard/UsersPage';
 import { CrewPage } from '../components/dashboard/CrewPage';
+import { CrewEditorAI } from '../components/dashboard/CrewEditorAI';
 import { QueryOptimizerPage } from '../components/dashboard/QueryOptimizerPage';
 import { KBManager } from '../components/kb';
 import { aspectConfig, compassConfig, freedaConfig } from '../agents';
@@ -50,6 +51,10 @@ export function DashboardPage() {
             <Route
               path="crew"
               element={<CrewPage agentName={config.agentName} baseURL={config.baseURL} />}
+            />
+            <Route
+              path="crew-editor"
+              element={<CrewEditorAI agentName={config.agentName} baseURL={config.baseURL} />}
             />
             <Route
               path="knowledge-base"
