@@ -49,6 +49,10 @@ export function FieldsEditorPanel({
   // Loading state for operations
   const [isSaving, setIsSaving] = useState(false);
 
+  // Filter & sort
+  const [filterText, setFilterText] = useState('');
+  const [sortMode, setSortMode] = useState<'default' | 'alpha' | 'crew'>('default');
+
   // Load fields
   const loadFields = useCallback(async () => {
     if (!conversationId) return;
@@ -171,8 +175,32 @@ export function FieldsEditorPanel({
     }
   };
 
-  // Clear a field
+  // Clear a field value (set to empty string, field stays in the list)
   const handleClearField = async (fieldName: string) => {
+    setIsSaving(true);
+    try {
+      await updateFields(conversationId, { [fieldName]: '' }, baseURL);
+
+      // Update local state - keep the field but set value to empty
+      setCollectedFields(prev => ({ ...prev, [fieldName]: '' }));
+      setEditedFields(prev => {
+        const next = { ...prev };
+        delete next[fieldName];
+        return next;
+      });
+
+      setStatus({ type: 'success', message: `Cleared "${fieldName}"` });
+      onFieldsUpdated?.();
+    } catch (error) {
+      console.error('Failed to clear field:', error);
+      setStatus({ type: 'error', message: `Failed to clear "${fieldName}"` });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Remove a field entirely from the server
+  const handleRemoveField = async (fieldName: string) => {
     setIsSaving(true);
     try {
       await deleteFields(conversationId, [fieldName], baseURL);
@@ -189,11 +217,11 @@ export function FieldsEditorPanel({
         return next;
       });
 
-      setStatus({ type: 'success', message: `Cleared "${fieldName}"` });
+      setStatus({ type: 'success', message: `Removed "${fieldName}"` });
       onFieldsUpdated?.();
     } catch (error) {
-      console.error('Failed to clear field:', error);
-      setStatus({ type: 'error', message: `Failed to clear "${fieldName}"` });
+      console.error('Failed to remove field:', error);
+      setStatus({ type: 'error', message: `Failed to remove "${fieldName}"` });
     } finally {
       setIsSaving(false);
     }
@@ -236,6 +264,29 @@ export function FieldsEditorPanel({
     name => currentCrewFieldNames.has(name)
   ).length;
   const currentCrewTotal = fieldDefinitions.length;
+
+  // Filter and sort fields
+  const filteredFields = [...fieldsList]
+    .filter(field =>
+      !filterText || field.name.toLowerCase().includes(filterText.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortMode === 'alpha') {
+        return a.name.localeCompare(b.name);
+      }
+      if (sortMode === 'crew') {
+        // Current crew fields first, then others
+        const aInCrew = currentCrewFieldNames.has(a.name) ? 0 : 1;
+        const bInCrew = currentCrewFieldNames.has(b.name) ? 0 : 1;
+        if (aInCrew !== bInCrew) return aInCrew - bInCrew;
+        // Within each group: collected first, then uncollected
+        const aCollected = a.isCollected ? 0 : 1;
+        const bCollected = b.isCollected ? 0 : 1;
+        if (aCollected !== bCollected) return aCollected - bCollected;
+        return a.name.localeCompare(b.name);
+      }
+      return 0;
+    });
 
   return (
     <div className={styles.panel} dir="ltr">
@@ -281,6 +332,49 @@ export function FieldsEditorPanel({
         </div>
       )}
 
+      {/* Filter & Sort Controls */}
+      {!isLoading && fieldsList.length > 0 && (
+        <div className={styles.controlsBar}>
+          <div className={styles.filterWrapper}>
+            <input
+              type="text"
+              className={styles.filterInput}
+              placeholder="Filter fields..."
+              value={filterText}
+              onChange={e => setFilterText(e.target.value)}
+            />
+            {filterText && (
+              <button
+                className={styles.filterClear}
+                onClick={() => setFilterText('')}
+                title="Clear filter"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
+          </div>
+          <div className={styles.sortButtons}>
+            <button
+              className={`${styles.sortButton} ${sortMode === 'alpha' ? styles.active : ''}`}
+              onClick={() => setSortMode(sortMode === 'alpha' ? 'default' : 'alpha')}
+              title="Sort alphabetically"
+            >
+              A-Z
+            </button>
+            <button
+              className={`${styles.sortButton} ${sortMode === 'crew' ? styles.active : ''}`}
+              onClick={() => setSortMode(sortMode === 'crew' ? 'default' : 'crew')}
+              title="Group by crew member"
+            >
+              Crew
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Loading State */}
       {isLoading ? (
         <div className={styles.emptyState}>
@@ -297,7 +391,11 @@ export function FieldsEditorPanel({
       ) : (
         /* Fields List */
         <div className={styles.fieldsSection}>
-          {fieldsList.map(field => (
+          {filteredFields.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p className={styles.emptyText}>No fields match "{filterText}"</p>
+            </div>
+          ) : filteredFields.map(field => (
             <div
               key={field.name}
               className={`${styles.fieldRow} ${field.isCollected ? styles.collected : ''} ${field.isDirty ? styles.dirty : ''}`}
@@ -307,17 +405,27 @@ export function FieldsEditorPanel({
                   {field.name}
                 </label>
                 {field.isCollected && (
-                  <button
-                    className={styles.clearButton}
-                    onClick={() => handleClearField(field.name)}
-                    disabled={isSaving}
-                    title="Clear this field"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
+                  <div className={styles.fieldActions}>
+                    <button
+                      className={styles.clearButton}
+                      onClick={() => handleClearField(field.name)}
+                      disabled={isSaving}
+                      title="Clear value"
+                    >
+                      clear
+                    </button>
+                    <button
+                      className={styles.removeButton}
+                      onClick={() => handleRemoveField(field.name)}
+                      disabled={isSaving}
+                      title="Remove field"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
                 )}
               </div>
               {field.description && (
@@ -337,6 +445,7 @@ export function FieldsEditorPanel({
           ))}
         </div>
       )}
+
 
       {/* Actions Section */}
       <div className={styles.actionsSection}>
