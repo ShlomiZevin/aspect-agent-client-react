@@ -20,6 +20,7 @@ export interface KBFile {
   id: number | null;            // DB numeric ID (null for legacy files not yet in DB)
   openaiFileId?: string;        // OpenAI file ID
   googleDocumentId?: string;    // Google document name
+  originalFileUrl?: string | null; // GCS path for download
   name: string;
   size: number;
   type: string;

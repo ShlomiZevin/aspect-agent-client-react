@@ -25,6 +25,7 @@ interface KBFilesResponse {
     id: number;
     openaiFileId?: string;
     googleDocumentId?: string;
+    originalFileUrl?: string | null;
     fileName: string;
     fileSize: number;
     fileType: string;
@@ -79,6 +80,7 @@ export async function getKBFiles(
     id: file.id ?? null,
     openaiFileId: file.openaiFileId,
     googleDocumentId: file.googleDocumentId,
+    originalFileUrl: file.originalFileUrl ?? null,
     name: file.fileName,
     size: file.fileSize,
     type: file.fileType,
@@ -172,6 +174,21 @@ export async function deleteFileLegacy(
     { method: 'DELETE' },
     baseURL || getBaseURL()
   );
+}
+
+export function downloadFile(
+  kbId: number,
+  fileId: number,
+  fileName: string,
+  baseURL?: string
+): void {
+  const url = `${baseURL || getBaseURL()}/api/kb/${kbId}/files/${fileId}/download`;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 export async function syncKnowledgeBase(

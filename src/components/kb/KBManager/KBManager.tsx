@@ -4,6 +4,7 @@ import { useKnowledgeBase } from '../../../hooks';
 import { formatBytes } from '../../../utils';
 import { Button, Modal } from '../../common';
 import { SyncKBModal } from '../SyncKBModal';
+import { downloadFile } from '../../../services/kbService';
 import type { KBProvider } from '../../../types';
 import styles from './KBManager.module.css';
 
@@ -230,14 +231,25 @@ export function KBManager() {
                           <td>{file.type}</td>
                           <td>{formatBytes(file.size)}</td>
                           <td>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              onClick={() => deleteFile(file)}
-                              disabled={file.id === null && !file.openaiFileId}
-                            >
-                              Delete
-                            </Button>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              {file.id !== null && file.originalFileUrl && (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => downloadFile(selectedKB!.id, file.id!, file.name, config.baseURL)}
+                                >
+                                  Download
+                                </Button>
+                              )}
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => deleteFile(file)}
+                                disabled={file.id === null && !file.openaiFileId}
+                              >
+                                Delete
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
