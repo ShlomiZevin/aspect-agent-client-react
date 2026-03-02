@@ -11,7 +11,8 @@ import type {
   CrewSourceResponse,
   CrewChatResponse,
   CrewApplyResponse,
-  CrewVersionInfo
+  CrewVersionInfo,
+  ProjectFileInfo
 } from '../types/crew';
 
 /**
@@ -75,26 +76,29 @@ export async function chatWithClaude(
 
 /**
  * Apply new source code to a crew member file.
- * Server will validate, backup to GCS, write to disk, and hot-reload.
+ * Server will validate, backup NEW source to GCS, write to disk,
+ * hot-reload, and set the backup as default.
  *
  * @param agentName - Agent name
  * @param crewName - Crew member name
  * @param source - New source code to apply
  * @param baseURL - API base URL
+ * @param name - Optional version name
  * @returns Success status, optional error, and backup version
  */
 export async function applyCrewSource(
   agentName: string,
   crewName: string,
   source: string,
-  baseURL: string
+  baseURL: string,
+  name?: string
 ): Promise<CrewApplyResponse> {
   const response = await fetch(
     `${baseURL}/api/admin/crew/${encodeURIComponent(agentName)}/${encodeURIComponent(crewName)}/apply`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source })
+      body: JSON.stringify({ source, ...(name ? { name } : {}) })
     }
   );
 
@@ -109,12 +113,13 @@ export async function applyCrewSource(
 
 /**
  * List backed-up versions for a crew member.
+ * Returns versions array and project file info.
  */
 export async function listVersions(
   agentName: string,
   crewName: string,
   baseURL: string
-): Promise<CrewVersionInfo[]> {
+): Promise<{ versions: CrewVersionInfo[]; projectFile: ProjectFileInfo | null }> {
   const response = await fetch(
     `${baseURL}/api/admin/crew/${encodeURIComponent(agentName)}/${encodeURIComponent(crewName)}/versions`
   );
@@ -125,7 +130,7 @@ export async function listVersions(
   }
 
   const data = await response.json();
-  return data.versions;
+  return { versions: data.versions, projectFile: data.projectFile || null };
 }
 
 /**
@@ -174,6 +179,46 @@ export async function restoreVersion(
 }
 
 /**
+ * Get the default version marker for a crew member.
+ */
+export async function getDefaultVersion(
+  agentName: string,
+  crewName: string,
+  baseURL: string
+): Promise<{ timestamp: string; setAt: string } | null> {
+  const response = await fetch(
+    `${baseURL}/api/admin/crew/${encodeURIComponent(agentName)}/${encodeURIComponent(crewName)}/versions/default`
+  );
+
+  if (!response.ok) return null;
+
+  const data = await response.json();
+  return data.default || null;
+}
+
+/**
+ * Set a version as the default (known-good) version.
+ */
+export async function setDefaultVersion(
+  agentName: string,
+  crewName: string,
+  timestamp: string,
+  baseURL: string
+): Promise<{ success: boolean }> {
+  const response = await fetch(
+    `${baseURL}/api/admin/crew/${encodeURIComponent(agentName)}/${encodeURIComponent(crewName)}/versions/${encodeURIComponent(timestamp)}/set-default`,
+    { method: 'POST' }
+  );
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.error || `Failed to set default: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
  * Delete a backed-up version from GCS.
  */
 export async function deleteVersion(
@@ -191,4 +236,46 @@ export async function deleteVersion(
     const data = await response.json();
     throw new Error(data.error || `Delete failed: ${response.statusText}`);
   }
+}
+
+/**
+ * Unset the default version — reverts to project file.
+ */
+export async function unsetDefaultVersion(
+  agentName: string,
+  crewName: string,
+  baseURL: string
+): Promise<{ success: boolean }> {
+  const response = await fetch(
+    `${baseURL}/api/admin/crew/${encodeURIComponent(agentName)}/${encodeURIComponent(crewName)}/versions/default`,
+    { method: 'DELETE' }
+  );
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.error || `Failed to unset default: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Get the backed-up project file source from GCS.
+ */
+export async function getProjectFileSource(
+  agentName: string,
+  crewName: string,
+  baseURL: string
+): Promise<string> {
+  const response = await fetch(
+    `${baseURL}/api/admin/crew/${encodeURIComponent(agentName)}/${encodeURIComponent(crewName)}/versions/project`
+  );
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.error || `Failed to get project file: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.source;
 }

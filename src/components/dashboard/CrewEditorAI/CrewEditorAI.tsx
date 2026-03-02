@@ -13,8 +13,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Highlight, themes } from 'prism-react-renderer';
 import { getAgentCrew } from '../../../services/crewService';
-import { getCrewSource, chatWithClaude, applyCrewSource, listVersions, getVersionSource, deleteVersion } from '../../../services/crewEditorService';
-import type { CrewMember, CrewEditorMessage, CrewVersionInfo } from '../../../types/crew';
+import { getCrewSource, chatWithClaude, applyCrewSource, listVersions, getVersionSource, deleteVersion, getDefaultVersion, setDefaultVersion, unsetDefaultVersion, getProjectFileSource } from '../../../services/crewEditorService';
+import type { CrewMember, CrewEditorMessage, CrewVersionInfo, ProjectFileInfo } from '../../../types/crew';
 import styles from './CrewEditorAI.module.css';
 
 interface CrewEditorAIProps {
@@ -55,6 +55,13 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
   const [restoringVersion, setRestoringVersion] = useState<string | null>(null);
   const [deletingVersion, setDeletingVersion] = useState<string | null>(null);
+  const [settingDefault, setSettingDefault] = useState<string | null>(null);
+  const [loadedVersionTimestamp, setLoadedVersionTimestamp] = useState<string | null>(null);
+  const [versionName, setVersionName] = useState('');
+  const [showApplyPrompt, setShowApplyPrompt] = useState(false);
+  const [projectFile, setProjectFile] = useState<ProjectFileInfo | null>(null);
+  const [defaultVersionInfo, setDefaultVersionInfo] = useState<{ timestamp: string; setAt: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -81,7 +88,7 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
     load();
   }, [agentName, baseURL]);
 
-  // Load source when crew selection changes
+  // Load source when crew selection changes + auto-load default if it differs
   useEffect(() => {
     if (!selectedCrew) return;
 
@@ -91,10 +98,30 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
       setProposedSource(null);
       setActiveTab('current');
       setMessages([]);
+      setLoadedVersionTimestamp(null);
+      setVersionName('');
+      setDefaultVersionInfo(null);
       try {
         const result = await getCrewSource(agentName, selectedCrew, baseURL);
         setSource(result.source);
         setFilePath(result.filePath);
+
+        // Check if a default version exists and differs from current
+        try {
+          const defaultInfo = await getDefaultVersion(agentName, selectedCrew, baseURL);
+          setDefaultVersionInfo(defaultInfo);
+          if (defaultInfo) {
+            const defaultSource = await getVersionSource(agentName, selectedCrew, defaultInfo.timestamp, baseURL);
+            if (defaultSource.trim() !== result.source.trim()) {
+              setProposedSource(defaultSource);
+              setActiveTab('proposed');
+              setLoadedVersionTimestamp(defaultInfo.timestamp);
+              setStatusMessage({ type: 'success', text: 'Default version differs from current — click Apply to restore' });
+            }
+          }
+        } catch {
+          setDefaultVersionInfo(null);
+        }
       } catch (err) {
         setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to load source' });
         setSource('');
@@ -158,22 +185,39 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
   };
 
   // Apply proposed source
-  const handleApply = async () => {
+  // Open the apply prompt dialog
+  const handleApply = () => {
+    if (!proposedSource || !selectedCrew || isApplying) return;
+    setVersionName('');
+    setShowApplyPrompt(true);
+  };
+
+  // Confirm apply (from the prompt dialog)
+  const handleConfirmApply = async () => {
     if (!proposedSource || !selectedCrew || isApplying) return;
 
+    setShowApplyPrompt(false);
     setIsApplying(true);
     setStatusMessage(null);
 
     try {
-      const result = await applyCrewSource(agentName, selectedCrew, proposedSource, baseURL);
+      const result = await applyCrewSource(
+        agentName, selectedCrew, proposedSource, baseURL,
+        versionName.trim() || undefined
+      );
       if (result.success) {
         setSource(proposedSource);
         setProposedSource(null);
         setActiveTab('current');
+        setLoadedVersionTimestamp(null);
+        setVersionName('');
+        if (result.backupVersion) {
+          setDefaultVersionInfo({ timestamp: result.backupVersion, setAt: new Date().toISOString() });
+        }
         setStatusMessage({
           type: 'success',
           text: result.backupVersion
-            ? `Applied successfully. Backup: ${result.backupVersion}`
+            ? `Applied & set as default. Version: ${formatTimestamp(result.backupVersion)}`
             : 'Applied successfully. Changes are live.'
         });
       } else {
@@ -190,6 +234,7 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
   const handleDiscard = () => {
     setProposedSource(null);
     setActiveTab('current');
+    setLoadedVersionTimestamp(null);
   };
 
   // Export current source as file download
@@ -218,10 +263,12 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
     setShowVersions(true);
     setIsLoadingVersions(true);
     try {
-      const v = await listVersions(agentName, selectedCrew, baseURL);
-      setVersions(v);
+      const result = await listVersions(agentName, selectedCrew, baseURL);
+      setVersions(result.versions);
+      setProjectFile(result.projectFile);
     } catch {
       setVersions([]);
+      setProjectFile(null);
     } finally {
       setIsLoadingVersions(false);
     }
@@ -237,6 +284,7 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
       setProposedSource(versionSource);
       setActiveTab('proposed');
       setShowVersions(false);
+      setLoadedVersionTimestamp(timestamp);
       setStatusMessage({ type: 'success', text: `Loaded version from ${formatTimestamp(timestamp)} — click Apply to save` });
     } catch (err) {
       setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to load version' });
@@ -250,12 +298,94 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
     if (!selectedCrew || deletingVersion) return;
     setDeletingVersion(timestamp);
     try {
+      const wasDefault = versions.find(v => v.timestamp === timestamp)?.isDefault;
       await deleteVersion(agentName, selectedCrew, timestamp, baseURL);
       setVersions(prev => prev.filter(v => v.timestamp !== timestamp));
+      if (wasDefault) {
+        setDefaultVersionInfo(null);
+      }
     } catch (err) {
       setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Delete failed' });
     } finally {
       setDeletingVersion(null);
+    }
+  };
+
+  // Set or unset a version as default (toggle)
+  const handleSetDefault = async (timestamp: string) => {
+    if (!selectedCrew || settingDefault) return;
+
+    // Toggle off if already the default
+    const targetVersion = versions.find(v => v.timestamp === timestamp);
+    if (targetVersion?.isDefault) {
+      setSettingDefault(timestamp);
+      try {
+        await unsetDefaultVersion(agentName, selectedCrew, baseURL);
+        setVersions(prev => prev.map(v => ({ ...v, isDefault: false })));
+        setDefaultVersionInfo(null);
+        setStatusMessage({ type: 'success', text: 'Default unset — project file is now active' });
+      } catch (err) {
+        setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to unset default' });
+      } finally {
+        setSettingDefault(null);
+      }
+      return;
+    }
+
+    // Set as default
+    setSettingDefault(timestamp);
+    try {
+      await setDefaultVersion(agentName, selectedCrew, timestamp, baseURL);
+      setVersions(prev => prev.map(v => ({ ...v, isDefault: v.timestamp === timestamp })));
+      setDefaultVersionInfo({ timestamp, setAt: new Date().toISOString() });
+      setStatusMessage({ type: 'success', text: `Default version set to ${formatTimestamp(timestamp)}` });
+    } catch (err) {
+      setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to set default' });
+    } finally {
+      setSettingDefault(null);
+    }
+  };
+
+  // Unset default (for project file star click)
+  const handleUnsetDefault = async () => {
+    if (!selectedCrew || settingDefault) return;
+    setSettingDefault('project');
+    try {
+      await unsetDefaultVersion(agentName, selectedCrew, baseURL);
+      setVersions(prev => prev.map(v => ({ ...v, isDefault: false })));
+      setDefaultVersionInfo(null);
+      setStatusMessage({ type: 'success', text: 'Default unset — project file is now active' });
+    } catch (err) {
+      setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to unset default' });
+    } finally {
+      setSettingDefault(null);
+    }
+  };
+
+  // Load project file source into proposed view
+  const handleLoadProjectFile = async () => {
+    if (!selectedCrew || restoringVersion) return;
+    setRestoringVersion('project');
+    setStatusMessage(null);
+    try {
+      let projectSource: string;
+      try {
+        // Try GCS backup first
+        projectSource = await getProjectFileSource(agentName, selectedCrew, baseURL);
+      } catch {
+        // Fall back to current disk file (which IS the project file if no GCS override)
+        const result = await getCrewSource(agentName, selectedCrew, baseURL);
+        projectSource = result.source;
+      }
+      setProposedSource(projectSource);
+      setActiveTab('proposed');
+      setShowVersions(false);
+      setLoadedVersionTimestamp(null);
+      setStatusMessage({ type: 'success', text: 'Loaded project file — click Apply to restore' });
+    } catch (err) {
+      setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to load project file' });
+    } finally {
+      setRestoringVersion(null);
     }
   };
 
@@ -327,6 +457,15 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
   // Get the code to display based on active tab
   const displayCode = activeTab === 'proposed' && proposedSource ? proposedSource : source;
 
+  // Copy displayed code to clipboard
+  const handleCopyCode = useCallback(() => {
+    if (!displayCode) return;
+    navigator.clipboard.writeText(displayCode).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [displayCode]);
+
   // Show loading while crew list loads
   if (isLoadingCrew) {
     return (
@@ -384,6 +523,10 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
           </span>
         )}
 
+        <span className={`${styles.sourceBadge} ${defaultVersionInfo ? styles.sourceBadgeGcs : styles.sourceBadgeProject}`}>
+          {defaultVersionInfo ? '☁️ GCS Override' : '📁 Project File'}
+        </span>
+
         {proposedSource ? (
           <span className={`${styles.statusBadge} ${styles.statusModified}`}>
             Changes Pending
@@ -428,6 +571,23 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
                 )}
 
                 <div className={styles.codePanelActions}>
+                  <button
+                    className={styles.iconButton}
+                    onClick={handleCopyCode}
+                    disabled={!displayCode}
+                    title={copied ? 'Copied!' : 'Copy code'}
+                  >
+                    {copied ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                      </svg>
+                    )}
+                  </button>
                   <button
                     className={styles.iconButton}
                     onClick={() => setCodeExpanded(false)}
@@ -617,19 +777,46 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
                 ) : (
                   <div className={styles.versionsList}>
                     {versions.map(v => (
-                      <div key={v.timestamp} className={styles.versionItem}>
+                      <div key={v.timestamp} className={`${styles.versionItem} ${v.isDefault ? styles.versionItemDefault : ''}`}>
+                        <button
+                          className={`${styles.versionStar} ${v.isDefault ? styles.versionStarActive : ''}`}
+                          onClick={() => handleSetDefault(v.timestamp)}
+                          disabled={!!settingDefault}
+                          title={v.isDefault ? 'Unset default (revert to project file)' : 'Set as default'}
+                        >
+                          {settingDefault === v.timestamp ? '...' : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill={v.isDefault ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                          )}
+                        </button>
                         <div className={styles.versionInfo}>
-                          <span className={styles.versionDate}>{formatTimestamp(v.timestamp)}</span>
-                          <span className={styles.versionSize}>{(v.size / 1024).toFixed(1)} KB</span>
+                          {v.versionName ? (
+                            <>
+                              <span className={styles.versionDate}>
+                                {v.versionName}
+                                {v.isDefault && <span className={styles.defaultBadge}>(active)</span>}
+                              </span>
+                              <span className={styles.versionSize}>{formatTimestamp(v.timestamp)}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className={styles.versionDate}>
+                                {formatTimestamp(v.timestamp)}
+                                {v.isDefault && <span className={styles.defaultBadge}>(active)</span>}
+                              </span>
+                              <span className={styles.versionSize}>{(v.size / 1024).toFixed(1)} KB</span>
+                            </>
+                          )}
                         </div>
                         <div className={styles.versionActions}>
                           <button
                             className={styles.versionRestore}
                             onClick={() => handleRestore(v.timestamp)}
                             disabled={!!restoringVersion || !!deletingVersion}
-                            title="Restore this version"
+                            title="Load this version"
                           >
-                            {restoringVersion === v.timestamp ? '...' : 'Restore'}
+                            {restoringVersion === v.timestamp ? '...' : 'Load'}
                           </button>
                           <button
                             className={styles.versionDelete}
@@ -647,11 +834,79 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
                         </div>
                       </div>
                     ))}
+
+                    {/* Project File entry — always shown */}
+                    <div className={`${styles.versionItem} ${styles.versionItemProject} ${!defaultVersionInfo ? styles.versionItemDefault : ''}`}>
+                      <button
+                        className={`${styles.versionStar} ${!defaultVersionInfo ? styles.versionStarActive : ''}`}
+                        onClick={handleUnsetDefault}
+                        disabled={!!settingDefault || !defaultVersionInfo}
+                        title={!defaultVersionInfo ? 'Project file is the current default' : 'Unset GCS default (revert to project file)'}
+                      >
+                        {settingDefault === 'project' ? '...' : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill={!defaultVersionInfo ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                          </svg>
+                        )}
+                      </button>
+                      <div className={styles.versionInfo}>
+                        <span className={styles.versionDate}>
+                          📁 Project File
+                          {!defaultVersionInfo && <span className={styles.defaultBadge}>(active)</span>}
+                        </span>
+                        {projectFile?.exists && (
+                          <span className={styles.versionSize}>{(projectFile.size / 1024).toFixed(1)} KB</span>
+                        )}
+                      </div>
+                      <div className={styles.versionActions}>
+                        <button
+                          className={styles.versionRestore}
+                          onClick={handleLoadProjectFile}
+                          disabled={!!restoringVersion || !!deletingVersion}
+                          title="Load project file"
+                        >
+                          {restoringVersion === 'project' ? '...' : 'Load'}
+                        </button>
+                        {/* spacer matching delete button width for alignment */}
+                        <span style={{ width: 20 }} />
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
             )}
           </div>
+
+          {loadedVersionTimestamp && proposedSource && (() => {
+            const isAlreadyDefault = versions.find(
+              v => v.timestamp === loadedVersionTimestamp
+            )?.isDefault;
+
+            return isAlreadyDefault ? (
+              <button
+                className={`${styles.setDefaultButton} ${styles.setDefaultButtonActive}`}
+                disabled
+                title="This version is already the default"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+                Default ✓
+              </button>
+            ) : (
+              <button
+                className={styles.setDefaultButton}
+                onClick={() => handleSetDefault(loadedVersionTimestamp)}
+                disabled={!!settingDefault}
+                title="Mark this version as the default (auto-loads on server start)"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+                {settingDefault ? 'Setting...' : 'Set as Default'}
+              </button>
+            );
+          })()}
 
           {proposedSource && (
             <button
@@ -694,6 +949,45 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
           )}
         </div>
       </div>
+
+      {/* Apply prompt dialog */}
+      {showApplyPrompt && (
+        <div className={styles.applyPromptOverlay} onClick={() => setShowApplyPrompt(false)}>
+          <div className={styles.applyPromptDialog} onClick={e => e.stopPropagation()}>
+            <h3 className={styles.applyPromptTitle}>Apply Changes</h3>
+            <p className={styles.applyPromptHint}>
+              Name this version so you can find it later in backup history.
+            </p>
+            <input
+              type="text"
+              className={styles.applyPromptInput}
+              value={versionName}
+              onChange={e => setVersionName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleConfirmApply()}
+              placeholder="e.g. &quot;friendlier tone&quot; or &quot;added follow-up questions&quot;"
+              autoFocus
+            />
+            <div className={styles.applyPromptActions}>
+              <button
+                className={styles.applyPromptSkip}
+                onClick={handleConfirmApply}
+              >
+                Skip — apply without name
+              </button>
+              <button
+                className={styles.applyButton}
+                onClick={handleConfirmApply}
+                disabled={!versionName.trim()}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

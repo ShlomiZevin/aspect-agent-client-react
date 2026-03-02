@@ -237,4 +237,15 @@ export interface CrewVersionInfo {
   name: string;
   size: number;
   created: string | null;
+  isDefault?: boolean;
+  versionName?: string | null;
+}
+
+/**
+ * Project file backup info from GCS
+ */
+export interface ProjectFileInfo {
+  exists: boolean;
+  size: number;
+  created: string | null;
 }
