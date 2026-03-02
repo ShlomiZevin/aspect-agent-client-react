@@ -105,15 +105,29 @@ export async function createKnowledgeBase(
   return mapKB(data.knowledgeBase);
 }
 
+export type FileUploadStatus = 'pending' | 'uploading' | 'done' | 'error';
+
+export interface FileUploadProgress {
+  name: string;
+  status: FileUploadStatus;
+  error?: string;
+}
+
 export async function uploadFiles(
   kbId: number,
   files: File[],
   tags: string[] = [],
+  onProgress?: (progress: FileUploadProgress[]) => void,
   baseURL?: string
 ): Promise<void> {
-  for (const file of files) {
+  const progress: FileUploadProgress[] = files.map(f => ({ name: f.name, status: 'pending' as const }));
+
+  for (let i = 0; i < files.length; i++) {
+    progress[i] = { ...progress[i], status: 'uploading' };
+    onProgress?.([...progress]);
+
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', files[i]);
     if (tags.length > 0) {
       formData.append('tags', JSON.stringify(tags));
     }
@@ -125,8 +139,14 @@ export async function uploadFiles(
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.error || `Upload failed: ${response.status}`);
+      const errMsg = error.error || `Upload failed: ${response.status}`;
+      progress[i] = { ...progress[i], status: 'error', error: errMsg };
+      onProgress?.([...progress]);
+      throw new Error(errMsg);
     }
+
+    progress[i] = { ...progress[i], status: 'done' };
+    onProgress?.([...progress]);
   }
 }
 

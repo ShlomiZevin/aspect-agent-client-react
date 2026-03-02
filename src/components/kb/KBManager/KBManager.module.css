@@ -351,6 +351,104 @@
   margin-top: 2px;
 }
 
+/* Upload Progress */
+.uploadProgress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.progressSummary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.progressPercent {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.progressBar {
+  height: 6px;
+  background-color: var(--surface-light);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background-color: var(--primary-color);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.progressList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 280px;
+  overflow-y: auto;
+  margin-top: var(--spacing-xs);
+}
+
+.progressItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 6px var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  background-color: var(--surface-light);
+}
+
+.progressIcon {
+  width: 18px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 13px;
+}
+
+.progressName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.progressError {
+  font-size: 11px;
+  color: var(--error-color);
+  flex-shrink: 0;
+}
+
+/* status variants */
+.status_done .progressIcon { color: #10b981; }
+.status_done { opacity: 0.7; }
+.status_uploading { background-color: var(--primary-light); }
+.status_uploading .progressIcon { color: var(--primary-color); }
+.status_error { background-color: rgba(239, 68, 68, 0.08); }
+.status_error .progressIcon { color: var(--error-color); }
+.status_pending { opacity: 0.45; }
+
+/* Spinner for uploading file */
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--primary-color);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;

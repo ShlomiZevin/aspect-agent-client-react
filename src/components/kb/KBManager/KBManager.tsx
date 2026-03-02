@@ -28,6 +28,7 @@ export function KBManager() {
     isLoading,
     isUploading,
     isSyncing,
+    uploadProgress,
     error,
     selectKnowledgeBase,
     createKnowledgeBase,
@@ -301,46 +302,87 @@ export function KBManager() {
       {/* Upload Modal */}
       <Modal
         isOpen={showUploadModal}
-        onClose={() => { setShowUploadModal(false); setFilesToUpload([]); }}
+        onClose={() => { if (!isUploading) { setShowUploadModal(false); setFilesToUpload([]); } }}
         title="Upload Files"
         size="md"
       >
         <div className={styles.form}>
-          <div
-            className={styles.dropzone}
-            onDrop={handleDrop}
-            onDragOver={(e) => e.preventDefault()}
-          >
-            <input
-              type="file"
-              multiple
-              onChange={handleFileSelect}
-              className={styles.fileInput}
-              id="file-upload"
-            />
-            <label htmlFor="file-upload">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-              <p>Drop files here or click to browse</p>
-            </label>
-          </div>
-
-          {filesToUpload.length > 0 && (
-            <div className={styles.filePreview}>
-              {filesToUpload.map((file, index) => (
-                <div key={index} className={styles.previewItem}>
-                  <span>{getFileIcon(file.type)} {file.name}</span>
-                  <button onClick={() => removeFileFromUpload(index)}>×</button>
-                </div>
-              ))}
+          {isUploading && uploadProgress ? (
+            <div className={styles.uploadProgress}>
+              <div className={styles.progressSummary}>
+                <span>
+                  {uploadProgress.filter(f => f.status === 'done').length} of {uploadProgress.length} uploaded
+                </span>
+                <span className={styles.progressPercent}>
+                  {Math.round((uploadProgress.filter(f => f.status === 'done').length / uploadProgress.length) * 100)}%
+                </span>
+              </div>
+              <div className={styles.progressBar}>
+                <div
+                  className={styles.progressFill}
+                  style={{ width: `${(uploadProgress.filter(f => f.status === 'done').length / uploadProgress.length) * 100}%` }}
+                />
+              </div>
+              <div className={styles.progressList}>
+                {uploadProgress.map((file, index) => (
+                  <div key={index} className={`${styles.progressItem} ${styles[`status_${file.status}`]}`}>
+                    <span className={styles.progressIcon}>
+                      {file.status === 'done' && '✓'}
+                      {file.status === 'error' && '✗'}
+                      {file.status === 'uploading' && <span className={styles.spinner} />}
+                      {file.status === 'pending' && '·'}
+                    </span>
+                    <span className={styles.progressName}>{file.name}</span>
+                    {file.status === 'error' && (
+                      <span className={styles.progressError}>{file.error}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
+          ) : (
+            <>
+              <div
+                className={styles.dropzone}
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+              >
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileSelect}
+                  className={styles.fileInput}
+                  id="file-upload"
+                />
+                <label htmlFor="file-upload">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <p>Drop files here or click to browse</p>
+                </label>
+              </div>
+
+              {filesToUpload.length > 0 && (
+                <div className={styles.filePreview}>
+                  {filesToUpload.map((file, index) => (
+                    <div key={index} className={styles.previewItem}>
+                      <span>{getFileIcon(file.type)} {file.name}</span>
+                      <button onClick={() => removeFileFromUpload(index)}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           <div className={styles.actions}>
-            <Button variant="secondary" onClick={() => { setShowUploadModal(false); setFilesToUpload([]); }}>
+            <Button
+              variant="secondary"
+              onClick={() => { setShowUploadModal(false); setFilesToUpload([]); }}
+              disabled={isUploading}
+            >
               Cancel
             </Button>
             <Button

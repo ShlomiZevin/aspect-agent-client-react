@@ -8,7 +8,10 @@ import {
   deleteFileLegacy as deleteFileLegacyApi,
   syncKnowledgeBase as syncKBApi,
 } from '../services/kbService';
+import type { FileUploadProgress } from '../services/kbService';
 import type { KnowledgeBase, KBFile, KBProvider } from '../types';
+
+export type { FileUploadProgress };
 
 export interface UseKnowledgeBaseReturn {
   knowledgeBases: KnowledgeBase[];
@@ -17,6 +20,7 @@ export interface UseKnowledgeBaseReturn {
   isLoading: boolean;
   isUploading: boolean;
   isSyncing: boolean;
+  uploadProgress: FileUploadProgress[] | null;
   error: string | null;
   loadKnowledgeBases: () => Promise<void>;
   selectKnowledgeBase: (kb: KnowledgeBase | null) => Promise<void>;
@@ -37,6 +41,7 @@ export function useKnowledgeBase(
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<FileUploadProgress[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadKnowledgeBases = useCallback(async () => {
@@ -101,8 +106,15 @@ export function useKnowledgeBase(
 
       setIsUploading(true);
       setError(null);
+      setUploadProgress(filesToUpload.map(f => ({ name: f.name, status: 'pending' as const })));
       try {
-        await uploadFilesApi(selectedKB.id, filesToUpload, tags, baseURL);
+        await uploadFilesApi(
+          selectedKB.id,
+          filesToUpload,
+          tags,
+          (progress) => setUploadProgress([...progress]),
+          baseURL
+        );
         const kbFiles = await getKBFiles(selectedKB.id, baseURL);
         setFiles(kbFiles);
         await loadKnowledgeBases();
@@ -110,6 +122,7 @@ export function useKnowledgeBase(
         setError(err instanceof Error ? err.message : 'Failed to upload files');
       } finally {
         setIsUploading(false);
+        setUploadProgress(null);
       }
     },
     [selectedKB, baseURL, loadKnowledgeBases]
@@ -169,6 +182,7 @@ export function useKnowledgeBase(
     isLoading,
     isUploading,
     isSyncing,
+    uploadProgress,
     error,
     loadKnowledgeBases,
     selectKnowledgeBase,
