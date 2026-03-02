@@ -46,6 +46,7 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [showIdentityPicker, setShowIdentityPicker] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -69,6 +70,7 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
     }
 
     setSubmitting(true);
+    setSubmitError(null);
     try {
       const comment = await commentsService.addComment(taskId, identity, text.trim());
       setComments(prev => [...prev, comment]);
@@ -76,6 +78,8 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     } catch (err) {
       console.error('Failed to add comment:', err);
+      const msg = err instanceof Error ? err.message : 'Failed to post comment';
+      setSubmitError(msg.includes('large') || msg.includes('413') ? 'Comment is too large (image too big). Try a smaller screenshot.' : 'Failed to post comment. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -102,7 +106,11 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
           setText('');
           setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
         })
-        .catch(console.error)
+        .catch((err) => {
+          console.error('Failed to add comment:', err);
+          const msg = err instanceof Error ? err.message : '';
+          setSubmitError(msg.includes('large') || msg.includes('413') ? 'Comment is too large (image too big). Try a smaller screenshot.' : 'Failed to post comment. Please try again.');
+        })
         .finally(() => setSubmitting(false));
     }
   };
@@ -204,6 +212,9 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
               placeholder={identity ? 'Add a comment… (Ctrl+Enter to submit)' : 'Add a comment…'}
             />
           </div>
+          {submitError && (
+            <div className={styles.submitError}>{submitError}</div>
+          )}
           <div className={styles.inputActions}>
             <button
               className={styles.submitBtn}

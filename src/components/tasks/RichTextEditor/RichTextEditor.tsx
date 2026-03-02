@@ -250,6 +250,50 @@ export function RichTextEditor({ value, onChange, placeholder, expanded }: RichT
     }
   };
 
+  const compressImage = (dataUrl: string, maxWidth = 1600, quality = 0.82): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { resolve(dataUrl); return; }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  };
+
+  const insertImageAtCursor = (src: string) => {
+    const img = document.createElement('img');
+    img.src = src;
+    img.style.maxWidth = '100%';
+    img.style.borderRadius = '4px';
+    img.style.margin = '4px 0';
+
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(img);
+      range.setStartAfter(img);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } else if (editorRef.current) {
+      editorRef.current.appendChild(img);
+    }
+
+    if (editorRef.current) {
+      isInternalChange.current = true;
+      onChange(editorRef.current.innerHTML);
+    }
+  };
+
   const handlePaste = (e: React.ClipboardEvent) => {
     // Check for images in clipboard
     const items = e.clipboardData.items;
@@ -259,32 +303,10 @@ export function RichTextEditor({ value, onChange, placeholder, expanded }: RichT
         const file = items[i].getAsFile();
         if (file) {
           const reader = new FileReader();
-          reader.onload = (event) => {
+          reader.onload = async (event) => {
             const base64 = event.target?.result as string;
-            // Insert image at cursor position
-            const img = document.createElement('img');
-            img.src = base64;
-            img.style.maxWidth = '100%';
-            img.style.borderRadius = '4px';
-            img.style.margin = '4px 0';
-
-            const selection = window.getSelection();
-            if (selection && selection.rangeCount > 0) {
-              const range = selection.getRangeAt(0);
-              range.deleteContents();
-              range.insertNode(img);
-              range.setStartAfter(img);
-              range.collapse(true);
-              selection.removeAllRanges();
-              selection.addRange(range);
-            } else if (editorRef.current) {
-              editorRef.current.appendChild(img);
-            }
-
-            if (editorRef.current) {
-              isInternalChange.current = true;
-              onChange(editorRef.current.innerHTML);
-            }
+            const compressed = await compressImage(base64);
+            insertImageAtCursor(compressed);
           };
           reader.readAsDataURL(file);
         }
