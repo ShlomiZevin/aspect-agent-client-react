@@ -197,6 +197,11 @@ export function KBManager() {
                 </div>
               </div>
 
+              {files.length > 0 && (
+                <div className={styles.fileListHeader}>
+                  <span className={styles.fileCount}>{files.length} files</span>
+                </div>
+              )}
               <div className={styles.fileList}>
                 {files.length === 0 ? (
                   <div className={styles.emptyFiles}>

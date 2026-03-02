@@ -133,6 +133,23 @@
   margin-top: var(--spacing-md);
 }
 
+.fileListHeader {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-xs) 0 var(--spacing-xs);
+}
+
+.fileCount {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.fileList {
+  overflow-y: auto;
+  max-height: calc(100vh - 420px);
+  min-height: 150px;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -149,6 +166,10 @@
   font-weight: 600;
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
+  position: sticky;
+  top: 0;
+  background-color: var(--surface);
+  z-index: 1;
 }
 
 .table tr:hover {
