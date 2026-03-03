@@ -71,6 +71,13 @@
   border-radius: var(--radius-sm);
 }
 
+.createdDate {
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  color: var(--text-muted);
+  opacity: 0.75;
+}
+
 .closeBtn {
   background: none;
   border: none;

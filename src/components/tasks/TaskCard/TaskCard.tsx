@@ -52,6 +52,20 @@ function formatDueDate(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+// Format creation date for display
+function formatCreatedAt(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const created = new Date(d);
+  created.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((today.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 // Check if date is overdue
 function isOverdue(dateStr: string): boolean {
   const date = new Date(dateStr);
@@ -204,6 +218,11 @@ export function TaskCard({ task, dependencyInfo, crewDisplayNames, onClick, onAt
           </div>
         )}
       </div>
+      {task.createdAt && (
+        <div className={styles.meta}>
+          <span className={styles.createdAt}>{formatCreatedAt(task.createdAt)}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -59,6 +59,20 @@ const TYPE_OPTIONS: { value: TaskType; label: string }[] = [
   { value: 'idea', label: 'Idea' },
 ];
 
+// Format creation date for display
+function formatCreatedAt(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const created = new Date(d);
+  created.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((today.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 // Check if text contains Hebrew characters
 function containsHebrew(text: string): boolean {
   return /[\u0590-\u05FF]/.test(text);
@@ -270,6 +284,11 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
           <h3>
             {task ? 'Edit Task' : 'New Task'}
             {task && <span className={styles.taskId}>#{task.id}</span>}
+            {task?.createdAt && (
+              <span className={styles.createdDate} title={new Date(task.createdAt).toLocaleString()}>
+                Created {formatCreatedAt(task.createdAt)}
+              </span>
+            )}
           </h3>
           <button type="button" className={styles.closeBtn} onClick={onCancel}>
             ×

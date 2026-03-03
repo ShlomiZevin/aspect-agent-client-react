@@ -68,6 +68,20 @@ function formatDueDate(dueDate: string | Date | null | undefined): { text: strin
   return { text, isOverdue };
 }
 
+// Format creation date for display
+function formatCreatedAt(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const created = new Date(d);
+  created.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((today.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 // Strip HTML tags for plain text preview
 function stripHtml(html: string): string {
   const div = document.createElement('div');
@@ -103,6 +117,7 @@ export function TaskList({ tasks, crewDisplayNames, onTaskClick, onDeleteTask, s
             <th>Assignee</th>
             <th>Priority</th>
             <th>Due Date</th>
+            <th>Created</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -185,6 +200,13 @@ export function TaskList({ tasks, crewDisplayNames, onTaskClick, onDeleteTask, s
                     </span>
                   );
                 })()}
+              </td>
+              <td>
+                {task.createdAt ? (
+                  <span className={styles.createdAt}>{formatCreatedAt(task.createdAt)}</span>
+                ) : (
+                  <span className={styles.noDueDate}>—</span>
+                )}
               </td>
               <td>
                 <span className={`${styles.status} ${styles[task.status]}`}>

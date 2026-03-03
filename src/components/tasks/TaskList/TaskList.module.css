@@ -217,6 +217,11 @@
   color: var(--text-muted);
 }
 
+.createdAt {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
 .deleteBtn {
   background: none;
   border: none;
