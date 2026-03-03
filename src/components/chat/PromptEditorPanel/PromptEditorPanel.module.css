@@ -263,7 +263,7 @@
 .editorSection {
   display: flex;
   flex-direction: column;
-  padding: var(--spacing-md);
+  padding: 6px var(--spacing-md);
 }
 
 .editorSection + .editorSection {
@@ -631,7 +631,6 @@
   border: none;
   cursor: pointer;
   font-family: inherit;
-  margin-bottom: var(--spacing-xs);
 }
 
 .collapsibleHeader:hover {
@@ -950,10 +949,10 @@
 
 /* KB Section */
 .kbSection {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: 2px var(--spacing-md) var(--spacing-xs);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: 6px;
 }
 
 .kbNone {

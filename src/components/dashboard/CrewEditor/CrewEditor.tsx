@@ -295,41 +295,63 @@ export function CrewEditor({ agentName, crew, baseURL, onSaved, onDeleted, onCan
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Knowledge Base</h3>
 
-          <div className={styles.field}>
-            <label className={styles.label}>Assign Knowledge Base</label>
-            <select
-              className={styles.select}
-              value={formData.knowledgeBase?.kbId ? String(formData.knowledgeBase.kbId) : ''}
-              onChange={e => handleKBChange(e.target.value)}
-              disabled={isReadOnly || isLoadingKBs}
-            >
-              <option value="">{isLoadingKBs ? 'Loading...' : 'None (no KB)'}</option>
-              {availableKBs.map(kb => (
-                <option key={kb.id} value={String(kb.id)}>
-                  {kb.name} — {PROVIDER_LABELS[kb.provider] ?? kb.provider}
-                </option>
-              ))}
-            </select>
-            <span className={styles.hint}>
-              The crew member will search this knowledge base when answering questions.
-            </span>
-          </div>
-
-          {formData.knowledgeBase && (
-            <div className={styles.kbInfo}>
-              {formData.knowledgeBase.storeId && (
-                <div className={styles.kbIdRow}>
-                  <span className={styles.kbIdLabel}>OpenAI Store:</span>
-                  <code className={styles.kbIdValue}>{formData.knowledgeBase.storeId}</code>
-                </div>
-              )}
-              {formData.knowledgeBase.googleCorpusId && (
-                <div className={styles.kbIdRow}>
-                  <span className={styles.kbIdLabel}>Google Corpus:</span>
-                  <code className={styles.kbIdValue}>{formData.knowledgeBase.googleCorpusId}</code>
-                </div>
-              )}
+          {/* File-based crews: show sources[] as read-only tags */}
+          {isFileSource && crew.knowledgeBase?.sources ? (
+            <div className={styles.field}>
+              <label className={styles.label}>KB Sources (file-configured)</label>
+              <div className={styles.tagList}>
+                {crew.knowledgeBase.sources.length > 0 ? (
+                  crew.knowledgeBase.sources.map((src, i) => (
+                    <span key={i} className={styles.tag}>{src}</span>
+                  ))
+                ) : (
+                  <span className={styles.emptyTag}>No KB sources configured</span>
+                )}
+              </div>
+              <span className={styles.hint}>
+                KB sources are defined in the crew file and resolved at runtime.
+              </span>
             </div>
+          ) : (
+            /* DB-based crews: editable dropdown by kbId */
+            <>
+              <div className={styles.field}>
+                <label className={styles.label}>Assign Knowledge Base</label>
+                <select
+                  className={styles.select}
+                  value={formData.knowledgeBase?.kbId ? String(formData.knowledgeBase.kbId) : ''}
+                  onChange={e => handleKBChange(e.target.value)}
+                  disabled={isReadOnly || isLoadingKBs}
+                >
+                  <option value="">{isLoadingKBs ? 'Loading...' : 'None (no KB)'}</option>
+                  {availableKBs.map(kb => (
+                    <option key={kb.id} value={String(kb.id)}>
+                      {kb.name} — {PROVIDER_LABELS[kb.provider] ?? kb.provider}
+                    </option>
+                  ))}
+                </select>
+                <span className={styles.hint}>
+                  The crew member will search this knowledge base when answering questions.
+                </span>
+              </div>
+
+              {formData.knowledgeBase && (
+                <div className={styles.kbInfo}>
+                  {formData.knowledgeBase.storeId && (
+                    <div className={styles.kbIdRow}>
+                      <span className={styles.kbIdLabel}>OpenAI Store:</span>
+                      <code className={styles.kbIdValue}>{formData.knowledgeBase.storeId}</code>
+                    </div>
+                  )}
+                  {formData.knowledgeBase.googleCorpusId && (
+                    <div className={styles.kbIdRow}>
+                      <span className={styles.kbIdLabel}>Google Corpus:</span>
+                      <code className={styles.kbIdValue}>{formData.knowledgeBase.googleCorpusId}</code>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -349,6 +371,23 @@ export function CrewEditor({ agentName, crew, baseURL, onSaved, onDeleted, onCan
             </span>
           </div>
         </div>
+
+        {crew.persona && (
+          <div className={styles.section}>
+            <h3 className={styles.sectionTitle}>Agent Persona</h3>
+            <div className={styles.field}>
+              <textarea
+                className={`${styles.textarea} ${styles.guidanceTextarea}`}
+                value={crew.persona}
+                readOnly
+                placeholder="No persona defined"
+              />
+              <span className={styles.hint}>
+                Shared character &amp; voice injected into all crew members of this agent. Defined in the agent's persona file.
+              </span>
+            </div>
+          </div>
+        )}
 
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Transitions</h3>

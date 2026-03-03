@@ -85,6 +85,7 @@ export interface CrewKnowledgeBase {
   storeId?: string;
   googleCorpusId?: string;
   searchInstructions?: string;
+  sources?: string[];  // File-based crews use source names instead of kbId
 }
 
 /**
@@ -115,6 +116,7 @@ export interface CrewMemberConfig {
   tools: string[];
   isActive: boolean;
   source: 'database' | 'file';
+  persona?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -64,7 +64,8 @@ export function useKnowledgeBase(
   const selectKnowledgeBase = useCallback(
     async (kb: KnowledgeBase | null) => {
       setSelectedKB(kb);
-      if (!kb) { setFiles([]); return; }
+      setFiles([]);
+      if (!kb) return;
 
       setIsLoading(true);
       setError(null);

@@ -123,7 +123,10 @@ export function KBManager() {
 
           <div className={styles.kbList}>
             {isLoading && knowledgeBases.length === 0 ? (
-              <div className={styles.loading}>Loading...</div>
+              <div className={styles.loading}>
+                <span className={styles.spinner} />
+                Loading...
+              </div>
             ) : knowledgeBases.length === 0 ? (
               <div className={styles.empty}>No knowledge bases yet</div>
             ) : (
@@ -198,13 +201,18 @@ export function KBManager() {
                 </div>
               </div>
 
-              {files.length > 0 && (
+              {!isLoading && files.length > 0 && (
                 <div className={styles.fileListHeader}>
                   <span className={styles.fileCount}>{files.length} files</span>
                 </div>
               )}
               <div className={styles.fileList}>
-                {files.length === 0 ? (
+                {isLoading ? (
+                  <div className={styles.filesLoading}>
+                    <span className={styles.filesSpinner} />
+                    <span>Loading files...</span>
+                  </div>
+                ) : files.length === 0 ? (
                   <div className={styles.emptyFiles}>
                     <p>No files in this knowledge base</p>
                     <Button variant="secondary" onClick={() => setShowUploadModal(true)}>
