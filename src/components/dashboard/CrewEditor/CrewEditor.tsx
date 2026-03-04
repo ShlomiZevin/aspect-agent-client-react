@@ -264,17 +264,24 @@ export function CrewEditor({ agentName, crew, baseURL, onSaved, onDeleted, onCan
           <div className={styles.row}>
             <div className={styles.field}>
               <label className={styles.label}>Model</label>
-              <select
-                className={styles.select}
-                value={formData.model || 'gpt-4o'}
-                onChange={e => handleChange('model', e.target.value)}
-                disabled={isReadOnly}
-              >
-                <option value="gpt-4o">GPT-4o</option>
-                <option value="gpt-4o-mini">GPT-4o Mini</option>
-                <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-              </select>
+              {isReadOnly ? (
+                <div className={styles.input} style={{ color: 'var(--text-primary)', cursor: 'default' }}>
+                  {formData.model || 'gpt-4o'}
+                </div>
+              ) : (
+                <select
+                  className={styles.select}
+                  value={formData.model || 'gpt-4o'}
+                  onChange={e => handleChange('model', e.target.value)}
+                >
+                  <option value="gpt-5-chat-latest">GPT-5</option>
+                  <option value="gpt-4o">GPT-4o</option>
+                  <option value="gpt-4o-mini">GPT-4o Mini</option>
+                  <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                  <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+                </select>
+              )}
             </div>
 
             <div className={styles.field}>
@@ -296,12 +303,12 @@ export function CrewEditor({ agentName, crew, baseURL, onSaved, onDeleted, onCan
           <h3 className={styles.sectionTitle}>Knowledge Base</h3>
 
           {/* File-based crews: show sources[] as read-only tags */}
-          {isFileSource && crew.knowledgeBase?.sources ? (
+          {isFileSource && crew.knowledgeBase ? (
             <div className={styles.field}>
               <label className={styles.label}>KB Sources (file-configured)</label>
               <div className={styles.tagList}>
-                {crew.knowledgeBase.sources.length > 0 ? (
-                  crew.knowledgeBase.sources.map((src, i) => (
+                {(crew.knowledgeBase.sources ?? []).length > 0 ? (
+                  (crew.knowledgeBase.sources ?? []).map((src, i) => (
                     <span key={i} className={styles.tag}>{src}</span>
                   ))
                 ) : (
