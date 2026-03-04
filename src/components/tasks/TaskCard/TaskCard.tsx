@@ -202,11 +202,16 @@ export function TaskCard({ task, dependencyInfo, crewDisplayNames, onClick, onAt
         {task.assignee && (
           <span className={styles.assignee} style={{ color: assigneeColor }}>@{task.assignee}</span>
         )}
-        {task.dueDate && (
-          <span className={`${styles.dueDate} ${isOverdue(task.dueDate) ? styles.overdue : ''}`}>
-            {formatDueDate(task.dueDate)}
-          </span>
-        )}
+        <div className={styles.footerRight}>
+          {task.createdAt && (
+            <span className={styles.createdAt}>{formatCreatedAt(task.createdAt)}</span>
+          )}
+          {task.dueDate && (
+            <span className={`${styles.dueDate} ${isOverdue(task.dueDate) ? styles.overdue : ''}`}>
+              {formatDueDate(task.dueDate)}
+            </span>
+          )}
+        </div>
         {task.tags.length > 0 && (
           <div className={styles.tags}>
             {task.tags.slice(0, 2).map(tag => (
@@ -218,11 +223,6 @@ export function TaskCard({ task, dependencyInfo, crewDisplayNames, onClick, onAt
           </div>
         )}
       </div>
-      {task.createdAt && (
-        <div className={styles.meta}>
-          <span className={styles.createdAt}>{formatCreatedAt(task.createdAt)}</span>
-        </div>
-      )}
     </div>
   );
 }
