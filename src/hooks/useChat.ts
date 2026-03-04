@@ -49,9 +49,10 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // If streaming already started (assistant message exists), also append
       // to the message's thinkingSteps so late-arriving steps (e.g. Google
       // file_search results from the final chunk) are not lost.
+      // But skip when a transition is pending — the last message belongs to the previous crew.
       const msgs = [...state.messages];
       const last = msgs[msgs.length - 1];
-      if (last?.role === 'assistant') {
+      if (last?.role === 'assistant' && !state.pendingTransitionCrew) {
         msgs[msgs.length - 1] = {
           ...last,
           thinkingSteps: [...(last.thinkingSteps || []), action.payload],
@@ -216,46 +217,38 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       };
 
     case 'CREW_TRANSITION': {
-      // Check if this is the first assistant message of the turn (last message is user)
-      // If so, attach thinking steps to this message; otherwise leave empty (first message has them)
-      const lastMessage = state.messages[state.messages.length - 1];
-      const isFirstAssistantMessage = lastMessage?.role === 'user';
-
-      const newMessage: Message = {
-        id: `msg-${Date.now()}-transition`,
-        role: 'assistant',
-        content: '',
-        timestamp: new Date(),
-        crewMember: action.payload.displayName || action.payload.to,
-        thinkingSteps: isFirstAssistantMessage ? [...state.thinkingSteps] : [],
-      };
+      // Don't create the message yet — delay until first text chunk arrives.
+      // This prevents showing an empty bubble + ThinkingIndicator simultaneously.
+      // Store the crew name so FINALIZE_TRANSITION_THINKING can create the message later.
       return {
         ...state,
-        messages: [...state.messages, newMessage],
-        // Set isThinking=false to prevent the flash where indicator shows below message
-        // Thinking steps will accumulate and be attached to message when content starts
-        isThinking: false,
-        // For postMessageTransfer, clear thinkingSteps so new crew starts fresh
-        thinkingSteps: isFirstAssistantMessage ? state.thinkingSteps : [],
+        pendingTransitionCrew: action.payload.displayName || action.payload.to,
+        // Keep isThinking=true so ThinkingIndicator stays visible during second crew's
+        // thinking phase (e.g. thinker processing). FINALIZE_TRANSITION_THINKING will
+        // set it to false when the first text chunk arrives.
+        isThinking: true,
+        // Clear thinkingSteps so new crew starts fresh
+        thinkingSteps: [],
         currentThinkingStep: '',
       };
     }
 
     case 'FINALIZE_TRANSITION_THINKING': {
-      // Copy current thinkingSteps to the last assistant message (transition message)
-      // and set isThinking to false
-      const messages = [...state.messages];
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage?.role === 'assistant') {
-        messages[messages.length - 1] = {
-          ...lastMessage,
-          thinkingSteps: [...state.thinkingSteps],
-        };
-      }
+      // Create the transition message now (was deferred from CREW_TRANSITION to avoid
+      // showing empty bubble + ThinkingIndicator simultaneously)
+      const newMessage: Message = {
+        id: `msg-${Date.now()}-transition`,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        crewMember: state.pendingTransitionCrew || undefined,
+        thinkingSteps: [...state.thinkingSteps],
+      };
       return {
         ...state,
-        messages,
+        messages: [...state.messages, newMessage],
         isThinking: false,
+        pendingTransitionCrew: null,
       };
     }
 

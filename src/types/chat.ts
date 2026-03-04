@@ -137,6 +137,7 @@ export type ChatState = {
   hasStartedChat: boolean;
   error: string | null;
   pendingDebugData?: DebugPromptData | null;
+  pendingTransitionCrew?: string | null;
 };
 
 export type ChatAction =
