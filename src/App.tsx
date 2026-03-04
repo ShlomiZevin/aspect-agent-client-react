@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AspectPage, AspectLandingPage, BankingOnboarderPage, BylinePage, CompassPage, DemoPage, FreedaPage, HomePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage } from './pages';
+import { AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, CompassPage, DemoPage, FreedaPage, HomePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage } from './pages';
 import { useTaskBoard, useQuickBug } from './hooks';
 import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
 import { QuickBugModal } from './components/tasks/QuickBugModal/QuickBugModal';
@@ -51,6 +51,8 @@ function AppContent() {
         <Route path="/aspect/conversations/:conversationId" element={<AspectPage />} />
         <Route path="/banking" element={<BankingOnboarderPage />} />
         <Route path="/banking/conversations/:conversationId" element={<BankingOnboarderPage />} />
+        <Route path="/banking-v2" element={<BankingOnboarderV2Page />} />
+        <Route path="/banking-v2/conversations/:conversationId" element={<BankingOnboarderV2Page />} />
         <Route path="/byline" element={<BylinePage />} />
         <Route path="/byline/conversations/:conversationId" element={<BylinePage />} />
         <Route path="/freeda" element={<FreedaPage />} />

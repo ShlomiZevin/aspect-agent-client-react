@@ -85,6 +85,7 @@ export interface DebugPromptData {
   transitionSystemPrompt?: string;
   transitionPromptInjected?: boolean;
   transitionLogic?: TransitionLogicData | null;
+  thinkingAdvice?: Record<string, unknown> | null;
 }
 
 export interface Message {

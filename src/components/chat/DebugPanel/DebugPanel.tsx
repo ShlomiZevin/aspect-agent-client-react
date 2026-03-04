@@ -183,6 +183,25 @@ export function DebugPanel({ data }: DebugPanelProps) {
             </div>
           )}
 
+          {/* Thinking Advice section */}
+          {data.thinkingAdvice && (
+            <div className={styles.section}>
+              <button className={styles.sectionHeader} onClick={() => toggleSection('thinkingAdvice')}>
+                <span>Thinking Advice</span>
+                <svg
+                  className={`${styles.chevron} ${expandedSections.has('thinkingAdvice') ? styles.expanded : ''}`}
+                  width="12" height="12" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" strokeWidth="2"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {expandedSections.has('thinkingAdvice') && (
+                <pre className={styles.content}>{JSON.stringify(data.thinkingAdvice, null, 2)}</pre>
+              )}
+            </div>
+          )}
+
           {/* Standard text sections */}
           {sections.map(({ key, label, content }) => (
             <div key={key} className={styles.section}>

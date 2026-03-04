@@ -1,6 +1,7 @@
 export { AspectPage } from './AspectPage';
 export { AspectLandingPage } from './AspectLandingPage';
 export { BankingOnboarderPage } from './BankingOnboarderPage';
+export { BankingOnboarderV2Page } from './BankingOnboarderV2Page';
 export { BylinePage } from './BylinePage';
 export { DemoPage } from './DemoPage';
 export { FreedaPage } from './FreedaPage';
