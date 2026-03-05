@@ -3,7 +3,6 @@ import * as notificationsService from '../services/notificationsService';
 import type { TaskNotification } from '../services/notificationsService';
 
 const IDENTITY_STORAGE_KEY = 'aspect_commenter_identity';
-const POLL_INTERVAL_MS = 30_000;
 
 export interface UseNotificationsReturn {
   notifications: TaskNotification[];
@@ -19,40 +18,63 @@ export function useNotifications(enabled: boolean): UseNotificationsReturn {
     () => localStorage.getItem(IDENTITY_STORAGE_KEY)
   );
   const [notifications, setNotifications] = useState<TaskNotification[]>([]);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const esRef = useRef<EventSource | null>(null);
 
-  const fetchNotifications = useCallback(async (currentIdentity: string | null) => {
-    if (!currentIdentity) return;
-    try {
-      const data = await notificationsService.getNotifications(currentIdentity);
-      setNotifications(data);
-    } catch {
-      // silent — network errors shouldn't break the UI
-    }
-  }, []);
-
-  // Re-check identity from localStorage on each poll (in case user sets it via CommentsSection)
   const refresh = useCallback(async () => {
     const current = localStorage.getItem(IDENTITY_STORAGE_KEY);
     if (current !== identity) setIdentity(current);
-    await fetchNotifications(current);
-  }, [identity, fetchNotifications]);
+    if (!current) return;
+    try {
+      const data = await notificationsService.getNotifications(current);
+      setNotifications(data);
+    } catch {
+      // silent
+    }
+  }, [identity]);
 
   useEffect(() => {
     if (!enabled) {
       setNotifications([]);
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      esRef.current?.close();
+      esRef.current = null;
       return;
     }
 
-    // Fetch immediately on enable
-    refresh();
+    const current = localStorage.getItem(IDENTITY_STORAGE_KEY);
+    if (current !== identity) setIdentity(current);
 
-    intervalRef.current = setInterval(refresh, POLL_INTERVAL_MS);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+    if (!current) return;
+
+    // Fetch existing unread notifications immediately
+    notificationsService.getNotifications(current)
+      .then(data => setNotifications(data))
+      .catch(() => {});
+
+    // Open SSE stream for real-time updates
+    const es = new EventSource(
+      `${notificationsService.API_BASE}/api/notifications/stream?identity=${encodeURIComponent(current)}`
+    );
+    esRef.current = es;
+
+    es.onmessage = (event) => {
+      try {
+        const notification: TaskNotification = JSON.parse(event.data);
+        setNotifications(prev => [notification, ...prev]);
+      } catch {
+        // ignore malformed messages
+      }
     };
-  }, [enabled, refresh]);
+
+    es.onerror = () => {
+      // Browser will auto-reconnect; nothing to do
+    };
+
+    return () => {
+      es.close();
+      esRef.current = null;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, identity]);
 
   const markRead = useCallback(async (id: number) => {
     await notificationsService.markRead(id);
