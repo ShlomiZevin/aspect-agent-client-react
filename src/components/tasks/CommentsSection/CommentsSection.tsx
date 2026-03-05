@@ -13,7 +13,7 @@ function highlightMentions(html: string): string {
 interface CommentsSectionProps {
   taskId: number;
   assignees: Assignee[];
-  incomingComment?: TaskComment | null;
+  refreshTrigger?: number;
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -47,10 +47,9 @@ function isHtmlEmpty(html: string): boolean {
   return !div.textContent?.trim() && !div.querySelector('img');
 }
 
-export function CommentsSection({ taskId, assignees, incomingComment }: CommentsSectionProps) {
+export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsSectionProps) {
   const { identity, setIdentity } = useCommenterIdentity();
   const [comments, setComments] = useState<TaskComment[]>([]);
-  const submittedIdsRef = useRef<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -62,23 +61,17 @@ export function CommentsSection({ taskId, assignees, incomingComment }: Comments
   const mentionDropdownRef = useRef<HTMLDivElement>(null);
   const savedRangeRef = useRef<Range | null>(null);
 
-  // Load comments when task opens
+  // Load (or reload) comments when task opens or refreshTrigger increments
   useEffect(() => {
     setLoading(true);
     commentsService.getComments(taskId)
-      .then(setComments)
+      .then(data => {
+        setComments(data);
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [taskId]);
-
-  // Append incoming SSE comment (dedup by id — also skip comments we submitted ourselves,
-  // which may arrive via SSE before the HTTP response state update settles)
-  useEffect(() => {
-    if (!incomingComment) return;
-    if (submittedIdsRef.current.has(incomingComment.id)) return;
-    setComments(prev => prev.some(c => c.id === incomingComment.id) ? prev : [...prev, incomingComment]);
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-  }, [incomingComment]);
+  }, [taskId, refreshTrigger]);
 
   const handleSubmit = async () => {
     if (isHtmlEmpty(text)) return;
@@ -93,7 +86,6 @@ export function CommentsSection({ taskId, assignees, incomingComment }: Comments
     setSubmitError(null);
     try {
       const comment = await commentsService.addComment(taskId, identity, text.trim());
-      submittedIdsRef.current.add(comment.id);
       setComments(prev => [...prev, comment]);
       setText('');
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);

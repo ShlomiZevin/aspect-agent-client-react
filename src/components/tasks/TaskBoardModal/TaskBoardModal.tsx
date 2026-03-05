@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { Task, Assignee, CreateTaskData, TaskStatus, TaskComment } from '../../../types/task';
+import type { Task, Assignee, CreateTaskData, TaskStatus } from '../../../types/task';
 import { useBoardStream } from '../../../hooks/useBoardStream';
 import type { BoardEvent } from '../../../hooks/useBoardStream';
 import type { CrewMember } from '../../../types/crew';
@@ -83,19 +83,16 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const notificationsState = useNotifications(isOpen);
 
   // Live board updates via SSE
-  const [incomingComment, setIncomingComment] = useState<TaskComment | null>(null);
+  const [commentRefreshTrigger, setCommentRefreshTrigger] = useState(0);
   const editingTaskRef = useRef<Task | null>(null);
   editingTaskRef.current = editingTask;
 
   useBoardStream(isOpen, (event: BoardEvent) => {
-    if (event.type === 'task_created') {
-      setTasks(prev => prev.some(t => t.id === event.task.id) ? prev : [event.task, ...prev]);
-    } else if (event.type === 'task_updated') {
-      setTasks(prev => prev.map(t => t.id === event.task.id ? event.task : t));
-      setEditingTask(prev => prev?.id === event.task.id ? event.task : prev);
+    if (event.type === 'task_created' || event.type === 'task_updated') {
+      loadData();
     } else if (event.type === 'comment_added') {
       if (editingTaskRef.current?.id === event.taskId) {
-        setIncomingComment(event.comment);
+        setCommentRefreshTrigger(n => n + 1);
       }
     }
   });
@@ -450,7 +447,6 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const handleCloseForm = () => {
     setEditingTask(null);
     setShowForm(false);
-    setIncomingComment(null);
   };
 
   const handleOpenTaskById = useCallback((taskId: number) => {
@@ -740,7 +736,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                 currentDomain={currentDomain}
                 showAllDomains={showAllDomains}
                 crewMembers={crewMembers}
-                incomingComment={incomingComment}
+                commentRefreshTrigger={commentRefreshTrigger}
                 onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
                 onCancel={handleCloseForm}
                 onDelete={editingTask ? () => handleDeleteTask(editingTask) : undefined}
