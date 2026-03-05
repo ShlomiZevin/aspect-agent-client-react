@@ -220,6 +220,13 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // Don't create the message yet — delay until first text chunk arrives.
       // This prevents showing an empty bubble + ThinkingIndicator simultaneously.
       // Store the crew name so FINALIZE_TRANSITION_THINKING can create the message later.
+
+      // Only clear thinkingSteps if the first crew already has a message (steps are captured there).
+      // In post-thinking transfers, the first crew never streamed text — no assistant message exists,
+      // so the thinking steps (routing, analyzing, advisor) should carry over to the target crew's message.
+      const lastMsg = state.messages[state.messages.length - 1];
+      const firstCrewHasMessage = lastMsg?.role === 'assistant';
+
       return {
         ...state,
         pendingTransitionCrew: action.payload.displayName || action.payload.to,
@@ -227,8 +234,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         // thinking phase (e.g. thinker processing). FINALIZE_TRANSITION_THINKING will
         // set it to false when the first text chunk arrives.
         isThinking: true,
-        // Clear thinkingSteps so new crew starts fresh
-        thinkingSteps: [],
+        thinkingSteps: firstCrewHasMessage ? [] : state.thinkingSteps,
         currentThinkingStep: '',
       };
     }
@@ -243,12 +249,14 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         timestamp: new Date(),
         crewMember: state.pendingTransitionCrew || undefined,
         thinkingSteps: [...state.thinkingSteps],
+        debugData: state.pendingDebugData || undefined,
       };
       return {
         ...state,
         messages: [...state.messages, newMessage],
         isThinking: false,
         pendingTransitionCrew: null,
+        pendingDebugData: null,
       };
     }
 
