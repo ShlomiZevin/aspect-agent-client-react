@@ -7,7 +7,7 @@ import styles from './CommentsSection.module.css';
 
 /** Highlight @Name mentions inside comment HTML */
 function highlightMentions(html: string): string {
-  return html.replace(/@([\w\u0080-\uFFFF]+(?:\s[\w\u0080-\uFFFF]+)?)/g, '<span class="mention">@$1</span>');
+  return html.replace(/@([\w\u0080-\uFFFF]+)/g, '<span class="mention">@$1</span>');
 }
 
 interface CommentsSectionProps {
@@ -50,6 +50,7 @@ function isHtmlEmpty(html: string): boolean {
 export function CommentsSection({ taskId, assignees, incomingComment }: CommentsSectionProps) {
   const { identity, setIdentity } = useCommenterIdentity();
   const [comments, setComments] = useState<TaskComment[]>([]);
+  const submittedIdsRef = useRef<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -70,9 +71,11 @@ export function CommentsSection({ taskId, assignees, incomingComment }: Comments
       .finally(() => setLoading(false));
   }, [taskId]);
 
-  // Append incoming SSE comment (dedup by id to avoid showing own comment twice)
+  // Append incoming SSE comment (dedup by id — also skip comments we submitted ourselves,
+  // which may arrive via SSE before the HTTP response state update settles)
   useEffect(() => {
     if (!incomingComment) return;
+    if (submittedIdsRef.current.has(incomingComment.id)) return;
     setComments(prev => prev.some(c => c.id === incomingComment.id) ? prev : [...prev, incomingComment]);
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
   }, [incomingComment]);
@@ -90,6 +93,7 @@ export function CommentsSection({ taskId, assignees, incomingComment }: Comments
     setSubmitError(null);
     try {
       const comment = await commentsService.addComment(taskId, identity, text.trim());
+      submittedIdsRef.current.add(comment.id);
       setComments(prev => [...prev, comment]);
       setText('');
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
