@@ -206,7 +206,14 @@ export function Message({ message }: MessageProps) {
               />
             )}
             <div className={styles.markdownContent} dir={rtl ? 'rtl' : undefined}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ href, children }) => (
+                    <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
+                  )
+                }}
+              >
                 {message.content}
               </ReactMarkdown>
             </div>

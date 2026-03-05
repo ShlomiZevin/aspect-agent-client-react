@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>טבלת עמלות | בנק דיגיטלי</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #f5f6fa; color: #2d3436; line-height: 1.8; }
+    .header { background: linear-gradient(135deg, #0a1628, #1a2744); color: #fff; padding: 40px 0; text-align: center; }
+    .header h1 { font-size: 28px; font-weight: 600; margin-bottom: 8px; }
+    .header p { font-size: 14px; opacity: 0.7; }
+    .container { max-width: 900px; margin: 40px auto; padding: 0 24px; }
+    .card { background: #fff; border-radius: 12px; padding: 32px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .card h2 { font-size: 20px; color: #0a1628; margin-bottom: 16px; border-bottom: 2px solid #e8ecf1; padding-bottom: 12px; }
+    .badge { display: inline-block; background: #e8f5e9; color: #2e7d32; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th { background: #f0f2f5; color: #0a1628; font-weight: 600; text-align: right; padding: 12px 16px; font-size: 14px; }
+    td { padding: 12px 16px; border-bottom: 1px solid #eee; font-size: 14px; color: #555; }
+    tr:last-child td { border-bottom: none; }
+    .highlight { background: #f8f9ff; }
+    .plan-name { font-weight: 600; color: #0a1628; }
+    .free { color: #2e7d32; font-weight: 600; }
+    .note { font-size: 13px; color: #999; margin-top: 16px; }
+    .footer { text-align: center; padding: 32px; color: #999; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>טבלת עמלות</h1>
+    <p>עדכון אחרון: מרץ 2026</p>
+  </div>
+  <div class="container">
+    <div class="card">
+      <span class="badge">מסמך לדוגמה</span>
+      <h2>דמי ניהול חשבון — לפי תוכנית</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>תוכנית</th>
+            <th>דמי ניהול חודשיים</th>
+            <th>כולל פעולות</th>
+            <th>מסגרת אשראי</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="plan-name">בסיסי</td>
+            <td>₪0</td>
+            <td>עד 30 פעולות</td>
+            <td>עד ₪2,000</td>
+          </tr>
+          <tr class="highlight">
+            <td class="plan-name">פלוס</td>
+            <td>₪19.90</td>
+            <td>פעולות ללא הגבלה</td>
+            <td>עד ₪10,000</td>
+          </tr>
+          <tr>
+            <td class="plan-name">פרימיום</td>
+            <td>₪49.90</td>
+            <td>פעולות ללא הגבלה</td>
+            <td>עד ₪50,000</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>עמלות כרטיסים</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>סוג כרטיס</th>
+            <th>דמי כרטיס חודשיים</th>
+            <th>הערות</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>כרטיס חיוב (דביט)</td>
+            <td class="free">ללא עלות</td>
+            <td>כלול בכל התוכניות</td>
+          </tr>
+          <tr>
+            <td>כרטיס אשראי בסיסי</td>
+            <td>₪8</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>כרטיס אשראי זהב</td>
+            <td>₪15</td>
+            <td>כולל ביטוח קניות</td>
+          </tr>
+          <tr>
+            <td>כרטיס אשראי פלטינום</td>
+            <td class="free">ללא עלות</td>
+            <td>ללקוחות פרימיום בלבד</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>עמלות פעולות נפוצות</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>פעולה</th>
+            <th>עמלה</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>העברה בנקאית (אונליין)</td>
+            <td class="free">ללא עלות</td>
+          </tr>
+          <tr>
+            <td>העברה בנקאית (סניף)</td>
+            <td>₪10</td>
+          </tr>
+          <tr>
+            <td>משיכת מזומן — כספומטים של הבנק</td>
+            <td class="free">ללא עלות</td>
+          </tr>
+          <tr>
+            <td>משיכת מזומן — כספומטים אחרים</td>
+            <td>₪3.50</td>
+          </tr>
+          <tr>
+            <td>פנקס צ'קים (25 המחאות)</td>
+            <td>₪15</td>
+          </tr>
+          <tr>
+            <td>הוראת קבע</td>
+            <td class="free">ללא עלות</td>
+          </tr>
+          <tr>
+            <td>דף חשבון באונליין</td>
+            <td class="free">ללא עלות</td>
+          </tr>
+          <tr>
+            <td>דף חשבון בדואר</td>
+            <td>₪5</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="note">* העמלות נכונות למועד הפרסום ועשויות להשתנות בהתאם להוראות בנק ישראל ובהודעה מוקדמת.</p>
+    </div>
+  </div>
+  <div class="footer">
+    <p>מסמך לדוגמה בלבד — אינו מהווה טבלת עמלות מחייבת</p>
+  </div>
+</body>
+</html>
