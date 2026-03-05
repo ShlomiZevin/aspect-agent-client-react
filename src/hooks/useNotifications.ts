@@ -4,6 +4,27 @@ import type { TaskNotification } from '../services/notificationsService';
 
 const IDENTITY_STORAGE_KEY = 'aspect_commenter_identity';
 
+function playNotificationSound() {
+  try {
+    const ctx = new AudioContext();
+    const play = (freq: number, start: number, duration: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.25, ctx.currentTime + start);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + duration);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + duration);
+      if (start > 0) osc.onended = () => ctx.close();
+    };
+    play(1047, 0, 0.18);   // C6
+    play(880, 0.15, 0.25); // A5
+  } catch { /* audio not available */ }
+}
+
 export interface UseNotificationsReturn {
   notifications: TaskNotification[];
   unreadCount: number;
@@ -60,6 +81,7 @@ export function useNotifications(enabled: boolean): UseNotificationsReturn {
       try {
         const notification: TaskNotification = JSON.parse(event.data);
         setNotifications(prev => [notification, ...prev]);
+        playNotificationSound();
       } catch {
         // ignore malformed messages
       }

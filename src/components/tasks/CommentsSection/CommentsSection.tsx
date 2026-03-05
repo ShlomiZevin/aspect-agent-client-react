@@ -13,6 +13,7 @@ function highlightMentions(html: string): string {
 interface CommentsSectionProps {
   taskId: number;
   assignees: Assignee[];
+  incomingComment?: TaskComment | null;
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -46,7 +47,7 @@ function isHtmlEmpty(html: string): boolean {
   return !div.textContent?.trim() && !div.querySelector('img');
 }
 
-export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
+export function CommentsSection({ taskId, assignees, incomingComment }: CommentsSectionProps) {
   const { identity, setIdentity } = useCommenterIdentity();
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +59,7 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const mentionDropdownRef = useRef<HTMLDivElement>(null);
+  const savedRangeRef = useRef<Range | null>(null);
 
   // Load comments when task opens
   useEffect(() => {
@@ -67,6 +69,13 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [taskId]);
+
+  // Append incoming SSE comment (dedup by id to avoid showing own comment twice)
+  useEffect(() => {
+    if (!incomingComment) return;
+    setComments(prev => prev.some(c => c.id === incomingComment.id) ? prev : [...prev, incomingComment]);
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+  }, [incomingComment]);
 
   const handleSubmit = async () => {
     if (isHtmlEmpty(text)) return;
@@ -116,23 +125,27 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
 
   const insertMention = (name: string) => {
     setShowMentionPicker(false);
-    // Find the contentEditable div inside the editor wrapper and insert @Name at cursor
     const editorEl = editorRef.current?.querySelector('[contenteditable]') as HTMLElement | null;
     if (editorEl) {
       editorEl.focus();
       const sel = window.getSelection();
-      if (sel && sel.rangeCount > 0) {
-        const range = sel.getRangeAt(0);
+      if (sel) {
+        // Restore the saved cursor position, or collapse to end as fallback
+        const range = savedRangeRef.current ?? (() => {
+          const r = document.createRange();
+          r.selectNodeContents(editorEl);
+          r.collapse(false);
+          return r;
+        })();
+        sel.removeAllRanges();
+        sel.addRange(range);
         range.deleteContents();
         range.insertNode(document.createTextNode(`@${name} `));
         range.collapse(false);
         sel.removeAllRanges();
         sel.addRange(range);
-      } else {
-        // Fallback: append to end
-        document.execCommand('insertText', false, `@${name} `);
       }
-      // Trigger onChange to update text state
+      savedRangeRef.current = null;
       const event = new Event('input', { bubbles: true });
       editorEl.dispatchEvent(event);
     }
@@ -266,7 +279,14 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
               <button
                 type="button"
                 className={styles.mentionBtn}
-                onClick={() => setShowMentionPicker(o => !o)}
+                onClick={() => {
+                  // Save cursor position before the editor loses focus
+                  const sel = window.getSelection();
+                  if (sel && sel.rangeCount > 0) {
+                    savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+                  }
+                  setShowMentionPicker(o => !o);
+                }}
                 title="Mention someone"
               >
                 @ Mention
