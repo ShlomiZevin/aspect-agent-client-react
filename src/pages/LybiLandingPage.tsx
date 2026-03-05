@@ -735,7 +735,7 @@ function AboutPage() {
 
 export function LybiLandingPage() {
   const location = useLocation();
-  const [version, setVersion] = useState<'v1' | 'v2' | 'v3'>('v1');
+  const [version] = useState<'v1' | 'v2' | 'v3'>('v3');
   const [pageKey, setPageKey] = useState(0);
   const [contactOpen, setContactOpen] = useState(false);
   const revealRef = useScrollReveal(version, pageKey);
@@ -796,28 +796,6 @@ export function LybiLandingPage() {
       </div>
       <Footer />
       <ContactModal isOpen={contactOpen} onClose={closeContact} />
-
-      {/* Version Toggle */}
-      <div className={styles.versionToggle}>
-        <button
-          className={`${styles.toggleOption} ${version === 'v1' ? styles.toggleActive : ''}`}
-          onClick={() => setVersion('v1')}
-        >
-          Classic
-        </button>
-        <button
-          className={`${styles.toggleOption} ${version === 'v2' ? styles.toggleActive : ''}`}
-          onClick={() => setVersion('v2')}
-        >
-          Dark
-        </button>
-        <button
-          className={`${styles.toggleOption} ${version === 'v3' ? styles.toggleActive : ''}`}
-          onClick={() => setVersion('v3')}
-        >
-          Techy
-        </button>
-      </div>
     </div>
   );
 }

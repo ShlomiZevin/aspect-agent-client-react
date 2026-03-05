@@ -1227,6 +1227,7 @@
 /* ---- V3 Buttons ---- */
 .v3 .primaryButton {
   background: #680662;
+  color: #ffffff;
   border-radius: 6px;
   padding: 15px 30px;
   font-size: 14px;
@@ -1235,10 +1236,12 @@
   transition: all 0.25s;
 }
 
-.v3 .primaryButton:hover {
-  background: #520650;
+.v3 .primaryButton:hover,
+.v3 .primaryButton:visited {
+  color: #ffffff;
+  background: #7d1876;
   transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(104, 6, 98, 0.25);
+  box-shadow: 0 4px 24px rgba(104, 6, 98, 0.4);
 }
 
 .v3 .textLink {
@@ -1403,8 +1406,8 @@
 }
 
 .v3 .ctaSection .primaryButton:hover {
-  background: #520650;
-  box-shadow: 0 0 32px rgba(104, 6, 98, 0.5);
+  background: #7d1876;
+  box-shadow: 0 0 32px rgba(125, 24, 118, 0.5);
 }
 
 /* ---- V3 Divider ---- */

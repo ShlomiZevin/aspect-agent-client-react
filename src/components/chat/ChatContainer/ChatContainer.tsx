@@ -46,6 +46,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     personaOverride,
     setPersonaOverride,
     setKBOverride,
+    setThinkingPromptOverride,
     conversationId,
     isFieldsEditorOpen,
     setFieldsEditorOpen,
@@ -206,6 +207,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           onFireTransitionPrompt={injectTransitionPrompt}
           personaOverride={personaOverride}
           onPersonaOverride={setPersonaOverride}
+          onThinkingPromptOverride={setThinkingPromptOverride}
         />
       )}
 

@@ -22,6 +22,8 @@ export interface CrewMember {
   extractionMode?: 'conversational' | 'form';
   persona?: string | null;
   source?: 'file' | 'database';
+  usesThinker?: boolean;
+  thinkingPrompt?: string | null;
 }
 
 /**

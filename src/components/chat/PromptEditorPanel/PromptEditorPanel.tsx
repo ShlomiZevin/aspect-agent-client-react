@@ -4,10 +4,6 @@ import type { CrewMemberPrompt } from '../../../types/promptEditor';
 import type { TransitionLogicConfig } from '../../../types/chat';
 import {
   getAgentPrompts,
-  createPromptVersion,
-  updatePromptVersion,
-  activatePromptVersion,
-  deletePromptVersion,
 } from '../../../services/promptService';
 import { getCrewTransitionLogic } from '../../../services/crewService';
 import { getKnowledgeBases } from '../../../services/kbService';
@@ -71,6 +67,7 @@ interface PromptEditorPanelProps {
   onFireTransitionPrompt?: (content: string, crewMemberName?: string) => Promise<void>;
   personaOverride: string | null;
   onPersonaOverride: (persona: string | null) => void;
+  onThinkingPromptOverride: (crewMemberId: string, prompt: string) => void;
 }
 
 type StatusType = 'success' | 'error' | 'info' | null;
@@ -92,6 +89,7 @@ export function PromptEditorPanel({
   onFireTransitionPrompt,
   personaOverride,
   onPersonaOverride,
+  onThinkingPromptOverride,
 }: PromptEditorPanelProps) {
   // Prompts data from API
   const [prompts, setPrompts] = useState<CrewMemberPrompt[]>([]);
@@ -118,24 +116,26 @@ export function PromptEditorPanel({
   // Status message
   const [status, setStatus] = useState<Status>({ type: null, message: '' });
 
-  // Loading state for save operations
-  const [isSaving, setIsSaving] = useState(false);
-
-  // New version modal state
-  const [showVersionModal, setShowVersionModal] = useState(false);
-  const [versionName, setVersionName] = useState('');
-
   // Selected version ID (for version switching)
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
 
   // Transition system prompt state
   const [editedTransitionPrompt, setEditedTransitionPrompt] = useState<string>('');
   const [originalTransitionPrompt, setOriginalTransitionPrompt] = useState<string>('');
-  const [showTransitionPrompt, setShowTransitionPrompt] = useState(false);
   const [isFiring, setIsFiring] = useState(false);
 
-  // Persona editor state (agent-level, not per-crew)
-  const [showPersona, setShowPersona] = useState(false);
+  // Collapsible section states
+  const [showVersions, setShowVersions] = useState(false);
+  const [showModel, setShowModel] = useState(false);
+  const [showPrompting, setShowPrompting] = useState(true);
+
+  // Thinking prompt override state (per-crew, session-only)
+  const [thinkingPromptOverrides, setThinkingPromptOverrides] = useState<Record<string, string>>({});
+
+  // Enlarge modal for thinking prompt
+  const [showThinkingModal, setShowThinkingModal] = useState(false);
+
+  // Persona editor state (agent-level, not per-crew);
   // Get the code-defined persona from any crew member (it's agent-level, shared across all)
   const codePersona = crewMembers.find(c => c.persona)?.persona || '';
   const [editedPersona, setEditedPersona] = useState<string>(personaOverride || codePersona);
@@ -248,6 +248,8 @@ export function PromptEditorPanel({
 
   // Get default model for the selected crew - prefer from prompts API (server), fallback to crew list
   const selectedCrewMember = crewMembers.find(c => c.name === selectedCrewId);
+  const isThinkerCrew = selectedCrewMember?.usesThinker === true;
+  const codeThinkingPrompt = selectedCrewMember?.thinkingPrompt || '';
   const defaultModel = selectedPromptData?.model || selectedCrewMember?.model || 'gpt-4';
   const currentProvider = providerOverrides[selectedCrewId] || 'openai';
 
@@ -271,9 +273,6 @@ export function PromptEditorPanel({
   if (!availableModels.includes(currentModel)) {
     currentModel = availableModels[0];
   }
-
-  // Check if selected version is from code (v0 = not in DB yet)
-  const isCodeVersion = selectedVersion?.version === 0;
 
   // Check if selected version is the active one
   const isActiveVersion = selectedVersion?.isActive === true;
@@ -418,152 +417,6 @@ export function PromptEditorPanel({
     }
   }, [selectedVersion, selectedCrewId, onSessionOverride, onModelOverride]);
 
-  // Save current version (overwrite) - only for DB versions
-  const handleSave = useCallback(async () => {
-    if (!selectedCrewId || !editedPrompt.trim() || !selectedVersion) return;
-
-    // For code versions, we need to create a new DB version instead
-    if (isCodeVersion) {
-      setStatus({ type: 'info', message: 'Code version cannot be overwritten. Use "Save as New Version"' });
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const versionId = selectedVersion.id;
-      await updatePromptVersion(agentName, selectedCrewId, versionId, editedPrompt, baseURL, editedTransitionPrompt || undefined);
-
-      setOriginalPrompt(editedPrompt);
-      setOriginalTransitionPrompt(editedTransitionPrompt);
-      // Remove session override since it's now saved
-      setSessionOverrides(prev => {
-        const next = { ...prev };
-        delete next[selectedCrewId];
-        return next;
-      });
-      setStatus({ type: 'success', message: 'Prompt saved successfully!' });
-
-      // Reload prompts to get updated data
-      const data = await getAgentPrompts(agentName, baseURL);
-      setPrompts(data);
-    } catch (error) {
-      console.error('Failed to save prompt:', error);
-      setStatus({ type: 'error', message: 'Failed to save prompt' });
-    } finally {
-      setIsSaving(false);
-    }
-  }, [selectedCrewId, editedPrompt, editedTransitionPrompt, selectedVersion, isCodeVersion, agentName, baseURL]);
-
-  // Open modal to save as new version
-  const handleOpenVersionModal = useCallback(() => {
-    setVersionName('');
-    setShowVersionModal(true);
-  }, []);
-
-  // Close version modal
-  const handleCloseVersionModal = useCallback(() => {
-    setShowVersionModal(false);
-    setVersionName('');
-  }, []);
-
-  // Save as new version with name
-  const handleSaveAsNewVersion = useCallback(async () => {
-    if (!selectedCrewId || !editedPrompt.trim() || !versionName.trim()) return;
-
-    setIsSaving(true);
-    setShowVersionModal(false);
-    try {
-      const newVersion = await createPromptVersion(
-        agentName,
-        selectedCrewId,
-        editedPrompt,
-        versionName.trim(),
-        baseURL,
-        editedTransitionPrompt || undefined
-      );
-
-      setOriginalPrompt(editedPrompt);
-      setOriginalTransitionPrompt(editedTransitionPrompt);
-      // Remove session override since it's now saved
-      setSessionOverrides(prev => {
-        const next = { ...prev };
-        delete next[selectedCrewId];
-        return next;
-      });
-      setStatus({
-        type: 'success',
-        message: `Saved as v${newVersion.version} - ${newVersion.name}`
-      });
-      setVersionName('');
-
-      // Reload prompts to get updated data
-      const data = await getAgentPrompts(agentName, baseURL);
-      setPrompts(data);
-    } catch (error) {
-      console.error('Failed to save new version:', error);
-      setStatus({ type: 'error', message: 'Failed to save new version' });
-    } finally {
-      setIsSaving(false);
-    }
-  }, [selectedCrewId, editedPrompt, editedTransitionPrompt, versionName, agentName, baseURL]);
-
-  // Activate selected version (make it the active one)
-  const handleActivateVersion = useCallback(async () => {
-    if (!selectedCrewId || !selectedVersion || isActiveVersion) return;
-
-    setIsSaving(true);
-    try {
-      await activatePromptVersion(agentName, selectedCrewId, selectedVersion.id, baseURL);
-      setStatus({ type: 'success', message: `v${selectedVersion.version} is now active` });
-
-      // Reload prompts to get updated data
-      const data = await getAgentPrompts(agentName, baseURL);
-      setPrompts(data);
-      // Reset version selection to show the new active version
-      setSelectedVersionId(null);
-      lastLoadedVersionRef.current = null; // Force reload
-    } catch (error) {
-      console.error('Failed to activate version:', error);
-      setStatus({ type: 'error', message: 'Failed to activate version' });
-    } finally {
-      setIsSaving(false);
-    }
-  }, [selectedCrewId, selectedVersion, isActiveVersion, agentName, baseURL]);
-
-  // Delete selected version
-  const handleDeleteVersion = useCallback(async () => {
-    if (!selectedCrewId || !selectedVersion) return;
-
-    // Can't delete active version
-    if (isActiveVersion) {
-      setStatus({ type: 'error', message: 'Cannot delete active version. Activate another version first.' });
-      return;
-    }
-
-    // Confirm deletion
-    if (!window.confirm(`Delete v${selectedVersion.version}${selectedVersion.name ? ` - ${selectedVersion.name}` : ''}?`)) {
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      await deletePromptVersion(agentName, selectedCrewId, selectedVersion.id, baseURL);
-      setStatus({ type: 'success', message: `v${selectedVersion.version} deleted` });
-
-      // Reload prompts to get updated data
-      const data = await getAgentPrompts(agentName, baseURL);
-      setPrompts(data);
-      // Reset version selection
-      setSelectedVersionId(null);
-      lastLoadedVersionRef.current = null; // Force reload
-    } catch (error) {
-      console.error('Failed to delete version:', error);
-      setStatus({ type: 'error', message: 'Failed to delete version' });
-    } finally {
-      setIsSaving(false);
-    }
-  }, [selectedCrewId, selectedVersion, isActiveVersion, agentName, baseURL]);
-
   // Clear status after delay
   useEffect(() => {
     if (status.type) {
@@ -596,527 +449,564 @@ export function PromptEditorPanel({
 
       {/* Scrollable Content */}
       <div className={styles.content}>
-        {/* Crew Member Selector */}
+        {/* 1. Crew Member Selector */}
         <div className={styles.selectorSection}>
-        <label className={styles.selectorLabel}>Crew Member</label>
-        <select
-          className={styles.crewSelect}
-          value={selectedCrewId}
-          onChange={handleCrewSelect}
-          disabled={isLoadingPrompts}
-        >
-          {crewMembers.map(crew => (
-            <option key={crew.name} value={crew.name}>
-              {crew.displayName}
-              {crew.name === currentCrew?.name ? ' (Active)' : ''}
-            </option>
-          ))}
-        </select>
+          <label className={styles.selectorLabel}>Crew Member</label>
+          <select
+            className={styles.crewSelect}
+            value={selectedCrewId}
+            onChange={handleCrewSelect}
+            disabled={isLoadingPrompts}
+          >
+            {crewMembers.map(crew => (
+              <option key={crew.name} value={crew.name}>
+                {crew.displayName}
+                {crew.name === currentCrew?.name ? ' (Active)' : ''}
+              </option>
+            ))}
+          </select>
+          {hasSessionOverride && isActiveVersion && (
+            <span className={styles.sessionOverrideBadge}>
+              SESSION OVERRIDE
+            </span>
+          )}
+        </div>
 
-        {/* Version Selector */}
+        {/* 2. Versions - collapsible, default collapsed */}
         {selectedPromptData && selectedPromptData.versions.length > 0 && (
-          <div className={styles.versionSection}>
-            <label className={styles.selectorLabel}>Version</label>
-            <div className={styles.versionSelectRow}>
-              <select
-                className={styles.versionSelect}
-                value={selectedVersionId || selectedPromptData.currentVersion?.id || ''}
-                onChange={handleVersionSelect}
-              >
-                {selectedPromptData.versions.map(version => (
-                  <option key={version.id} value={version.id}>
-                    v{version.version}
-                    {version.name ? ` - ${version.name}` : ''}
-                    {version.isActive ? ' (Active)' : ''}
-                  </option>
-                ))}
-              </select>
-              {/* Version action buttons */}
-              <button
-                className={styles.versionActionButton}
-                onClick={handleActivateVersion}
-                disabled={isActiveVersion || isSaving}
-                title={isActiveVersion ? 'This version is already active' : 'Make this version active'}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </button>
-              <button
-                className={`${styles.versionActionButton} ${styles.deleteButton}`}
-                onClick={handleDeleteVersion}
-                disabled={isActiveVersion || isSaving}
-                title={isActiveVersion ? 'Cannot delete active version' : 'Delete this version'}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
-              </button>
-            </div>
-            {hasSessionOverride && isActiveVersion && (
-              <span className={styles.sessionOverrideBadge}>
-                SESSION OVERRIDE
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Model & Provider Selectors */}
-        <div className={styles.modelProviderRow}>
-          <div className={styles.modelSection}>
-            <label className={styles.selectorLabel}>Model</label>
-            <select
-              className={styles.crewSelect}
-              value={currentModel}
-              onChange={handleModelChange}
-            >
-              {availableModels.map(model => (
-                <option key={model} value={model}>
-                  {model}{model === defaultModel ? ' (default)' : ''}
-                </option>
-              ))}
-            </select>
-            {hasModelOverride && (
-              <span className={styles.sessionOverrideBadge}>
-                OVERRIDE
-              </span>
-            )}
-          </div>
-          <div className={styles.providerSection}>
-            <label className={styles.selectorLabel}>Provider</label>
-            <select
-              className={styles.crewSelect}
-              value={currentProvider}
-              onChange={handleProviderChange}
-              disabled={AVAILABLE_PROVIDERS.length <= 1}
-            >
-              {AVAILABLE_PROVIDERS.map(provider => (
-                <option key={provider} value={provider}>{provider}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Knowledge Base Section */}
-      <div className={styles.editorSection}>
-        <button
-          className={styles.collapsibleHeader}
-          onClick={() => setShowKBOverride(!showKBOverride)}
-          type="button"
-        >
-          <span className={styles.editorLabelText}>
-            Knowledge Bases
-            {kbOverrides[selectedCrewId] !== undefined && (
-              <span className={styles.hasContentBadge}>OVERRIDE</span>
-            )}
-          </span>
-          <svg
-            className={`${styles.chevron} ${showKBOverride ? styles.expanded : ''}`}
-            width="14" height="14" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" strokeWidth="2"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
-        {showKBOverride && (
-          <div className={styles.kbSection}>
-            {/* Current crew's configured KB sources */}
-            {crewKBSources.length === 0 ? (
-              <p className={styles.kbNone}>No knowledge bases configured for this crew</p>
-            ) : (
-              <div className={styles.kbSourceList}>
-                {crewKBSources.map(sourceName => {
-                  const kb = availableKBs.find(k => k.name === sourceName);
-                  const providerOk = currentProvider === 'openai'
-                    ? kb?.vectorStoreId
-                    : currentProvider === 'google'
-                    ? kb?.googleCorpusId
-                    : false;
-                  return (
-                    <div key={sourceName} className={styles.kbSourceItem}>
-                      <span className={styles.kbSourceName}>{sourceName}</span>
-                      {currentProvider === 'anthropic' ? (
-                        <span className={styles.kbWarning}>KB not supported with Claude</span>
-                      ) : kb ? (
-                        providerOk
-                          ? <span className={styles.kbOk}>✓ {currentProvider}</span>
-                          : <span className={styles.kbWarning}>⚠ No {currentProvider} ID</span>
-                      ) : (
-                        <span className={styles.kbMissing}>Not found in DB</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Override checkboxes - all available KBs */}
-            {availableKBs.length > 0 && (
-              <>
-                <p className={styles.helperText}>
-                  Override KB sources for this session:
-                </p>
-                <div className={styles.kbCheckboxes}>
-                  {availableKBs.map(kb => {
-                    const isChecked = activeKBSources.includes(kb.name);
-                    return (
-                      <label key={kb.id} className={styles.kbCheckboxLabel}>
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => handleKBToggle(kb.name)}
-                        />
-                        <span>{kb.name}</span>
-                        <span className={styles.kbMeta}>
-                          {kb.fileCount} files
-                          {!kb.vectorStoreId && ' (no OpenAI)'}
-                          {!kb.googleCorpusId && ' (no Google)'}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-                {kbOverrides[selectedCrewId] !== undefined && (
-                  <button
-                    className={styles.fireNowButton}
-                    onClick={() => {
-                      setKbOverrides(prev => {
-                        const next = { ...prev };
-                        delete next[selectedCrewId];
-                        return next;
-                      });
-                      onKBOverride(selectedCrewId, []);
-                    }}
-                    type="button"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                      <path d="M3 3v5h5" />
-                    </svg>
-                    Clear KB Override
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Agent Persona (Collapsible, agent-level) */}
-      <div className={styles.editorSection}>
-        <button
-          className={styles.collapsibleHeader}
-          onClick={() => setShowPersona(!showPersona)}
-          type="button"
-        >
-          <span className={styles.editorLabelText}>
-            Agent Persona
-            {editedPersona !== codePersona && <span className={styles.hasContentBadge}>OVERRIDE</span>}
-            {showPersona && (
-              <button
-                className={styles.expandButton}
-                onClick={(e) => { e.stopPropagation(); setShowPersonaModal(true); }}
-                title="Open in larger view"
-                type="button"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="15 3 21 3 21 9" />
-                  <polyline points="9 21 3 21 3 15" />
-                  <line x1="21" y1="3" x2="14" y2="10" />
-                  <line x1="3" y1="21" x2="10" y2="14" />
-                </svg>
-              </button>
-            )}
-          </span>
-          <svg
-            className={`${styles.chevron} ${showPersona ? styles.expanded : ''}`}
-            width="14" height="14" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" strokeWidth="2"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
-        {showPersona && (
-          <>
-            <p className={styles.helperText}>
-              Shared persona injected into all crews. Edit to override for this session.
-            </p>
-            <textarea
-              className={`${styles.promptTextarea} ${styles.transitionTextarea} ${editedPersona !== codePersona ? styles.dirty : ''}`}
-              value={editedPersona}
-              onChange={(e) => {
-                const val = e.target.value;
-                setEditedPersona(val);
-                // Set override if different from code persona (including empty = remove persona)
-                if (val !== codePersona) {
-                  onPersonaOverride(val);
-                } else {
-                  onPersonaOverride(null);
-                }
-              }}
-              placeholder="No persona defined for this agent."
-              spellCheck={false}
-              rows={6}
-            />
-            <div className={styles.transitionActions}>
-              <span className={styles.charCount}>
-                {editedPersona.length} chars
-              </span>
-              {editedPersona !== codePersona && (
-                <button
-                  className={styles.fireNowButton}
-                  onClick={() => {
-                    setEditedPersona(codePersona);
-                    onPersonaOverride(null);
-                  }}
-                  title="Clear persona override and revert to code default"
-                  type="button"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                    <path d="M3 3v5h5" />
-                  </svg>
-                  Revert to Code
-                </button>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Loading State */}
-      {isLoadingPrompts ? (
-        <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>...</div>
-          <p className={styles.emptyText}>Loading prompts...</p>
-        </div>
-      ) : selectedPromptData ? (
-        <>
-          {/* Main Prompt Editor */}
-          <div className={styles.editorSection}>
-            <div className={styles.editorLabel}>
-              <span className={styles.editorLabelText}>
-                Prompt Content
-                {isMainDirty && <span className={styles.hasContentBadge}>OVERRIDE</span>}
-                <button
-                  className={styles.expandButton}
-                  onClick={() => setShowPromptModal(true)}
-                  title="Open in larger view"
-                  type="button"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="15 3 21 3 21 9" />
-                    <polyline points="9 21 3 21 3 15" />
-                    <line x1="21" y1="3" x2="14" y2="10" />
-                    <line x1="3" y1="21" x2="10" y2="14" />
-                  </svg>
-                </button>
-              </span>
-            </div>
-            <textarea
-              className={`${styles.promptTextarea} ${isMainDirty ? styles.dirty : ''}`}
-              value={editedPrompt}
-              onChange={handlePromptChange}
-              placeholder="Enter the crew member's prompt..."
-              spellCheck={false}
-            />
-            <div className={styles.transitionActions}>
-              <span className={styles.charCount}>
-                {editedPrompt.length} chars
-              </span>
-              {isMainDirty && (
-                <button
-                  className={styles.fireNowButton}
-                  onClick={() => {
-                    setEditedPrompt(originalPrompt);
-                    setSessionOverrides(prev => {
-                      const next = { ...prev };
-                      delete next[selectedCrewId];
-                      return next;
-                    });
-                    onSessionOverride(selectedCrewId, '');
-                  }}
-                  title="Clear prompt override and revert to base version"
-                  type="button"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                    <path d="M3 3v5h5" />
-                  </svg>
-                  Revert to Code
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Transition System Prompt (Collapsible) */}
           <div className={styles.editorSection}>
             <button
               className={styles.collapsibleHeader}
-              onClick={() => setShowTransitionPrompt(!showTransitionPrompt)}
+              onClick={() => setShowVersions(!showVersions)}
               type="button"
             >
               <span className={styles.editorLabelText}>
-                Transition System Prompt
-                {editedTransitionPrompt && <span className={styles.hasContentBadge}>SET</span>}
+                Versions
+                {selectedVersion && (
+                  <span className={styles.hasContentBadge}>
+                    v{selectedVersion.version}
+                    {selectedVersion.isActive ? ' (Active)' : ''}
+                  </span>
+                )}
               </span>
               <svg
-                className={`${styles.chevron} ${showTransitionPrompt ? styles.expanded : ''}`}
+                className={`${styles.chevron} ${showVersions ? styles.expanded : ''}`}
                 width="14" height="14" viewBox="0 0 24 24"
                 fill="none" stroke="currentColor" strokeWidth="2"
               >
                 <polyline points="6 9 12 15 18 9" />
               </svg>
             </button>
-            {showTransitionPrompt && (
-              <>
-                <p className={styles.helperText}>
-                  Injected once when transitioning to this crew. Uses &apos;developer&apos; role for highest authority.
-                </p>
-                <textarea
-                  className={`${styles.promptTextarea} ${styles.transitionTextarea} ${isTransitionDirty ? styles.dirty : ''}`}
-                  value={editedTransitionPrompt}
-                  onChange={(e) => setEditedTransitionPrompt(e.target.value)}
-                  placeholder="e.g., [CONTEXT SWITCH] Your role has changed. Disregard previous conversation patterns..."
-                  spellCheck={false}
-                  rows={4}
-                />
-                <div className={styles.transitionActions}>
-                  <span className={styles.charCount}>
-                    {editedTransitionPrompt.length} chars
-                  </span>
-                  {onFireTransitionPrompt && (
+            {showVersions && (
+              <div style={{ padding: '8px 0' }}>
+                <select
+                  className={styles.crewSelect}
+                  value={selectedVersionId || selectedPromptData.currentVersion?.id || ''}
+                  onChange={handleVersionSelect}
+                >
+                  {selectedPromptData.versions.map(version => (
+                    <option key={version.id} value={version.id}>
+                      v{version.version}
+                      {version.name ? ` - ${version.name}` : ''}
+                      {version.isActive ? ' (Active)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 3. Model - collapsible */}
+        <div className={styles.editorSection}>
+          <button
+            className={styles.collapsibleHeader}
+            onClick={() => setShowModel(!showModel)}
+            type="button"
+          >
+            <span className={styles.editorLabelText}>
+              Model
+              {hasModelOverride && <span className={styles.hasContentBadge}>OVERRIDE</span>}
+              {!showModel && (
+                <span className={styles.transitionLogicMeta}>{currentModel}</span>
+              )}
+            </span>
+            <svg
+              className={`${styles.chevron} ${showModel ? styles.expanded : ''}`}
+              width="14" height="14" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth="2"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          {showModel && (
+            <div className={styles.modelProviderRow}>
+              <div className={styles.modelSection}>
+                <label className={styles.selectorLabel}>Model</label>
+                <select
+                  className={styles.crewSelect}
+                  value={currentModel}
+                  onChange={handleModelChange}
+                >
+                  {availableModels.map(model => (
+                    <option key={model} value={model}>
+                      {model}{model === defaultModel ? ' (default)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.providerSection}>
+                <label className={styles.selectorLabel}>Provider</label>
+                <select
+                  className={styles.crewSelect}
+                  value={currentProvider}
+                  onChange={handleProviderChange}
+                  disabled={AVAILABLE_PROVIDERS.length <= 1}
+                >
+                  {AVAILABLE_PROVIDERS.map(provider => (
+                    <option key={provider} value={provider}>{provider}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 4. Knowledge Bases - collapsible */}
+        <div className={styles.editorSection}>
+          <button
+            className={styles.collapsibleHeader}
+            onClick={() => setShowKBOverride(!showKBOverride)}
+            type="button"
+          >
+            <span className={styles.editorLabelText}>
+              Knowledge Bases
+              {kbOverrides[selectedCrewId] !== undefined && (
+                <span className={styles.hasContentBadge}>OVERRIDE</span>
+              )}
+            </span>
+            <svg
+              className={`${styles.chevron} ${showKBOverride ? styles.expanded : ''}`}
+              width="14" height="14" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth="2"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          {showKBOverride && (
+            <div className={styles.kbSection}>
+              {crewKBSources.length === 0 ? (
+                <p className={styles.kbNone}>No knowledge bases configured for this crew</p>
+              ) : (
+                <div className={styles.kbSourceList}>
+                  {crewKBSources.map(sourceName => {
+                    const kb = availableKBs.find(k => k.name === sourceName);
+                    const providerOk = currentProvider === 'openai'
+                      ? kb?.vectorStoreId
+                      : currentProvider === 'google'
+                      ? kb?.googleCorpusId
+                      : false;
+                    return (
+                      <div key={sourceName} className={styles.kbSourceItem}>
+                        <span className={styles.kbSourceName}>{sourceName}</span>
+                        {currentProvider === 'anthropic' ? (
+                          <span className={styles.kbWarning}>KB not supported with Claude</span>
+                        ) : kb ? (
+                          providerOk
+                            ? <span className={styles.kbOk}>✓ {currentProvider}</span>
+                            : <span className={styles.kbWarning}>⚠ No {currentProvider} ID</span>
+                        ) : (
+                          <span className={styles.kbMissing}>Not found in DB</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {availableKBs.length > 0 && (
+                <>
+                  <p className={styles.helperText}>
+                    Override KB sources for this session:
+                  </p>
+                  <div className={styles.kbCheckboxes}>
+                    {availableKBs.map(kb => {
+                      const isChecked = activeKBSources.includes(kb.name);
+                      return (
+                        <label key={kb.id} className={styles.kbCheckboxLabel}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => handleKBToggle(kb.name)}
+                          />
+                          <span>{kb.name}</span>
+                          <span className={styles.kbMeta}>
+                            {kb.fileCount} files
+                            {!kb.vectorStoreId && ' (no OpenAI)'}
+                            {!kb.googleCorpusId && ' (no Google)'}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {kbOverrides[selectedCrewId] !== undefined && (
                     <button
                       className={styles.fireNowButton}
-                      onClick={async () => {
-                        if (!editedTransitionPrompt.trim()) return;
-                        setIsFiring(true);
-                        try {
-                          await onFireTransitionPrompt(editedTransitionPrompt, selectedCrewId);
-                          setStatus({ type: 'success', message: 'Transition prompt injected into chat!' });
-                        } catch {
-                          setStatus({ type: 'error', message: 'Failed to inject prompt' });
-                        } finally {
-                          setIsFiring(false);
-                        }
+                      onClick={() => {
+                        setKbOverrides(prev => {
+                          const next = { ...prev };
+                          delete next[selectedCrewId];
+                          return next;
+                        });
+                        onKBOverride(selectedCrewId, []);
                       }}
-                      disabled={!editedTransitionPrompt.trim() || isFiring}
-                      title="Inject this prompt into the conversation now (for testing)"
                       type="button"
                     >
-                      {isFiring ? (
-                        'Firing...'
-                      ) : (
-                        <>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polygon points="5 3 19 12 5 21 5 3" />
-                          </svg>
-                          Fire Now
-                        </>
-                      )}
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                      </svg>
+                      Clear KB Override
                     </button>
                   )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 5. Prompting - collapsible, default open */}
+        {isLoadingPrompts ? (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>...</div>
+            <p className={styles.emptyText}>Loading prompts...</p>
+          </div>
+        ) : selectedPromptData ? (
+          <div className={styles.editorSection}>
+            <button
+              className={styles.collapsibleHeader}
+              onClick={() => setShowPrompting(!showPrompting)}
+              type="button"
+            >
+              <span className={styles.editorLabelText}>
+                Prompting
+                {isThinkerCrew && <span className={styles.hasContentBadge}>THINKER</span>}
+              </span>
+              <svg
+                className={`${styles.chevron} ${showPrompting ? styles.expanded : ''}`}
+                width="14" height="14" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" strokeWidth="2"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {showPrompting && (
+              <>
+                {/* Agent Persona */}
+                <div style={{ padding: '8px 0' }}>
+                  <div className={styles.subSectionLabel}>
+                    Agent Persona
+                    {editedPersona !== codePersona && <span className={styles.hasContentBadge}>OVERRIDE</span>}
+                    <button
+                      className={styles.expandButton}
+                      onClick={() => setShowPersonaModal(true)}
+                      title="Open in larger view"
+                      type="button"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="15 3 21 3 21 9" />
+                        <polyline points="9 21 3 21 3 15" />
+                        <line x1="21" y1="3" x2="14" y2="10" />
+                        <line x1="3" y1="21" x2="10" y2="14" />
+                      </svg>
+                    </button>
+                  </div>
+                  <p className={styles.helperText}>
+                    Shared persona injected into all crews. Edit to override for this session.
+                  </p>
+                  <textarea
+                    className={`${styles.promptTextarea} ${styles.transitionTextarea} ${editedPersona !== codePersona ? styles.dirty : ''}`}
+                    value={editedPersona}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditedPersona(val);
+                      if (val !== codePersona) {
+                        onPersonaOverride(val);
+                      } else {
+                        onPersonaOverride(null);
+                      }
+                    }}
+                    placeholder="No persona defined for this agent."
+                    spellCheck={false}
+                    rows={6}
+                  />
+                  <div className={styles.transitionActions}>
+                    <span className={styles.charCount}>
+                      {editedPersona.length} chars
+                    </span>
+                    {editedPersona !== codePersona && (
+                      <button
+                        className={styles.fireNowButton}
+                        onClick={() => {
+                          setEditedPersona(codePersona);
+                          onPersonaOverride(null);
+                        }}
+                        title="Clear persona override and revert to code default"
+                        type="button"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                          <path d="M3 3v5h5" />
+                        </svg>
+                        Revert to Code
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Guidance (renamed from Prompt Content) */}
+                <div style={{ padding: '8px 0' }}>
+                  <div className={styles.subSectionLabel}>
+                    Guidance
+                    {isMainDirty && <span className={styles.hasContentBadge}>OVERRIDE</span>}
+                    <button
+                      className={styles.expandButton}
+                      onClick={() => setShowPromptModal(true)}
+                      title="Open in larger view"
+                      type="button"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="15 3 21 3 21 9" />
+                        <polyline points="9 21 3 21 3 15" />
+                        <line x1="21" y1="3" x2="14" y2="10" />
+                        <line x1="3" y1="21" x2="10" y2="14" />
+                      </svg>
+                    </button>
+                  </div>
+                  <textarea
+                    className={`${styles.promptTextarea} ${isMainDirty ? styles.dirty : ''}`}
+                    value={editedPrompt}
+                    onChange={handlePromptChange}
+                    placeholder="Enter the crew member's guidance..."
+                    spellCheck={false}
+                  />
+                  <div className={styles.transitionActions}>
+                    <span className={styles.charCount}>
+                      {editedPrompt.length} chars
+                    </span>
+                    {isMainDirty && (
+                      <button
+                        className={styles.fireNowButton}
+                        onClick={() => {
+                          setEditedPrompt(originalPrompt);
+                          setSessionOverrides(prev => {
+                            const next = { ...prev };
+                            delete next[selectedCrewId];
+                            return next;
+                          });
+                          onSessionOverride(selectedCrewId, '');
+                        }}
+                        title="Clear prompt override and revert to base version"
+                        type="button"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                          <path d="M3 3v5h5" />
+                        </svg>
+                        Revert to Code
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Thinking Prompt (only for thinker crews - editable for session override) */}
+                {isThinkerCrew && codeThinkingPrompt && (() => {
+                  const editedThinking = thinkingPromptOverrides[selectedCrewId] ?? codeThinkingPrompt;
+                  const isThinkingDirty = editedThinking !== codeThinkingPrompt;
+                  return (
+                    <div style={{ padding: '8px 0' }}>
+                      <div className={styles.subSectionLabel}>
+                        Thinking Prompt
+                        {isThinkingDirty && <span className={styles.hasContentBadge}>OVERRIDE</span>}
+                        <button
+                          className={styles.expandButton}
+                          onClick={() => setShowThinkingModal(true)}
+                          title="Open in larger view"
+                          type="button"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="15 3 21 3 21 9" />
+                            <polyline points="9 21 3 21 3 15" />
+                            <line x1="21" y1="3" x2="14" y2="10" />
+                            <line x1="3" y1="21" x2="10" y2="14" />
+                          </svg>
+                        </button>
+                      </div>
+                      <p className={styles.helperText}>
+                        Thinker prompt sent to the analyzing LLM. Edit to override for this session.
+                      </p>
+                      <textarea
+                        className={`${styles.promptTextarea} ${styles.transitionTextarea} ${isThinkingDirty ? styles.dirty : ''}`}
+                        value={editedThinking}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setThinkingPromptOverrides(prev => ({ ...prev, [selectedCrewId]: val }));
+                          if (val !== codeThinkingPrompt) {
+                            onThinkingPromptOverride(selectedCrewId, val);
+                          } else {
+                            onThinkingPromptOverride(selectedCrewId, '');
+                          }
+                        }}
+                        spellCheck={false}
+                        rows={8}
+                      />
+                      <div className={styles.transitionActions}>
+                        <span className={styles.charCount}>
+                          {editedThinking.length} chars
+                        </span>
+                        {isThinkingDirty && (
+                          <button
+                            className={styles.fireNowButton}
+                            onClick={() => {
+                              setThinkingPromptOverrides(prev => {
+                                const next = { ...prev };
+                                delete next[selectedCrewId];
+                                return next;
+                              });
+                              onThinkingPromptOverride(selectedCrewId, '');
+                            }}
+                            title="Clear thinking prompt override and revert to code default"
+                            type="button"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                              <path d="M3 3v5h5" />
+                            </svg>
+                            Revert to Code
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Transition System Message */}
+                <div style={{ padding: '8px 0' }}>
+                  <div className={styles.subSectionLabel}>
+                    Transition System Message
+                    {editedTransitionPrompt && <span className={styles.hasContentBadge}>SET</span>}
+                  </div>
+                  <p className={styles.helperText}>
+                    Injected once when transitioning to this crew. Uses &apos;developer&apos; role for highest authority.
+                  </p>
+                  <textarea
+                    className={`${styles.promptTextarea} ${styles.transitionTextarea} ${isTransitionDirty ? styles.dirty : ''}`}
+                    value={editedTransitionPrompt}
+                    onChange={(e) => setEditedTransitionPrompt(e.target.value)}
+                    placeholder="e.g., [CONTEXT SWITCH] Your role has changed. Disregard previous conversation patterns..."
+                    spellCheck={false}
+                    rows={4}
+                  />
+                  <div className={styles.transitionActions}>
+                    <span className={styles.charCount}>
+                      {editedTransitionPrompt.length} chars
+                    </span>
+                    {onFireTransitionPrompt && (
+                      <button
+                        className={styles.fireNowButton}
+                        onClick={async () => {
+                          if (!editedTransitionPrompt.trim()) return;
+                          setIsFiring(true);
+                          try {
+                            await onFireTransitionPrompt(editedTransitionPrompt, selectedCrewId);
+                            setStatus({ type: 'success', message: 'Transition prompt injected into chat!' });
+                          } catch {
+                            setStatus({ type: 'error', message: 'Failed to inject prompt' });
+                          } finally {
+                            setIsFiring(false);
+                          }
+                        }}
+                        disabled={!editedTransitionPrompt.trim() || isFiring}
+                        title="Inject this prompt into the conversation now (for testing)"
+                        type="button"
+                      >
+                        {isFiring ? (
+                          'Firing...'
+                        ) : (
+                          <>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polygon points="5 3 19 12 5 21 5 3" />
+                            </svg>
+                            Fire Now
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Transition Logic (opens modal) */}
+                <div style={{ padding: '4px 0' }}>
+                  <button
+                    className={styles.transitionLogicButton}
+                    onClick={() => setShowTransitionLogicModal(true)}
+                    disabled={!transitionLogic && !isLoadingTransitionLogic}
+                    type="button"
+                  >
+                    <div className={styles.transitionLogicButtonContent}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="16 3 21 3 21 8" />
+                        <line x1="4" y1="20" x2="21" y2="3" />
+                        <polyline points="21 16 21 21 16 21" />
+                        <line x1="15" y1="15" x2="21" y2="21" />
+                        <line x1="4" y1="4" x2="9" y2="9" />
+                      </svg>
+                      <span>Transition Logic</span>
+                      {isLoadingTransitionLogic ? (
+                        <span className={styles.transitionLogicMeta}>Loading...</span>
+                      ) : transitionLogic ? (
+                        <span className={styles.transitionLogicMeta}>
+                          {transitionLogic.transitionTo ? `\u2192 ${transitionLogic.transitionTo}` : 'No target'}
+                          {transitionLogic.hasStructuredRules ? ' (rules)' : ' (code)'}
+                        </span>
+                      ) : (
+                        <span className={styles.transitionLogicMeta}>No transitions</span>
+                      )}
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                      <line x1="9" y1="3" x2="9" y2="21" />
+                    </svg>
+                  </button>
                 </div>
               </>
             )}
           </div>
-
-          {/* Transition Logic (Clickable - opens modal) */}
-          <div className={styles.editorSection}>
-            <button
-              className={styles.transitionLogicButton}
-              onClick={() => setShowTransitionLogicModal(true)}
-              disabled={!transitionLogic && !isLoadingTransitionLogic}
-              type="button"
-            >
-              <div className={styles.transitionLogicButtonContent}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="16 3 21 3 21 8" />
-                  <line x1="4" y1="20" x2="21" y2="3" />
-                  <polyline points="21 16 21 21 16 21" />
-                  <line x1="15" y1="15" x2="21" y2="21" />
-                  <line x1="4" y1="4" x2="9" y2="9" />
-                </svg>
-                <span>Transition Logic</span>
-                {isLoadingTransitionLogic ? (
-                  <span className={styles.transitionLogicMeta}>Loading...</span>
-                ) : transitionLogic ? (
-                  <span className={styles.transitionLogicMeta}>
-                    {transitionLogic.transitionTo ? `\u2192 ${transitionLogic.transitionTo}` : 'No target'}
-                    {transitionLogic.hasStructuredRules ? ' (rules)' : ' (code)'}
-                  </span>
-                ) : (
-                  <span className={styles.transitionLogicMeta}>No transitions</span>
-                )}
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <line x1="9" y1="3" x2="9" y2="21" />
-              </svg>
-            </button>
+        ) : (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>no data</div>
+            <p className={styles.emptyText}>
+              No prompt data available for this crew member.
+              <br />
+              Select a different crew member or check the server.
+            </p>
           </div>
-        </>
-      ) : (
-        <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>no data</div>
-          <p className={styles.emptyText}>
-            No prompt data available for this crew member.
-            <br />
-            Select a different crew member or check the server.
-          </p>
-        </div>
-      )}
+        )}
       </div>
 
-      {/* Action Buttons */}
+      {/* Action Buttons - only Revert + status */}
       <div className={styles.actionsSection}>
         <div className={styles.actionButtons}>
-          <div className={styles.actionRow}>
-            <button
-              className={`${styles.actionButton} ${styles.revertButton}`}
-              onClick={handleRevert}
-              disabled={!isDirty && !hasSessionOverride && !hasModelOverride}
-              title="Discard changes and reload original prompt"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                <path d="M3 3v5h5" />
-              </svg>
-              Revert
-            </button>
-            <button
-              className={`${styles.actionButton} ${styles.saveButton}`}
-              onClick={handleSave}
-              disabled={!isDirty || isSaving || isCodeVersion}
-              title={isCodeVersion ? 'Code version - use Save as New Version' : 'Save and overwrite current version'}
-            >
-              {isSaving ? (
-                'Saving...'
-              ) : (
-                <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                    <polyline points="17 21 17 13 7 13 7 21" />
-                    <polyline points="7 3 7 8 15 8" />
-                  </svg>
-                  Save
-                </>
-              )}
-            </button>
-          </div>
           <button
-            className={`${styles.actionButton} ${styles.saveNewVersionButton}`}
-            onClick={handleOpenVersionModal}
-            disabled={!isDirty || isSaving}
-            title="Create a new version with these changes"
+            className={`${styles.actionButton} ${styles.revertButton}`}
+            onClick={handleRevert}
+            disabled={!isDirty && !hasSessionOverride && !hasModelOverride}
+            title="Discard changes and reload original prompt"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
             </svg>
-            Save as New Version
+            Revert All
           </button>
         </div>
 
@@ -1147,72 +1037,6 @@ export function PromptEditorPanel({
         )}
       </div>
 
-      {/* New Version Modal */}
-      {showVersionModal && (
-        <div className={styles.modalOverlay} onClick={handleCloseVersionModal}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h4>Save as New Version</h4>
-              <button
-                className={styles.modalCloseButton}
-                onClick={handleCloseVersionModal}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              <p className={styles.modalDescription}>
-                Enter a name/tag for this version to help identify what changed.
-              </p>
-              <div className={styles.modalInputGroup}>
-                <label className={styles.modalLabel}>Version Name</label>
-                <input
-                  type="text"
-                  className={styles.modalInput}
-                  value={versionName}
-                  onChange={e => setVersionName(e.target.value)}
-                  placeholder="e.g., Added empathy guidelines"
-                  autoFocus
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && versionName.trim()) {
-                      handleSaveAsNewVersion();
-                    }
-                    if (e.key === 'Escape') {
-                      handleCloseVersionModal();
-                    }
-                  }}
-                />
-              </div>
-              <div className={styles.modalPreview}>
-                <span className={styles.modalPreviewLabel}>Will be saved as:</span>
-                <span className={styles.modalPreviewValue}>
-                  v{Math.max(...(selectedPromptData?.versions.map(v => v.version) || [0])) + 1}
-                  {versionName.trim() ? ` - ${versionName.trim()}` : ''}
-                </span>
-              </div>
-            </div>
-            <div className={styles.modalFooter}>
-              <button
-                className={`${styles.actionButton} ${styles.revertButton}`}
-                onClick={handleCloseVersionModal}
-              >
-                Cancel
-              </button>
-              <button
-                className={`${styles.actionButton} ${styles.saveButton}`}
-                onClick={handleSaveAsNewVersion}
-                disabled={!versionName.trim() || isSaving}
-              >
-                {isSaving ? 'Saving...' : 'Save Version'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Transition Logic Modal */}
       {showTransitionLogicModal && transitionLogic && (
         <div className={styles.modalOverlay} onClick={() => setShowTransitionLogicModal(false)}>
@@ -1233,7 +1057,6 @@ export function PromptEditorPanel({
               </button>
             </div>
             <div className={styles.modalBody}>
-              {/* Meta info row */}
               <div className={styles.tlMetaRow}>
                 <span className={styles.tlMetaLabel}>Target:</span>
                 <strong>{transitionLogic.transitionTo || 'none'}</strong>
@@ -1241,8 +1064,6 @@ export function PromptEditorPanel({
                 {transitionLogic.hasPreTransfer && <span className={styles.tlTag}>pre</span>}
                 {transitionLogic.hasPostTransfer && <span className={styles.tlTag}>post</span>}
               </div>
-
-              {/* Mode 1: Structured rule definitions */}
               {transitionLogic.hasStructuredRules && transitionLogic.ruleDefinitions && (
                 <>
                   {transitionLogic.ruleDefinitions.pre.length > 0 && (
@@ -1279,8 +1100,6 @@ export function PromptEditorPanel({
                   )}
                 </>
               )}
-
-              {/* Mode 2: Raw code fallback */}
               {!transitionLogic.hasStructuredRules && transitionLogic.rawCode && (
                 <>
                   {transitionLogic.rawCode.pre && (
@@ -1297,8 +1116,6 @@ export function PromptEditorPanel({
                   )}
                 </>
               )}
-
-              {/* One-shot info */}
               {transitionLogic.oneShot && !transitionLogic.hasPreTransfer && !transitionLogic.hasPostTransfer && (
                 <div className={styles.tlSection}>
                   <div className={styles.tlSectionLabel}>oneShot</div>
@@ -1319,13 +1136,13 @@ export function PromptEditorPanel({
         </div>
       )}
 
-      {/* Prompt Enlarge Modal */}
+      {/* Guidance Enlarge Modal */}
       {showPromptModal && (
         <div className={styles.modalOverlay} onClick={() => setShowPromptModal(false)}>
           <div className={`${styles.modal} ${styles.promptModal}`} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h4>
-                Prompt Content
+                Guidance
                 <span className={styles.tlCrewName}>
                   {selectedCrewMember?.displayName || selectedCrewId}
                 </span>
@@ -1345,7 +1162,7 @@ export function PromptEditorPanel({
                 className={`${styles.promptModalTextarea} ${isMainDirty ? styles.dirty : ''}`}
                 value={editedPrompt}
                 onChange={handlePromptChange}
-                placeholder="Enter the crew member's prompt..."
+                placeholder="Enter the crew member's guidance..."
                 spellCheck={false}
                 autoFocus
               />
@@ -1389,6 +1206,87 @@ export function PromptEditorPanel({
           </div>
         </div>
       )}
+
+      {/* Thinking Prompt Enlarge Modal */}
+      {showThinkingModal && isThinkerCrew && codeThinkingPrompt && (() => {
+        const editedThinking = thinkingPromptOverrides[selectedCrewId] ?? codeThinkingPrompt;
+        const isThinkingDirty = editedThinking !== codeThinkingPrompt;
+        return (
+          <div className={styles.modalOverlay} onClick={() => setShowThinkingModal(false)}>
+            <div className={`${styles.modal} ${styles.promptModal}`} onClick={e => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h4>
+                  Thinking Prompt
+                  <span className={styles.tlCrewName}>
+                    {selectedCrewMember?.displayName || selectedCrewId}
+                  </span>
+                </h4>
+                <button
+                  className={styles.modalCloseButton}
+                  onClick={() => setShowThinkingModal(false)}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+              <div className={styles.modalBody}>
+                <textarea
+                  className={`${styles.promptModalTextarea} ${isThinkingDirty ? styles.dirty : ''}`}
+                  value={editedThinking}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setThinkingPromptOverrides(prev => ({ ...prev, [selectedCrewId]: val }));
+                    if (val !== codeThinkingPrompt) {
+                      onThinkingPromptOverride(selectedCrewId, val);
+                    } else {
+                      onThinkingPromptOverride(selectedCrewId, '');
+                    }
+                  }}
+                  spellCheck={false}
+                  autoFocus
+                />
+              </div>
+              <div className={styles.promptModalFooter}>
+                <span className={styles.charCount}>
+                  {editedThinking.length} chars
+                  {isThinkingDirty && (
+                    <span className={styles.sessionOverrideBadge} style={{ marginLeft: '8px' }}>
+                      OVERRIDE
+                    </span>
+                  )}
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {isThinkingDirty && (
+                    <button
+                      className={`${styles.actionButton} ${styles.revertButton}`}
+                      onClick={() => {
+                        setThinkingPromptOverrides(prev => {
+                          const next = { ...prev };
+                          delete next[selectedCrewId];
+                          return next;
+                        });
+                        onThinkingPromptOverride(selectedCrewId, '');
+                      }}
+                      style={{ flex: 'none' }}
+                    >
+                      Revert to Code
+                    </button>
+                  )}
+                  <button
+                    className={`${styles.actionButton} ${styles.revertButton}`}
+                    onClick={() => setShowThinkingModal(false)}
+                    style={{ flex: 'none' }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Persona Enlarge Modal */}
       {showPersonaModal && (
