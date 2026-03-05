@@ -1840,6 +1840,12 @@
   cursor: not-allowed;
 }
 
+.formError {
+  font-size: 13px;
+  color: #e05555;
+  margin: 0;
+}
+
 /* Success state */
 .modalSuccess {
   text-align: center;

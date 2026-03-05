@@ -137,6 +137,8 @@ function ContactModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
   const [company, setCompany] = useState('');
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
 
   // Reset form when modal closes
   useEffect(() => {
@@ -164,10 +166,23 @@ function ContactModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    // Client-side only for now — server integration later
-    setSubmitted(true);
+    setSending(true);
+    setSendError('');
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/lybi/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, company, message }),
+      });
+      if (!res.ok) throw new Error('Failed to send');
+      setSubmitted(true);
+    } catch {
+      setSendError('Something went wrong. Please try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -244,7 +259,10 @@ function ContactModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
                   placeholder="Tell us what you're looking for..."
                 />
               </div>
-              <button type="submit" className={styles.formSubmit}>Send</button>
+              {sendError && <p className={styles.formError}>{sendError}</p>}
+              <button type="submit" className={styles.formSubmit} disabled={sending}>
+                {sending ? 'Sending…' : 'Send'}
+              </button>
             </form>
           </>
         )}
