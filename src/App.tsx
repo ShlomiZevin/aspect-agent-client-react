@@ -39,8 +39,12 @@ function AppContent() {
       />
 
       <Routes>
-        {/* Home page - agent selection */}
-        <Route path="/" element={<HomePage />} />
+        {/* Home page - redirect to /lybi on lybi.ai domain, otherwise show agent selection */}
+        <Route path="/" element={
+          window.location.hostname === 'lybi.ai' || window.location.hostname === 'www.lybi.ai'
+            ? <Navigate to="/lybi" replace />
+            : <HomePage />
+        } />
 
         {/* Landing Pages - Marketing */}
         <Route path="/aspect/ai" element={<AspectLandingPage />} />
