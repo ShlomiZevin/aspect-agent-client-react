@@ -130,6 +130,14 @@
   background: #059669;
 }
 
+.dotAssigned {
+  background: #d97706;
+}
+
+.dotStatus {
+  background: #0891b2;
+}
+
 .itemBody {
   display: flex;
   flex-direction: column;

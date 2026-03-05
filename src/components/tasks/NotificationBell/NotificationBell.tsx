@@ -7,9 +7,18 @@ interface NotificationBellProps {
   onOpenTask: (taskId: number) => void;
 }
 
-function formatType(type: string, taskId: number): string {
-  if (type === 'mention') return `mentioned you in task #${taskId}`;
-  return `commented on your task #${taskId}`;
+function formatText(type: string, taskId: number): string {
+  if (type === 'mention') return `Someone mentioned you in task #${taskId}`;
+  if (type === 'assigned') return `You were assigned to task #${taskId}`;
+  if (type === 'status_changed') return `Task #${taskId} was moved to a new status`;
+  return `Someone commented on your task #${taskId}`;
+}
+
+function dotClass(type: string): string {
+  if (type === 'mention') return 'dotMention';
+  if (type === 'assigned') return 'dotAssigned';
+  if (type === 'status_changed') return 'dotStatus';
+  return 'dotComment';
 }
 
 function formatTime(dateStr: string): string {
@@ -84,10 +93,10 @@ export function NotificationBell({ notifications, onOpenTask }: NotificationBell
                   className={styles.item}
                   onClick={() => handleNotificationClick(n.id, n.taskId)}
                 >
-                  <span className={`${styles.dot} ${n.type === 'mention' ? styles.dotMention : styles.dotComment}`} />
+                  <span className={`${styles.dot} ${styles[dotClass(n.type)]}`} />
                   <div className={styles.itemBody}>
                     <span className={styles.itemText}>
-                      {n.type === 'mention' ? 'Someone' : 'Someone'} {formatType(n.type, n.taskId)}
+                      {formatText(n.type, n.taskId)}
                     </span>
                     <span className={styles.itemTime}>{formatTime(n.createdAt)}</span>
                   </div>

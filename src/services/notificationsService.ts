@@ -3,7 +3,7 @@ export interface TaskNotification {
   recipient: string;
   taskId: number;
   commentId: number | null;
-  type: 'mention' | 'comment_on_assigned';
+  type: 'mention' | 'comment_on_assigned' | 'assigned' | 'status_changed';
   isRead: boolean;
   createdAt: string;
 }
@@ -12,6 +12,8 @@ const getBaseURL = (): string => {
   if (import.meta.env.DEV) return 'http://localhost:3000';
   return import.meta.env.VITE_API_URL || 'https://aspect-agent-server-1018338671074.europe-west1.run.app';
 };
+
+export const API_BASE = getBaseURL();
 
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${getBaseURL()}${endpoint}`, {

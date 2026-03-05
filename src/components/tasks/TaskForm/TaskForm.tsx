@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import type { Task, Assignee, CreateTaskData, TaskStatus, TaskPriority, TaskType } from '../../../types/task';
+import type { Task, Assignee, CreateTaskData, TaskStatus, TaskPriority, TaskType, TaskComment } from '../../../types/task';
 import type { CrewMember } from '../../../types/crew';
 import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
 import { CommentsSection } from '../CommentsSection/CommentsSection';
@@ -34,6 +34,7 @@ interface TaskFormProps {
   currentDomain: string; // Current domain from URL (e.g., 'freeda', 'aspect')
   showAllDomains?: boolean; // When true, show all domain options (Ctrl+Shift+A mode)
   crewMembers?: CrewMember[];
+  incomingComment?: TaskComment | null;
   onSubmit: (data: CreateTaskData) => void;
   onCancel: () => void;
   onDelete?: () => void;
@@ -78,7 +79,7 @@ function containsHebrew(text: string): boolean {
   return /[\u0590-\u05FF]/.test(text);
 }
 
-export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, onSubmit, onCancel, onDelete }: TaskFormProps) {
+export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, incomingComment, onSubmit, onCancel, onDelete }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [description, setDescription] = useState('');
@@ -555,7 +556,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       {/* Comments column — only for existing tasks */}
       {task && (
         <div className={styles.commentsColumn}>
-          <CommentsSection taskId={task.id} assignees={assignees} />
+          <CommentsSection taskId={task.id} assignees={assignees} incomingComment={incomingComment} />
         </div>
       )}
       </div>
