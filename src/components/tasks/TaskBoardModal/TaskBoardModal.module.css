@@ -55,6 +55,12 @@
   color: var(--text-primary);
 }
 
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .closeBtn {
   background: none;
   border: none;
