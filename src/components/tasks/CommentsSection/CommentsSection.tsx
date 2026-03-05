@@ -5,6 +5,11 @@ import { useCommenterIdentity } from '../../../hooks/useCommenterIdentity';
 import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
 import styles from './CommentsSection.module.css';
 
+/** Highlight @Name mentions inside comment HTML */
+function highlightMentions(html: string): string {
+  return html.replace(/@([\w\u0080-\uFFFF]+(?:\s[\w\u0080-\uFFFF]+)?)/g, '<span class="mention">@$1</span>');
+}
+
 interface CommentsSectionProps {
   taskId: number;
   assignees: Assignee[];
@@ -49,7 +54,10 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [showIdentityPicker, setShowIdentityPicker] = useState(false);
+  const [showMentionPicker, setShowMentionPicker] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const mentionDropdownRef = useRef<HTMLDivElement>(null);
 
   // Load comments when task opens
   useEffect(() => {
@@ -91,6 +99,42 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
       setComments(prev => prev.filter(c => c.id !== commentId));
     } catch (err) {
       console.error('Failed to delete comment:', err);
+    }
+  };
+
+  // Close mention picker when clicking outside
+  useEffect(() => {
+    if (!showMentionPicker) return;
+    const handleClick = (e: MouseEvent) => {
+      if (mentionDropdownRef.current && !mentionDropdownRef.current.contains(e.target as Node)) {
+        setShowMentionPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showMentionPicker]);
+
+  const insertMention = (name: string) => {
+    setShowMentionPicker(false);
+    // Find the contentEditable div inside the editor wrapper and insert @Name at cursor
+    const editorEl = editorRef.current?.querySelector('[contenteditable]') as HTMLElement | null;
+    if (editorEl) {
+      editorEl.focus();
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        range.insertNode(document.createTextNode(`@${name} `));
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } else {
+        // Fallback: append to end
+        document.execCommand('insertText', false, `@${name} `);
+      }
+      // Trigger onChange to update text state
+      const event = new Event('input', { bubbles: true });
+      editorEl.dispatchEvent(event);
     }
   };
 
@@ -186,7 +230,7 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
               </div>
               <div
                 className={styles.commentContent}
-                dangerouslySetInnerHTML={{ __html: c.content }}
+                dangerouslySetInnerHTML={{ __html: highlightMentions(c.content) }}
               />
             </div>
           </div>
@@ -199,6 +243,7 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
         <div className={styles.inputArea}>
           {/* Ctrl+Enter submit via keydown bubbling */}
           <div
+            ref={editorRef}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
@@ -216,6 +261,35 @@ export function CommentsSection({ taskId, assignees }: CommentsSectionProps) {
             <div className={styles.submitError}>{submitError}</div>
           )}
           <div className={styles.inputActions}>
+            {/* @ Mention picker */}
+            <div className={styles.mentionPickerWrapper} ref={mentionDropdownRef}>
+              <button
+                type="button"
+                className={styles.mentionBtn}
+                onClick={() => setShowMentionPicker(o => !o)}
+                title="Mention someone"
+              >
+                @ Mention
+              </button>
+              {showMentionPicker && assignees.length > 0 && (
+                <div className={styles.mentionDropdown}>
+                  {assignees.map(a => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      className={styles.mentionOption}
+                      onClick={() => insertMention(a.name)}
+                    >
+                      <span className={styles.mentionAvatar} style={{ background: authorColor(a.name) }}>
+                        {a.name[0].toUpperCase()}
+                      </span>
+                      {a.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <button
               className={styles.submitBtn}
               onClick={handleSubmit}

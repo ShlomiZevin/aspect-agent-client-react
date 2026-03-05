@@ -7,6 +7,8 @@ import { TaskBoard } from '../TaskBoard/TaskBoard';
 import { TaskList } from '../TaskList/TaskList';
 import { TaskForm } from '../TaskForm/TaskForm';
 import { AssigneeManager } from '../AssigneeManager/AssigneeManager';
+import { NotificationBell } from '../NotificationBell/NotificationBell';
+import { useNotifications } from '../../../hooks/useNotifications';
 import { getUserId, getDraftDefault, setDraftDefault } from '../../../utils/userIdentifier';
 import styles from './TaskBoardModal.module.css';
 
@@ -74,6 +76,9 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
 
   // Get current user ID for draft filtering
   const currentUserId = useMemo(() => getUserId(), []);
+
+  // Notifications (poll only when modal is open)
+  const notificationsState = useNotifications(isOpen);
 
   // Detect current domain when modal opens
   const currentDomain = useMemo(() => (isOpen ? getCurrentDomain() : 'general'), [isOpen]);
@@ -427,6 +432,14 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     setShowForm(false);
   };
 
+  const handleOpenTaskById = useCallback((taskId: number) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      setEditingTask(task);
+      setShowForm(true);
+    }
+  }, [tasks]);
+
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -441,9 +454,12 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
         {/* Header */}
         <div className={styles.header}>
           <h2 className={styles.title}>Task Board</h2>
-          <button className={styles.closeBtn} onClick={onClose} title="Close (Esc)">
-            ×
-          </button>
+          <div className={styles.headerRight}>
+            <NotificationBell notifications={notificationsState} onOpenTask={handleOpenTaskById} />
+            <button className={styles.closeBtn} onClick={onClose} title="Close (Esc)">
+              ×
+            </button>
+          </div>
         </div>
 
         {/* Toolbar - Row 1: Main Controls */}
