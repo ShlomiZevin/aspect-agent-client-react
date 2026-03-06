@@ -155,3 +155,120 @@
   font-size: 11px;
   color: var(--text-secondary, #888);
 }
+
+/* New (undelivered) notification highlight */
+.itemNew {
+  background: var(--surface-new, rgba(79, 70, 229, 0.05));
+}
+
+.itemNew .itemText {
+  font-weight: 600;
+}
+
+/* Identity chip (identity set) */
+.identityChip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 4px;
+  border-radius: 20px;
+  border: 1px solid var(--border, #e5e7eb);
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-primary, #111);
+  margin-right: 4px;
+  transition: border-color 0.15s;
+}
+
+.identityChip:hover {
+  border-color: var(--primary, #4f46e5);
+}
+
+/* Identity chip (no identity) */
+.identityChipEmpty {
+  font-size: 11px;
+  color: var(--primary, #4f46e5);
+  background: none;
+  border: 1px dashed var(--primary, #4f46e5);
+  border-radius: 20px;
+  padding: 3px 10px;
+  cursor: pointer;
+  margin-right: 4px;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.identityChipEmpty:hover {
+  background: rgba(79, 70, 229, 0.06);
+}
+
+.identityAvatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.identityName {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Identity picker dropdown */
+.identityDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 240px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: var(--radius-lg, 10px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 1001;
+  padding: 12px;
+}
+
+.identityDropdownTitle {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #111);
+}
+
+.identityList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.identityOption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 20px;
+  padding: 4px 10px 4px 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.identityOption:hover {
+  border-color: var(--primary, #4f46e5);
+}
+
+.identityOptionActive {
+  border-color: var(--primary, #4f46e5);
+  background: rgba(79, 70, 229, 0.06);
+  font-weight: 600;
+}

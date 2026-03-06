@@ -4,7 +4,7 @@ export interface TaskNotification {
   taskId: number;
   commentId: number | null;
   type: 'mention' | 'comment_on_assigned' | 'assigned' | 'status_changed';
-  isRead: boolean;
+  isDelivered: boolean; // false = NEW (not yet delivered to client before this fetch)
   createdAt: string;
 }
 
@@ -32,12 +32,4 @@ export async function getNotifications(identity: string): Promise<TaskNotificati
     `/api/notifications?identity=${encodeURIComponent(identity)}`
   );
   return data.notifications;
-}
-
-export async function markRead(id: number): Promise<void> {
-  await apiRequest(`/api/notifications/${id}/read`, { method: 'PATCH' });
-}
-
-export async function markAllRead(identity: string): Promise<void> {
-  await apiRequest(`/api/notifications/read-all?identity=${encodeURIComponent(identity)}`, { method: 'PATCH' });
 }

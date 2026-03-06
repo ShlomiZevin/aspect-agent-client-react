@@ -79,7 +79,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   // Get current user ID for draft filtering
   const currentUserId = useMemo(() => getUserId(), []);
 
-  // Notifications (SSE, only when modal is open)
+  // Notifications: poll every 10s while modal is open
   const notificationsState = useNotifications(isOpen);
 
   // Live board updates via SSE
@@ -472,7 +472,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
         <div className={styles.header}>
           <h2 className={styles.title}>Task Board</h2>
           <div className={styles.headerRight}>
-            <NotificationBell notifications={notificationsState} onOpenTask={handleOpenTaskById} />
+            <NotificationBell notifications={notificationsState} assignees={assignees} onOpenTask={handleOpenTaskById} />
             <button className={styles.closeBtn} onClick={onClose} title="Close (Esc)">
               ×
             </button>

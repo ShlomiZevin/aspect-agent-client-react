@@ -3,6 +3,7 @@ import * as notificationsService from '../services/notificationsService';
 import type { TaskNotification } from '../services/notificationsService';
 
 const IDENTITY_STORAGE_KEY = 'aspect_commenter_identity';
+const POLL_INTERVAL_MS = 10_000;
 
 function playNotificationSound() {
   try {
@@ -24,7 +25,6 @@ function playNotificationSound() {
       play(1047, 0, 0.18);   // C6
       play(880, 0.15, 0.25); // A5
     };
-    // Resume context if suspended (browser blocks audio without prior user gesture)
     if (ctx.state === 'suspended') {
       ctx.resume().then(doPlay).catch(() => {});
     } else {
@@ -35,94 +35,94 @@ function playNotificationSound() {
 
 export interface UseNotificationsReturn {
   notifications: TaskNotification[];
-  unreadCount: number;
+  /** Count of notifications that arrived as undelivered (NEW) and not yet cleared */
+  newCount: number;
   identity: string | null;
-  markRead: (id: number) => Promise<void>;
-  markAllRead: () => Promise<void>;
-  refresh: () => Promise<void>;
+  /** Set identity, persist to localStorage, and immediately fetch notifications */
+  setIdentity: (name: string) => void;
+  /** Call when user opens the notification panel — zeroes the new badge */
+  clearNew: () => void;
 }
 
 export function useNotifications(enabled: boolean): UseNotificationsReturn {
-  const [identity, setIdentity] = useState<string | null>(
+  const [identity, setIdentityState] = useState<string | null>(
     () => localStorage.getItem(IDENTITY_STORAGE_KEY)
   );
   const [notifications, setNotifications] = useState<TaskNotification[]>([]);
-  const esRef = useRef<EventSource | null>(null);
+  // Set of notification IDs that were undelivered on fetch (= NEW)
+  const [newIds, setNewIds] = useState<Set<number>>(new Set());
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const refresh = useCallback(async () => {
-    const current = localStorage.getItem(IDENTITY_STORAGE_KEY);
-    if (current !== identity) setIdentity(current);
-    if (!current) return;
+  const fetchNotifications = useCallback(async (currentIdentity: string) => {
     try {
-      const data = await notificationsService.getNotifications(current);
+      const data = await notificationsService.getNotifications(currentIdentity);
+      const arrivedNew = data.filter(n => !n.isDelivered).map(n => n.id);
+
       setNotifications(data);
+
+      if (arrivedNew.length > 0) {
+        setNewIds(prev => {
+          const next = new Set(prev);
+          arrivedNew.forEach(id => next.add(id));
+          return next;
+        });
+        playNotificationSound();
+      }
     } catch {
-      // silent
+      // silent — board still usable
     }
-  }, [identity]);
+  }, []);
 
   useEffect(() => {
+    // Stop polling when disabled
     if (!enabled) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
       setNotifications([]);
-      esRef.current?.close();
-      esRef.current = null;
+      setNewIds(new Set());
       return;
     }
 
     const current = localStorage.getItem(IDENTITY_STORAGE_KEY);
-    if (current !== identity) setIdentity(current);
-
+    if (current !== identity) setIdentityState(current);
     if (!current) return;
 
-    // Fetch existing unread notifications immediately
-    notificationsService.getNotifications(current)
-      .then(data => setNotifications(data))
-      .catch(() => {});
+    // Immediate fetch on open
+    fetchNotifications(current);
 
-    // Open SSE stream for real-time updates
-    const es = new EventSource(
-      `${notificationsService.API_BASE}/api/notifications/stream?identity=${encodeURIComponent(current)}`
-    );
-    esRef.current = es;
-
-    es.onmessage = (event) => {
-      try {
-        const notification: TaskNotification = JSON.parse(event.data);
-        setNotifications(prev => [notification, ...prev]);
-        playNotificationSound();
-      } catch {
-        // ignore malformed messages
-      }
-    };
-
-    es.onerror = () => {
-      // Browser will auto-reconnect; nothing to do
-    };
+    // Poll every 10s while board is open
+    intervalRef.current = setInterval(() => {
+      const id = localStorage.getItem(IDENTITY_STORAGE_KEY);
+      if (id) fetchNotifications(id);
+    }, POLL_INTERVAL_MS);
 
     return () => {
-      es.close();
-      esRef.current = null;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, identity]);
 
-  const markRead = useCallback(async (id: number) => {
-    await notificationsService.markRead(id);
-    setNotifications(prev => prev.filter(n => n.id !== id));
+  const clearNew = useCallback(() => {
+    setNewIds(new Set());
   }, []);
 
-  const markAllRead = useCallback(async () => {
-    if (!identity) return;
-    await notificationsService.markAllRead(identity);
-    setNotifications([]);
-  }, [identity]);
+  const setIdentity = useCallback((name: string) => {
+    localStorage.setItem(IDENTITY_STORAGE_KEY, name);
+    setIdentityState(name);
+    // Immediate fetch for the new identity
+    fetchNotifications(name);
+  }, [fetchNotifications]);
 
   return {
     notifications,
-    unreadCount: notifications.length,
+    newCount: newIds.size,
     identity,
-    markRead,
-    markAllRead,
-    refresh,
+    setIdentity,
+    clearNew,
   };
 }
