@@ -85,9 +85,10 @@ export async function createTask(taskData: CreateTaskData): Promise<Task> {
  * Update a task
  */
 export async function updateTask(id: number, updates: UpdateTaskData): Promise<Task> {
+  const updatedBy = localStorage.getItem('aspect_commenter_identity') || undefined;
   const data = await apiRequest<{ task: Task }>(`/api/tasks/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify(updates),
+    body: JSON.stringify({ ...updates, updatedBy }),
   });
 
   return {

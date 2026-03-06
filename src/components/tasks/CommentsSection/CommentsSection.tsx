@@ -7,13 +7,13 @@ import styles from './CommentsSection.module.css';
 
 /** Highlight @Name mentions inside comment HTML */
 function highlightMentions(html: string): string {
-  return html.replace(/@([\w\u0080-\uFFFF]+(?:\s[\w\u0080-\uFFFF]+)?)/g, '<span class="mention">@$1</span>');
+  return html.replace(/@([\w\u0080-\uFFFF]+)/g, '<span class="mention">@$1</span>');
 }
 
 interface CommentsSectionProps {
   taskId: number;
   assignees: Assignee[];
-  incomingComment?: TaskComment | null;
+  refreshTrigger?: number;
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -47,7 +47,7 @@ function isHtmlEmpty(html: string): boolean {
   return !div.textContent?.trim() && !div.querySelector('img');
 }
 
-export function CommentsSection({ taskId, assignees, incomingComment }: CommentsSectionProps) {
+export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsSectionProps) {
   const { identity, setIdentity } = useCommenterIdentity();
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,21 +61,17 @@ export function CommentsSection({ taskId, assignees, incomingComment }: Comments
   const mentionDropdownRef = useRef<HTMLDivElement>(null);
   const savedRangeRef = useRef<Range | null>(null);
 
-  // Load comments when task opens
+  // Load (or reload) comments when task opens or refreshTrigger increments
   useEffect(() => {
     setLoading(true);
     commentsService.getComments(taskId)
-      .then(setComments)
+      .then(data => {
+        setComments(data);
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [taskId]);
-
-  // Append incoming SSE comment (dedup by id to avoid showing own comment twice)
-  useEffect(() => {
-    if (!incomingComment) return;
-    setComments(prev => prev.some(c => c.id === incomingComment.id) ? prev : [...prev, incomingComment]);
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-  }, [incomingComment]);
+  }, [taskId, refreshTrigger]);
 
   const handleSubmit = async () => {
     if (isHtmlEmpty(text)) return;
