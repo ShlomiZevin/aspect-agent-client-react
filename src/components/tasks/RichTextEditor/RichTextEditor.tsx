@@ -250,7 +250,7 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
         preRange.setStart(editor, 0);
         preRange.setEnd(range.startContainer, range.startOffset);
         const text = preRange.toString();
-        const match = text.match(/@([\w\u0080-\uFFFF]*)$/);
+        const match = text.match(/@([\w\u00C0-\uFFFF]*)$/);
         if (match) {
           // Use editor element position — cursor rect can return zeros for collapsed ranges
           const editorRect = editor.getBoundingClientRect();

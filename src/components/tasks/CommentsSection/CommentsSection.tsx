@@ -7,7 +7,7 @@ import styles from './CommentsSection.module.css';
 
 /** Highlight @Name mentions inside comment HTML */
 function highlightMentions(html: string): string {
-  return html.replace(/@([\w\u0080-\uFFFF]+)/g, '<span class="mention">@$1</span>');
+  return html.replace(/@([\w\u00C0-\uFFFF]+)/g, '<span class="mention">@$1</span>');
 }
 
 interface CommentsSectionProps {

@@ -34,3 +34,10 @@ export async function getNotifications(identity: string): Promise<TaskNotificati
   );
   return data.notifications;
 }
+
+export async function markDelivered(identity: string): Promise<void> {
+  await apiRequest<{ success: boolean }>('/api/notifications/mark-delivered', {
+    method: 'POST',
+    body: JSON.stringify({ identity }),
+  });
+}

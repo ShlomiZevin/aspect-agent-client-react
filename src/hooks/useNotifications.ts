@@ -40,8 +40,8 @@ export interface UseNotificationsReturn {
   identity: string | null;
   /** Set identity, persist to localStorage, and immediately fetch notifications */
   setIdentity: (name: string) => void;
-  /** Call when user opens the notification panel — zeroes the new badge */
-  clearNew: () => void;
+  /** Call when user opens the notification panel — marks delivered on server and zeroes badge */
+  clearNew: () => Promise<void>;
 }
 
 export function useNotifications(enabled: boolean): UseNotificationsReturn {
@@ -49,25 +49,23 @@ export function useNotifications(enabled: boolean): UseNotificationsReturn {
     () => localStorage.getItem(IDENTITY_STORAGE_KEY)
   );
   const [notifications, setNotifications] = useState<TaskNotification[]>([]);
-  // Set of notification IDs that were undelivered on fetch (= NEW)
-  const [newIds, setNewIds] = useState<Set<number>>(new Set());
+  // Track which IDs were undelivered when last fetched, so sound only plays once per new batch
+  const prevUndeliveredRef = useRef<Set<number>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchNotifications = useCallback(async (currentIdentity: string) => {
     try {
       const data = await notificationsService.getNotifications(currentIdentity);
-      const arrivedNew = data.filter(n => !n.isDelivered).map(n => n.id);
+      const undeliveredIds = new Set(data.filter(n => !n.isDelivered).map(n => n.id));
 
-      setNotifications(data);
-
-      if (arrivedNew.length > 0) {
-        setNewIds(prev => {
-          const next = new Set(prev);
-          arrivedNew.forEach(id => next.add(id));
-          return next;
-        });
+      // Play sound only for IDs that are newly undelivered (not seen before)
+      const genuinelyNew = [...undeliveredIds].filter(id => !prevUndeliveredRef.current.has(id));
+      if (genuinelyNew.length > 0) {
         playNotificationSound();
       }
+      prevUndeliveredRef.current = undeliveredIds;
+
+      setNotifications(data);
     } catch {
       // silent — board still usable
     }
@@ -81,7 +79,7 @@ export function useNotifications(enabled: boolean): UseNotificationsReturn {
         intervalRef.current = null;
       }
       setNotifications([]);
-      setNewIds(new Set());
+      prevUndeliveredRef.current = new Set();
       return;
     }
 
@@ -107,8 +105,17 @@ export function useNotifications(enabled: boolean): UseNotificationsReturn {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, identity]);
 
-  const clearNew = useCallback(() => {
-    setNewIds(new Set());
+  const clearNew = useCallback(async () => {
+    const id = localStorage.getItem(IDENTITY_STORAGE_KEY);
+    if (!id) return;
+    // Mark as delivered on server, then update local state
+    try {
+      await notificationsService.markDelivered(id);
+      setNotifications(prev => prev.map(n => ({ ...n, isDelivered: true })));
+      prevUndeliveredRef.current = new Set();
+    } catch {
+      // silent
+    }
   }, []);
 
   const setIdentity = useCallback((name: string) => {
@@ -120,7 +127,7 @@ export function useNotifications(enabled: boolean): UseNotificationsReturn {
 
   return {
     notifications,
-    newCount: newIds.size,
+    newCount: notifications.filter(n => !n.isDelivered).length,
     identity,
     setIdentity,
     clearNew,

@@ -63,7 +63,7 @@ export function NotificationBell({ notifications, assignees, onOpenTask }: Notif
     const next = !panelOpen;
     setPanelOpen(next);
     setIdentityPickerOpen(false);
-    if (next) clearNew();
+    if (next) clearNew(); // async, fire-and-forget — badge clears via local state update
   };
 
   const handleSelectIdentity = (name: string) => {
