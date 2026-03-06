@@ -252,8 +252,9 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
         const text = preRange.toString();
         const match = text.match(/@([\w\u0080-\uFFFF]*)$/);
         if (match) {
-          const rect = range.getBoundingClientRect();
-          setMentionAnchor({ query: match[1], bottom: window.innerHeight - rect.top + 4, left: rect.left });
+          // Use editor element position — cursor rect can return zeros for collapsed ranges
+          const editorRect = editor.getBoundingClientRect();
+          setMentionAnchor({ query: match[1], bottom: window.innerHeight - editorRect.top + 4, left: editorRect.left });
           setMentionIndex(0);
           return;
         }
