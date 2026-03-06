@@ -55,11 +55,7 @@ export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsS
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [showIdentityPicker, setShowIdentityPicker] = useState(false);
-  const [showMentionPicker, setShowMentionPicker] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<HTMLDivElement>(null);
-  const mentionDropdownRef = useRef<HTMLDivElement>(null);
-  const savedRangeRef = useRef<Range | null>(null);
 
   // Load (or reload) comments when task opens or refreshTrigger increments
   useEffect(() => {
@@ -107,46 +103,6 @@ export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsS
       setComments(prev => prev.filter(c => c.id !== commentId));
     } catch (err) {
       console.error('Failed to delete comment:', err);
-    }
-  };
-
-  // Close mention picker when clicking outside
-  useEffect(() => {
-    if (!showMentionPicker) return;
-    const handleClick = (e: MouseEvent) => {
-      if (mentionDropdownRef.current && !mentionDropdownRef.current.contains(e.target as Node)) {
-        setShowMentionPicker(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [showMentionPicker]);
-
-  const insertMention = (name: string) => {
-    setShowMentionPicker(false);
-    const editorEl = editorRef.current?.querySelector('[contenteditable]') as HTMLElement | null;
-    if (editorEl) {
-      editorEl.focus();
-      const sel = window.getSelection();
-      if (sel) {
-        // Restore the saved cursor position, or collapse to end as fallback
-        const range = savedRangeRef.current ?? (() => {
-          const r = document.createRange();
-          r.selectNodeContents(editorEl);
-          r.collapse(false);
-          return r;
-        })();
-        sel.removeAllRanges();
-        sel.addRange(range);
-        range.deleteContents();
-        range.insertNode(document.createTextNode(`@${name} `));
-        range.collapse(false);
-        sel.removeAllRanges();
-        sel.addRange(range);
-      }
-      savedRangeRef.current = null;
-      const event = new Event('input', { bubbles: true });
-      editorEl.dispatchEvent(event);
     }
   };
 
@@ -255,7 +211,6 @@ export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsS
         <div className={styles.inputArea}>
           {/* Ctrl+Enter submit via keydown bubbling */}
           <div
-            ref={editorRef}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
@@ -267,48 +222,13 @@ export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsS
               value={text}
               onChange={setText}
               placeholder={identity ? 'Add a comment… (Ctrl+Enter to submit)' : 'Add a comment…'}
+              assignees={assignees}
             />
           </div>
           {submitError && (
             <div className={styles.submitError}>{submitError}</div>
           )}
           <div className={styles.inputActions}>
-            {/* @ Mention picker */}
-            <div className={styles.mentionPickerWrapper} ref={mentionDropdownRef}>
-              <button
-                type="button"
-                className={styles.mentionBtn}
-                onClick={() => {
-                  // Save cursor position before the editor loses focus
-                  const sel = window.getSelection();
-                  if (sel && sel.rangeCount > 0) {
-                    savedRangeRef.current = sel.getRangeAt(0).cloneRange();
-                  }
-                  setShowMentionPicker(o => !o);
-                }}
-                title="Mention someone"
-              >
-                @ Mention
-              </button>
-              {showMentionPicker && assignees.length > 0 && (
-                <div className={styles.mentionDropdown}>
-                  {assignees.map(a => (
-                    <button
-                      key={a.id}
-                      type="button"
-                      className={styles.mentionOption}
-                      onClick={() => insertMention(a.name)}
-                    >
-                      <span className={styles.mentionAvatar} style={{ background: authorColor(a.name) }}>
-                        {a.name[0].toUpperCase()}
-                      </span>
-                      {a.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
             <button
               className={styles.submitBtn}
               onClick={handleSubmit}

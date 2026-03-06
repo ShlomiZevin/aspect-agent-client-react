@@ -154,6 +154,50 @@
   opacity: 0.85;
 }
 
+/* @mention autocomplete dropdown */
+.mentionDropdown {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  min-width: 160px;
+  max-width: 240px;
+  overflow: hidden;
+  z-index: 2000;
+}
+
+.mentionOption {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.mentionOption:hover,
+.mentionOptionActive {
+  background: var(--surface-hover, rgba(0,0,0,0.04));
+}
+
+.mentionAvatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 /* Image Lightbox */
 .lightboxOverlay {
   position: fixed;

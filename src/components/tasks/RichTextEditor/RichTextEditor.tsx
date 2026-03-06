@@ -1,4 +1,5 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
+import type { Assignee } from '../../../types/task';
 import styles from './RichTextEditor.module.css';
 
 interface RichTextEditorProps {
@@ -6,6 +7,7 @@ interface RichTextEditorProps {
   onChange: (html: string) => void;
   placeholder?: string;
   expanded?: boolean;
+  assignees?: Assignee[];
 }
 
 type FormatCommand = 'bold' | 'underline' | 'insertUnorderedList';
@@ -18,7 +20,14 @@ interface ActiveFormats {
   heading: boolean;
 }
 
-export function RichTextEditor({ value, onChange, placeholder, expanded }: RichTextEditorProps) {
+function avatarColor(name: string): string {
+  const colors = ['#4f46e5', '#0891b2', '#059669', '#d97706', '#dc2626', '#7c3aed', '#db2777'];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
+export function RichTextEditor({ value, onChange, placeholder, expanded, assignees }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const isInternalChange = useRef(false);
   const [activeFormats, setActiveFormats] = useState<ActiveFormats>({
@@ -29,6 +38,12 @@ export function RichTextEditor({ value, onChange, placeholder, expanded }: RichT
     heading: false,
   });
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [mentionAnchor, setMentionAnchor] = useState<{ query: string; top: number; left: number } | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+
+  const filteredMentions = mentionAnchor !== null && assignees
+    ? assignees.filter(a => a.name.toLowerCase().startsWith(mentionAnchor.query.toLowerCase()))
+    : [];
 
   // Check if selection is inside a specific element
   const isInElement = useCallback((tagName: string) => {
@@ -225,6 +240,90 @@ export function RichTextEditor({ value, onChange, placeholder, expanded }: RichT
       isInternalChange.current = true;
       onChange(editorRef.current.innerHTML);
     }
+    // Check for @mention trigger
+    if (assignees?.length) {
+      const editor = editorRef.current;
+      const sel = window.getSelection();
+      if (editor && sel && sel.rangeCount > 0 && sel.isCollapsed) {
+        const range = sel.getRangeAt(0);
+        const preRange = document.createRange();
+        preRange.setStart(editor, 0);
+        preRange.setEnd(range.startContainer, range.startOffset);
+        const text = preRange.toString();
+        const match = text.match(/@([\w\u0080-\uFFFF]*)$/);
+        if (match) {
+          const rect = range.getBoundingClientRect();
+          setMentionAnchor({ query: match[1], top: rect.bottom + 4, left: rect.left });
+          setMentionIndex(0);
+          return;
+        }
+      }
+    }
+    setMentionAnchor(null);
+  };
+
+  const insertMention = (name: string) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const cursorRange = sel.getRangeAt(0);
+    const startContainer = cursorRange.startContainer;
+    const startOffset = cursorRange.startOffset;
+    let atNode: Node | null = null;
+    let atOffset = -1;
+    // Check current text node first
+    if (startContainer.nodeType === Node.TEXT_NODE) {
+      const idx = (startContainer.textContent || '').lastIndexOf('@', startOffset - 1);
+      if (idx !== -1) { atNode = startContainer; atOffset = idx; }
+    }
+    // Walk previous text nodes if not found
+    if (!atNode) {
+      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+      const nodes: Node[] = [];
+      let n: Node | null;
+      while ((n = walker.nextNode())) {
+        if (n === startContainer) break;
+        nodes.push(n);
+      }
+      for (let i = nodes.length - 1; i >= 0; i--) {
+        const idx = (nodes[i].textContent || '').lastIndexOf('@');
+        if (idx !== -1) { atNode = nodes[i]; atOffset = idx; break; }
+      }
+    }
+    if (!atNode) { setMentionAnchor(null); return; }
+    const range = document.createRange();
+    range.setStart(atNode, atOffset);
+    range.setEnd(startContainer, startOffset);
+    range.deleteContents();
+    const textNode = document.createTextNode(`@${name} `);
+    range.insertNode(textNode);
+    range.setStartAfter(textNode);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    setMentionAnchor(null);
+    isInternalChange.current = true;
+    onChange(editor.innerHTML);
+  };
+
+  const handleContentKeyDown = (e: React.KeyboardEvent) => {
+    if (!mentionAnchor || filteredMentions.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setMentionIndex(i => (i + 1) % filteredMentions.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setMentionIndex(i => (i - 1 + filteredMentions.length) % filteredMentions.length);
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      e.stopPropagation();
+      insertMention(filteredMentions[mentionIndex]?.name ?? filteredMentions[0].name);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setMentionAnchor(null);
+    }
   };
 
   // Handle clicks on links and images
@@ -376,10 +475,34 @@ export function RichTextEditor({ value, onChange, placeholder, expanded }: RichT
           onInput={handleInput}
           onPaste={handlePaste}
           onClick={handleClick}
+          onKeyDown={handleContentKeyDown}
+          onBlur={() => setTimeout(() => setMentionAnchor(null), 100)}
           data-placeholder={placeholder}
           suppressContentEditableWarning
         />
       </div>
+
+      {/* @mention autocomplete dropdown */}
+      {mentionAnchor && filteredMentions.length > 0 && (
+        <div
+          className={styles.mentionDropdown}
+          style={{ position: 'fixed', top: mentionAnchor.top, left: mentionAnchor.left }}
+        >
+          {filteredMentions.map((a, idx) => (
+            <button
+              key={a.id}
+              type="button"
+              className={`${styles.mentionOption}${idx === mentionIndex ? ` ${styles.mentionOptionActive}` : ''}`}
+              onMouseDown={(e) => { e.preventDefault(); insertMention(a.name); }}
+            >
+              <span className={styles.mentionAvatar} style={{ background: avatarColor(a.name) }}>
+                {a.name[0].toUpperCase()}
+              </span>
+              {a.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Image Lightbox */}
       {lightboxImage && (
