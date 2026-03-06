@@ -56,6 +56,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const [assignees, setAssignees] = useState<Assignee[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('board');
   const [isLoading, setIsLoading] = useState(true);
+  const hasLoadedRef = useRef(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showAllDomains, setShowAllDomains] = useState(false);
@@ -198,7 +199,8 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   }, [isOpen]);
 
   const loadData = useCallback(async () => {
-    setIsLoading(true);
+    // Show spinner only on first load — subsequent refreshes update silently
+    if (!hasLoadedRef.current) setIsLoading(true);
     try {
       const [tasksData, assigneesData] = await Promise.all([
         taskService.getTasks(),
@@ -206,6 +208,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
       ]);
       setTasks(tasksData);
       setAssignees(assigneesData);
+      hasLoadedRef.current = true;
     } catch (err) {
       console.error('Failed to load tasks:', err);
     } finally {
@@ -243,6 +246,9 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   useEffect(() => {
     if (isOpen) {
       loadData();
+    } else {
+      // Reset so next open shows the spinner again
+      hasLoadedRef.current = false;
     }
   }, [isOpen, loadData]);
 

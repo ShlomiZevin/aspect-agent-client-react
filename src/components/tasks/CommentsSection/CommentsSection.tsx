@@ -63,7 +63,9 @@ export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsS
 
   // Load (or reload) comments when task opens or refreshTrigger increments
   useEffect(() => {
-    setLoading(true);
+    // Show spinner only when switching to a different task (no existing comments)
+    // Refreshes (refreshTrigger) update silently to avoid jumping
+    setLoading(prev => prev || comments.length === 0);
     commentsService.getComments(taskId)
       .then(data => {
         setComments(data);
@@ -71,6 +73,7 @@ export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsS
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId, refreshTrigger]);
 
   const handleSubmit = async () => {
