@@ -38,7 +38,7 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
     heading: false,
   });
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-  const [mentionAnchor, setMentionAnchor] = useState<{ query: string; top: number; left: number } | null>(null);
+  const [mentionAnchor, setMentionAnchor] = useState<{ query: string; bottom: number; left: number } | null>(null);
   const [mentionIndex, setMentionIndex] = useState(0);
 
   const filteredMentions = mentionAnchor !== null && assignees
@@ -253,7 +253,7 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
         const match = text.match(/@([\w\u0080-\uFFFF]*)$/);
         if (match) {
           const rect = range.getBoundingClientRect();
-          setMentionAnchor({ query: match[1], top: rect.bottom + 4, left: rect.left });
+          setMentionAnchor({ query: match[1], bottom: window.innerHeight - rect.top + 4, left: rect.left });
           setMentionIndex(0);
           return;
         }
@@ -486,7 +486,7 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
       {mentionAnchor && filteredMentions.length > 0 && (
         <div
           className={styles.mentionDropdown}
-          style={{ position: 'fixed', top: mentionAnchor.top, left: mentionAnchor.left }}
+          style={{ position: 'fixed', bottom: mentionAnchor.bottom, left: mentionAnchor.left }}
         >
           {filteredMentions.map((a, idx) => (
             <button
