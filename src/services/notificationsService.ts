@@ -18,6 +18,7 @@ export const API_BASE = getBaseURL();
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${getBaseURL()}${endpoint}`, {
     ...options,
+    cache: 'no-store',
     headers: { 'Content-Type': 'application/json', ...options.headers },
   });
   if (!res.ok) {
