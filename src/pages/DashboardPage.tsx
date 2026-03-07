@@ -7,12 +7,13 @@ import { CrewPage } from '../components/dashboard/CrewPage';
 import { CrewEditorAI } from '../components/dashboard/CrewEditorAI';
 import { QueryOptimizerPage } from '../components/dashboard/QueryOptimizerPage';
 import { KBManager } from '../components/kb';
-import { aspectConfig, bankingOnboarderConfig, compassConfig, freedaConfig } from '../agents';
+import { aspectConfig, bankingOnboarderConfig, bankingOnboarderV2Config, compassConfig, freedaConfig } from '../agents';
 import type { AgentConfig } from '../types';
 
 const agentConfigs: Record<string, AgentConfig> = {
   aspect: aspectConfig,
   banking: bankingOnboarderConfig,
+  'banking-v2': bankingOnboarderV2Config,
   compass: compassConfig,
   freeda: freedaConfig,
 };

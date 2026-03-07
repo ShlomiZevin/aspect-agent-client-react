@@ -48,6 +48,7 @@ export async function getCrewSource(
  * @param messages - Conversation history
  * @param currentSource - Current crew file source code
  * @param baseURL - API base URL
+ * @param mode - 'discuss' (lightweight, no code) or 'generate' (full, outputs updated file)
  * @returns Claude's response and optionally an updated source file
  */
 export async function chatWithClaude(
@@ -55,14 +56,15 @@ export async function chatWithClaude(
   crewName: string,
   messages: CrewEditorMessage[],
   currentSource: string,
-  baseURL: string
+  baseURL: string,
+  mode: 'discuss' | 'generate' = 'discuss'
 ): Promise<CrewChatResponse> {
   const response = await fetch(
     `${baseURL}/api/admin/crew/${encodeURIComponent(agentName)}/${encodeURIComponent(crewName)}/chat`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, currentSource })
+      body: JSON.stringify({ messages, currentSource, mode })
     }
   );
 

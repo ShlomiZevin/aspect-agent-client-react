@@ -15,6 +15,8 @@ import { Highlight, themes } from 'prism-react-renderer';
 import { getAgentCrew } from '../../../services/crewService';
 import { getCrewSource, chatWithClaude, applyCrewSource, listVersions, getVersionSource, deleteVersion, getDefaultVersion, setDefaultVersion, unsetDefaultVersion, getProjectFileSource } from '../../../services/crewEditorService';
 import type { CrewMember, CrewEditorMessage, CrewVersionInfo, ProjectFileInfo } from '../../../types/crew';
+import { extractCrewSummary } from '../../../utils/extractCrewSummary';
+import type { CrewSummary } from '../../../utils/extractCrewSummary';
 import styles from './CrewEditorAI.module.css';
 
 interface CrewEditorAIProps {
@@ -22,7 +24,8 @@ interface CrewEditorAIProps {
   baseURL: string;
 }
 
-type CodeTab = 'current' | 'proposed';
+type ViewMode = 'prompts' | 'source';
+type VersionMode = 'current' | 'proposed';
 
 export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
   // Crew selection
@@ -47,7 +50,11 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
 
   // UI state
   const [codeExpanded, setCodeExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState<CodeTab>('current');
+  const [viewMode, setViewMode] = useState<ViewMode>('prompts');
+  const [versionMode, setVersionMode] = useState<VersionMode>('current');
+  const [crewSummary, setCrewSummary] = useState<CrewSummary | null>(null);
+  const [proposedSummary, setProposedSummary] = useState<CrewSummary | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Versions panel
   const [showVersions, setShowVersions] = useState(false);
@@ -96,7 +103,9 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
       setIsLoadingSource(true);
       setStatusMessage(null);
       setProposedSource(null);
-      setActiveTab('current');
+      setProposedSummary(null);
+      setVersionMode('current');
+      setViewMode('prompts');
       setMessages([]);
       setLoadedVersionTimestamp(null);
       setVersionName('');
@@ -105,6 +114,7 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
         const result = await getCrewSource(agentName, selectedCrew, baseURL);
         setSource(result.source);
         setFilePath(result.filePath);
+        setCrewSummary(extractCrewSummary(result.source));
 
         // Check if a default version exists and differs from current
         try {
@@ -114,7 +124,8 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
             const defaultSource = await getVersionSource(agentName, selectedCrew, defaultInfo.timestamp, baseURL);
             if (defaultSource.trim() !== result.source.trim()) {
               setProposedSource(defaultSource);
-              setActiveTab('proposed');
+              setProposedSummary(extractCrewSummary(defaultSource));
+              setVersionMode('proposed');
               setLoadedVersionTimestamp(defaultInfo.timestamp);
               setStatusMessage({ type: 'success', text: 'Default version differs from current — click Apply to restore' });
             }
@@ -126,6 +137,7 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
         setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to load source' });
         setSource('');
         setFilePath('');
+        setCrewSummary(null);
       } finally {
         setIsLoadingSource(false);
       }
@@ -141,7 +153,7 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
   // Send chat message
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
-    if (!text || isChatting || !selectedCrew) return;
+    if (!text || isChatting || isGenerating || !selectedCrew) return;
 
     setInputValue('');
     setStatusMessage(null);
@@ -152,18 +164,11 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
 
     setIsChatting(true);
     try {
-      // Use proposed source if available, otherwise current source
       const activeSource = proposedSource || source;
-      const result = await chatWithClaude(agentName, selectedCrew, updatedMessages, activeSource, baseURL);
+      const result = await chatWithClaude(agentName, selectedCrew, updatedMessages, activeSource, baseURL, 'discuss');
 
       const assistantMessage: CrewEditorMessage = { role: 'assistant', content: result.response };
       setMessages(prev => [...prev, assistantMessage]);
-
-      // If Claude proposed an updated file, store it
-      if (result.updatedSource) {
-        setProposedSource(result.updatedSource);
-        setActiveTab('proposed');
-      }
     } catch (err) {
       const errorMessage: CrewEditorMessage = {
         role: 'assistant',
@@ -174,7 +179,38 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
       setIsChatting(false);
       inputRef.current?.focus();
     }
-  }, [inputValue, isChatting, selectedCrew, messages, proposedSource, source, agentName, baseURL]);
+  }, [inputValue, isChatting, isGenerating, selectedCrew, messages, proposedSource, source, agentName, baseURL]);
+
+  // Generate changes — full prompt with building guide, outputs updated file
+  const handleGenerate = useCallback(async () => {
+    if (!selectedCrew || isChatting || isGenerating || messages.length === 0) return;
+
+    setIsGenerating(true);
+    setStatusMessage(null);
+
+    try {
+      const activeSource = proposedSource || source;
+      const result = await chatWithClaude(agentName, selectedCrew, messages, activeSource, baseURL, 'generate');
+
+      const assistantMessage: CrewEditorMessage = { role: 'assistant', content: result.response };
+      setMessages(prev => [...prev, assistantMessage]);
+
+      if (result.updatedSource) {
+        setProposedSource(result.updatedSource);
+        setProposedSummary(extractCrewSummary(result.updatedSource));
+        setVersionMode('proposed');
+      }
+    } catch (err) {
+      const errorMessage: CrewEditorMessage = {
+        role: 'assistant',
+        content: `Sorry, generation failed: ${err instanceof Error ? err.message : 'Unknown error'}`
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsGenerating(false);
+      inputRef.current?.focus();
+    }
+  }, [selectedCrew, isChatting, isGenerating, messages, proposedSource, source, agentName, baseURL]);
 
   // Handle Enter key in input
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -207,8 +243,11 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
       );
       if (result.success) {
         setSource(proposedSource);
+        setCrewSummary(extractCrewSummary(proposedSource));
         setProposedSource(null);
-        setActiveTab('current');
+        setProposedSummary(null);
+        setVersionMode('current');
+        setViewMode('prompts');
         setLoadedVersionTimestamp(null);
         setVersionName('');
         if (result.backupVersion) {
@@ -233,7 +272,8 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
   // Discard proposed changes
   const handleDiscard = () => {
     setProposedSource(null);
-    setActiveTab('current');
+    setProposedSummary(null);
+    setVersionMode('current');
     setLoadedVersionTimestamp(null);
   };
 
@@ -282,7 +322,8 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
     try {
       const versionSource = await getVersionSource(agentName, selectedCrew, timestamp, baseURL);
       setProposedSource(versionSource);
-      setActiveTab('proposed');
+      setProposedSummary(extractCrewSummary(versionSource));
+      setVersionMode('proposed');
       setShowVersions(false);
       setLoadedVersionTimestamp(timestamp);
       setStatusMessage({ type: 'success', text: `Loaded version from ${formatTimestamp(timestamp)} — click Apply to save` });
@@ -378,7 +419,8 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
         projectSource = result.source;
       }
       setProposedSource(projectSource);
-      setActiveTab('proposed');
+      setProposedSummary(extractCrewSummary(projectSource));
+      setVersionMode('proposed');
       setShowVersions(false);
       setLoadedVersionTimestamp(null);
       setStatusMessage({ type: 'success', text: 'Loaded project file — click Apply to restore' });
@@ -417,18 +459,77 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showVersions]);
 
+  // Category display config
+  const categoryMap: Record<string, { label: string; emoji: string }> = {
+    'A': { label: 'Talking', emoji: '💬' },
+    'B': { label: 'Thinking', emoji: '🧠' },
+    'C': { label: 'Fields', emoji: '📋' },
+    'D': { label: 'Code', emoji: '⚙️' },
+    'E': { label: 'Escalation', emoji: '🚨' },
+  };
+
+  type ChangeGroup = { label: string; emoji: string; items: string[] };
+
   // Strip code block markers from assistant messages for display
-  const formatMessageContent = (content: string): { text: string; hasCode: boolean } => {
+  // Extract change summary and group by category
+  const formatMessageContent = (content: string): { text: string; hasCode: boolean; changeGroups: ChangeGroup[] } => {
     const codeBlockRegex = /```(?:javascript|js)\s*\n([\s\S]*?)```/;
     const match = content.match(codeBlockRegex);
 
     if (match) {
-      // Remove the code block from text, we show it separately
-      const textOnly = content.replace(codeBlockRegex, '').trim();
-      return { text: textOnly, hasCode: true };
+      // Remove the code block from text
+      let textOnly = content.replace(codeBlockRegex, '').trim();
+
+      // Extract "Changes made:" section
+      const changeGroups: ChangeGroup[] = [];
+      const changesMatch = textOnly.match(/\*?\*?Changes\s+made:?\*?\*?\s*\n([\s\S]*)/i);
+      if (changesMatch) {
+        const rawChanges = changesMatch[1].trim();
+        // Remove the changes section from the main text
+        textOnly = textOnly.replace(/\*?\*?Changes\s+made:?\*?\*?\s*\n[\s\S]*/i, '').trim();
+
+        // Parse lines and group by category
+        const lines = rawChanges.split('\n').filter(l => l.trim());
+        let currentGroup: ChangeGroup | null = null;
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          // Match category header: **(A) Guidance** — description  or  (B) Thinking prompt — description
+          const catMatch = trimmed.match(/^\*?\*?\(([A-E])\)\s*(?:Guidance|Thinking\s*prompt|Fields?|Code|Escalat(?:ion|e))\*?\*?\s*[-—]\s*(.*)/i);
+          if (catMatch) {
+            const key = catMatch[1].toUpperCase();
+            const desc = catMatch[2].trim();
+            const config = categoryMap[key] || { label: key, emoji: '•' };
+            // Check if group for this category already exists
+            const existing = changeGroups.find(g => g.label === config.label);
+            if (existing) {
+              if (desc) existing.items.push(desc);
+              currentGroup = existing;
+            } else {
+              currentGroup = { label: config.label, emoji: config.emoji, items: desc ? [desc] : [] };
+              changeGroups.push(currentGroup);
+            }
+          } else if (currentGroup) {
+            // Continuation line — strip leading bullet/dash
+            const cleaned = trimmed.replace(/^[-*•]\s*/, '');
+            if (cleaned) currentGroup.items.push(cleaned);
+          } else {
+            // Ungrouped line — put in a general group
+            const cleaned = trimmed.replace(/^[-*•]\s*/, '');
+            if (cleaned) {
+              if (!changeGroups.find(g => g.label === 'General')) {
+                changeGroups.push({ label: 'General', emoji: '✏️', items: [] });
+              }
+              changeGroups.find(g => g.label === 'General')!.items.push(cleaned);
+            }
+          }
+        }
+      }
+
+      return { text: textOnly, hasCode: true, changeGroups };
     }
 
-    return { text: content, hasCode: false };
+    return { text: content, hasCode: false, changeGroups: [] };
   };
 
   // Render code with syntax highlighting (VS Code dark+ theme)
@@ -454,8 +555,81 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
     );
   };
 
+  // Render lightweight markdown (headings, bold, bullets) into JSX
+  const renderMarkdown = (text: string) => {
+    const lines = text.split('\n');
+    const elements: React.ReactNode[] = [];
+    let listItems: React.ReactNode[] = [];
+    let key = 0;
+
+    const flushList = () => {
+      if (listItems.length > 0) {
+        elements.push(<ul key={key++} className={styles.mdList}>{listItems}</ul>);
+        listItems = [];
+      }
+    };
+
+    const renderInline = (line: string): React.ReactNode[] => {
+      // Bold **text** and line content
+      const parts: React.ReactNode[] = [];
+      const regex = /\*\*(.+?)\*\*/g;
+      let lastIndex = 0;
+      let match;
+      let inlineKey = 0;
+      while ((match = regex.exec(line)) !== null) {
+        if (match.index > lastIndex) {
+          parts.push(line.slice(lastIndex, match.index));
+        }
+        parts.push(<strong key={inlineKey++}>{match[1]}</strong>);
+        lastIndex = regex.lastIndex;
+      }
+      if (lastIndex < line.length) {
+        parts.push(line.slice(lastIndex));
+      }
+      return parts.length > 0 ? parts : [line];
+    };
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      // Skip empty lines — flush list
+      if (!trimmed) {
+        flushList();
+        continue;
+      }
+
+      // Heading ##
+      const headingMatch = trimmed.match(/^(#{1,3})\s+(.+)/);
+      if (headingMatch) {
+        flushList();
+        elements.push(
+          <h4 key={key++} className={styles.mdHeading}>{renderInline(headingMatch[2])}</h4>
+        );
+        continue;
+      }
+
+      // Bullet - or *
+      const bulletMatch = trimmed.match(/^[-*]\s+(.+)/);
+      if (bulletMatch) {
+        listItems.push(
+          <li key={key++} className={styles.mdListItem}>{renderInline(bulletMatch[1])}</li>
+        );
+        continue;
+      }
+
+      // Regular text
+      flushList();
+      elements.push(
+        <p key={key++} className={styles.mdParagraph}>{renderInline(trimmed)}</p>
+      );
+    }
+    flushList();
+    return elements;
+  };
+
   // Get the code to display based on active tab
-  const displayCode = activeTab === 'proposed' && proposedSource ? proposedSource : source;
+  const displayCode = versionMode === 'proposed' && proposedSource ? proposedSource : source;
+  const displaySummary = versionMode === 'proposed' && proposedSummary ? proposedSummary : crewSummary;
 
   // Copy displayed code to clipboard
   const handleCopyCode = useCallback(() => {
@@ -553,41 +727,41 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
                   {selectedCrew ? `${selectedCrew}.crew.js` : 'Source Code'}
                 </div>
 
-                {proposedSource && (
-                  <div className={styles.codeTabs}>
-                    <button
-                      className={`${styles.codeTab} ${activeTab === 'current' ? styles.codeTabActive : ''}`}
-                      onClick={() => setActiveTab('current')}
-                    >
-                      Current
-                    </button>
-                    <button
-                      className={`${styles.codeTab} ${activeTab === 'proposed' ? styles.codeTabActive : ''}`}
-                      onClick={() => setActiveTab('proposed')}
-                    >
-                      Proposed
-                    </button>
-                  </div>
-                )}
+                <div className={styles.codeTabs}>
+                  <button
+                    className={`${styles.codeTab} ${viewMode === 'prompts' ? styles.codeTabActive : ''}`}
+                    onClick={() => setViewMode('prompts')}
+                  >
+                    Prompts
+                  </button>
+                  <button
+                    className={`${styles.codeTab} ${viewMode === 'source' ? styles.codeTabActive : ''}`}
+                    onClick={() => setViewMode('source')}
+                  >
+                    Source
+                  </button>
+                </div>
 
                 <div className={styles.codePanelActions}>
-                  <button
-                    className={styles.iconButton}
-                    onClick={handleCopyCode}
-                    disabled={!displayCode}
-                    title={copied ? 'Copied!' : 'Copy code'}
-                  >
-                    {copied ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                      </svg>
-                    )}
-                  </button>
+                  {viewMode === 'source' && (
+                    <button
+                      className={styles.iconButton}
+                      onClick={handleCopyCode}
+                      disabled={!displayCode}
+                      title={copied ? 'Copied!' : 'Copy code'}
+                    >
+                      {copied ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
                   <button
                     className={styles.iconButton}
                     onClick={() => setCodeExpanded(false)}
@@ -601,12 +775,99 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
                 </div>
               </div>
 
-              <div className={styles.codeContent}>
+              {/* Version pill toggle — only shown when proposed changes exist */}
+              {proposedSource && (
+                <div className={styles.versionToggleBar}>
+                  <div className={styles.versionPill}>
+                    <button
+                      className={`${styles.versionPillOption} ${versionMode === 'current' ? styles.versionPillActive : ''}`}
+                      onClick={() => setVersionMode('current')}
+                    >
+                      Current
+                    </button>
+                    <button
+                      className={`${styles.versionPillOption} ${versionMode === 'proposed' ? styles.versionPillActive : ''}`}
+                      onClick={() => setVersionMode('proposed')}
+                    >
+                      Proposed
+                    </button>
+                  </div>
+                  {versionMode === 'proposed' && (
+                    <span className={styles.versionHint}>Showing proposed changes</span>
+                  )}
+                </div>
+              )}
+
+              <div className={viewMode === 'prompts' ? styles.promptsContainer : styles.codeContent}>
                 {isLoadingSource ? (
                   <div className={styles.loading}>
                     <div className={styles.spinner} />
                     <span className={styles.loadingText}>Loading source...</span>
                   </div>
+                ) : viewMode === 'prompts' ? (
+                  displaySummary ? (
+                    <div className={styles.promptsView}>
+                      {/* Guidance */}
+                      <div className={styles.promptSection}>
+                        <div className={styles.promptSectionHeader}>
+                          <h3 className={styles.promptSectionTitle}>Guidance</h3>
+                        </div>
+                        <div className={styles.promptBody}>
+                          {displaySummary.guidance
+                            ? renderMarkdown(displaySummary.guidance)
+                            : <span className={styles.promptEmpty}>No guidance found</span>}
+                        </div>
+                      </div>
+
+                      {/* Thinking Prompt (thinker crews only) */}
+                      {displaySummary.isThinker && displaySummary.thinkingPrompt && (
+                        <div className={styles.promptSection}>
+                          <div className={styles.promptSectionHeader}>
+                            <h3 className={styles.promptSectionTitle}>Thinking Prompt</h3>
+                            <span className={styles.promptSectionBadge}>Thinker</span>
+                          </div>
+                          <div className={styles.promptBody}>
+                            {renderMarkdown(displaySummary.thinkingPrompt)}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Fields */}
+                      {displaySummary.fields.length > 0 && (
+                        <div className={styles.promptSection}>
+                          <div className={styles.promptSectionHeader}>
+                            <h3 className={styles.promptSectionTitle}>Fields to Collect</h3>
+                            <span className={styles.promptFieldCount}>{displaySummary.fields.length}</span>
+                          </div>
+                          <div className={styles.promptFieldsGrid}>
+                            {displaySummary.fields.map(f => (
+                              <div key={f.name} className={styles.promptFieldRow}>
+                                <code className={styles.promptFieldName}>{f.name}</code>
+                                <span className={styles.promptFieldDesc}>{f.description}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Transition */}
+                      {displaySummary.transitionTo && (
+                        <div className={styles.promptSection}>
+                          <div className={styles.promptSectionHeader}>
+                            <h3 className={styles.promptSectionTitle}>Transitions to</h3>
+                          </div>
+                          <div className={styles.promptTransition}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
+                            <code>{displaySummary.transitionTo}</code>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <span style={{ color: '#858585' }}>No source code loaded</span>
+                  )
                 ) : displayCode ? (
                   renderCode(displayCode)
                 ) : (
@@ -678,28 +939,65 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
                     <span className={styles.messageLabel}>
                       {msg.role === 'user' ? 'You' : 'Claude'}
                     </span>
-                    <div
-                      className={`${styles.messageBubble} ${msg.role === 'user' ? styles.messageBubbleUser : styles.messageBubbleAssistant}`}
-                    >
-                      {displayText}
-                    </div>
+                    {displayText && (
+                      <div
+                        className={`${styles.messageBubble} ${msg.role === 'user' ? styles.messageBubbleUser : styles.messageBubbleAssistant}`}
+                      >
+                        {displayText}
+                      </div>
+                    )}
                     {formatted?.hasCode && (
-                      <div className={styles.messageCode}>
-                        File updated — see code panel
+                      <div className={styles.changeSummaryBox}>
+                        <div className={styles.changeSummaryHeader}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          Changes ready — review in the code panel
+                        </div>
+                        {formatted.changeGroups.length > 0 && (
+                          <div className={styles.changeSummaryBody}>
+                            {formatted.changeGroups.map((group, gi) => (
+                              <div key={gi} className={styles.changeGroup}>
+                                <div className={styles.changeGroupHeader}>
+                                  <span className={styles.changeGroupEmoji}>{group.emoji}</span>
+                                  <span className={styles.changeGroupLabel}>{group.label}</span>
+                                  {group.items.length > 1 && (
+                                    <span className={styles.changeGroupCount}>{group.items.length}</span>
+                                  )}
+                                </div>
+                                {group.items.map((item, ii) => (
+                                  <div key={ii} className={styles.changeGroupItem}>{item}</div>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 );
               })}
 
-              {isChatting && (
+              {isChatting && !isGenerating && (
                 <div className={styles.thinking}>
                   <div className={styles.thinkingDots}>
                     <span className={styles.thinkingDot} />
                     <span className={styles.thinkingDot} />
                     <span className={styles.thinkingDot} />
                   </div>
-                  <span className={styles.thinkingText}>Claude is thinking...</span>
+                  <span className={styles.thinkingText}>
+                    Claude is thinking...
+                  </span>
+                </div>
+              )}
+
+              {isGenerating && (
+                <div className={styles.generatingBanner}>
+                  <div className={styles.generatingSpinner} />
+                  <div className={styles.generatingContent}>
+                    <span className={styles.generatingTitle}>Generating updated file...</span>
+                    <span className={styles.generatingHint}>This can take a minute or two. Claude is rewriting the full file with your changes.</span>
+                  </div>
                 </div>
               )}
 
@@ -721,16 +1019,40 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
               }}
               onKeyDown={handleKeyDown}
               placeholder={selectedCrew ? 'Paste conversation feedback or describe what you want to change...' : 'Select a crew member first'}
-              disabled={!selectedCrew || isChatting || isApplying || isLoadingSource}
+              disabled={!selectedCrew || isChatting || isGenerating || isApplying || isLoadingSource}
               rows={3}
             />
-            <button
-              className={styles.sendButton}
-              onClick={handleSend}
-              disabled={!inputValue.trim() || isChatting || !selectedCrew || isApplying || isLoadingSource}
-            >
-              Send
-            </button>
+            <div className={styles.chatInputButtons}>
+              <button
+                className={styles.sendButton}
+                onClick={handleSend}
+                disabled={!inputValue.trim() || isChatting || isGenerating || !selectedCrew || isApplying || isLoadingSource}
+              >
+                Send
+              </button>
+              <button
+                className={styles.generateButton}
+                onClick={handleGenerate}
+                disabled={messages.length === 0 || isChatting || isGenerating || !selectedCrew || isApplying}
+                title="Generate the updated file based on the discussion"
+              >
+                {isGenerating ? (
+                  <>
+                    <div className={styles.spinner} style={{ width: 12, height: 12, borderWidth: 2 }} />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                      <path d="M2 17l10 5 10-5" />
+                      <path d="M2 12l10 5 10-5" />
+                    </svg>
+                    Generate Changes
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
