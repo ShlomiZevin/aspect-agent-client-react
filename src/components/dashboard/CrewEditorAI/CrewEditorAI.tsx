@@ -148,7 +148,7 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
   // Auto-scroll chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isChatting]);
+  }, [messages, isChatting, isGenerating]);
 
   // Send chat message
   const handleSend = useCallback(async () => {
@@ -199,6 +199,7 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
         setProposedSource(result.updatedSource);
         setProposedSummary(extractCrewSummary(result.updatedSource));
         setVersionMode('proposed');
+        setLoadedVersionTimestamp(null);
       }
     } catch (err) {
       const errorMessage: CrewEditorMessage = {
@@ -321,12 +322,20 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
     setStatusMessage(null);
     try {
       const versionSource = await getVersionSource(agentName, selectedCrew, timestamp, baseURL);
-      setProposedSource(versionSource);
-      setProposedSummary(extractCrewSummary(versionSource));
-      setVersionMode('proposed');
       setShowVersions(false);
-      setLoadedVersionTimestamp(timestamp);
-      setStatusMessage({ type: 'success', text: `Loaded version from ${formatTimestamp(timestamp)} — click Apply to save` });
+      if (versionSource.trim() === source.trim()) {
+        setProposedSource(null);
+        setProposedSummary(null);
+        setVersionMode('current');
+        setLoadedVersionTimestamp(null);
+        setStatusMessage({ type: 'success', text: `Version from ${formatTimestamp(timestamp)} is identical to the current version` });
+      } else {
+        setProposedSource(versionSource);
+        setProposedSummary(extractCrewSummary(versionSource));
+        setVersionMode('proposed');
+        setLoadedVersionTimestamp(timestamp);
+        setStatusMessage({ type: 'success', text: `Loaded version from ${formatTimestamp(timestamp)} — click Apply to save` });
+      }
     } catch (err) {
       setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to load version' });
     } finally {
@@ -364,7 +373,15 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
         await unsetDefaultVersion(agentName, selectedCrew, baseURL);
         setVersions(prev => prev.map(v => ({ ...v, isDefault: false })));
         setDefaultVersionInfo(null);
-        setStatusMessage({ type: 'success', text: 'Default unset — project file is now active' });
+        // Re-sync UI with disk (startup version was restored)
+        const fresh = await getCrewSource(agentName, selectedCrew, baseURL);
+        setSource(fresh.source);
+        setCrewSummary(extractCrewSummary(fresh.source));
+        setProposedSource(null);
+        setProposedSummary(null);
+        setVersionMode('current');
+        setLoadedVersionTimestamp(null);
+        setStatusMessage({ type: 'success', text: 'Default unset — startup version restored' });
       } catch (err) {
         setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to unset default' });
       } finally {
@@ -379,7 +396,17 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
       await setDefaultVersion(agentName, selectedCrew, timestamp, baseURL);
       setVersions(prev => prev.map(v => ({ ...v, isDefault: v.timestamp === timestamp })));
       setDefaultVersionInfo({ timestamp, setAt: new Date().toISOString() });
-      setStatusMessage({ type: 'success', text: `Default version set to ${formatTimestamp(timestamp)}` });
+      // Re-sync UI with disk (this version was written to disk + hot-reloaded)
+      const fresh = await getCrewSource(agentName, selectedCrew, baseURL);
+      setSource(fresh.source);
+      setCrewSummary(extractCrewSummary(fresh.source));
+      if (proposedSource && proposedSource.trim() === fresh.source.trim()) {
+        setProposedSource(null);
+        setProposedSummary(null);
+        setVersionMode('current');
+        setLoadedVersionTimestamp(null);
+      }
+      setStatusMessage({ type: 'success', text: `Default version set to ${formatTimestamp(timestamp)} — now live` });
     } catch (err) {
       setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to set default' });
     } finally {
@@ -395,7 +422,15 @@ export function CrewEditorAI({ agentName, baseURL }: CrewEditorAIProps) {
       await unsetDefaultVersion(agentName, selectedCrew, baseURL);
       setVersions(prev => prev.map(v => ({ ...v, isDefault: false })));
       setDefaultVersionInfo(null);
-      setStatusMessage({ type: 'success', text: 'Default unset — project file is now active' });
+      // Re-sync UI with disk (startup version was restored)
+      const fresh = await getCrewSource(agentName, selectedCrew, baseURL);
+      setSource(fresh.source);
+      setCrewSummary(extractCrewSummary(fresh.source));
+      setProposedSource(null);
+      setProposedSummary(null);
+      setVersionMode('current');
+      setLoadedVersionTimestamp(null);
+      setStatusMessage({ type: 'success', text: 'Default unset — startup version restored' });
     } catch (err) {
       setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to unset default' });
     } finally {
