@@ -101,7 +101,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
 
   // Test chat
   const [testConversationId, setTestConversationId] = useState(() => `playground-${sessionId}`);
-  const [toolCallLogs, setToolCallLogs] = useState<ToolCallLog[]>([]);
+  const [, setToolCallLogs] = useState<ToolCallLog[]>([]);
 
   // Save/load
   const [savedConfigs, setSavedConfigs] = useState<SavedPlaygroundConfig[]>([]);
@@ -131,14 +131,14 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // useChat for test panel
-  const testAgentConfig: AgentConfig = {
+  const testAgentConfig = {
     agentName,
     displayName: config.displayName || 'Playground',
     baseURL,
     logo: { src: '', alt: '' },
     storagePrefix: 'playground',
     welcomeMessage: '',
-  };
+  } as AgentConfig;
 
   // Track whether a transition fired (disables further input)
   const [transitionInfo, setTransitionInfo] = useState<{ from: string; to: string } | null>(null);
@@ -387,19 +387,6 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     setTestConversationId(newTestId);
     testChat.newChat(newTestId);
   }, [sessionId, baseURL, testChat]);
-
-  // ========== MOCK RESPONSE ==========
-
-  const handleMockResponseSave = useCallback((toolName: string, newMockResponse: string) => {
-    try {
-      const parsed = JSON.parse(newMockResponse);
-      const updatedTools = config.tools.map(t => t.name === toolName ? { ...t, mockResponse: parsed } : t);
-      const newConfig = { ...config, tools: updatedTools };
-      setConfig(newConfig);
-      registerPlayground(sessionId, agentName, newConfig, baseURL).then(reg => setRegisteredSession(reg)).catch(() => {});
-      setStatusMessage({ type: 'success', text: `Mock response updated.` });
-    } catch { setStatusMessage({ type: 'error', text: 'Invalid JSON.' }); }
-  }, [config, sessionId, agentName, baseURL]);
 
   // ========== MODAL EDITOR ==========
 
@@ -1022,7 +1009,6 @@ function ToolCard({ tool, index, onUpdate, onRemove, onEnlarge }: {
             <JsonEditor
               value={typeof tool.parameters === 'string' ? tool.parameters : JSON.stringify(tool.parameters, null, 2)}
               onChange={val => { try { onUpdate(index, { parameters: JSON.parse(val) }); } catch { onUpdate(index, { parameters: val as unknown as object }); } }}
-              rows={6}
               minHeight={160}
               enlargeTitle={`Parameters — ${tool.name}`}
               onEnlarge={onEnlarge}
@@ -1034,7 +1020,6 @@ function ToolCard({ tool, index, onUpdate, onRemove, onEnlarge }: {
             <JsonEditor
               value={typeof tool.mockResponse === 'string' ? tool.mockResponse : JSON.stringify(tool.mockResponse, null, 2)}
               onChange={val => { try { onUpdate(index, { mockResponse: JSON.parse(val) }); } catch { onUpdate(index, { mockResponse: val }); } }}
-              rows={6}
               minHeight={160}
               enlargeTitle={`Test Response — ${tool.name}`}
               onEnlarge={onEnlarge}
@@ -1239,16 +1224,3 @@ function ModalJsonEditor({ value, onChange }: { value: string; onChange: (val: s
   );
 }
 
-function MockResponseEditor({ toolName, initialValue, onSave }: { toolName: string; initialValue: string; onSave: (toolName: string, value: string) => void }) {
-  const [value, setValue] = useState(initialValue);
-  const [dirty, setDirty] = useState(false);
-  return (
-    <div className={styles.mockResponseSection}>
-      <div className={styles.mockResponseLabel}>
-        <span>Mock Response</span>
-        {dirty && <button className={styles.saveMockButton} onClick={() => { onSave(toolName, value); setDirty(false); }}>Save</button>}
-      </div>
-      <textarea className={styles.mockResponseEditor} value={value} onChange={e => { setValue(e.target.value); setDirty(true); }} />
-    </div>
-  );
-}
