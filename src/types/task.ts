@@ -25,6 +25,7 @@ export interface Task {
   crewMember?: string; // Crew member related to this task
   isDraft: boolean; // Draft mode - only visible to creator
   createdBy?: string; // Browser-based user identifier
+  opener?: string; // Human-readable name of who opened the task ("who you are" identity)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,6 +46,7 @@ export interface CreateTaskData {
   crewMember?: string | null;
   isDraft?: boolean;
   createdBy?: string;
+  opener?: string;
 }
 
 export interface UpdateTaskData {

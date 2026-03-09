@@ -199,8 +199,11 @@ export function TaskCard({ task, dependencyInfo, crewDisplayNames, onClick, onAt
         <p className={styles.description}>{stripHtml(task.description)}</p>
       )}
       <div className={styles.footer}>
-        {task.assignee && (
-          <span className={styles.assignee} style={{ color: assigneeColor }}>@{task.assignee}</span>
+        {(task.assignee || task.opener) && (
+          <span className={styles.assignee} style={{ color: assigneeColor }}>
+            {task.assignee && `@${task.assignee}`}
+            {task.opener && <span className={styles.opener}>{task.assignee ? ' ' : ''}By {task.opener}</span>}
+          </span>
         )}
         <div className={styles.footerRight}>
           {task.createdAt && (

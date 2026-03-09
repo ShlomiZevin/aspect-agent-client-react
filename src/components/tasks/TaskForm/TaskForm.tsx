@@ -395,7 +395,9 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
             </div>
 
             <div className={styles.field}>
-              <label htmlFor="assignee">Assignee</label>
+              <label htmlFor="assignee">
+                {task?.opener ? <>Assigned to by <span className={styles.openerName}>{task.opener}</span></> : 'Assignee'}
+              </label>
               <select id="assignee" value={assignee} onChange={(e) => setAssignee(e.target.value)}>
                 <option value="">Unassigned</option>
                 {assignees.map(a => (

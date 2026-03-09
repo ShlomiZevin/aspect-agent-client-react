@@ -293,6 +293,12 @@
   font-weight: 500;
 }
 
+.opener {
+  font-weight: 400;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
 .dueDate {
   font-size: 10px;
   color: var(--text-secondary);
