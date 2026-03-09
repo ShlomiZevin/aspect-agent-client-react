@@ -17,7 +17,11 @@ const STATUS_LABELS: Record<string, string> = {
 
 function formatText(type: string, taskId: number): string {
   if (type === 'mention') return `Someone mentioned you in task #${taskId}`;
-  if (type === 'assigned') return `You were assigned to task #${taskId}`;
+  if (type.startsWith('assigned_by:')) {
+    const by = type.slice('assigned_by:'.length);
+    return `${by} assigned you to task #${taskId}`;
+  }
+  if (type === 'assigned') return `You were assigned to task #${taskId}`; // legacy
   if (type.startsWith('moved_to_')) {
     const status = type.slice('moved_to_'.length);
     const label = STATUS_LABELS[status] || status;
@@ -29,7 +33,7 @@ function formatText(type: string, taskId: number): string {
 
 function dotClass(type: string): string {
   if (type === 'mention') return 'dotMention';
-  if (type === 'assigned') return 'dotAssigned';
+  if (type === 'assigned' || type.startsWith('assigned_by:')) return 'dotAssigned';
   if (type.startsWith('moved_to_') || type === 'status_changed') return 'dotStatus';
   return 'dotComment';
 }

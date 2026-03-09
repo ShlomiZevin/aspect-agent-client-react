@@ -273,10 +273,11 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
 
   const handleUpdateTask = async (data: CreateTaskData) => {
     if (!editingTask) return;
-    // Set createdBy when marking as draft
+    // Set createdBy when marking as draft, pass updatedBy for notification attribution
     const taskData = {
       ...data,
       createdBy: data.isDraft ? (editingTask.createdBy || currentUserId) : data.createdBy,
+      updatedBy: notificationsState.identity || undefined,
     };
     const updated = await taskService.updateTask(editingTask.id, taskData);
     setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));

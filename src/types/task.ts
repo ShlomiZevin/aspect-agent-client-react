@@ -47,6 +47,7 @@ export interface CreateTaskData {
   isDraft?: boolean;
   createdBy?: string;
   opener?: string;
+  updatedBy?: string;
 }
 
 export interface UpdateTaskData {
