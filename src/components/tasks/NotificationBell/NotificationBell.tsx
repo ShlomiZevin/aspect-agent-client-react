@@ -19,7 +19,7 @@ function formatText(type: string, taskId: number): string {
   if (type === 'mention') return `Someone mentioned you in task #${taskId}`;
   if (type.startsWith('assigned_by:')) {
     const by = type.slice('assigned_by:'.length);
-    return `${by} assigned you to task #${taskId}`;
+    return `User ${by} assigned you task #${taskId}`;
   }
   if (type === 'assigned') return `You were assigned to task #${taskId}`; // legacy
   if (type.startsWith('moved_to_')) {
