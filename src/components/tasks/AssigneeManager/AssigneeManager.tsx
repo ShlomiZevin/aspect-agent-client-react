@@ -39,7 +39,7 @@ function fnv1aHash(str: string): number {
   return hash;
 }
 
-function getAssigneeColor(assignee: string): string {
+export function getAssigneeColor(assignee: string): string {
   const name = assignee.toLowerCase();
   // Use manual assignment for known assignees
   if (KNOWN_ASSIGNEE_COLORS[name]) {

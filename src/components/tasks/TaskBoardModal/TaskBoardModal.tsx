@@ -8,7 +8,7 @@ import { getAgentCrew } from '../../../services/crewService';
 import { TaskBoard } from '../TaskBoard/TaskBoard';
 import { TaskList } from '../TaskList/TaskList';
 import { TaskForm } from '../TaskForm/TaskForm';
-import { AssigneeManager } from '../AssigneeManager/AssigneeManager';
+import { AssigneeManager, getAssigneeColor } from '../AssigneeManager/AssigneeManager';
 import { NotificationBell } from '../NotificationBell/NotificationBell';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { getUserId, getDraftDefault, setDraftDefault } from '../../../utils/userIdentifier';
@@ -72,6 +72,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const [draftByDefault, setDraftByDefault] = useState(() => getDraftDefault());
   const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
   const [filterCrewMember, setFilterCrewMember] = useState<string | null>(null);
+  const [filterOpener, setFilterOpener] = useState<string | null>(null);
 
   // Delete confirmation modal state
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
@@ -110,6 +111,12 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const draftCount = useMemo(() => {
     return tasks.filter(t => t.isDraft && t.createdBy === currentUserId).length;
   }, [tasks, currentUserId]);
+
+  // Unique openers (creators) derived from current tasks
+  const uniqueOpeners = useMemo(() => {
+    const openers = new Set(tasks.filter(t => t.opener).map(t => t.opener!));
+    return Array.from(openers).sort();
+  }, [tasks]);
 
   // Map crew technical names to display names
   const crewDisplayNames = useMemo(() => {
@@ -152,6 +159,11 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
       result = result.filter(t => t.crewMember === filterCrewMember);
     }
 
+    // Filter by creator (opener)
+    if (filterOpener) {
+      result = result.filter(t => t.opener === filterOpener);
+    }
+
     // Then filter by domain
     if (filterDomain === 'all') {
       // "All Domains" means all domains currently visible in the dropdown
@@ -169,7 +181,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     if (filterDomain === 'general') return result.filter(t => t.domain === 'general');
     if (filterDomain === 'current') return result.filter(t => t.domain === currentDomain || t.domain === 'general');
     return result.filter(t => t.domain === filterDomain);
-  }, [tasks, filterDomain, filterAssignee, filterCrewMember, currentDomain, showCompleted, showAllDomains, showUnassignedOnly, showDraftsOnly, currentUserId]);
+  }, [tasks, filterDomain, filterAssignee, filterCrewMember, filterOpener, currentDomain, showCompleted, showAllDomains, showUnassignedOnly, showDraftsOnly, currentUserId]);
 
   // Handle opening in drafts mode (from Ctrl+Shift+L global shortcut)
   useEffect(() => {
@@ -640,6 +652,36 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
               <span className={styles.unassignedBadge}>{unassignedCount}</span>
             )}
           </button>
+
+          {uniqueOpeners.length > 0 && (
+            <div className={styles.openerFilter}>
+              <span className={styles.openerFilterLabel}>By:</span>
+              <button
+                className={`${styles.openerChip} ${filterOpener === null ? styles.openerChipActive : ''}`}
+                onClick={() => setFilterOpener(null)}
+              >
+                All
+              </button>
+              {uniqueOpeners.map(opener => {
+                const color = getAssigneeColor(opener);
+                return (
+                  <button
+                    key={opener}
+                    className={`${styles.openerChip} ${filterOpener === opener ? styles.openerChipActive : ''}`}
+                    style={{
+                      borderColor: filterOpener === opener ? color : undefined,
+                      backgroundColor: filterOpener === opener ? `${color}15` : undefined,
+                      ['--opener-color' as string]: color,
+                    }}
+                    onClick={() => setFilterOpener(filterOpener === opener ? null : opener)}
+                  >
+                    <span className={styles.openerDot} style={{ backgroundColor: color }} />
+                    {opener}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Bulk Fire Drafts Toolbar */}

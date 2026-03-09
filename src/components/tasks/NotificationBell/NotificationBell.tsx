@@ -58,6 +58,8 @@ function avatarColor(name: string): string {
 export function NotificationBell({ notifications, assignees, onOpenTask }: NotificationBellProps) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [identityPickerOpen, setIdentityPickerOpen] = useState(false);
+  // Cutoff timestamp captured at panel-open time (before clearNew updates it)
+  const [newCutoff, setNewCutoff] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const { notifications: items, newCount, identity, setIdentity, clearNew } = notifications;
 
@@ -78,7 +80,13 @@ export function NotificationBell({ notifications, assignees, onOpenTask }: Notif
     const next = !panelOpen;
     setPanelOpen(next);
     setIdentityPickerOpen(false);
-    if (next) clearNew(); // clears badge for this browser via localStorage timestamp
+    if (next) {
+      // Capture previous cutoff BEFORE clearing so panel can highlight correctly
+      const id = localStorage.getItem('aspect_commenter_identity');
+      const clearedStr = id ? localStorage.getItem(`aspect_notif_cleared_${id}`) : null;
+      setNewCutoff(clearedStr ? new Date(clearedStr).getTime() : 0);
+      clearNew();
+    }
   };
 
   const handleSelectIdentity = (name: string) => {
