@@ -8,7 +8,7 @@ import { getAgentCrew } from '../../../services/crewService';
 import { TaskBoard } from '../TaskBoard/TaskBoard';
 import { TaskList } from '../TaskList/TaskList';
 import { TaskForm } from '../TaskForm/TaskForm';
-import { AssigneeManager, getAssigneeColor } from '../AssigneeManager/AssigneeManager';
+import { AssigneeManager } from '../AssigneeManager/AssigneeManager';
 import { NotificationBell } from '../NotificationBell/NotificationBell';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { getUserId, getDraftDefault, setDraftDefault } from '../../../utils/userIdentifier';
@@ -649,34 +649,16 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
           </button>
 
           {assignees.length > 0 && (
-            <div className={styles.openerFilter}>
-              <span className={styles.openerFilterLabel}>By:</span>
-              <button
-                className={`${styles.openerChip} ${filterOpener === null ? styles.openerChipActive : ''}`}
-                onClick={() => setFilterOpener(null)}
-              >
-                All
-              </button>
-              {assignees.map(a => {
-                const opener = a.name;
-                const color = getAssigneeColor(opener);
-                return (
-                  <button
-                    key={a.id}
-                    className={`${styles.openerChip} ${filterOpener === opener ? styles.openerChipActive : ''}`}
-                    style={{
-                      borderColor: filterOpener === opener ? color : undefined,
-                      backgroundColor: filterOpener === opener ? `${color}15` : undefined,
-                      ['--opener-color' as string]: color,
-                    }}
-                    onClick={() => setFilterOpener(filterOpener === opener ? null : opener)}
-                  >
-                    <span className={styles.openerDot} style={{ backgroundColor: color }} />
-                    {opener}
-                  </button>
-                );
-              })}
-            </div>
+            <select
+              className={styles.crewFilter}
+              value={filterOpener || ''}
+              onChange={(e) => setFilterOpener(e.target.value || null)}
+            >
+              <option value="">By Creator</option>
+              {assignees.map(a => (
+                <option key={a.id} value={a.name}>{a.name}</option>
+              ))}
+            </select>
           )}
         </div>
 
