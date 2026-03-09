@@ -112,11 +112,6 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     return tasks.filter(t => t.isDraft && t.createdBy === currentUserId).length;
   }, [tasks, currentUserId]);
 
-  // Unique openers (creators) derived from current tasks
-  const uniqueOpeners = useMemo(() => {
-    const openers = new Set(tasks.filter(t => t.opener).map(t => t.opener!));
-    return Array.from(openers).sort();
-  }, [tasks]);
 
   // Map crew technical names to display names
   const crewDisplayNames = useMemo(() => {
@@ -653,7 +648,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
             )}
           </button>
 
-          {uniqueOpeners.length > 0 && (
+          {assignees.length > 0 && (
             <div className={styles.openerFilter}>
               <span className={styles.openerFilterLabel}>By:</span>
               <button
@@ -662,11 +657,12 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
               >
                 All
               </button>
-              {uniqueOpeners.map(opener => {
+              {assignees.map(a => {
+                const opener = a.name;
                 const color = getAssigneeColor(opener);
                 return (
                   <button
-                    key={opener}
+                    key={a.id}
                     className={`${styles.openerChip} ${filterOpener === opener ? styles.openerChipActive : ''}`}
                     style={{
                       borderColor: filterOpener === opener ? color : undefined,
