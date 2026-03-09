@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { Language, Direction, LanguageContextValue } from '../types';
 import { translations } from '../i18n/translations';
 
-const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
+export const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
 
 interface LanguageProviderProps {
   children: ReactNode;

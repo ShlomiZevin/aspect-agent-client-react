@@ -48,7 +48,7 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   fieldsRefreshKey: number;
 }
 
-const ChatContext = createContext<ChatContextValue | null>(null);
+export const ChatContext = createContext<ChatContextValue | null>(null);
 
 interface ChatProviderProps {
   children: ReactNode;

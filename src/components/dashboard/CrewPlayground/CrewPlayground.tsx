@@ -6,10 +6,13 @@
  * - Right: Test chat (always visible)
  * Either panel can be collapsed to give full width to the other.
  */
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useChat } from '../../../hooks/useChat';
 import { getKnowledgeBases } from '../../../services/kbService';
-import { DebugPanel } from '../../chat/DebugPanel';
+import { ChatContext } from '../../../context/ChatContext';
+import { LanguageContext } from '../../../context/LanguageContext';
+import { Message } from '../../chat/Message';
+import { ThinkingIndicator } from '../../chat/ThinkingIndicator';
 import {
   designChat,
   registerPlayground,
@@ -42,7 +45,7 @@ const DEFAULT_CONFIG: PlaygroundConfig = {
   displayName: '',
   description: '',
   mode: 'simple',
-  model: 'gpt-5',
+  model: 'gpt-4o',
   guidance: '',
   thinkingPrompt: '',
   thinkingModel: 'claude-sonnet-4-20250514',
@@ -55,7 +58,7 @@ const DEFAULT_CONFIG: PlaygroundConfig = {
 
 const MODEL_OPTIONS = [
   { group: 'OpenAI', models: [
-    { label: 'GPT-5', value: 'gpt-5' },
+    { label: 'GPT-5', value: 'gpt-5-chat-latest' },
     { label: 'GPT-4o', value: 'gpt-4o' },
   ]},
   { group: 'Anthropic', models: [
@@ -92,6 +95,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
   // Session
   const [sessionId] = useState(() => crypto.randomUUID().slice(0, 8));
   const [registeredSession, setRegisteredSession] = useState<{ crewName: string; agentName: string } | null>(null);
+  const [activatedConfig, setActivatedConfig] = useState<PlaygroundConfig | null>(null);
 
   // Test chat
   const [testConversationId, setTestConversationId] = useState(() => `playground-${sessionId}`);
@@ -114,6 +118,10 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
 
   // Debug mode
   const [debugMode, setDebugMode] = useState(false);
+
+  // Config dirty check — true when config changed since last activation
+  const configDirty = registeredSession !== null && activatedConfig !== null &&
+    JSON.stringify(config) !== JSON.stringify(activatedConfig);
 
   // Refs
   const designMessagesRef = useRef<HTMLDivElement>(null);
@@ -229,7 +237,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
         const newConfig = { ...DEFAULT_CONFIG, ...result.updatedConfig };
         setConfig(newConfig);
         await doRegister(newConfig);
-        setStatusMessage({ type: 'success', text: 'Crew generated and registered! Try it in the chat.' });
+        setStatusMessage({ type: 'success', text: 'Crew generated and activated! Try it in the chat.' });
       } else {
         setStatusMessage({ type: 'error', text: 'Could not extract config from response. Try again.' });
       }
@@ -252,25 +260,29 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     try {
       const registration = await registerPlayground(sessionId, agentName, filteredConfig, baseURL);
       setRegisteredSession(registration);
+      setActivatedConfig({ ...filteredConfig });
       // Update config if we filtered anything
       if (filteredConfig.kbSources.length !== cfg.kbSources.length) {
         setConfig(filteredConfig);
       }
-      const newTestId = `playground-${sessionId}-${Date.now()}`;
-      setTestConversationId(newTestId);
-      testChat.newChat(newTestId);
-      setToolCallLogs([]);
+      // Only create a new conversation if there isn't one yet
+      if (!testConversationId || !testChat.messages.length) {
+        const newTestId = `playground-${sessionId}-${Date.now()}`;
+        setTestConversationId(newTestId);
+        testChat.newChat(newTestId);
+        setToolCallLogs([]);
+      }
       return registration;
     } catch (err) {
-      setStatusMessage({ type: 'error', text: `Register failed: ${(err as Error).message}` });
+      setStatusMessage({ type: 'error', text: `Activation failed: ${(err as Error).message}` });
       return null;
     }
-  }, [sessionId, agentName, baseURL, testChat, availableKBs]);
+  }, [sessionId, agentName, baseURL, testChat, availableKBs, testConversationId]);
 
   const handleApplyConfig = useCallback(async () => {
     if (!config.guidance) { setStatusMessage({ type: 'error', text: 'Guidance is required.' }); return; }
     await doRegister(config);
-    setStatusMessage({ type: 'success', text: 'Config applied! Try it in the chat.' });
+    setStatusMessage({ type: 'success', text: 'Crew activated! Try it in the chat.' });
   }, [config, doRegister]);
 
   const updateConfig = useCallback((field: keyof PlaygroundConfig, value: unknown) => {
@@ -356,6 +368,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     setDesignMessages([]);
     setConfig(DEFAULT_CONFIG);
     setRegisteredSession(null);
+    setActivatedConfig(null);
     setToolCallLogs([]);
     setLeftTab('design');
     removePlayground(sessionId, baseURL).catch(() => {});
@@ -427,15 +440,6 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
         <span className={styles.topBarTitle}>Crew Playground</span>
         <div className={styles.topBarSeparator} />
 
-        <div className={styles.modeToggle}>
-          <button className={`${styles.modeButton} ${leftTab === 'design' ? styles.modeButtonActive : ''}`} onClick={() => { setLeftTab('design'); setLeftCollapsed(false); }}>
-            Design
-          </button>
-          <button className={`${styles.modeButton} ${leftTab === 'config' ? styles.modeButtonActive : ''}`} onClick={() => { setLeftTab('config'); setLeftCollapsed(false); }}>
-            Config
-          </button>
-        </div>
-
         <div className={styles.topBarActions}>
           <button className={styles.actionButton} onClick={() => setDesignMessages([])}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg>
@@ -493,16 +497,33 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
         {/* ===== LEFT PANEL ===== */}
         <div className={leftPanelClass} style={leftPanelStyle}>
           {!leftCollapsed && (
-            leftTab === 'design' ? (
+            <>
+              {/* Shared left panel header */}
+              <div className={styles.panelHeader}>
+                <span className={styles.panelTitle}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 013.54-2.12l.06.06A1.65 1.65 0 009 4.68 1.65 1.65 0 0010 3.17V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                  Configuration
+                </span>
+                <div className={styles.panelHeaderRight}>
+                  <div className={styles.modeToggle}>
+                    <button className={`${styles.modeButton} ${leftTab === 'design' ? styles.modeButtonActive : ''}`} onClick={() => setLeftTab('design')}>
+                      Design AI
+                    </button>
+                    <button className={`${styles.modeButton} ${leftTab === 'config' ? styles.modeButtonActive : ''}`} onClick={() => setLeftTab('config')}>
+                      Config
+                    </button>
+                  </div>
+                  <button className={`${styles.actionButton} ${styles.actionButtonPrimary}`} onClick={handleApplyConfig} disabled={!config.guidance}>
+                    Activate
+                  </button>
+                  {registeredSession && !configDirty && <span className={styles.registeredBadge}>Active</span>}
+                  {configDirty && <span className={`${styles.registeredBadge} ${styles.dirtyBadge}`}>Config Changed</span>}
+                </div>
+              </div>
+
+              {leftTab === 'design' ? (
               /* --- DESIGN CHAT --- */
               <>
-                <div className={styles.panelHeader}>
-                  <span className={styles.panelTitle}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                    Design Chat
-                  </span>
-                </div>
-
                 <div className={styles.chatMessages} ref={designMessagesRef}>
                   {designMessages.length === 0 ? (
                     <div className={styles.chatEmpty}>
@@ -546,16 +567,6 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
               </>
             ) : (
               /* --- CONFIG EDITOR --- */
-              <>
-                <div className={styles.panelHeader}>
-                  <span className={styles.panelTitle}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 013.54-2.12l.06.06A1.65 1.65 0 009 4.68 1.65 1.65 0 0010 3.17V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                    Configuration
-                  </span>
-                  <button className={`${styles.actionButton} ${styles.actionButtonPrimary}`} onClick={handleApplyConfig}>
-                    Apply &amp; Register
-                  </button>
-                </div>
 
                 <div className={styles.configEditor}>
                   {/* Basics */}
@@ -718,8 +729,9 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                     </button>
                   </ConfigSection>
                 </div>
-              </>
-            )
+
+            )}
+            </>
           )}
         </div>
 
@@ -771,36 +783,44 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                 </div>
               </div>
 
-              <div className={styles.chatMessages} ref={testMessagesRef}>
-                {!registeredSession ? (
-                  <div className={styles.chatEmpty}>
-                    <svg className={styles.chatEmptyIcon} width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    <h3 className={styles.chatEmptyTitle}>No Crew Registered</h3>
-                    <p className={styles.chatEmptyText}>Design a crew with AI or configure it manually, then click "Apply & Register" to start testing.</p>
-                  </div>
-                ) : testChat.messages.length === 0 ? (
-                  <div className={styles.chatEmpty}>
-                    <h3 className={styles.chatEmptyTitle}>Ready to Chat</h3>
-                    <p className={styles.chatEmptyText}>Send a message to test your crew member.</p>
-                  </div>
-                ) : (
-                  testChat.messages.map(msg => (
-                    <div key={msg.id} className={`${styles.message} ${msg.role === 'user' ? styles.messageUser : styles.messageAssistant}`}>
-                      <span className={styles.messageLabel}>{msg.role === 'user' ? 'You' : config.displayName || 'Crew'}</span>
-                      <div className={`${styles.messageBubble} ${msg.role === 'user' ? styles.messageBubbleUser : styles.messageBubbleAssistant}`}>
-                        <FormattedMessage content={msg.content} />
+              <div className={styles.chatMessages} ref={testMessagesRef} dir="ltr">
+                <LanguageContext.Provider value={{
+                  language: 'en',
+                  setLanguage: () => {},
+                  direction: 'ltr',
+                  t: (key: string) => key,
+                }}>
+                  <ChatContext.Provider value={{
+                    debugMode,
+                    deleteMessagesFrom: testChat.deleteMessagesFrom,
+                    crewMembers: [],
+                    conversationId: testConversationId,
+                  } as any}>
+                    {!registeredSession ? (
+                      <div className={styles.chatEmpty}>
+                        <svg className={styles.chatEmptyIcon} width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <h3 className={styles.chatEmptyTitle}>No Crew Active</h3>
+                        <p className={styles.chatEmptyText}>Design a crew with AI or configure it manually, then click "Activate" to start testing.</p>
                       </div>
-                      {debugMode && msg.role === 'assistant' && msg.debugData && (
-                        <div className={styles.debugPanelWrapper}>
-                          <DebugPanel data={msg.debugData} />
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-                {testChat.isThinking && (
-                  <div className={styles.thinkingIndicator}><div className={styles.thinkingDots}><span /><span /><span /></div>{testChat.currentThinkingStep || 'Thinking...'}</div>
-                )}
+                    ) : testChat.messages.length === 0 ? (
+                      <div className={styles.chatEmpty}>
+                        <h3 className={styles.chatEmptyTitle}>Ready to Chat</h3>
+                        <p className={styles.chatEmptyText}>Send a message to test your crew member.</p>
+                      </div>
+                    ) : (
+                      testChat.messages.map(msg => (
+                        <Message key={msg.id} message={msg} />
+                      ))
+                    )}
+                    {testChat.isThinking && (
+                      <ThinkingIndicator
+                        currentStep={testChat.currentThinkingStep}
+                        steps={testChat.thinkingSteps}
+                        isComplete={false}
+                      />
+                    )}
+                  </ChatContext.Provider>
+                </LanguageContext.Provider>
               </div>
 
               <TestInput disabled={!registeredSession} isLoading={testChat.isLoading} onSend={handleTestSend} />
@@ -879,12 +899,19 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
               </div>
             </div>
             <div className={styles.modalBody}>
-              <textarea
-                className={`${styles.modalTextarea} ${modalEditor.isJson ? styles.modalJsonTextarea : ''}`}
-                value={modalEditor.value}
-                onChange={e => setModalEditor(prev => prev ? { ...prev, value: e.target.value } : null)}
-                autoFocus
-              />
+              {modalEditor.isJson ? (
+                <ModalJsonEditor
+                  value={modalEditor.value}
+                  onChange={val => setModalEditor(prev => prev ? { ...prev, value: val } : null)}
+                />
+              ) : (
+                <textarea
+                  className={styles.modalTextarea}
+                  value={modalEditor.value}
+                  onChange={e => setModalEditor(prev => prev ? { ...prev, value: e.target.value } : null)}
+                  autoFocus
+                />
+              )}
             </div>
           </div>
         </div>
@@ -942,24 +969,26 @@ function ToolCard({ tool, index, onUpdate, onRemove, onEnlarge }: {
           <div className={styles.configField}>
             <label className={styles.configFieldLabel}>Input Parameters (JSON Schema)</label>
             <p className={styles.configFieldHint}>What data the AI should provide when calling this action.</p>
-            <div className={styles.configTextareaWrapper}>
-              <textarea className={styles.configJsonEditor} value={typeof tool.parameters === 'string' ? tool.parameters : JSON.stringify(tool.parameters, null, 2)} onChange={e => { try { onUpdate(index, { parameters: JSON.parse(e.target.value) }); } catch { onUpdate(index, { parameters: e.target.value as unknown as object }); } }} rows={4} />
-              <button className={styles.enlargeButton} onClick={() => onEnlarge(`Parameters — ${tool.name}`, typeof tool.parameters === 'string' ? tool.parameters : JSON.stringify(tool.parameters, null, 2), true)}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-                Enlarge
-              </button>
-            </div>
+            <JsonEditor
+              value={typeof tool.parameters === 'string' ? tool.parameters : JSON.stringify(tool.parameters, null, 2)}
+              onChange={val => { try { onUpdate(index, { parameters: JSON.parse(val) }); } catch { onUpdate(index, { parameters: val as unknown as object }); } }}
+              rows={6}
+              minHeight={160}
+              enlargeTitle={`Parameters — ${tool.name}`}
+              onEnlarge={onEnlarge}
+            />
           </div>
           <div className={styles.configField}>
             <label className={styles.configFieldLabel}>Test Response (Mock)</label>
             <p className={styles.configFieldHint}>The fake response returned during testing — lets you simulate real behavior.</p>
-            <div className={styles.configTextareaWrapper}>
-              <textarea className={styles.configJsonEditor} value={typeof tool.mockResponse === 'string' ? tool.mockResponse : JSON.stringify(tool.mockResponse, null, 2)} onChange={e => { try { onUpdate(index, { mockResponse: JSON.parse(e.target.value) }); } catch { onUpdate(index, { mockResponse: e.target.value }); } }} rows={4} />
-              <button className={styles.enlargeButton} onClick={() => onEnlarge(`Test Response — ${tool.name}`, typeof tool.mockResponse === 'string' ? tool.mockResponse : JSON.stringify(tool.mockResponse, null, 2), true)}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-                Enlarge
-              </button>
-            </div>
+            <JsonEditor
+              value={typeof tool.mockResponse === 'string' ? tool.mockResponse : JSON.stringify(tool.mockResponse, null, 2)}
+              onChange={val => { try { onUpdate(index, { mockResponse: JSON.parse(val) }); } catch { onUpdate(index, { mockResponse: val }); } }}
+              rows={6}
+              minHeight={160}
+              enlargeTitle={`Test Response — ${tool.name}`}
+              onEnlarge={onEnlarge}
+            />
           </div>
         </div>
       )}
@@ -1001,13 +1030,14 @@ function ContextCard({ entryKey, entryValue, index, allEntries, onUpdate, onEnla
         <input className={`${styles.configFieldInput} ${styles.configValueMono}`} value={entryKey} onChange={e => handleKeyChange(e.target.value)} placeholder="label (e.g. user_profile)" style={{ flex: 1 }} />
         <button className={styles.removeButton} onClick={handleRemove}>&#x2715;</button>
       </div>
-      <div className={styles.configTextareaWrapper}>
-        <textarea className={styles.configJsonEditor} value={strValue} onChange={e => handleValueChange(e.target.value)} rows={4} />
-        <button className={styles.enlargeButton} onClick={() => onEnlarge(`Pre-loaded Knowledge — ${entryKey}`, strValue)}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-          Enlarge
-        </button>
-      </div>
+      <JsonEditor
+        value={strValue}
+        onChange={handleValueChange}
+        rows={8}
+        minHeight={200}
+        enlargeTitle={`Pre-loaded Knowledge — ${entryKey}`}
+        onEnlarge={(title, val) => onEnlarge(title, val)}
+      />
     </div>
   );
 }
@@ -1017,7 +1047,7 @@ function TestInput({ disabled, isLoading, onSend }: { disabled: boolean; isLoadi
   const handleSend = () => { const t = value.trim(); if (!t || isLoading || disabled) return; onSend(t); setValue(''); };
   return (
     <div className={styles.chatInputArea}>
-      <textarea className={styles.chatInput} value={value} onChange={e => setValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={disabled ? 'Register a crew first...' : 'Type a message...'} disabled={disabled || isLoading} />
+      <textarea className={styles.chatInput} value={value} onChange={e => setValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={disabled ? 'Activate a crew first...' : 'Type a message...'} disabled={disabled || isLoading} />
       <button className={styles.sendButton} onClick={handleSend} disabled={!value.trim() || isLoading || disabled}>
         {isLoading ? <div className={styles.spinner} /> : 'Send'}
       </button>
@@ -1034,19 +1064,115 @@ function FormattedMessage({ content }: { content: string }) {
         if (codeMatch) {
           const lang = codeMatch[1] || 'text';
           const code = codeMatch[2].trimEnd();
+          const isJson = lang === 'json';
           return (
             <div key={i} className={styles.codeBlock}>
               <div className={styles.codeBlockHeader}>
                 <span>{lang}</span>
                 <button className={styles.codeBlockCopy} onClick={() => navigator.clipboard.writeText(code)}>Copy</button>
               </div>
-              <pre className={styles.codeBlockContent}>{code}</pre>
+              {isJson ? (
+                <pre className={styles.codeBlockContent} dangerouslySetInnerHTML={{ __html: colorizeJson(code) }} />
+              ) : (
+                <pre className={styles.codeBlockContent}>{code}</pre>
+              )}
             </div>
           );
         }
         return part ? <span key={i}>{part}</span> : null;
       })}
     </>
+  );
+}
+
+/** Lightweight JSON syntax coloring — returns HTML with colored spans */
+function colorizeJson(text: string): string {
+  return text.replace(
+    /("(?:\\.|[^"\\])*")\s*(:)|("(?:\\.|[^"\\])*")|(true|false|null)|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
+    (match, key, colon, str, bool, num) => {
+      if (key && colon) return `<span class="${styles.jsonKey}">${key}</span>${colon}`;
+      if (str) return `<span class="${styles.jsonString}">${str}</span>`;
+      if (bool) return `<span class="${styles.jsonBool}">${bool}</span>`;
+      if (num) return `<span class="${styles.jsonNumber}">${num}</span>`;
+      return match;
+    }
+  );
+}
+
+/** JSON editor with syntax highlighting overlay — auto-sizes to content */
+function JsonEditor({ value, onChange, minHeight, enlargeTitle, onEnlarge }: {
+  value: string;
+  onChange: (val: string) => void;
+  minHeight?: number;
+  enlargeTitle?: string;
+  onEnlarge?: (title: string, value: string, isJson: boolean) => void;
+}) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const preRef = useRef<HTMLPreElement>(null);
+  const highlighted = useMemo(() => colorizeJson(value), [value]);
+
+  // Auto-resize textarea to fit content
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.max(el.scrollHeight, minHeight || 140) + 'px';
+  }, [value, minHeight]);
+
+  const syncScroll = () => {
+    if (textareaRef.current && preRef.current) {
+      preRef.current.scrollTop = textareaRef.current.scrollTop;
+      preRef.current.scrollLeft = textareaRef.current.scrollLeft;
+    }
+  };
+
+  return (
+    <div className={styles.configTextareaWrapper}>
+      <div className={styles.jsonEditorContainer} style={{ minHeight: minHeight || 140 }}>
+        <pre ref={preRef} className={styles.jsonHighlight} dangerouslySetInnerHTML={{ __html: highlighted + '\n' }} />
+        <textarea
+          ref={textareaRef}
+          className={styles.jsonTextarea}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          onScroll={syncScroll}
+          spellCheck={false}
+        />
+      </div>
+      {onEnlarge && enlargeTitle && (
+        <button className={styles.enlargeButton} onClick={() => onEnlarge(enlargeTitle, value, true)}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+          Enlarge
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Full-screen modal JSON editor with syntax highlighting */
+function ModalJsonEditor({ value, onChange }: { value: string; onChange: (val: string) => void }) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const preRef = useRef<HTMLPreElement>(null);
+  const highlighted = useMemo(() => colorizeJson(value), [value]);
+  const syncScroll = () => {
+    if (textareaRef.current && preRef.current) {
+      preRef.current.scrollTop = textareaRef.current.scrollTop;
+      preRef.current.scrollLeft = textareaRef.current.scrollLeft;
+    }
+  };
+  return (
+    <div className={styles.modalJsonContainer}>
+      <pre ref={preRef} className={styles.modalJsonHighlight} dangerouslySetInnerHTML={{ __html: highlighted + '\n' }} />
+      <textarea
+        ref={textareaRef}
+        className={styles.modalJsonInput}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onScroll={syncScroll}
+        spellCheck={false}
+        autoFocus
+      />
+    </div>
   );
 }
 
