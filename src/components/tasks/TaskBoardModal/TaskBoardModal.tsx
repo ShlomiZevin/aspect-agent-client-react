@@ -259,10 +259,12 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
 
   const handleCreateTask = async (data: CreateTaskData) => {
     // Add createdBy for draft tasks - always set it if isDraft is true
+    // Add opener (human-readable identity) if set
     const taskData = {
       ...data,
       isDraft: data.isDraft || false,
       createdBy: data.isDraft ? currentUserId : undefined,
+      opener: notificationsState.identity || undefined,
     };
     const task = await taskService.createTask(taskData);
     setTasks(prev => [task, ...prev]);

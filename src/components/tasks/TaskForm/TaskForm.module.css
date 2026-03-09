@@ -165,6 +165,11 @@
   margin-bottom: 4px;
 }
 
+.openerName {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .field input,
 .field textarea,
 .field select {
