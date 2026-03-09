@@ -1,0 +1,1283 @@
+/* Crew Playground - Sandbox for designing and testing crew members */
+
+.container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 40px);
+  background-color: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+/* ===== TOP BAR ===== */
+
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.topBarTitle {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.topBarSeparator {
+  width: 1px;
+  height: 20px;
+  background-color: var(--border);
+  flex-shrink: 0;
+}
+
+.modeToggle {
+  display: inline-flex;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.modeButton {
+  padding: 5px var(--spacing-md);
+  border: none;
+  background: none;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  font-family: var(--font-family);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.modeButton:hover {
+  color: var(--text-primary);
+  background-color: var(--surface);
+}
+
+.modeButtonActive {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.modeButtonActive:hover {
+  background-color: var(--primary-hover);
+  color: white;
+}
+
+.topBarActions {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-left: auto;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 5px var(--spacing-sm);
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.actionButton:hover:not(:disabled) {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionButtonPrimary {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.actionButtonPrimary:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: white;
+}
+
+.actionButtonActive {
+  background-color: rgba(99, 102, 241, 0.15);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+/* ===== STATUS BAR ===== */
+
+.statusMessage {
+  padding: 5px var(--spacing-md);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.statusSuccess {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--success-color);
+}
+
+.statusError {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--error-color);
+}
+
+/* ===== MAIN PANELS ===== */
+
+.panels {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ===== LEFT PANEL (Design or Config) ===== */
+
+.leftPanel {
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.2s ease;
+  min-height: 0;
+}
+
+.leftPanelCollapsed {
+  width: 0;
+  overflow: hidden;
+}
+
+.leftPanelFull {
+  width: 100%;
+}
+
+/* ===== RIGHT PANEL (Chat) ===== */
+
+.rightPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.rightPanelCollapsed {
+  width: 0;
+  flex: none;
+  overflow: hidden;
+}
+
+.rightPanelFull {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+  width: 100%;
+}
+
+/* ===== PANEL DIVIDER WITH COLLAPSE BUTTONS ===== */
+
+.panelDivider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  flex-shrink: 0;
+  background-color: var(--background);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  gap: 2px;
+  position: relative;
+  cursor: col-resize;
+}
+
+.panelDividerDragging {
+  background-color: rgba(99, 102, 241, 0.08);
+  border-color: var(--primary-color);
+}
+
+.dragHandle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 0;
+}
+
+.dragHandle span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--text-muted);
+  opacity: 0.4;
+}
+
+.panelDivider:hover .dragHandle span,
+.panelDividerDragging .dragHandle span {
+  opacity: 0.8;
+  background-color: var(--primary-color);
+}
+
+.collapseButton {
+  width: 22px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  padding: 0;
+}
+
+.collapseButton:hover {
+  background-color: var(--surface);
+  color: var(--primary-color);
+}
+
+/* Expand button shown when a panel is collapsed — sits at the edge */
+.expandButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  z-index: 5;
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+.expandButton:hover {
+  background-color: var(--surface);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.expandButtonLeft {
+  left: 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.expandButtonRight {
+  right: 0;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+/* ===== PANEL HEADER ===== */
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--background);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  min-height: 40px;
+}
+
+.panelTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.panelActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+/* ===== CHAT AREA ===== */
+
+.chatMessages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  min-height: 0;
+}
+
+.chatEmpty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+.chatEmptyIcon { opacity: 0.3; }
+
+.chatEmptyTitle {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.chatEmptyText {
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  max-width: 360px;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 90%;
+}
+
+.messageUser { align-self: flex-end; }
+.messageAssistant { align-self: flex-start; }
+.messageSystem { align-self: center; max-width: 80%; }
+
+.messageLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.messageBubble {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.messageBubbleUser {
+  background-color: var(--primary-color);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.messageBubbleAssistant {
+  background-color: var(--background);
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.messageBubbleSystem {
+  background-color: rgba(99, 102, 241, 0.08);
+  color: var(--text-secondary);
+  border: 1px dashed var(--border);
+  font-size: var(--font-size-xs);
+  text-align: center;
+  padding: var(--spacing-xs) var(--spacing-md);
+}
+
+/* ===== DEBUG PANEL WRAPPER ===== */
+
+.debugPanelWrapper {
+  margin-top: 4px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+/* ===== CHAT INPUT ===== */
+
+.chatInputArea {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-top: 1px solid var(--border);
+  background-color: var(--background);
+  flex-shrink: 0;
+}
+
+.chatInput {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family);
+  background-color: var(--surface);
+  color: var(--text-primary);
+  resize: none;
+  min-height: 44px;
+  max-height: 160px;
+  line-height: 1.5;
+  overflow-y: auto;
+}
+
+.chatInput:focus { outline: none; border-color: var(--primary-color); }
+.chatInput::placeholder { color: var(--text-muted); }
+.chatInput:disabled { background-color: var(--background); cursor: not-allowed; }
+
+.sendButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  font-family: var(--font-family);
+  transition: background-color var(--transition-fast);
+  white-space: nowrap;
+  height: 44px;
+}
+
+.sendButton:hover:not(:disabled) { background-color: var(--primary-hover); }
+.sendButton:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.generateButton { background-color: var(--success-color); }
+.generateButton:hover:not(:disabled) { background-color: #059669; }
+
+/* ===== CONFIG EDITOR ===== */
+
+.configEditor {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  min-height: 0;
+}
+
+/* ===== CONFIG MODE TOGGLE (no dead area) ===== */
+
+.configModeToggle {
+  display: flex;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  height: 36px;
+}
+
+.configModeBtn {
+  flex: 1;
+  padding: 0 20px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-family);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 36px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.configModeBtn:hover {
+  color: var(--text-primary);
+  background-color: var(--surface);
+}
+
+.configModeBtnActive {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.configModeBtnActive:hover {
+  background-color: var(--primary-hover);
+  color: white;
+}
+
+/* ===== CONFIG SECTION (collapsible accordion) ===== */
+
+.configSection {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--surface);
+  overflow: visible;
+}
+
+.configSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background-color: var(--background);
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: background-color var(--transition-fast);
+  border-radius: var(--radius-md);
+}
+
+.configSection:has(.configSectionBody) .configSectionHeader {
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.configSectionHeader:hover {
+  background-color: var(--surface);
+}
+
+.configSectionChevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.configSectionChevronOpen {
+  transform: rotate(90deg);
+}
+
+.configSectionBody {
+  padding: var(--spacing-md) 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* ===== CONFIG FIELDS ===== */
+
+.configField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.configFieldRow {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: flex-start;
+}
+
+.configFieldRow > .configField {
+  flex: 1;
+}
+
+.configFieldLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.configFieldHint {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.configFieldInput {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: var(--font-family);
+  background-color: var(--background);
+  color: var(--text-primary);
+  box-sizing: border-box;
+  width: 100%;
+  height: 36px;
+}
+
+.configFieldInput:focus { outline: none; border-color: var(--primary-color); }
+
+.configFieldSelect {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: var(--font-family);
+  background-color: var(--background);
+  color: var(--text-primary);
+  cursor: pointer;
+  width: 100%;
+  height: 36px;
+}
+
+.configFieldSelect:focus { outline: none; border-color: var(--primary-color); }
+
+/* ===== CONFIG TEXTAREA & CODE EDITOR ===== */
+
+.configTextareaWrapper {
+  position: relative;
+}
+
+.configTextarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  background-color: var(--background);
+  color: var(--text-primary);
+  resize: vertical;
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+
+.configTextarea:focus { outline: none; border-color: var(--primary-color); }
+
+.configTextareaLarge { min-height: 260px; }
+
+.enlargeButton {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-family: var(--font-family);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  z-index: 2;
+}
+
+.configTextareaWrapper:hover .enlargeButton {
+  opacity: 1;
+}
+
+.enlargeButton:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.configJsonEditor {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px 12px;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.configJsonEditor:focus { outline: none; border-color: var(--primary-color); }
+
+/* ===== CONFIG CARDS (tools, context, KB) ===== */
+
+.configCardRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+
+.configHint {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.configValueMono {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+}
+
+/* ===== TOOL CARD (collapsible, default closed) ===== */
+
+.toolCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--background);
+  overflow: hidden;
+}
+
+.toolCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--transition-fast);
+}
+
+.toolCardHeader:hover {
+  background-color: var(--surface);
+}
+
+.toolCardChevron {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.toolCardChevronOpen {
+  transform: rotate(90deg);
+}
+
+.toolCardName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.toolCardDesc {
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.toolCardBody {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ===== CONTEXT CARD ===== */
+
+.contextCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--background);
+  overflow: hidden;
+}
+
+.contextCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.contextCard .configTextareaWrapper {
+  padding: 8px 12px;
+}
+
+.contextCard .configJsonEditor {
+  min-height: 140px;
+}
+
+/* ===== ADD / REMOVE BUTTONS ===== */
+
+.addButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 6px 12px;
+  border: 1px dashed var(--border);
+  background: none;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.addButton:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background-color: rgba(99, 102, 241, 0.05);
+}
+
+.removeButton {
+  padding: 4px 8px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.removeButton:hover {
+  color: var(--error-color);
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* ===== KB SELECT ===== */
+
+.kbSelectWrapper {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.kbSelect {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: var(--font-family);
+  background-color: var(--background);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.kbSelect:focus { outline: none; border-color: var(--primary-color); }
+
+.kbChip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 6px 10px;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.kbChipName { font-weight: 500; }
+.kbChipId { font-family: 'Consolas', 'Monaco', monospace; font-size: 11px; color: var(--text-muted); }
+
+/* ===== CODE BLOCKS IN DESIGN CHAT ===== */
+
+.codeBlock {
+  position: relative;
+  margin: var(--spacing-sm) 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.codeBlockHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px var(--spacing-sm);
+  background-color: #2d2d2d;
+  font-size: 10px;
+  color: #999;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.codeBlockCopy {
+  padding: 2px 6px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #999;
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: var(--font-family);
+  cursor: pointer;
+}
+
+.codeBlockCopy:hover { color: #fff; background: rgba(255, 255, 255, 0.2); }
+
+.codeBlockContent {
+  padding: var(--spacing-sm);
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre;
+  margin: 0;
+}
+
+/* ===== THINKING / GENERATING INDICATORS ===== */
+
+.thinkingIndicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.thinkingDots { display: flex; gap: 4px; }
+
+.thinkingDots span {
+  width: 6px;
+  height: 6px;
+  background-color: var(--text-muted);
+  border-radius: 50%;
+  animation: dotPulse 1.4s infinite;
+}
+
+.thinkingDots span:nth-child(2) { animation-delay: 0.2s; }
+.thinkingDots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotPulse {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+.generatingBanner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--success-color);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* ===== MODAL EDITOR (enlarge) ===== */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modalEditor {
+  background-color: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 80vw;
+  max-width: 900px;
+  height: 75vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.modalTitle {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.modalBody {
+  flex: 1;
+  padding: var(--spacing-md) var(--spacing-lg);
+  min-height: 0;
+}
+
+.modalTextarea {
+  width: 100%;
+  height: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  background-color: var(--background);
+  color: var(--text-primary);
+  resize: none;
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+
+.modalTextarea:focus { outline: none; border-color: var(--primary-color); }
+
+.modalJsonTextarea {
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+}
+
+/* ===== SAVE DIALOG ===== */
+
+.dialogOverlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.dialog {
+  background-color: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  min-width: 360px;
+  max-width: 480px;
+  box-shadow: var(--shadow-lg);
+}
+
+.dialogTitle {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-md);
+}
+
+.dialogInput {
+  width: 100%;
+  padding: 8px var(--spacing-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family);
+  background-color: var(--background);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+  box-sizing: border-box;
+}
+
+.dialogInput:focus { outline: none; border-color: var(--primary-color); }
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+}
+
+/* ===== SAVED CONFIGS DROPDOWN ===== */
+
+.dropdownWrapper { position: relative; }
+
+.savedConfigsList {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: 280px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 20;
+}
+
+.savedConfigItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background-color var(--transition-fast);
+}
+
+.savedConfigItem:last-child { border-bottom: none; }
+.savedConfigItem:hover { background-color: var(--background); }
+
+.savedConfigName { font-size: var(--font-size-sm); font-weight: 500; color: var(--text-primary); }
+.savedConfigDate { font-size: var(--font-size-xs); color: var(--text-muted); }
+
+.savedConfigDelete {
+  padding: 2px 6px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  border-radius: var(--radius-sm);
+}
+
+.savedConfigDelete:hover { color: var(--error-color); background-color: rgba(239, 68, 68, 0.1); }
+
+/* ===== MOCK RESPONSE IN TEST TOOL PANEL ===== */
+
+.mockupPanel {
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.mockupContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.mockupEmpty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  padding: var(--spacing-md);
+}
+
+.toolCallCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background-color: var(--surface);
+}
+
+.toolCallHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 6px 10px;
+  background-color: var(--background);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.toolCallIcon { font-size: 12px; }
+
+.toolCallParams {
+  padding: 6px 10px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.toolCallParamsLabel {
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.mockResponseSection { padding: 6px 10px; }
+
+.mockResponseLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mockResponseEditor {
+  width: 100%;
+  min-height: 60px;
+  padding: 6px;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.mockResponseEditor:focus { outline: none; border-color: var(--primary-color); }
+
+.saveMockButton {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-family: var(--font-family);
+  cursor: pointer;
+}
+
+.saveMockButton:hover { border-color: var(--primary-color); color: var(--primary-color); }
+
+/* ===== LOADING SPINNER ===== */
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== LEGACY COMPAT ===== */
+.toolEditorCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: var(--background);
+}
