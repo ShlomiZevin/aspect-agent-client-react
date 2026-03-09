@@ -53,6 +53,8 @@ const DEFAULT_CONFIG: PlaygroundConfig = {
   kbSources: [],
   tools: [],
   context: {},
+  fieldsToCollect: [],
+  transitionTo: '',
   maxTokens: 2048,
 };
 
@@ -138,6 +140,9 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     welcomeMessage: '',
   };
 
+  // Track whether a transition fired (disables further input)
+  const [transitionInfo, setTransitionInfo] = useState<{ from: string; to: string } | null>(null);
+
   const testChat = useChat({
     config: testAgentConfig,
     conversationId: testConversationId,
@@ -147,6 +152,9 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     debug: debugMode,
     onCrewInfo: () => {},
     onFieldExtracted: () => {},
+    onCrewTransition: (transition) => {
+      setTransitionInfo({ from: transition.from, to: transition.to });
+    },
   });
 
   // ========== EFFECTS ==========
@@ -271,6 +279,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
         setTestConversationId(newTestId);
         testChat.newChat(newTestId);
         setToolCallLogs([]);
+        setTransitionInfo(null);
       }
       return registration;
     } catch (err) {
@@ -362,6 +371,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     setTestConversationId(newTestId);
     testChat.newChat(newTestId);
     setToolCallLogs([]);
+    setTransitionInfo(null);
   }, [sessionId, testChat]);
 
   const handleResetAll = useCallback(() => {
@@ -371,6 +381,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     setActivatedConfig(null);
     setToolCallLogs([]);
     setLeftTab('design');
+    setTransitionInfo(null);
     removePlayground(sessionId, baseURL).catch(() => {});
     const newTestId = `playground-${sessionId}-${Date.now()}`;
     setTestConversationId(newTestId);
@@ -728,6 +739,34 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                       + Add Entry
                     </button>
                   </ConfigSection>
+
+                  {/* Transitions (read-only) */}
+                  {(config.transitionTo || config.fieldsToCollect.length > 0) && (
+                    <ConfigSection title="Transitions">
+                      <p className={styles.configHint}>
+                        Transition settings are configured through the Design AI conversation. In the playground, when a transition fires the chat will show a message — the target crew won't respond.
+                      </p>
+                      {config.transitionTo && (
+                        <div className={styles.transitionReadOnly}>
+                          <label className={styles.configFieldLabel}>Transition Target</label>
+                          <div className={styles.transitionValue}>{config.transitionTo}</div>
+                        </div>
+                      )}
+                      {config.fieldsToCollect.length > 0 && (
+                        <div className={styles.transitionReadOnly}>
+                          <label className={styles.configFieldLabel}>Fields to Collect (triggers transition)</label>
+                          <div className={styles.fieldsToCollectList}>
+                            {config.fieldsToCollect.map((field, i) => (
+                              <div key={i} className={styles.fieldToCollectItem}>
+                                <span className={styles.fieldName}>{field.name}</span>
+                                <span className={styles.fieldDesc}>{field.description}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </ConfigSection>
+                  )}
                 </div>
 
             )}
@@ -819,11 +858,22 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                         isComplete={false}
                       />
                     )}
+                    {transitionInfo && (
+                      <div className={styles.transitionBanner}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        <div>
+                          <strong>Crew transitioned to &quot;{transitionInfo.to}&quot;</strong>
+                          <p style={{ margin: '4px 0 0', opacity: 0.8, fontSize: '0.85em' }}>
+                            In the playground, only one crew is active. In production, &quot;{transitionInfo.to}&quot; would take over from here.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </ChatContext.Provider>
                 </LanguageContext.Provider>
               </div>
 
-              <TestInput disabled={!registeredSession} isLoading={testChat.isLoading} onSend={handleTestSend} />
+              <TestInput disabled={!registeredSession || !!transitionInfo} isLoading={testChat.isLoading} onSend={handleTestSend} />
             </>
           )}
 
@@ -996,7 +1046,7 @@ function ToolCard({ tool, index, onUpdate, onRemove, onEnlarge }: {
   );
 }
 
-/** Context entry card with enlarge support */
+/** Collapsible context entry card - default closed, shows only label */
 function ContextCard({ entryKey, entryValue, index, allEntries, onUpdate, onEnlarge }: {
   entryKey: string;
   entryValue: unknown;
@@ -1005,6 +1055,7 @@ function ContextCard({ entryKey, entryValue, index, allEntries, onUpdate, onEnla
   onUpdate: (entries: Record<string, unknown>) => void;
   onEnlarge: (title: string, value: string) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const strValue = typeof entryValue === 'string' ? entryValue : JSON.stringify(entryValue, null, 2);
 
   const handleKeyChange = (newKey: string) => {
@@ -1025,19 +1076,31 @@ function ContextCard({ entryKey, entryValue, index, allEntries, onUpdate, onEnla
   };
 
   return (
-    <div className={styles.contextCard}>
-      <div className={styles.contextCardHeader}>
-        <input className={`${styles.configFieldInput} ${styles.configValueMono}`} value={entryKey} onChange={e => handleKeyChange(e.target.value)} placeholder="label (e.g. user_profile)" style={{ flex: 1 }} />
-        <button className={styles.removeButton} onClick={handleRemove}>&#x2715;</button>
+    <div className={styles.toolCard}>
+      <div className={styles.toolCardHeader} onClick={() => setExpanded(!expanded)}>
+        <svg className={`${styles.toolCardChevron} ${expanded ? styles.toolCardChevronOpen : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
+        <span className={styles.toolCardName}>{entryKey || `Entry ${index + 1}`}</span>
+        {!expanded && <span className={styles.toolCardDesc}>— {strValue.slice(0, 50)}{strValue.length > 50 ? '...' : ''}</span>}
+        <button className={styles.removeButton} onClick={(e) => { e.stopPropagation(); handleRemove(); }}>&#x2715;</button>
       </div>
-      <JsonEditor
-        value={strValue}
-        onChange={handleValueChange}
-        rows={8}
-        minHeight={200}
-        enlargeTitle={`Pre-loaded Knowledge — ${entryKey}`}
-        onEnlarge={(title, val) => onEnlarge(title, val)}
-      />
+      {expanded && (
+        <div className={styles.toolCardBody}>
+          <div className={styles.configField}>
+            <label className={styles.configFieldLabel}>Label</label>
+            <input className={`${styles.configFieldInput} ${styles.configValueMono}`} value={entryKey} onChange={e => handleKeyChange(e.target.value)} placeholder="label (e.g. user_profile)" />
+          </div>
+          <div className={styles.configField}>
+            <label className={styles.configFieldLabel}>Value (JSON)</label>
+            <JsonEditor
+              value={strValue}
+              onChange={handleValueChange}
+              minHeight={200}
+              enlargeTitle={`Pre-loaded Knowledge — ${entryKey}`}
+              onEnlarge={(title, val) => onEnlarge(title, val)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

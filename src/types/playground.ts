@@ -7,6 +7,11 @@ export interface MockTool {
   mockResponse: unknown;
 }
 
+export interface FieldToCollect {
+  name: string;
+  description: string;
+}
+
 export interface PlaygroundConfig {
   displayName: string;
   description: string;
@@ -19,6 +24,8 @@ export interface PlaygroundConfig {
   kbSources: Array<{ vectorStoreId: string; name: string }>;
   tools: MockTool[];
   context: Record<string, unknown>;
+  fieldsToCollect: FieldToCollect[];
+  transitionTo: string;
   maxTokens: number;
 }
 
