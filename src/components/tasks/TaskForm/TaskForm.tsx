@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
 import type { Task, Assignee, CreateTaskData, TaskStatus, TaskPriority, TaskType } from '../../../types/task';
 import type { CrewMember } from '../../../types/crew';
 import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
@@ -100,7 +100,9 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const [isDraft, setIsDraft] = useState(getDraftDefault());
   const [crewMember, setCrewMember] = useState<string>('');
   const dependsOnRef = useRef<HTMLDivElement>(null);
+  const dependsOnInputRef = useRef<HTMLInputElement>(null);
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // Auto-resize title textarea
   useEffect(() => {
@@ -152,6 +154,16 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   // Use ref for suggestions to avoid stale closure issues
   const suggestionsRef = useRef(dependsOnSuggestions);
   suggestionsRef.current = dependsOnSuggestions;
+
+  // Calculate fixed position for autocomplete dropdown (escapes overflow:hidden parents)
+  useLayoutEffect(() => {
+    if (showDependsOnDropdown && dependsOnSuggestions.length > 0 && dependsOnInputRef.current) {
+      const rect = dependsOnInputRef.current.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 2, left: rect.left, width: rect.width });
+    } else {
+      setDropdownPos(null);
+    }
+  }, [showDependsOnDropdown, dependsOnSuggestions]);
 
   // Handle keyboard navigation for autocomplete
   const handleDependsOnKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -469,6 +481,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
               ) : (
                 <div className={styles.autocompleteWrapper}>
                   <input
+                    ref={dependsOnInputRef}
                     id="dependsOn"
                     type="text"
                     value={dependsOnSearch}
@@ -481,8 +494,11 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                     placeholder="Type 3+ letters to search..."
                     autoComplete="off"
                   />
-                  {showDependsOnDropdown && dependsOnSuggestions.length > 0 && (
-                    <div className={styles.autocompleteDropdown}>
+                  {showDependsOnDropdown && dependsOnSuggestions.length > 0 && dropdownPos && (
+                    <div
+                      className={styles.autocompleteDropdown}
+                      style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
+                    >
                       {dependsOnSuggestions.map((t, index) => (
                         <div
                           key={t.id}
