@@ -158,11 +158,16 @@
 
 /* New (undelivered) notification highlight */
 .itemNew {
-  background: var(--surface-new, rgba(79, 70, 229, 0.05));
+  background: rgba(79, 70, 229, 0.10);
+  border-left: 3px solid #4f46e5;
 }
 
 .itemNew .itemText {
   font-weight: 600;
+}
+
+.itemNew .itemTime {
+  color: #4f46e5;
 }
 
 /* Identity chip (identity set) */
