@@ -1,0 +1,360 @@
+/* ── Page layout ── */
+.page {
+  padding: 24px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111827;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fileInput {
+  display: none;
+}
+
+/* ── Buttons ── */
+.btnPrimary {
+  padding: 8px 18px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.btnPrimary:hover:not(:disabled) { background: #4338ca; }
+.btnPrimary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btnSecondary {
+  padding: 6px 14px;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btnSecondary:hover { background: #e5e7eb; }
+
+.btnDanger {
+  padding: 6px 14px;
+  background: #fff;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  border-radius: 7px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btnDanger:hover { background: #fef2f2; }
+.btnDanger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── States ── */
+.loadingState,
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.emptyIcon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+/* ── Episode list ── */
+.episodeList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Episode card ── */
+.episodeCard {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+.episodeCard:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+.episodeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.episodeMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.episodeIcon {
+  font-size: 22px;
+}
+
+.episodeTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.episodeSubtitle {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.episodeStatuses {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.statusItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.statusLabel {
+  font-size: 10px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.statusBadgePulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.7; }
+}
+
+.chevron {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px;
+}
+
+/* ── Episode body ── */
+.episodeBody {
+  padding: 0 20px 20px;
+  border-top: 1px solid #f3f4f6;
+}
+
+/* ── Sections ── */
+.section {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  margin: 0 0 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Controls row ── */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.controlLabel {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.select {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  font-size: 13px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+}
+.select:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Prompt section ── */
+.promptSection {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.promptTextarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #374151;
+  resize: vertical;
+  box-sizing: border-box;
+  line-height: 1.5;
+  background: #fff;
+}
+.promptTextarea:disabled { background: #f9fafb; opacity: 0.7; }
+.promptTextarea:focus { outline: none; border-color: #4f46e5; }
+
+/* ── View section ── */
+.viewSection {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modelTag {
+  font-size: 11px;
+  color: #9ca3af;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+  align-self: flex-start;
+}
+
+.textView {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 13px;
+  font-family: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+  color: #374151;
+  line-height: 1.6;
+}
+
+/* ── Danger zone ── */
+.dangerZone {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── Info / Error boxes ── */
+.errorBox {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.infoBox {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  color: #1d4ed8;
+  font-size: 13px;
+}
+
+.hintText {
+  margin: 0;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* ── Polling indicator ── */
+.pollingIndicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #3b82f6;
+}
+
+/* ── Spinner ── */
+.spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

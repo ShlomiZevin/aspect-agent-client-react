@@ -7,6 +7,7 @@ import { CrewPage } from '../components/dashboard/CrewPage';
 import { CrewEditorAI } from '../components/dashboard/CrewEditorAI';
 import { CrewPlayground } from '../components/dashboard/CrewPlayground';
 import { QueryOptimizerPage } from '../components/dashboard/QueryOptimizerPage';
+import { PodcastPage } from '../components/dashboard/PodcastPage';
 import { KBManager } from '../components/kb';
 import { aspectConfig, bankingOnboarderConfig, bankingOnboarderV2Config, compassConfig, freedaConfig } from '../agents';
 import type { AgentConfig } from '../types';
@@ -44,6 +45,7 @@ export function DashboardPage() {
   const basePath = `/${agent}/${routePrefix}`;
 
   const showQueryOptimizer = !!config.database?.schema;
+  const showPodcast = config.agentName === 'freeda';
 
   return (
     <ThemeProvider storagePrefix={config.storagePrefix}>
@@ -54,6 +56,7 @@ export function DashboardPage() {
           agentLogo={config.logo.src}
           basePath={basePath}
           showQueryOptimizer={showQueryOptimizer}
+          showPodcast={showPodcast}
         >
           <Routes>
             <Route index element={<Navigate to="feedback" replace />} />
@@ -85,6 +88,12 @@ export function DashboardPage() {
               <Route
                 path="query-optimizer"
                 element={<QueryOptimizerPage agentName={config.agentName} baseURL={config.baseURL} />}
+              />
+            )}
+            {showPodcast && (
+              <Route
+                path="podcast"
+                element={<PodcastPage baseURL={config.baseURL} />}
               />
             )}
           </Routes>

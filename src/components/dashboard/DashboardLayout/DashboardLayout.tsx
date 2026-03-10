@@ -8,6 +8,7 @@ interface DashboardLayoutProps {
   agentLogo: string;
   basePath: string;
   showQueryOptimizer?: boolean;
+  showPodcast?: boolean;
   children: ReactNode;
 }
 
@@ -26,10 +27,18 @@ const QUERY_OPTIMIZER_ITEM = {
   icon: 'M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z M13 2v7h7 M9 17l2-2 4-4',
 };
 
-export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, children }: DashboardLayoutProps) {
-  const navItems = showQueryOptimizer
-    ? [...BASE_NAV_ITEMS, QUERY_OPTIMIZER_ITEM]
-    : BASE_NAV_ITEMS;
+const PODCAST_ITEM = {
+  path: 'podcast',
+  label: 'Podcast',
+  icon: 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z M19 10v2a7 7 0 0 1-14 0v-2 M12 19v4 M8 23h8',
+};
+
+export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showPodcast, children }: DashboardLayoutProps) {
+  const navItems = [
+    ...BASE_NAV_ITEMS,
+    ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM] : []),
+    ...(showPodcast ? [PODCAST_ITEM] : []),
+  ];
 
   return (
     <div className={styles.layout}>

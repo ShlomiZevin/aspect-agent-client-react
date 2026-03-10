@@ -59,7 +59,7 @@ export function NotificationBell({ notifications, assignees, onOpenTask }: Notif
   const [panelOpen, setPanelOpen] = useState(false);
   const [identityPickerOpen, setIdentityPickerOpen] = useState(false);
   // Cutoff timestamp captured at panel-open time (before clearNew updates it)
-  const [newCutoff, setNewCutoff] = useState<number>(0);
+  const [_newCutoff, setNewCutoff] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const { notifications: items, newCount, identity, setIdentity, clearNew } = notifications;
 
