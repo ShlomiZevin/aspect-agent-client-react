@@ -45,7 +45,7 @@ export function DashboardPage() {
   const basePath = `/${agent}/${routePrefix}`;
 
   const showQueryOptimizer = !!config.database?.schema;
-  const showPodcast = config.agentName === 'freeda';
+  const showPodcast = agent?.toLowerCase() === 'freeda';
 
   return (
     <ThemeProvider storagePrefix={config.storagePrefix}>
