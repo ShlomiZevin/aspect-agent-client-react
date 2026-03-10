@@ -64,7 +64,7 @@ export async function uploadEpisode(
     const err = await urlRes.json().catch(() => ({ error: urlRes.statusText }));
     throw new Error(err.error || 'Failed to get upload URL');
   }
-  const { signedUrl, episode } = await urlRes.json();
+  const { uploadUrl, episode } = await urlRes.json();
 
   // Step 2: PUT file directly to GCS (no Cloud Run size limit)
   await new Promise<void>((resolve, reject) => {
@@ -85,7 +85,7 @@ export async function uploadEpisode(
     };
 
     xhr.onerror = () => reject(new Error('Network error during upload'));
-    xhr.open('PUT', signedUrl);
+    xhr.open('PUT', uploadUrl);
     xhr.setRequestHeader('Content-Type', file.type || 'audio/mpeg');
     xhr.send(file);
   });
