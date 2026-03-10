@@ -385,10 +385,12 @@ export function PodcastPage({ baseURL }: Props) {
     const title = prompt('Episode title:', file.name.replace(/\.[^.]+$/, '')) || file.name;
 
     setUploading(true);
-    setUploadProgress(`Uploading ${(file.size / 1024 / 1024).toFixed(1)}MB...`);
+    setUploadProgress(`Uploading 0%`);
 
     try {
-      const episode = await uploadEpisode(file, title, baseURL);
+      const episode = await uploadEpisode(file, title, baseURL, (pct) => {
+        setUploadProgress(`Uploading ${pct}%`);
+      });
       setEpisodes(prev => [episode, ...prev]);
       setUploadProgress('');
     } catch (err: any) {

@@ -38,28 +38,59 @@ export interface PodcastEpisode {
 
 // ─── API functions ────────────────────────────────────────────────────────────
 
+/**
+ * Upload a podcast audio file directly to GCS via signed URL.
+ * Bypasses Cloud Run's 32MB request size limit.
+ *
+ * @param onProgress - called with 0-100 percentage during upload
+ */
 export async function uploadEpisode(
   file: File,
   title: string,
-  baseURL?: string
+  baseURL?: string,
+  onProgress?: (pct: number) => void
 ): Promise<PodcastEpisode> {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('title', title);
-
   const base = baseURL ?? '';
-  const response = await fetch(`${base}/api/podcast/episodes`, {
-    method: 'POST',
-    body: formData,
+
+  // Step 1: Get signed URL + create episode record
+  const params = new URLSearchParams({
+    filename: file.name,
+    mimeType: file.type || 'audio/mpeg',
+    fileSize: String(file.size),
+    title,
+  });
+  const urlRes = await fetch(`${base}/api/podcast/upload-url?${params}`);
+  if (!urlRes.ok) {
+    const err = await urlRes.json().catch(() => ({ error: urlRes.statusText }));
+    throw new Error(err.error || 'Failed to get upload URL');
+  }
+  const { signedUrl, episode } = await urlRes.json();
+
+  // Step 2: PUT file directly to GCS (no Cloud Run size limit)
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`GCS upload failed: ${xhr.status} ${xhr.statusText}`));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.open('PUT', signedUrl);
+    xhr.setRequestHeader('Content-Type', file.type || 'audio/mpeg');
+    xhr.send(file);
   });
 
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || 'Upload failed');
-  }
-
-  const data = await response.json();
-  return data.episode as PodcastEpisode;
+  return episode as PodcastEpisode;
 }
 
 export async function listEpisodes(baseURL?: string): Promise<PodcastEpisode[]> {
