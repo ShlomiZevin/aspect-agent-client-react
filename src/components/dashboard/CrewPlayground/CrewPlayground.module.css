@@ -121,6 +121,42 @@
   color: var(--primary-color);
 }
 
+.generateTabButton {
+  background-color: var(--success-color) !important;
+  border-color: var(--success-color) !important;
+  color: white !important;
+  font-size: 12px !important;
+  padding: 4px 10px !important;
+}
+
+.generateTabButton:hover:not(:disabled) {
+  background-color: #059669 !important;
+  border-color: #059669 !important;
+}
+
+.regenerateTabButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: rgba(245, 158, 11, 0.85);
+  font-size: 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-family);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.regenerateTabButton:hover:not(:disabled) {
+  border-color: var(--warning-color, #f59e0b);
+  color: var(--warning-color, #f59e0b);
+}
+
+.regenerateTabButton:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* ===== STATUS BAR ===== */
 
 .statusMessage {
@@ -458,7 +494,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: 0 12px;
   border: none;
   background-color: var(--primary-color);
   color: white;
@@ -469,14 +505,12 @@
   font-family: var(--font-family);
   transition: background-color var(--transition-fast);
   white-space: nowrap;
-  height: 44px;
+  height: 36px;
+  flex-shrink: 0;
 }
 
 .sendButton:hover:not(:disabled) { background-color: var(--primary-hover); }
 .sendButton:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.generateButton { background-color: var(--success-color); }
-.generateButton:hover:not(:disabled) { background-color: #059669; }
 
 /* ===== CONFIG EDITOR ===== */
 
@@ -952,40 +986,48 @@
 
 /* ===== KB SELECT ===== */
 
-.kbSelectWrapper {
+.kbCheckboxList {
   display: flex;
-  gap: var(--spacing-sm);
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.kbSelect {
-  flex: 1;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-family: var(--font-family);
-  background-color: var(--background);
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.kbSelect:focus { outline: none; border-color: var(--primary-color); }
-
-.kbChip {
+.kbCheckboxItem {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  padding: 6px 10px;
-  background-color: var(--background);
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  background-color: var(--background);
+  cursor: pointer;
   font-size: 12px;
-  color: var(--text-primary);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
 }
 
-.kbChipName { font-weight: 500; }
-.kbChipId { font-family: 'Consolas', 'Monaco', monospace; font-size: 11px; color: var(--text-muted); }
+.kbCheckboxItem:hover { border-color: var(--primary-color); }
+.kbCheckboxItem:has(input:checked) {
+  border-color: var(--primary-color);
+  background-color: rgba(99, 102, 241, 0.1);
+}
+
+.kbCheckboxItem,
+.kbCheckboxItem *,
+.kbCheckboxItem:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.kbCheckboxItem input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--primary-color);
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-appearance: checkbox;
+}
+
+.kbCheckboxName { color: var(--text-primary); }
 
 /* ===== CODE BLOCKS IN DESIGN CHAT ===== */
 
@@ -1414,6 +1456,14 @@
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== SUGGEST HINT ===== */
+.suggestHint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 2px 8px;
+  font-style: italic;
+}
 
 /* ===== TRANSITION BANNER ===== */
 .transitionBanner {
