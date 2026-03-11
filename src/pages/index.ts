@@ -11,3 +11,4 @@ export { KBPage } from './KBPage';
 export { DashboardPage } from './DashboardPage';
 export { NotFoundPage } from './NotFoundPage';
 export { CompassPage } from './CompassPage';
+export { PitchDeckPage } from './PitchDeckPage';
