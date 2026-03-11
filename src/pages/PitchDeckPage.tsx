@@ -210,23 +210,23 @@ export function PitchDeckPage() {
           </div>
           <div>
             <div className={`${s.card} ${s.borderCyan}`} style={{ padding: '1.3em' }}>
-              <h4 className={s.accentCyan} style={{ marginBottom: '0.6em' }}>דוגמה: אייג׳נט בריאות</h4>
+              <h4 className={s.accentCyan} style={{ marginBottom: '0.6em' }}>דוגמה: אייג׳נט קמעונאי</h4>
               <div className={s.timeline}>
                 <div className={s.timelineItem}>
-                  <h4>Crew הכרות</h4>
-                  <p>קבלת פנים, בדיקת התאמה, אישור תנאים. שדות מחולצים במקביל לתגובת ה-LLM.</p>
+                  <h4>Crew הטמעה</h4>
+                  <p>זיהוי משתמש, הגדרת הרשאות וסניפים רלוונטיים. שדות מחולצים במקביל לתגובת ה-LLM.</p>
                 </div>
                 <div className={s.timelineItem}>
-                  <h4>Crew פרופיילר</h4>
-                  <p>מיפוי מסע המשתמש — שלב, היסטוריה, טיפולים. כותב context מתמשך לכל הסשנים העתידיים.</p>
+                  <h4>Crew אנליטיקס</h4>
+                  <p>ניתוח מכירות, מלאי וביצועי סניפים. תכנון שאילתות מורכב עם סינתזה חוצת-מקורות.</p>
                 </div>
                 <div className={s.timelineItem}>
-                  <h4>Crew הערכה</h4>
-                  <p>מעקב סימפטומים שיטתי דרך tool calls. כל כלי מעדכן DB וקובע את המעבר הבא.</p>
+                  <h4>Crew התראות</h4>
+                  <p>זיהוי חריגים ומגמות דרך tool calls. כל כלי מעדכן DB וקובע את המעבר הבא.</p>
                 </div>
                 <div className={s.timelineItem}>
                   <h4>Crew כללי</h4>
-                  <p>תמיכה שוטפת עם טון מותאם לפרופיל המשתמש. גישה לכל בסיס הידע.</p>
+                  <p>תמיכה שוטפת עם הקשר מותאם לתפקיד המשתמש. גישה לכל בסיס הידע.</p>
                 </div>
               </div>
             </div>
@@ -318,21 +318,21 @@ export function PitchDeckPage() {
           <div className={s.split} style={{ gap: '1em', alignItems: 'center' }}>
             <div>
               <p style={{ fontSize: '0.8rem', margin: 0 }}>
-                <strong>Crew members חולקים הקשר:</strong> ה-Profiler כותב נתוני משתמש.
-                ה-General קורא אותם. ה-Assessment מעדכן אותם.
+                <strong>Crew members חולקים הקשר:</strong> ה-Onboarding כותב נתוני משתמש.
+                ה-Analytics קורא אותם. ה-Alerts מעדכן אותם.
                 העברות חלקות עם המשכיות מלאה —
                 המשתמש אף פעם לא מרגיש שהוא מדבר עם מוח מומחה אחר.
               </p>
             </div>
             <div className={s.codeBlock} style={{ fontSize: '0.55rem', margin: 0 }}>
-              <span className={s.cmt}>// Profiler כותב נתוני מסע</span><br />
-              <span className={s.kw}>await</span> this.<span className={s.fn}>writeContext</span>(<span className={s.str}>'journey'</span>, {'{'}<br />
-              &nbsp;&nbsp;<span className={s.prop}>stage</span>: <span className={s.str}>'peri'</span>,<br />
-              &nbsp;&nbsp;<span className={s.prop}>treatments</span>: [<span className={s.str}>'HRT'</span>],<br />
-              &nbsp;&nbsp;<span className={s.prop}>primaryConcern</span>: <span className={s.str}>'sleep'</span><br />
+              <span className={s.cmt}>// Onboarding כותב פרופיל משתמש</span><br />
+              <span className={s.kw}>await</span> this.<span className={s.fn}>writeContext</span>(<span className={s.str}>'userProfile'</span>, {'{'}<br />
+              &nbsp;&nbsp;<span className={s.prop}>role</span>: <span className={s.str}>'branch_manager'</span>,<br />
+              &nbsp;&nbsp;<span className={s.prop}>branches</span>: [<span className={s.str}>'תל אביב'</span>, <span className={s.str}>'הרצליה'</span>],<br />
+              &nbsp;&nbsp;<span className={s.prop}>focus</span>: <span className={s.str}>'sales'</span><br />
               {'}'});<br /><br />
-              <span className={s.cmt}>// General crew קורא מאוחר יותר</span><br />
-              <span className={s.kw}>const</span> p = <span className={s.kw}>await</span> this.<span className={s.fn}>getContext</span>(<span className={s.str}>'journey'</span>);
+              <span className={s.cmt}>// Analytics crew קורא מאוחר יותר</span><br />
+              <span className={s.kw}>const</span> p = <span className={s.kw}>await</span> this.<span className={s.fn}>getContext</span>(<span className={s.str}>'userProfile'</span>);
             </div>
           </div>
         </div>
@@ -390,9 +390,9 @@ export function PitchDeckPage() {
             <p>שאילתות בשפה חופשית על מכירות, מלאי, לקוחות, סניפים. זיהוי מגמות, התראות חריגים, המלצות מעשיות.</p>
           </div>
           <div className={`${s.usecase} ${s.borderPurple}`}>
-            <div className={`${s.usecaseDomain} ${s.accentPurple}`}>בריאות</div>
-            <h4>Freeda 2.0</h4>
-            <p>מלווה גיל המעבר עם מסע crew בן 4 שלבים. מעקב סימפטומים, KB רפואי, ליווי מותאם. זוכר בין סשנים.</p>
+            <div className={`${s.usecaseDomain} ${s.accentPurple}`}>הטמעה ארגונית</div>
+            <h4>Compass</h4>
+            <p>אייג׳נט הטמעה רב-שלבי עם מסע crew מותאם. ליווי אישי, בסיס ידע ייעודי, מעקב התקדמות. זוכר בין סשנים.</p>
           </div>
           <div className={`${s.usecase} ${s.borderAmber}`}>
             <div className={`${s.usecaseDomain} ${s.accentAmber}`}>שירותים פיננסיים</div>
