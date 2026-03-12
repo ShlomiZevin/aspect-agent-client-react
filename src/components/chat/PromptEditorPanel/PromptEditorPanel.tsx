@@ -55,6 +55,12 @@ const MODELS_BY_PROVIDER: Record<string, string[]> = {
 
 const AVAILABLE_PROVIDERS = ['openai', 'anthropic', 'google'];
 
+function inferProvider(model: string): string {
+  if (model.startsWith('claude-')) return 'anthropic';
+  if (model.startsWith('gemini-')) return 'google';
+  return 'openai';
+}
+
 interface PromptEditorPanelProps {
   crewMembers: CrewMember[];
   currentCrew: CrewMember | null;
@@ -251,7 +257,7 @@ export function PromptEditorPanel({
   const isThinkerCrew = selectedCrewMember?.usesThinker === true;
   const codeThinkingPrompt = selectedCrewMember?.thinkingPrompt || '';
   const defaultModel = selectedPromptData?.model || selectedCrewMember?.model || 'gpt-4';
-  const currentProvider = providerOverrides[selectedCrewId] || 'openai';
+  const currentProvider = providerOverrides[selectedCrewId] || inferProvider(defaultModel);
 
   // Build available models list - filter by provider and include server's model if not already in list
   const availableModels = useMemo(() => {
