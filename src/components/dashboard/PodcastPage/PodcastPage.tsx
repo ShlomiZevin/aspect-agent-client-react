@@ -7,14 +7,22 @@ import {
   deleteEpisode,
   startTranscription,
   summarizeEpisode,
+  addSummaryToKB,
   getDefaultSummaryPrompt,
   type PodcastEpisode,
   type TranscriptProvider,
   type SummaryProvider,
 } from '../../../services/podcastService';
+import { apiRequest } from '../../../services/api';
+
+interface KBOption {
+  id: number;
+  name: string;
+}
 
 interface Props {
   baseURL?: string;
+  agentName?: string;
 }
 
 const SUMMARY_MODELS: Record<SummaryProvider, { label: string; models: string[] }> = {
@@ -75,11 +83,12 @@ interface EpisodeCardProps {
   episode: PodcastEpisode;
   baseURL?: string;
   defaultPrompt: string;
+  kbOptions: KBOption[];
   onRefresh: (id: number) => void;
   onDelete: (id: number) => void;
 }
 
-function EpisodeCard({ episode, baseURL, defaultPrompt, onRefresh, onDelete }: EpisodeCardProps) {
+function EpisodeCard({ episode, baseURL, defaultPrompt, kbOptions, onRefresh, onDelete }: EpisodeCardProps) {
   const [expanded, setExpanded]               = useState(false);
   const [transcriptProvider, setTranscriptProvider] = useState<TranscriptProvider>('openai');
   const [summaryProvider, setSummaryProvider] = useState<SummaryProvider>('anthropic');
@@ -88,6 +97,9 @@ function EpisodeCard({ episode, baseURL, defaultPrompt, onRefresh, onDelete }: E
   const [summaryLoading, setSummaryLoading]   = useState(false);
   const [viewMode, setViewMode]               = useState<'transcript' | 'summary' | null>(null);
   const [deleting, setDeleting]               = useState(false);
+  const [selectedKbId, setSelectedKbId]       = useState<number | ''>('');
+  const [addingToKb, setAddingToKb]           = useState(false);
+  const [kbAddStatus, setKbAddStatus]         = useState<string | null>(null);
 
   const ep = episode;
   const isTranscribing = ep.transcript_status === 'pending' || ep.transcript_status === 'running';
@@ -133,6 +145,20 @@ function EpisodeCard({ episode, baseURL, defaultPrompt, onRefresh, onDelete }: E
     } catch (err: any) {
       alert('Delete error: ' + err.message);
       setDeleting(false);
+    }
+  };
+
+  const handleAddToKB = async () => {
+    if (!selectedKbId) return;
+    setAddingToKb(true);
+    setKbAddStatus(null);
+    try {
+      const file = await addSummaryToKB(ep.id, selectedKbId as number, baseURL);
+      setKbAddStatus(`Added: ${file.fileName}`);
+    } catch (err: any) {
+      setKbAddStatus(`Error: ${err.message}`);
+    } finally {
+      setAddingToKb(false);
     }
   };
 
@@ -304,6 +330,39 @@ function EpisodeCard({ episode, baseURL, defaultPrompt, onRefresh, onDelete }: E
             )}
           </section>
 
+          {/* ── Add to KB ── */}
+          {ep.summary_text && kbOptions.length > 0 && (
+            <section className={styles.section}>
+              <h3 className={styles.sectionTitle}>Add Summary to Knowledge Base</h3>
+              <div className={styles.controls}>
+                <label className={styles.controlLabel}>Knowledge Base</label>
+                <select
+                  className={styles.select}
+                  value={selectedKbId}
+                  onChange={e => { setSelectedKbId(e.target.value ? Number(e.target.value) : ''); setKbAddStatus(null); }}
+                  disabled={addingToKb}
+                >
+                  <option value="">-- Select KB --</option>
+                  {kbOptions.map(kb => (
+                    <option key={kb.id} value={kb.id}>{kb.name}</option>
+                  ))}
+                </select>
+                <button
+                  className={styles.btnPrimary}
+                  onClick={handleAddToKB}
+                  disabled={addingToKb || !selectedKbId}
+                >
+                  {addingToKb ? 'Adding...' : 'Add to KB'}
+                </button>
+              </div>
+              {kbAddStatus && (
+                <div className={kbAddStatus.startsWith('Error') ? styles.errorBox : styles.infoBox}>
+                  {kbAddStatus}
+                </div>
+              )}
+            </section>
+          )}
+
           {/* ── Delete ── */}
           <div className={styles.dangerZone}>
             <button
@@ -324,12 +383,13 @@ function EpisodeCard({ episode, baseURL, defaultPrompt, onRefresh, onDelete }: E
 // Main page
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function PodcastPage({ baseURL }: Props) {
+export function PodcastPage({ baseURL, agentName }: Props) {
   const [episodes, setEpisodes]           = useState<PodcastEpisode[]>([]);
   const [loading, setLoading]             = useState(true);
   const [uploading, setUploading]         = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [defaultPrompt, setDefaultPrompt] = useState('');
+  const [kbOptions, setKbOptions]         = useState<KBOption[]>([]);
   const [error, setError]                 = useState<string | null>(null);
   const fileInputRef                      = useRef<HTMLInputElement>(null);
   const pollingRef                        = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -361,7 +421,15 @@ export function PodcastPage({ baseURL }: Props) {
   useEffect(() => {
     loadEpisodes();
     getDefaultSummaryPrompt(baseURL).then(setDefaultPrompt).catch(() => {});
-  }, [loadEpisodes, baseURL]);
+    if (agentName) {
+      apiRequest<{ knowledgeBases: { id: number; name: string }[] }>(
+        `/api/kb/list/${agentName}`,
+        { method: 'GET' },
+        baseURL
+      ).then(data => setKbOptions(data.knowledgeBases.map(kb => ({ id: kb.id, name: kb.name }))))
+       .catch(() => {});
+    }
+  }, [loadEpisodes, baseURL, agentName]);
 
   // Polling for active transcriptions
   useEffect(() => {
@@ -459,6 +527,7 @@ export function PodcastPage({ baseURL }: Props) {
               episode={ep}
               baseURL={baseURL}
               defaultPrompt={defaultPrompt}
+              kbOptions={kbOptions}
               onRefresh={refreshEpisode}
               onDelete={handleDeleteEpisode}
             />

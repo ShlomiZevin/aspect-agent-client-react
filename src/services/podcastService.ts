@@ -150,6 +150,22 @@ export async function summarizeEpisode(
   return data.episode;
 }
 
+export async function addSummaryToKB(
+  id: number,
+  kbId: number,
+  baseURL?: string
+): Promise<{ id: number; fileName: string; fileSize: number }> {
+  const data = await apiRequest<{ file: { id: number; fileName: string; fileSize: number } }>(
+    `/api/podcast/episodes/${id}/add-to-kb`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ kbId }),
+    },
+    baseURL
+  );
+  return data.file;
+}
+
 export async function getDefaultSummaryPrompt(baseURL?: string): Promise<string> {
   const data = await apiRequest<{ prompt: string }>(
     '/api/podcast/default-summary-prompt',

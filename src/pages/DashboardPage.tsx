@@ -94,7 +94,7 @@ export function DashboardPage() {
             {showPodcast && (
               <Route
                 path="podcast"
-                element={<PodcastPage baseURL={config.baseURL} />}
+                element={<PodcastPage baseURL={config.baseURL} agentName={config.agentName} />}
               />
             )}
             <Route
