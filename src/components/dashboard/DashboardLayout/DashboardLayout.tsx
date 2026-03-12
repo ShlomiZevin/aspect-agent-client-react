@@ -33,11 +33,18 @@ const PODCAST_ITEM = {
   icon: 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z M19 10v2a7 7 0 0 1-14 0v-2 M12 19v4 M8 23h8',
 };
 
+const BILLING_ITEM = {
+  path: 'billing',
+  label: 'Billing',
+  icon: 'M12 1v22 M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
+};
+
 export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showPodcast, children }: DashboardLayoutProps) {
   const navItems = [
     ...BASE_NAV_ITEMS,
     ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM] : []),
     ...(showPodcast ? [PODCAST_ITEM] : []),
+    BILLING_ITEM,
   ];
 
   return (

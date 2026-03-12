@@ -8,6 +8,7 @@ import { CrewEditorAI } from '../components/dashboard/CrewEditorAI';
 import { CrewPlayground } from '../components/dashboard/CrewPlayground';
 import { QueryOptimizerPage } from '../components/dashboard/QueryOptimizerPage';
 import { PodcastPage } from '../components/dashboard/PodcastPage';
+import { BillingPage } from '../components/dashboard/BillingPage';
 import { KBManager } from '../components/kb';
 import { aspectConfig, bankingOnboarderConfig, bankingOnboarderV2Config, compassConfig, freedaConfig } from '../agents';
 import type { AgentConfig } from '../types';
@@ -96,6 +97,10 @@ export function DashboardPage() {
                 element={<PodcastPage baseURL={config.baseURL} />}
               />
             )}
+            <Route
+              path="billing"
+              element={<BillingPage baseURL={config.baseURL} />}
+            />
           </Routes>
         </DashboardLayout>
       </AgentProvider>
