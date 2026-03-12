@@ -14,10 +14,11 @@ interface ConfigEntry {
 
 const KEY_LABELS: Record<string, string> = {
   openai_api_key: 'OpenAI API Key',
+  openai_admin_api_key: 'OpenAI Admin API Key (Billing)',
   openai_org_id: 'OpenAI Org ID',
   openai_project_id: 'OpenAI Project ID',
   anthropic_api_key: 'Anthropic API Key',
-  anthropic_admin_api_key: 'Anthropic Admin API Key',
+  anthropic_admin_api_key: 'Anthropic Admin API Key (Billing)',
   gemini_api_key: 'Gemini API Key',
   gcp_billing_project_id: 'GCP Billing Project ID',
   gcp_billing_dataset: 'GCP Billing Dataset',
@@ -25,7 +26,7 @@ const KEY_LABELS: Record<string, string> = {
 };
 
 const KEY_GROUPS = [
-  { label: 'OpenAI', keys: ['openai_api_key', 'openai_org_id', 'openai_project_id'] },
+  { label: 'OpenAI', keys: ['openai_api_key', 'openai_admin_api_key', 'openai_org_id', 'openai_project_id'] },
   { label: 'Anthropic', keys: ['anthropic_api_key', 'anthropic_admin_api_key'] },
   { label: 'Google', keys: ['gemini_api_key', 'gcp_billing_project_id', 'gcp_billing_dataset', 'gcp_billing_service_account_json'] },
 ];
