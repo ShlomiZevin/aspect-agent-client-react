@@ -9,6 +9,7 @@ import { CrewPlayground } from '../components/dashboard/CrewPlayground';
 import { QueryOptimizerPage } from '../components/dashboard/QueryOptimizerPage';
 import { PodcastPage } from '../components/dashboard/PodcastPage';
 import { BillingPage } from '../components/dashboard/BillingPage';
+import { ApiKeysPage } from '../components/dashboard/ApiKeysPage';
 import { KBManager } from '../components/kb';
 import { aspectConfig, bankingOnboarderConfig, bankingOnboarderV2Config, compassConfig, freedaConfig } from '../agents';
 import type { AgentConfig } from '../types';
@@ -100,6 +101,10 @@ export function DashboardPage() {
             <Route
               path="billing"
               element={<BillingPage baseURL={config.baseURL} />}
+            />
+            <Route
+              path="api-keys"
+              element={<ApiKeysPage baseURL={config.baseURL} />}
             />
           </Routes>
         </DashboardLayout>
