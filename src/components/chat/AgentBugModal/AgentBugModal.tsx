@@ -370,7 +370,8 @@ export function AgentBugModal({
         tags: ['agent-bug', category, sourceCrew || 'unknown-crew'].filter(Boolean),
         crewMember: sourceCrew || null,
         isDraft,
-        createdBy: isDraft ? getUserId() : undefined,
+        createdBy: getUserId(),
+        opener: getUserId(),
       });
       onClose();
     } finally {

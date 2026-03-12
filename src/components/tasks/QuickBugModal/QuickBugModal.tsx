@@ -79,7 +79,8 @@ export function QuickBugModal({ isOpen, onClose, onSubmit, currentDomain, conver
         status: 'todo',
         tags: [],
         isDraft,
-        createdBy: isDraft ? getUserId() : undefined,
+        createdBy: getUserId(),
+        opener: getUserId(),
       });
       onClose();
     } finally {
