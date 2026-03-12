@@ -32,6 +32,7 @@ import type {
   ToolCallLog,
 } from '../../../types/playground';
 import type { AgentConfig, KnowledgeBase } from '../../../types';
+import { ConfirmDialog } from '../../common/ConfirmDialog';
 import styles from './CrewPlayground.module.css';
 
 interface CrewPlaygroundProps {
@@ -48,7 +49,7 @@ const DEFAULT_CONFIG: PlaygroundConfig = {
   model: 'gpt-4o',
   guidance: '',
   thinkingPrompt: '',
-  thinkingModel: 'claude-sonnet-4-20250514',
+  thinkingModel: 'claude-sonnet-4-6',
   persona: '',
   kbSources: [],
   tools: [],
@@ -64,6 +65,8 @@ const MODEL_OPTIONS = [
     { label: 'GPT-4o', value: 'gpt-4o' },
   ]},
   { group: 'Anthropic', models: [
+    { label: 'Claude Opus 4.6', value: 'claude-opus-4-6' },
+    { label: 'Claude Sonnet 4.6', value: 'claude-sonnet-4-6' },
     { label: 'Claude Sonnet 4', value: 'claude-sonnet-4-20250514' },
   ]},
   { group: 'Google', models: [
@@ -72,7 +75,11 @@ const MODEL_OPTIONS = [
   ]},
 ];
 
+const DRAFT_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
+  const DRAFT_KEY = `playground-draft-${agentName}`;
+
   // Left tab: design or config
   const [leftTab, setLeftTab] = useState<LeftTab>('design');
 
@@ -106,8 +113,11 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
   // Save/load
   const [savedConfigs, setSavedConfigs] = useState<SavedPlaygroundConfig[]>([]);
   const [showSavedConfigs, setShowSavedConfigs] = useState(false);
+  const [isLoadingConfigs, setIsLoadingConfigs] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveName, setSaveName] = useState('');
+  const [loadedConfigRef, setLoadedConfigRef] = useState<{ id: string; name: string } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Status
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -143,6 +153,9 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
   // Track whether a transition fired (disables further input)
   const [transitionInfo, setTransitionInfo] = useState<{ from: string; to: string } | null>(null);
 
+  // Confirm dialog for regenerate
+  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+
   const testChat = useChat({
     config: testAgentConfig,
     conversationId: testConversationId,
@@ -158,6 +171,43 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
   });
 
   // ========== EFFECTS ==========
+
+  // Restore draft from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (!saved) return;
+      const draft = JSON.parse(saved);
+      if (Date.now() - draft.timestamp > DRAFT_EXPIRY_MS) {
+        localStorage.removeItem(DRAFT_KEY);
+        return;
+      }
+      if (draft.config) setConfig({ ...DEFAULT_CONFIG, ...draft.config });
+      if (draft.designMessages) setDesignMessages(draft.designMessages);
+      if (draft.leftTab) setLeftTab(draft.leftTab);
+      setStatusMessage({ type: 'success', text: 'Restored your previous draft.' });
+    } catch { localStorage.removeItem(DRAFT_KEY); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-save draft to localStorage (debounced)
+  useEffect(() => {
+    // Don't save empty state
+    if (!config.guidance && designMessages.length === 0) return;
+    const timer = setTimeout(() => {
+      const draft = { config, designMessages, leftTab, timestamp: Date.now() };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [config, designMessages, leftTab, DRAFT_KEY]);
+
+  // Warn on browser tab close/refresh when there's work in progress
+  useEffect(() => {
+    if (!config.guidance && designMessages.length === 0) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [config.guidance, designMessages.length]);
 
   useEffect(() => {
     if (designMessagesRef.current) designMessagesRef.current.scrollTop = designMessagesRef.current.scrollHeight;
@@ -235,7 +285,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     }
   }, [designInput, designMessages, config, baseURL, isDesigning, apiMessages]);
 
-  const handleGenerate = useCallback(async () => {
+  const doGenerate = useCallback(async () => {
     if (isGenerating || designMessages.length === 0) return;
     setIsGenerating(true);
     try {
@@ -255,6 +305,14 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
       setIsGenerating(false);
     }
   }, [isGenerating, designMessages, config, baseURL]);
+
+  const handleGenerate = useCallback(() => {
+    if (config.guidance) {
+      setShowRegenerateConfirm(true);
+      return;
+    }
+    doGenerate();
+  }, [config.guidance, doGenerate]);
 
   // ========== REGISTER ==========
 
@@ -307,23 +365,42 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
 
   // ========== SAVE / LOAD / EXPORT ==========
 
-  const handleSave = useCallback(async () => {
-    if (!saveName.trim() || !config.guidance) return;
+  // Save overwrite (for loaded configs)
+  const handleSaveOverwrite = useCallback(async () => {
+    if (!loadedConfigRef || !config.guidance) return;
+    setIsSaving(true);
     try {
-      await saveConfig(agentName, saveName.trim(), config, baseURL);
-      setShowSaveDialog(false);
-      setSaveName('');
-      setStatusMessage({ type: 'success', text: 'Config saved!' });
+      await saveConfig(agentName, loadedConfigRef.name, config, baseURL);
+      localStorage.removeItem(DRAFT_KEY);
+      setStatusMessage({ type: 'success', text: `Saved "${loadedConfigRef.name}"` });
     } catch (err) { setStatusMessage({ type: 'error', text: `Save failed: ${(err as Error).message}` }); }
-  }, [saveName, config, agentName, baseURL]);
+    finally { setIsSaving(false); }
+  }, [loadedConfigRef, config, agentName, baseURL, DRAFT_KEY]);
+
+  // Save as new (dialog)
+  const handleSaveAs = useCallback(async () => {
+    if (!saveName.trim() || !config.guidance) return;
+    setIsSaving(true);
+    try {
+      const result = await saveConfig(agentName, saveName.trim(), config, baseURL);
+      setShowSaveDialog(false);
+      setLoadedConfigRef({ id: result.id, name: saveName.trim() });
+      setSaveName('');
+      localStorage.removeItem(DRAFT_KEY);
+      setStatusMessage({ type: 'success', text: `Saved as "${saveName.trim()}"` });
+    } catch (err) { setStatusMessage({ type: 'error', text: `Save failed: ${(err as Error).message}` }); }
+    finally { setIsSaving(false); }
+  }, [saveName, config, agentName, baseURL, DRAFT_KEY]);
 
   const handleLoadConfigs = useCallback(async () => {
     if (showSavedConfigs) { setShowSavedConfigs(false); return; }
+    setIsLoadingConfigs(true);
     try {
       const result = await listSavedConfigs(agentName, baseURL);
       setSavedConfigs(result.configs);
       setShowSavedConfigs(true);
     } catch (err) { setStatusMessage({ type: 'error', text: `Load failed: ${(err as Error).message}` }); }
+    finally { setIsLoadingConfigs(false); }
   }, [agentName, baseURL, showSavedConfigs]);
 
   const handleLoadConfig = useCallback(async (id: string) => {
@@ -335,6 +412,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
       loadedConfig.kbSources = loadedConfig.kbSources.filter((s: { vectorStoreId: string }) => realKBIds.has(s.vectorStoreId));
       setConfig(loadedConfig);
       setShowSavedConfigs(false);
+      setLoadedConfigRef({ id, name: result.name });
       await doRegister(loadedConfig);
       setDesignMessages(prev => [...prev, {
         role: 'system' as const,
@@ -382,11 +460,13 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     setToolCallLogs([]);
     setLeftTab('design');
     setTransitionInfo(null);
+    setLoadedConfigRef(null);
+    localStorage.removeItem(DRAFT_KEY);
     removePlayground(sessionId, baseURL).catch(() => {});
     const newTestId = `playground-${sessionId}-${Date.now()}`;
     setTestConversationId(newTestId);
     testChat.newChat(newTestId);
-  }, [sessionId, baseURL, testChat]);
+  }, [sessionId, baseURL, testChat, DRAFT_KEY]);
 
   // ========== MODAL EDITOR ==========
 
@@ -436,6 +516,11 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
       {/* ===== TOP BAR ===== */}
       <div className={styles.topBar}>
         <span className={styles.topBarTitle}>Crew Playground</span>
+        {loadedConfigRef && (
+          <span className={styles.loadedConfigBadge} title={`Editing: ${loadedConfigRef.name}`}>
+            {loadedConfigRef.name}
+          </span>
+        )}
         <div className={styles.topBarSeparator} />
 
         <div className={styles.topBarActions}>
@@ -449,9 +534,14 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
               Load
             </button>
-            {showSavedConfigs && (
+            {(showSavedConfigs || isLoadingConfigs) && (
               <div className={styles.savedConfigsList}>
-                {savedConfigs.length === 0 ? (
+                {isLoadingConfigs ? (
+                  <div className={styles.savedConfigItem} style={{ justifyContent: 'center' }}>
+                    <svg className={styles.spinner} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                    <span style={{ fontSize: '12px', opacity: 0.6 }}>Loading...</span>
+                  </div>
+                ) : savedConfigs.length === 0 ? (
                   <div className={styles.savedConfigItem}><div className={styles.savedConfigDate}>No saved configs</div></div>
                 ) : savedConfigs.map(sc => (
                   <div key={sc.id} className={styles.savedConfigItem}>
@@ -466,10 +556,32 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
             )}
           </div>
 
-          <button className={styles.actionButton} onClick={() => { setSaveName(config.displayName || ''); setShowSaveDialog(true); }} disabled={!hasConfig}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Save
-          </button>
+          {loadedConfigRef ? (<>
+            <button
+              className={`${styles.actionButton} ${styles.saveOverwriteButton}`}
+              onClick={handleSaveOverwrite}
+              disabled={!hasConfig || isSaving}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              {isSaving ? 'Saving...' : `Save "${loadedConfigRef.name}"`}
+            </button>
+            <button
+              className={styles.actionButton}
+              onClick={() => { setSaveName(config.displayName || ''); setShowSaveDialog(true); }}
+              disabled={!hasConfig || isSaving}
+            >
+              Save As...
+            </button>
+          </>) : (
+            <button
+              className={`${styles.actionButton} ${styles.saveNewButton}`}
+              onClick={() => { setSaveName(config.displayName || ''); setShowSaveDialog(true); }}
+              disabled={!hasConfig || isSaving}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Save
+            </button>
+          )}
 
           <button className={styles.actionButton} onClick={handleExport} disabled={!hasConfig}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -511,7 +623,19 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                       Config
                     </button>
                   </div>
-                  <button className={`${styles.actionButton} ${styles.actionButtonPrimary}`} onClick={handleApplyConfig} disabled={!config.guidance}>
+                  <button
+                    className={hasConfig ? styles.regenerateTabButton : `${styles.actionButton} ${styles.generateTabButton}`}
+                    onClick={handleGenerate}
+                    disabled={designMessages.length === 0 || isDesigning || isGenerating}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      {hasConfig
+                        ? <><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></>
+                        : <><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></>}
+                    </svg>
+                    {hasConfig ? 'Regenerate' : 'Generate'}
+                  </button>
+                  <button className={`${styles.actionButton} ${styles.actionButtonPrimary}`} onClick={handleApplyConfig} disabled={!config.guidance || (registeredSession !== null && !configDirty)}>
                     Activate
                   </button>
                   {registeredSession && !configDirty && <span className={styles.registeredBadge}>Active</span>}
@@ -546,21 +670,21 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
 
                 {isGenerating && <div className={styles.generatingBanner}><div className={styles.spinner} /> Generating crew configuration...</div>}
 
+                {config.guidance && (
+                  <div className={styles.suggestHint}>Discuss changes here — the AI will suggest specific edits you can apply in the Config tab.</div>
+                )}
                 <div className={styles.chatInputArea}>
                   <textarea
                     className={styles.chatInput}
                     value={designInput}
                     onChange={e => setDesignInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleDesignSend(); } }}
-                    placeholder="Describe the crew member you want to create..."
+                    placeholder={config.guidance ? "Ask about changes to your crew..." : "Describe the crew member you want to create..."}
                     disabled={isDesigning || isGenerating}
                   />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <button className={styles.sendButton} onClick={handleDesignSend} disabled={!designInput.trim() || isDesigning || isGenerating}>Send</button>
-                    {designMessages.length > 0 && (
-                      <button className={`${styles.sendButton} ${styles.generateButton}`} onClick={handleGenerate} disabled={isDesigning || isGenerating}>Generate</button>
-                    )}
-                  </div>
+                  <button className={styles.sendButton} onClick={handleDesignSend} disabled={!designInput.trim() || isDesigning || isGenerating}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  </button>
                 </div>
               </>
             ) : (
@@ -651,30 +775,29 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
 
                   {/* Knowledge Base */}
                   <ConfigSection title="Knowledge Base">
-                    <p className={styles.configHint}>Connect to real knowledge bases for this agent.</p>
-                    {config.kbSources.map((kb, i) => {
-                      const isReal = availableKBs.some(real => real.vectorStoreId === kb.vectorStoreId);
-                      if (!isReal) return null;
-                      return (
-                        <div key={i} className={styles.kbChip}>
-                          <span className={styles.kbChipName}>{kb.name}</span>
-                          <span className={styles.kbChipId}>{kb.vectorStoreId}</span>
-                          <button className={styles.removeButton} onClick={() => updateConfig('kbSources', config.kbSources.filter((_, j) => j !== i))}>&#x2715;</button>
-                        </div>
-                      );
-                    })}
+                    <p className={styles.configHint}>Select knowledge bases to connect to this crew.</p>
                     {availableKBs.filter(kb => kb.vectorStoreId).length > 0 ? (
-                      <select className={styles.kbSelect} value="" onChange={e => {
-                        const selected = availableKBs.find(kb => kb.vectorStoreId === e.target.value);
-                        if (selected && !config.kbSources.some(s => s.vectorStoreId === selected.vectorStoreId)) {
-                          updateConfig('kbSources', [...config.kbSources, { vectorStoreId: selected.vectorStoreId!, name: selected.name }]);
-                        }
-                      }}>
-                        <option value="">Select a knowledge base...</option>
-                        {availableKBs.filter(kb => kb.vectorStoreId && !config.kbSources.some(s => s.vectorStoreId === kb.vectorStoreId)).map(kb => (
-                          <option key={kb.id} value={kb.vectorStoreId!}>{kb.name}</option>
-                        ))}
-                      </select>
+                      <div className={styles.kbCheckboxList}>
+                        {availableKBs.filter(kb => kb.vectorStoreId).map(kb => {
+                          const isChecked = config.kbSources.some(s => s.vectorStoreId === kb.vectorStoreId);
+                          return (
+                            <label key={kb.id} className={styles.kbCheckboxItem}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  if (isChecked) {
+                                    updateConfig('kbSources', config.kbSources.filter(s => s.vectorStoreId !== kb.vectorStoreId));
+                                  } else {
+                                    updateConfig('kbSources', [...config.kbSources, { vectorStoreId: kb.vectorStoreId!, name: kb.name }]);
+                                  }
+                                }}
+                              />
+                              <span className={styles.kbCheckboxName}>{kb.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     ) : (
                       <p className={styles.configHint}>No knowledge bases found for this agent.</p>
                     )}
@@ -874,14 +997,25 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
       </div>
 
       {/* ===== SAVE DIALOG ===== */}
+      <ConfirmDialog
+        isOpen={showRegenerateConfirm}
+        title="Regenerate Crew?"
+        message="This will regenerate the entire crew config, replacing any manual changes you made. Tip: instead, you can ask the Design AI for specific changes and apply them yourself in the Config tab."
+        confirmText="Regenerate"
+        cancelText="Cancel"
+        variant="warning"
+        onConfirm={() => { setShowRegenerateConfirm(false); doGenerate(); }}
+        onCancel={() => setShowRegenerateConfirm(false)}
+      />
+
       {showSaveDialog && (
         <div className={styles.dialogOverlay} onClick={() => setShowSaveDialog(false)}>
           <div className={styles.dialog} onClick={e => e.stopPropagation()}>
             <h3 className={styles.dialogTitle}>Save Playground Config</h3>
-            <input className={styles.dialogInput} value={saveName} onChange={e => setSaveName(e.target.value)} placeholder="Config name..." autoFocus onKeyDown={e => { if (e.key === 'Enter') handleSave(); }} />
+            <input className={styles.dialogInput} value={saveName} onChange={e => setSaveName(e.target.value)} placeholder="Config name..." autoFocus onKeyDown={e => { if (e.key === 'Enter') handleSaveAs(); }} />
             <div className={styles.dialogActions}>
               <button className={styles.actionButton} onClick={() => setShowSaveDialog(false)}>Cancel</button>
-              <button className={`${styles.actionButton} ${styles.actionButtonPrimary}`} onClick={handleSave} disabled={!saveName.trim()}>Save</button>
+              <button className={`${styles.actionButton} ${styles.actionButtonPrimary}`} onClick={handleSaveAs} disabled={!saveName.trim() || isSaving}>{isSaving ? 'Saving...' : 'Save'}</button>
             </div>
           </div>
         </div>
@@ -1097,9 +1231,27 @@ function TestInput({ disabled, isLoading, onSend }: { disabled: boolean; isLoadi
     <div className={styles.chatInputArea}>
       <textarea className={styles.chatInput} value={value} onChange={e => setValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={disabled ? 'Activate a crew first...' : 'Type a message...'} disabled={disabled || isLoading} />
       <button className={styles.sendButton} onClick={handleSend} disabled={!value.trim() || isLoading || disabled}>
-        {isLoading ? <div className={styles.spinner} /> : 'Send'}
+        {isLoading ? <div className={styles.spinner} /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>}
       </button>
     </div>
+  );
+}
+
+function CopyButton({ text, label = 'Copy', className }: { text: string; label?: string; className?: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button className={`${styles.codeBlockCopy} ${className || ''}`} onClick={handleCopy}>
+      {copied ? (
+        <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!</>
+      ) : (
+        <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> {label}</>
+      )}
+    </button>
   );
 }
 
@@ -1113,16 +1265,17 @@ function FormattedMessage({ content }: { content: string }) {
           const lang = codeMatch[1] || 'text';
           const code = codeMatch[2].trimEnd();
           const isJson = lang === 'json';
+          const isPrompt = lang === 'prompt';
           return (
-            <div key={i} className={styles.codeBlock}>
-              <div className={styles.codeBlockHeader}>
-                <span>{lang}</span>
-                <button className={styles.codeBlockCopy} onClick={() => navigator.clipboard.writeText(code)}>Copy</button>
+            <div key={i} className={`${styles.codeBlock} ${isPrompt ? styles.promptBlock : ''}`}>
+              <div className={`${styles.codeBlockHeader} ${isPrompt ? styles.promptBlockHeader : ''}`}>
+                <span>{isPrompt ? 'Suggested Prompt' : lang}</span>
+                <CopyButton text={code} label={isPrompt ? 'Copy Prompt' : 'Copy'} className={isPrompt ? styles.promptBlockCopy : undefined} />
               </div>
               {isJson ? (
                 <pre className={styles.codeBlockContent} dangerouslySetInnerHTML={{ __html: colorizeJson(code) }} />
               ) : (
-                <pre className={styles.codeBlockContent}>{code}</pre>
+                <pre className={`${styles.codeBlockContent} ${isPrompt ? styles.promptContent : ''}`}>{code}</pre>
               )}
             </div>
           );
