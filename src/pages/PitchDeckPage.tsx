@@ -43,13 +43,13 @@ export function PitchDeckPage() {
 
       {/* ═══ SLIDE 0 — TITLE ═══ */}
       <div className={`${sl(0)} ${s.centered}`}>
-        <span className={`${s.badge} ${s.badgeCyan}`}>פלטפורמת AI Agents</span>
+        <span className={`${s.badge} ${s.badgeCyan}`}>AI Agents לעסקים מונחי-דאטה</span>
         <h1 className={s.gradientText}>Aspect</h1>
         <p style={{ fontSize: '1.4rem', maxWidth: 700 }}>
-          אנחנו לא סתם בונים אייג׳נטים.<br />
-          <strong>אנחנו בונים אייג׳נטים שבאמת חושבים.</strong>
+          המנהלים שלכם שואלים שאלות עסקיות.<br />
+          <strong>האייג׳נטים שלנו עונים תשובות אמיתיות — מהדאטה שלכם.</strong>
         </p>
-        <p className={s.smallText} style={{ marginTop: '1.5em' }}>הפלטפורמה למערכות Multi-Agent לעסקים מונחי-דאטה</p>
+        <p className={s.smallText} style={{ marginTop: '1.5em' }}>בינה עסקית שמבינה את העסק, לא רק את השאלה</p>
       </div>
 
       {/* ═══ SLIDE 1 — GOLD RUSH ═══ */}
@@ -66,8 +66,8 @@ export function PitchDeckPage() {
             <ul className={`${s.dotList} ${s.dotAmber}`}>
               <li>"בונים אייג׳נטים" עם גרירה ושחרור בלי שום הבנה</li>
               <li>אפליקציות עטיפה שסתם קוראות ל-ChatGPT עם הוראה</li>
-              <li>אפס הבנה ביכולות ובמגבלות של המודלים</li>
-              <li>אפס מומחיות בדאטה, אופטימיזציה וארכיטקטורה</li>
+              <li>לא מבינים את הנתונים העסקיים שלכם, סתם מחוברים</li>
+              <li>לא יודעים מה זה סניף, KPI, עונתיות או חריג</li>
               <li>תבניות הוראה מוכנות שנמכרות בתור "פתרון מותאם"</li>
             </ul>
           </div>
@@ -76,14 +76,14 @@ export function PitchDeckPage() {
               <span className={s.cardIcon}>⚠️</span>
               <h4>התוצאה?</h4>
               <p className={s.accentAmber}>
-                עסקים משקיעים באייג׳נטים שנשברים על מקרי קצה,
-                לא מסוגלים לחשיבה רב-שלבית, שוכחים הקשר בין הודעות,
-                ונותנים <strong className={s.accentRed}>תשובות גנריות</strong> שאפשר לקבל מ-ChatGPT בחינם.
+                מנהל שואל "למה המכירות ירדו בהרצליה?" —
+                ומקבל תשובה גנרית שלא מבינה מהי הרצליה, מה ירד,
+                ולמה. <strong className={s.accentRed}>תשובות שאפשר לקבל מ-ChatGPT בחינם.</strong>
               </p>
             </div>
             <div className={`${s.card} ${s.mt1}`}>
               <h4 className={s.accentAmber}>נשמע מוכר?</h4>
-              <p>"ניסינו צ׳אטבוט AI. הוא לא הבין את העסק. הלקוחות התבאסו. כיבנו אותו."</p>
+              <p>"ניסינו צ׳אטבוט AI. שאלנו שאלה עסקית פשוטה — הוא לא ידע לענות. כיבנו אותו."</p>
             </div>
           </div>
         </div>
@@ -92,22 +92,27 @@ export function PitchDeckPage() {
       {/* ═══ SLIDE 2 — WHY THEY FAIL ═══ */}
       <div className={sl(2)}>
         <span className={`${s.badge} ${s.badgeRed}`}>הבעיה</span>
-        <h2>למה 90% מה-AI Agents<br />הם בסך הכל צ׳אטבוטים יקרים</h2>
+        <h2>למה 90% מה-AI Agents<br />נכשלים על שאלות עסקיות אמיתיות</h2>
         <div className={s.grid3} style={{ marginTop: '0.8em' }}>
           <div className={s.card}>
-            <span className={s.cardIcon}>💬</span>
-            <h4>Prompt אחד, מוח אחד</h4>
-            <p>הוראת מערכת אחת שמנסה לכסות כל שיחה אפשרית. כמו עובד אחד שעושה מכירות, תמיכה, הטמעה ואנליזות. בו-זמנית.</p>
+            <span className={s.cardIcon}>📊</span>
+            <h4>אפס הבנת דאטה</h4>
+            <p>מחברים לבסיס נתונים וקוראים לזה "AI אנליטיקס". לא מבינים את המבנה, המינוח, העונתיות, או מדדי ההצלחה שלכם.</p>
+          </div>
+          <div className={s.card}>
+            <span className={s.cardIcon}>🔍</span>
+            <h4>לא עונים על שאלות מורכבות</h4>
+            <p>"השווה ביצועי סניפים ברבעון וסמן חריגות" — צ׳אטבוט רגיל פשוט נתקע. אין תכנון שאילתא, אין תזמור נתונים.</p>
           </div>
           <div className={s.card}>
             <span className={s.cardIcon}>🧠</span>
             <h4>בלי זיכרון, בלי הקשר</h4>
-            <p>המשתמש חוזר מחר? האייג׳נט לא יודע מי הוא, מה דיברו, או באיזה שלב הוא. כל שיחה מתחילה מאפס.</p>
+            <p>המנהל חוזר מחר? האייג׳נט לא יודע מי הוא, אילו סניפים הוא מנהל, או מה שאלו אתמול. כל שיחה מאפס.</p>
           </div>
           <div className={s.card}>
-            <span className={s.cardIcon}>🔍</span>
-            <h4>לא מתמודד עם שאלות מורכבות</h4>
-            <p>"השווה ביצועי סניפים ברבעון וסמן חריגות" — צ׳אטבוט רגיל פשוט נתקע. אין תכנון שאילתא, אין תזמור נתונים.</p>
+            <span className={s.cardIcon}>💬</span>
+            <h4>Prompt אחד, מוח אחד</h4>
+            <p>הוראה אחת שמנסה לכסות הכל — ניתוח מכירות, דוחות מלאי, השוואת סניפים ומגמות שוק. בו-זמנית. אף אחד לא טוב בהכל.</p>
           </div>
           <div className={s.card}>
             <span className={s.cardIcon}>🔒</span>
@@ -115,14 +120,9 @@ export function PitchDeckPage() {
             <p>בנוי על מודל אחד? כשה-API משתנה, המחירים קופצים, או שמודל חזק יותר יוצא — תקועים. תבנו הכל מחדש.</p>
           </div>
           <div className={s.card}>
-            <span className={s.cardIcon}>📊</span>
-            <h4>אפס הבנת דאטה</h4>
-            <p>מחברים לבסיס נתונים וקוראים לזה "AI אנליטיקס". אבל הם לא מבינים את המבנה, המינוח, או מדדי ההצלחה שלכם.</p>
-          </div>
-          <div className={s.card}>
             <span className={s.cardIcon}>⚙️</span>
-            <h4>אפס אינטליגנציית תהליך</h4>
-            <p>תהליכים אמיתיים כוללים שלבים, תנאים והסתעפויות. צ׳אטבוט לא מסוגל להוביל משתמש דרך הטמעה, הערכה או קליטה מורכבת.</p>
+            <h4>לא מבין תהליכים עסקיים</h4>
+            <p>שאלה עסקית אמיתית דורשת הצלבת מקורות, ניתוח ציר זמן, והבנה של הקשר. צ׳אטבוט רגיל פשוט לא מסוגל.</p>
           </div>
         </div>
       </div>
@@ -130,46 +130,45 @@ export function PitchDeckPage() {
       {/* ═══ SLIDE 3 — SECTION BREAK ═══ */}
       <div className={`${sl(3)} ${s.centered}`}>
         <span className={`${s.badge} ${s.badgeBlue}`}>הפתרון</span>
-        <h2 style={{ fontSize: '3rem' }}>סוג אחר של<br />פלטפורמת אייג׳נטים</h2>
-        <p style={{ fontSize: '1.2rem', maxWidth: 600 }}>
-          נבנתה ע״י מהנדסים שמבינים לעומק גם את הטכנולוגיה<br />
-          וגם את הנתונים שהיא צריכה לעבוד איתם.
+        <h2 style={{ fontSize: '3rem' }}>מה אם האייג׳נט<br />באמת היה מבין את העסק?</h2>
+        <p style={{ fontSize: '1.2rem', maxWidth: 650 }}>
+          לא צ׳אטבוט עם חיבור לדאטהבייס.<br />
+          <strong>אינטליגנציה עסקית</strong> שמבינה מה שואלים, יודעת איפה לחפש,<br />
+          ומחזירה תשובות שאפשר לקבל לגביהן החלטות.
         </p>
       </div>
 
       {/* ═══ SLIDE 4 — WHAT IS ASPECT ═══ */}
       <div className={sl(4)}>
         <span className={`${s.badge} ${s.badgeBlue}`}>מכירים את Aspect</span>
-        <h2>AI Agents מהונדסים<br />לעסקים אמיתיים</h2>
+        <h2>שאלות עסקיות.<br />תשובות מדויקות. מהדאטה שלכם.</h2>
         <div className={s.split} style={{ marginTop: '0.6em' }}>
           <div>
             <p>
-              Aspect היא <strong>פלטפורמת תזמור multi-agent</strong> שבונה
-              אייג׳נטים ייעודיים לתחום שלכם — עם חוכמת תהליך אמיתית,
-              זיכרון מתמשך, והבנה עמוקה של הנתונים.
+              Aspect בונה <strong>אייג׳נטים ייעודיים לעסק שלכם</strong> —
+              שמבינים את הנתונים, המינוח, המבנה הארגוני והשאלות שהצוות שלכם באמת שואל.
             </p>
             <div className={s.divider} />
             <ul className={`${s.dotList} ${s.dotGreen}`}>
-              <li><strong>מערכת Crew</strong> — תתי-אייג׳נטים מומחים לכל שלב בשיחה</li>
-              <li><strong>הקשר מתמשך</strong> — זוכר משתמשים בין סשנים</li>
-              <li><strong>Multi-LLM</strong> — GPT-4o, GPT-5, Claude, Gemini. המודל הטוב ביותר לכל משימה</li>
-              <li><strong>בסיסי ידע</strong> — vector stores ייעודיים לכל crew member</li>
-              <li><strong>תזמור כלים</strong> — אייג׳נטים שעושים פעולות, לא רק מדברים</li>
-              <li><strong>סטרימינג בזמן אמת</strong> — SSE עם שקיפות חשיבה</li>
+              <li><strong>מדבר בשפה שלכם</strong> — מכיר סניפים, קטגוריות, KPIs ומינוח פנימי</li>
+              <li><strong>עונה על שאלות מורכבות</strong> — השוואות, מגמות, חריגים, שורש-בעיה</li>
+              <li><strong>זוכר בין שיחות</strong> — המנהל לא מתחיל מאפס כל בוקר</li>
+              <li><strong>מצליב מקורות נתונים</strong> — ERP, CRM, גיליונות — הכל ביחד</li>
+              <li><strong>נותן המלצות מעשיות</strong> — לא רק מספרים, תובנות שאפשר לפעול לפיהן</li>
+              <li><strong>שקיפות מלאה</strong> — רואים איך הוא חושב ומאיפה המידע</li>
             </ul>
           </div>
           <div>
             <div className={s.glowCard}>
               <h4 className={s.accentCyan} style={{ marginBottom: '0.5em' }}>ההבדל של Aspect</h4>
               <p style={{ lineHeight: 1.7 }}>
-                אנחנו לא נותנים לכם כלי בנייה ומאחלים בהצלחה.<br /><br />
-                אנחנו <strong>מתכננים ארכיטקטורה</strong> לאייג׳נטים שלכם
-                באותה רמת רצינות שצוות תוכנה בונה מערכת ליבה.
-                כל אייג׳נט <strong>תפור במדויק</strong> לתחום שלכם,
-                לנתונים שלכם, לתהליכים ולמשתמשים שלכם.<br /><br />
-                אנחנו מבינים את הטכנולוגיה מספיק לעומק כדי לדעת
-                <strong> מה AI מסוגל ומה לא</strong> — ומתכננים
-                ארכיטקטורה שעוקפת את המגבלות במקום להסתיר אותן.
+                אנחנו לא נותנים לכם כלי ומאחלים בהצלחה.<br /><br />
+                אנחנו <strong>לומדים את העסק שלכם</strong> —
+                את המבנה, את הנתונים, את השאלות שהמנהלים שואלים
+                ואת ההחלטות שהם צריכים לקבל.<br /><br />
+                ואז בונים אייג׳נט <strong>תפור במדויק</strong> שעונה
+                על השאלות שלכם, מהדאטה שלכם, <strong>במדויק ובאמינות</strong>.
+                לא תבנית גנרית — קולגה דיגיטלי שמכיר את העסק מבפנים.
               </p>
             </div>
           </div>
@@ -178,15 +177,15 @@ export function PitchDeckPage() {
 
       {/* ═══ SLIDE 5 — CREW SYSTEM ═══ */}
       <div className={sl(5)}>
-        <span className={`${s.badge} ${s.badgeCyan}`}>החדשנות המרכזית</span>
-        <h2>מערכת ה-Crew</h2>
+        <span className={`${s.badge} ${s.badgeCyan}`}>מה שמתחת למכסה</span>
+        <h2>מערכת ה-Crew —<br />לא אייג׳נט אחד, צוות שלם</h2>
         <p style={{ marginBottom: '0.2em' }}>
-          אייג׳נט אחד. מספר מוחות מומחים. העברה חלקה.
+          המנהל שואל שאלה אחת. מאחורי הקלעים — מוחות מומחים עובדים ביחד.
         </p>
         <div className={s.split} style={{ marginTop: '0.5em' }}>
           <div>
-            <p>במקום הוראה אחת שמנסה לכסות הכל, לכל אייג׳נט Aspect יש
-              <strong> צוות</strong> של יחידות מומחות שמטפלות בשלבים שונים של השיחה. המנתב מחליט אוטומטית למי להעביר.</p>
+            <p>כשמנהל סניף שואל "למה המכירות ירדו?" — זה לא prompt אחד שמנסה לנחש.
+              מערכת ה-crew <strong>מנתבת אוטומטית</strong> לתת-אייג׳נט שמתמחה בדיוק בסוג הניתוח הנדרש.</p>
             <div className={s.flow} style={{ marginTop: '0.7em' }}>
               <span className={s.flowStep}>הודעת משתמש</span>
               <span className={s.flowArrow}>←</span>
@@ -201,11 +200,11 @@ export function PitchDeckPage() {
             <div className={s.divider} />
             <p><strong>לכל crew member יש:</strong></p>
             <ul className={`${s.dotList} ${s.dotBlue}`}>
-              <li>אישיות והנחיות שיחה ייחודיות</li>
-              <li>בחירת מודל LLM (אופטימיזציית עלות/איכות)</li>
-              <li>כלים ופונקציות ייעודיות</li>
-              <li>בסיס ידע ייעודי</li>
-              <li>תנאי מעבר ל-crew members אחרים</li>
+              <li>מומחיות ייעודית — ניתוח מכירות, ניהול מלאי, דוחות סניפים</li>
+              <li>מודל AI אופטימלי לסוג המשימה (עלות מול דיוק)</li>
+              <li>גישה לנתונים ולכלים הרלוונטיים בלבד</li>
+              <li>בסיס ידע ייעודי לתחום שלו</li>
+              <li>מעבר חלק ל-crew member אחר כשצריך</li>
             </ul>
           </div>
           <div>
@@ -237,12 +236,12 @@ export function PitchDeckPage() {
       {/* ═══ SLIDE 6 — SMART QUERIES ═══ */}
       <div className={sl(6)}>
         <span className={`${s.badge} ${s.badgePurple}`}>שכבת אינטליגנציה</span>
-        <h2>אייג׳נטים שמתכננים<br />לפני שעונים</h2>
+        <h2>מנהל שואל שאלה אחת —<br />האייג׳נט מתכנן אסטרטגיה</h2>
         <div className={s.split} style={{ marginTop: '0.6em' }}>
           <div>
             <p>
-              כשמנהל שואל שאלה מורכבת, האייג׳נטים שלנו לא סתם מריצים שאילתא.
-              הם <strong>מתכננים אסטרטגיה</strong>, מפרקים לחלקים, מריצים במקביל, ומגבשים תובנה.
+              שאלות עסקיות אמיתיות לא מתורגמות לשאילתא אחת.
+              האייג׳נטים שלנו <strong>מפרקים, מתכננים, מריצים במקביל, ומגבשים תובנה</strong> — כמו אנליסט מנוסה.
             </p>
             <div className={s.highlightBox} style={{ marginTop: '0.6em' }}>
               <p style={{ fontStyle: 'italic' }}>
@@ -296,22 +295,22 @@ export function PitchDeckPage() {
       {/* ═══ SLIDE 7 — CONTEXT ═══ */}
       <div className={sl(7)}>
         <span className={`${s.badge} ${s.badgeGreen}`}>אינטליגנציה מתמשכת</span>
-        <h2>הקשר ששורד</h2>
+        <h2>האייג׳נט זוכר<br />את העסק שלכם</h2>
         <p>
-          האייג׳נטים שלכם זוכרים. בין הודעות, בין שיחות, בין יחידות הצוות.
+          המנהל לא צריך להסביר מחדש כל בוקר. האייג׳נט יודע מי הוא, מה תחום האחריות שלו, ומה דיברו אתמול.
         </p>
         <div className={s.grid3} style={{ marginTop: '0.7em' }}>
           <div className={`${s.card} ${s.borderBlue}`}>
-            <h4 className={s.accentBlue}>רמת הודעה</h4>
-            <p>היסטוריית שיחה מלאה עם כל הפרטים — מי ענה, אילו כלים הופעלו, אילו מסמכים צוטטו.</p>
+            <h4 className={s.accentBlue}>רמת שיחה</h4>
+            <p>"המשך לנתח את הסניף שדיברנו עליו" — האייג׳נט יודע בדיוק איזה סניף, איזה רבעון, ומה כבר נבדק.</p>
           </div>
           <div className={`${s.card} ${s.borderCyan}`}>
-            <h4 className={s.accentCyan}>רמת שיחה</h4>
-            <p>מצב שנשמר בתוך סשן. התקדמות הערכה, שדות שנאספו, מיקום בתהליך — הכל נשמר לאורך השיחה.</p>
+            <h4 className={s.accentCyan}>רמת תהליך</h4>
+            <p>באמצע הטמעה? האייג׳נט זוכר באיזה שלב אתם, מה כבר הוגדר, ומה נשאר. לא מתחילים מאפס.</p>
           </div>
           <div className={`${s.card} ${s.borderGreen}`}>
             <h4 className={s.accentGreen}>רמת משתמש</h4>
-            <p>זיכרון שחוצה שיחות. המשתמש חוזר מחר? הפרופיל, ההעדפות והמסע שלו נשמרים. בלי להתחיל מאפס.</p>
+            <p>המנהל חוזר אחרי שבוע? האייג׳נט יודע שהוא אחראי על 3 סניפים, מתמקד במכירות, ומעדיף תובנות קצרות.</p>
           </div>
         </div>
         <div className={s.highlightBox}>
@@ -594,23 +593,23 @@ export function PitchDeckPage() {
         <div className={s.grid4} style={{ marginTop: '0.8em' }}>
           <div className={`${s.card} ${s.borderTopBlue}`}>
             <span className={s.cardIcon}>🔍</span>
-            <h4>1. גילוי</h4>
-            <p>לומדים את הדומיין, הדאטה, המשתמשים והתהליכים שלכם. אילו שאלות שואלים? אילו החלטות מקבלים? איפה נתקעים?</p>
+            <h4>1. מבינים את העסק</h4>
+            <p>לומדים את הנתונים, המבנה הארגוני, ה-KPIs שלכם. מה המנהלים שואלים? אילו דוחות מבקשים? איפה מבזבזים זמן?</p>
           </div>
           <div className={`${s.card} ${s.borderTopCyan}`}>
             <span className={s.cardIcon}>🛠️</span>
-            <h4>2. ארכיטקטורה</h4>
-            <p>תכנון מערכת ה-crew: אילו members, מה כל אחד מטפל, איך מעברים ביניהם, אילו נתונים חולקים. בחירת LLM אופטימלי לכל crew.</p>
+            <h4>2. מתכננים ארכיטקטורה</h4>
+            <p>מעצבים מערכת crew מותאמת: אייג׳נט למכירות, אייג׳נט למלאי, אייג׳נט לחריגים. כל אחד עם המומחיות, הנתונים והמודל הנכון.</p>
           </div>
           <div className={`${s.card} ${s.borderTopPurple}`}>
             <span className={s.cardIcon}>🚀</span>
-            <h4>3. בנייה ופריסה</h4>
-            <p>מימוש crew members עם הנחיות, כלים ו-KB. חיבור מקורות נתונים. פריסה לפרודקשן עם סטרימינג ומוניטורינג.</p>
+            <h4>3. בונים ומפעילים</h4>
+            <p>חיבור מקורות הנתונים שלכם, בניית בסיסי ידע, פריסה לפרודקשן. המנהלים מתחילים לשאול שאלות ולקבל תשובות.</p>
           </div>
           <div className={`${s.card} ${s.borderTopGreen}`}>
             <span className={s.cardIcon}>📈</span>
-            <h4>4. אבולוציה</h4>
-            <p>שיפור מתמיד מבוסס שימוש אמיתי. הוספת crew members, שכלול prompts, הרחבת יכולות. ימים, לא רבעונים.</p>
+            <h4>4. משתפרים כל הזמן</h4>
+            <p>שיפור מתמיד מבוסס שימוש אמיתי. שאלה חדשה שלא כוסתה? crew member חדש בימים. הוספת מקור נתונים? שעות.</p>
           </div>
         </div>
         <div className={s.highlightBox} style={{ marginTop: '1.2em' }}>
@@ -639,31 +638,31 @@ export function PitchDeckPage() {
           <div className={`${s.card} ${s.borderLeftRed}`}>
             <h4 className={s.accentRed}>בלי Aspect</h4>
             <ul className={`${s.dotList} ${s.dotRed}`} style={{ marginTop: '0.3em' }}>
-              <li>צ׳אטבוט גנרי שמתסכל משתמשים</li>
-              <li>פרויקט AI יקר ש"לא ממש עובד"</li>
-              <li>נעולים ל-roadmap של ספק אחד</li>
-              <li>חודשי פיתוח לפונקציונליות בסיסית</li>
-              <li>צוות דאטה עדיין טובע בבקשות דוחות</li>
-              <li>"ניסינו AI, זה לא בשבילנו"</li>
+              <li>מנהל סניף רוצה לדעת למה המכירות ירדו — ממתין לדוח</li>
+              <li>צוות דאטה טובע בבקשות אד-הוק</li>
+              <li>נתונים פזורים ב-5 מערכות שלא מדברות</li>
+              <li>צ׳אטבוט AI שלא מבין את העסק — כיבנו אותו</li>
+              <li>החלטות מתקבלות על בסיס תחושת בטן</li>
+              <li>"יש לנו את הדאטה, אין לנו מי שיענה עליו"</li>
             </ul>
           </div>
           <div className={`${s.card} ${s.borderLeftGreen}`}>
             <h4 className={s.accentGreen}>עם Aspect</h4>
             <ul className={`${s.dotList} ${s.dotGreen}`} style={{ marginTop: '0.3em' }}>
-              <li>אייג׳נט מומחה דומיין שמשתמשים סומכים עליו</li>
-              <li>שאלות מורכבות נענות בשניות</li>
-              <li>ארכיטקטורת Multi-LLM, עצמאית מספק</li>
-              <li>פרודקשן בשבועות, אבולוציה בימים</li>
+              <li>מנהל שואל שאלה בצ׳אט — מקבל תובנה עם נתונים בשניות</li>
+              <li>האייג׳נט מכיר סניפים, קטגוריות, עונתיות ו-KPIs</li>
+              <li>מצליב נתונים ממספר מקורות אוטומטית</li>
+              <li>מזהה חריגים ומגמות לפני שתשאלו</li>
               <li>כל אחד בארגון עם גישה ישירה לתובנות</li>
-              <li>"איך אי פעם עבדנו בלי זה?"</li>
+              <li>"איך אי פעם קיבלנו החלטות בלי זה?"</li>
             </ul>
           </div>
         </div>
         <div style={{ textAlign: 'center', marginTop: '1.5em', maxWidth: 750, alignSelf: 'center' }}>
-          <span style={{ fontSize: '0.95rem' }}>השאלה היא לא אם אתם צריכים AI.</span>
+          <span style={{ fontSize: '0.95rem' }}>יש לכם את הדאטה. יש לכם את השאלות.</span>
           <br />
           <span className={s.gradientText} style={{ fontSize: '1.5rem', fontWeight: 800 }}>
-            השאלה היא: אתם רוצים AI שעובד?
+            חסר לכם רק מי שיחבר ביניהם.
           </span>
         </div>
       </div>
@@ -671,10 +670,10 @@ export function PitchDeckPage() {
       {/* ═══ SLIDE 16 — CTA ═══ */}
       <div className={`${sl(16)} ${s.centered}`}>
         <span className={`${s.badge} ${s.badgeCyan}`}>הצעד הבא</span>
-        <h2 className={s.gradientText} style={{ fontSize: '2.8rem' }}>בואו נבנה את<br />האייג׳נט שלכם ביחד</h2>
+        <h2 className={s.gradientText} style={{ fontSize: '2.8rem' }}>תנו לנו את הדאטה שלכם.<br />נחזיר לכם תשובות.</h2>
         <p style={{ fontSize: '1.1rem', maxWidth: 600, marginBottom: '0.5em' }}>
-          ספרו לנו על העסק ועל הדאטה שלכם.<br />
-          נראה לכם מה אפשר — על הנתונים האמיתיים שלכם, בשפה שלכם.
+          ספרו לנו מה המנהלים שלכם שואלים.<br />
+          נראה לכם איך האייג׳נט עונה — על הנתונים האמיתיים שלכם, בשפה שלכם.
         </p>
         <div className={s.grid3} style={{ marginTop: '1em', maxWidth: 650 }}>
           <div className={`${s.card} ${s.borderBlue}`} style={{ textAlign: 'center' }}>
