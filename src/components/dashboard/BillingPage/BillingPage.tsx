@@ -20,7 +20,10 @@ interface ProviderBilling {
   totalOutputTokens?: number;
   totalTokens?: number;
   totalCostUsd?: number | null;
+  totalCostLocal?: number | null;
+  currency?: string | null;
   modelBreakdown?: ModelBreakdown;
+  serviceBreakdown?: Record<string, number>;
   error?: string | null;
   status?: string;
   message?: string;
@@ -60,7 +63,7 @@ function ProviderCard({ data }: { data: ProviderBilling }) {
 
   const label = providerLabel[data.provider] || data.provider;
   const color = providerColor[data.provider] || '#6b7280';
-  const isNotConfigured = data.status === 'not_configured' || (data.error && data.error.toLowerCase().includes('not configured'));
+  const isNotConfigured = data.status === 'not_configured' || data.error === 'not_configured' || (data.error && data.error.toLowerCase().includes('not configured'));
   const hasError = !!data.error && !isNotConfigured;
 
   return (
@@ -77,7 +80,7 @@ function ProviderCard({ data }: { data: ProviderBilling }) {
           <p>{data.message || 'API key not configured yet.'}</p>
           {data.setupUrl && (
             <a href={data.setupUrl} target="_blank" rel="noreferrer" className={styles.setupLink}>
-              Open Google Cloud Console →
+              Open console →
             </a>
           )}
         </div>
@@ -89,22 +92,32 @@ function ProviderCard({ data }: { data: ProviderBilling }) {
       ) : (
         <>
           <div className={styles.statsRow}>
-            <div className={styles.stat}>
-              <div className={styles.statLabel}>Input Tokens</div>
-              <div className={styles.statValue}>{formatTokens(data.totalInputTokens)}</div>
-            </div>
-            <div className={styles.stat}>
-              <div className={styles.statLabel}>Output Tokens</div>
-              <div className={styles.statValue}>{formatTokens(data.totalOutputTokens)}</div>
-            </div>
-            <div className={styles.stat}>
-              <div className={styles.statLabel}>Total Tokens</div>
-              <div className={styles.statValue}>{formatTokens(data.totalTokens)}</div>
-            </div>
+            {data.provider !== 'google' && (
+              <>
+                <div className={styles.stat}>
+                  <div className={styles.statLabel}>Input Tokens</div>
+                  <div className={styles.statValue}>{formatTokens(data.totalInputTokens)}</div>
+                </div>
+                <div className={styles.stat}>
+                  <div className={styles.statLabel}>Output Tokens</div>
+                  <div className={styles.statValue}>{formatTokens(data.totalOutputTokens)}</div>
+                </div>
+                <div className={styles.stat}>
+                  <div className={styles.statLabel}>Total Tokens</div>
+                  <div className={styles.statValue}>{formatTokens(data.totalTokens)}</div>
+                </div>
+              </>
+            )}
             <div className={`${styles.stat} ${styles.statCost}`}>
-              <div className={styles.statLabel}>Total Cost</div>
+              <div className={styles.statLabel}>Total Cost (USD)</div>
               <div className={styles.statValue}>{formatCost(data.totalCostUsd)}</div>
             </div>
+            {data.totalCostLocal != null && data.currency && data.currency !== 'USD' && (
+              <div className={styles.stat}>
+                <div className={styles.statLabel}>Total Cost ({data.currency})</div>
+                <div className={styles.statValue}>{data.totalCostLocal.toFixed(2)} {data.currency}</div>
+              </div>
+            )}
           </div>
 
           {data.modelBreakdown && Object.keys(data.modelBreakdown).length > 0 && (
@@ -128,6 +141,30 @@ function ProviderCard({ data }: { data: ProviderBilling }) {
                       {stats.cost_usd != null && <td>{formatCost(stats.cost_usd)}</td>}
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {data.serviceBreakdown && Object.keys(data.serviceBreakdown).length > 0 && (
+            <div className={styles.breakdown}>
+              <div className={styles.breakdownTitle}>Service Breakdown</div>
+              <table className={styles.breakdownTable}>
+                <thead>
+                  <tr>
+                    <th>Service</th>
+                    <th>Cost (USD)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(data.serviceBreakdown)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([svc, cost]) => (
+                      <tr key={svc}>
+                        <td className={styles.modelName}>{svc}</td>
+                        <td>{formatCost(cost)}</td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
