@@ -4,13 +4,8 @@ import { AppLayout } from '../components/layout';
 import { ChatContainer } from '../components/chat';
 import { zer4uConfig } from '../agents';
 import { useDocumentMeta } from '../hooks';
-import { useSearchParams } from 'react-router-dom';
 
 export function Zer4UPage() {
-  const [searchParams] = useSearchParams();
-  const isEmbed = searchParams.get('embed') === 'true' ||
-    (typeof window !== 'undefined' && window.self !== window.top);
-
   useDocumentMeta({
     title: zer4uConfig.pageTitle,
     favicon: zer4uConfig.favicon,
