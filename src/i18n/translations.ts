@@ -95,6 +95,9 @@ export const translations: LanguageConfig = {
     'agent.banking.welcomeMessage': 'How can I help you with your banking needs today?',
     'agent.banking.inputPlaceholder': 'Ask about banking services...',
 
+    // Agent-specific: Zer4U
+    'agent.zer4u.inputPlaceholder': 'Ask about your business...',
+
     // Quick Questions - Freeda
     'quick.freeda.commonSymptoms.text': 'Common Symptoms',
     'quick.freeda.commonSymptoms.question': 'What are the common symptoms of menopause?',
@@ -311,6 +314,9 @@ export const translations: LanguageConfig = {
     'agent.banking.welcomeTitle': 'ברוכים הבאים לעוזר הבנקאות',
     'agent.banking.welcomeMessage': 'איך אוכל לעזור לך עם צרכי הבנקאות שלך היום?',
     'agent.banking.inputPlaceholder': 'שאל על שירותי בנקאות...',
+
+    // Agent-specific: Zer4U
+    'agent.zer4u.inputPlaceholder': 'שאל על העסק שלך...',
 
     // Quick Questions - Freeda
     'quick.freeda.commonSymptoms.text': 'תסמינים נפוצים',
