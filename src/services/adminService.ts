@@ -43,8 +43,9 @@ export async function getUsers(
 /**
  * Get admin dashboard stats
  */
-export async function getStats(baseURL?: string): Promise<AdminStats> {
-  return apiRequest<AdminStats>('/api/admin/stats', { method: 'GET' }, baseURL || getBaseURL());
+export async function getStats(baseURL?: string, agentName?: string): Promise<AdminStats> {
+  const params = agentName ? `?agentName=${encodeURIComponent(agentName)}` : '';
+  return apiRequest<AdminStats>(`/api/admin/stats${params}`, { method: 'GET' }, baseURL || getBaseURL());
 }
 
 /**

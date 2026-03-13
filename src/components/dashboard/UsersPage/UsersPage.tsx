@@ -37,7 +37,7 @@ export function UsersPage({ baseURL, agentName }: UsersPageProps) {
     try {
       const [usersResponse, statsResponse, tenantsResponse] = await Promise.all([
         getUsers({ ...filters, search: searchText || undefined, agentName }, baseURL),
-        getStats(baseURL),
+        getStats(baseURL, agentName),
         getTenants(baseURL),
       ]);
       setUsers(usersResponse.users);
