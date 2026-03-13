@@ -30,6 +30,7 @@ export async function getUsers(
   if (filters.tenant) params.append('tenant', filters.tenant);
   if (filters.subscription) params.append('subscription', filters.subscription);
   if (filters.search) params.append('search', filters.search);
+  if (filters.agentName) params.append('agentName', filters.agentName);
   if (filters.limit) params.append('limit', filters.limit.toString());
   if (filters.offset) params.append('offset', filters.offset.toString());
 

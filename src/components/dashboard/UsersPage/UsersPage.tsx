@@ -8,9 +8,10 @@ import styles from './UsersPage.module.css';
 
 interface UsersPageProps {
   baseURL: string;
+  agentName?: string;
 }
 
-export function UsersPage({ baseURL }: UsersPageProps) {
+export function UsersPage({ baseURL, agentName }: UsersPageProps) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [tenants, setTenants] = useState<string[]>([]);
@@ -35,7 +36,7 @@ export function UsersPage({ baseURL }: UsersPageProps) {
     setIsLoading(true);
     try {
       const [usersResponse, statsResponse, tenantsResponse] = await Promise.all([
-        getUsers({ ...filters, search: searchText || undefined }, baseURL),
+        getUsers({ ...filters, search: searchText || undefined, agentName }, baseURL),
         getStats(baseURL),
         getTenants(baseURL),
       ]);

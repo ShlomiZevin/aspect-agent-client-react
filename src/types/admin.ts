@@ -51,6 +51,7 @@ export interface AdminUserFilters {
   tenant?: string;
   subscription?: UserSubscription;
   search?: string;
+  agentName?: string;
   limit?: number;
   offset?: number;
 }
