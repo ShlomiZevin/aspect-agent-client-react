@@ -69,7 +69,7 @@ export function DashboardPage() {
             />
             <Route
               path="users"
-              element={<UsersPage baseURL={config.baseURL} agentName={config.agentName} />}
+              element={<UsersPage baseURL={config.baseURL} />}
             />
             <Route
               path="crew"
