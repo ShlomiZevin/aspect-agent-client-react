@@ -23,6 +23,8 @@ export const translations: LanguageConfig = {
     'chat.typeMessage': 'Type your message...',
     'chat.uploading': 'Uploading',
     'chat.attachFile': 'Attach file',
+    'chat.startRecording': 'Start voice input',
+    'chat.stopRecording': 'Stop recording',
 
     // Message Actions
     'message.delete': 'Delete',
@@ -247,6 +249,8 @@ export const translations: LanguageConfig = {
     'chat.typeMessage': 'הקלד את ההודעה שלך...',
     'chat.uploading': 'מעלה',
     'chat.attachFile': 'צרף קובץ',
+    'chat.startRecording': 'הקלטת קול',
+    'chat.stopRecording': 'עצור הקלטה',
 
     // Message Actions
     'message.delete': 'מחק',
