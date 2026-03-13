@@ -96,6 +96,10 @@ export const translations: LanguageConfig = {
     'agent.banking.inputPlaceholder': 'Ask about banking services...',
 
     // Agent-specific: Zer4U
+    'agent.zer4u.headerTitle': 'Zer4U',
+    'agent.zer4u.headerSubtitle': 'AI-powered business intelligence',
+    'agent.zer4u.welcomeTitle': 'Welcome to your Zer4U Assistant',
+    'agent.zer4u.welcomeMessage': 'Ask me anything about your sales, inventory, customers, and business performance.',
     'agent.zer4u.inputPlaceholder': 'Ask about your business...',
 
     // Quick Questions - Freeda
@@ -316,6 +320,10 @@ export const translations: LanguageConfig = {
     'agent.banking.inputPlaceholder': 'שאל על שירותי בנקאות...',
 
     // Agent-specific: Zer4U
+    'agent.zer4u.headerTitle': 'Zer4U',
+    'agent.zer4u.headerSubtitle': 'מודיעין עסקי מבוסס בינה מלאכותית',
+    'agent.zer4u.welcomeTitle': 'ברוכים הבאים לסייע העסקי של Zer4U',
+    'agent.zer4u.welcomeMessage': 'שאל אותי כל שאלה על מכירות, מלאי, לקוחות וביצועים עסקיים.',
     'agent.zer4u.inputPlaceholder': 'שאל על העסק שלך...',
 
     // Quick Questions - Freeda
