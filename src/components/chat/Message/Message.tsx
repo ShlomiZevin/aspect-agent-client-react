@@ -17,11 +17,13 @@ interface MessageProps {
   message: MessageType;
 }
 
-// Detect if text starts with RTL characters (Hebrew, Arabic)
+// Detect if the message's primary direction is RTL (Hebrew, Arabic).
+// Finds the first real letter of any script — if it's Hebrew/Arabic → RTL.
+// Cyrillic, Latin, etc. → LTR (fixes mixed Hebrew+Russian responses).
 function isRTL(text: string): boolean {
   const rtlChar = /[\u0590-\u05FF\u0600-\u06FF\u0700-\u074F]/;
-  const stripped = text.replace(/[^a-zA-Z\u0590-\u05FF\u0600-\u06FF\u0700-\u074F]/g, '');
-  return rtlChar.test(stripped.charAt(0));
+  const firstLetter = text.match(/\p{L}/u);
+  return firstLetter ? rtlChar.test(firstLetter[0]) : false;
 }
 
 // Known domains for task filtering
