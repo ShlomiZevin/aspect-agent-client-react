@@ -78,8 +78,7 @@ export function ChatInput() {
           if (!res.ok) throw new Error(await res.text());
           const { text } = await res.json();
           if (text) {
-            setInput(prev => prev ? `${prev} ${text}` : text);
-            textareaRef.current?.focus();
+            sendMessage(text);
           }
         } catch (err) {
           console.error('Transcription failed:', err);
