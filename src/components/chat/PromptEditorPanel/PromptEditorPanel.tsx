@@ -185,7 +185,8 @@ export function PromptEditorPanel({
   // Get current crew's configured KB sources (from crew member definition)
   const crewKBSources: string[] = useMemo(() => {
     const crew = crewMembers.find(c => c.name === selectedCrewId);
-    return crew?.knowledgeBase?.sources || [];
+    const raw = crew?.knowledgeBase?.sources || [];
+    return raw.map((s: string | { name: string }) => typeof s === 'string' ? s : s.name);
   }, [crewMembers, selectedCrewId]);
 
   // Current effective KB sources (override or crew config)

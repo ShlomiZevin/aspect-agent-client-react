@@ -309,7 +309,7 @@ export function CrewEditor({ agentName, crew, baseURL, onSaved, onDeleted, onCan
               <div className={styles.tagList}>
                 {(crew.knowledgeBase.sources ?? []).length > 0 ? (
                   (crew.knowledgeBase.sources ?? []).map((src, i) => (
-                    <span key={i} className={styles.tag}>{src}</span>
+                    <span key={i} className={styles.tag}>{typeof src === 'string' ? src : src.name}</span>
                   ))
                 ) : (
                   <span className={styles.emptyTag}>No KB sources configured</span>
