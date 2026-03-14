@@ -9,16 +9,16 @@ export const zer4uConfig: AgentConfig = {
   baseURL: BASE_URL,
 
   pageTitle: 'Zer4U - מודיעין עסקי',
-  favicon: 'https://www.zakyanut-center.co.il/wp-content/uploads/2019/07/Zer4u_logo_2.png',
+  favicon: '/img/zer4u-logo.png',
   metaDescription: 'מערכת מודיעין עסקי מבוססת בינה מלאכותית לניתוח מכירות, מלאי וביצועים עסקיים.',
 
   logo: {
-    src: 'https://www.zakyanut-center.co.il/wp-content/uploads/2019/07/Zer4u_logo_2.png',
+    src: '/img/zer4u-logo.png',
     alt: 'Zer4U Logo',
   },
   headerTitle: 'Zer4U',
   headerSubtitle: 'מודיעין עסקי מבוסס בינה מלאכותית',
-  welcomeIcon: '🌿',
+  welcomeIcon: '/img/zer4u-logo.png',
   welcomeTitle: 'ברוכים הבאים לסייע העסקי של Zer4U',
   welcomeMessage: 'שאל אותי כל שאלה על מכירות, מלאי, לקוחות וביצועים עסקיים.',
   inputPlaceholder: 'שאל על העסק שלך...',

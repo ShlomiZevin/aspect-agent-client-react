@@ -1,36 +1,47 @@
-/* Zer4U Theme - Natural Green (Flower Shop) */
+/* Zer4U Theme - Brand Green (Flower & Gift Shop) */
 .theme-zer4u {
-  --primary-color: #16a34a;
-  --primary-hover: #15803d;
-  --primary-light: rgba(22, 163, 74, 0.1);
+  /* Primary - Zer4U brand forest green */
+  --primary-color: #3b7a35;
+  --primary-hover: #2d6627;
+  --primary-light: rgba(59, 122, 53, 0.1);
   --secondary-color: #6b7280;
-  --success-color: #10b981;
+  --success-color: #3b7a35;
   --warning-color: #f59e0b;
   --error-color: #ef4444;
-  --background: #f0fdf4;
-  --surface: #ffffff;
-  --surface-light: #f0fdf4;
-  --border: #bbf7d0;
-  --text-primary: #14532d;
-  --text-secondary: #4b7c60;
-  --text-muted: #86b39a;
+
+  /* Background - clean white like the Zer4U site */
+  --background: #ffffff;
+  --surface: #f9fafb;
+  --surface-light: #f3f4f6;
+
+  /* Borders */
+  --border: #e5e7eb;
+
+  /* Text */
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+
+  /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-  --gradient: linear-gradient(135deg, #16a34a, #059669);
+
+  /* Gradient */
+  --gradient: linear-gradient(135deg, #3b7a35, #2d6627);
 }
 
 .theme-zer4u[data-theme="dark"] {
-  --primary-color: #22c55e;
-  --primary-hover: #16a34a;
-  --primary-light: rgba(34, 197, 94, 0.15);
-  --background: #052e16;
-  --surface: #0f2e1a;
-  --surface-light: #1a3d27;
-  --border: #166534;
-  --text-primary: #f0fdf4;
-  --text-secondary: #86efac;
-  --text-muted: #4ade80;
+  --primary-color: #5aad52;
+  --primary-hover: #4a9a43;
+  --primary-light: rgba(90, 173, 82, 0.15);
+  --background: #111827;
+  --surface: #1f2937;
+  --surface-light: #374151;
+  --border: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
