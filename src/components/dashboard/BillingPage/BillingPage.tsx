@@ -13,6 +13,12 @@ interface ModelBreakdown {
   };
 }
 
+interface ServiceBreakdownEntry {
+  cost: number;
+  credits: number;
+  net: number;
+}
+
 interface ProviderBilling {
   provider: string;
   period?: { start: string; end: string };
@@ -20,14 +26,17 @@ interface ProviderBilling {
   totalOutputTokens?: number;
   totalTokens?: number;
   totalCostUsd?: number | null;
+  totalCredits?: number | null;
+  netCostUsd?: number | null;
   totalCostLocal?: number | null;
   currency?: string | null;
   modelBreakdown?: ModelBreakdown;
-  serviceBreakdown?: Record<string, number>;
+  serviceBreakdown?: Record<string, number | ServiceBreakdownEntry>;
   error?: string | null;
   status?: string;
   message?: string;
   setupUrl?: string;
+  missingKeys?: string[];
 }
 
 interface BillingData {
@@ -65,6 +74,9 @@ function ProviderCard({ data }: { data: ProviderBilling }) {
   const color = providerColor[data.provider] || '#6b7280';
   const isNotConfigured = data.status === 'not_configured' || data.error === 'not_configured' || (data.error && data.error.toLowerCase().includes('not configured'));
   const hasError = !!data.error && !isNotConfigured;
+
+  const hasObjectBreakdown = data.serviceBreakdown && Object.values(data.serviceBreakdown).some(v => typeof v === 'object' && v !== null);
+  const hasCredits = hasObjectBreakdown && Object.values(data.serviceBreakdown!).some(v => typeof v === 'object' && v !== null && (v as ServiceBreakdownEntry).credits !== 0);
 
   return (
     <div className={styles.card}>
@@ -109,13 +121,19 @@ function ProviderCard({ data }: { data: ProviderBilling }) {
               </>
             )}
             <div className={`${styles.stat} ${styles.statCost}`}>
-              <div className={styles.statLabel}>Total Cost (USD)</div>
+              <div className={styles.statLabel}>{data.provider === 'google' ? 'Gross Cost' : 'Total Cost'} (USD)</div>
               <div className={styles.statValue}>{formatCost(data.totalCostUsd)}</div>
             </div>
-            {data.totalCostLocal != null && data.currency && data.currency !== 'USD' && (
+            {data.totalCredits != null && data.totalCredits !== 0 && (
               <div className={styles.stat}>
-                <div className={styles.statLabel}>Total Cost ({data.currency})</div>
-                <div className={styles.statValue}>{data.totalCostLocal.toFixed(2)} {data.currency}</div>
+                <div className={styles.statLabel}>Credits</div>
+                <div className={styles.statValue}>{formatCost(data.totalCredits)}</div>
+              </div>
+            )}
+            {data.netCostUsd != null && (
+              <div className={`${styles.stat} ${styles.statCost}`}>
+                <div className={styles.statLabel}>Net Cost (USD)</div>
+                <div className={styles.statValue}>{formatCost(data.netCostUsd)}</div>
               </div>
             )}
           </div>
@@ -153,18 +171,31 @@ function ProviderCard({ data }: { data: ProviderBilling }) {
                 <thead>
                   <tr>
                     <th>Service</th>
-                    <th>Cost (USD)</th>
+                    <th>Cost</th>
+                    {hasCredits && <th>Credits</th>}
+                    {hasObjectBreakdown && <th>Net</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {Object.entries(data.serviceBreakdown)
-                    .sort(([, a], [, b]) => b - a)
-                    .map(([svc, cost]) => (
-                      <tr key={svc}>
-                        <td className={styles.modelName}>{svc}</td>
-                        <td>{formatCost(cost)}</td>
-                      </tr>
-                    ))}
+                    .sort(([, a], [, b]) => {
+                      const aVal = typeof a === 'object' && a !== null ? (a as ServiceBreakdownEntry).cost : (a as number);
+                      const bVal = typeof b === 'object' && b !== null ? (b as ServiceBreakdownEntry).cost : (b as number);
+                      return bVal - aVal;
+                    })
+                    .map(([svc, entry]) => {
+                      const isObj = typeof entry === 'object' && entry !== null;
+                      const e = entry as ServiceBreakdownEntry;
+                      const cost = isObj ? e.cost : (entry as number);
+                      return (
+                        <tr key={svc}>
+                          <td className={styles.modelName}>{svc}</td>
+                          <td>{formatCost(cost)}</td>
+                          {hasCredits && <td>{isObj ? formatCost(e.credits) : '—'}</td>}
+                          {hasObjectBreakdown && <td>{isObj ? formatCost(e.net) : formatCost(cost)}</td>}
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
