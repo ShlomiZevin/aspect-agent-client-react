@@ -11,7 +11,7 @@ import { PodcastPage } from '../components/dashboard/PodcastPage';
 import { BillingPage } from '../components/dashboard/BillingPage';
 import { ApiKeysPage } from '../components/dashboard/ApiKeysPage';
 import { KBManager } from '../components/kb';
-import { aspectConfig, bankingOnboarderConfig, bankingOnboarderV2Config, compassConfig, freedaConfig } from '../agents';
+import { aspectConfig, bankingOnboarderConfig, bankingOnboarderV2Config, compassConfig, freedaConfig, zer4uConfig } from '../agents';
 import type { AgentConfig } from '../types';
 
 const agentConfigs: Record<string, AgentConfig> = {
@@ -20,6 +20,7 @@ const agentConfigs: Record<string, AgentConfig> = {
   'banking-v2': bankingOnboarderV2Config,
   compass: compassConfig,
   freeda: freedaConfig,
+  zer4u: zer4uConfig,
 };
 
 export function DashboardPage() {

@@ -23,6 +23,8 @@ export const translations: LanguageConfig = {
     'chat.typeMessage': 'Type your message...',
     'chat.uploading': 'Uploading',
     'chat.attachFile': 'Attach file',
+    'chat.startRecording': 'Start voice input',
+    'chat.stopRecording': 'Stop recording',
 
     // Message Actions
     'message.delete': 'Delete',
@@ -95,6 +97,13 @@ export const translations: LanguageConfig = {
     'agent.banking.welcomeMessage': 'How can I help you with your banking needs today?',
     'agent.banking.inputPlaceholder': 'Ask about banking services...',
 
+    // Agent-specific: Zer4U
+    'agent.zer4u.headerTitle': 'Zer4U',
+    'agent.zer4u.headerSubtitle': 'AI-powered business intelligence',
+    'agent.zer4u.welcomeTitle': 'Welcome to your Zer4U Assistant',
+    'agent.zer4u.welcomeMessage': 'Ask me anything about your sales, inventory, customers, and business performance.',
+    'agent.zer4u.inputPlaceholder': 'Ask about your business...',
+
     // Quick Questions - Freeda
     'quick.freeda.commonSymptoms.text': 'Common Symptoms',
     'quick.freeda.commonSymptoms.question': 'What are the common symptoms of menopause?',
@@ -146,6 +155,28 @@ export const translations: LanguageConfig = {
     'quick.aspect.transferRecommendations.question': 'Which products should I move between branches?',
     'quick.aspect.slowMovers.text': 'Slow Movers',
     'quick.aspect.slowMovers.question': 'Show me slow-moving inventory',
+
+    // Quick Questions - Zer4U
+    'quick.zer4u.salesOverview.text': 'Sales Overview',
+    'quick.zer4u.salesOverview.question': 'What are my total sales this month?',
+    'quick.zer4u.topProducts.text': 'Top Products',
+    'quick.zer4u.topProducts.question': 'Which products are selling the most?',
+    'quick.zer4u.storePerformance.text': 'Store Performance',
+    'quick.zer4u.storePerformance.question': 'Show me performance by store',
+    'quick.zer4u.inventoryCheck.text': 'Inventory Check',
+    'quick.zer4u.inventoryCheck.question': 'What is the current inventory status?',
+    'quick.zer4u.topCustomers.text': 'Top Customers',
+    'quick.zer4u.topCustomers.question': 'Who are my top customers?',
+    'quick.zer4u.yoyComparison.text': 'YoY Comparison',
+    'quick.zer4u.yoyComparison.question': 'Compare this month to the same month last year',
+    'quick.zer4u.savingsTips.text': 'How to Save Money',
+    'quick.zer4u.savingsTips.question': 'Based on my data, how can I reduce costs and improve profitability?',
+    'quick.zer4u.inventoryIssues.text': 'Inventory Issues',
+    'quick.zer4u.inventoryIssues.question': 'Show me products with inventory problems',
+    'quick.zer4u.targets.text': 'Targets vs Actual',
+    'quick.zer4u.targets.question': 'How are we doing against our targets?',
+    'quick.zer4u.slowMovers.text': 'Slow Movers',
+    'quick.zer4u.slowMovers.question': 'Show me slow-moving inventory',
 
     // Quick Questions - Banking
     'quick.banking.startOnboarding.text': 'Start Onboarding',
@@ -218,6 +249,8 @@ export const translations: LanguageConfig = {
     'chat.typeMessage': 'הקלד את ההודעה שלך...',
     'chat.uploading': 'מעלה',
     'chat.attachFile': 'צרף קובץ',
+    'chat.startRecording': 'הקלטת קול',
+    'chat.stopRecording': 'עצור הקלטה',
 
     // Message Actions
     'message.delete': 'מחק',
@@ -290,6 +323,13 @@ export const translations: LanguageConfig = {
     'agent.banking.welcomeMessage': 'איך אוכל לעזור לך עם צרכי הבנקאות שלך היום?',
     'agent.banking.inputPlaceholder': 'שאל על שירותי בנקאות...',
 
+    // Agent-specific: Zer4U
+    'agent.zer4u.headerTitle': 'Zer4U',
+    'agent.zer4u.headerSubtitle': 'מודיעין עסקי מבוסס בינה מלאכותית',
+    'agent.zer4u.welcomeTitle': 'ברוכים הבאים לסייע העסקי של Zer4U',
+    'agent.zer4u.welcomeMessage': 'שאל אותי כל שאלה על מכירות, מלאי, לקוחות וביצועים עסקיים.',
+    'agent.zer4u.inputPlaceholder': 'שאל על העסק שלך...',
+
     // Quick Questions - Freeda
     'quick.freeda.commonSymptoms.text': 'תסמינים נפוצים',
     'quick.freeda.commonSymptoms.question': 'מהם התסמינים הנפוצים של גיל המעבר?',
@@ -341,6 +381,28 @@ export const translations: LanguageConfig = {
     'quick.aspect.transferRecommendations.question': 'אילו מוצרים כדאי להעביר בין סניפים?',
     'quick.aspect.slowMovers.text': 'מוצרים איטיים',
     'quick.aspect.slowMovers.question': 'הראה לי מלאי שנע לאט',
+
+    // Quick Questions - Zer4U
+    'quick.zer4u.salesOverview.text': 'סקירת מכירות',
+    'quick.zer4u.salesOverview.question': 'מה סך המכירות החודש?',
+    'quick.zer4u.topProducts.text': 'מוצרים מובילים',
+    'quick.zer4u.topProducts.question': 'אילו מוצרים נמכרים הכי הרבה?',
+    'quick.zer4u.storePerformance.text': 'ביצועי חנות',
+    'quick.zer4u.storePerformance.question': 'הראה לי ביצועים לפי חנות',
+    'quick.zer4u.inventoryCheck.text': 'בדיקת מלאי',
+    'quick.zer4u.inventoryCheck.question': 'מה מצב המלאי הנוכחי?',
+    'quick.zer4u.topCustomers.text': 'לקוחות מובילים',
+    'quick.zer4u.topCustomers.question': 'מי הלקוחות המובילים שלי?',
+    'quick.zer4u.yoyComparison.text': 'השוואה שנתית',
+    'quick.zer4u.yoyComparison.question': 'השווה את החודש הזה לאותו חודש בשנה שעברה',
+    'quick.zer4u.savingsTips.text': 'איך לחסוך',
+    'quick.zer4u.savingsTips.question': 'על סמך הנתונים שלי, איך אני יכול להפחית עלויות ולשפר רווחיות?',
+    'quick.zer4u.inventoryIssues.text': 'בעיות מלאי',
+    'quick.zer4u.inventoryIssues.question': 'הראה לי מוצרים עם בעיות מלאי',
+    'quick.zer4u.targets.text': 'יעדים מול ביצועים',
+    'quick.zer4u.targets.question': 'איך אנחנו עומדים ביחס ליעדים?',
+    'quick.zer4u.slowMovers.text': 'מוצרים איטיים',
+    'quick.zer4u.slowMovers.question': 'הראה לי מלאי שנע לאט',
 
     // Quick Questions - Banking
     'quick.banking.startOnboarding.text': 'התחל תהליך',

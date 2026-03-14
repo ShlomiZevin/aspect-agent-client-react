@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, CompassPage, DemoPage, FreedaPage, HomePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, PitchDeckPage } from './pages';
+import { AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, CompassPage, DemoPage, FreedaPage, HomePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, PitchDeckPage, Zer4UPage } from './pages';
 import { useTaskBoard, useQuickBug } from './hooks';
 import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
 import { QuickBugModal } from './components/tasks/QuickBugModal/QuickBugModal';
@@ -64,6 +64,8 @@ function AppContent() {
         <Route path="/freeda/conversations/:conversationId" element={<FreedaPage />} />
         <Route path="/compass" element={<CompassPage />} />
         <Route path="/compass/conversations/:conversationId" element={<CompassPage />} />
+        <Route path="/zer4u" element={<Zer4UPage />} />
+        <Route path="/zer4u/conversations/:conversationId" element={<Zer4UPage />} />
 
         {/* Dashboard routes */}
         <Route path="/:agent/dashboard/*" element={<DashboardPage />} />

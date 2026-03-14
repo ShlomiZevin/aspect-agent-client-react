@@ -30,6 +30,7 @@ export async function getUsers(
   if (filters.tenant) params.append('tenant', filters.tenant);
   if (filters.subscription) params.append('subscription', filters.subscription);
   if (filters.search) params.append('search', filters.search);
+  if (filters.agentName) params.append('agentName', filters.agentName);
   if (filters.limit) params.append('limit', filters.limit.toString());
   if (filters.offset) params.append('offset', filters.offset.toString());
 
@@ -42,8 +43,9 @@ export async function getUsers(
 /**
  * Get admin dashboard stats
  */
-export async function getStats(baseURL?: string): Promise<AdminStats> {
-  return apiRequest<AdminStats>('/api/admin/stats', { method: 'GET' }, baseURL || getBaseURL());
+export async function getStats(baseURL?: string, agentName?: string): Promise<AdminStats> {
+  const params = agentName ? `?agentName=${encodeURIComponent(agentName)}` : '';
+  return apiRequest<AdminStats>(`/api/admin/stats${params}`, { method: 'GET' }, baseURL || getBaseURL());
 }
 
 /**
