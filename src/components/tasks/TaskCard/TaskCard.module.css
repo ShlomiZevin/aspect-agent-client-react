@@ -256,6 +256,11 @@
   color: #14b8a6;
 }
 
+.type.agenda {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+}
+
 .priority {
   font-size: 10px;
   font-weight: 600;

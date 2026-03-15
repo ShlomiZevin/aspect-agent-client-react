@@ -552,6 +552,50 @@
   position: relative;
 }
 
+/* Sidebar column: stacks Goals + Agenda vertically */
+.sidebarColumn {
+  width: 260px;
+  min-width: 260px;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Remove individual sidebar borders when stacked */
+.sidebarColumn > div {
+  border-left: none;
+  min-width: 0;
+  width: 100%;
+}
+
+/* First section gets more space */
+.sidebarColumn > div:first-child {
+  flex: 1;
+}
+
+/* Second section */
+.sidebarColumn > div:nth-child(2) {
+  flex: 1;
+  border-top: 1px solid var(--border);
+}
+
+/* Full-screen goals + agenda side by side */
+.fullScreenGoals {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.fullScreenGoals > div {
+  flex: 1;
+  border-left: none;
+}
+
+.fullScreenGoals > div:nth-child(2) {
+  border-left: 1px solid var(--border);
+}
+
 .content {
   flex: 1;
   padding: var(--spacing-sm) var(--spacing-lg) var(--spacing-lg);

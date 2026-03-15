@@ -58,6 +58,9 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     injectTransitionPrompt,
     fieldsRefreshKey,
     error,
+    selectedMessageIds,
+    copyMessages,
+    clearMessageSelection,
   } = useChatContext();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -123,6 +126,24 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
               title={isPromptPanelOpen ? 'Hide Prompt Editor' : 'Show Prompt Editor'}
             >
               {isPromptPanelOpen ? 'Hide' : 'Show'} Prompt Editor
+            </button>
+          </div>
+        )}
+
+        {/* Floating copy bar when messages are selected */}
+        {debugMode && selectedMessageIds.size > 0 && (
+          <div className={styles.copyBar}>
+            <span>{selectedMessageIds.size} selected</span>
+            <button
+              onClick={() => {
+                copyMessages(Array.from(selectedMessageIds));
+                clearMessageSelection();
+              }}
+            >
+              Copy Selected
+            </button>
+            <button onClick={clearMessageSelection}>
+              Clear
             </button>
           </div>
         )}

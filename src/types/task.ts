@@ -1,6 +1,6 @@
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'critical';
-export type TaskType = 'task' | 'bug' | 'feature' | 'idea' | 'goal';
+export type TaskType = 'task' | 'bug' | 'feature' | 'idea' | 'goal' | 'agenda';
 
 export interface Assignee {
   id: number;

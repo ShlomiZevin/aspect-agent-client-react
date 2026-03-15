@@ -8,16 +8,21 @@ interface GoalsSectionProps {
   allTasks: Task[];
   isFullScreen?: boolean;
   hideHeader?: boolean;
-  meetingDate: string | null;
+  title?: string;
+  emoji?: string;
+  showOpener?: boolean;
+  meetingDate?: string | null;
+  meetingDateLabel?: string;
   meetingNotes?: string;
   showNotesModal?: boolean;
   onShowNotesModal?: (show: boolean) => void;
   onGoalClick: (task: Task) => void;
+  onDeleteGoal?: (task: Task) => void;
   onAddGoal: () => void;
   onUpdateGoal: (id: number, updates: UpdateTaskData) => Promise<void>;
   onLinkedTaskClick?: (task: Task) => void;
   onToggleFullScreen?: () => void;
-  onMeetingDateChange: (date: string) => void;
+  onMeetingDateChange?: (date: string) => void;
   onMeetingNotesChange?: (notes: string) => void;
 }
 
@@ -55,7 +60,7 @@ function formatCreatedAt(date: Date | string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, meetingDate, meetingNotes, showNotesModal: externalShowNotes, onShowNotesModal, onGoalClick, onAddGoal, onUpdateGoal, onLinkedTaskClick, onToggleFullScreen, onMeetingDateChange, onMeetingNotesChange }: GoalsSectionProps) {
+export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, title = 'Goals', emoji = '🎯', showOpener, meetingDate, meetingDateLabel = 'Last meeting:', meetingNotes, showNotesModal: externalShowNotes, onShowNotesModal, onGoalClick, onDeleteGoal, onAddGoal, onUpdateGoal, onLinkedTaskClick, onToggleFullScreen, onMeetingDateChange, onMeetingNotesChange }: GoalsSectionProps) {
   const [internalShowNotes, setInternalShowNotes] = useState(false);
   const showNotesModal = externalShowNotes ?? internalShowNotes;
   const setShowNotesModal = onShowNotesModal ?? setInternalShowNotes;
@@ -153,8 +158,8 @@ export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, meetin
         <div className={styles.header}>
           <div className={styles.headerTop}>
             <h3 className={styles.title}>
-              <span className={styles.titleIcon}>🎯</span>
-              Goals
+              <span className={styles.titleIcon}>{emoji}</span>
+              {title}
               {notesButton}
             </h3>
             <div className={styles.headerActions}>
@@ -170,23 +175,25 @@ export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, meetin
               )}
             </div>
           </div>
-          <div className={styles.meetingDate}>
-            <span className={styles.meetingDateLabel}>Last meeting:</span>
-            <input
-              type="date"
-              className={styles.meetingDateInput}
-              value={meetingDate || ''}
-              onChange={(e) => onMeetingDateChange(e.target.value)}
-            />
-          </div>
+          {onMeetingDateChange && (
+            <div className={styles.meetingDate}>
+              <span className={styles.meetingDateLabel}>{meetingDateLabel}</span>
+              <input
+                type="date"
+                className={styles.meetingDateInput}
+                value={meetingDate || ''}
+                onChange={(e) => onMeetingDateChange(e.target.value)}
+              />
+            </div>
+          )}
         </div>
       )}
 
       <div className={styles.goalsList}>
         {sortedGoals.length === 0 ? (
           <div className={styles.empty}>
-            No goals yet.<br />
-            Add goals from your team meeting.
+            No {title.toLowerCase()} yet.<br />
+            {title === 'Agenda' ? 'Add items for the next meeting.' : 'Add goals from your team meeting.'}
           </div>
         ) : (
           sortedGoals.map((goal, index) => {
@@ -211,6 +218,9 @@ export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, meetin
                     {goal.title}
                   </div>
                   <div className={styles.goalMeta}>
+                    {showOpener && goal.opener && (
+                      <span className={styles.goalOpener}>{goal.opener}</span>
+                    )}
                     {goal.assignee && (
                       <span className={styles.goalAssignee}>{goal.assignee}</span>
                     )}
@@ -234,6 +244,15 @@ export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, meetin
                     </div>
                   )}
                 </div>
+                {onDeleteGoal && (
+                  <button
+                    className={styles.deleteBtn}
+                    onClick={(e) => { e.stopPropagation(); onDeleteGoal(goal); }}
+                    title="Delete"
+                  >
+                    ×
+                  </button>
+                )}
                 <input
                   type="checkbox"
                   className={styles.goalCheckbox}

@@ -41,13 +41,14 @@ function getDomainFromUrl(): string {
 }
 
 export function Message({ message }: MessageProps) {
-  const { debugMode, deleteMessagesFrom, crewMembers, conversationId } = useChatContext();
+  const { debugMode, deleteMessagesFrom, crewMembers, conversationId, selectedMessageIds, toggleMessageSelect, copyMessages, copyFromMessage } = useChatContext();
   const { t, language } = useLanguage();
   const config = useAgentConfig();
   const [showFeedback, setShowFeedback] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showBugModal, setShowBugModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const isUser = message.role === 'user';
   const isDeveloper = message.role === 'developer';
   const hasThinkingSteps = !isUser && !isDeveloper && message.thinkingSteps && message.thinkingSteps.length > 0;
@@ -70,10 +71,64 @@ export function Message({ message }: MessageProps) {
     setShowDeleteConfirm(false);
   };
 
+  const isSelected = selectedMessageIds.has(message.id);
+
+  const showCopyFeedback = (text: string) => {
+    setCopyFeedback(text);
+    setTimeout(() => setCopyFeedback(null), 1500);
+  };
+
+  const handleCopySingle = () => {
+    copyMessages([message.id]);
+    showCopyFeedback('Copied');
+  };
+
+  const handleCopyFromHere = () => {
+    copyFromMessage(message.id);
+    showCopyFeedback('Copied to end');
+  };
+
   // Developer messages only visible in debug mode
   if (isDeveloper && !debugMode) {
     return null;
   }
+
+  const CopyActions = () => debugMode && !isDeveloper ? (
+    <>
+      {copyFeedback && <span className={styles.copyFeedback}>{copyFeedback}</span>}
+      <button
+        className={styles.copyButton}
+        onClick={handleCopySingle}
+        title="Copy this message"
+        type="button"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+        </svg>
+      </button>
+      <button
+        className={styles.copyButton}
+        onClick={handleCopyFromHere}
+        title="Copy from here to end"
+        type="button"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+          <path d="M16 17v4" strokeWidth="2.5" />
+          <path d="M14 19h4" strokeWidth="2.5" />
+        </svg>
+      </button>
+      <label className={styles.selectCheckbox} title="Select for batch copy">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => toggleMessageSelect(message.id)}
+        />
+      </label>
+    </>
+  ) : null;
 
   const DeleteButton = () => (
     <button
@@ -146,6 +201,7 @@ export function Message({ message }: MessageProps) {
           <div className={styles.userMessageWrapper}>
             <span dir={rtl ? 'rtl' : undefined}>{message.content}</span>
             <div className={styles.messageActions}>
+              <CopyActions />
               <DeleteButton />
             </div>
           </div>
@@ -197,6 +253,7 @@ export function Message({ message }: MessageProps) {
                     </svg>
                   </button>
                 )}
+                <CopyActions />
                 <DeleteButton />
               </div>
             </div>

@@ -544,3 +544,71 @@
   opacity: 0.7;
   cursor: not-allowed;
 }
+
+/* Debug copy buttons */
+.copyButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: all var(--transition-fast);
+}
+
+.message:hover .copyButton {
+  opacity: 1;
+}
+
+.copyButton:hover {
+  background-color: var(--surface-light);
+  color: var(--primary-color);
+}
+
+.user .copyButton {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.user .copyButton:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.selectCheckbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.message:hover .selectCheckbox {
+  opacity: 1;
+}
+
+.selectCheckbox input[type="checkbox"] {
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+/* Keep checkbox visible when checked */
+.selectCheckbox:has(input:checked) {
+  opacity: 1;
+}
+
+.copyFeedback {
+  font-size: 11px;
+  color: #22c55e;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.user .copyFeedback {
+  color: rgba(255, 255, 255, 0.9);
+}

@@ -25,6 +25,12 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   // Debug
   debugMode: boolean;
   toggleDebug: () => void;
+  // Debug copy selection
+  selectedMessageIds: Set<string>;
+  toggleMessageSelect: (id: string) => void;
+  clearMessageSelection: () => void;
+  copyMessages: (messageIds: string[]) => void;
+  copyFromMessage: (messageId: string) => void;
   // Config (for prompt editor)
   agentName: string;
   baseURL: string;
@@ -66,6 +72,22 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const [debugMode, setDebugMode] = useState(false);
   const toggleDebug = useCallback(() => setDebugMode(prev => !prev), []);
   useDebugShortcut(toggleDebug);
+
+  // Debug copy selection
+  const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
+  const toggleMessageSelect = useCallback((id: string) => {
+    setSelectedMessageIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+  const clearMessageSelection = useCallback(() => setSelectedMessageIds(new Set()), []);
+
+  // Clear selection when debug mode is turned off
+  useEffect(() => {
+    if (!debugMode) setSelectedMessageIds(new Set());
+  }, [debugMode]);
 
   // Prompt overrides for debug mode (session-only)
   const [promptOverrides, setPromptOverrides] = useState<Record<string, string>>({});
@@ -197,6 +219,24 @@ export function ChatProvider({ children }: ChatProviderProps) {
       setFieldsRefreshKey(prev => prev + 1);
     },
   });
+
+  // Debug copy helpers (need chat.messages)
+  const formatMessagesForCopy = useCallback((ids: string[]) => {
+    const ordered = chat.messages.filter(m => ids.includes(m.id) && m.role !== 'developer');
+    return ordered.map(m => `${m.role === 'user' ? 'user' : 'agent'}: ${m.content}`).join('\n\n');
+  }, [chat.messages]);
+
+  const copyMessages = useCallback((ids: string[]) => {
+    const text = formatMessagesForCopy(ids);
+    if (text) navigator.clipboard.writeText(text);
+  }, [formatMessagesForCopy]);
+
+  const copyFromMessage = useCallback((messageId: string) => {
+    const idx = chat.messages.findIndex(m => m.id === messageId);
+    if (idx === -1) return;
+    const ids = chat.messages.slice(idx).filter(m => m.role !== 'developer').map(m => m.id);
+    copyMessages(ids);
+  }, [chat.messages, copyMessages]);
 
   // Track message count and loading state for conversation list refresh
   const prevMessageCount = useRef(chat.messages.length);
@@ -407,6 +447,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
     // Debug
     debugMode,
     toggleDebug,
+    selectedMessageIds,
+    toggleMessageSelect,
+    clearMessageSelection,
+    copyMessages,
+    copyFromMessage,
     // Config (for prompt editor)
     agentName: config.agentName,
     baseURL: config.baseURL,

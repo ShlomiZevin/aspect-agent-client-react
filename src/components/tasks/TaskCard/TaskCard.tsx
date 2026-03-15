@@ -16,6 +16,7 @@ const TYPE_ICONS: Record<string, string> = {
   feature: 'FEATURE',
   idea: 'IDEA',
   goal: 'GOAL',
+  agenda: 'AGENDA',
 };
 
 const PRIORITY_COLORS: Record<string, string> = {

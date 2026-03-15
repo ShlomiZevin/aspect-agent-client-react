@@ -188,20 +188,28 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     return result.filter(t => t.domain === filterDomain);
   }, [tasks, filterDomain, filterAssignee, filterCrewMember, filterOpener, currentDomain, showCompleted, showAllDomains, showUnassignedOnly, showDraftsOnly, currentUserId]);
 
-  // Split goals from board tasks — goals go to sidebar, rest to kanban/list
+  // Split goals and agenda from board tasks — they go to sidebar, rest to kanban/list
   // The goalsMeta sentinel stores the meeting date and is excluded from display
   const goalsMeta = useMemo(() => tasks.find(t => t.type === 'goal' && t.tags.includes('goalsMeta')), [tasks]);
+  const agendaMeta = useMemo(() => tasks.find(t => t.type === 'agenda' && t.tags.includes('agendaMeta')), [tasks]);
   const goals = useMemo(() => filteredTasks.filter(t => t.type === 'goal' && !t.tags.includes('goalsMeta')), [filteredTasks]);
-  const boardTasks = useMemo(() => filteredTasks.filter(t => t.type !== 'goal'), [filteredTasks]);
+  const agendaItems = useMemo(() => filteredTasks.filter(t => t.type === 'agenda' && !t.tags.includes('agendaMeta')), [filteredTasks]);
+  const boardTasks = useMemo(() => filteredTasks.filter(t => t.type !== 'goal' && t.type !== 'agenda'), [filteredTasks]);
 
-  // Meeting date and notes from the sentinel task
+  // Goals: last meeting date + notes
   const meetingDate = useMemo(() => {
     if (!goalsMeta) return null;
     const tag = goalsMeta.tags.find(t => t.startsWith('meetingDate:'));
     return tag ? tag.split(':')[1] : null;
   }, [goalsMeta]);
-
   const meetingNotes = useMemo(() => goalsMeta?.description || '', [goalsMeta]);
+
+  // Agenda: next meeting date
+  const nextMeetingDate = useMemo(() => {
+    if (!agendaMeta) return null;
+    const tag = agendaMeta.tags.find(t => t.startsWith('meetingDate:'));
+    return tag ? tag.split(':')[1] : null;
+  }, [agendaMeta]);
 
   // Handle opening in drafts mode (from Ctrl+Shift+L global shortcut)
   useEffect(() => {
@@ -302,6 +310,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     setTasks(prev => [task, ...prev]);
     setShowForm(false);
     setPresetGoalMode(false);
+    setPresetType(null);
   };
 
   const handleUpdateTask = async (data: CreateTaskData) => {
@@ -490,6 +499,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     setEditingTask(null);
     setShowForm(false);
     setPresetGoalMode(false);
+    setPresetType(null);
   };
 
   const handleOpenTaskById = useCallback((taskId: number) => {
@@ -520,6 +530,24 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     }
   };
 
+  const handleNextMeetingDateChange = async (newDate: string) => {
+    if (agendaMeta) {
+      const filteredTags = agendaMeta.tags.filter(t => !t.startsWith('meetingDate:'));
+      const newTags = newDate ? [...filteredTags, `meetingDate:${newDate}`] : filteredTags;
+      const updated = await taskService.updateTask(agendaMeta.id, { tags: newTags });
+      setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+    } else if (newDate) {
+      const sentinel = await taskService.createTask({
+        title: 'Agenda Meeting Date',
+        type: 'agenda',
+        tags: ['agendaMeta', `meetingDate:${newDate}`],
+        domain: 'general',
+        status: 'todo',
+      });
+      setTasks(prev => [sentinel, ...prev]);
+    }
+  };
+
   const handleMeetingNotesChange = async (notes: string) => {
     if (goalsMeta) {
       const updated = await taskService.updateTask(goalsMeta.id, { description: notes || undefined });
@@ -538,8 +566,18 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     }
   };
 
+  const [presetType, setPresetType] = useState<'goal' | 'agenda' | null>(null);
+
   const handleAddGoal = () => {
     setEditingTask(null);
+    setPresetType('goal');
+    setPresetGoalMode(true);
+    setShowForm(true);
+  };
+
+  const handleAddAgenda = () => {
+    setEditingTask(null);
+    setPresetType('agenda');
     setPresetGoalMode(true);
     setShowForm(true);
   };
@@ -563,22 +601,11 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
         {/* Header */}
         <div className={styles.header}>
           <h2 className={styles.title}>
-            {goalsFullScreen ? (
-              <>🎯 Goals & Priorities <button className={styles.notesBtnHeader} onClick={() => setShowMeetingNotes(true)} title="Meeting notes">📝</button></>
-            ) : '📋 Task Board'}
+            {goalsFullScreen ? '🎯 Goals & Priorities' : '📋 Task Board'}
           </h2>
           {goalsFullScreen ? (
             <div className={styles.headerRight}>
               <div className={styles.goalsHeaderControls}>
-                <span className={styles.goalsHeaderDate}>
-                  Last meeting:
-                  <input
-                    type="date"
-                    className={styles.goalsHeaderDateInput}
-                    value={meetingDate || ''}
-                    onChange={(e) => handleMeetingDateChange(e.target.value)}
-                  />
-                </span>
                 <label className={styles.showCompletedLabel}>
                   <input
                     type="checkbox"
@@ -587,7 +614,6 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                   />
                   Show Completed
                 </label>
-                <button className={styles.addBtn} onClick={handleAddGoal}>+ Add Goal</button>
                 <button
                   className={styles.goalsBackBtn}
                   onClick={() => setGoalsFullScreen(false)}
@@ -611,23 +637,41 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
 
         {/* Full-screen goals mode — takes over entire modal */}
         {goalsFullScreen && (
-          <GoalsSection
-            goals={goals}
-            allTasks={tasks}
-            isFullScreen
-            hideHeader
-            meetingDate={meetingDate}
-            meetingNotes={meetingNotes}
-            showNotesModal={showMeetingNotes}
-            onShowNotesModal={setShowMeetingNotes}
-            onGoalClick={handleTaskClick}
-            onAddGoal={handleAddGoal}
-            onUpdateGoal={handleUpdateGoal}
-            onLinkedTaskClick={handleTaskClick}
-            onToggleFullScreen={() => setGoalsFullScreen(false)}
-            onMeetingDateChange={handleMeetingDateChange}
-            onMeetingNotesChange={handleMeetingNotesChange}
-          />
+          <div className={styles.fullScreenGoals}>
+            <GoalsSection
+              goals={agendaItems}
+              allTasks={tasks}
+              isFullScreen
+              title="Agenda"
+              emoji="📋"
+              showOpener
+              meetingDate={nextMeetingDate}
+              meetingDateLabel="Next meeting:"
+              onGoalClick={handleTaskClick}
+              onDeleteGoal={handleDeleteTask}
+              onAddGoal={handleAddAgenda}
+              onUpdateGoal={handleUpdateGoal}
+              onLinkedTaskClick={handleTaskClick}
+              onMeetingDateChange={handleNextMeetingDateChange}
+            />
+            <GoalsSection
+              goals={goals}
+              allTasks={tasks}
+              isFullScreen
+              meetingDate={meetingDate}
+              meetingDateLabel="Last meeting:"
+              meetingNotes={meetingNotes}
+              showNotesModal={showMeetingNotes}
+              onShowNotesModal={setShowMeetingNotes}
+              onGoalClick={handleTaskClick}
+              onDeleteGoal={handleDeleteTask}
+              onAddGoal={handleAddGoal}
+              onUpdateGoal={handleUpdateGoal}
+              onLinkedTaskClick={handleTaskClick}
+              onMeetingDateChange={handleMeetingDateChange}
+              onMeetingNotesChange={handleMeetingNotesChange}
+            />
+          </div>
         )}
 
         {!goalsFullScreen && <>
@@ -890,19 +934,37 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
               </div>
             )}
           </div>
-          <GoalsSection
-            goals={goals}
-            allTasks={tasks}
-            meetingDate={meetingDate}
-            meetingNotes={meetingNotes}
-            onGoalClick={handleTaskClick}
-            onAddGoal={handleAddGoal}
-            onUpdateGoal={handleUpdateGoal}
-            onLinkedTaskClick={handleTaskClick}
-            onToggleFullScreen={() => setGoalsFullScreen(true)}
-            onMeetingDateChange={handleMeetingDateChange}
-            onMeetingNotesChange={handleMeetingNotesChange}
-          />
+          <div className={styles.sidebarColumn}>
+            <GoalsSection
+              goals={goals}
+              allTasks={tasks}
+              meetingDate={meetingDate}
+              meetingNotes={meetingNotes}
+              onGoalClick={handleTaskClick}
+              onDeleteGoal={handleDeleteTask}
+              onAddGoal={handleAddGoal}
+              onUpdateGoal={handleUpdateGoal}
+              onLinkedTaskClick={handleTaskClick}
+              onToggleFullScreen={() => setGoalsFullScreen(true)}
+              onMeetingDateChange={handleMeetingDateChange}
+              onMeetingNotesChange={handleMeetingNotesChange}
+            />
+            <GoalsSection
+              goals={agendaItems}
+              allTasks={tasks}
+              title="Agenda"
+              emoji="📋"
+              showOpener
+              meetingDate={nextMeetingDate}
+              meetingDateLabel="Next meeting:"
+              onGoalClick={handleTaskClick}
+              onDeleteGoal={handleDeleteTask}
+              onAddGoal={handleAddAgenda}
+              onUpdateGoal={handleUpdateGoal}
+              onLinkedTaskClick={handleTaskClick}
+              onMeetingDateChange={handleNextMeetingDateChange}
+            />
+          </div>
         </div>
         </>}
 
@@ -918,7 +980,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                 showAllDomains={showAllDomains}
                 crewMembers={crewMembers}
                 commentRefreshTrigger={commentRefreshTrigger}
-                initialType={presetGoalMode ? 'goal' : undefined}
+                initialType={presetGoalMode ? (presetType || 'goal') : undefined}
                 onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
                 onCancel={handleCloseForm}
                 onDelete={editingTask ? () => handleDeleteTask(editingTask) : undefined}

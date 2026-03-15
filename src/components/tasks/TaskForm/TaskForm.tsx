@@ -268,7 +268,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
     }
   }, [task, allTasks, initialType]);
 
-  const isGoal = type === 'goal';
+  const isGoal = type === 'goal' || type === 'agenda';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -296,8 +296,8 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       onSubmit({
         title: title.trim(),
         description: processedDescription,
-        type: 'goal',
-        assignee: assignee || null,
+        type,
+        assignee: type === 'agenda' ? null : (assignee || null),
         dependsOn,
         tags,
         // Set sensible defaults for required fields
@@ -331,7 +331,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.header}>
           <h3>
-            {isGoal ? (task ? 'Edit Goal' : 'New Goal') : (task ? 'Edit Task' : 'New Task')}
+            {type === 'goal' ? (task ? 'Edit Goal' : 'New Goal') : type === 'agenda' ? (task ? 'Edit Agenda Item' : 'New Agenda Item') : (task ? 'Edit Task' : 'New Task')}
             {task && <span className={styles.taskId}>#{task.id}</span>}
             {task?.createdAt && (
               <span className={styles.createdDate} title={new Date(task.createdAt).toLocaleString()}>
@@ -346,7 +346,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
 
         <div className={styles.formBody}>
           <div className={styles.titleField}>
-            <label>{isGoal ? 'Goal *' : 'Title *'}</label>
+            <label>{type === 'agenda' ? 'Agenda Item *' : isGoal ? 'Goal *' : 'Title *'}</label>
             {(!task || isEditingTitle) ? (
               <textarea
                 ref={titleInputRef}
@@ -363,7 +363,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                     setIsEditingTitle(false);
                   }
                 }}
-                placeholder={isGoal ? 'Goal title...' : 'Task title...'}
+                placeholder={type === 'agenda' ? 'Agenda item...' : isGoal ? 'Goal title...' : 'Task title...'}
                 autoFocus
                 className={styles.titleTextarea}
                 rows={1}
@@ -404,17 +404,19 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
           {/* === Goal-specific simplified fields === */}
           {isGoal ? (
             <>
-              <div className={styles.inlineRow}>
-                <label htmlFor="assignee">Assigned to</label>
-                <div className={styles.inlineField}>
-                  <select id="assignee" value={assignee} onChange={(e) => setAssignee(e.target.value)}>
-                    <option value="">Unassigned</option>
-                    {assignees.map(a => (
-                      <option key={a.id} value={a.name}>{a.name}</option>
-                    ))}
-                  </select>
+              {type !== 'agenda' && (
+                <div className={styles.inlineRow}>
+                  <label htmlFor="assignee">Assigned to</label>
+                  <div className={styles.inlineField}>
+                    <select id="assignee" value={assignee} onChange={(e) => setAssignee(e.target.value)}>
+                      <option value="">Unassigned</option>
+                      {assignees.map(a => (
+                        <option key={a.id} value={a.name}>{a.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className={styles.dependsOnRow} ref={dependsOnRef}>
                 <label htmlFor="dependsOn">Linked Task</label>
