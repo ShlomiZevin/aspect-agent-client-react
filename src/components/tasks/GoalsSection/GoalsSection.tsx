@@ -219,7 +219,7 @@ export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, title 
                   </div>
                   <div className={styles.goalMeta}>
                     {showOpener && goal.opener && (
-                      <span className={styles.goalOpener}>{goal.opener}</span>
+                      <span className={styles.goalOpener}>{goal.opener.startsWith('user_') ? 'Anon' : goal.opener}</span>
                     )}
                     {goal.assignee && (
                       <span className={styles.goalAssignee}>{goal.assignee}</span>

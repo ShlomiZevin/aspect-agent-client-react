@@ -267,7 +267,7 @@
 }
 
 .goalItemFull {
-  padding: var(--spacing-md) var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-sm);
 }
 
 .goalItemFull .goalTitle {
