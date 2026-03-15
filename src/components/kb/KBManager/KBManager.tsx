@@ -36,6 +36,7 @@ export function KBManager() {
     uploadFiles,
     deleteFile,
     syncKnowledgeBase,
+    detachProvider,
     clearError,
   } = useKnowledgeBase(config.agentName, config.baseURL);
 
@@ -171,6 +172,16 @@ export function KBManager() {
                         <span className={styles.idValue} title={selectedKB.vectorStoreId}>
                           {selectedKB.vectorStoreId}
                         </span>
+                        {selectedKB.provider === 'both' && (
+                          <button
+                            className={styles.detachBtn}
+                            onClick={() => detachProvider(selectedKB.id, 'openai')}
+                            disabled={isSyncing}
+                            title="Detach OpenAI provider"
+                          >
+                            Detach
+                          </button>
+                        )}
                       </div>
                     )}
                     {selectedKB.googleCorpusId && (
@@ -179,6 +190,16 @@ export function KBManager() {
                         <span className={styles.idValue} title={selectedKB.googleCorpusId}>
                           {selectedKB.googleCorpusId}
                         </span>
+                        {selectedKB.provider === 'both' && (
+                          <button
+                            className={styles.detachBtn}
+                            onClick={() => detachProvider(selectedKB.id, 'google')}
+                            disabled={isSyncing}
+                            title="Detach Google provider"
+                          >
+                            Detach
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

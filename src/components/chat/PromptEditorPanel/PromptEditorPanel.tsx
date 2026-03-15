@@ -36,8 +36,12 @@ const ANTHROPIC_MODELS = [
 ];
 
 const GOOGLE_MODELS = [
+  // Gemini 3 family
+  'gemini-3.1-pro-preview',
+  'gemini-3-flash-preview',
   // Gemini 2.5 family
   'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
   'gemini-2.5-pro',
   // Gemini 2.0 family (no Pro version exists)
   'gemini-2.0-flash',
@@ -74,6 +78,8 @@ interface PromptEditorPanelProps {
   personaOverride: string | null;
   onPersonaOverride: (persona: string | null) => void;
   onThinkingPromptOverride: (crewMemberId: string, prompt: string) => void;
+  thinkerDisabled: Record<string, boolean>;
+  onThinkerDisabledToggle: (crewMemberId: string, disabled: boolean) => void;
 }
 
 type StatusType = 'success' | 'error' | 'info' | null;
@@ -96,6 +102,8 @@ export function PromptEditorPanel({
   personaOverride,
   onPersonaOverride,
   onThinkingPromptOverride,
+  thinkerDisabled,
+  onThinkerDisabledToggle,
 }: PromptEditorPanelProps) {
   // Prompts data from API
   const [prompts, setPrompts] = useState<CrewMemberPrompt[]>([]);
@@ -602,44 +610,21 @@ export function PromptEditorPanel({
           </button>
           {showKBOverride && (
             <div className={styles.kbSection}>
-              {crewKBSources.length === 0 ? (
+              {availableKBs.length === 0 && crewKBSources.length === 0 ? (
                 <p className={styles.kbNone}>No knowledge bases configured for this crew</p>
               ) : (
-                <div className={styles.kbSourceList}>
-                  {crewKBSources.map(sourceName => {
-                    const kb = availableKBs.find(k => k.name === sourceName);
-                    const providerOk = currentProvider === 'openai'
-                      ? kb?.vectorStoreId
-                      : currentProvider === 'google'
-                      ? kb?.googleCorpusId
-                      : false;
-                    return (
-                      <div key={sourceName} className={styles.kbSourceItem}>
-                        <span className={styles.kbSourceName}>{sourceName}</span>
-                        {currentProvider === 'anthropic' ? (
-                          <span className={styles.kbWarning}>KB not supported with Claude</span>
-                        ) : kb ? (
-                          providerOk
-                            ? <span className={styles.kbOk}>✓ {currentProvider}</span>
-                            : <span className={styles.kbWarning}>⚠ No {currentProvider} ID</span>
-                        ) : (
-                          <span className={styles.kbMissing}>Not found in DB</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {availableKBs.length > 0 && (
                 <>
-                  <p className={styles.helperText}>
-                    Override KB sources for this session:
-                  </p>
                   <div className={styles.kbCheckboxes}>
                     {availableKBs.map(kb => {
                       const isChecked = activeKBSources.includes(kb.name);
+                      const isCrewSource = crewKBSources.includes(kb.name);
+                      const providerOk = currentProvider === 'openai'
+                        ? kb.vectorStoreId
+                        : currentProvider === 'google'
+                        ? kb.googleCorpusId
+                        : false;
                       return (
-                        <label key={kb.id} className={styles.kbCheckboxLabel}>
+                        <label key={kb.id} className={`${styles.kbCheckboxLabel} ${isCrewSource ? styles.kbCrewSource : ''}`}>
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -648,12 +633,28 @@ export function PromptEditorPanel({
                           <span>{kb.name}</span>
                           <span className={styles.kbMeta}>
                             {kb.fileCount} files
-                            {!kb.vectorStoreId && ' (no OpenAI)'}
-                            {!kb.googleCorpusId && ' (no Google)'}
                           </span>
+                          {currentProvider === 'anthropic' ? (
+                            <span className={styles.kbWarning}>no KB</span>
+                          ) : providerOk ? (
+                            <span className={styles.kbOk}>✓ {currentProvider}</span>
+                          ) : (
+                            <span className={styles.kbWarning}>no {currentProvider}</span>
+                          )}
                         </label>
                       );
                     })}
+                    {/* Show crew sources not found in DB */}
+                    {crewKBSources
+                      .filter(name => !availableKBs.find(kb => kb.name === name))
+                      .map(name => (
+                        <div key={name} className={styles.kbCheckboxLabel}>
+                          <input type="checkbox" checked={false} disabled />
+                          <span>{name}</span>
+                          <span className={styles.kbMissing}>Not found in DB</span>
+                        </div>
+                      ))
+                    }
                   </div>
                   {kbOverrides[selectedCrewId] !== undefined && (
                     <button
@@ -829,11 +830,13 @@ export function PromptEditorPanel({
                 {isThinkerCrew && codeThinkingPrompt && (() => {
                   const editedThinking = thinkingPromptOverrides[selectedCrewId] ?? codeThinkingPrompt;
                   const isThinkingDirty = editedThinking !== codeThinkingPrompt;
+                  const isDisabled = thinkerDisabled[selectedCrewId] || false;
                   return (
                     <div style={{ padding: '8px 0' }}>
                       <div className={styles.subSectionLabel}>
                         Thinking Prompt
                         {isThinkingDirty && <span className={styles.hasContentBadge}>OVERRIDE</span>}
+                        {isDisabled && <span className={styles.hasContentBadge} style={{ background: '#ef4444' }}>DISABLED</span>}
                         <button
                           className={styles.expandButton}
                           onClick={() => setShowThinkingModal(true)}
@@ -848,9 +851,19 @@ export function PromptEditorPanel({
                           </svg>
                         </button>
                       </div>
-                      <p className={styles.helperText}>
-                        Thinker prompt sent to the analyzing LLM. Edit to override for this session.
-                      </p>
+                      <div className={styles.thinkerControls}>
+                        <label className={styles.thinkerToggle}>
+                          <input
+                            type="checkbox"
+                            checked={!isDisabled}
+                            onChange={() => onThinkerDisabledToggle(selectedCrewId, !isDisabled)}
+                          />
+                          <span>Thinker {isDisabled ? 'off' : 'on'}</span>
+                        </label>
+                        <span className={styles.thinkerModel}>
+                          Model: {selectedCrewMember?.thinkingModel || 'claude-sonnet-4-6'}
+                        </span>
+                      </div>
                       <textarea
                         className={`${styles.promptTextarea} ${styles.transitionTextarea} ${isThinkingDirty ? styles.dirty : ''}`}
                         value={editedThinking}

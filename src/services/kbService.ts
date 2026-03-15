@@ -191,6 +191,25 @@ export function downloadFile(
   document.body.removeChild(a);
 }
 
+export async function detachProvider(
+  kbId: number,
+  provider: KBProvider,
+  baseURL?: string
+): Promise<KnowledgeBase> {
+  const data = await apiRequest<{
+    success: boolean;
+    knowledgeBase: KBListResponse['knowledgeBases'][0];
+  }>(
+    `/api/kb/${kbId}/detach`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ provider }),
+    },
+    baseURL || getBaseURL()
+  );
+  return mapKB(data.knowledgeBase);
+}
+
 export async function syncKnowledgeBase(
   kbId: number,
   targetProvider: KBProvider,

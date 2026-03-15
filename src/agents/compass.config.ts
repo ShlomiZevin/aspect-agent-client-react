@@ -47,8 +47,6 @@ export const compassConfig: AgentConfig = {
   ],
 
   features: {
-    hasKnowledgeBase: true,
-    kbToggleable: false,
     hasLogoUpload: false,
     hasFileUpload: false,
     hasChatHistory: true,

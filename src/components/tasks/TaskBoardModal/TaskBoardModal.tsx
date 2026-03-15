@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { Task, Assignee, CreateTaskData, TaskStatus } from '../../../types/task';
+import type { Task, Assignee, CreateTaskData, UpdateTaskData, TaskStatus } from '../../../types/task';
 import { useBoardStream } from '../../../hooks/useBoardStream';
 import type { BoardEvent } from '../../../hooks/useBoardStream';
 import type { CrewMember } from '../../../types/crew';
@@ -544,7 +544,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     setShowForm(true);
   };
 
-  const handleUpdateGoal = async (id: number, updates: CreateTaskData | Record<string, unknown>) => {
+  const handleUpdateGoal = async (id: number, updates: UpdateTaskData) => {
     const updated = await taskService.updateTask(id, updates);
     setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
   };

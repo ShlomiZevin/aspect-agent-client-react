@@ -38,8 +38,6 @@ export interface AgentConfig {
 
   // Features
   features: {
-    hasKnowledgeBase: boolean;
-    kbToggleable: boolean;
     hasLogoUpload: boolean;
     hasFileUpload: boolean;
     hasChatHistory: boolean;

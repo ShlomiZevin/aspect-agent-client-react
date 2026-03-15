@@ -7,6 +7,7 @@ import {
   deleteFile as deleteFileApi,
   deleteFileLegacy as deleteFileLegacyApi,
   syncKnowledgeBase as syncKBApi,
+  detachProvider as detachProviderApi,
 } from '../services/kbService';
 import type { FileUploadProgress } from '../services/kbService';
 import type { KnowledgeBase, KBFile, KBProvider } from '../types';
@@ -28,6 +29,7 @@ export interface UseKnowledgeBaseReturn {
   uploadFiles: (files: File[], tags?: string[]) => Promise<void>;
   deleteFile: (file: KBFile) => Promise<void>;
   syncKnowledgeBase: (kbId: number, targetProvider: KBProvider) => Promise<void>;
+  detachProvider: (kbId: number, provider: KBProvider) => Promise<void>;
   clearError: () => void;
 }
 
@@ -174,6 +176,29 @@ export function useKnowledgeBase(
     [baseURL, selectedKB]
   );
 
+  const detachProvider = useCallback(
+    async (kbId: number, provider: KBProvider) => {
+      setIsSyncing(true);
+      setError(null);
+      try {
+        const updatedKB = await detachProviderApi(kbId, provider, baseURL);
+        setKnowledgeBases(prev =>
+          prev.map(kb => kb.id === kbId ? updatedKB : kb)
+        );
+        if (selectedKB?.id === kbId) {
+          setSelectedKB(updatedKB);
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to detach provider';
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setIsSyncing(false);
+      }
+    },
+    [baseURL, selectedKB]
+  );
+
   const clearError = useCallback(() => setError(null), []);
 
   return {
@@ -191,6 +216,7 @@ export function useKnowledgeBase(
     uploadFiles,
     deleteFile,
     syncKnowledgeBase,
+    detachProvider,
     clearError,
   };
 }

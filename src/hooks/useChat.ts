@@ -269,7 +269,6 @@ export interface UseChatOptions {
   config: AgentConfig;
   conversationId: string;
   userId: string | null;
-  useKnowledgeBase?: boolean;
   overrideCrewMember?: string | null;
   debug?: boolean;
   promptOverrides?: Record<string, string>; // Session overrides: { crewName: prompt }
@@ -277,6 +276,7 @@ export interface UseChatOptions {
   personaOverride?: string; // Session override for agent-level persona
   kbOverrides?: Record<string, string[]>;  // Session overrides: { crewName: string[] }
   thinkingPromptOverrides?: Record<string, string>; // Session overrides: { crewName: thinkingPrompt }
+  thinkerDisabled?: Record<string, boolean>; // Session overrides: { crewName: true } to disable thinker
   onCrewInfo?: (crew: CrewMember) => void;
   onCrewTransition?: (transition: CrewTransition) => void;
   onFieldExtracted?: (field: string, value: string) => void;
@@ -304,7 +304,7 @@ export interface UseChatReturn {
  * Main chat hook - handles messaging, streaming, and thinking indicators
  */
 export function useChat(options: UseChatOptions): UseChatReturn {
-  const { config, conversationId, userId, useKnowledgeBase = false, overrideCrewMember, debug, promptOverrides, modelOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, onCrewInfo, onCrewTransition, onFieldExtracted } = options;
+  const { config, conversationId, userId, overrideCrewMember, debug, promptOverrides, modelOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkerDisabled, onCrewInfo, onCrewTransition, onFieldExtracted } = options;
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
     conversationId,
@@ -338,7 +338,6 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             conversationId: state.conversationId || conversationId,
             agentName: config.agentName,
             userId,
-            useKnowledgeBase,
             baseURL: config.baseURL,
             overrideCrewMember,
             debug,
@@ -347,6 +346,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             personaOverride,
             kbOverrides,
             thinkingPromptOverrides,
+            thinkerDisabled,
           },
           {
             onThinkingStep: (step) => {
@@ -430,13 +430,13 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       state.conversationId,
       conversationId,
       userId,
-      useKnowledgeBase,
       overrideCrewMember,
       debug,
       promptOverrides,
       modelOverrides,
       kbOverrides,
       thinkingPromptOverrides,
+      thinkerDisabled,
       onCrewInfo,
       onCrewTransition,
       onFieldExtracted,

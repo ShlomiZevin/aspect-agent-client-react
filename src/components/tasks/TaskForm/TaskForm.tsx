@@ -101,7 +101,6 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDraft, setIsDraft] = useState(getDraftDefault());
   const [crewMember, setCrewMember] = useState<string>('');
-  const [meetingDate, setMeetingDate] = useState<string>('');
   const dependsOnRef = useRef<HTMLDivElement>(null);
   const dependsOnInputRef = useRef<HTMLInputElement>(null);
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
@@ -266,7 +265,6 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       } else {
         setType('feature');
       }
-      setMeetingDate('');
     }
   }, [task, allTasks, initialType]);
 

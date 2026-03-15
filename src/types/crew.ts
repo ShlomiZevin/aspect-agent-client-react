@@ -24,6 +24,7 @@ export interface CrewMember {
   source?: 'file' | 'database';
   usesThinker?: boolean;
   thinkingPrompt?: string | null;
+  thinkingModel?: string | null;
 }
 
 /**

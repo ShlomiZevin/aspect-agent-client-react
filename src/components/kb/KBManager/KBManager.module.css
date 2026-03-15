@@ -370,6 +370,28 @@
   white-space: nowrap;
 }
 
+.detachBtn {
+  font-size: 10px;
+  padding: 1px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+.detachBtn:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: var(--error-color);
+  color: var(--error-color);
+}
+
+.detachBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Action buttons row in detail header */
 .headerActions {
   display: flex;

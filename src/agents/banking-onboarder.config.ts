@@ -52,8 +52,6 @@ export const bankingOnboarderConfig: AgentConfig = {
   ],
 
   features: {
-    hasKnowledgeBase: false,
-    kbToggleable: false,
     hasLogoUpload: false,
     hasFileUpload: false,
     hasChatHistory: true,

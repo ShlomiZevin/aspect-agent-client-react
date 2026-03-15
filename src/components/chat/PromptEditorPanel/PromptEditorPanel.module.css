@@ -983,28 +983,8 @@
   font-style: italic;
 }
 
-.kbSourceList {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: var(--spacing-xs);
-}
-
-.kbSourceItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  gap: var(--spacing-sm);
-}
-
-.kbSourceName {
+.kbCrewSource {
   font-weight: 500;
-  color: var(--text-primary);
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .kbOk {
@@ -1050,4 +1030,30 @@
   color: var(--text-muted);
   margin-left: auto;
   flex-shrink: 0;
+}
+
+.thinkerControls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0 8px;
+  gap: var(--spacing-sm);
+}
+
+.thinkerToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.thinkerToggle input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.thinkerModel {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: monospace;
 }

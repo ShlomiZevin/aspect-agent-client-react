@@ -7,7 +7,6 @@ export interface StreamChatOptions {
   conversationId: string;
   agentName: string;
   userId: string | null;
-  useKnowledgeBase?: boolean;
   baseURL?: string;
   overrideCrewMember?: string | null;
   debug?: boolean;
@@ -16,6 +15,7 @@ export interface StreamChatOptions {
   personaOverride?: string; // Session override for agent-level persona (applies to all crews)
   kbOverrides?: Record<string, string[]>; // Session override: { crewName: string[] } - same pattern as modelOverrides
   thinkingPromptOverrides?: Record<string, string>; // Session override: { crewName: thinkingPrompt }
+  thinkerDisabled?: Record<string, boolean>; // Session override: { crewName: true } to disable thinker
 }
 
 export interface CrewTransition {
@@ -47,7 +47,7 @@ export async function streamChat(
   options: StreamChatOptions,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const { message, conversationId, agentName, userId, useKnowledgeBase = false, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, personaOverride, kbOverrides, thinkingPromptOverrides } = options;
+  const { message, conversationId, agentName, userId, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkerDisabled } = options;
   const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onFieldExtracted } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
@@ -59,7 +59,6 @@ export async function streamChat(
       body: JSON.stringify({
         message,
         conversationId,
-        useKnowledgeBase,
         userId,
         agentName,
         ...(overrideCrewMember && { overrideCrewMember }),
@@ -69,6 +68,7 @@ export async function streamChat(
         ...(personaOverride && { personaOverride }),
         ...(kbOverrides && Object.keys(kbOverrides).length > 0 && { kbOverrides }),
         ...(thinkingPromptOverrides && Object.keys(thinkingPromptOverrides).length > 0 && { thinkingPromptOverrides }),
+        ...(thinkerDisabled && Object.keys(thinkerDisabled).length > 0 && { thinkerDisabled }),
       }),
     });
 

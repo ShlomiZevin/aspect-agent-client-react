@@ -35,6 +35,8 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   setPersonaOverride: (persona: string | null) => void;
   setKBOverride: (crewMemberId: string, sources: string[]) => void;
   setThinkingPromptOverride: (crewMemberId: string, prompt: string) => void;
+  thinkerDisabled: Record<string, boolean>;
+  setThinkerDisabled: (crewMemberId: string, disabled: boolean) => void;
   // Fields editor
   isFieldsEditorOpen: boolean;
   setFieldsEditorOpen: (open: boolean) => void;
@@ -57,8 +59,6 @@ interface ChatProviderProps {
 export function ChatProvider({ children }: ChatProviderProps) {
   const { config } = useAgentContext();
   const { userId, switchUser } = useUserContext();
-  const useKB = config.features.hasKnowledgeBase;
-
   // Phone linking state (persisted in localStorage)
   const [linkedPhone, setLinkedPhone] = useLocalStorageString(`${config.storagePrefix}linked_phone`, null);
 
@@ -110,6 +110,17 @@ export function ChatProvider({ children }: ChatProviderProps) {
     }
   }, []);
 
+  // Thinker disabled overrides for debug mode (session-only)
+  const [thinkerDisabled, setThinkerDisabledState] = useState<Record<string, boolean>>({});
+  const setThinkerDisabled = useCallback((crewMemberId: string, disabled: boolean) => {
+    setThinkerDisabledState(prev => {
+      if (disabled) return { ...prev, [crewMemberId]: true };
+      const next = { ...prev };
+      delete next[crewMemberId];
+      return next;
+    });
+  }, []);
+
   // Thinking prompt overrides for debug mode (session-only)
   const [thinkingPromptOverrides, setThinkingPromptOverrides] = useState<Record<string, string>>({});
   const setThinkingPromptOverride = useCallback((crewMemberId: string, prompt: string) => {
@@ -157,7 +168,6 @@ export function ChatProvider({ children }: ChatProviderProps) {
     config,
     conversationId: conversation.conversationId,
     userId,
-    useKnowledgeBase: useKB,
     overrideCrewMember: crew.selectedOverride,
     debug: debugMode,
     promptOverrides: debugMode ? promptOverrides : undefined, // Only use in debug mode
@@ -165,6 +175,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     personaOverride: debugMode ? (personaOverride || undefined) : undefined,
     kbOverrides: debugMode ? kbOverrides : undefined,
     thinkingPromptOverrides: debugMode ? thinkingPromptOverrides : undefined,
+    thinkerDisabled: debugMode ? thinkerDisabled : undefined,
     onCrewInfo: (crewInfo) => {
       crew.setCurrentCrew(crewInfo);
       // Refresh fields panel when crew is set (including initial crew)
@@ -406,6 +417,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
     setPersonaOverride,
     setKBOverride,
     setThinkingPromptOverride,
+    thinkerDisabled,
+    setThinkerDisabled,
     // Fields editor
     isFieldsEditorOpen,
     setFieldsEditorOpen,

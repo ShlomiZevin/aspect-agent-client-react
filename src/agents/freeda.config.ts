@@ -67,8 +67,6 @@ export const freedaConfig: AgentConfig = {
   ],
 
   features: {
-    hasKnowledgeBase: true,
-    kbToggleable: true,
     hasLogoUpload: false,
     hasFileUpload: true,
     hasChatHistory: true,

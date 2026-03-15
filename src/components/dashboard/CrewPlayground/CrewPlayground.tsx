@@ -160,7 +160,6 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     config: testAgentConfig,
     conversationId: testConversationId,
     userId: null,
-    useKnowledgeBase: config.kbSources.length > 0,
     overrideCrewMember: registeredSession?.crewName || null,
     debug: debugMode,
     onCrewInfo: () => {},

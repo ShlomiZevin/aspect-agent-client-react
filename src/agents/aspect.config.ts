@@ -67,8 +67,6 @@ export const aspectConfig: AgentConfig = {
   ],
 
   features: {
-    hasKnowledgeBase: false,
-    kbToggleable: false,
     hasLogoUpload: true,
     hasFileUpload: false,
     hasChatHistory: true,
