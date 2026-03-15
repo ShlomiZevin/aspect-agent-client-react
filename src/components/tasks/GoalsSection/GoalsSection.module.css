@@ -1,0 +1,398 @@
+.sidebar {
+  width: 260px;
+  min-width: 260px;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar.fullScreen {
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
+  border-left: none;
+}
+
+.header {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--border);
+}
+
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+}
+
+.title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.titleIcon {
+  font-size: 14px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.addBtn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 16px;
+  font-weight: 300;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1;
+}
+
+.addBtn:hover {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.expandBtn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.expandBtn:hover {
+  background: var(--surface-light);
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.meetingDate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.meetingDateLabel {
+  white-space: nowrap;
+}
+
+.meetingDateInput {
+  background: var(--surface-light);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+  width: 130px;
+}
+
+.meetingDateInput:hover {
+  border-color: var(--border);
+}
+
+.meetingDateInput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.goalsList {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+/* Full screen: left-aligned, comfortable padding */
+.fullScreen .goalsList {
+  padding: var(--spacing-md) var(--spacing-xl) var(--spacing-md) var(--spacing-xl);
+}
+
+/* Notes button indicator */
+.notesBtn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px;
+  opacity: 0.4;
+  transition: opacity var(--transition-fast);
+  line-height: 1;
+}
+
+.notesBtn:hover {
+  opacity: 1;
+}
+
+.notesBtn.notesBtnActive {
+  opacity: 0.7;
+}
+
+.notesBtn.notesBtnActive:hover {
+  opacity: 1;
+}
+
+/* Notes modal */
+.notesOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.notesModal {
+  width: 90%;
+  max-width: 560px;
+  max-height: 80%;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.notesModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.notesModalClose {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.notesModalClose:hover {
+  background: var(--surface-light);
+  color: var(--text-primary);
+}
+
+
+/* Override RichTextEditor inside notes modal */
+.notesEditorWrap {
+  flex: 1;
+  overflow: auto;
+}
+
+.notesEditorWrap > div {
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+.notesModal [contenteditable] {
+  max-height: none !important;
+  min-height: 60px;
+}
+
+.empty {
+  padding: var(--spacing-lg) var(--spacing-md);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+}
+
+/* Goal item */
+.goalItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.goalItem:last-child {
+  border-bottom: none;
+}
+
+.goalItem:hover {
+  background: var(--surface-light);
+}
+
+/* Drag feedback */
+.goalItem[draggable="true"] {
+  cursor: grab;
+}
+
+.goalItem[draggable="true"]:active {
+  cursor: grabbing;
+  opacity: 0.6;
+}
+
+.goalItemFull {
+  padding: var(--spacing-md) var(--spacing-sm);
+}
+
+.goalItemFull .goalTitle {
+  font-size: var(--font-size-sm);
+}
+
+.goalItemFull .goalNumber {
+  font-size: var(--font-size-sm);
+}
+
+.goalItemFull .goalMeta {
+  margin-top: 4px;
+}
+
+.goalItemFull .linkedTask {
+  font-size: var(--font-size-xs);
+}
+
+/* Goal number */
+.goalNumber {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 18px;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+/* Checkbox on the right */
+.goalCheckbox {
+  margin-top: 2px;
+  margin-left: auto;
+  cursor: pointer;
+  accent-color: var(--success-color);
+  flex-shrink: 0;
+}
+
+.goalContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.goalTitle {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.goalTitle.completed {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.goalMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.goalAssignee {
+  font-size: 10px;
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.goalCreated {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Linked task chip */
+.linkedTask {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  padding: 3px 8px;
+  margin-top: 4px;
+  border-radius: 4px;
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  max-width: 100%;
+  text-decoration: none;
+  border: 1px solid rgba(37, 99, 235, 0.15);
+}
+
+.linkedTask:hover {
+  background: rgba(37, 99, 235, 0.15);
+  border-color: rgba(37, 99, 235, 0.3);
+}
+
+.linkedTaskName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkedTaskStatus {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.linkedTaskStatus.todo {
+  color: #64748b;
+}
+
+.linkedTaskStatus.in_progress {
+  color: #f59e0b;
+}
+
+.linkedTaskStatus.done {
+  color: #10b981;
+}
+
+.description {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

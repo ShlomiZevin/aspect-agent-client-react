@@ -251,6 +251,11 @@
   color: #a855f7;
 }
 
+.type.goal {
+  background: rgba(20, 184, 166, 0.1);
+  color: #14b8a6;
+}
+
 .priority {
   font-size: 10px;
   font-weight: 600;

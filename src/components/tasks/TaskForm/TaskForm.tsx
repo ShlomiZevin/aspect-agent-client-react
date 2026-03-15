@@ -35,6 +35,7 @@ interface TaskFormProps {
   showAllDomains?: boolean; // When true, show all domain options (Ctrl+Shift+A mode)
   crewMembers?: CrewMember[];
   commentRefreshTrigger?: number;
+  initialType?: TaskType; // Pre-fill type when creating (e.g., 'goal' from Goals sidebar)
   onSubmit: (data: CreateTaskData) => void;
   onCancel: () => void;
   onDelete?: () => void;
@@ -58,6 +59,7 @@ const TYPE_OPTIONS: { value: TaskType; label: string }[] = [
   { value: 'feature', label: 'Feature' },
   { value: 'bug', label: 'Bug' },
   { value: 'idea', label: 'Idea' },
+  { value: 'goal', label: 'Goal' },
 ];
 
 // Format creation date for display
@@ -79,7 +81,7 @@ function containsHebrew(text: string): boolean {
   return /[\u0590-\u05FF]/.test(text);
 }
 
-export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, onSubmit, onCancel, onDelete }: TaskFormProps) {
+export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, onSubmit, onCancel, onDelete }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [description, setDescription] = useState('');
@@ -99,6 +101,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDraft, setIsDraft] = useState(getDraftDefault());
   const [crewMember, setCrewMember] = useState<string>('');
+  const [meetingDate, setMeetingDate] = useState<string>('');
   const dependsOnRef = useRef<HTMLDivElement>(null);
   const dependsOnInputRef = useRef<HTMLInputElement>(null);
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
@@ -243,7 +246,8 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       setIsCompleted(task.isCompleted || false);
       setDependsOn(task.dependsOn || null);
       setDependsOnSearch(''); // Clear search - we show chip when selected
-      setTagsInput(task.tags.join(', '));
+      // Filter out internal tags from visible tags input
+      setTagsInput(task.tags.filter(t => !t.startsWith('meetingDate:') && !t.startsWith('order:') && t !== 'goalsMeta').join(', '));
       setCrewMember(task.crewMember || '');
       setIsDraft(task.isDraft || false);
     } else {
@@ -256,37 +260,71 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       setDependsOnSearch('');
       setCrewMember('');
       setIsDraft(getDraftDefault());
+      // Apply initialType preset (e.g., 'goal' from Goals sidebar)
+      if (initialType) {
+        setType(initialType);
+      } else {
+        setType('feature');
+      }
+      setMeetingDate('');
     }
-  }, [task, allTasks]);
+  }, [task, allTasks, initialType]);
+
+  const isGoal = type === 'goal';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    const tags = tagsInput
-      .split(',')
-      .map(t => t.trim())
-      .filter(t => t.length > 0);
+    // For goals, preserve internal tags (meetingDate, order) but skip user tags input
+    let tags: string[];
+    if (isGoal && task) {
+      // Keep existing internal tags (order for sorting)
+      tags = task.tags.filter(t => t.startsWith('order:'));
+    } else if (isGoal) {
+      tags = [];
+    } else {
+      tags = tagsInput
+        .split(',')
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
+    }
 
     // Linkify URLs in description before saving
     const processedDescription = description.trim() ? linkifyHtml(description.trim()) : undefined;
 
-    onSubmit({
-      title: title.trim(),
-      description: processedDescription,
-      status,
-      priority,
-      type,
-      domain,
-      assignee: assignee || null,
-      dueDate: dueDate || undefined,
-      atRisk,
-      isCompleted,
-      dependsOn, // Pass null to clear, number to set
-      tags,
-      crewMember: crewMember || null,
-      isDraft,
-    });
+    if (isGoal) {
+      // Goals have a minimal data shape
+      onSubmit({
+        title: title.trim(),
+        description: processedDescription,
+        type: 'goal',
+        assignee: assignee || null,
+        dependsOn,
+        tags,
+        // Set sensible defaults for required fields
+        status: task?.status || 'todo',
+        priority: task?.priority || 'medium',
+        domain: task?.domain || 'general',
+      });
+    } else {
+      onSubmit({
+        title: title.trim(),
+        description: processedDescription,
+        status,
+        priority,
+        type,
+        domain,
+        assignee: assignee || null,
+        dueDate: dueDate || undefined,
+        atRisk,
+        isCompleted,
+        dependsOn,
+        tags,
+        crewMember: crewMember || null,
+        isDraft,
+      });
+    }
   };
 
   return (
@@ -295,7 +333,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.header}>
           <h3>
-            {task ? 'Edit Task' : 'New Task'}
+            {isGoal ? (task ? 'Edit Goal' : 'New Goal') : (task ? 'Edit Task' : 'New Task')}
             {task && <span className={styles.taskId}>#{task.id}</span>}
             {task?.createdAt && (
               <span className={styles.createdDate} title={new Date(task.createdAt).toLocaleString()}>
@@ -310,8 +348,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
 
         <div className={styles.formBody}>
           <div className={styles.titleField}>
-            <label>Title *</label>
-            {/* For new tasks or when editing: show textarea */}
+            <label>{isGoal ? 'Goal *' : 'Title *'}</label>
             {(!task || isEditingTitle) ? (
               <textarea
                 ref={titleInputRef}
@@ -328,14 +365,13 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                     setIsEditingTitle(false);
                   }
                 }}
-                placeholder="Task title..."
+                placeholder={isGoal ? 'Goal title...' : 'Task title...'}
                 autoFocus
                 className={styles.titleTextarea}
                 rows={1}
                 style={containsHebrew(title) ? { direction: 'rtl', textAlign: 'right' } : undefined}
               />
             ) : (
-              /* For existing tasks: show as clickable text */
               <div
                 className={styles.titleDisplay}
                 onClick={() => {
@@ -367,162 +403,248 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
             />
           </div>
 
-          <div className={styles.row}>
-            <div className={styles.field}>
-              <label htmlFor="type">Type</label>
-              <select id="type" value={type} onChange={(e) => setType(e.target.value as TaskType)}>
-                {TYPE_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className={styles.field}>
-              <label htmlFor="priority">Priority</label>
-              <select id="priority" value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)}>
-                {PRIORITY_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className={styles.field}>
-              <label htmlFor="status">Status</label>
-              <select id="status" value={status} onChange={(e) => setStatus(e.target.value as TaskStatus)}>
-                {STATUS_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className={styles.row}>
-            <div className={styles.field}>
-              <label htmlFor="domain">Domain</label>
-              <select id="domain" value={domain} onChange={(e) => setDomain(e.target.value)}>
-                {domainOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className={styles.field}>
-              <label htmlFor="assignee">
-                {task?.opener ? <>Assigned to by <span className={styles.openerName}>{task.opener}</span></> : 'Assignee'}
-              </label>
-              <select id="assignee" value={assignee} onChange={(e) => setAssignee(e.target.value)}>
-                <option value="">Unassigned</option>
-                {assignees.map(a => (
-                  <option key={a.id} value={a.name}>{a.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className={styles.field}>
-              <label htmlFor="dueDate">Due Date</label>
-              <input
-                id="dueDate"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className={styles.inlineRow}>
-            <label htmlFor="crewMember">Crew</label>
-            <div className={styles.inlineField}>
-              {crewMembers && crewMembers.length > 0 ? (
-                <select id="crewMember" value={crewMember} onChange={(e) => setCrewMember(e.target.value)}>
-                  <option value="">None</option>
-                  {crewMembers.map(c => (
-                    <option key={c.name} value={c.name}>{c.displayName || c.name}</option>
-                  ))}
-                </select>
-              ) : (
-                <input id="crewMember" type="text" value={crewMember} onChange={(e) => setCrewMember(e.target.value)} placeholder="No crews available" />
-              )}
-            </div>
-          </div>
-
-          <div className={styles.inlineRow}>
-            <label htmlFor="tags">Tags</label>
-            <div className={styles.inlineField}>
-              <input
-                id="tags"
-                type="text"
-                value={tagsInput}
-                onChange={(e) => setTagsInput(e.target.value)}
-                placeholder="e.g., urgent, backend, ui"
-              />
-            </div>
-          </div>
-
-          <div className={styles.dependsOnRow} ref={dependsOnRef}>
-            <label htmlFor="dependsOn">Depends On</label>
-            <div className={styles.dependsOnField}>
-              {dependsOn ? (
-                <div className={styles.selectedDependency}>
-                  <span className={styles.dependencyChip}>
-                    {selectedDependencyName}
-                  </span>
-                  <button
-                    type="button"
-                    className={styles.removeDepBtn}
-                    onClick={() => {
-                      setDependsOn(null);
-                      setDependsOnSearch('');
-                    }}
-                    title="Remove dependency"
-                  >
-                    ×
-                  </button>
+          {/* === Goal-specific simplified fields === */}
+          {isGoal ? (
+            <>
+              <div className={styles.inlineRow}>
+                <label htmlFor="assignee">Assigned to</label>
+                <div className={styles.inlineField}>
+                  <select id="assignee" value={assignee} onChange={(e) => setAssignee(e.target.value)}>
+                    <option value="">Unassigned</option>
+                    {assignees.map(a => (
+                      <option key={a.id} value={a.name}>{a.name}</option>
+                    ))}
+                  </select>
                 </div>
-              ) : (
-                <div className={styles.autocompleteWrapper}>
-                  <input
-                    ref={dependsOnInputRef}
-                    id="dependsOn"
-                    type="text"
-                    value={dependsOnSearch}
-                    onChange={(e) => {
-                      setDependsOnSearch(e.target.value);
-                      setShowDependsOnDropdown(true);
-                    }}
-                    onFocus={() => setShowDependsOnDropdown(true)}
-                    onKeyDown={handleDependsOnKeyDown}
-                    placeholder="Type 3+ letters to search..."
-                    autoComplete="off"
-                  />
-                  {showDependsOnDropdown && dependsOnSuggestions.length > 0 && dropdownPos && (
-                    <div
-                      className={styles.autocompleteDropdown}
-                      style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
-                    >
-                      {dependsOnSuggestions.map((t, index) => (
+              </div>
+
+              <div className={styles.dependsOnRow} ref={dependsOnRef}>
+                <label htmlFor="dependsOn">Linked Task</label>
+                <div className={styles.dependsOnField}>
+                  {dependsOn ? (
+                    <div className={styles.selectedDependency}>
+                      <span className={styles.dependencyChip}>
+                        #{allTasks.find(t => t.id === dependsOn)?.id} {selectedDependencyName}
+                      </span>
+                      <button
+                        type="button"
+                        className={styles.removeDepBtn}
+                        onClick={() => {
+                          setDependsOn(null);
+                          setDependsOnSearch('');
+                        }}
+                        title="Remove linked task"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={styles.autocompleteWrapper}>
+                      <input
+                        ref={dependsOnInputRef}
+                        id="dependsOn"
+                        type="text"
+                        value={dependsOnSearch}
+                        onChange={(e) => {
+                          setDependsOnSearch(e.target.value);
+                          setShowDependsOnDropdown(true);
+                        }}
+                        onFocus={() => setShowDependsOnDropdown(true)}
+                        onKeyDown={handleDependsOnKeyDown}
+                        placeholder="Search board tasks to link..."
+                        autoComplete="off"
+                      />
+                      {showDependsOnDropdown && dependsOnSuggestions.length > 0 && dropdownPos && (
                         <div
-                          key={t.id}
-                          className={`${styles.autocompleteItem} ${index === highlightedIndex ? styles.highlighted : ''}`}
-                          onClick={() => {
-                            setDependsOn(t.id);
-                            setDependsOnSearch('');
-                            setShowDependsOnDropdown(false);
-                            setHighlightedIndex(-1);
-                          }}
-                          onMouseEnter={() => setHighlightedIndex(index)}
+                          className={styles.autocompleteDropdown}
+                          style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
                         >
-                          <span className={styles.autocompleteTitle}>{t.title}</span>
-                          <span className={`${styles.autocompleteStatus} ${styles[t.status]}`}>
-                            {t.status === 'done' ? '✓' : t.status === 'in_progress' ? '⏳' : '○'}
-                          </span>
+                          {dependsOnSuggestions.map((t, index) => (
+                            <div
+                              key={t.id}
+                              className={`${styles.autocompleteItem} ${index === highlightedIndex ? styles.highlighted : ''}`}
+                              onClick={() => {
+                                setDependsOn(t.id);
+                                setDependsOnSearch('');
+                                setShowDependsOnDropdown(false);
+                                setHighlightedIndex(-1);
+                              }}
+                              onMouseEnter={() => setHighlightedIndex(index)}
+                            >
+                              <span className={styles.autocompleteTitle}>#{t.id} {t.title}</span>
+                              <span className={`${styles.autocompleteStatus} ${styles[t.status]}`}>
+                                {t.status === 'done' ? '✓' : t.status === 'in_progress' ? '⏳' : '○'}
+                              </span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* === Regular task fields === */}
+              <div className={styles.row}>
+                <div className={styles.field}>
+                  <label htmlFor="type">Type</label>
+                  <select id="type" value={type} onChange={(e) => setType(e.target.value as TaskType)}>
+                    {TYPE_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.field}>
+                  <label htmlFor="priority">Priority</label>
+                  <select id="priority" value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)}>
+                    {PRIORITY_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.field}>
+                  <label htmlFor="status">Status</label>
+                  <select id="status" value={status} onChange={(e) => setStatus(e.target.value as TaskStatus)}>
+                    {STATUS_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className={styles.row}>
+                <div className={styles.field}>
+                  <label htmlFor="domain">Domain</label>
+                  <select id="domain" value={domain} onChange={(e) => setDomain(e.target.value)}>
+                    {domainOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.field}>
+                  <label htmlFor="assignee">
+                    {task?.opener ? <>Assigned to by <span className={styles.openerName}>{task.opener}</span></> : 'Assignee'}
+                  </label>
+                  <select id="assignee" value={assignee} onChange={(e) => setAssignee(e.target.value)}>
+                    <option value="">Unassigned</option>
+                    {assignees.map(a => (
+                      <option key={a.id} value={a.name}>{a.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.field}>
+                  <label htmlFor="dueDate">Due Date</label>
+                  <input
+                    id="dueDate"
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.inlineRow}>
+                <label htmlFor="crewMember">Crew</label>
+                <div className={styles.inlineField}>
+                  {crewMembers && crewMembers.length > 0 ? (
+                    <select id="crewMember" value={crewMember} onChange={(e) => setCrewMember(e.target.value)}>
+                      <option value="">None</option>
+                      {crewMembers.map(c => (
+                        <option key={c.name} value={c.name}>{c.displayName || c.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input id="crewMember" type="text" value={crewMember} onChange={(e) => setCrewMember(e.target.value)} placeholder="No crews available" />
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.inlineRow}>
+                <label htmlFor="tags">Tags</label>
+                <div className={styles.inlineField}>
+                  <input
+                    id="tags"
+                    type="text"
+                    value={tagsInput}
+                    onChange={(e) => setTagsInput(e.target.value)}
+                    placeholder="e.g., urgent, backend, ui"
+                  />
+                </div>
+              </div>
+
+              <div className={styles.dependsOnRow} ref={dependsOnRef}>
+                <label htmlFor="dependsOn">Depends On</label>
+                <div className={styles.dependsOnField}>
+                  {dependsOn ? (
+                    <div className={styles.selectedDependency}>
+                      <span className={styles.dependencyChip}>
+                        {selectedDependencyName}
+                      </span>
+                      <button
+                        type="button"
+                        className={styles.removeDepBtn}
+                        onClick={() => {
+                          setDependsOn(null);
+                          setDependsOnSearch('');
+                        }}
+                        title="Remove dependency"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={styles.autocompleteWrapper}>
+                      <input
+                        ref={dependsOnInputRef}
+                        id="dependsOn"
+                        type="text"
+                        value={dependsOnSearch}
+                        onChange={(e) => {
+                          setDependsOnSearch(e.target.value);
+                          setShowDependsOnDropdown(true);
+                        }}
+                        onFocus={() => setShowDependsOnDropdown(true)}
+                        onKeyDown={handleDependsOnKeyDown}
+                        placeholder="Type 3+ letters to search..."
+                        autoComplete="off"
+                      />
+                      {showDependsOnDropdown && dependsOnSuggestions.length > 0 && dropdownPos && (
+                        <div
+                          className={styles.autocompleteDropdown}
+                          style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
+                        >
+                          {dependsOnSuggestions.map((t, index) => (
+                            <div
+                              key={t.id}
+                              className={`${styles.autocompleteItem} ${index === highlightedIndex ? styles.highlighted : ''}`}
+                              onClick={() => {
+                                setDependsOn(t.id);
+                                setDependsOnSearch('');
+                                setShowDependsOnDropdown(false);
+                                setHighlightedIndex(-1);
+                              }}
+                              onMouseEnter={() => setHighlightedIndex(index)}
+                            >
+                              <span className={styles.autocompleteTitle}>{t.title}</span>
+                              <span className={`${styles.autocompleteStatus} ${styles[t.status]}`}>
+                                {t.status === 'done' ? '✓' : t.status === 'in_progress' ? '⏳' : '○'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
 
         </div>
 
@@ -532,34 +654,36 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
               Delete
             </button>
           )}
-          <div className={styles.toggles}>
-            <label className={`${styles.toggleChip} ${isDraft ? styles.draftActive : ''}`}>
-              <input
-                type="checkbox"
-                checked={isDraft}
-                onChange={(e) => setIsDraft(e.target.checked)}
-              />
-              Draft
-            </label>
-            <label className={`${styles.toggleChip} ${atRisk ? styles.atRiskActive : ''}`}>
-              <input
-                type="checkbox"
-                checked={atRisk}
-                onChange={(e) => setAtRisk(e.target.checked)}
-              />
-              ⚠ Risk
-            </label>
-            {status === 'done' && (
-              <label className={`${styles.toggleChip} ${isCompleted ? styles.completedActive : ''}`}>
+          {!isGoal && (
+            <div className={styles.toggles}>
+              <label className={`${styles.toggleChip} ${isDraft ? styles.draftActive : ''}`}>
                 <input
                   type="checkbox"
-                  checked={isCompleted}
-                  onChange={(e) => setIsCompleted(e.target.checked)}
+                  checked={isDraft}
+                  onChange={(e) => setIsDraft(e.target.checked)}
                 />
-                ✓ Done
+                Draft
               </label>
-            )}
-          </div>
+              <label className={`${styles.toggleChip} ${atRisk ? styles.atRiskActive : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={atRisk}
+                  onChange={(e) => setAtRisk(e.target.checked)}
+                />
+                ⚠ Risk
+              </label>
+              {status === 'done' && (
+                <label className={`${styles.toggleChip} ${isCompleted ? styles.completedActive : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={isCompleted}
+                    onChange={(e) => setIsCompleted(e.target.checked)}
+                  />
+                  ✓ Done
+                </label>
+              )}
+            </div>
+          )}
           <div className={styles.rightActions}>
             <button type="button" className={styles.cancelBtn} onClick={onCancel}>
               Cancel

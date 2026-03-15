@@ -9,6 +9,7 @@ import { TaskBoard } from '../TaskBoard/TaskBoard';
 import { TaskList } from '../TaskList/TaskList';
 import { TaskForm } from '../TaskForm/TaskForm';
 import { AssigneeManager } from '../AssigneeManager/AssigneeManager';
+import { GoalsSection } from '../GoalsSection/GoalsSection';
 import { NotificationBell } from '../NotificationBell/NotificationBell';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { getUserId, getDraftDefault, setDraftDefault } from '../../../utils/userIdentifier';
@@ -73,6 +74,15 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
   const [filterCrewMember, setFilterCrewMember] = useState<string | null>(null);
   const [filterOpener, setFilterOpener] = useState<string | null>(null);
+
+  // Pre-fill form as goal when adding from sidebar
+  const [presetGoalMode, setPresetGoalMode] = useState(false);
+
+  // Meeting notes modal (shared so both header and GoalsSection can trigger it)
+  const [showMeetingNotes, setShowMeetingNotes] = useState(false);
+
+  // Full-screen goals view
+  const [goalsFullScreen, setGoalsFullScreen] = useState(false);
 
   // Delete confirmation modal state
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
@@ -178,6 +188,21 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     return result.filter(t => t.domain === filterDomain);
   }, [tasks, filterDomain, filterAssignee, filterCrewMember, filterOpener, currentDomain, showCompleted, showAllDomains, showUnassignedOnly, showDraftsOnly, currentUserId]);
 
+  // Split goals from board tasks — goals go to sidebar, rest to kanban/list
+  // The goalsMeta sentinel stores the meeting date and is excluded from display
+  const goalsMeta = useMemo(() => tasks.find(t => t.type === 'goal' && t.tags.includes('goalsMeta')), [tasks]);
+  const goals = useMemo(() => filteredTasks.filter(t => t.type === 'goal' && !t.tags.includes('goalsMeta')), [filteredTasks]);
+  const boardTasks = useMemo(() => filteredTasks.filter(t => t.type !== 'goal'), [filteredTasks]);
+
+  // Meeting date and notes from the sentinel task
+  const meetingDate = useMemo(() => {
+    if (!goalsMeta) return null;
+    const tag = goalsMeta.tags.find(t => t.startsWith('meetingDate:'));
+    return tag ? tag.split(':')[1] : null;
+  }, [goalsMeta]);
+
+  const meetingNotes = useMemo(() => goalsMeta?.description || '', [goalsMeta]);
+
   // Handle opening in drafts mode (from Ctrl+Shift+L global shortcut)
   useEffect(() => {
     if (isOpen && openInDraftsMode) {
@@ -276,6 +301,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     const task = await taskService.createTask(taskData);
     setTasks(prev => [task, ...prev]);
     setShowForm(false);
+    setPresetGoalMode(false);
   };
 
   const handleUpdateTask = async (data: CreateTaskData) => {
@@ -413,7 +439,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   };
 
   const handleSelectAllExports = () => {
-    setSelectedExports(new Set(filteredTasks.map(t => t.id)));
+    setSelectedExports(new Set(boardTasks.map(t => t.id)));
   };
 
   const handleDeselectAllExports = () => {
@@ -427,7 +453,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   };
 
   const handleExportTasks = async () => {
-    const tasksToExport = filteredTasks.filter(t => selectedExports.has(t.id));
+    const tasksToExport = boardTasks.filter(t => selectedExports.has(t.id));
     if (tasksToExport.length === 0) return;
 
     const lines: string[] = ['## Tasks', ''];
@@ -463,6 +489,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const handleCloseForm = () => {
     setEditingTask(null);
     setShowForm(false);
+    setPresetGoalMode(false);
   };
 
   const handleOpenTaskById = useCallback((taskId: number) => {
@@ -472,6 +499,55 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
       setShowForm(true);
     }
   }, [tasks]);
+
+  const handleMeetingDateChange = async (newDate: string) => {
+    if (goalsMeta) {
+      // Update existing sentinel
+      const filteredTags = goalsMeta.tags.filter(t => !t.startsWith('meetingDate:'));
+      const newTags = newDate ? [...filteredTags, `meetingDate:${newDate}`] : filteredTags;
+      const updated = await taskService.updateTask(goalsMeta.id, { tags: newTags });
+      setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+    } else if (newDate) {
+      // Create sentinel task to hold meeting date
+      const sentinel = await taskService.createTask({
+        title: 'Goals Meeting Date',
+        type: 'goal',
+        tags: ['goalsMeta', `meetingDate:${newDate}`],
+        domain: 'general',
+        status: 'todo',
+      });
+      setTasks(prev => [sentinel, ...prev]);
+    }
+  };
+
+  const handleMeetingNotesChange = async (notes: string) => {
+    if (goalsMeta) {
+      const updated = await taskService.updateTask(goalsMeta.id, { description: notes || undefined });
+      setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+    } else if (notes) {
+      // Create sentinel if it doesn't exist yet
+      const sentinel = await taskService.createTask({
+        title: 'Goals Meeting Date',
+        type: 'goal',
+        tags: ['goalsMeta'],
+        domain: 'general',
+        status: 'todo',
+        description: notes,
+      });
+      setTasks(prev => [sentinel, ...prev]);
+    }
+  };
+
+  const handleAddGoal = () => {
+    setEditingTask(null);
+    setPresetGoalMode(true);
+    setShowForm(true);
+  };
+
+  const handleUpdateGoal = async (id: number, updates: CreateTaskData | Record<string, unknown>) => {
+    const updated = await taskService.updateTask(id, updates);
+    setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+  };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -486,15 +562,75 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
       <div className={styles.modal} dir="ltr">
         {/* Header */}
         <div className={styles.header}>
-          <h2 className={styles.title}>Task Board</h2>
-          <div className={styles.headerRight}>
-            <NotificationBell notifications={notificationsState} assignees={assignees} onOpenTask={handleOpenTaskById} />
-            <button className={styles.closeBtn} onClick={onClose} title="Close (Esc)">
-              ×
-            </button>
-          </div>
+          <h2 className={styles.title}>
+            {goalsFullScreen ? (
+              <>🎯 Goals & Priorities <button className={styles.notesBtnHeader} onClick={() => setShowMeetingNotes(true)} title="Meeting notes">📝</button></>
+            ) : '📋 Task Board'}
+          </h2>
+          {goalsFullScreen ? (
+            <div className={styles.headerRight}>
+              <div className={styles.goalsHeaderControls}>
+                <span className={styles.goalsHeaderDate}>
+                  Last meeting:
+                  <input
+                    type="date"
+                    className={styles.goalsHeaderDateInput}
+                    value={meetingDate || ''}
+                    onChange={(e) => handleMeetingDateChange(e.target.value)}
+                  />
+                </span>
+                <label className={styles.showCompletedLabel}>
+                  <input
+                    type="checkbox"
+                    checked={showCompleted}
+                    onChange={(e) => setShowCompleted(e.target.checked)}
+                  />
+                  Show Completed
+                </label>
+                <button className={styles.addBtn} onClick={handleAddGoal}>+ Add Goal</button>
+                <button
+                  className={styles.goalsBackBtn}
+                  onClick={() => setGoalsFullScreen(false)}
+                >
+                  ← Board
+                </button>
+              </div>
+              <button className={styles.closeBtn} onClick={onClose} title="Close (Esc)">
+                ×
+              </button>
+            </div>
+          ) : (
+            <div className={styles.headerRight}>
+              <NotificationBell notifications={notificationsState} assignees={assignees} onOpenTask={handleOpenTaskById} />
+              <button className={styles.closeBtn} onClick={onClose} title="Close (Esc)">
+                ×
+              </button>
+            </div>
+          )}
         </div>
 
+        {/* Full-screen goals mode — takes over entire modal */}
+        {goalsFullScreen && (
+          <GoalsSection
+            goals={goals}
+            allTasks={tasks}
+            isFullScreen
+            hideHeader
+            meetingDate={meetingDate}
+            meetingNotes={meetingNotes}
+            showNotesModal={showMeetingNotes}
+            onShowNotesModal={setShowMeetingNotes}
+            onGoalClick={handleTaskClick}
+            onAddGoal={handleAddGoal}
+            onUpdateGoal={handleUpdateGoal}
+            onLinkedTaskClick={handleTaskClick}
+            onToggleFullScreen={() => setGoalsFullScreen(false)}
+            onMeetingDateChange={handleMeetingDateChange}
+            onMeetingNotesChange={handleMeetingNotesChange}
+          />
+        )}
+
+        {!goalsFullScreen && <>
         {/* Toolbar - Row 1: Main Controls */}
         <div className={styles.toolbarRow1}>
           <button
@@ -696,13 +832,13 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
         )}
 
         {/* Export Bulk Action Bar */}
-        {viewMode === 'list' && !showDraftsOnly && filteredTasks.length > 0 && (
+        {viewMode === 'list' && !showDraftsOnly && boardTasks.length > 0 && (
           <div className={styles.exportActions}>
             <div className={styles.bulkInfo}>
               <label className={styles.exportSelectAllLabel}>
                 <input
                   type="checkbox"
-                  checked={selectedExports.size === filteredTasks.length && filteredTasks.length > 0}
+                  checked={selectedExports.size === boardTasks.length && boardTasks.length > 0}
                   onChange={(e) => {
                     if (e.target.checked) {
                       handleSelectAllExports();
@@ -711,7 +847,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                     }
                   }}
                 />
-                Select All ({filteredTasks.length})
+                Select All ({boardTasks.length})
               </label>
               {selectedExports.size > 0 && (
                 <span className={styles.exportSelectedCount}>{selectedExports.size} selected</span>
@@ -728,31 +864,47 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
           </div>
         )}
 
-        {/* Content */}
-        <div className={styles.content}>
-          {isLoading ? (
-            <div className={styles.loading}>Loading...</div>
-          ) : (
-            <div className={styles.boardArea}>
-              {viewMode === 'board' ? (
-                <TaskBoard tasks={filteredTasks} allTasks={tasks} crewDisplayNames={crewDisplayNames} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} onAtRiskToggle={handleAtRiskToggle} onMarkComplete={handleMarkComplete} />
-              ) : (
-                <TaskList
-                  tasks={filteredTasks}
-                  crewDisplayNames={crewDisplayNames}
-                  onTaskClick={handleTaskClick}
-                  onDeleteTask={handleDeleteTask}
-                  showDraftCheckboxes={showDraftsOnly}
-                  selectedDrafts={selectedDrafts}
-                  onToggleDraftSelection={handleToggleDraftSelection}
-                  showExportCheckboxes={!showDraftsOnly}
-                  selectedExports={selectedExports}
-                  onToggleExportSelection={handleToggleExportSelection}
-                />
-              )}
-            </div>
-          )}
+        {/* Content with Goals Sidebar */}
+        <div className={styles.contentWithSidebar}>
+          <div className={styles.content}>
+            {isLoading ? (
+              <div className={styles.loading}>Loading...</div>
+            ) : (
+              <div className={styles.boardArea}>
+                {viewMode === 'board' ? (
+                  <TaskBoard tasks={boardTasks} allTasks={tasks} crewDisplayNames={crewDisplayNames} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} onAtRiskToggle={handleAtRiskToggle} onMarkComplete={handleMarkComplete} />
+                ) : (
+                  <TaskList
+                    tasks={boardTasks}
+                    crewDisplayNames={crewDisplayNames}
+                    onTaskClick={handleTaskClick}
+                    onDeleteTask={handleDeleteTask}
+                    showDraftCheckboxes={showDraftsOnly}
+                    selectedDrafts={selectedDrafts}
+                    onToggleDraftSelection={handleToggleDraftSelection}
+                    showExportCheckboxes={!showDraftsOnly}
+                    selectedExports={selectedExports}
+                    onToggleExportSelection={handleToggleExportSelection}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+          <GoalsSection
+            goals={goals}
+            allTasks={tasks}
+            meetingDate={meetingDate}
+            meetingNotes={meetingNotes}
+            onGoalClick={handleTaskClick}
+            onAddGoal={handleAddGoal}
+            onUpdateGoal={handleUpdateGoal}
+            onLinkedTaskClick={handleTaskClick}
+            onToggleFullScreen={() => setGoalsFullScreen(true)}
+            onMeetingDateChange={handleMeetingDateChange}
+            onMeetingNotesChange={handleMeetingNotesChange}
+          />
         </div>
+        </>}
 
         {/* Form overlay */}
         {showForm && (
@@ -766,6 +918,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                 showAllDomains={showAllDomains}
                 crewMembers={crewMembers}
                 commentRefreshTrigger={commentRefreshTrigger}
+                initialType={presetGoalMode ? 'goal' : undefined}
                 onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
                 onCancel={handleCloseForm}
                 onDelete={editingTask ? () => handleDeleteTask(editingTask) : undefined}
@@ -775,9 +928,11 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
         )}
 
         {/* Footer hint */}
-        <div className={styles.footer}>
-          <span className={styles.hint}>Ctrl+Shift+Space toggle • Ctrl+Shift+L drafts • Esc close</span>
-        </div>
+        {!goalsFullScreen && (
+          <div className={styles.footer}>
+            <span className={styles.hint}>Ctrl+Shift+Space toggle • Ctrl+Shift+L drafts • Esc close</span>
+          </div>
+        )}
 
         {/* Delete confirmation modal */}
         {taskToDelete && (
