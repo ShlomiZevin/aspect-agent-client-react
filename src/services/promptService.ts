@@ -58,20 +58,29 @@ export async function getActivePrompt(
 /**
  * Create a new prompt version (Save as New Version)
  */
+export interface SaveVersionPayload {
+  prompt: string;
+  name?: string;
+  transitionSystemPrompt?: string;
+  model?: string;
+  provider?: string;
+  kbSources?: string[];
+  persona?: string;
+  thinkingPrompt?: string;
+}
+
 export async function createPromptVersion(
   agentName: string,
   crewName: string,
-  prompt: string,
-  name?: string,
+  payload: SaveVersionPayload,
   baseURL?: string,
-  transitionSystemPrompt?: string
 ): Promise<PromptVersion> {
   const url = baseURL || getBaseURL();
   const response = await apiRequest<{ success: boolean; version: PromptVersion }>(
     `/api/agents/${encodeURIComponent(agentName)}/crew/${encodeURIComponent(crewName)}/prompts`,
     {
       method: 'POST',
-      body: JSON.stringify({ prompt, name, transitionSystemPrompt }),
+      body: JSON.stringify(payload),
     },
     url
   );
@@ -85,16 +94,15 @@ export async function updatePromptVersion(
   agentName: string,
   crewName: string,
   versionId: string | number,
-  prompt: string,
+  payload: SaveVersionPayload,
   baseURL?: string,
-  transitionSystemPrompt?: string
 ): Promise<PromptVersion> {
   const url = baseURL || getBaseURL();
   const response = await apiRequest<{ success: boolean; version: PromptVersion }>(
     `/api/agents/${encodeURIComponent(agentName)}/crew/${encodeURIComponent(crewName)}/prompts/${versionId}`,
     {
       method: 'PATCH',
-      body: JSON.stringify({ prompt, transitionSystemPrompt }),
+      body: JSON.stringify(payload),
     },
     url
   );

@@ -13,6 +13,11 @@ export interface PromptVersion {
   name?: string;  // Version name/tag (e.g., "Added empathy guidelines")
   prompt: string;
   transitionSystemPrompt?: string;  // System prompt injected once when transitioning to this crew
+  model?: string;          // Saved LLM model override
+  provider?: string;       // Saved LLM provider ('openai', 'anthropic', 'google')
+  kbSources?: string[];    // Saved active KB sources
+  persona?: string;        // Saved persona override
+  thinkingPrompt?: string; // Saved thinker prompt for thinking-crew architecture
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
