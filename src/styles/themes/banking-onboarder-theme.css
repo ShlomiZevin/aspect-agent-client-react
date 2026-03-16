@@ -29,6 +29,9 @@
   --border: #E8E0E3;
   --border-light: #F3EFF0;
 
+  /* Journey stepper — use brand purple instead of green for completed steps */
+  --journey-completed: #9D1687;
+
   /* Status colors */
   --success: #10b981;
   --success-color: #10b981;
