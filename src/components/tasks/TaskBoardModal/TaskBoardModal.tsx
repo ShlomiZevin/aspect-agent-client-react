@@ -351,6 +351,18 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     setShowForm(false);
   };
 
+  // Auto-save: same as update but keeps form open
+  const handleAutoSave = useCallback(async (data: CreateTaskData) => {
+    if (!editingTaskRef.current) return;
+    const taskData = {
+      ...data,
+      createdBy: data.isDraft ? (editingTaskRef.current.createdBy || currentUserId) : data.createdBy,
+      updatedBy: notificationsState.identity || undefined,
+    };
+    const updated = await taskService.updateTask(editingTaskRef.current.id, taskData);
+    setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+  }, [currentUserId, notificationsState.identity]);
+
   const handleDeleteTask = async (task: Task) => {
     setTaskToDelete(task);
   };
@@ -1030,6 +1042,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                 commentRefreshTrigger={commentRefreshTrigger}
                 initialType={presetGoalMode ? (presetType || 'goal') : undefined}
                 onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
+                onAutoSave={editingTask ? handleAutoSave : undefined}
                 onCancel={handleCloseForm}
                 onDelete={editingTask ? () => handleDeleteTask(editingTask) : undefined}
               />

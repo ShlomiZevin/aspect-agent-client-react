@@ -299,6 +299,16 @@
   background: var(--primary-hover);
 }
 
+/* Gray out save button when there are no unsaved changes */
+.submitBtnClean {
+  background: var(--surface-light, #e0e0e0);
+  color: var(--text-secondary, #888);
+}
+
+.submitBtnClean:hover {
+  background: var(--surface-light, #e0e0e0);
+}
+
 .deleteBtn {
   background: none;
   border: 1px solid #ef4444;
