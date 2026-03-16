@@ -55,7 +55,16 @@ export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsS
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [showIdentityPicker, setShowIdentityPicker] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const handleCommentContentClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'IMG') {
+      e.preventDefault();
+      setLightboxImage((target as HTMLImageElement).src);
+    }
+  };
 
   // Load (or reload) comments when task opens or refreshTrigger increments
   useEffect(() => {
@@ -199,6 +208,7 @@ export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsS
               <div
                 className={styles.commentContent}
                 dangerouslySetInnerHTML={{ __html: highlightMentions(c.content) }}
+                onClick={handleCommentContentClick}
               />
             </div>
           </div>
@@ -237,6 +247,12 @@ export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsS
               {submitting ? 'Posting…' : 'Comment'}
             </button>
           </div>
+        </div>
+      )}
+      {lightboxImage && (
+        <div className={styles.lightboxOverlay} onClick={() => setLightboxImage(null)}>
+          <button className={styles.lightboxClose} onClick={() => setLightboxImage(null)}>×</button>
+          <img src={lightboxImage} alt="Screenshot" className={styles.lightboxImage} onClick={(e) => e.stopPropagation()} />
         </div>
       )}
     </div>
