@@ -1291,7 +1291,7 @@ function DesignInput({ value, onChange, onSend, disabled, placeholder, attachedF
   };
 
   return (
-    <div className={attachedFiles.length > 0 ? styles.chatInputAreaWithFiles : styles.chatInputArea}>
+    <div className={styles.designInputWrapper}>
       {attachedFiles.length > 0 && (
         <div className={styles.attachedFilesList}>
           {attachedFiles.map(f => (
@@ -1303,21 +1303,22 @@ function DesignInput({ value, onChange, onSend, disabled, placeholder, attachedF
           ))}
         </div>
       )}
-      <div className={styles.chatInputRow}>
+      <div className={styles.designInputBox}>
         <input ref={fileInputRef} type="file" multiple accept=".txt,.md,.json,.yaml,.yml,.csv,.xml,.html,.js,.ts,.py" style={{ display: 'none' }} onChange={handleFileChange} />
-        <button className={styles.attachButton} onClick={() => fileInputRef.current?.click()} disabled={disabled} title="Attach files to share with the crew creator AI">
+        <button className={styles.designAttachBtn} onClick={() => fileInputRef.current?.click()} disabled={disabled} title="Attach files">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
         </button>
         <textarea
-          className={styles.chatInput}
+          className={styles.designTextarea}
           value={value}
           onChange={e => onChange(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }}
           placeholder={placeholder}
           disabled={disabled}
+          rows={1}
         />
-        <button className={styles.sendButton} onClick={onSend} disabled={!value.trim() || disabled}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <button className={styles.designSendBtn} onClick={onSend} disabled={!value.trim() || disabled}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
       </div>
     </div>
