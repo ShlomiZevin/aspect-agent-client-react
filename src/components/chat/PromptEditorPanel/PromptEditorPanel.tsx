@@ -675,6 +675,47 @@ export function PromptEditorPanel({
                     )}
                   </div>
                 )}
+                {showSaveModal ? (
+                  <div className={styles.saveVersionModal}>
+                    <input
+                      className={styles.saveVersionInput}
+                      type="text"
+                      placeholder="Version name (optional)"
+                      value={saveVersionName}
+                      onChange={e => setSaveVersionName(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleSaveVersion(saveVersionName);
+                        if (e.key === 'Escape') { setShowSaveModal(false); setSaveVersionName(''); }
+                      }}
+                      autoFocus
+                    />
+                    <button
+                      className={`${styles.actionButton} ${styles.saveVersionConfirmBtn}`}
+                      onClick={() => handleSaveVersion(saveVersionName)}
+                      disabled={isSavingVersion || !editedPrompt.trim()}
+                    >
+                      {isSavingVersion ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      className={styles.actionButton}
+                      onClick={() => { setShowSaveModal(false); setSaveVersionName(''); }}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className={`${styles.actionButton} ${styles.saveNewVersionButton}`}
+                    onClick={() => setShowSaveModal(true)}
+                    disabled={!editedPrompt.trim()}
+                    title="Save current overrides as a new prompt version"
+                    type="button"
+                    style={{ width: '100%' }}
+                  >
+                    Save as New Version
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1161,52 +1202,9 @@ export function PromptEditorPanel({
         )}
       </div>
 
-      {/* Action Buttons - Revert + Save Version */}
+      {/* Action Buttons - Revert */}
       <div className={styles.actionsSection}>
-        {showSaveModal && (
-          <div className={styles.saveVersionModal}>
-            <input
-              className={styles.saveVersionInput}
-              type="text"
-              placeholder="Version name (optional)"
-              value={saveVersionName}
-              onChange={e => setSaveVersionName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') handleSaveVersion(saveVersionName);
-                if (e.key === 'Escape') { setShowSaveModal(false); setSaveVersionName(''); }
-              }}
-              autoFocus
-            />
-            <button
-              className={`${styles.actionButton} ${styles.saveVersionConfirmBtn}`}
-              onClick={() => handleSaveVersion(saveVersionName)}
-              disabled={isSavingVersion || !editedPrompt.trim()}
-            >
-              {isSavingVersion ? 'Saving...' : 'Save'}
-            </button>
-            <button
-              className={styles.actionButton}
-              onClick={() => { setShowSaveModal(false); setSaveVersionName(''); }}
-              type="button"
-            >
-              Cancel
-            </button>
-          </div>
-        )}
         <div className={styles.actionButtons}>
-          <button
-            className={`${styles.actionButton} ${styles.saveVersionBtn}`}
-            onClick={() => setShowSaveModal(true)}
-            disabled={!editedPrompt.trim() || showSaveModal}
-            title="Save current overrides as a new prompt version"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
-              <polyline points="17 21 17 13 7 13 7 21" />
-              <polyline points="7 3 7 8 15 8" />
-            </svg>
-            Save Version
-          </button>
           <button
             className={`${styles.actionButton} ${styles.revertButton}`}
             onClick={handleRevert}
