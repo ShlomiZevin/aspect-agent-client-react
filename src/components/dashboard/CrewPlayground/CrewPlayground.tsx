@@ -131,6 +131,9 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
   // Debug mode
   const [debugMode, setDebugMode] = useState(false);
 
+  // Attached files (session only — not persisted)
+  const [attachedFiles, setAttachedFiles] = useState<{ name: string; content: string; size: number }[]>([]);
+
   // Config dirty check — true when config changed since last activation
   const configDirty = registeredSession !== null && activatedConfig !== null &&
     JSON.stringify(config) !== JSON.stringify(activatedConfig);
@@ -359,8 +362,15 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
 
   const handleTestSend = useCallback(async (text: string) => {
     if (!registeredSession) { setStatusMessage({ type: 'error', text: 'Apply config first.' }); return; }
-    await testChat.sendMessage(text);
-  }, [registeredSession, testChat]);
+    let fullMessage = text;
+    if (attachedFiles.length > 0) {
+      const fileContext = attachedFiles.map(f =>
+        `--- Attached file: ${f.name} ---\n${f.content}\n--- End of ${f.name} ---`
+      ).join('\n\n');
+      fullMessage = `${fileContext}\n\n${text}`;
+    }
+    await testChat.sendMessage(fullMessage);
+  }, [registeredSession, testChat, attachedFiles]);
 
   // ========== SAVE / LOAD / EXPORT ==========
 
@@ -369,7 +379,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     if (!loadedConfigRef || !config.guidance) return;
     setIsSaving(true);
     try {
-      await saveConfig(agentName, loadedConfigRef.name, config, baseURL);
+      await saveConfig(agentName, loadedConfigRef.name, config, baseURL, loadedConfigRef.id);
       localStorage.removeItem(DRAFT_KEY);
       setStatusMessage({ type: 'success', text: `Saved "${loadedConfigRef.name}"` });
     } catch (err) { setStatusMessage({ type: 'error', text: `Save failed: ${(err as Error).message}` }); }
@@ -449,6 +459,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     testChat.newChat(newTestId);
     setToolCallLogs([]);
     setTransitionInfo(null);
+    setAttachedFiles([]);
   }, [sessionId, testChat]);
 
   const handleResetAll = useCallback(() => {
@@ -460,6 +471,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     setLeftTab('design');
     setTransitionInfo(null);
     setLoadedConfigRef(null);
+    setAttachedFiles([]);
     localStorage.removeItem(DRAFT_KEY);
     removePlayground(sessionId, baseURL).catch(() => {});
     const newTestId = `playground-${sessionId}-${Date.now()}`;
@@ -829,7 +841,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                   <ConfigSection title="Pre-loaded Knowledge">
                     <p className={styles.configHint}>
                       Data your crew already knows before the conversation starts — like user profiles, journey stages, or business rules.
-                      Each entry has a label and a JSON value.
+                      Each entry has a label and a value (JSON or plain text).
                     </p>
                     {Object.entries(config.context).map(([key, value], i) => (
                       <ContextCard
@@ -839,8 +851,8 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                         index={i}
                         allEntries={config.context}
                         onUpdate={(entries) => updateConfig('context', entries)}
-                        onEnlarge={(title, val) => {
-                          setModalEditor({ title, value: val, field: `__context_${i}`, isJson: true });
+                        onEnlarge={(title, val, isJson) => {
+                          setModalEditor({ title, value: val, field: `__context_${i}`, isJson });
                         }}
                       />
                     ))}
@@ -982,7 +994,14 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                 </LanguageContext.Provider>
               </div>
 
-              <TestInput disabled={!registeredSession || !!transitionInfo} isLoading={testChat.isLoading} onSend={handleTestSend} />
+              <TestInput
+                disabled={!registeredSession || !!transitionInfo}
+                isLoading={testChat.isLoading}
+                onSend={handleTestSend}
+                attachedFiles={attachedFiles}
+                onFileAttach={(file) => setAttachedFiles(prev => [...prev, file])}
+                onFileRemove={(name) => setAttachedFiles(prev => prev.filter(f => f.name !== name))}
+              />
             </>
           )}
 
@@ -1171,9 +1190,12 @@ function ContextCard({ entryKey, entryValue, index, allEntries, onUpdate, onEnla
   index: number;
   allEntries: Record<string, unknown>;
   onUpdate: (entries: Record<string, unknown>) => void;
-  onEnlarge: (title: string, value: string) => void;
+  onEnlarge: (title: string, value: string, isJson: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [mode, setMode] = useState<'json' | 'text'>(
+    (entryValue !== null && typeof entryValue === 'object') ? 'json' : 'text'
+  );
   const strValue = typeof entryValue === 'string' ? entryValue : JSON.stringify(entryValue, null, 2);
 
   const handleKeyChange = (newKey: string) => {
@@ -1184,7 +1206,11 @@ function ContextCard({ entryKey, entryValue, index, allEntries, onUpdate, onEnla
 
   const handleValueChange = (newValue: string) => {
     const entries = Object.entries(allEntries);
-    try { entries[index] = [entryKey, JSON.parse(newValue)]; } catch { entries[index] = [entryKey, newValue]; }
+    if (mode === 'json') {
+      try { entries[index] = [entryKey, JSON.parse(newValue)]; } catch { entries[index] = [entryKey, newValue]; }
+    } else {
+      entries[index] = [entryKey, newValue];
+    }
     onUpdate(Object.fromEntries(entries));
   };
 
@@ -1208,14 +1234,45 @@ function ContextCard({ entryKey, entryValue, index, allEntries, onUpdate, onEnla
             <input className={`${styles.configFieldInput} ${styles.configValueMono}`} value={entryKey} onChange={e => handleKeyChange(e.target.value)} placeholder="label (e.g. user_profile)" />
           </div>
           <div className={styles.configField}>
-            <label className={styles.configFieldLabel}>Value (JSON)</label>
-            <JsonEditor
-              value={strValue}
-              onChange={handleValueChange}
-              minHeight={200}
-              enlargeTitle={`Pre-loaded Knowledge — ${entryKey}`}
-              onEnlarge={(title, val) => onEnlarge(title, val)}
-            />
+            <div className={styles.contextValueHeader}>
+              <label className={styles.configFieldLabel}>{mode === 'json' ? 'Value (JSON)' : 'Value (Plain Text)'}</label>
+              <div className={styles.contextModeToggle}>
+                <button
+                  className={`${styles.contextModeBtn} ${mode === 'text' ? styles.contextModeBtnActive : ''}`}
+                  onClick={() => setMode('text')}
+                >Text</button>
+                <button
+                  className={`${styles.contextModeBtn} ${mode === 'json' ? styles.contextModeBtnActive : ''}`}
+                  onClick={() => setMode('json')}
+                >JSON</button>
+              </div>
+            </div>
+            {mode === 'json' ? (
+              <JsonEditor
+                value={strValue}
+                onChange={handleValueChange}
+                minHeight={200}
+                enlargeTitle={`Pre-loaded Knowledge — ${entryKey}`}
+                onEnlarge={(title, val) => onEnlarge(title, val, true)}
+              />
+            ) : (
+              <div className={styles.configTextareaWrapper}>
+                <textarea
+                  className={styles.configTextarea}
+                  value={strValue}
+                  onChange={e => handleValueChange(e.target.value)}
+                  style={{ minHeight: 120 }}
+                  placeholder="Enter any text — e.g. User name is John, account balance is $5,200..."
+                />
+                <button
+                  className={styles.enlargeButton}
+                  onClick={() => onEnlarge(`Pre-loaded Knowledge — ${entryKey}`, strValue, false)}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                  Enlarge
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1223,15 +1280,56 @@ function ContextCard({ entryKey, entryValue, index, allEntries, onUpdate, onEnla
   );
 }
 
-function TestInput({ disabled, isLoading, onSend }: { disabled: boolean; isLoading: boolean; onSend: (text: string) => void }) {
+function TestInput({ disabled, isLoading, onSend, attachedFiles = [], onFileAttach, onFileRemove }: {
+  disabled: boolean;
+  isLoading: boolean;
+  onSend: (text: string) => void;
+  attachedFiles?: { name: string; content: string; size: number }[];
+  onFileAttach?: (file: { name: string; content: string; size: number }) => void;
+  onFileRemove?: (name: string) => void;
+}) {
   const [value, setValue] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleSend = () => { const t = value.trim(); if (!t || isLoading || disabled) return; onSend(t); setValue(''); };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    for (const file of files) {
+      const content = await file.text();
+      onFileAttach?.({ name: file.name, content, size: file.size });
+    }
+    e.target.value = '';
+  };
+
   return (
     <div className={styles.chatInputArea}>
-      <textarea className={styles.chatInput} value={value} onChange={e => setValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={disabled ? 'Activate a crew first...' : 'Type a message...'} disabled={disabled || isLoading} />
-      <button className={styles.sendButton} onClick={handleSend} disabled={!value.trim() || isLoading || disabled}>
-        {isLoading ? <div className={styles.spinner} /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>}
-      </button>
+      {attachedFiles.length > 0 && (
+        <div className={styles.attachedFilesList}>
+          {attachedFiles.map(f => (
+            <span key={f.name} className={styles.attachedFileChip}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              {f.name}
+              <button className={styles.attachedFileRemove} onClick={() => onFileRemove?.(f.name)}>&#x2715;</button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className={styles.chatInputRow}>
+        <input ref={fileInputRef} type="file" multiple accept=".txt,.md,.json,.yaml,.yml,.csv,.xml,.html,.js,.ts,.py,.pdf" style={{ display: 'none' }} onChange={handleFileChange} />
+        <button
+          className={styles.attachButton}
+          onClick={() => fileInputRef.current?.click()}
+          disabled={disabled}
+          title="Attach files"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </button>
+        <textarea className={styles.chatInput} value={value} onChange={e => setValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={disabled ? 'Activate a crew first...' : 'Type a message...'} disabled={disabled || isLoading} />
+        <button className={styles.sendButton} onClick={handleSend} disabled={!value.trim() || isLoading || disabled}>
+          {isLoading ? <div className={styles.spinner} /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>}
+        </button>
+      </div>
     </div>
   );
 }
@@ -1311,12 +1409,14 @@ function JsonEditor({ value, onChange, minHeight, enlargeTitle, onEnlarge }: {
   const preRef = useRef<HTMLPreElement>(null);
   const highlighted = useMemo(() => colorizeJson(value), [value]);
 
-  // Auto-resize textarea to fit content
+  // Auto-resize textarea to fit content (preserve scroll position to avoid jumps)
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
-    el.style.height = 'auto';
+    const savedScroll = el.scrollTop;
+    el.style.height = '0px';
     el.style.height = Math.max(el.scrollHeight, minHeight || 140) + 'px';
+    el.scrollTop = savedScroll;
   }, [value, minHeight]);
 
   const syncScroll = () => {

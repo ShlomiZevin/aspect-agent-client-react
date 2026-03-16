@@ -44,11 +44,12 @@ export async function saveConfig(
   agentName: string,
   name: string,
   config: PlaygroundConfig,
-  baseURL?: string
+  baseURL?: string,
+  existingId?: string
 ): Promise<{ id: string; name: string; savedAt: string }> {
   return apiRequest('/api/playground/save', {
     method: 'POST',
-    body: JSON.stringify({ agentName, name, config }),
+    body: JSON.stringify({ agentName, name, config, ...(existingId && { id: existingId }) }),
   }, baseURL || getBaseURL());
 }
 
