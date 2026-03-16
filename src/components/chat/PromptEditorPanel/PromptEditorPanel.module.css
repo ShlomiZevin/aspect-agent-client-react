@@ -392,6 +392,51 @@
   background: var(--primary-hover);
 }
 
+/* Save Version Button */
+.saveVersionBtn {
+  background: var(--primary-color);
+  color: white;
+}
+
+.saveVersionBtn:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+/* Save Version Modal (inline name input) */
+.saveVersionModal {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  align-items: center;
+}
+
+.saveVersionInput {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.saveVersionInput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.saveVersionConfirmBtn {
+  background: var(--primary-color);
+  color: white;
+  flex: none;
+  padding: 6px 12px;
+}
+
+.saveVersionConfirmBtn:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
 /* Save as New Version Button */
 .saveNewVersionButton {
   background: var(--gradient);

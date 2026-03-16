@@ -4,6 +4,8 @@ import type { CrewMemberPrompt } from '../../../types/promptEditor';
 import type { TransitionLogicConfig } from '../../../types/chat';
 import {
   getAgentPrompts,
+  createPromptVersion,
+  type SaveVersionPayload,
 } from '../../../services/promptService';
 import { getCrewTransitionLogic } from '../../../services/crewService';
 import { getKnowledgeBases } from '../../../services/kbService';
@@ -137,6 +139,11 @@ export function PromptEditorPanel({
   const [editedTransitionPrompt, setEditedTransitionPrompt] = useState<string>('');
   const [originalTransitionPrompt, setOriginalTransitionPrompt] = useState<string>('');
   const [isFiring, setIsFiring] = useState(false);
+
+  // Save version modal state
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveVersionName, setSaveVersionName] = useState('');
+  const [isSavingVersion, setIsSavingVersion] = useState(false);
 
   // Collapsible section states
   const [showVersions, setShowVersions] = useState(false);
@@ -310,6 +317,28 @@ export function PromptEditorPanel({
         // Load transition system prompt
         setEditedTransitionPrompt(selectedVersion.transitionSystemPrompt || '');
         setOriginalTransitionPrompt(selectedVersion.transitionSystemPrompt || '');
+        // Restore saved model/provider override from version
+        if (selectedVersion.model) {
+          const vProvider = selectedVersion.provider || inferProvider(selectedVersion.model);
+          setModelOverrides(prev => ({ ...prev, [selectedCrewId]: selectedVersion.model! }));
+          setProviderOverrides(prev => ({ ...prev, [selectedCrewId]: vProvider }));
+          onModelOverride(selectedCrewId, selectedVersion.model);
+        }
+        // Restore saved KB sources from version
+        if (selectedVersion.kbSources && selectedVersion.kbSources.length > 0) {
+          setKbOverrides(prev => ({ ...prev, [selectedCrewId]: selectedVersion.kbSources! }));
+          onKBOverride(selectedCrewId, selectedVersion.kbSources);
+        }
+        // Restore saved persona from version
+        if (selectedVersion.persona) {
+          setEditedPersona(selectedVersion.persona);
+          onPersonaOverride(selectedVersion.persona);
+        }
+        // Restore saved thinking prompt from version
+        if (selectedVersion.thinkingPrompt) {
+          setThinkingPromptOverrides(prev => ({ ...prev, [selectedCrewId]: selectedVersion.thinkingPrompt! }));
+          onThinkingPromptOverride(selectedCrewId, selectedVersion.thinkingPrompt);
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -369,6 +398,35 @@ export function PromptEditorPanel({
       }
     }
   }, [selectedCrewId, originalPrompt, hasSessionOverride, debouncedSessionOverride]);
+
+  // Save current overrides as a new prompt version in the DB
+  const handleSaveVersion = useCallback(async (name: string) => {
+    if (!selectedCrewId || !editedPrompt.trim()) return;
+    setIsSavingVersion(true);
+    try {
+      const payload: SaveVersionPayload = {
+        prompt: editedPrompt,
+        name: name.trim() || undefined,
+        transitionSystemPrompt: editedTransitionPrompt || undefined,
+        model: modelOverrides[selectedCrewId] || undefined,
+        provider: providerOverrides[selectedCrewId] || undefined,
+        kbSources: kbOverrides[selectedCrewId]?.length ? kbOverrides[selectedCrewId] : undefined,
+        persona: editedPersona !== codePersona ? editedPersona : undefined,
+        thinkingPrompt: thinkingPromptOverrides[selectedCrewId] || undefined,
+      };
+      await createPromptVersion(agentName, selectedCrewId, payload, baseURL);
+      // Reload prompts to show new version
+      const data = await getAgentPrompts(agentName, baseURL);
+      setPrompts(data);
+      setShowSaveModal(false);
+      setSaveVersionName('');
+      setStatus({ type: 'success', message: `Saved as version "${name.trim() || 'unnamed'}"` });
+    } catch {
+      setStatus({ type: 'error', message: 'Failed to save version' });
+    } finally {
+      setIsSavingVersion(false);
+    }
+  }, [selectedCrewId, editedPrompt, editedTransitionPrompt, modelOverrides, providerOverrides, kbOverrides, editedPersona, codePersona, thinkingPromptOverrides, agentName, baseURL]);
 
   // Handle model change
   const handleModelChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -1013,9 +1071,52 @@ export function PromptEditorPanel({
         )}
       </div>
 
-      {/* Action Buttons - only Revert + status */}
+      {/* Action Buttons - Revert + Save Version */}
       <div className={styles.actionsSection}>
+        {showSaveModal && (
+          <div className={styles.saveVersionModal}>
+            <input
+              className={styles.saveVersionInput}
+              type="text"
+              placeholder="Version name (optional)"
+              value={saveVersionName}
+              onChange={e => setSaveVersionName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleSaveVersion(saveVersionName);
+                if (e.key === 'Escape') { setShowSaveModal(false); setSaveVersionName(''); }
+              }}
+              autoFocus
+            />
+            <button
+              className={`${styles.actionButton} ${styles.saveVersionConfirmBtn}`}
+              onClick={() => handleSaveVersion(saveVersionName)}
+              disabled={isSavingVersion || !editedPrompt.trim()}
+            >
+              {isSavingVersion ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              className={styles.actionButton}
+              onClick={() => { setShowSaveModal(false); setSaveVersionName(''); }}
+              type="button"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
         <div className={styles.actionButtons}>
+          <button
+            className={`${styles.actionButton} ${styles.saveVersionBtn}`}
+            onClick={() => setShowSaveModal(true)}
+            disabled={!editedPrompt.trim() || showSaveModal}
+            title="Save current overrides as a new prompt version"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg>
+            Save Version
+          </button>
           <button
             className={`${styles.actionButton} ${styles.revertButton}`}
             onClick={handleRevert}
