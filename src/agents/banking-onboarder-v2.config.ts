@@ -8,16 +8,16 @@ export const bankingOnboarderV2Config: AgentConfig = {
   storagePrefix: 'banking_onboarder_v2_',
   baseURL: BASE_URL,
 
-  pageTitle: 'פתיחת חשבון V2 - מודל חשיבה',
-  favicon: '/img/banking-logo.svg',
+  pageTitle: 'פתיחת חשבון',
+  favicon: '/img/lybi-logo-transparent.png',
   metaDescription: 'פתיחת חשבון בנק עם עוזר חכם המונע בינה מלאכותית.',
 
   logo: {
-    src: '/img/banking-logo.svg',
-    alt: 'לוגו מערכת פתיחת חשבון',
+    src: '/img/lybi-logo-transparent.png',
+    alt: 'ליבי',
   },
-  headerTitle: 'פתיחת חשבון V2',
-  headerSubtitle: 'מודל חשיבה',
+  headerTitle: 'פתיחת חשבון',
+  headerSubtitle: '',
   welcomeIcon: '/img/banking-welcome.svg',
   welcomeTitle: 'ברוכים הבאים',
   welcomeMessage: 'אני כאן כדי לעזור לך למצוא את החשבון המושלם עבורך.',
