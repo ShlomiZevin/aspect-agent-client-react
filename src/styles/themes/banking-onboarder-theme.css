@@ -1,33 +1,33 @@
 /**
- * Banking Onboarder Theme
- * Professional banking colors with trust and security emphasis
+ * Banking Onboarder Theme — LYBI Brand
+ * Matches lybi.ai landing page design system
  */
 
 .theme-banking-onboarder {
-  /* Primary - Professional Blue */
-  --primary: #1e40af;
-  --primary-color: #1e40af;
-  --primary-hover: #1e3a8a;
-  --primary-light: rgba(30, 64, 175, 0.1);
+  /* Primary - LYBI Deep Purple */
+  --primary: #680662;
+  --primary-color: #680662;
+  --primary-hover: #520650;
+  --primary-light: rgba(104, 6, 98, 0.08);
 
-  /* Accent - Trust Green */
-  --accent: #059669;
-  --accent-hover: #047857;
+  /* Accent - LYBI Pink */
+  --accent: #F948C6;
+  --accent-hover: #9D1687;
 
-  /* Background */
-  --background: #ffffff;
-  --surface: #f9fafb;
-  --surface-hover: #f3f4f6;
-  --surface-light: #f3f4f6;
+  /* Background - LYBI Warm Whites */
+  --background: #FAF7F7;
+  --surface: #F3EFF0;
+  --surface-hover: #EDE8EA;
+  --surface-light: #F3EFF0;
 
   /* Text */
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
+  --text-primary: #1C1917;
+  --text-secondary: #57534E;
+  --text-muted: #9C9489;
 
   /* Borders */
-  --border: #e5e7eb;
-  --border-light: #f3f4f6;
+  --border: #E8E0E3;
+  --border-light: #F3EFF0;
 
   /* Status colors */
   --success: #10b981;
@@ -36,34 +36,34 @@
   --warning-color: #f59e0b;
   --error: #ef4444;
   --error-color: #ef4444;
-  --info: #3b82f6;
+  --info: #9D1687;
 }
 
 .theme-banking-onboarder[data-theme="dark"] {
-  /* Primary - Lighter Blue for dark mode */
-  --primary: #3b82f6;
-  --primary-color: #3b82f6;
-  --primary-hover: #60a5fa;
-  --primary-light: rgba(59, 130, 246, 0.15);
+  /* Primary - Lighter Purple for dark mode */
+  --primary: #9D1687;
+  --primary-color: #9D1687;
+  --primary-hover: #F948C6;
+  --primary-light: rgba(157, 22, 135, 0.15);
 
-  /* Accent - Brighter Green */
-  --accent: #10b981;
-  --accent-hover: #34d399;
+  /* Accent - Brighter Pink */
+  --accent: #F948C6;
+  --accent-hover: #ff6dd6;
 
-  /* Background */
-  --background: #111827;
-  --surface: #1f2937;
-  --surface-hover: #374151;
-  --surface-light: #374151;
+  /* Background - LYBI Dark */
+  --background: #0C0714;
+  --surface: #110D1B;
+  --surface-hover: #1A1425;
+  --surface-light: #1A1425;
 
   /* Text */
-  --text-primary: #f9fafb;
-  --text-secondary: #d1d5db;
-  --text-muted: #9ca3af;
+  --text-primary: #F0ECF5;
+  --text-secondary: rgba(240, 236, 245, 0.6);
+  --text-muted: rgba(240, 236, 245, 0.4);
 
   /* Borders */
-  --border: #374151;
-  --border-light: #4b5563;
+  --border: rgba(104, 6, 98, 0.2);
+  --border-light: rgba(104, 6, 98, 0.1);
 
   /* Status colors - slightly brighter for dark mode */
   --success: #34d399;
@@ -72,5 +72,5 @@
   --warning-color: #fbbf24;
   --error: #f87171;
   --error-color: #f87171;
-  --info: #60a5fa;
+  --info: #F948C6;
 }
