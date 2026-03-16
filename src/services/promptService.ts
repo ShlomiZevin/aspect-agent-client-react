@@ -128,6 +128,22 @@ export async function activatePromptVersion(
 }
 
 /**
+ * Revert to code default (deactivate all DB versions)
+ */
+export async function revertToCode(
+  agentName: string,
+  crewName: string,
+  baseURL?: string
+): Promise<void> {
+  const url = baseURL || getBaseURL();
+  await apiRequest<{ success: boolean }>(
+    `/api/agents/${encodeURIComponent(agentName)}/crew/${encodeURIComponent(crewName)}/prompts/revert-to-code`,
+    { method: 'POST' },
+    url
+  );
+}
+
+/**
  * Delete a prompt version
  */
 export async function deletePromptVersion(

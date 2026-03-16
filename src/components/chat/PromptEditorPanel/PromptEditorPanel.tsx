@@ -5,6 +5,9 @@ import type { TransitionLogicConfig } from '../../../types/chat';
 import {
   getAgentPrompts,
   createPromptVersion,
+  activatePromptVersion,
+  deletePromptVersion,
+  revertToCode,
   type SaveVersionPayload,
 } from '../../../services/promptService';
 import { getCrewTransitionLogic } from '../../../services/crewService';
@@ -309,35 +312,56 @@ export function PromptEditorPanel({
       // Only reload if we switched to a different version
       if (lastLoadedVersionRef.current !== versionKey) {
         lastLoadedVersionRef.current = versionKey;
-        // Check if there's a session override (only apply to active version)
-        const override = selectedVersion.isActive ? sessionOverrides[selectedCrewId] : undefined;
-        const prompt = override || selectedVersion.prompt;
-        setEditedPrompt(prompt);
+        // Always show the version's prompt when switching versions
+        setEditedPrompt(selectedVersion.prompt);
         setOriginalPrompt(selectedVersion.prompt);
+        // Apply selected version's prompt as session override so it fires on next message
+        if (selectedVersion.isActive) {
+          // Active version selected — clear session override, server uses its own resolution
+          setSessionOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
+          onSessionOverride(selectedCrewId, '');
+        } else {
+          // Non-active version: apply as session override so it fires on next message
+          setSessionOverrides(prev => ({ ...prev, [selectedCrewId]: selectedVersion.prompt }));
+          onSessionOverride(selectedCrewId, selectedVersion.prompt);
+        }
         // Load transition system prompt
         setEditedTransitionPrompt(selectedVersion.transitionSystemPrompt || '');
         setOriginalTransitionPrompt(selectedVersion.transitionSystemPrompt || '');
-        // Restore saved model/provider override from version
+        // Restore saved model/provider override from version (or clear override)
         if (selectedVersion.model) {
           const vProvider = selectedVersion.provider || inferProvider(selectedVersion.model);
           setModelOverrides(prev => ({ ...prev, [selectedCrewId]: selectedVersion.model! }));
           setProviderOverrides(prev => ({ ...prev, [selectedCrewId]: vProvider }));
           onModelOverride(selectedCrewId, selectedVersion.model);
+        } else {
+          setModelOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
+          setProviderOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
+          onModelOverride(selectedCrewId, '');
         }
-        // Restore saved KB sources from version
+        // Restore saved KB sources from version (or clear override)
         if (selectedVersion.kbSources && selectedVersion.kbSources.length > 0) {
           setKbOverrides(prev => ({ ...prev, [selectedCrewId]: selectedVersion.kbSources! }));
           onKBOverride(selectedCrewId, selectedVersion.kbSources);
+        } else {
+          setKbOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
+          onKBOverride(selectedCrewId, []);
         }
-        // Restore saved persona from version
+        // Restore saved persona from version (or revert to code default)
         if (selectedVersion.persona) {
           setEditedPersona(selectedVersion.persona);
           onPersonaOverride(selectedVersion.persona);
+        } else {
+          setEditedPersona(codePersona);
+          onPersonaOverride(null);
         }
-        // Restore saved thinking prompt from version
+        // Restore saved thinking prompt from version (or clear override)
         if (selectedVersion.thinkingPrompt) {
           setThinkingPromptOverrides(prev => ({ ...prev, [selectedCrewId]: selectedVersion.thinkingPrompt! }));
           onThinkingPromptOverride(selectedCrewId, selectedVersion.thinkingPrompt);
+        } else {
+          setThinkingPromptOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
+          onThinkingPromptOverride(selectedCrewId, '');
         }
       }
     }
@@ -414,10 +438,12 @@ export function PromptEditorPanel({
         persona: editedPersona !== codePersona ? editedPersona : undefined,
         thinkingPrompt: thinkingPromptOverrides[selectedCrewId] || undefined,
       };
-      await createPromptVersion(agentName, selectedCrewId, payload, baseURL);
+      const newVersion = await createPromptVersion(agentName, selectedCrewId, payload, baseURL);
       // Reload prompts to show new version
       const data = await getAgentPrompts(agentName, baseURL);
       setPrompts(data);
+      // Select the newly created version in the dropdown
+      setSelectedVersionId(newVersion.id);
       setShowSaveModal(false);
       setSaveVersionName('');
       setStatus({ type: 'success', message: `Saved as version "${name.trim() || 'unnamed'}"` });
@@ -427,6 +453,42 @@ export function PromptEditorPanel({
       setIsSavingVersion(false);
     }
   }, [selectedCrewId, editedPrompt, editedTransitionPrompt, modelOverrides, providerOverrides, kbOverrides, editedPersona, codePersona, thinkingPromptOverrides, agentName, baseURL]);
+
+  // Activate selected version as the default (without saving a new one)
+  const handleActivateVersion = useCallback(async () => {
+    if (!selectedCrewId || !selectedVersion || selectedVersion.isActive) return;
+    try {
+      if (selectedVersion.version === 0) {
+        // Code default — deactivate all DB versions
+        await revertToCode(agentName, selectedCrewId, baseURL);
+      } else {
+        await activatePromptVersion(agentName, selectedCrewId, selectedVersion.id, baseURL);
+      }
+      const data = await getAgentPrompts(agentName, baseURL);
+      setPrompts(data);
+      // Clear session override — the activated version is now the default
+      setSessionOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
+      onSessionOverride(selectedCrewId, '');
+      setSelectedVersionId(selectedVersion.version === 0 ? `code-${selectedCrewId}` : selectedVersion.id);
+      setStatus({ type: 'success', message: selectedVersion.version === 0 ? 'Reverted to code default' : `v${selectedVersion.version} set as active` });
+    } catch {
+      setStatus({ type: 'error', message: 'Failed to activate version' });
+    }
+  }, [selectedCrewId, selectedVersion, agentName, baseURL, onSessionOverride]);
+
+  // Delete selected version
+  const handleDeleteVersion = useCallback(async () => {
+    if (!selectedCrewId || !selectedVersion || selectedVersion.version === 0) return;
+    try {
+      await deletePromptVersion(agentName, selectedCrewId, selectedVersion.id, baseURL);
+      const data = await getAgentPrompts(agentName, baseURL);
+      setPrompts(data);
+      setSelectedVersionId(null); // Reset to current active
+      setStatus({ type: 'success', message: `Deleted v${selectedVersion.version}` });
+    } catch {
+      setStatus({ type: 'error', message: 'Failed to delete version' });
+    }
+  }, [selectedCrewId, selectedVersion, agentName, baseURL]);
 
   // Handle model change
   const handleModelChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -571,7 +633,7 @@ export function PromptEditorPanel({
               </svg>
             </button>
             {showVersions && (
-              <div style={{ padding: '8px 0' }}>
+              <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <select
                   className={styles.crewSelect}
                   value={selectedVersionId || selectedPromptData.currentVersion?.id || ''}
@@ -585,6 +647,34 @@ export function PromptEditorPanel({
                     </option>
                   ))}
                 </select>
+                {selectedVersion && (
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {!selectedVersion.isActive && (
+                      <button
+                        className={`${styles.actionButton} ${styles.saveVersionBtn}`}
+                        onClick={handleActivateVersion}
+                        type="button"
+                      >
+                        {selectedVersion.version === 0 ? 'Revert to Code' : 'Set as Active'}
+                      </button>
+                    )}
+                    {selectedVersion.version !== 0 && (
+                      selectedVersion.isActive ? (
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic', alignSelf: 'center' }}>
+                          Can&apos;t delete active version
+                        </span>
+                      ) : (
+                        <button
+                          className={`${styles.actionButton} ${styles.revertButton}`}
+                          onClick={handleDeleteVersion}
+                          type="button"
+                        >
+                          Delete
+                        </button>
+                      )
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
