@@ -37,6 +37,7 @@ interface TaskFormProps {
   commentRefreshTrigger?: number;
   initialType?: TaskType; // Pre-fill type when creating (e.g., 'goal' from Goals sidebar)
   onSubmit: (data: CreateTaskData) => void;
+  onAutoSave?: (data: CreateTaskData) => Promise<void>;
   onCancel: () => void;
   onDelete?: () => void;
 }
@@ -81,7 +82,7 @@ function containsHebrew(text: string): boolean {
   return /[\u0590-\u05FF]/.test(text);
 }
 
-export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, onSubmit, onCancel, onDelete }: TaskFormProps) {
+export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, onSubmit, onAutoSave, onCancel, onDelete }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [description, setDescription] = useState('');
@@ -101,6 +102,10 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDraft, setIsDraft] = useState(getDraftDefault());
   const [crewMember, setCrewMember] = useState<string>('');
+  const [isDirty, setIsDirty] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const isFirstRenderForTaskRef = useRef(true);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dependsOnRef = useRef<HTMLDivElement>(null);
   const dependsOnInputRef = useRef<HTMLInputElement>(null);
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
@@ -231,6 +236,11 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
         ? [{ value: 'general', label: 'General (Engine)' }, { value: currentDomain, label: currentDomain.charAt(0).toUpperCase() + currentDomain.slice(1) }]
         : [{ value: 'general', label: 'General (Engine)' }];
 
+  // Reset dirty-tracking flag whenever the task changes (must run before the dirty-tracking effect)
+  useEffect(() => {
+    isFirstRenderForTaskRef.current = true;
+  }, [task]);
+
   useEffect(() => {
     if (task) {
       setTitle(task.title);
@@ -247,6 +257,8 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       setDependsOnSearch(''); // Clear search - we show chip when selected
       // Filter out internal tags from visible tags input
       setTagsInput(task.tags.filter(t => !t.startsWith('meetingDate:') && !t.startsWith('order:') && t !== 'goalsMeta').join(', '));
+      setIsDirty(false);
+      setSaveStatus('idle');
       setCrewMember(task.crewMember || '');
       setIsDraft(task.isDraft || false);
     } else {
@@ -259,6 +271,8 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       setDependsOnSearch('');
       setCrewMember('');
       setIsDraft(getDraftDefault());
+      setIsDirty(false);
+      setSaveStatus('idle');
       // Apply initialType preset (e.g., 'goal' from Goals sidebar)
       if (initialType) {
         setType(initialType);
@@ -266,9 +280,84 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
         setType('feature');
       }
     }
-  }, [task, allTasks, initialType]);
+  // allTasks intentionally excluded — it's only used for dependency UI memos, not form initialization
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task, initialType]);
 
   const isGoal = type === 'goal' || type === 'agenda';
+
+  // Track user edits — skip the first render after task initialization to avoid false positives
+  useEffect(() => {
+    if (isFirstRenderForTaskRef.current) {
+      isFirstRenderForTaskRef.current = false;
+      return;
+    }
+    if (task) setIsDirty(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, description, status, priority, type, domain, assignee, dueDate, atRisk, isCompleted, dependsOn, tagsInput, crewMember, isDraft]);
+
+  // Build the submit payload (shared between handleSubmit and autosave)
+  const buildSubmitData = useCallback((): CreateTaskData => {
+    let tags: string[];
+    if (isGoal && task) {
+      tags = task.tags.filter(t => t.startsWith('order:'));
+    } else if (isGoal) {
+      tags = [];
+    } else {
+      tags = tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
+    }
+    const processedDescription = description.trim() ? linkifyHtml(description.trim()) : undefined;
+    if (isGoal) {
+      return {
+        title: title.trim(),
+        description: processedDescription,
+        type,
+        assignee: type === 'agenda' ? null : (assignee || null),
+        dependsOn,
+        tags,
+        status: task?.status || 'todo',
+        priority: task?.priority || 'medium',
+        domain: task?.domain || 'general',
+      };
+    }
+    return {
+      title: title.trim(),
+      description: processedDescription,
+      status,
+      priority,
+      type,
+      domain,
+      assignee: assignee || null,
+      dueDate: dueDate || undefined,
+      atRisk,
+      isCompleted,
+      dependsOn,
+      tags,
+      crewMember: crewMember || null,
+      isDraft,
+    };
+  }, [isGoal, task, tagsInput, description, title, type, assignee, dependsOn, status, priority, domain, dueDate, atRisk, isCompleted, crewMember, isDraft]);
+
+  // Autosave: debounce 2.5s after last change when editing an existing task
+  useEffect(() => {
+    if (!isDirty || !task || !onAutoSave) return;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(async () => {
+      if (!title.trim()) return;
+      setSaveStatus('saving');
+      try {
+        await onAutoSave(buildSubmitData());
+        setIsDirty(false);
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus(s => s === 'saved' ? 'idle' : s), 2000);
+      } catch {
+        setSaveStatus('idle');
+      }
+    }, 2500);
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [isDirty, buildSubmitData, task, onAutoSave, title]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -688,8 +777,14 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
             <button type="button" className={styles.cancelBtn} onClick={onCancel}>
               Cancel
             </button>
-            <button type="submit" className={styles.submitBtn}>
-              {task ? 'Save' : 'Create'}
+            <button
+              type="submit"
+              className={`${styles.submitBtn} ${task && !isDirty && saveStatus === 'idle' ? styles.submitBtnClean : ''}`}
+              disabled={saveStatus === 'saving'}
+            >
+              {task
+                ? (saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? '✓ Saved' : 'Save')
+                : 'Create'}
             </button>
           </div>
         </div>
