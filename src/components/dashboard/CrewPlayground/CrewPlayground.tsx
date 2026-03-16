@@ -459,7 +459,6 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     testChat.newChat(newTestId);
     setToolCallLogs([]);
     setTransitionInfo(null);
-    setAttachedFiles([]);
   }, [sessionId, testChat]);
 
   const handleResetAll = useCallback(() => {
