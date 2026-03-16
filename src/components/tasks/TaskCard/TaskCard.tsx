@@ -200,6 +200,16 @@ export function TaskCard({ task, dependencyInfo, crewDisplayNames, onClick, onAt
       {task.description && (
         <p className={styles.description}>{stripHtml(task.description)}</p>
       )}
+      {task.tags.length > 0 && (
+        <div className={styles.tags}>
+          {task.tags.slice(0, 2).map(tag => (
+            <span key={tag} className={styles.tag}>{tag}</span>
+          ))}
+          {task.tags.length > 2 && (
+            <span className={styles.tag}>+{task.tags.length - 2}</span>
+          )}
+        </div>
+      )}
       <div className={styles.footer}>
         {(task.assignee || task.opener) && (
           <span className={styles.assignee} style={{ color: assigneeColor }}>
@@ -215,16 +225,6 @@ export function TaskCard({ task, dependencyInfo, crewDisplayNames, onClick, onAt
             {task.dueDate ? formatDueDate(task.dueDate) : 'not urgent'}
           </span>
         </div>
-        {task.tags.length > 0 && (
-          <div className={styles.tags}>
-            {task.tags.slice(0, 2).map(tag => (
-              <span key={tag} className={styles.tag}>{tag}</span>
-            ))}
-            {task.tags.length > 2 && (
-              <span className={styles.tag}>+{task.tags.length - 2}</span>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
