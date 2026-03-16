@@ -273,19 +273,26 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
   const handleDesignSend = useCallback(async () => {
     const text = designInput.trim();
     if (!text || isDesigning) return;
+    let fullText = text;
+    if (attachedFiles.length > 0) {
+      const fileContext = attachedFiles.map(f =>
+        `--- Attached file: ${f.name} ---\n${f.content}\n--- End of ${f.name} ---`
+      ).join('\n\n');
+      fullText = `${fileContext}\n\n${text}`;
+    }
     const newMessages: DesignMessage[] = [...designMessages, { role: 'user', content: text }];
     setDesignMessages(newMessages);
     setDesignInput('');
     setIsDesigning(true);
     try {
-      const result = await designChat(apiMessages(newMessages), config.guidance ? config : null, 'discuss', baseURL);
+      const result = await designChat(apiMessages([...designMessages, { role: 'user', content: fullText }]), config.guidance ? config : null, 'discuss', baseURL);
       setDesignMessages([...newMessages, { role: 'assistant', content: result.response }]);
     } catch (err) {
       setStatusMessage({ type: 'error', text: `Design chat failed: ${(err as Error).message}` });
     } finally {
       setIsDesigning(false);
     }
-  }, [designInput, designMessages, config, baseURL, isDesigning, apiMessages]);
+  }, [designInput, designMessages, config, baseURL, isDesigning, apiMessages, attachedFiles]);
 
   const doGenerate = useCallback(async () => {
     if (isGenerating || designMessages.length === 0) return;
@@ -362,15 +369,8 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
 
   const handleTestSend = useCallback(async (text: string) => {
     if (!registeredSession) { setStatusMessage({ type: 'error', text: 'Apply config first.' }); return; }
-    let fullMessage = text;
-    if (attachedFiles.length > 0) {
-      const fileContext = attachedFiles.map(f =>
-        `--- Attached file: ${f.name} ---\n${f.content}\n--- End of ${f.name} ---`
-      ).join('\n\n');
-      fullMessage = `${fileContext}\n\n${text}`;
-    }
-    await testChat.sendMessage(fullMessage);
-  }, [registeredSession, testChat, attachedFiles]);
+    await testChat.sendMessage(text);
+  }, [registeredSession, testChat]);
 
   // ========== SAVE / LOAD / EXPORT ==========
 
@@ -684,19 +684,16 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                 {config.guidance && (
                   <div className={styles.suggestHint}>Discuss changes here — the AI will suggest specific edits you can apply in the Config tab.</div>
                 )}
-                <div className={styles.chatInputArea}>
-                  <textarea
-                    className={styles.chatInput}
-                    value={designInput}
-                    onChange={e => setDesignInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleDesignSend(); } }}
-                    placeholder={config.guidance ? "Ask about changes to your crew..." : "Describe the crew member you want to create..."}
-                    disabled={isDesigning || isGenerating}
-                  />
-                  <button className={styles.sendButton} onClick={handleDesignSend} disabled={!designInput.trim() || isDesigning || isGenerating}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                  </button>
-                </div>
+                <DesignInput
+                  value={designInput}
+                  onChange={setDesignInput}
+                  onSend={handleDesignSend}
+                  disabled={isDesigning || isGenerating}
+                  placeholder={config.guidance ? "Ask about changes to your crew..." : "Describe the crew member you want to create..."}
+                  attachedFiles={attachedFiles}
+                  onFileAttach={(file) => setAttachedFiles(prev => [...prev, file])}
+                  onFileRemove={(name) => setAttachedFiles(prev => prev.filter(f => f.name !== name))}
+                />
               </>
             ) : (
               /* --- CONFIG EDITOR --- */
@@ -994,14 +991,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                 </LanguageContext.Provider>
               </div>
 
-              <TestInput
-                disabled={!registeredSession || !!transitionInfo}
-                isLoading={testChat.isLoading}
-                onSend={handleTestSend}
-                attachedFiles={attachedFiles}
-                onFileAttach={(file) => setAttachedFiles(prev => [...prev, file])}
-                onFileRemove={(name) => setAttachedFiles(prev => prev.filter(f => f.name !== name))}
-              />
+              <TestInput disabled={!registeredSession || !!transitionInfo} isLoading={testChat.isLoading} onSend={handleTestSend} />
             </>
           )}
 
@@ -1280,56 +1270,70 @@ function ContextCard({ entryKey, entryValue, index, allEntries, onUpdate, onEnla
   );
 }
 
-function TestInput({ disabled, isLoading, onSend, attachedFiles = [], onFileAttach, onFileRemove }: {
+function DesignInput({ value, onChange, onSend, disabled, placeholder, attachedFiles, onFileAttach, onFileRemove }: {
+  value: string;
+  onChange: (v: string) => void;
+  onSend: () => void;
   disabled: boolean;
-  isLoading: boolean;
-  onSend: (text: string) => void;
-  attachedFiles?: { name: string; content: string; size: number }[];
-  onFileAttach?: (file: { name: string; content: string; size: number }) => void;
-  onFileRemove?: (name: string) => void;
+  placeholder: string;
+  attachedFiles: { name: string; content: string; size: number }[];
+  onFileAttach: (file: { name: string; content: string; size: number }) => void;
+  onFileRemove: (name: string) => void;
 }) {
-  const [value, setValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleSend = () => { const t = value.trim(); if (!t || isLoading || disabled) return; onSend(t); setValue(''); };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     for (const file of files) {
       const content = await file.text();
-      onFileAttach?.({ name: file.name, content, size: file.size });
+      onFileAttach({ name: file.name, content, size: file.size });
     }
     e.target.value = '';
   };
 
   return (
-    <div className={styles.chatInputArea}>
+    <div className={attachedFiles.length > 0 ? styles.chatInputAreaWithFiles : styles.chatInputArea}>
       {attachedFiles.length > 0 && (
         <div className={styles.attachedFilesList}>
           {attachedFiles.map(f => (
             <span key={f.name} className={styles.attachedFileChip}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               {f.name}
-              <button className={styles.attachedFileRemove} onClick={() => onFileRemove?.(f.name)}>&#x2715;</button>
+              <button className={styles.attachedFileRemove} onClick={() => onFileRemove(f.name)}>&#x2715;</button>
             </span>
           ))}
         </div>
       )}
       <div className={styles.chatInputRow}>
-        <input ref={fileInputRef} type="file" multiple accept=".txt,.md,.json,.yaml,.yml,.csv,.xml,.html,.js,.ts,.py,.pdf" style={{ display: 'none' }} onChange={handleFileChange} />
-        <button
-          className={styles.attachButton}
-          onClick={() => fileInputRef.current?.click()}
-          disabled={disabled}
-          title="Attach files"
-        >
+        <input ref={fileInputRef} type="file" multiple accept=".txt,.md,.json,.yaml,.yml,.csv,.xml,.html,.js,.ts,.py" style={{ display: 'none' }} onChange={handleFileChange} />
+        <button className={styles.attachButton} onClick={() => fileInputRef.current?.click()} disabled={disabled} title="Attach files to share with the crew creator AI">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
         </button>
-        <textarea className={styles.chatInput} value={value} onChange={e => setValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={disabled ? 'Activate a crew first...' : 'Type a message...'} disabled={disabled || isLoading} />
-        <button className={styles.sendButton} onClick={handleSend} disabled={!value.trim() || isLoading || disabled}>
-          {isLoading ? <div className={styles.spinner} /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>}
+        <textarea
+          className={styles.chatInput}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }}
+          placeholder={placeholder}
+          disabled={disabled}
+        />
+        <button className={styles.sendButton} onClick={onSend} disabled={!value.trim() || disabled}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
       </div>
+    </div>
+  );
+}
+
+function TestInput({ disabled, isLoading, onSend }: { disabled: boolean; isLoading: boolean; onSend: (text: string) => void }) {
+  const [value, setValue] = useState('');
+  const handleSend = () => { const t = value.trim(); if (!t || isLoading || disabled) return; onSend(t); setValue(''); };
+  return (
+    <div className={styles.chatInputArea}>
+      <textarea className={styles.chatInput} value={value} onChange={e => setValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={disabled ? 'Activate a crew first...' : 'Type a message...'} disabled={disabled || isLoading} />
+      <button className={styles.sendButton} onClick={handleSend} disabled={!value.trim() || isLoading || disabled}>
+        {isLoading ? <div className={styles.spinner} /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>}
+      </button>
     </div>
   );
 }
