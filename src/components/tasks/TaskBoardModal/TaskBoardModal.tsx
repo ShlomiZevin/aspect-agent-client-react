@@ -74,6 +74,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
   const [filterCrewMember, setFilterCrewMember] = useState<string | null>(null);
   const [filterOpener, setFilterOpener] = useState<string | null>(null);
+  const [filterPriority, setFilterPriority] = useState<string | null>(null);
 
   // Pre-fill form as goal when adding from sidebar
   const [presetGoalMode, setPresetGoalMode] = useState(false);
@@ -169,6 +170,11 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
       result = result.filter(t => t.opener === filterOpener);
     }
 
+    // Filter by priority
+    if (filterPriority) {
+      result = result.filter(t => t.priority === filterPriority);
+    }
+
     // Then filter by domain
     if (filterDomain === 'all') {
       // "All Domains" means all domains currently visible in the dropdown
@@ -186,7 +192,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     if (filterDomain === 'general') return result.filter(t => t.domain === 'general');
     if (filterDomain === 'current') return result.filter(t => t.domain === currentDomain || t.domain === 'general');
     return result.filter(t => t.domain === filterDomain);
-  }, [tasks, filterDomain, filterAssignee, filterCrewMember, filterOpener, currentDomain, showCompleted, showAllDomains, showUnassignedOnly, showDraftsOnly, currentUserId]);
+  }, [tasks, filterDomain, filterAssignee, filterCrewMember, filterOpener, filterPriority, currentDomain, showCompleted, showAllDomains, showUnassignedOnly, showDraftsOnly, currentUserId]);
 
   // Split goals and agenda from board tasks — they go to sidebar, rest to kanban/list
   // The goalsMeta sentinel stores the meeting date and is excluded from display
@@ -840,6 +846,18 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
               ))}
             </select>
           )}
+
+          <select
+            className={styles.crewFilter}
+            value={filterPriority || ''}
+            onChange={(e) => setFilterPriority(e.target.value || null)}
+          >
+            <option value="">All Priorities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
         </div>
 
         {/* Bulk Fire Drafts Toolbar */}

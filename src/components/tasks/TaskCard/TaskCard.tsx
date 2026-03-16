@@ -211,11 +211,9 @@ export function TaskCard({ task, dependencyInfo, crewDisplayNames, onClick, onAt
           {task.createdAt && (
             <span className={styles.createdAt}>{formatCreatedAt(task.createdAt)}</span>
           )}
-          {task.dueDate && (
-            <span className={`${styles.dueDate} ${isOverdue(task.dueDate) ? styles.overdue : ''}`}>
-              {formatDueDate(task.dueDate)}
-            </span>
-          )}
+          <span className={`${styles.dueDate} ${task.dueDate && isOverdue(task.dueDate) ? styles.overdue : ''}`}>
+            {task.dueDate ? formatDueDate(task.dueDate) : 'not urgent'}
+          </span>
         </div>
         {task.tags.length > 0 && (
           <div className={styles.tags}>
