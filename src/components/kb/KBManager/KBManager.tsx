@@ -12,12 +12,14 @@ const PROVIDER_LABELS: Record<KBProvider, string> = {
   openai: 'OpenAI',
   google: 'Gemini',
   both: 'Both',
+  anthropic: 'Anthropic',
 };
 
 const PROVIDER_HINTS: Record<KBProvider, string> = {
   openai: 'Uses OpenAI vector stores for semantic search',
   google: 'Uses Google File Search (free storage)',
   both: 'Creates on both OpenAI and Google simultaneously',
+  anthropic: 'Files injected as document blocks into Claude context (no semantic search)',
 };
 
 export function KBManager() {
@@ -340,6 +342,7 @@ export function KBManager() {
               <option value="openai">OpenAI</option>
               <option value="google">Google Gemini</option>
               <option value="both">Both (OpenAI + Google)</option>
+              <option value="anthropic">Anthropic (Claude context injection)</option>
             </select>
             <span className={styles.providerHint}>{PROVIDER_HINTS[newKBProvider]}</span>
           </div>

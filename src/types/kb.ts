@@ -1,4 +1,4 @@
-export type KBProvider = 'openai' | 'google' | 'both';
+export type KBProvider = 'openai' | 'google' | 'both' | 'anthropic';
 
 export interface KnowledgeBase {
   id: number;

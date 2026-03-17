@@ -7,6 +7,7 @@ const PROVIDER_LABELS: Record<KBProvider, string> = {
   openai: 'OpenAI',
   google: 'Google Gemini',
   both: 'Both',
+  anthropic: 'Anthropic',
 };
 
 interface SyncKBModalProps {
