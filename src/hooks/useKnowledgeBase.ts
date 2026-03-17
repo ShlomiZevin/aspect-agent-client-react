@@ -6,6 +6,7 @@ import {
   uploadFiles as uploadFilesApi,
   deleteFile as deleteFileApi,
   deleteFileLegacy as deleteFileLegacyApi,
+  deleteKnowledgeBase as deleteKBApi,
   syncKnowledgeBase as syncKBApi,
   detachProvider as detachProviderApi,
 } from '../services/kbService';
@@ -28,6 +29,7 @@ export interface UseKnowledgeBaseReturn {
   createKnowledgeBase: (name: string, description: string, provider: KBProvider) => Promise<KnowledgeBase>;
   uploadFiles: (files: File[], tags?: string[]) => Promise<void>;
   deleteFile: (file: KBFile) => Promise<void>;
+  deleteKnowledgeBase: (kbId: number) => Promise<void>;
   syncKnowledgeBase: (kbId: number, targetProvider: KBProvider) => Promise<void>;
   detachProvider: (kbId: number, provider: KBProvider) => Promise<void>;
   clearError: () => void;
@@ -151,6 +153,22 @@ export function useKnowledgeBase(
     [selectedKB, baseURL, loadKnowledgeBases]
   );
 
+  const deleteKnowledgeBase = useCallback(
+    async (kbId: number) => {
+      try {
+        await deleteKBApi(kbId, baseURL);
+        setKnowledgeBases(prev => prev.filter(kb => kb.id !== kbId));
+        if (selectedKB?.id === kbId) {
+          setSelectedKB(null);
+          setFiles([]);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to delete knowledge base');
+      }
+    },
+    [baseURL, selectedKB]
+  );
+
   const syncKnowledgeBase = useCallback(
     async (kbId: number, targetProvider: KBProvider) => {
       setIsSyncing(true);
@@ -215,6 +233,7 @@ export function useKnowledgeBase(
     createKnowledgeBase,
     uploadFiles,
     deleteFile,
+    deleteKnowledgeBase,
     syncKnowledgeBase,
     detachProvider,
     clearError,

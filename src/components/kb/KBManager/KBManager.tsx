@@ -35,12 +35,14 @@ export function KBManager() {
     createKnowledgeBase,
     uploadFiles,
     deleteFile,
+    deleteKnowledgeBase,
     syncKnowledgeBase,
     detachProvider,
     clearError,
   } = useKnowledgeBase(config.agentName, config.baseURL);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [confirmDeleteKBId, setConfirmDeleteKBId] = useState<number | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [newKBName, setNewKBName] = useState('');
@@ -149,6 +151,13 @@ export function KBManager() {
                   <div className={styles.kbMeta}>
                     {kb.fileCount} files • {formatBytes(kb.totalSize)}
                   </div>
+                  <button
+                    className={styles.deleteKBBtn}
+                    onClick={e => { e.stopPropagation(); setConfirmDeleteKBId(kb.id); }}
+                    title="Delete knowledge base"
+                  >
+                    Delete
+                  </button>
                 </div>
               ))
             )}
@@ -453,6 +462,34 @@ export function KBManager() {
           onClose={() => setShowSyncModal(false)}
         />
       )}
+
+      {/* Confirm Delete KB Modal */}
+      <Modal
+        isOpen={confirmDeleteKBId !== null}
+        onClose={() => setConfirmDeleteKBId(null)}
+        title="Delete Knowledge Base"
+        size="sm"
+      >
+        <div className={styles.form}>
+          <p>Are you sure you want to delete this knowledge base and all its files? This cannot be undone.</p>
+          <div className={styles.actions}>
+            <Button variant="secondary" onClick={() => setConfirmDeleteKBId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={async () => {
+                if (confirmDeleteKBId !== null) {
+                  await deleteKnowledgeBase(confirmDeleteKBId);
+                  setConfirmDeleteKBId(null);
+                }
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

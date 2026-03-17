@@ -152,6 +152,17 @@ export async function uploadFiles(
   }
 }
 
+export async function deleteKnowledgeBase(
+  kbId: number,
+  baseURL?: string
+): Promise<void> {
+  await apiRequest(
+    `/api/kb/${kbId}`,
+    { method: 'DELETE' },
+    baseURL || getBaseURL()
+  );
+}
+
 export async function deleteFile(
   kbId: number,
   fileId: number,
