@@ -1,0 +1,428 @@
+/* Profile Panel — right-side panel showing user profile builder */
+
+.panel {
+  width: 420px;
+  min-width: 340px;
+  max-width: 520px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  order: -1; /* Place on the left side in RTL (visually on the right) */
+}
+
+/* ─── Header ─────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-light);
+  flex-shrink: 0;
+}
+
+.headerTitle {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  padding: var(--spacing-xs);
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.closeButton:hover {
+  background: var(--background);
+  color: var(--text-primary);
+}
+
+/* ─── Overall Score Section ─────────────────────────────────── */
+
+.overallSection {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, var(--surface-light), var(--surface));
+  flex-shrink: 0;
+}
+
+.overallRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+}
+
+.overallLabel {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.overallStats {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.overallPercent {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.depthLabelBadge {
+  padding: 2px 10px;
+  border-radius: var(--radius-xl);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  white-space: nowrap;
+}
+
+.overallBar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: var(--spacing-sm);
+}
+
+.overallBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.confidenceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.confidenceLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.confidenceValue {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* ─── Clusters Container ────────────────────────────────────── */
+
+.clustersContainer {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* ─── Cluster ───────────────────────────────────────────────── */
+
+.cluster {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.clusterHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text-primary);
+  transition: background var(--transition-fast);
+}
+
+.clusterHeader:hover {
+  background: var(--surface-light);
+}
+
+.clusterLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.clusterIcon {
+  font-size: 16px;
+  width: 22px;
+  text-align: center;
+}
+
+.clusterName {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.clusterCount {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  padding: 1px 6px;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+}
+
+.clusterRight {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.clusterDepth {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.chevron {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.chevronUp {
+  transform: rotate(180deg);
+}
+
+/* Depth bar under cluster header */
+.depthBar {
+  height: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.depthFill {
+  height: 100%;
+  border-radius: 0 3px 3px 0;
+  transition: width 0.5s ease, background 0.3s ease;
+}
+
+/* ─── Cluster body ──────────────────────────────────────────── */
+
+.clusterBody {
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Field row ─────────────────────────────────────────────── */
+
+.field {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.field:hover {
+  background: var(--surface-light);
+}
+
+.fieldFilled {
+  /* subtle left border for filled fields */
+}
+
+.fieldNew {
+  animation: fieldHighlight 2s ease-out;
+}
+
+@keyframes fieldHighlight {
+  0% { background: rgba(37, 99, 235, 0.15); }
+  100% { background: transparent; }
+}
+
+.fieldRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  min-height: 28px;
+}
+
+.fieldLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.fieldValue {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.fieldValueText {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fieldEmpty {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+/* ─── Confidence dot ────────────────────────────────────────── */
+
+.confidenceDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+/* ─── Badges ────────────────────────────────────────────────── */
+
+.badge {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badgeUser {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary-color);
+}
+
+.badgeSystem {
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
+}
+
+.badgeExternal {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning-color);
+}
+
+/* ─── Tags mode ─────────────────────────────────────────────── */
+
+.tagsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-xl);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  transition: all var(--transition-fast);
+}
+
+.tagNew {
+  animation: tagPop 0.4s ease;
+}
+
+@keyframes tagPop {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.noTags {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  padding: var(--spacing-sm);
+  text-align: center;
+  font-style: italic;
+}
+
+/* ─── Empty state ───────────────────────────────────────────── */
+
+.emptyState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.emptyIcon {
+  font-size: 36px;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.5;
+}
+
+.emptyText {
+  font-size: var(--font-size-sm);
+}
+
+/* ─── Responsive ────────────────────────────────────────────── */
+
+@media (max-width: 1200px) {
+  .panel {
+    width: 360px;
+    min-width: 300px;
+  }
+}
+
+@media (max-width: 900px) {
+  .panel {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 420px;
+    z-index: 100;
+    box-shadow: var(--shadow-lg);
+  }
+}

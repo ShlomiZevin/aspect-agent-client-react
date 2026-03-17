@@ -6,3 +6,4 @@ export * from './promptEditor';
 export * from './task';
 export * from './language';
 export * from './playground';
+export * from './profile';

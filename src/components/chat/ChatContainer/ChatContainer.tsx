@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { useChatContext } from '../../../context';
+import { useAgentContext } from '../../../context/AgentContext';
 import { Message } from '../Message';
 import { ThinkingIndicator } from '../ThinkingIndicator';
 import { WelcomeSection } from '../WelcomeSection';
@@ -11,6 +12,7 @@ import { CrewJourneyModal } from '../CrewJourneyModal';
 import { PromptEditorPanel } from '../PromptEditorPanel';
 import { FieldsEditorPanel } from '../FieldsEditorPanel';
 import { ContextEditorPanel } from '../ContextEditorPanel';
+import { ProfilePanel } from '../ProfilePanel';
 import { MOCK_CREW_MEMBERS } from '../../../mocks/promptMocks';
 import { CrewTabs } from '../CrewTabs';
 import styles from './ChatContainer.module.css';
@@ -62,11 +64,15 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     copyMessages,
     clearMessageSelection,
   } = useChatContext();
+  const { config } = useAgentContext();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Prompt editor panel state (debug mode only)
   const [isPromptPanelOpen, setIsPromptPanelOpen] = useState(false);
+
+  // Profile panel state (collapsible to the right)
+  const [isProfilePanelOpen, setIsProfilePanelOpen] = useState(true);
 
   // Use real crew members if available, otherwise use mock data for debug mode
   const effectiveCrewMembers = useMemo(() => {
@@ -112,7 +118,8 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
   }, [messages, isThinking, currentThinkingStep, thinkingSteps.length]);
 
   // Determine if any right panel is open
-  const hasOpenPanel = isPromptPanelOpen || isFieldsEditorOpen || isContextEditorOpen;
+  const hasProfilePanel = !!config.profileSchema;
+  const hasOpenPanel = isPromptPanelOpen || isFieldsEditorOpen || isContextEditorOpen || (hasProfilePanel && isProfilePanelOpen);
 
   return (
     <div className={`${styles.wrapper} ${hasOpenPanel ? styles.withPanel : ''}`}>
@@ -255,6 +262,32 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           isDebugMode={debugMode}
           onClose={() => setContextEditorOpen(false)}
         />
+      )}
+
+      {/* Profile Panel - shown when agent has a profileSchema */}
+      {hasProfilePanel && conversationId && config.profileSchema && isProfilePanelOpen && (
+        <ProfilePanel
+          conversationId={conversationId}
+          baseURL={baseURL}
+          profileSchema={config.profileSchema}
+          refreshKey={fieldsRefreshKey}
+          onClose={() => setIsProfilePanelOpen(false)}
+        />
+      )}
+
+      {/* Profile Panel reopen tab - shown when panel is closed */}
+      {hasProfilePanel && !isProfilePanelOpen && (
+        <button
+          className={styles.profileToggle}
+          onClick={() => setIsProfilePanelOpen(true)}
+          title="Open Profile Panel"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <polyline points="15 11 18 14 21 11" />
+          </svg>
+        </button>
       )}
     </div>
   );

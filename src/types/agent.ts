@@ -53,4 +53,7 @@ export interface AgentConfig {
     schema: string;           // e.g. 'zer4u'
     enableQueryLogging?: boolean;
   };
+
+  // Profile panel schema — when set, shows a user profile builder panel alongside the chat
+  profileSchema?: import('./profile').ProfileSchema;
 }
