@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import type { Task, Assignee, CreateTaskData, TaskStatus, TaskPriority, TaskType } from '../../../types/task';
 import type { CrewMember } from '../../../types/crew';
 import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
@@ -543,7 +544,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                         placeholder="Search board tasks to link..."
                         autoComplete="off"
                       />
-                      {showDependsOnDropdown && dependsOnSuggestions.length > 0 && dropdownPos && (
+                      {showDependsOnDropdown && dependsOnSuggestions.length > 0 && dropdownPos && createPortal(
                         <div
                           className={styles.autocompleteDropdown}
                           style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
@@ -566,7 +567,8 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                               </span>
                             </div>
                           ))}
-                        </div>
+                        </div>,
+                        document.body
                       )}
                     </div>
                   )}
@@ -703,7 +705,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                         placeholder="Type 3+ letters to search..."
                         autoComplete="off"
                       />
-                      {showDependsOnDropdown && dependsOnSuggestions.length > 0 && dropdownPos && (
+                      {showDependsOnDropdown && dependsOnSuggestions.length > 0 && dropdownPos && createPortal(
                         <div
                           className={styles.autocompleteDropdown}
                           style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
@@ -726,7 +728,8 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                               </span>
                             </div>
                           ))}
-                        </div>
+                        </div>,
+                        document.body
                       )}
                     </div>
                   )}
