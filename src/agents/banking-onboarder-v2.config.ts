@@ -18,14 +18,15 @@ export const bankingOnboarderV2Config: AgentConfig = {
   },
   headerTitle: 'פתיחת חשבון',
   headerSubtitle: '',
-  welcomeIcon: '/img/banking-welcome.svg',
+  welcomeIcon: '/img/lybi-logo-transparent.png',
   welcomeTitle: 'ברוכים הבאים',
   welcomeMessage: 'אני כאן כדי לעזור לך למצוא את החשבון המושלם עבורך.',
   inputPlaceholder: 'הקלד את תשובתך...',
 
   quickQuestions: [
     { icon: '🏦', textKey: 'quick.banking.startOnboarding.text', questionKey: 'quick.banking.startOnboarding.question' },
-    { icon: '📋', textKey: 'quick.banking.whatDoINeed.text', questionKey: 'quick.banking.whatDoINeed.question' },
+    { icon: '❓', textKey: 'quick.banking.howItWorks.text', questionKey: 'quick.banking.howItWorks.question' },
+    { icon: '💡', textKey: 'quick.banking.whichAccount.text', questionKey: 'quick.banking.whichAccount.question' },
   ],
 
   thinkingSteps: [

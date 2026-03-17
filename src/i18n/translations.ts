@@ -187,6 +187,10 @@ export const translations: LanguageConfig = {
     'quick.banking.howLong.question': 'How long does the account opening process take?',
     'quick.banking.accountTypes.text': 'Account Types',
     'quick.banking.accountTypes.question': 'What types of accounts can I open?',
+    'quick.banking.howItWorks.text': 'How Does It Work?',
+    'quick.banking.howItWorks.question': 'How does the account opening process work?',
+    'quick.banking.whichAccount.text': 'Which Account?',
+    'quick.banking.whichAccount.question': 'Which account is right for me?',
 
     // Crew Members - Aspect
     'crew.aspect.zer4u': 'Zer4U',
@@ -413,6 +417,10 @@ export const translations: LanguageConfig = {
     'quick.banking.howLong.question': 'כמה זמן לוקח תהליך פתיחת החשבון?',
     'quick.banking.accountTypes.text': 'סוגי חשבונות',
     'quick.banking.accountTypes.question': 'אילו סוגי חשבונות אני יכול לפתוח?',
+    'quick.banking.howItWorks.text': 'איך זה עובד?',
+    'quick.banking.howItWorks.question': 'איך עובד תהליך פתיחת החשבון?',
+    'quick.banking.whichAccount.text': 'איזה חשבון מתאים לי?',
+    'quick.banking.whichAccount.question': 'איזה סוג חשבון מתאים לי?',
 
     // Crew Members - Aspect
     'crew.aspect.zer4u': 'Zer4U',
