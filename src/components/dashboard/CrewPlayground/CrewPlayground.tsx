@@ -444,12 +444,13 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${(config.displayName || 'playground').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.crew.js`;
+      const baseName = loadedConfigRef?.name || config.displayName || 'playground';
+      a.download = `${baseName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.crew.js`;
       a.click();
       URL.revokeObjectURL(url);
       setStatusMessage({ type: 'success', text: 'File exported!' });
     } catch (err) { setStatusMessage({ type: 'error', text: `Export failed: ${(err as Error).message}` }); }
-  }, [config, baseURL]);
+  }, [config, baseURL, loadedConfigRef]);
 
   // ========== RESET ==========
 
