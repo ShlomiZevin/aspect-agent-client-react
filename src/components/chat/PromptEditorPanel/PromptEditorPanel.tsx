@@ -258,6 +258,10 @@ export function PromptEditorPanel({
   const selectedVersion = selectedPromptData?.versions.find(v => v.id === selectedVersionId)
     || selectedPromptData?.currentVersion;
 
+  // Persona baseline: version's saved persona takes precedence over code default
+  const basePersona = selectedVersion?.persona || codePersona;
+  const isPersonaDirty = editedPersona !== basePersona;
+
   // Check if the current prompt is dirty (modified)
   const isMainDirty = editedPrompt !== originalPrompt;
 
@@ -435,7 +439,7 @@ export function PromptEditorPanel({
         model: modelOverrides[selectedCrewId] || undefined,
         provider: providerOverrides[selectedCrewId] || undefined,
         kbSources: kbOverrides[selectedCrewId]?.length ? kbOverrides[selectedCrewId] : undefined,
-        persona: editedPersona !== codePersona ? editedPersona : undefined,
+        persona: isPersonaDirty ? editedPersona : undefined,
         thinkingPrompt: thinkingPromptOverrides[selectedCrewId] || undefined,
       };
       const newVersion = await createPromptVersion(agentName, selectedCrewId, payload, baseURL);
@@ -444,6 +448,13 @@ export function PromptEditorPanel({
       setPrompts(data);
       // Select the newly created version in the dropdown
       setSelectedVersionId(newVersion.id);
+      // Clear session override — the saved version is now the active DB default
+      setSessionOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
+      onSessionOverride(selectedCrewId, '');
+      // Update originalPrompt so guidance doesn't show as dirty
+      setOriginalPrompt(editedPrompt);
+      // Reset version load ref so the effect picks up the new version cleanly
+      lastLoadedVersionRef.current = null;
       setShowSaveModal(false);
       setSaveVersionName('');
       setStatus({ type: 'success', message: `Saved as version "${name.trim() || 'unnamed'}"` });
@@ -902,7 +913,7 @@ export function PromptEditorPanel({
                 <div style={{ padding: '8px 0' }}>
                   <div className={styles.subSectionLabel}>
                     Agent Persona
-                    {editedPersona !== codePersona && <span className={styles.hasContentBadge}>OVERRIDE</span>}
+                    {isPersonaDirty && <span className={styles.hasContentBadge}>OVERRIDE</span>}
                     <button
                       className={styles.expandButton}
                       onClick={() => setShowPersonaModal(true)}
@@ -921,12 +932,12 @@ export function PromptEditorPanel({
                     Shared persona injected into all crews. Edit to override for this session.
                   </p>
                   <textarea
-                    className={`${styles.promptTextarea} ${styles.transitionTextarea} ${editedPersona !== codePersona ? styles.dirty : ''}`}
+                    className={`${styles.promptTextarea} ${styles.transitionTextarea} ${isPersonaDirty ? styles.dirty : ''}`}
                     value={editedPersona}
                     onChange={(e) => {
                       const val = e.target.value;
                       setEditedPersona(val);
-                      if (val !== codePersona) {
+                      if (val !== basePersona) {
                         onPersonaOverride(val);
                       } else {
                         onPersonaOverride(null);
@@ -940,12 +951,12 @@ export function PromptEditorPanel({
                     <span className={styles.charCount}>
                       {editedPersona.length} chars
                     </span>
-                    {editedPersona !== codePersona && (
+                    {isPersonaDirty && (
                       <button
                         className={styles.fireNowButton}
                         onClick={() => {
-                          setEditedPersona(codePersona);
-                          onPersonaOverride(null);
+                          setEditedPersona(basePersona);
+                          onPersonaOverride(basePersona !== codePersona ? basePersona : null);
                         }}
                         title="Clear persona override and revert to code default"
                         type="button"
@@ -1515,12 +1526,12 @@ export function PromptEditorPanel({
             </div>
             <div className={styles.modalBody}>
               <textarea
-                className={`${styles.promptModalTextarea} ${editedPersona !== codePersona ? styles.dirty : ''}`}
+                className={`${styles.promptModalTextarea} ${isPersonaDirty ? styles.dirty : ''}`}
                 value={editedPersona}
                 onChange={(e) => {
                   const val = e.target.value;
                   setEditedPersona(val);
-                  if (val !== codePersona) {
+                  if (val !== basePersona) {
                     onPersonaOverride(val);
                   } else {
                     onPersonaOverride(null);
@@ -1534,14 +1545,14 @@ export function PromptEditorPanel({
             <div className={styles.promptModalFooter}>
               <span className={styles.charCount}>
                 {editedPersona.length} chars
-                {editedPersona !== codePersona && (
+                {isPersonaDirty && (
                   <span className={styles.sessionOverrideBadge} style={{ marginLeft: '8px' }}>
                     OVERRIDE
                   </span>
                 )}
               </span>
               <div style={{ display: 'flex', gap: '8px' }}>
-                {editedPersona !== codePersona && (
+                {isPersonaDirty && (
                   <button
                     className={`${styles.actionButton} ${styles.revertButton}`}
                     onClick={() => {
