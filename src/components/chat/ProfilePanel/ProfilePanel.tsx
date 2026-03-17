@@ -3,8 +3,6 @@ import { getContext, type ContextResponse } from '../../../services/contextServi
 import { getFields } from '../../../services/fieldsService';
 import type {
   ProfileSchema,
-  ProfileClusterDef,
-  ProfileFieldDef,
   ProfileData,
   ProfileCluster,
   ProfileField,
