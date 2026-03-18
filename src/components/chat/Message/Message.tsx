@@ -9,7 +9,8 @@ import { ThinkingIndicator } from '../ThinkingIndicator';
 import { DebugPanel } from '../DebugPanel';
 import { FeedbackPanel } from '../FeedbackPanel';
 import { AgentBugModal } from '../AgentBugModal/AgentBugModal';
-import { createTask } from '../../../services/taskService';
+import { createTask, getAssignees } from '../../../services/taskService';
+import { useCommenterIdentity } from '../../../hooks/useCommenterIdentity';
 import type { CreateTaskData } from '../../../types/task';
 import styles from './Message.module.css';
 
@@ -47,6 +48,8 @@ export function Message({ message }: MessageProps) {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showBugModal, setShowBugModal] = useState(false);
+  const { identity: commenterIdentity } = useCommenterIdentity();
+  const [bugAssignees, setBugAssignees] = useState<import('../../../types/task').Assignee[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const isUser = message.role === 'user';
@@ -225,7 +228,7 @@ export function Message({ message }: MessageProps) {
                 {canReportBug && (
                   <button
                     className={styles.bugButton}
-                    onClick={() => setShowBugModal(true)}
+                    onClick={() => { setShowBugModal(true); getAssignees().then(setBugAssignees).catch(() => {}); }}
                     title="Report agent bug"
                     type="button"
                   >
@@ -300,6 +303,8 @@ export function Message({ message }: MessageProps) {
           currentDomain={getDomainFromUrl()}
           conversationUrl={window.location.href}
           crewMembers={crewMembers}
+          assignees={bugAssignees}
+          openerIdentity={commenterIdentity || undefined}
           conversationId={conversationId}
         />
       )}

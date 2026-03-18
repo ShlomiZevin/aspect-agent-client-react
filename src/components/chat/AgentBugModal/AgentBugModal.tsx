@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import type { CreateTaskData, TaskPriority, TaskType } from '../../../types/task';
+import type { Assignee, CreateTaskData, TaskPriority, TaskType } from '../../../types/task';
 import type { Message } from '../../../types/chat';
 import type { CrewMember, FieldToCollect } from '../../../types/crew';
 import { getFields } from '../../../services/fieldsService';
 import { getDraftDefault, getUserId } from '../../../utils/userIdentifier';
+import { RichTextEditor } from '../../tasks/RichTextEditor/RichTextEditor';
 import styles from './AgentBugModal.module.css';
 
 // Bug categories for agent issues
@@ -62,6 +63,8 @@ interface AgentBugModalProps {
   currentDomain: string;
   conversationUrl: string;
   crewMembers: CrewMember[];
+  assignees?: Assignee[];
+  openerIdentity?: string;
   conversationId?: string | null;
 }
 
@@ -79,6 +82,8 @@ export function AgentBugModal({
   currentDomain,
   conversationUrl,
   crewMembers,
+  assignees,
+  openerIdentity,
   conversationId,
 }: AgentBugModalProps) {
   const [title, setTitle] = useState('');
@@ -86,6 +91,7 @@ export function AgentBugModal({
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [taskType, setTaskType] = useState<TaskType>('bug');
   const [notes, setNotes] = useState('');
+  const [assignee, setAssignee] = useState('');
   const [isDraft, setIsDraft] = useState(getDraftDefault());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -162,6 +168,7 @@ export function AgentBugModal({
       setCategory('wrong_reply');
       setPriority('medium');
       setNotes('');
+      setAssignee('');
       // Default to the crew that generated this message
       const messageCrewName = message.crewMember || '';
       const matchingCrew = crewMembers.find(c =>
@@ -323,9 +330,10 @@ export function AgentBugModal({
     }
 
     // User notes
-    if (notes.trim()) {
+    const hasNotes = notes.replace(/<[^>]*>/g, '').trim() || notes.includes('<img');
+    if (hasNotes) {
       html += `\n<h3 style="margin:16px 0 12px 0;font-size:16px;">Notes</h3>
-<p style="margin:0;padding:12px;background:#f8fafc;border-radius:6px;line-height:1.5;">${notes.replace(/\n/g, '<br>')}</p>`;
+<div style="margin:0;padding:12px;background:#f8fafc;border-radius:6px;line-height:1.5;">${notes}</div>`;
     }
 
     // Message context
@@ -367,11 +375,12 @@ export function AgentBugModal({
         priority,
         domain: currentDomain,
         status: 'todo',
+        assignee: assignee || null,
         tags: ['agent-bug', category, sourceCrew || 'unknown-crew'].filter(Boolean),
         crewMember: sourceCrew || null,
         isDraft,
         createdBy: getUserId(),
-        opener: getUserId(),
+        opener: openerIdentity || getUserId(),
       });
       onClose();
     } finally {
@@ -627,15 +636,30 @@ export function AgentBugModal({
               </div>
             </div>
 
+            {/* Assignee */}
+            {assignees && assignees.length > 0 && (
+              <div className={styles.field}>
+                <label htmlFor="ab-assignee">Assign to</label>
+                <select
+                  id="ab-assignee"
+                  value={assignee}
+                  onChange={(e) => setAssignee(e.target.value)}
+                >
+                  <option value="">Unassigned</option>
+                  {assignees.map(a => (
+                    <option key={a.id} value={a.name}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Additional Notes */}
             <div className={styles.field}>
-              <label htmlFor="ab-notes">Additional Notes</label>
-              <textarea
-                id="ab-notes"
+              <label>Additional Notes</label>
+              <RichTextEditor
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Any additional context..."
-                rows={3}
+                onChange={setNotes}
+                placeholder="Any additional context... (paste screenshots here)"
               />
             </div>
           </div>

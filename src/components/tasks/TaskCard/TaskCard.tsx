@@ -217,7 +217,7 @@ export function TaskCard({ task, dependencyInfo, crewDisplayNames, onClick, onAt
         {(task.assignee || task.opener) && (
           <span className={styles.assignee} style={{ color: assigneeColor }}>
             {task.assignee && `@${task.assignee}`}
-            {task.opener && <span className={styles.opener}>{task.assignee ? ' ' : ''}By {task.opener.startsWith('user_') ? 'Anon' : task.opener}</span>}
+            {task.opener && <span className={styles.opener}>{task.assignee ? ' ' : ''}By {task.opener.startsWith('user_') || task.opener.startsWith('anon_') ? 'Anon' : task.opener}</span>}
           </span>
         )}
         <div className={styles.footerRight}>

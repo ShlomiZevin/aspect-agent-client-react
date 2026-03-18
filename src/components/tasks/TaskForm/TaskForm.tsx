@@ -726,7 +726,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
 
                 <div className={styles.field}>
                   <label htmlFor="assignee">
-                    {task?.opener ? <>Assigned to by <span className={styles.openerName}>{task.opener.startsWith('user_') ? 'Anon' : task.opener}</span></> : 'Assignee'}
+                    {task?.opener ? <>Assigned to by <span className={styles.openerName}>{task.opener.startsWith('user_') || task.opener.startsWith('anon_') ? 'Anon' : task.opener}</span></> : 'Assignee'}
                   </label>
                   <select id="assignee" value={assignee} onChange={(e) => setAssignee(e.target.value)}>
                     <option value="">Unassigned</option>
