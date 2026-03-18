@@ -230,6 +230,28 @@
   background: var(--surface);
 }
 
+.titleSearch {
+  width: 120px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.titleSearch::placeholder {
+  color: var(--text-muted);
+}
+
+.titleSearch:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  width: 180px;
+  background: var(--surface);
+}
+
 .domainFilter {
   padding: var(--spacing-xs) var(--spacing-md);
   background: var(--surface-light);

@@ -10,6 +10,8 @@ interface GoalsSectionProps {
   hideHeader?: boolean;
   title?: string;
   emoji?: string;
+  tint?: string; // background for the list area
+  headerTint?: string; // background for the header
   showOpener?: boolean;
   meetingDate?: string | null;
   meetingDateLabel?: string;
@@ -60,7 +62,7 @@ function formatCreatedAt(date: Date | string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, title = 'Goals', emoji = '🎯', showOpener, meetingDate, meetingDateLabel = 'Last meeting:', meetingNotes, showNotesModal: externalShowNotes, onShowNotesModal, onGoalClick, onDeleteGoal, onAddGoal, onUpdateGoal, onLinkedTaskClick, onToggleFullScreen, onMeetingDateChange, onMeetingNotesChange }: GoalsSectionProps) {
+export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, title = 'Goals', emoji = '🎯', tint, headerTint, showOpener, meetingDate, meetingDateLabel = 'Last meeting:', meetingNotes, showNotesModal: externalShowNotes, onShowNotesModal, onGoalClick, onDeleteGoal, onAddGoal, onUpdateGoal, onLinkedTaskClick, onToggleFullScreen, onMeetingDateChange, onMeetingNotesChange }: GoalsSectionProps) {
   const [internalShowNotes, setInternalShowNotes] = useState(false);
   const showNotesModal = externalShowNotes ?? internalShowNotes;
   const setShowNotesModal = onShowNotesModal ?? setInternalShowNotes;
@@ -155,7 +157,7 @@ export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, title 
   return (
     <div className={`${styles.sidebar} ${isFullScreen ? styles.fullScreen : ''}`}>
       {!hideHeader && (
-        <div className={styles.header}>
+        <div className={styles.header} style={headerTint ? { background: headerTint } : undefined}>
           <div className={styles.headerTop}>
             <h3 className={styles.title}>
               <span className={styles.titleIcon}>{emoji}</span>
@@ -189,7 +191,7 @@ export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, title 
         </div>
       )}
 
-      <div className={styles.goalsList}>
+      <div className={styles.goalsList} style={tint ? { background: tint } : undefined}>
         {sortedGoals.length === 0 ? (
           <div className={styles.empty}>
             No {title.toLowerCase()} yet.<br />

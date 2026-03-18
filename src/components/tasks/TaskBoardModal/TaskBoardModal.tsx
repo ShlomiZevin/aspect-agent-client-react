@@ -70,6 +70,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const [selectedExports, setSelectedExports] = useState<Set<number>>(new Set());
   const [exportCopied, setExportCopied] = useState(false);
   const [idSearch, setIdSearch] = useState('');
+  const [titleSearch, setTitleSearch] = useState('');
   const [draftByDefault, setDraftByDefault] = useState(() => getDraftDefault());
   const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
   const [filterCrewMember, setFilterCrewMember] = useState<string | null>(null);
@@ -229,7 +230,12 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     result = result.filter(t => !t.isDraft || t.createdBy === currentUserId);
     return result;
   }, [tasks, showCompleted, currentUserId]);
-  const boardTasks = useMemo(() => filteredTasks.filter(t => t.type !== 'goal' && t.type !== 'agenda'), [filteredTasks]);
+  const boardTasksAll = useMemo(() => filteredTasks.filter(t => t.type !== 'goal' && t.type !== 'agenda'), [filteredTasks]);
+  const boardTasks = useMemo(() => {
+    if (!titleSearch.trim()) return boardTasksAll;
+    const q = titleSearch.trim().toLowerCase();
+    return boardTasksAll.filter(t => t.title.toLowerCase().includes(q));
+  }, [boardTasksAll, titleSearch]);
 
   // Goals: last meeting date + notes
   const meetingDate = useMemo(() => {
@@ -703,6 +709,8 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
             <GoalsSection
               goals={agendaItems}
               allTasks={tasks}
+              tint="rgba(99, 102, 241, 0.03)"
+              headerTint="rgba(99, 102, 241, 0.07)"
               isFullScreen
               title="Agenda"
               emoji="📋"
@@ -719,6 +727,8 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
             <GoalsSection
               goals={goals}
               allTasks={tasks}
+              tint="rgba(245, 158, 11, 0.03)"
+              headerTint="rgba(245, 158, 11, 0.07)"
               isFullScreen
               meetingDate={meetingDate}
               meetingDateLabel="Last meeting:"
@@ -772,6 +782,15 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
             value={idSearch}
             onChange={(e) => setIdSearch(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleIdSearchSubmit(); }}
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          <input
+            className={styles.titleSearch}
+            type="text"
+            placeholder="Search..."
+            value={titleSearch}
+            onChange={(e) => setTitleSearch(e.target.value)}
             onClick={(e) => e.stopPropagation()}
           />
 
@@ -1040,6 +1059,8 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
             <GoalsSection
               goals={goals}
               allTasks={tasks}
+              tint="rgba(245, 158, 11, 0.03)"
+              headerTint="rgba(245, 158, 11, 0.07)"
               meetingDate={meetingDate}
               meetingNotes={meetingNotes}
               onGoalClick={handleTaskClick}
@@ -1054,6 +1075,8 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
             <GoalsSection
               goals={agendaItems}
               allTasks={tasks}
+              tint="rgba(99, 102, 241, 0.03)"
+              headerTint="rgba(99, 102, 241, 0.07)"
               title="Agenda"
               emoji="📋"
               showOpener
