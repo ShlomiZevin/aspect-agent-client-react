@@ -145,8 +145,10 @@
   background: white;
   border-radius: 6px;
   padding: 6px 8px;
+  padding-bottom: 10px;
   border: 1px solid #f0f2f5;
   transition: border-color 0.15s;
+  position: relative;
 }
 
 .comment:hover {
@@ -372,6 +374,44 @@
 .submitBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Like button — floats on bottom-right border of comment */
+.likeBtn {
+  position: absolute;
+  bottom: -10px;
+  right: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  z-index: 1;
+}
+
+.comment:hover .likeBtn {
+  opacity: 1;
+}
+
+.likeBtn.liked {
+  opacity: 1;
+}
+
+.likeBtn:hover {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.likeCount {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 /* Image lightbox */

@@ -17,6 +17,7 @@ const TYPE_ICONS: Record<string, string> = {
   idea: 'IDEA',
   goal: 'GOAL',
   agenda: 'AGENDA',
+  read: 'READ',
 };
 
 const PRIORITY_COLORS: Record<string, string> = {

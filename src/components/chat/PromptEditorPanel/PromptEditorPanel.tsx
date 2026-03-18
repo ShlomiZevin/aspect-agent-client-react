@@ -5,6 +5,7 @@ import type { TransitionLogicConfig } from '../../../types/chat';
 import {
   getAgentPrompts,
   createPromptVersion,
+  updatePromptVersion,
   activatePromptVersion,
   deletePromptVersion,
   revertToCode,
@@ -465,6 +466,34 @@ export function PromptEditorPanel({
     }
   }, [selectedCrewId, editedPrompt, editedTransitionPrompt, modelOverrides, providerOverrides, kbOverrides, editedPersona, codePersona, thinkingPromptOverrides, agentName, baseURL]);
 
+  // Overwrite the currently selected DB version with current edits
+  const handleOverwriteVersion = useCallback(async () => {
+    if (!selectedCrewId || !selectedVersion || selectedVersion.version === 0 || !editedPrompt.trim()) return;
+    setIsSavingVersion(true);
+    try {
+      const payload: SaveVersionPayload = {
+        prompt: editedPrompt,
+        name: selectedVersion.name || undefined,
+        transitionSystemPrompt: editedTransitionPrompt || undefined,
+        model: modelOverrides[selectedCrewId] || undefined,
+        provider: providerOverrides[selectedCrewId] || undefined,
+        kbSources: kbOverrides[selectedCrewId]?.length ? kbOverrides[selectedCrewId] : undefined,
+        persona: isPersonaDirty ? editedPersona : (selectedVersion.persona || undefined),
+        thinkingPrompt: thinkingPromptOverrides[selectedCrewId] || undefined,
+      };
+      await updatePromptVersion(agentName, selectedCrewId, selectedVersion.id, payload, baseURL);
+      const data = await getAgentPrompts(agentName, baseURL);
+      setPrompts(data);
+      setOriginalPrompt(editedPrompt);
+      lastLoadedVersionRef.current = null;
+      setStatus({ type: 'success', message: `Saved v${selectedVersion.version}` });
+    } catch {
+      setStatus({ type: 'error', message: 'Failed to save version' });
+    } finally {
+      setIsSavingVersion(false);
+    }
+  }, [selectedCrewId, selectedVersion, editedPrompt, editedTransitionPrompt, modelOverrides, providerOverrides, kbOverrides, editedPersona, isPersonaDirty, thinkingPromptOverrides, agentName, baseURL]);
+
   // Activate selected version as the default (without saving a new one)
   const handleActivateVersion = useCallback(async () => {
     if (!selectedCrewId || !selectedVersion || selectedVersion.isActive) return;
@@ -716,16 +745,30 @@ export function PromptEditorPanel({
                     </button>
                   </div>
                 ) : (
-                  <button
-                    className={`${styles.actionButton} ${styles.saveNewVersionButton}`}
-                    onClick={() => setShowSaveModal(true)}
-                    disabled={!editedPrompt.trim()}
-                    title="Save current overrides as a new prompt version"
-                    type="button"
-                    style={{ width: '100%' }}
-                  >
-                    Save as New Version
-                  </button>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {selectedVersion && selectedVersion.version !== 0 && (
+                      <button
+                        className={`${styles.actionButton} ${styles.saveVersionBtn}`}
+                        onClick={handleOverwriteVersion}
+                        disabled={!editedPrompt.trim() || isSavingVersion}
+                        title={`Overwrite v${selectedVersion.version}${selectedVersion.name ? ` - ${selectedVersion.name}` : ''}`}
+                        type="button"
+                        style={{ flex: 1 }}
+                      >
+                        {isSavingVersion ? 'Saving...' : 'Save'}
+                      </button>
+                    )}
+                    <button
+                      className={`${styles.actionButton} ${styles.saveNewVersionButton}`}
+                      onClick={() => setShowSaveModal(true)}
+                      disabled={!editedPrompt.trim()}
+                      title="Save current overrides as a new prompt version"
+                      type="button"
+                      style={{ flex: 1 }}
+                    >
+                      Save as New
+                    </button>
+                  </div>
                 )}
               </div>
             )}

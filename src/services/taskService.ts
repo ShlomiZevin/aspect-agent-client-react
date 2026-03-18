@@ -122,6 +122,13 @@ export async function getAssignees(): Promise<Assignee[]> {
 /**
  * Add a new assignee
  */
+/**
+ * Get task IDs that need attention from a specific identity
+ */
+export async function getNeedsAttention(identity: string): Promise<number[]> {
+  return apiRequest<number[]>(`/api/tasks/needs-attention?identity=${encodeURIComponent(identity)}`);
+}
+
 export async function addAssignee(name: string): Promise<Assignee> {
   const data = await apiRequest<{ assignee: Assignee }>('/api/assignees', {
     method: 'POST',

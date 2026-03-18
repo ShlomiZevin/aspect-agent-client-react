@@ -86,6 +86,14 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   // Full-screen goals view
   const [goalsFullScreen, setGoalsFullScreen] = useState(false);
 
+  // Export selection mode (toggled by user)
+  const [exportMode, setExportMode] = useState(false);
+
+  // Attention needed filter
+  const [filterAttention, setFilterAttention] = useState(false);
+  const [attentionTaskIds, setAttentionTaskIds] = useState<Set<number> | null>(null);
+  const [attentionLoading, setAttentionLoading] = useState(false);
+
   // Delete confirmation modal state
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -531,11 +539,16 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     }
   };
 
-  const handleCloseForm = () => {
+  const handleCloseForm = async () => {
     setEditingTask(null);
     setShowForm(false);
     setPresetGoalMode(false);
     setPresetType(null);
+    // Re-fetch attention list if filter is active (user may have liked/replied)
+    if (filterAttention && notificationsState.identity) {
+      const ids = await taskService.getNeedsAttention(notificationsState.identity);
+      setAttentionTaskIds(new Set(ids));
+    }
   };
 
   const handleOpenTaskById = useCallback((taskId: number) => {
@@ -732,11 +745,12 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
             </button>
             <button
               className={`${styles.viewBtn} ${viewMode === 'board' ? styles.active : ''}`}
-              onClick={() => { setViewMode('board'); setSelectedExports(new Set()); }}
+              onClick={() => { setViewMode('board'); setSelectedExports(new Set()); setExportMode(false); }}
             >
               Board
             </button>
           </div>
+
 
           <input
             className={styles.idSearch}
@@ -792,8 +806,46 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
           </label>
         </div>
 
-        {/* Toolbar - Row 2: Domain, Crew & Assignee Filters */}
-        <div className={styles.toolbarRow2}>
+        {/* Toolbar - Row 2: List view actions or Board view filters */}
+        {viewMode === 'list' && !showDraftsOnly && (
+          <div className={styles.toolbarRow2}>
+            <button
+              className={`${styles.selectToggleBtn} ${exportMode ? styles.selectActive : ''}`}
+              onClick={() => {
+                setExportMode(!exportMode);
+                if (exportMode) setSelectedExports(new Set());
+              }}
+            >
+              {exportMode ? '✓ Selecting' : 'Select'}
+            </button>
+            <button
+              className={`${styles.selectToggleBtn} ${filterAttention ? styles.selectActive : ''}`}
+              disabled={attentionLoading}
+              onClick={async () => {
+                if (filterAttention) {
+                  setFilterAttention(false);
+                  setAttentionTaskIds(null);
+                } else if (notificationsState.identity) {
+                  setAttentionLoading(true);
+                  try {
+                    const ids = await taskService.getNeedsAttention(notificationsState.identity);
+                    setAttentionTaskIds(new Set(ids));
+                    setFilterAttention(true);
+                  } finally {
+                    setAttentionLoading(false);
+                  }
+                }
+              }}
+              title="Tasks where you were mentioned in the last comment and haven't replied"
+            >
+              {attentionLoading ? '⏳ Loading...' : filterAttention && attentionTaskIds ? `🔔 Attention (${attentionTaskIds.size})` : '🔔 Needs my attention'}
+            </button>
+            {filterAttention && attentionTaskIds && attentionTaskIds.size > 0 && boardTasks.filter(t => attentionTaskIds.has(t.id)).length === 0 && (
+              <span className={styles.attentionHint}>All in completed tasks</span>
+            )}
+          </div>
+        )}
+        {viewMode === 'board' && <div className={styles.toolbarRow2}>
           <select
             className={styles.domainFilter}
             value={filterDomain}
@@ -900,7 +952,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
             <option value="bug">Bug</option>
             <option value="idea">Idea</option>
           </select>
-        </div>
+        </div>}
 
         {/* Bulk Fire Drafts Toolbar */}
         {showDraftsOnly && filteredTasks.length > 0 && (
@@ -935,36 +987,13 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
           </div>
         )}
 
-        {/* Export Bulk Action Bar */}
-        {viewMode === 'list' && !showDraftsOnly && boardTasks.length > 0 && (
+        {/* Export Action Bar — only when items are selected */}
+        {viewMode === 'list' && exportMode && selectedExports.size > 0 && (
           <div className={styles.exportActions}>
-            <div className={styles.bulkInfo}>
-              <label className={styles.exportSelectAllLabel}>
-                <input
-                  type="checkbox"
-                  checked={selectedExports.size === boardTasks.length && boardTasks.length > 0}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      handleSelectAllExports();
-                    } else {
-                      handleDeselectAllExports();
-                    }
-                  }}
-                />
-                Select All ({boardTasks.length})
-              </label>
-              {selectedExports.size > 0 && (
-                <span className={styles.exportSelectedCount}>{selectedExports.size} selected</span>
-              )}
-            </div>
-            {selectedExports.size > 0 && (
-              <button
-                className={styles.exportBtn}
-                onClick={handleExportTasks}
-              >
-                {exportCopied ? 'Copied!' : `Copy ${selectedExports.size} Task${selectedExports.size > 1 ? 's' : ''} for Claude Code`}
-              </button>
-            )}
+            <span className={styles.exportSelectedCount}>{selectedExports.size} selected</span>
+            <button className={styles.exportBtn} onClick={handleExportTasks}>
+              {exportCopied ? 'Copied!' : `Copy ${selectedExports.size} for Claude Code`}
+            </button>
           </div>
         )}
 
@@ -979,14 +1008,14 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                   <TaskBoard tasks={boardTasks} allTasks={tasks} crewDisplayNames={crewDisplayNames} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} onAtRiskToggle={handleAtRiskToggle} onMarkComplete={handleMarkComplete} />
                 ) : (
                   <TaskList
-                    tasks={boardTasks}
+                    tasks={filterAttention && attentionTaskIds ? boardTasks.filter(t => attentionTaskIds.has(t.id)) : boardTasks}
                     crewDisplayNames={crewDisplayNames}
                     onTaskClick={handleTaskClick}
                     onDeleteTask={handleDeleteTask}
                     showDraftCheckboxes={showDraftsOnly}
                     selectedDrafts={selectedDrafts}
                     onToggleDraftSelection={handleToggleDraftSelection}
-                    showExportCheckboxes={!showDraftsOnly}
+                    showExportCheckboxes={exportMode && !showDraftsOnly}
                     selectedExports={selectedExports}
                     onToggleExportSelection={handleToggleExportSelection}
                   />
@@ -1043,6 +1072,11 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                 initialType={presetGoalMode ? (presetType || 'goal') : undefined}
                 onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
                 onAutoSave={editingTask ? handleAutoSave : undefined}
+                onMarkRead={editingTask?.type === 'read' ? async () => {
+                  await taskService.updateTask(editingTask.id, { status: 'done', isCompleted: true });
+                  setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, status: 'done' as const, isCompleted: true } : t));
+                  handleCloseForm();
+                } : undefined}
                 onCancel={handleCloseForm}
                 onDelete={editingTask ? () => handleDeleteTask(editingTask) : undefined}
               />

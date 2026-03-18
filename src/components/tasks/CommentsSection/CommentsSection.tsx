@@ -66,6 +66,16 @@ export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsS
     }
   };
 
+  const handleLike = async (commentId: number) => {
+    if (!identity) return;
+    try {
+      const updated = await commentsService.toggleLike(commentId, identity);
+      setComments(prev => prev.map(c => c.id === updated.id ? updated : c));
+    } catch (err) {
+      console.error('Failed to toggle like:', err);
+    }
+  };
+
   // Load (or reload) comments when task opens or refreshTrigger increments
   useEffect(() => {
     // Show spinner only when switching to a different task (no existing comments)
@@ -211,6 +221,16 @@ export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsS
                 onClick={handleCommentContentClick}
               />
             </div>
+            {identity && (
+              <button
+                className={`${styles.likeBtn} ${c.likedBy?.includes(identity) ? styles.liked : ''}`}
+                onClick={() => handleLike(c.id)}
+                title={c.likedBy?.length ? `Liked by ${c.likedBy.join(', ')}` : 'Like'}
+              >
+                {c.likedBy?.includes(identity) ? '❤️' : '🤍'}
+                {c.likedBy && c.likedBy.length > 0 && <span className={styles.likeCount}>{c.likedBy.length}</span>}
+              </button>
+            )}
           </div>
         ))}
         <div ref={bottomRef} />

@@ -39,6 +39,7 @@ interface TaskFormProps {
   initialType?: TaskType; // Pre-fill type when creating (e.g., 'goal' from Goals sidebar)
   onSubmit: (data: CreateTaskData) => void;
   onAutoSave?: (data: CreateTaskData) => Promise<void>;
+  onMarkRead?: () => void;
   onCancel: () => void;
   onDelete?: () => void;
 }
@@ -83,7 +84,7 @@ function containsHebrew(text: string): boolean {
   return /[\u0590-\u05FF]/.test(text);
 }
 
-export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, onSubmit, onAutoSave, onCancel, onDelete }: TaskFormProps) {
+export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, onSubmit, onAutoSave, onMarkRead, onCancel, onDelete }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [description, setDescription] = useState('');
@@ -286,6 +287,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   }, [task, initialType]);
 
   const isGoal = type === 'goal' || type === 'agenda';
+  const isRead = type === 'read';
 
   // Track user edits — skip the first render after task initialization to avoid false positives
   useEffect(() => {
@@ -414,6 +416,34 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       });
     }
   };
+
+  // Read-only view for "read" type tasks
+  if (isRead && task) {
+    return (
+      <div className={styles.form}>
+        <div className={styles.header}>
+          <h3>
+            📖 {task.title}
+            <span className={styles.taskId}>#{task.id}</span>
+          </h3>
+          <button type="button" className={styles.closeBtn} onClick={onCancel}>×</button>
+        </div>
+        {task.description && (
+          <div className={styles.readContent} dangerouslySetInnerHTML={{ __html: task.description }} />
+        )}
+        <div className={styles.actions}>
+          <div className={styles.rightActions}>
+            <button type="button" className={styles.cancelBtn} onClick={onCancel}>Close</button>
+            {!task.isCompleted && onMarkRead && (
+              <button type="button" className={styles.submitBtn} onClick={onMarkRead}>
+                ✓ Mark as Read
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

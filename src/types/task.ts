@@ -1,6 +1,6 @@
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'critical';
-export type TaskType = 'task' | 'bug' | 'feature' | 'idea' | 'goal' | 'agenda';
+export type TaskType = 'task' | 'bug' | 'feature' | 'idea' | 'goal' | 'agenda' | 'read';
 
 export interface Assignee {
   id: number;
@@ -82,6 +82,7 @@ export interface TaskComment {
   taskId: number;
   author: string;
   content: string;
+  likedBy?: string[];
   createdAt: string;
   updatedAt: string;
 }

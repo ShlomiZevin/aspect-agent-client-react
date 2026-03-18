@@ -261,6 +261,11 @@
   color: #6366f1;
 }
 
+.type.read {
+  background: rgba(234, 179, 8, 0.1);
+  color: #ca8a04;
+}
+
 .priority {
   font-size: 10px;
   font-weight: 600;

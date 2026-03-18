@@ -33,3 +33,10 @@ export async function addComment(taskId: number, author: string, content: string
 export async function deleteComment(taskId: number, commentId: number): Promise<void> {
   await apiRequest(`/api/tasks/${taskId}/comments/${commentId}`, { method: 'DELETE' });
 }
+
+export async function toggleLike(commentId: number, identity: string): Promise<TaskComment> {
+  return apiRequest<TaskComment>(`/api/comments/${commentId}/like`, {
+    method: 'POST',
+    body: JSON.stringify({ identity }),
+  });
+}

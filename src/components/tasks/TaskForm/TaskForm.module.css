@@ -35,6 +35,38 @@
   border-radius: 0;
 }
 
+/* Read-only content for "read" type tasks */
+.readContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.readContent h3 {
+  font-size: var(--font-size-base);
+  margin: var(--spacing-md) 0 var(--spacing-sm);
+}
+
+.readContent ul, .readContent ol {
+  padding-left: var(--spacing-lg);
+  margin: var(--spacing-sm) 0;
+}
+
+.readContent li {
+  margin-bottom: var(--spacing-xs);
+}
+
+.readContent p {
+  margin: var(--spacing-sm) 0;
+}
+
+.readContent strong, .readContent b {
+  font-weight: 600;
+}
+
 .formBody {
   flex: 1;
   overflow-y: auto;
