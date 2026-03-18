@@ -7,6 +7,8 @@ export type BoardEvent =
   | { type: 'task_updated'; task: Task }
   | { type: 'comment_added'; taskId: number; comment: TaskComment };
 
+const RECONNECT_DELAY_MS = 3_000;
+
 export function useBoardStream(enabled: boolean, onEvent: (event: BoardEvent) => void): void {
   // Keep ref to latest callback so the effect never needs to re-subscribe
   const onEventRef = useRef(onEvent);
@@ -15,16 +17,37 @@ export function useBoardStream(enabled: boolean, onEvent: (event: BoardEvent) =>
   useEffect(() => {
     if (!enabled) return;
 
-    const es = new EventSource(`${API_BASE}/api/board/stream`);
+    let es: EventSource | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let stopped = false;
 
-    es.onmessage = (e) => {
-      try {
-        onEventRef.current(JSON.parse(e.data) as BoardEvent);
-      } catch {
-        // ignore malformed events
-      }
+    const connect = () => {
+      if (stopped) return;
+      es = new EventSource(`${API_BASE}/api/board/stream`);
+
+      es.onmessage = (e) => {
+        try {
+          onEventRef.current(JSON.parse(e.data) as BoardEvent);
+        } catch {
+          // ignore malformed events
+        }
+      };
+
+      es.onerror = () => {
+        es?.close();
+        es = null;
+        if (!stopped) {
+          reconnectTimer = setTimeout(connect, RECONNECT_DELAY_MS);
+        }
+      };
     };
 
-    return () => es.close();
+    connect();
+
+    return () => {
+      stopped = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      es?.close();
+    };
   }, [enabled]);
 }
