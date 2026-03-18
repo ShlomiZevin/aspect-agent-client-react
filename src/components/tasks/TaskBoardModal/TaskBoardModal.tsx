@@ -491,14 +491,6 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     });
   };
 
-  const handleSelectAllExports = () => {
-    setSelectedExports(new Set(boardTasks.map(t => t.id)));
-  };
-
-  const handleDeselectAllExports = () => {
-    setSelectedExports(new Set());
-  };
-
   const stripHtml = (html: string): string => {
     const div = document.createElement('div');
     div.innerHTML = html;
@@ -1073,8 +1065,11 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                 onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
                 onAutoSave={editingTask ? handleAutoSave : undefined}
                 onMarkRead={editingTask?.type === 'read' ? async () => {
-                  await taskService.updateTask(editingTask.id, { status: 'done', isCompleted: true });
-                  setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, status: 'done' as const, isCompleted: true } : t));
+                  const isRead = editingTask.isCompleted;
+                  const newStatus = isRead ? 'todo' : 'done';
+                  const newCompleted = !isRead;
+                  await taskService.updateTask(editingTask.id, { status: newStatus, isCompleted: newCompleted });
+                  setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, status: newStatus as Task['status'], isCompleted: newCompleted } : t));
                   handleCloseForm();
                 } : undefined}
                 onCancel={handleCloseForm}

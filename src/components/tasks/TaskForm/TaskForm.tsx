@@ -434,10 +434,16 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
         <div className={styles.actions}>
           <div className={styles.rightActions}>
             <button type="button" className={styles.cancelBtn} onClick={onCancel}>Close</button>
-            {!task.isCompleted && onMarkRead && (
-              <button type="button" className={styles.submitBtn} onClick={onMarkRead}>
-                ✓ Mark as Read
-              </button>
+            {onMarkRead && (
+              task.isCompleted ? (
+                <button type="button" className={styles.cancelBtn} onClick={onMarkRead}>
+                  Mark as Unread
+                </button>
+              ) : (
+                <button type="button" className={styles.submitBtn} onClick={onMarkRead}>
+                  ✓ Mark as Read
+                </button>
+              )
             )}
           </div>
         </div>
