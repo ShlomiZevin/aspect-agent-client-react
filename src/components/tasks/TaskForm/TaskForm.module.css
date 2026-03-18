@@ -36,6 +36,13 @@
 }
 
 /* Read-only content for "read" type tasks */
+.readAssignee {
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  color: var(--primary-color);
+  margin-left: 6px;
+}
+
 .readContent {
   flex: 1;
   overflow-y: auto;

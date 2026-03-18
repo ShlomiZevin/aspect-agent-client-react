@@ -425,6 +425,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
           <h3>
             📖 {task.title}
             <span className={styles.taskId}>#{task.id}</span>
+            {task.assignee && <span className={styles.readAssignee}>for {task.assignee}</span>}
           </h3>
           <button type="button" className={styles.closeBtn} onClick={onCancel}>×</button>
         </div>
