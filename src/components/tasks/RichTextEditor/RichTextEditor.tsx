@@ -428,7 +428,7 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
           if (block && block.parentNode === editorRef.current) {
             const plainDiv = document.createElement('div');
             plainDiv.innerHTML = '<br>';
-            block.parentNode.replaceChild(plainDiv, block);
+            block.parentNode?.replaceChild(plainDiv, block);
             const newRange = document.createRange();
             newRange.selectNodeContents(plainDiv);
             newRange.collapse(true);
@@ -455,7 +455,7 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
             block = block.parentNode;
           }
           if (block && block.parentNode === editorRef.current) {
-            block.parentNode.insertBefore(div, block.nextSibling);
+            block.parentNode!.insertBefore(div, block.nextSibling);
           } else {
             editorRef.current?.appendChild(div);
           }

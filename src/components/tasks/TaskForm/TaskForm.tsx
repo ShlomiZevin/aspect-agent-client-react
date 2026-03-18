@@ -615,7 +615,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
               )}
 
               <div className={styles.dependsOnRow} ref={dependsOnRef}>
-                <label htmlFor="dependsOn">{type === 'test' ? 'Tests Task' : 'Linked Task'}</label>
+                <label htmlFor="dependsOn">Linked Task</label>
                 <div className={styles.dependsOnField}>
                   {dependsOn ? (
                     <div className={styles.selectedDependency}>
