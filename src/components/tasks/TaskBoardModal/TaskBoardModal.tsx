@@ -12,7 +12,7 @@ import { AssigneeManager } from '../AssigneeManager/AssigneeManager';
 import { GoalsSection } from '../GoalsSection/GoalsSection';
 import { NotificationBell } from '../NotificationBell/NotificationBell';
 import { useNotifications } from '../../../hooks/useNotifications';
-import { getUserId, getDraftDefault, setDraftDefault } from '../../../utils/userIdentifier';
+import { getUserId } from '../../../utils/userIdentifier';
 import styles from './TaskBoardModal.module.css';
 
 interface TaskBoardModalProps {
@@ -72,7 +72,6 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const [exportCopied, setExportCopied] = useState(false);
   const [idSearch, setIdSearch] = useState('');
   const [titleSearch, setTitleSearch] = useState('');
-  const [draftByDefault, setDraftByDefault] = useState(() => getDraftDefault());
   const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
   const [filterCrewMember, setFilterCrewMember] = useState<string | null>(null);
   const [filterOpener, setFilterOpener] = useState<string | null>(null);
