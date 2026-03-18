@@ -872,6 +872,14 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                 />
                 ⚠ Risk
               </label>
+              <label className={`${styles.toggleChip} ${assignee === 'Limbo' ? styles.limboActive : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={assignee === 'Limbo'}
+                  onChange={(e) => setAssignee(e.target.checked ? 'Limbo' : '')}
+                />
+                💀 Limbo
+              </label>
               {status === 'done' && (
                 <label className={`${styles.toggleChip} ${isCompleted ? styles.completedActive : ''}`}>
                   <input

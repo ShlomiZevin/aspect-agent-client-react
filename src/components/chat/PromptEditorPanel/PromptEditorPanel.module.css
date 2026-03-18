@@ -402,11 +402,17 @@
   background: var(--primary-hover);
 }
 
-/* Save Version Modal (inline name input) */
+/* Save Version Modal (inline name + description input) */
 .saveVersionModal {
   display: flex;
+  flex-direction: column;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-sm);
+}
+
+.saveVersionActions {
+  display: flex;
+  gap: var(--spacing-sm);
   align-items: center;
 }
 

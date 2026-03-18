@@ -147,6 +147,7 @@ export function PromptEditorPanel({
   // Save version modal state
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveVersionName, setSaveVersionName] = useState('');
+  const [saveVersionDescription, setSaveVersionDescription] = useState('');
   const [isSavingVersion, setIsSavingVersion] = useState(false);
 
   // Collapsible section states
@@ -436,6 +437,7 @@ export function PromptEditorPanel({
       const payload: SaveVersionPayload = {
         prompt: editedPrompt,
         name: name.trim() || undefined,
+        description: saveVersionDescription.trim() || undefined,
         transitionSystemPrompt: editedTransitionPrompt || undefined,
         model: modelOverrides[selectedCrewId] || undefined,
         provider: providerOverrides[selectedCrewId] || undefined,
@@ -458,6 +460,7 @@ export function PromptEditorPanel({
       lastLoadedVersionRef.current = null;
       setShowSaveModal(false);
       setSaveVersionName('');
+      setSaveVersionDescription('');
       setStatus({ type: 'success', message: `Saved as version "${name.trim() || 'unnamed'}"` });
     } catch {
       setStatus({ type: 'error', message: 'Failed to save version' });
@@ -474,6 +477,7 @@ export function PromptEditorPanel({
       const payload: SaveVersionPayload = {
         prompt: editedPrompt,
         name: selectedVersion.name || undefined,
+        description: selectedVersion.description || undefined,
         transitionSystemPrompt: editedTransitionPrompt || undefined,
         model: modelOverrides[selectedCrewId] || undefined,
         provider: providerOverrides[selectedCrewId] || undefined,
@@ -687,6 +691,11 @@ export function PromptEditorPanel({
                     </option>
                   ))}
                 </select>
+                {selectedVersion?.description && (
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '2px 0' }}>
+                    {selectedVersion.description}
+                  </div>
+                )}
                 {selectedVersion && (
                   <div style={{ display: 'flex', gap: '6px' }}>
                     {!selectedVersion.isActive && (
@@ -725,24 +734,34 @@ export function PromptEditorPanel({
                       onChange={e => setSaveVersionName(e.target.value)}
                       onKeyDown={e => {
                         if (e.key === 'Enter') handleSaveVersion(saveVersionName);
-                        if (e.key === 'Escape') { setShowSaveModal(false); setSaveVersionName(''); }
+                        if (e.key === 'Escape') { setShowSaveModal(false); setSaveVersionName(''); setSaveVersionDescription(''); }
                       }}
                       autoFocus
                     />
-                    <button
-                      className={`${styles.actionButton} ${styles.saveVersionConfirmBtn}`}
-                      onClick={() => handleSaveVersion(saveVersionName)}
-                      disabled={isSavingVersion || !editedPrompt.trim()}
-                    >
-                      {isSavingVersion ? 'Saving...' : 'Save'}
-                    </button>
-                    <button
-                      className={styles.actionButton}
-                      onClick={() => { setShowSaveModal(false); setSaveVersionName(''); }}
-                      type="button"
-                    >
-                      Cancel
-                    </button>
+                    <textarea
+                      className={styles.saveVersionInput}
+                      placeholder="What changed? (optional)"
+                      value={saveVersionDescription}
+                      onChange={e => setSaveVersionDescription(e.target.value)}
+                      rows={2}
+                      style={{ resize: 'vertical' }}
+                    />
+                    <div className={styles.saveVersionActions}>
+                      <button
+                        className={`${styles.actionButton} ${styles.saveVersionConfirmBtn}`}
+                        onClick={() => handleSaveVersion(saveVersionName)}
+                        disabled={isSavingVersion || !editedPrompt.trim()}
+                      >
+                        {isSavingVersion ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        className={styles.actionButton}
+                        onClick={() => { setShowSaveModal(false); setSaveVersionName(''); setSaveVersionDescription(''); }}
+                        type="button"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', gap: '6px' }}>

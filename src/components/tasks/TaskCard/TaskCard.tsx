@@ -128,7 +128,8 @@ function getAssigneeColor(assignee: string): string {
 
 export function TaskCard({ task, dependencyInfo, crewDisplayNames, onClick, onAtRiskToggle, onMarkComplete }: TaskCardProps) {
   const isOrphan = !task.assignee;
-  const assigneeColor = task.assignee ? getAssigneeColor(task.assignee) : undefined;
+  const isLimbo = task.assignee === 'Limbo';
+  const assigneeColor = task.assignee && !isLimbo ? getAssigneeColor(task.assignee) : undefined;
 
   const handleAtRiskClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -147,7 +148,7 @@ export function TaskCard({ task, dependencyInfo, crewDisplayNames, onClick, onAt
 
   return (
     <div
-      className={`${styles.card} ${task.atRisk ? styles.atRisk : ''} ${task.isCompleted ? styles.completed : ''} ${isOrphan ? styles.orphan : styles.assigned} ${task.isDraft ? styles.draft : ''}`}
+      className={`${styles.card} ${task.atRisk ? styles.atRisk : ''} ${task.isCompleted ? styles.completed : ''} ${isLimbo ? styles.limbo : isOrphan ? styles.orphan : styles.assigned} ${task.isDraft ? styles.draft : ''}`}
       style={cardStyle}
       onClick={onClick}
     >

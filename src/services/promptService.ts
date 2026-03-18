@@ -61,6 +61,7 @@ export async function getActivePrompt(
 export interface SaveVersionPayload {
   prompt: string;
   name?: string;
+  description?: string;
   transitionSystemPrompt?: string;
   model?: string;
   provider?: string;

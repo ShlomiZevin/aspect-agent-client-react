@@ -11,6 +11,7 @@ export interface PromptVersion {
   id: string;
   version: number;
   name?: string;  // Version name/tag (e.g., "Added empathy guidelines")
+  description?: string;  // Free-text note about what changed in this version
   prompt: string;
   transitionSystemPrompt?: string;  // System prompt injected once when transitioning to this crew
   model?: string;          // Saved LLM model override

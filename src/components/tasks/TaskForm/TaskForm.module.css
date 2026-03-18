@@ -394,6 +394,12 @@
   color: #10b981;
 }
 
+.toggleChip.limboActive {
+  background: rgba(100, 116, 139, 0.1);
+  border-color: rgba(100, 116, 139, 0.3);
+  color: #64748b;
+}
+
 .toggleChip.draftActive {
   background: rgba(168, 85, 247, 0.1);
   border-color: rgba(168, 85, 247, 0.3);

@@ -66,6 +66,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const [showCompleted, setShowCompleted] = useState(false);
   const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
   const [showDraftsOnly, setShowDraftsOnly] = useState(false);
+  const [showLimbo, setShowLimbo] = useState(false);
   const [selectedDrafts, setSelectedDrafts] = useState<Set<number>>(new Set());
   const [selectedExports, setSelectedExports] = useState<Set<number>>(new Set());
   const [exportCopied, setExportCopied] = useState(false);
@@ -164,6 +165,13 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
       result = result.filter(t => !t.isCompleted);
     }
 
+    // Limbo filter: off = hide Limbo, on = show ONLY Limbo
+    if (showLimbo) {
+      result = result.filter(t => t.assignee === 'Limbo');
+    } else {
+      result = result.filter(t => t.assignee !== 'Limbo');
+    }
+
     // Filter by unassigned only
     if (showUnassignedOnly) {
       result = result.filter(t => !t.assignee);
@@ -210,7 +218,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     if (filterDomain === 'general') return result.filter(t => t.domain === 'general');
     if (filterDomain === 'current') return result.filter(t => t.domain === currentDomain || t.domain === 'general');
     return result.filter(t => t.domain === filterDomain);
-  }, [tasks, filterDomain, filterAssignee, filterCrewMember, filterOpener, filterPriority, filterType, currentDomain, showCompleted, showAllDomains, showUnassignedOnly, showDraftsOnly, currentUserId]);
+  }, [tasks, filterDomain, filterAssignee, filterCrewMember, filterOpener, filterPriority, filterType, currentDomain, showCompleted, showLimbo, showAllDomains, showUnassignedOnly, showDraftsOnly, currentUserId]);
 
   // Split goals and agenda from board tasks — they go to sidebar, rest to kanban/list
   // The goalsMeta sentinel stores the meeting date and is excluded from display
@@ -785,14 +793,25 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
             onClick={(e) => e.stopPropagation()}
           />
 
-          <input
-            className={styles.titleSearch}
-            type="text"
-            placeholder="Search..."
-            value={titleSearch}
-            onChange={(e) => setTitleSearch(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-          />
+          <div style={{ position: 'relative', display: 'inline-flex' }}>
+            <input
+              className={`${styles.titleSearch} ${titleSearch.trim() ? styles.titleSearchActive : ''}`}
+              type="text"
+              placeholder="Search..."
+              value={titleSearch}
+              onChange={(e) => setTitleSearch(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+            {titleSearch.trim() && (
+              <button
+                className={styles.titleSearchClear}
+                onClick={() => setTitleSearch('')}
+                title="Clear search"
+              >
+                ×
+              </button>
+            )}
+          </div>
 
           <button
             className={`${styles.draftsBtn} ${showDraftsOnly ? styles.active : ''}`}
@@ -835,6 +854,14 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
               onChange={(e) => setShowCompleted(e.target.checked)}
             />
             Show Completed
+          </label>
+          <label className={styles.showCompletedLabel}>
+            <input
+              type="checkbox"
+              checked={showLimbo}
+              onChange={(e) => setShowLimbo(e.target.checked)}
+            />
+            💀 Limbo
           </label>
         </div>
 
