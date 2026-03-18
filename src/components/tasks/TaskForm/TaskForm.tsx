@@ -782,7 +782,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
             </button>
             <button
               type="submit"
-              className={`${styles.submitBtn} ${task && !isDirty && saveStatus === 'idle' ? styles.submitBtnClean : ''}`}
+              className={styles.submitBtn}
               disabled={saveStatus === 'saving'}
             >
               {task
