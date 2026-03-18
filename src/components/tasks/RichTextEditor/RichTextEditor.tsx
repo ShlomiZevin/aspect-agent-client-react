@@ -18,6 +18,7 @@ interface ActiveFormats {
   list: boolean;
   code: boolean;
   heading: boolean;
+  checklist: boolean;
 }
 
 function avatarColor(name: string): string {
@@ -36,6 +37,7 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
     list: false,
     code: false,
     heading: false,
+    checklist: false,
   });
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [mentionAnchor, setMentionAnchor] = useState<{ query: string; bottom: number; left: number } | null>(null);
@@ -69,6 +71,18 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
     return false;
   }, []);
 
+  // Check if cursor is inside a checklist label
+  const isInChecklist = useCallback(() => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return false;
+    let node: Node | null = selection.anchorNode;
+    while (node && node !== editorRef.current) {
+      if ((node as HTMLElement).classList?.contains('checklist-item')) return true;
+      node = node.parentNode;
+    }
+    return false;
+  }, []);
+
   // Check which formats are active at current selection
   const updateActiveFormats = useCallback(() => {
     setActiveFormats({
@@ -77,8 +91,9 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
       list: document.queryCommandState('insertUnorderedList'),
       code: isInElement('CODE'),
       heading: isInHeading(),
+      checklist: isInChecklist(),
     });
-  }, [isInElement, isInHeading]);
+  }, [isInElement, isInHeading, isInChecklist]);
 
   // Set initial value and sync external changes (but not our own changes)
   useEffect(() => {
@@ -212,6 +227,79 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
     }
   };
 
+  // Toggle checklist: wraps current line in a label with checkbox
+  const toggleChecklist = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    // Check if already in a checklist label
+    let checklistParent: HTMLElement | null = null;
+    let node: Node | null = selection.anchorNode;
+    while (node && node !== editorRef.current) {
+      if ((node as HTMLElement).classList?.contains?.('checklist-item')) {
+        checklistParent = node as HTMLElement;
+        break;
+      }
+      node = node.parentNode;
+    }
+
+    if (checklistParent) {
+      // Remove checklist — extract text, remove the label
+      const text = checklistParent.textContent || '';
+      const textNode = document.createTextNode(text);
+      checklistParent.parentNode?.replaceChild(textNode, checklistParent);
+    } else {
+      // Create checklist item at current line
+      const range = selection.getRangeAt(0);
+
+      // Find the current block element (div, p, or li)
+      let block: Node | null = selection.anchorNode;
+      while (block && block !== editorRef.current && block.parentNode !== editorRef.current) {
+        block = block.parentNode;
+      }
+
+      const label = document.createElement('div');
+      label.className = 'checklist-item';
+      label.style.cssText = 'display:flex;align-items:flex-start;gap:6px;padding:2px 0;';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.style.cssText = 'margin-top:3px;cursor:pointer;accent-color:#2563eb;flex-shrink:0;';
+      const span = document.createElement('span');
+
+      label.appendChild(checkbox);
+      label.appendChild(span);
+
+      if (block && block !== editorRef.current && block.parentNode === editorRef.current) {
+        // Wrap existing block content
+        span.innerHTML = (block as HTMLElement).innerHTML || block.textContent || '';
+        if (!span.innerHTML.trim()) span.innerHTML = '<br>';
+        (block as HTMLElement).innerHTML = '';
+        block.appendChild(label);
+      } else {
+        // Insert at cursor
+        const text = range.toString() || '';
+        span.textContent = text || '';
+        if (!span.innerHTML.trim()) span.innerHTML = '<br>';
+        range.deleteContents();
+        const div = document.createElement('div');
+        div.appendChild(label);
+        range.insertNode(div);
+      }
+
+      // Place cursor inside the span
+      const newRange = document.createRange();
+      newRange.selectNodeContents(span);
+      newRange.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(newRange);
+    }
+
+    if (editorRef.current) {
+      isInternalChange.current = true;
+      onChange(editorRef.current.innerHTML);
+    }
+  };
+
   const handleFormat = (format: string) => {
     switch (format) {
       case 'bold':
@@ -228,6 +316,9 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
         break;
       case 'code':
         toggleInlineElement('CODE');
+        break;
+      case 'checklist':
+        toggleChecklist();
         break;
     }
     // Keep focus on editor and update active formats
@@ -310,6 +401,79 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
   };
 
   const handleContentKeyDown = (e: React.KeyboardEvent) => {
+    // Handle Enter inside checklist — create new checklist line or exit on empty
+    if (e.key === 'Enter' && !e.shiftKey && isInChecklist()) {
+      e.preventDefault();
+
+      // Check if current checklist item text is empty — if so, exit checklist mode
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        let checklistItem: HTMLElement | null = null;
+        let node: Node | null = selection.anchorNode;
+        while (node && node !== editorRef.current) {
+          if ((node as HTMLElement).classList?.contains?.('checklist-item')) {
+            checklistItem = node as HTMLElement;
+            break;
+          }
+          node = node.parentNode;
+        }
+
+        const itemText = checklistItem?.querySelector('span')?.textContent?.trim() || '';
+        if (!itemText) {
+          // Empty line — exit checklist, replace with plain div
+          let block: Node | null = checklistItem;
+          while (block && block.parentNode !== editorRef.current) {
+            block = block.parentNode;
+          }
+          if (block && block.parentNode === editorRef.current) {
+            const plainDiv = document.createElement('div');
+            plainDiv.innerHTML = '<br>';
+            block.parentNode.replaceChild(plainDiv, block);
+            const newRange = document.createRange();
+            newRange.selectNodeContents(plainDiv);
+            newRange.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+          }
+        } else {
+          // Non-empty — create new checklist item
+          const div = document.createElement('div');
+          const label = document.createElement('div');
+          label.className = 'checklist-item';
+          label.style.cssText = 'display:flex;align-items:flex-start;gap:6px;padding:2px 0;';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.style.cssText = 'margin-top:3px;cursor:pointer;accent-color:#2563eb;flex-shrink:0;';
+          const span = document.createElement('span');
+          span.innerHTML = '<br>';
+          label.appendChild(checkbox);
+          label.appendChild(span);
+          div.appendChild(label);
+
+          let block: Node | null = selection.anchorNode;
+          while (block && block.parentNode !== editorRef.current) {
+            block = block.parentNode;
+          }
+          if (block && block.parentNode === editorRef.current) {
+            block.parentNode.insertBefore(div, block.nextSibling);
+          } else {
+            editorRef.current?.appendChild(div);
+          }
+          const newRange = document.createRange();
+          newRange.selectNodeContents(span);
+          newRange.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(newRange);
+        }
+      }
+
+      if (editorRef.current) {
+        isInternalChange.current = true;
+        onChange(editorRef.current.innerHTML);
+      }
+      return;
+    }
+
     if (!mentionAnchor || filteredMentions.length === 0) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -330,6 +494,24 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
   // Handle clicks on links and images
   const handleClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
+
+    // Handle checkbox clicks inside checklist items
+    if (target.tagName === 'INPUT' && (target as HTMLInputElement).type === 'checkbox') {
+      // Sync the checked attribute so innerHTML captures the state
+      setTimeout(() => {
+        const cb = target as HTMLInputElement;
+        if (cb.checked) {
+          cb.setAttribute('checked', '');
+        } else {
+          cb.removeAttribute('checked');
+        }
+        if (editorRef.current) {
+          isInternalChange.current = true;
+          onChange(editorRef.current.innerHTML);
+        }
+      }, 0);
+      return;
+    }
 
     // Check if clicked on an image - open lightbox
     if (target.tagName === 'IMG') {
@@ -459,6 +641,14 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
             title="Bullet List"
           >
             &bull;
+          </button>
+          <button
+            type="button"
+            className={`${styles.toolbarBtn} ${activeFormats.checklist ? styles.active : ''}`}
+            onClick={() => handleFormat('checklist')}
+            title="Checklist"
+          >
+            ☑
           </button>
           <button
             type="button"

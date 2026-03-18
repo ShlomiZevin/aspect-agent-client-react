@@ -62,6 +62,7 @@ const TYPE_OPTIONS: { value: TaskType; label: string }[] = [
   { value: 'feature', label: 'Feature' },
   { value: 'bug', label: 'Bug' },
   { value: 'idea', label: 'Idea' },
+  { value: 'test', label: 'Test' },
   { value: 'goal', label: 'Goal' },
 ];
 
@@ -143,10 +144,13 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
     return depTask?.title || '';
   }, [dependsOn, allTasks]);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (but not on the portal dropdown itself)
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dependsOnRef.current && !dependsOnRef.current.contains(e.target as Node)) {
+        // Check if click is on the autocomplete dropdown (rendered in portal)
+        const target = e.target as HTMLElement;
+        if (target.closest('[data-depends-dropdown]')) return;
         setShowDependsOnDropdown(false);
         setHighlightedIndex(-1);
       }
@@ -366,6 +370,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
     e.preventDefault();
     if (!title.trim()) return;
 
+
     // For goals, preserve internal tags (meetingDate, order) but skip user tags input
     let tags: string[];
     if (isGoal && task) {
@@ -546,7 +551,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
               )}
 
               <div className={styles.dependsOnRow} ref={dependsOnRef}>
-                <label htmlFor="dependsOn">Linked Task</label>
+                <label htmlFor="dependsOn">{type === 'test' ? 'Tests Task' : 'Linked Task'}</label>
                 <div className={styles.dependsOnField}>
                   {dependsOn ? (
                     <div className={styles.selectedDependency}>
@@ -584,6 +589,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                       {showDependsOnDropdown && dependsOnSuggestions.length > 0 && dropdownPos && createPortal(
                         <div
                           className={styles.autocompleteDropdown}
+                          data-depends-dropdown
                           style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
                         >
                           {dependsOnSuggestions.map((t, index) => (
@@ -707,7 +713,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
               </div>
 
               <div className={styles.dependsOnRow} ref={dependsOnRef}>
-                <label htmlFor="dependsOn">Depends On</label>
+                <label htmlFor="dependsOn">{type === 'test' ? 'Tests Task' : 'Depends On'}</label>
                 <div className={styles.dependsOnField}>
                   {dependsOn ? (
                     <div className={styles.selectedDependency}>
@@ -745,6 +751,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                       {showDependsOnDropdown && dependsOnSuggestions.length > 0 && dropdownPos && createPortal(
                         <div
                           className={styles.autocompleteDropdown}
+                          data-depends-dropdown
                           style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
                         >
                           {dependsOnSuggestions.map((t, index) => (

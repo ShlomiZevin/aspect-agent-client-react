@@ -98,6 +98,9 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Test task unchecked warning modal
+  const [testWarning, setTestWarning] = useState<{ taskId: number; uncheckedCount: number; source: 'status' | 'form' } | null>(null);
+
   // Get current user ID for draft filtering
   const currentUserId = useMemo(() => getUserId(), []);
 
@@ -401,6 +404,21 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   };
 
   const handleStatusChange = async (taskId: number, newStatus: TaskStatus) => {
+    // Warn if test task moved to done with unchecked checkboxes
+    if (newStatus === 'done') {
+      const task = tasks.find(t => t.id === taskId);
+      if (task?.type === 'test' && task.description) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = task.description;
+        const checkboxes = tempDiv.querySelectorAll('input[type="checkbox"]');
+        const unchecked = Array.from(checkboxes).filter(cb => !cb.hasAttribute('checked'));
+        if (unchecked.length > 0) {
+          setTestWarning({ taskId, uncheckedCount: unchecked.length, source: 'status' });
+          return;
+        }
+      }
+    }
+
     // Optimistic update
     setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, status: newStatus } : t)));
 
@@ -1064,7 +1082,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                 initialType={presetGoalMode ? (presetType || 'goal') : undefined}
                 onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
                 onAutoSave={editingTask ? handleAutoSave : undefined}
-                onMarkRead={editingTask?.type === 'read' ? async () => {
+                onMarkRead={(editingTask?.type === 'read' || editingTask?.type === 'test') ? async () => {
                   const isRead = editingTask.isCompleted;
                   const newStatus = isRead ? 'todo' : 'done';
                   const newCompleted = !isRead;
@@ -1118,6 +1136,51 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                   disabled={isDeleting}
                 >
                   {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Test task unchecked warning modal */}
+        {testWarning && (
+          <div className={styles.deleteOverlay} onClick={() => setTestWarning(null)}>
+            <div className={styles.deleteModal} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.deleteIcon} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </div>
+              <h3 className={styles.deleteTitle}>Unchecked test steps</h3>
+              <p className={styles.deleteText}>
+                {testWarning.uncheckedCount} test step{testWarning.uncheckedCount > 1 ? 's are' : ' is'} not checked. Move to Done anyway?
+              </p>
+              <div className={styles.deleteActions}>
+                <button
+                  type="button"
+                  className={styles.deleteCancelBtn}
+                  onClick={() => setTestWarning(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={styles.deleteConfirmBtn}
+                  style={{ background: '#f59e0b' }}
+                  onClick={async () => {
+                    const { taskId } = testWarning;
+                    setTestWarning(null);
+                    setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, status: 'done' as const } : t)));
+                    try {
+                      await taskService.updateTask(taskId, { status: 'done' });
+                    } catch {
+                      loadData();
+                    }
+                  }}
+                >
+                  Move to Done
                 </button>
               </div>
             </div>

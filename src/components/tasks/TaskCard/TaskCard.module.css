@@ -266,6 +266,11 @@
   color: #ca8a04;
 }
 
+.type.test {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
 .priority {
   font-size: 10px;
   font-weight: 600;

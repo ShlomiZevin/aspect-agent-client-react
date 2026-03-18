@@ -17,7 +17,7 @@ interface TaskListProps {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  task: 'Task', bug: 'Bug', feature: 'Feature', idea: 'Idea', read: 'Read',
+  task: 'Task', bug: 'Bug', feature: 'Feature', idea: 'Idea', read: 'Read', test: 'Test',
 };
 const STATUS_LABELS: Record<string, string> = {
   todo: 'Todo', in_progress: 'In Progress', done: 'Done',
