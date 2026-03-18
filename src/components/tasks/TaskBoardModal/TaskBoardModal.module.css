@@ -284,14 +284,13 @@
 }
 
 .domainFilter {
-  padding: var(--spacing-xs) var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--surface-light);
   border: 1px solid var(--border);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--text-primary);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  min-width: 120px;
 }
 
 .domainFilter:focus {
@@ -300,14 +299,13 @@
 }
 
 .crewFilter {
-  padding: var(--spacing-xs) var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--surface-light);
   border: 1px solid var(--border);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--text-primary);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  min-width: 100px;
 }
 
 .crewFilter:focus {
@@ -591,6 +589,38 @@
 }
 
 /* Select toggle button */
+.toggleGroup {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-left: auto;
+}
+
+/* Filter toggle buttons (Drafts, Completed, Limbo) */
+.filterToggleBtn {
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.filterToggleBtn:hover {
+  background: var(--surface);
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.filterToggleBtn.filterToggleActive {
+  background: var(--primary-light);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
 .selectToggleBtn {
   padding: var(--spacing-xs) var(--spacing-md);
   background: var(--surface-light);

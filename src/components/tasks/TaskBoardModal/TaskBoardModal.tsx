@@ -755,7 +755,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
         )}
 
         {!goalsFullScreen && <>
-        {/* Toolbar - Row 1: Main Controls */}
+        {/* Toolbar - Row 1: Actions + Search */}
         <div className={styles.toolbarRow1}>
           <button
             className={styles.addBtn}
@@ -782,17 +782,6 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
             </button>
           </div>
 
-
-          <input
-            className={styles.idSearch}
-            type="text"
-            placeholder="#ID"
-            value={idSearch}
-            onChange={(e) => setIdSearch(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleIdSearchSubmit(); }}
-            onClick={(e) => e.stopPropagation()}
-          />
-
           <div style={{ position: 'relative', display: 'inline-flex' }}>
             <input
               className={`${styles.titleSearch} ${titleSearch.trim() ? styles.titleSearchActive : ''}`}
@@ -813,205 +802,192 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
             )}
           </div>
 
-          <button
-            className={`${styles.draftsBtn} ${showDraftsOnly ? styles.active : ''}`}
-            onClick={() => {
-              setShowDraftsOnly(!showDraftsOnly);
-              setSelectedDrafts(new Set());
-              if (!showDraftsOnly) {
-                setShowUnassignedOnly(false);
-                setFilterAssignee(null);
-              }
-            }}
-            title="Show draft tasks (Ctrl+Shift+L)"
-          >
-            Drafts
-            {draftCount > 0 && (
-              <span className={styles.draftBadge}>{draftCount}</span>
-            )}
-          </button>
-
-          <label
-            className={styles.draftDefaultLabel}
-            title="When enabled, new tasks are created as drafts by default"
-          >
-            <input
-              type="checkbox"
-              checked={draftByDefault}
-              onChange={(e) => {
-                const newValue = e.target.checked;
-                setDraftByDefault(newValue);
-                setDraftDefault(newValue);
-              }}
-            />
-            Draft by default
-          </label>
-
-          <label className={styles.showCompletedLabel}>
-            <input
-              type="checkbox"
-              checked={showCompleted}
-              onChange={(e) => setShowCompleted(e.target.checked)}
-            />
-            Show Completed
-          </label>
-          <label className={styles.showCompletedLabel}>
-            <input
-              type="checkbox"
-              checked={showLimbo}
-              onChange={(e) => setShowLimbo(e.target.checked)}
-            />
-            💀 Limbo
-          </label>
+          <input
+            className={styles.idSearch}
+            type="text"
+            placeholder="#ID"
+            value={idSearch}
+            onChange={(e) => setIdSearch(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleIdSearchSubmit(); }}
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
 
-        {/* Toolbar - Row 2: List view actions or Board view filters */}
-        {viewMode === 'list' && !showDraftsOnly && (
-          <div className={styles.toolbarRow2}>
-            <button
-              className={`${styles.selectToggleBtn} ${exportMode ? styles.selectActive : ''}`}
-              onClick={() => {
-                setExportMode(!exportMode);
-                if (exportMode) setSelectedExports(new Set());
-              }}
-            >
-              {exportMode ? '✓ Selecting' : 'Select'}
-            </button>
-            <button
-              className={`${styles.selectToggleBtn} ${filterAttention ? styles.selectActive : ''}`}
-              disabled={attentionLoading}
-              onClick={async () => {
-                if (filterAttention) {
-                  setFilterAttention(false);
-                  setAttentionTaskIds(null);
-                } else if (notificationsState.identity) {
-                  setAttentionLoading(true);
-                  try {
-                    const ids = await taskService.getNeedsAttention(notificationsState.identity);
-                    setAttentionTaskIds(new Set(ids));
-                    setFilterAttention(true);
-                  } finally {
-                    setAttentionLoading(false);
+        {/* Toolbar - Row 2: Board filters + toggle buttons */}
+        <div className={styles.toolbarRow2}>
+          {viewMode === 'board' && (
+            <>
+              <select
+                className={styles.domainFilter}
+                value={filterDomain}
+                onChange={(e) => setFilterDomain(e.target.value)}
+              >
+                {showAllDomains ? (
+                  <>
+                    {KNOWN_DOMAINS.map(domain => (
+                      <option key={domain} value={domain}>
+                        {domain.charAt(0).toUpperCase() + domain.slice(1)}
+                      </option>
+                    ))}
+                  </>
+                ) : LYBI_DOMAINS.includes(currentDomain) ? (
+                  <>
+                    {LYBI_DOMAINS.map(domain => (
+                      <option key={domain} value={domain}>
+                        {domain.charAt(0).toUpperCase() + domain.slice(1)}
+                      </option>
+                    ))}
+                  </>
+                ) : (
+                  <option value="current">
+                    {currentDomain === 'general' ? 'General' : currentDomain.charAt(0).toUpperCase() + currentDomain.slice(1)}
+                  </option>
+                )}
+                <option value="general">General (Engine)</option>
+                <option value="all">All Domains</option>
+              </select>
+
+              {crewMembers.length > 0 && (
+                <select
+                  className={styles.crewFilter}
+                  value={filterCrewMember || ''}
+                  onChange={(e) => setFilterCrewMember(e.target.value || null)}
+                >
+                  <option value="">All Crews</option>
+                  {crewMembers.map(crew => (
+                    <option key={crew.name} value={crew.name}>
+                      {crew.displayName || crew.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              <AssigneeManager
+                assignees={assignees}
+                onAddAssignee={handleAddAssignee}
+                selectedAssignee={filterAssignee}
+                showUnassigned
+                unassignedCount={unassignedCount}
+                showUnassignedOnly={showUnassignedOnly}
+                onAssigneeClick={(assignee) => {
+                  setShowUnassignedOnly(false);
+                  setFilterAssignee(assignee);
+                }}
+                onUnassignedClick={() => {
+                  setShowUnassignedOnly(!showUnassignedOnly);
+                  if (!showUnassignedOnly) setFilterAssignee(null);
+                }}
+              />
+
+              <select
+                className={styles.crewFilter}
+                value={filterPriority || ''}
+                onChange={(e) => setFilterPriority(e.target.value || null)}
+              >
+                <option value="">All Priorities</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+
+              <select
+                className={styles.crewFilter}
+                value={filterType || ''}
+                onChange={(e) => setFilterType(e.target.value || null)}
+              >
+                <option value="">All Types</option>
+                <option value="task">Task</option>
+                <option value="feature">Feature</option>
+                <option value="bug">Bug</option>
+                <option value="idea">Idea</option>
+              </select>
+
+              {assignees.length > 0 && (
+                <select
+                  className={styles.crewFilter}
+                  value={filterOpener || ''}
+                  onChange={(e) => setFilterOpener(e.target.value || null)}
+                >
+                  <option value="">By Creator</option>
+                  {assignees.map(a => (
+                    <option key={a.id} value={a.name}>{a.name}</option>
+                  ))}
+                </select>
+              )}
+            </>
+          )}
+
+          {viewMode === 'list' && !showDraftsOnly && (
+            <>
+              <button
+                className={`${styles.selectToggleBtn} ${exportMode ? styles.selectActive : ''}`}
+                onClick={() => {
+                  setExportMode(!exportMode);
+                  if (exportMode) setSelectedExports(new Set());
+                }}
+              >
+                {exportMode ? '✓ Select' : 'Select'}
+              </button>
+              <button
+                className={`${styles.selectToggleBtn} ${filterAttention ? styles.selectActive : ''}`}
+                disabled={attentionLoading}
+                onClick={async () => {
+                  if (filterAttention) {
+                    setFilterAttention(false);
+                    setAttentionTaskIds(null);
+                  } else if (notificationsState.identity) {
+                    setAttentionLoading(true);
+                    try {
+                      const ids = await taskService.getNeedsAttention(notificationsState.identity);
+                      setAttentionTaskIds(new Set(ids));
+                      setFilterAttention(true);
+                    } finally {
+                      setAttentionLoading(false);
+                    }
                   }
+                }}
+                title="Tasks where you were mentioned in the last comment and haven't replied"
+              >
+                {attentionLoading ? '⏳...' : filterAttention && attentionTaskIds ? `🔔 Attention (${attentionTaskIds.size})` : '🔔 Needs my attention'}
+              </button>
+              {filterAttention && attentionTaskIds && attentionTaskIds.size > 0 && boardTasks.filter(t => attentionTaskIds.has(t.id)).length === 0 && (
+                <span className={styles.attentionHint}>All in completed</span>
+              )}
+            </>
+          )}
+
+          <div className={styles.toggleGroup}>
+            <button
+              className={`${styles.filterToggleBtn} ${showDraftsOnly ? styles.filterToggleActive : ''}`}
+              onClick={() => {
+                setShowDraftsOnly(!showDraftsOnly);
+                setSelectedDrafts(new Set());
+                if (!showDraftsOnly) {
+                  setShowUnassignedOnly(false);
+                  setFilterAssignee(null);
                 }
               }}
-              title="Tasks where you were mentioned in the last comment and haven't replied"
+              title="Show draft tasks (Ctrl+Shift+L)"
             >
-              {attentionLoading ? '⏳ Loading...' : filterAttention && attentionTaskIds ? `🔔 Attention (${attentionTaskIds.size})` : '🔔 Needs my attention'}
+              Drafts{draftCount > 0 ? ` (${draftCount})` : ''}
             </button>
-            {filterAttention && attentionTaskIds && attentionTaskIds.size > 0 && boardTasks.filter(t => attentionTaskIds.has(t.id)).length === 0 && (
-              <span className={styles.attentionHint}>All in completed tasks</span>
-            )}
+
+            <button
+              className={`${styles.filterToggleBtn} ${showCompleted ? styles.filterToggleActive : ''}`}
+              onClick={() => setShowCompleted(!showCompleted)}
+            >
+              Completed
+            </button>
+
+            <button
+              className={`${styles.filterToggleBtn} ${showLimbo ? styles.filterToggleActive : ''}`}
+              onClick={() => setShowLimbo(!showLimbo)}
+            >
+              💀 Limbo
+            </button>
           </div>
-        )}
-        {viewMode === 'board' && <div className={styles.toolbarRow2}>
-          <select
-            className={styles.domainFilter}
-            value={filterDomain}
-            onChange={(e) => setFilterDomain(e.target.value)}
-          >
-            {showAllDomains ? (
-              <>
-                {KNOWN_DOMAINS.map(domain => (
-                  <option key={domain} value={domain}>
-                    {domain.charAt(0).toUpperCase() + domain.slice(1)}
-                  </option>
-                ))}
-              </>
-            ) : LYBI_DOMAINS.includes(currentDomain) ? (
-              <>
-                {LYBI_DOMAINS.map(domain => (
-                  <option key={domain} value={domain}>
-                    {domain.charAt(0).toUpperCase() + domain.slice(1)}
-                  </option>
-                ))}
-              </>
-            ) : (
-              <option value="current">
-                {currentDomain === 'general' ? 'General' : currentDomain.charAt(0).toUpperCase() + currentDomain.slice(1)}
-              </option>
-            )}
-            <option value="general">General (Engine)</option>
-            <option value="all">All Domains</option>
-          </select>
-
-          {crewMembers.length > 0 && (
-            <select
-              className={styles.crewFilter}
-              value={filterCrewMember || ''}
-              onChange={(e) => setFilterCrewMember(e.target.value || null)}
-            >
-              <option value="">All Crews</option>
-              {crewMembers.map(crew => (
-                <option key={crew.name} value={crew.name}>
-                  {crew.displayName || crew.name}
-                </option>
-              ))}
-            </select>
-          )}
-
-          <AssigneeManager
-            assignees={assignees}
-            onAddAssignee={handleAddAssignee}
-            selectedAssignee={filterAssignee}
-            onAssigneeClick={(assignee) => {
-              setShowUnassignedOnly(false);
-              setFilterAssignee(assignee);
-            }}
-          />
-          <button
-            className={`${styles.unassignedBtn} ${showUnassignedOnly ? styles.active : ''}`}
-            onClick={() => {
-              setShowUnassignedOnly(!showUnassignedOnly);
-              if (!showUnassignedOnly) {
-                setFilterAssignee(null);
-              }
-            }}
-            title="Show unassigned tasks"
-          >
-            Unassigned
-            {unassignedCount > 0 && (
-              <span className={styles.unassignedBadge}>{unassignedCount}</span>
-            )}
-          </button>
-
-          {assignees.length > 0 && (
-            <select
-              className={styles.crewFilter}
-              value={filterOpener || ''}
-              onChange={(e) => setFilterOpener(e.target.value || null)}
-            >
-              <option value="">By Creator</option>
-              {assignees.map(a => (
-                <option key={a.id} value={a.name}>{a.name}</option>
-              ))}
-            </select>
-          )}
-
-          <select
-            className={styles.crewFilter}
-            value={filterPriority || ''}
-            onChange={(e) => setFilterPriority(e.target.value || null)}
-          >
-            <option value="">All Priorities</option>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-
-          <select
-            className={styles.crewFilter}
-            value={filterType || ''}
-            onChange={(e) => setFilterType(e.target.value || null)}
-          >
-            <option value="">All Types</option>
-            <option value="task">Task</option>
-            <option value="feature">Feature</option>
-            <option value="bug">Bug</option>
-            <option value="idea">Idea</option>
-          </select>
-        </div>}
+        </div>
 
         {/* Bulk Fire Drafts Toolbar */}
         {showDraftsOnly && filteredTasks.length > 0 && (

@@ -55,9 +55,13 @@ interface AssigneeManagerProps {
   onAddAssignee: (name: string) => Promise<void>;
   selectedAssignee?: string | null;
   onAssigneeClick?: (assignee: string | null) => void;
+  showUnassigned?: boolean;
+  unassignedCount?: number;
+  showUnassignedOnly?: boolean;
+  onUnassignedClick?: () => void;
 }
 
-export function AssigneeManager({ assignees, onAddAssignee, selectedAssignee, onAssigneeClick }: AssigneeManagerProps) {
+export function AssigneeManager({ assignees, onAddAssignee, selectedAssignee, onAssigneeClick, showUnassigned, unassignedCount, showUnassignedOnly, onUnassignedClick }: AssigneeManagerProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -122,6 +126,16 @@ export function AssigneeManager({ assignees, onAddAssignee, selectedAssignee, on
             </span>
           );
         })}
+        {showUnassigned && onUnassignedClick && (
+          <button
+            className={`${styles.chip} ${styles.clickable} ${showUnassignedOnly ? styles.active : ''}`}
+            style={showUnassignedOnly ? { borderColor: '#94a3b8', backgroundColor: 'rgba(148, 163, 184, 0.1)' } : undefined}
+            onClick={onUnassignedClick}
+          >
+            <span className={styles.colorDot} style={{ backgroundColor: '#94a3b8' }} />
+            ?{unassignedCount ? ` ${unassignedCount}` : ''}
+          </button>
+        )}
         {isAdding ? (
           <div className={styles.inputWrapper}>
             <input
