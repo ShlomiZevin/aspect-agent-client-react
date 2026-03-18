@@ -1083,6 +1083,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                 crewMembers={crewMembers}
                 commentRefreshTrigger={commentRefreshTrigger}
                 initialType={presetGoalMode ? (presetType || 'goal') : undefined}
+                currentIdentity={notificationsState.identity || undefined}
                 onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
                 onAutoSave={editingTask ? handleAutoSave : undefined}
                 onMarkRead={(editingTask?.type === 'read' || editingTask?.type === 'test') ? async () => {

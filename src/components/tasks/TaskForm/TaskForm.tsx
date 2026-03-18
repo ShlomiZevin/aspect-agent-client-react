@@ -37,6 +37,7 @@ interface TaskFormProps {
   crewMembers?: CrewMember[];
   commentRefreshTrigger?: number;
   initialType?: TaskType; // Pre-fill type when creating (e.g., 'goal' from Goals sidebar)
+  currentIdentity?: string; // Current user identity for permission checks
   onSubmit: (data: CreateTaskData) => void;
   onAutoSave?: (data: CreateTaskData) => Promise<void>;
   onMarkRead?: () => void;
@@ -63,6 +64,7 @@ const TYPE_OPTIONS: { value: TaskType; label: string }[] = [
   { value: 'bug', label: 'Bug' },
   { value: 'idea', label: 'Idea' },
   { value: 'test', label: 'Test' },
+  { value: 'read', label: 'Read' },
   { value: 'goal', label: 'Goal' },
 ];
 
@@ -85,7 +87,59 @@ function containsHebrew(text: string): boolean {
   return /[\u0590-\u05FF]/.test(text);
 }
 
-export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, onSubmit, onAutoSave, onMarkRead, onCancel, onDelete }: TaskFormProps) {
+/** Sidebar showing test checklist steps — reads live from description HTML */
+function TestStepsSidebar({ description, onStepClick, onNoteChange }: { description: string; onStepClick: (index: number) => void; onNoteChange?: (index: number, note: string) => void }) {
+  const steps = useMemo(() => {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = description;
+    const items = tempDiv.querySelectorAll('.checklist-item');
+    return Array.from(items).map((item, i) => {
+      const state = item.getAttribute('data-state') || 'unchecked';
+      const textSpan = item.querySelector('span:not(.checklist-state):not(.checklist-note-text)');
+      const text = textSpan?.textContent || `Step ${i + 1}`;
+      const noteEl = item.parentNode?.nextSibling as HTMLElement | null;
+      const noteInput = noteEl?.classList?.contains('checklist-note-wrap')
+        ? noteEl.querySelector('.checklist-note') as HTMLInputElement | null
+        : item.querySelector('.checklist-note') as HTMLInputElement | null;
+      const noteValue = noteInput?.getAttribute('value') || noteInput?.value || '';
+      return { state, text, noteValue, index: i };
+    });
+  }, [description]);
+
+  if (steps.length === 0) return null;
+
+  return (
+    <div className={styles.checklistSidebar}>
+      <div className={styles.checklistSidebarHeader}>Test Steps</div>
+      <div className={styles.checklistSidebarList}>
+        {steps.map(({ state, text, noteValue, index }) => (
+          <div key={index} className={styles.checklistSidebarItem}>
+            <div className={styles.checklistSidebarRow}>
+              <span className={styles.checklistSidebarIcon} onClick={() => onStepClick(index)}>
+                {state === 'pass' ? '✅' : state === 'fail' ? '❌' : '☐'}
+              </span>
+              <span className={`${styles.checklistSidebarText} ${state === 'pass' ? styles.checklistPass : ''}`}>
+                {text}
+              </span>
+            </div>
+            {state === 'fail' && (
+              <input
+                className={styles.checklistSidebarNoteInput}
+                type="text"
+                placeholder="What failed?"
+                value={noteValue}
+                onChange={(e) => onNoteChange?.(index, e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, currentIdentity, onSubmit, onAutoSave, onMarkRead, onCancel, onDelete }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [description, setDescription] = useState('');
@@ -423,7 +477,11 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   };
 
   // Read-only view for "read" type tasks
-  if (isRead && task) {
+  const [readEditMode, setReadEditMode] = useState(false);
+  if (isRead && task && !readEditMode) {
+    const isAssignee = currentIdentity && task.assignee && currentIdentity.toLowerCase() === task.assignee.toLowerCase();
+    const isOpener = currentIdentity && task.opener && currentIdentity.toLowerCase() === task.opener.toLowerCase();
+
     return (
       <div className={styles.form}>
         <div className={styles.header}>
@@ -438,9 +496,15 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
           <div className={styles.readContent} dangerouslySetInnerHTML={{ __html: task.description }} />
         )}
         <div className={styles.actions}>
+          {onDelete && isOpener && (
+            <button type="button" className={styles.deleteBtn} onClick={onDelete}>Delete</button>
+          )}
+          {isOpener && (
+            <button type="button" className={styles.cancelBtn} onClick={() => setReadEditMode(true)}>Edit</button>
+          )}
           <div className={styles.rightActions}>
             <button type="button" className={styles.cancelBtn} onClick={onCancel}>Close</button>
-            {onMarkRead && (
+            {isAssignee && onMarkRead && (
               task.isCompleted ? (
                 <button type="button" className={styles.cancelBtn} onClick={onMarkRead}>
                   Mark as Unread
@@ -836,6 +900,37 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
           </div>
         </div>
       </form>
+
+      {/* Test tasks: live checklist sidebar — reads from description state */}
+      {task && type === 'test' && description && (
+        <TestStepsSidebar description={description} onStepClick={(index) => {
+          const editors = document.querySelectorAll('[contenteditable]');
+          for (const editor of Array.from(editors)) {
+            const cbs = editor.querySelectorAll('.checklist-item input[type="checkbox"]');
+            if (cbs.length > 0 && cbs[index]) {
+              (cbs[index] as HTMLElement).click();
+              return;
+            }
+          }
+        }} onNoteChange={(index, note) => {
+          const editors = document.querySelectorAll('[contenteditable]');
+          for (const editor of Array.from(editors)) {
+            const items = editor.querySelectorAll('.checklist-item');
+            if (items.length > 0 && items[index]) {
+              const noteWrap = items[index].parentNode?.nextSibling as HTMLElement | null;
+              const noteInput = noteWrap?.classList?.contains('checklist-note-wrap')
+                ? noteWrap.querySelector('.checklist-note') as HTMLInputElement
+                : items[index].querySelector('.checklist-note') as HTMLInputElement;
+              if (noteInput) {
+                noteInput.value = note;
+                noteInput.setAttribute('value', note);
+                setDescription(editor.innerHTML);
+              }
+              return;
+            }
+          }
+        }} />
+      )}
 
       {/* Comments column — only for existing tasks */}
       {task && (

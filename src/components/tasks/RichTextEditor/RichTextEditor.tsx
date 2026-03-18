@@ -527,6 +527,8 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
         // Remove fail note if exists
         const note = item.querySelector('.checklist-note');
         if (note) note.remove();
+        const noteWrap = item.parentNode?.nextSibling;
+        if (noteWrap && (noteWrap as HTMLElement).classList?.contains('checklist-note-wrap')) noteWrap.remove();
         const noteText = item.querySelector('.checklist-note-text');
         if (noteText) noteText.remove();
       } else if (currentState === 'pass') {
@@ -536,13 +538,16 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
         cb.setAttribute('checked', '');
         const textSpan = item.querySelector('span:not(.checklist-state):not(.checklist-note-text)');
         if (textSpan) (textSpan as HTMLElement).style.textDecoration = 'none';
-        // Add note input
+        // Add note input below the text
         if (!item.querySelector('.checklist-note')) {
+          const noteWrap = document.createElement('div');
+          noteWrap.className = 'checklist-note-wrap';
+          noteWrap.style.cssText = 'width:100%;padding-left:24px;margin-top:2px;';
           const noteInput = document.createElement('input');
           noteInput.type = 'text';
           noteInput.className = 'checklist-note';
           noteInput.placeholder = 'What failed?';
-          noteInput.style.cssText = 'flex:1;border:1px solid #fca5a5;border-radius:4px;padding:2px 6px;font-size:12px;color:#ef4444;background:#fef2f2;outline:none;margin-left:4px;min-width:0;';
+          noteInput.style.cssText = 'width:100%;border:1px solid #fca5a5;border-radius:4px;padding:2px 6px;font-size:11px;color:#ef4444;background:#fef2f2;outline:none;';
           noteInput.onclick = (ev) => ev.stopPropagation();
           noteInput.onmousedown = (ev) => ev.stopPropagation();
           noteInput.oninput = () => {
@@ -552,7 +557,14 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
               onChange(editorRef.current.innerHTML);
             }
           };
-          item.appendChild(noteInput);
+          noteWrap.appendChild(noteInput);
+          // Insert after the checklist-item's parent div
+          const parentDiv = item.parentNode;
+          if (parentDiv && parentDiv.parentNode) {
+            parentDiv.parentNode.insertBefore(noteWrap, parentDiv.nextSibling);
+          } else {
+            item.appendChild(noteWrap);
+          }
           noteInput.focus();
         }
       } else {
@@ -565,6 +577,8 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
         if (textSpan) (textSpan as HTMLElement).style.textDecoration = 'none';
         const note = item.querySelector('.checklist-note');
         if (note) note.remove();
+        const noteWrap = item.parentNode?.nextSibling;
+        if (noteWrap && (noteWrap as HTMLElement).classList?.contains('checklist-note-wrap')) noteWrap.remove();
         const noteText = item.querySelector('.checklist-note-text');
         if (noteText) noteText.remove();
       }
