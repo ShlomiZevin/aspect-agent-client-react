@@ -410,8 +410,11 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
       if (task?.type === 'test' && task.description) {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = task.description;
-        const checkboxes = tempDiv.querySelectorAll('input[type="checkbox"]');
-        const unchecked = Array.from(checkboxes).filter(cb => !cb.hasAttribute('checked'));
+        const items = tempDiv.querySelectorAll('.checklist-item');
+        const unchecked = Array.from(items).filter(item => {
+          const state = item.getAttribute('data-state');
+          return !state || state === 'unchecked';
+        });
         if (unchecked.length > 0) {
           setTestWarning({ taskId, uncheckedCount: unchecked.length, source: 'status' });
           return;
@@ -1155,7 +1158,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
               </div>
               <h3 className={styles.deleteTitle}>Unchecked test steps</h3>
               <p className={styles.deleteText}>
-                {testWarning.uncheckedCount} test step{testWarning.uncheckedCount > 1 ? 's are' : ' is'} not checked. Move to Done anyway?
+                {testWarning.uncheckedCount} test step{testWarning.uncheckedCount > 1 ? 's are' : ' is'} not tested yet. Move to Done anyway?
               </p>
               <div className={styles.deleteActions}>
                 <button

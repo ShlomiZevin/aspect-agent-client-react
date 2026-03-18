@@ -495,21 +495,103 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
   const handleClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
 
-    // Handle checkbox clicks inside checklist items
+    // Handle checkbox clicks inside checklist items — three-state cycle
     if (target.tagName === 'INPUT' && (target as HTMLInputElement).type === 'checkbox') {
-      // Sync the checked attribute so innerHTML captures the state
-      setTimeout(() => {
-        const cb = target as HTMLInputElement;
-        if (cb.checked) {
-          cb.setAttribute('checked', '');
-        } else {
-          cb.removeAttribute('checked');
+      e.preventDefault();
+      e.stopPropagation();
+      const cb = target as HTMLInputElement;
+      const item = cb.closest('.checklist-item') as HTMLElement;
+      if (!item) return;
+
+      const currentState = item.getAttribute('data-state') || 'unchecked';
+      let nextState: string;
+
+      // Get or create the state indicator span
+      let indicator = item.querySelector('.checklist-state') as HTMLElement;
+      if (!indicator) {
+        indicator = document.createElement('span');
+        indicator.className = 'checklist-state';
+        indicator.style.cssText = 'flex-shrink:0;font-size:14px;cursor:pointer;user-select:none;width:18px;text-align:center;';
+        // Replace the checkbox with the indicator
+        cb.style.display = 'none';
+        cb.parentNode?.insertBefore(indicator, cb.nextSibling);
+      }
+
+      if (currentState === 'unchecked') {
+        nextState = 'pass';
+        indicator.textContent = '✅';
+        indicator.title = 'Pass — click to mark as fail';
+        cb.setAttribute('checked', '');
+        const textSpan = item.querySelector('span:not(.checklist-state):not(.checklist-note-text)');
+        if (textSpan) (textSpan as HTMLElement).style.textDecoration = 'line-through';
+        // Remove fail note if exists
+        const note = item.querySelector('.checklist-note');
+        if (note) note.remove();
+        const noteText = item.querySelector('.checklist-note-text');
+        if (noteText) noteText.remove();
+      } else if (currentState === 'pass') {
+        nextState = 'fail';
+        indicator.textContent = '❌';
+        indicator.title = 'Fail — click to reset';
+        cb.setAttribute('checked', '');
+        const textSpan = item.querySelector('span:not(.checklist-state):not(.checklist-note-text)');
+        if (textSpan) (textSpan as HTMLElement).style.textDecoration = 'none';
+        // Add note input
+        if (!item.querySelector('.checklist-note')) {
+          const noteInput = document.createElement('input');
+          noteInput.type = 'text';
+          noteInput.className = 'checklist-note';
+          noteInput.placeholder = 'What failed?';
+          noteInput.style.cssText = 'flex:1;border:1px solid #fca5a5;border-radius:4px;padding:2px 6px;font-size:12px;color:#ef4444;background:#fef2f2;outline:none;margin-left:4px;min-width:0;';
+          noteInput.onclick = (ev) => ev.stopPropagation();
+          noteInput.onmousedown = (ev) => ev.stopPropagation();
+          noteInput.oninput = () => {
+            noteInput.setAttribute('value', noteInput.value);
+            if (editorRef.current) {
+              isInternalChange.current = true;
+              onChange(editorRef.current.innerHTML);
+            }
+          };
+          item.appendChild(noteInput);
+          noteInput.focus();
         }
-        if (editorRef.current) {
-          isInternalChange.current = true;
-          onChange(editorRef.current.innerHTML);
-        }
-      }, 0);
+      } else {
+        // fail → unchecked
+        nextState = 'unchecked';
+        indicator.textContent = '☐';
+        indicator.title = 'Unchecked — click to pass';
+        cb.removeAttribute('checked');
+        const textSpan = item.querySelector('span:not(.checklist-state):not(.checklist-note-text)');
+        if (textSpan) (textSpan as HTMLElement).style.textDecoration = 'none';
+        const note = item.querySelector('.checklist-note');
+        if (note) note.remove();
+        const noteText = item.querySelector('.checklist-note-text');
+        if (noteText) noteText.remove();
+      }
+
+      item.setAttribute('data-state', nextState);
+      if (editorRef.current) {
+        isInternalChange.current = true;
+        onChange(editorRef.current.innerHTML);
+      }
+      return;
+    }
+
+    // Handle state indicator clicks (for already-converted items)
+    if (target.classList?.contains('checklist-state')) {
+      // Find the hidden checkbox and simulate click on it
+      const item = target.closest('.checklist-item') as HTMLElement;
+      const cb = item?.querySelector('input[type="checkbox"]') as HTMLInputElement;
+      if (cb) {
+        // Create a synthetic event that hits the checkbox handler above
+        const syntheticEvent = { ...e, target: cb, preventDefault: () => {}, stopPropagation: () => {} } as unknown as React.MouseEvent;
+        handleClick(syntheticEvent);
+      }
+      return;
+    }
+
+    // Handle click on checklist note input — prevent propagation
+    if (target.classList?.contains('checklist-note')) {
       return;
     }
 
