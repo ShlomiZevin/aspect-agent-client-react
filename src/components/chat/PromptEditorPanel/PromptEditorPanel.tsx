@@ -884,21 +884,27 @@ export function PromptEditorPanel({
                         ? kb.vectorStoreId
                         : currentProvider === 'google'
                         ? kb.googleCorpusId
+                        : currentProvider === 'anthropic'
+                        ? kb.providers?.includes('anthropic')
                         : false;
                       return (
-                        <label key={kb.id} className={`${styles.kbCheckboxLabel} ${isCrewSource ? styles.kbCrewSource : ''}`}>
+                        <label
+                          key={kb.id}
+                          className={`${styles.kbCheckboxLabel} ${isCrewSource ? styles.kbCrewSource : ''}`}
+                          style={!providerOk ? { opacity: 0.45, pointerEvents: 'none' } : undefined}
+                          title={!providerOk ? `This KB is not connected to ${currentProvider}` : undefined}
+                        >
                           <input
                             type="checkbox"
                             checked={isChecked}
+                            disabled={!providerOk}
                             onChange={() => handleKBToggle(kb.name)}
                           />
                           <span>{kb.name}</span>
                           <span className={styles.kbMeta}>
                             {kb.fileCount} files
                           </span>
-                          {currentProvider === 'anthropic' ? (
-                            <span className={styles.kbWarning}>no KB</span>
-                          ) : providerOk ? (
+                          {providerOk ? (
                             <span className={styles.kbOk}>✓ {currentProvider}</span>
                           ) : (
                             <span className={styles.kbWarning}>no {currentProvider}</span>
