@@ -277,7 +277,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     let fullText = text;
     if (linkedDesignKBs.length > 0) {
       const kbContext = linkedDesignKBs.map(kb =>
-        `[Linked KB: "${kb.name}" (${kb.provider} provider, ${kb.fileCount} files)]`
+        `[Linked KB: "${kb.name}" (${kb.providers.join('+')}, ${kb.fileCount} files)]`
       ).join('\n');
       fullText = `${kbContext}\n\n${fullText}`;
     }
@@ -1361,7 +1361,7 @@ function DesignInput({ value, onChange, onSend, disabled, placeholder, attachedF
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
                       <span>{kb.name}</span>
-                      <span className={styles.kbDropdownProvider} data-provider={kb.provider}>{kb.provider}</span>
+                      <span className={styles.kbDropdownProvider} data-provider={kb.providers[0]}>{kb.providers.join('+')}</span>
                     </button>
                   ))
                 )}
