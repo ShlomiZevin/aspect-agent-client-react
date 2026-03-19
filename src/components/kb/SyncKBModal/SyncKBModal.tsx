@@ -1,21 +1,20 @@
 import { Modal } from '../../common';
 import { Button } from '../../common';
-import type { KnowledgeBase, KBProvider } from '../../../types';
+import type { KnowledgeBase, KBProviderName } from '../../../types';
 import styles from './SyncKBModal.module.css';
 
-const PROVIDER_LABELS: Record<KBProvider, string> = {
+const PROVIDER_LABELS: Record<KBProviderName, string> = {
   openai: 'OpenAI',
   google: 'Google Gemini',
-  both: 'Both',
   anthropic: 'Anthropic',
 };
 
 interface SyncKBModalProps {
   isOpen: boolean;
   sourceKB: KnowledgeBase;
-  targetProvider: KBProvider;
+  targetProvider: KBProviderName;
   isSyncing: boolean;
-  onSync: (targetProvider: KBProvider) => Promise<void>;
+  onSync: (targetProvider: KBProviderName) => Promise<void>;
   onClose: () => void;
 }
 
@@ -27,7 +26,7 @@ export function SyncKBModal({
   onSync,
   onClose,
 }: SyncKBModalProps) {
-  const sourceLabel = PROVIDER_LABELS[sourceKB.provider];
+  const sourceLabel = sourceKB.providers.map(p => PROVIDER_LABELS[p]).join(' + ');
   const targetLabel = PROVIDER_LABELS[targetProvider];
 
   return (
@@ -49,7 +48,7 @@ export function SyncKBModal({
         </div>
 
         <div className={styles.arrow}>
-          <div className={styles.providerBox} data-provider={sourceKB.provider}>
+          <div className={styles.providerBox}>
             {sourceLabel}
           </div>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

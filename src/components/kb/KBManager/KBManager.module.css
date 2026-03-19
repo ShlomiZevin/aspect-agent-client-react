@@ -351,9 +351,9 @@
   color: #3b82f6;
 }
 
-.providerBadge[data-provider='both'] {
-  background-color: rgba(139, 92, 246, 0.12);
-  color: #8b5cf6;
+.providerBadge[data-provider='anthropic'] {
+  background-color: rgba(217, 119, 6, 0.12);
+  color: #d97706;
 }
 
 /* KB ID display in detail view */

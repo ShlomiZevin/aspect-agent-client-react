@@ -797,12 +797,12 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                                   if (isChecked) {
                                     updateConfig('kbSources', config.kbSources.filter(s => s.name !== kb.name));
                                   } else {
-                                    updateConfig('kbSources', [...config.kbSources, { vectorStoreId: kb.vectorStoreId, name: kb.name, provider: kb.provider }]);
+                                    updateConfig('kbSources', [...config.kbSources, { vectorStoreId: kb.vectorStoreId, name: kb.name, providers: kb.providers }]);
                                   }
                                 }}
                               />
                               <span className={styles.kbCheckboxName}>{kb.name}</span>
-                              <span className={styles.kbProviderBadge} data-provider={kb.provider}>{kb.provider}</span>
+                              <span className={styles.kbProviderBadge}>{kb.providers.join(', ')}</span>
                             </label>
                           );
                         })}

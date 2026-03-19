@@ -1,11 +1,11 @@
-export type KBProvider = 'openai' | 'google' | 'both' | 'anthropic';
+export type KBProviderName = 'openai' | 'google' | 'anthropic';
 
 export interface KnowledgeBase {
   id: number;
   name: string;
   description: string;
   agentName: string;
-  provider: KBProvider;
+  providers: KBProviderName[];
   vectorStoreId?: string;       // OpenAI vector store ID
   googleCorpusId?: string;      // Google File Search Store name
   syncedFromId?: number;
