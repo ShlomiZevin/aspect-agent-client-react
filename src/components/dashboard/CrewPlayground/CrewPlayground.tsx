@@ -327,10 +327,10 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
 
   const doRegister = useCallback(async (cfg: PlaygroundConfig) => {
     // Filter out any kbSources that don't exist in the real KB list
-    const realKBIds = new Set(availableKBs.filter(kb => kb.vectorStoreId).map(kb => kb.vectorStoreId));
+    const realKBNames = new Set(availableKBs.map(kb => kb.name));
     const filteredConfig = {
       ...cfg,
-      kbSources: cfg.kbSources.filter(s => realKBIds.has(s.vectorStoreId)),
+      kbSources: cfg.kbSources.filter(s => realKBNames.has(s.name)),
     };
     try {
       const registration = await registerPlayground(sessionId, agentName, filteredConfig, baseURL);
@@ -417,8 +417,8 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
       const result = await loadSavedConfig(agentName, id, baseURL);
       const loadedConfig = { ...DEFAULT_CONFIG, ...result.config };
       // Filter kbSources against real KBs
-      const realKBIds = new Set(availableKBs.filter(kb => kb.vectorStoreId).map(kb => kb.vectorStoreId));
-      loadedConfig.kbSources = loadedConfig.kbSources.filter((s: { vectorStoreId: string }) => realKBIds.has(s.vectorStoreId));
+      const realKBNames = new Set(availableKBs.map(kb => kb.name));
+      loadedConfig.kbSources = loadedConfig.kbSources.filter((s: { name: string }) => realKBNames.has(s.name));
       setConfig(loadedConfig);
       setShowSavedConfigs(false);
       setLoadedConfigRef({ id, name: result.name });
@@ -784,10 +784,10 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                   {/* Knowledge Base */}
                   <ConfigSection title="Knowledge Base">
                     <p className={styles.configHint}>Select knowledge bases to connect to this crew.</p>
-                    {availableKBs.filter(kb => kb.vectorStoreId).length > 0 ? (
+                    {availableKBs.length > 0 ? (
                       <div className={styles.kbCheckboxList}>
-                        {availableKBs.filter(kb => kb.vectorStoreId).map(kb => {
-                          const isChecked = config.kbSources.some(s => s.vectorStoreId === kb.vectorStoreId);
+                        {availableKBs.map(kb => {
+                          const isChecked = config.kbSources.some(s => s.name === kb.name);
                           return (
                             <label key={kb.id} className={styles.kbCheckboxItem}>
                               <input
@@ -795,13 +795,14 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                                 checked={isChecked}
                                 onChange={() => {
                                   if (isChecked) {
-                                    updateConfig('kbSources', config.kbSources.filter(s => s.vectorStoreId !== kb.vectorStoreId));
+                                    updateConfig('kbSources', config.kbSources.filter(s => s.name !== kb.name));
                                   } else {
-                                    updateConfig('kbSources', [...config.kbSources, { vectorStoreId: kb.vectorStoreId!, name: kb.name }]);
+                                    updateConfig('kbSources', [...config.kbSources, { vectorStoreId: kb.vectorStoreId, name: kb.name, provider: kb.provider }]);
                                   }
                                 }}
                               />
                               <span className={styles.kbCheckboxName}>{kb.name}</span>
+                              <span className={styles.kbProviderBadge} data-provider={kb.provider}>{kb.provider}</span>
                             </label>
                           );
                         })}
