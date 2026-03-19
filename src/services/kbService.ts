@@ -246,3 +246,69 @@ export async function syncKnowledgeBase(
     knowledgeBase: mapKB(data.knowledgeBase),
   };
 }
+
+export interface ProviderFile {
+  id: string;
+  fileName?: string;
+  displayName?: string;
+  fileSize?: number;
+  status?: string;
+  createdAt?: number;
+  createTime?: string;
+  updateTime?: string;
+}
+
+export interface ProviderFilesResponse {
+  provider: string;
+  openai: ProviderFile[] | { error: string } | null;
+  google: ProviderFile[] | { error: string } | null;
+  anthropic: ProviderFile[] | { error: string } | null;
+}
+
+export async function previewFile(
+  kbId: number,
+  fileId: number,
+  baseURL?: string
+): Promise<{ content: string; source: string }> {
+  return apiRequest<{ content: string; source: string }>(
+    `/api/kb/${kbId}/files/${fileId}/preview`,
+    { method: 'GET' },
+    baseURL || getBaseURL()
+  );
+}
+
+export async function previewProviderFile(
+  provider: string,
+  fileId: string,
+  baseURL?: string
+): Promise<{ content: string; source: string }> {
+  return apiRequest<{ content: string; source: string }>(
+    `/api/kb/provider-preview?provider=${provider}&fileId=${encodeURIComponent(fileId)}`,
+    { method: 'GET' },
+    baseURL || getBaseURL()
+  );
+}
+
+export async function deleteProviderFile(
+  kbId: number,
+  provider: 'openai' | 'google' | 'anthropic',
+  fileId: string,
+  baseURL?: string
+): Promise<void> {
+  await apiRequest<{ success: boolean }>(
+    `/api/kb/${kbId}/provider-files/${provider}?fileId=${encodeURIComponent(fileId)}`,
+    { method: 'DELETE' },
+    baseURL || getBaseURL()
+  );
+}
+
+export async function getProviderFiles(
+  kbId: number,
+  baseURL?: string
+): Promise<ProviderFilesResponse> {
+  return apiRequest<ProviderFilesResponse>(
+    `/api/kb/${kbId}/provider-files`,
+    { method: 'GET' },
+    baseURL || getBaseURL()
+  );
+}

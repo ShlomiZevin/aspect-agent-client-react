@@ -97,6 +97,7 @@
   cursor: pointer;
   transition: background-color var(--transition-fast);
   margin-bottom: var(--spacing-xs);
+  border-bottom: 1px solid var(--border, #e2e8f0);
 }
 
 .kbCard:hover {
@@ -180,6 +181,7 @@
 .fileListHeader {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: var(--spacing-xs) 0 var(--spacing-xs);
 }
 

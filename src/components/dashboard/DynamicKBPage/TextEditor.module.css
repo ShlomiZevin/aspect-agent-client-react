@@ -1,0 +1,55 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.guidanceNote {
+  padding: 12px 20px;
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  font-size: 12px;
+  color: #92400e;
+  line-height: 1.5;
+}
+.guidanceNote strong { display: block; margin-bottom: 4px; }
+.guidanceNote ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.guidanceNote li { margin-bottom: 2px; }
+.guidanceNote code {
+  background: rgba(0,0,0,0.06);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.textarea {
+  flex: 1;
+  padding: 20px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  border: none;
+  resize: none;
+  color: var(--text-primary, #1e293b);
+  background: #fff;
+}
+.textarea:focus { outline: none; }
+.textarea::placeholder { color: var(--text-secondary, #94a3b8); }
+
+.importBtn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  padding: 6px 12px;
+  font-size: 11px;
+  background: #fff;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary, #64748b);
+  transition: all 0.15s;
+}
+.importBtn:hover { background: #f1f5f9; color: var(--text-primary, #1e293b); }

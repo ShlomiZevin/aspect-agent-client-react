@@ -1,0 +1,1 @@
+export { DynamicKBPage } from './DynamicKBPage';
