@@ -7,4 +7,3 @@ export * from './task';
 export * from './language';
 export * from './playground';
 export * from './profile';
-export * from './dynamicKB';

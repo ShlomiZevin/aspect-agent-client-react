@@ -11,7 +11,6 @@ import { PodcastPage } from '../components/dashboard/PodcastPage';
 import { BillingPage } from '../components/dashboard/BillingPage';
 import { ApiKeysPage } from '../components/dashboard/ApiKeysPage';
 import { KBManager } from '../components/kb';
-import { DynamicKBPage } from '../components/dashboard/DynamicKBPage';
 import { aspectConfig, bankingOnboarderConfig, bankingOnboarderV2Config, compassConfig, freedaConfig, zer4uConfig } from '../agents';
 import type { AgentConfig } from '../types';
 
@@ -87,10 +86,6 @@ export function DashboardPage() {
             <Route
               path="knowledge-base"
               element={<KBManager />}
-            />
-            <Route
-              path="dynamic-kb"
-              element={<DynamicKBPage />}
             />
             {showQueryOptimizer && (
               <Route

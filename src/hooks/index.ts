@@ -10,4 +10,3 @@ export { useDebugShortcut } from './useDebugMode';
 export { useTaskBoard } from './useTaskBoard';
 export { useQuickBug } from './useQuickBug';
 export { useLocalizedConfig } from './useLocalizedConfig';
-export { useDynamicKB } from './useDynamicKB';
