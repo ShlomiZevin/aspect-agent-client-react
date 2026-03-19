@@ -21,7 +21,7 @@ export interface PlaygroundConfig {
   thinkingPrompt: string;
   thinkingModel: string;
   persona: string;
-  kbSources: Array<{ vectorStoreId: string; name: string }>;
+  kbSources: Array<{ vectorStoreId?: string; name: string; provider?: string }>;
   tools: MockTool[];
   context: Record<string, unknown>;
   fieldsToCollect: FieldToCollect[];
