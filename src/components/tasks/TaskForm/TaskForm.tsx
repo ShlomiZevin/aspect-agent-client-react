@@ -40,6 +40,7 @@ interface TaskFormProps {
   currentIdentity?: string; // Current user identity for permission checks
   onSubmit: (data: CreateTaskData) => void;
   onAutoSave?: (data: CreateTaskData) => Promise<void>;
+  onDirtyChange?: (isDirty: boolean) => void;
   onMarkRead?: () => void;
   onLinkedTaskClick?: (task: Task) => void;
   onDeploy?: () => void;
@@ -141,7 +142,7 @@ function TestStepsSidebar({ description, onStepClick, onNoteChange }: { descript
   );
 }
 
-export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, currentIdentity, onSubmit, onAutoSave, onMarkRead, onLinkedTaskClick, onDeploy, onCancel, onDelete }: TaskFormProps) {
+export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, currentIdentity, onSubmit, onAutoSave, onDirtyChange, onMarkRead, onLinkedTaskClick, onDeploy, onCancel, onDelete }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [description, setDescription] = useState('');
@@ -431,6 +432,11 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
   }, [isDirty, buildSubmitData, task, onAutoSave, title]);
+
+  // Notify parent when dirty state changes (used to prevent stale editingTask refresh)
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

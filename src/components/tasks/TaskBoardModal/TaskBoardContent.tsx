@@ -118,6 +118,16 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
   const [commentRefreshTrigger, setCommentRefreshTrigger] = useState(0);
   const editingTaskRef = useRef<Task | null>(null);
   editingTaskRef.current = editingTask;
+  const formDirtyRef = useRef(false);
+
+  // When tasks refresh (SSE), sync editingTask with fresh server data — but only when form is clean
+  useEffect(() => {
+    if (!editingTask || formDirtyRef.current) return;
+    const freshTask = tasks.find(t => t.id === editingTask.id);
+    if (freshTask && freshTask !== editingTask) {
+      setEditingTask(freshTask);
+    }
+  }, [tasks, editingTask]);
 
   useBoardStream(isActive, (event: BoardEvent) => {
     if (event.type === 'task_created' || event.type === 'task_updated') {
@@ -1194,6 +1204,7 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
               currentIdentity={notificationsState.identity || undefined}
               onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
               onAutoSave={editingTask ? handleAutoSave : undefined}
+              onDirtyChange={(dirty) => { formDirtyRef.current = dirty; }}
               onMarkRead={(editingTask?.type === 'read' || editingTask?.type === 'test') ? async () => {
                 const isRead = editingTask.isCompleted;
                 const newStatus = isRead ? 'todo' : 'done';
