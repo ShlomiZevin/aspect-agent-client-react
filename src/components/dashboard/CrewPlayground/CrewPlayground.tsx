@@ -133,6 +133,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
 
   // Attached files (session only — not persisted)
   const [attachedFiles, setAttachedFiles] = useState<{ name: string; content: string; size: number }[]>([]);
+  const [linkedDesignKBs, setLinkedDesignKBs] = useState<KnowledgeBase[]>([]);
 
   // Config dirty check — true when config changed since last activation
   const configDirty = registeredSession !== null && activatedConfig !== null &&
@@ -274,11 +275,17 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     const text = designInput.trim();
     if (!text || isDesigning) return;
     let fullText = text;
+    if (linkedDesignKBs.length > 0) {
+      const kbContext = linkedDesignKBs.map(kb =>
+        `[Linked KB: "${kb.name}" (${kb.provider} provider, ${kb.fileCount} files)]`
+      ).join('\n');
+      fullText = `${kbContext}\n\n${fullText}`;
+    }
     if (attachedFiles.length > 0) {
       const fileContext = attachedFiles.map(f =>
         `--- Attached file: ${f.name} ---\n${f.content}\n--- End of ${f.name} ---`
       ).join('\n\n');
-      fullText = `${fileContext}\n\n${text}`;
+      fullText = `${fileContext}\n\n${fullText}`;
     }
     const newMessages: DesignMessage[] = [...designMessages, { role: 'user', content: text }];
     setDesignMessages(newMessages);
@@ -292,7 +299,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     } finally {
       setIsDesigning(false);
     }
-  }, [designInput, designMessages, config, baseURL, isDesigning, apiMessages, attachedFiles]);
+  }, [designInput, designMessages, config, baseURL, isDesigning, apiMessages, attachedFiles, linkedDesignKBs]);
 
   const doGenerate = useCallback(async () => {
     if (isGenerating || designMessages.length === 0) return;
@@ -327,10 +334,10 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
 
   const doRegister = useCallback(async (cfg: PlaygroundConfig) => {
     // Filter out any kbSources that don't exist in the real KB list
-    const realKBIds = new Set(availableKBs.filter(kb => kb.vectorStoreId).map(kb => kb.vectorStoreId));
+    const realKBNames = new Set(availableKBs.map(kb => kb.name));
     const filteredConfig = {
       ...cfg,
-      kbSources: cfg.kbSources.filter(s => realKBIds.has(s.vectorStoreId)),
+      kbSources: cfg.kbSources.filter(s => realKBNames.has(s.name)),
     };
     try {
       const registration = await registerPlayground(sessionId, agentName, filteredConfig, baseURL);
@@ -417,8 +424,8 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
       const result = await loadSavedConfig(agentName, id, baseURL);
       const loadedConfig = { ...DEFAULT_CONFIG, ...result.config };
       // Filter kbSources against real KBs
-      const realKBIds = new Set(availableKBs.filter(kb => kb.vectorStoreId).map(kb => kb.vectorStoreId));
-      loadedConfig.kbSources = loadedConfig.kbSources.filter((s: { vectorStoreId: string }) => realKBIds.has(s.vectorStoreId));
+      const realKBNames = new Set(availableKBs.map(kb => kb.name));
+      loadedConfig.kbSources = loadedConfig.kbSources.filter((s: { name: string }) => realKBNames.has(s.name));
       setConfig(loadedConfig);
       setShowSavedConfigs(false);
       setLoadedConfigRef({ id, name: result.name });
@@ -693,6 +700,10 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                   attachedFiles={attachedFiles}
                   onFileAttach={(file) => setAttachedFiles(prev => [...prev, file])}
                   onFileRemove={(name) => setAttachedFiles(prev => prev.filter(f => f.name !== name))}
+                  availableKBs={availableKBs}
+                  linkedKBs={linkedDesignKBs}
+                  onKBLink={(kb) => setLinkedDesignKBs(prev => [...prev, kb])}
+                  onKBUnlink={(id) => setLinkedDesignKBs(prev => prev.filter(k => k.id !== id))}
                 />
               </>
             ) : (
@@ -784,10 +795,10 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                   {/* Knowledge Base */}
                   <ConfigSection title="Knowledge Base">
                     <p className={styles.configHint}>Select knowledge bases to connect to this crew.</p>
-                    {availableKBs.filter(kb => kb.vectorStoreId).length > 0 ? (
+                    {availableKBs.length > 0 ? (
                       <div className={styles.kbCheckboxList}>
-                        {availableKBs.filter(kb => kb.vectorStoreId).map(kb => {
-                          const isChecked = config.kbSources.some(s => s.vectorStoreId === kb.vectorStoreId);
+                        {availableKBs.map(kb => {
+                          const isChecked = config.kbSources.some(s => s.name === kb.name);
                           return (
                             <label key={kb.id} className={styles.kbCheckboxItem}>
                               <input
@@ -795,13 +806,14 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                                 checked={isChecked}
                                 onChange={() => {
                                   if (isChecked) {
-                                    updateConfig('kbSources', config.kbSources.filter(s => s.vectorStoreId !== kb.vectorStoreId));
+                                    updateConfig('kbSources', config.kbSources.filter(s => s.name !== kb.name));
                                   } else {
-                                    updateConfig('kbSources', [...config.kbSources, { vectorStoreId: kb.vectorStoreId!, name: kb.name }]);
+                                    updateConfig('kbSources', [...config.kbSources, { vectorStoreId: kb.vectorStoreId, name: kb.name, providers: kb.providers }]);
                                   }
                                 }}
                               />
                               <span className={styles.kbCheckboxName}>{kb.name}</span>
+                              <span className={styles.kbProviderBadge}>{kb.providers.join(', ')}</span>
                             </label>
                           );
                         })}
@@ -1270,7 +1282,7 @@ function ContextCard({ entryKey, entryValue, index, allEntries, onUpdate, onEnla
   );
 }
 
-function DesignInput({ value, onChange, onSend, disabled, placeholder, attachedFiles, onFileAttach, onFileRemove }: {
+function DesignInput({ value, onChange, onSend, disabled, placeholder, attachedFiles, onFileAttach, onFileRemove, availableKBs, linkedKBs, onKBLink, onKBUnlink }: {
   value: string;
   onChange: (v: string) => void;
   onSend: () => void;
@@ -1279,8 +1291,14 @@ function DesignInput({ value, onChange, onSend, disabled, placeholder, attachedF
   attachedFiles: { name: string; content: string; size: number }[];
   onFileAttach: (file: { name: string; content: string; size: number }) => void;
   onFileRemove: (name: string) => void;
+  availableKBs: KnowledgeBase[];
+  linkedKBs: KnowledgeBase[];
+  onKBLink: (kb: KnowledgeBase) => void;
+  onKBUnlink: (id: number) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showKBDropdown, setShowKBDropdown] = useState(false);
+  const kbBtnRef = useRef<HTMLButtonElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -1291,10 +1309,19 @@ function DesignInput({ value, onChange, onSend, disabled, placeholder, attachedF
     e.target.value = '';
   };
 
+  const unlinkableKBs = availableKBs.filter(kb => !linkedKBs.some(l => l.id === kb.id));
+
   return (
     <div className={styles.designInputWrapper}>
-      {attachedFiles.length > 0 && (
+      {(attachedFiles.length > 0 || linkedKBs.length > 0) && (
         <div className={styles.attachedFilesList}>
+          {linkedKBs.map(kb => (
+            <span key={`kb-${kb.id}`} className={styles.linkedKBChip}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+              {kb.name}
+              <button className={styles.attachedFileRemove} onClick={() => onKBUnlink(kb.id)}>&#x2715;</button>
+            </span>
+          ))}
           {attachedFiles.map(f => (
             <span key={f.name} className={styles.attachedFileChip}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -1309,6 +1336,39 @@ function DesignInput({ value, onChange, onSend, disabled, placeholder, attachedF
         <button className={styles.designAttachBtn} onClick={() => fileInputRef.current?.click()} disabled={disabled} title="Attach files">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
         </button>
+        {availableKBs.length > 0 && (
+          <div className={styles.kbLinkWrapper}>
+            <button
+              ref={kbBtnRef}
+              className={`${styles.designAttachBtn} ${linkedKBs.length > 0 ? styles.designAttachBtnActive : ''}`}
+              onClick={() => setShowKBDropdown(v => !v)}
+              disabled={disabled}
+              title="Link knowledge base"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+              {linkedKBs.length > 0 && <span className={styles.kbLinkCount}>{linkedKBs.length}</span>}
+            </button>
+            {showKBDropdown && (
+              <div className={styles.kbDropdown}>
+                {unlinkableKBs.length === 0 ? (
+                  <div className={styles.kbDropdownEmpty}>All KBs linked</div>
+                ) : (
+                  unlinkableKBs.map(kb => (
+                    <button
+                      key={kb.id}
+                      className={styles.kbDropdownItem}
+                      onClick={() => { onKBLink(kb); setShowKBDropdown(false); }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                      <span>{kb.name}</span>
+                      <span className={styles.kbDropdownProvider} data-provider={kb.provider}>{kb.provider}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
         <textarea
           className={styles.designTextarea}
           value={value}

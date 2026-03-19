@@ -11,7 +11,7 @@ import {
   detachProvider as detachProviderApi,
 } from '../services/kbService';
 import type { FileUploadProgress } from '../services/kbService';
-import type { KnowledgeBase, KBFile, KBProvider } from '../types';
+import type { KnowledgeBase, KBFile, KBProviderName } from '../types';
 
 export type { FileUploadProgress };
 
@@ -26,12 +26,12 @@ export interface UseKnowledgeBaseReturn {
   error: string | null;
   loadKnowledgeBases: () => Promise<void>;
   selectKnowledgeBase: (kb: KnowledgeBase | null) => Promise<void>;
-  createKnowledgeBase: (name: string, description: string, provider: KBProvider) => Promise<KnowledgeBase>;
+  createKnowledgeBase: (name: string, description: string, providers: KBProviderName[]) => Promise<KnowledgeBase>;
   uploadFiles: (files: File[], tags?: string[]) => Promise<void>;
   deleteFile: (file: KBFile) => Promise<void>;
   deleteKnowledgeBase: (kbId: number) => Promise<void>;
-  syncKnowledgeBase: (kbId: number, targetProvider: KBProvider) => Promise<void>;
-  detachProvider: (kbId: number, provider: KBProvider) => Promise<void>;
+  syncKnowledgeBase: (kbId: number, targetProvider: KBProviderName) => Promise<void>;
+  detachProvider: (kbId: number, provider: KBProviderName) => Promise<void>;
   clearError: () => void;
 }
 
@@ -87,11 +87,11 @@ export function useKnowledgeBase(
   );
 
   const createKnowledgeBase = useCallback(
-    async (name: string, description: string, provider: KBProvider): Promise<KnowledgeBase> => {
+    async (name: string, description: string, providers: KBProviderName[]): Promise<KnowledgeBase> => {
       setIsLoading(true);
       setError(null);
       try {
-        const newKB = await createKBApi(name, description, agentName, provider, baseURL);
+        const newKB = await createKBApi(name, description, agentName, providers, baseURL);
         setKnowledgeBases(prev => [newKB, ...prev]);
         return newKB;
       } catch (err) {
@@ -170,7 +170,7 @@ export function useKnowledgeBase(
   );
 
   const syncKnowledgeBase = useCallback(
-    async (kbId: number, targetProvider: KBProvider) => {
+    async (kbId: number, targetProvider: KBProviderName) => {
       setIsSyncing(true);
       setError(null);
       try {
@@ -195,7 +195,7 @@ export function useKnowledgeBase(
   );
 
   const detachProvider = useCallback(
-    async (kbId: number, provider: KBProvider) => {
+    async (kbId: number, provider: KBProviderName) => {
       setIsSyncing(true);
       setError(null);
       try {

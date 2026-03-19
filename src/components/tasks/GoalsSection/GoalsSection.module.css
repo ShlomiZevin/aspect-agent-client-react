@@ -369,6 +369,14 @@
   color: var(--text-muted);
 }
 
+/* Linked tasks list */
+.linkedTasksList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+}
+
 /* Linked task chip */
 .linkedTask {
   display: flex;

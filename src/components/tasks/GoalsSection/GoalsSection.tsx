@@ -199,9 +199,9 @@ export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, title 
           </div>
         ) : (
           sortedGoals.map((goal, index) => {
-            const linkedTask = goal.dependsOn
-              ? allTasks.find(t => t.id === goal.dependsOn)
-              : null;
+            // Support both linkedTasks array and legacy dependsOn
+            const linkedIds = goal.linkedTasks?.length ? goal.linkedTasks : goal.dependsOn ? [goal.dependsOn] : [];
+            const linkedTasksList = linkedIds.map(id => allTasks.find(t => t.id === id)).filter(Boolean) as Task[];
 
             return (
               <div
@@ -228,19 +228,24 @@ export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, title 
                     )}
                     <span className={styles.goalCreated}>{formatCreatedAt(goal.createdAt)}</span>
                   </div>
-                  {linkedTask && (
-                    <button
-                      className={styles.linkedTask}
-                      onClick={(e) => handleLinkedTaskClick(e, linkedTask)}
-                      title={`Linked: #${linkedTask.id} ${linkedTask.title}`}
-                    >
-                      <span className={`${styles.linkedTaskStatus} ${styles[linkedTask.status]}`}>
-                        {STATUS_ICONS[linkedTask.status] || '○'}
-                      </span>
-                      <span className={styles.linkedTaskName}>#{linkedTask.id} {linkedTask.title}</span>
-                    </button>
+                  {linkedTasksList.length > 0 && (
+                    <div className={styles.linkedTasksList}>
+                      {linkedTasksList.map(lt => (
+                        <button
+                          key={lt.id}
+                          className={styles.linkedTask}
+                          onClick={(e) => handleLinkedTaskClick(e, lt)}
+                          title={`Linked: #${lt.id} ${lt.title}`}
+                        >
+                          <span className={`${styles.linkedTaskStatus} ${styles[lt.status]}`}>
+                            {STATUS_ICONS[lt.status] || '○'}
+                          </span>
+                          <span className={styles.linkedTaskName}>#{lt.id} {lt.title}</span>
+                        </button>
+                      ))}
+                    </div>
                   )}
-                  {!linkedTask && goal.description && (
+                  {linkedTasksList.length === 0 && goal.description && (
                     <div className={styles.description}>
                       {stripHtml(goal.description)}
                     </div>

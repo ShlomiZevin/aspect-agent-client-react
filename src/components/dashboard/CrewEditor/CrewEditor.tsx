@@ -333,7 +333,7 @@ export function CrewEditor({ agentName, crew, baseURL, onSaved, onDeleted, onCan
                   <option value="">{isLoadingKBs ? 'Loading...' : 'None (no KB)'}</option>
                   {availableKBs.map(kb => (
                     <option key={kb.id} value={String(kb.id)}>
-                      {kb.name} — {PROVIDER_LABELS[kb.provider] ?? kb.provider}
+                      {kb.name} — {(kb.providers || []).map((p: string) => PROVIDER_LABELS[p] ?? p).join(', ')}
                     </option>
                   ))}
                 </select>

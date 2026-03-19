@@ -152,6 +152,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const [atRisk, setAtRisk] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [dependsOn, setDependsOn] = useState<number | null>(null);
+  const [linkedTasks, setLinkedTasks] = useState<number[]>([]);
   const [dependsOnSearch, setDependsOnSearch] = useState('');
   const [showDependsOnDropdown, setShowDependsOnDropdown] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -314,6 +315,12 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       setAtRisk(task.atRisk || false);
       setIsCompleted(task.isCompleted || false);
       setDependsOn(task.dependsOn || null);
+      // Initialize linkedTasks — merge linkedTasks array with legacy dependsOn for goals
+      const lt = task.linkedTasks?.length ? [...task.linkedTasks] : [];
+      if ((task.type === 'goal' || task.type === 'agenda') && task.dependsOn && !lt.includes(task.dependsOn)) {
+        lt.push(task.dependsOn);
+      }
+      setLinkedTasks(lt);
       setDependsOnSearch(''); // Clear search - we show chip when selected
       // Filter out internal tags from visible tags input
       setTagsInput(task.tags.filter(t => !t.startsWith('meetingDate:') && !t.startsWith('order:') && t !== 'goalsMeta').join(', '));
@@ -328,6 +335,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       setAtRisk(false);
       setIsCompleted(false);
       setDependsOn(null);
+      setLinkedTasks([]);
       setDependsOnSearch('');
       setCrewMember('');
       setIsDraft(getDraftDefault());
@@ -355,7 +363,8 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
     }
     if (task) setIsDirty(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, description, status, priority, type, domain, assignee, dueDate, atRisk, isCompleted, dependsOn, tagsInput, crewMember, isDraft]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, description, status, priority, type, domain, assignee, dueDate, atRisk, isCompleted, dependsOn, linkedTasks.length, tagsInput, crewMember, isDraft]);
 
   // Build the submit payload (shared between handleSubmit and autosave)
   const buildSubmitData = useCallback((): CreateTaskData => {
@@ -374,7 +383,8 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
         description: processedDescription,
         type,
         assignee: type === 'agenda' ? null : (assignee || null),
-        dependsOn,
+        dependsOn: null, // Goals use linkedTasks instead
+        linkedTasks,
         tags,
         status: task?.status || 'todo',
         priority: task?.priority || 'medium',
@@ -397,7 +407,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       crewMember: crewMember || null,
       isDraft,
     };
-  }, [isGoal, task, tagsInput, description, title, type, assignee, dependsOn, status, priority, domain, dueDate, atRisk, isCompleted, crewMember, isDraft]);
+  }, [isGoal, task, tagsInput, description, title, type, assignee, dependsOn, linkedTasks, status, priority, domain, dueDate, atRisk, isCompleted, crewMember, isDraft]);
 
   // Autosave: debounce 2.5s after last change when editing an existing task
   useEffect(() => {
@@ -449,7 +459,8 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
         description: processedDescription,
         type,
         assignee: type === 'agenda' ? null : (assignee || null),
-        dependsOn,
+        dependsOn: null,
+        linkedTasks,
         tags,
         // Set sensible defaults for required fields
         status: task?.status || 'todo',
@@ -615,68 +626,71 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
               )}
 
               <div className={styles.dependsOnRow} ref={dependsOnRef}>
-                <label htmlFor="dependsOn">Linked Task</label>
+                <label htmlFor="dependsOn">Linked Tasks</label>
                 <div className={styles.dependsOnField}>
-                  {dependsOn ? (
-                    <div className={styles.selectedDependency}>
-                      <span className={styles.dependencyChip}>
-                        #{allTasks.find(t => t.id === dependsOn)?.id} {selectedDependencyName}
-                      </span>
-                      <button
-                        type="button"
-                        className={styles.removeDepBtn}
-                        onClick={() => {
-                          setDependsOn(null);
-                          setDependsOnSearch('');
-                        }}
-                        title="Remove linked task"
+                  <div className={styles.autocompleteWrapper}>
+                    <input
+                      ref={dependsOnInputRef}
+                      id="dependsOn"
+                      type="text"
+                      value={dependsOnSearch}
+                      onChange={(e) => {
+                        setDependsOnSearch(e.target.value);
+                        setShowDependsOnDropdown(true);
+                      }}
+                      onFocus={() => setShowDependsOnDropdown(true)}
+                      onKeyDown={handleDependsOnKeyDown}
+                      placeholder={linkedTasks.length ? 'Add another...' : 'Search board tasks to link...'}
+                      autoComplete="off"
+                    />
+                    {showDependsOnDropdown && dependsOnSuggestions.length > 0 && dropdownPos && createPortal(
+                      <div
+                        className={styles.autocompleteDropdown}
+                        data-depends-dropdown
+                        style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
                       >
-                        ×
-                      </button>
-                    </div>
-                  ) : (
-                    <div className={styles.autocompleteWrapper}>
-                      <input
-                        ref={dependsOnInputRef}
-                        id="dependsOn"
-                        type="text"
-                        value={dependsOnSearch}
-                        onChange={(e) => {
-                          setDependsOnSearch(e.target.value);
-                          setShowDependsOnDropdown(true);
-                        }}
-                        onFocus={() => setShowDependsOnDropdown(true)}
-                        onKeyDown={handleDependsOnKeyDown}
-                        placeholder="Search board tasks to link..."
-                        autoComplete="off"
-                      />
-                      {showDependsOnDropdown && dependsOnSuggestions.length > 0 && dropdownPos && createPortal(
-                        <div
-                          className={styles.autocompleteDropdown}
-                          data-depends-dropdown
-                          style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
-                        >
-                          {dependsOnSuggestions.map((t, index) => (
-                            <div
-                              key={t.id}
-                              className={`${styles.autocompleteItem} ${index === highlightedIndex ? styles.highlighted : ''}`}
-                              onClick={() => {
-                                setDependsOn(t.id);
-                                setDependsOnSearch('');
-                                setShowDependsOnDropdown(false);
-                                setHighlightedIndex(-1);
-                              }}
-                              onMouseEnter={() => setHighlightedIndex(index)}
+                        {dependsOnSuggestions.filter(t => !linkedTasks.includes(t.id)).map((t, index) => (
+                          <div
+                            key={t.id}
+                            className={`${styles.autocompleteItem} ${index === highlightedIndex ? styles.highlighted : ''}`}
+                            onClick={() => {
+                              setLinkedTasks(prev => [...prev, t.id]);
+                              setDependsOnSearch('');
+                              setShowDependsOnDropdown(false);
+                              setHighlightedIndex(-1);
+                            }}
+                            onMouseEnter={() => setHighlightedIndex(index)}
+                          >
+                            <span className={styles.autocompleteTitle}>#{t.id} {t.title}</span>
+                            <span className={`${styles.autocompleteStatus} ${styles[t.status]}`}>
+                              {t.status === 'done' ? '✓' : t.status === 'in_progress' ? '⏳' : '○'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>,
+                      document.body
+                    )}
+                  </div>
+                  {linkedTasks.length > 0 && (
+                    <div className={styles.linkedChips}>
+                      {linkedTasks.map(ltId => {
+                        const lt = allTasks.find(t => t.id === ltId);
+                        return (
+                          <div key={ltId} className={styles.selectedDependency}>
+                            <span className={styles.dependencyChip}>
+                              #{ltId} {lt?.title || 'Unknown'}
+                            </span>
+                            <button
+                              type="button"
+                              className={styles.removeDepBtn}
+                              onClick={() => setLinkedTasks(prev => prev.filter(id => id !== ltId))}
+                              title="Remove"
                             >
-                              <span className={styles.autocompleteTitle}>#{t.id} {t.title}</span>
-                              <span className={`${styles.autocompleteStatus} ${styles[t.status]}`}>
-                                {t.status === 'done' ? '✓' : t.status === 'in_progress' ? '⏳' : '○'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>,
-                        document.body
-                      )}
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

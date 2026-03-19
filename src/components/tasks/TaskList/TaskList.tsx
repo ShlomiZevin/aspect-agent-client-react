@@ -292,7 +292,7 @@ export function TaskList({ tasks, crewDisplayNames, onTaskClick, onDeleteTask, s
         </thead>
         <tbody>
           {filteredTasks.map(task => (
-            <tr key={task.id} className={task.atRisk ? styles.atRiskRow : ''} onClick={() => onTaskClick(task)}>
+            <tr key={task.id} className={`${task.atRisk ? styles.atRiskRow : ''} ${task.isCompleted ? styles.completedRow : ''}`} onClick={() => onTaskClick(task)}>
               {showCheckboxes && (
                 <td className={styles.checkboxCell}>
                   {showDraftCheckboxes ? (

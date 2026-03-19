@@ -21,6 +21,7 @@ export interface Task {
   atRisk: boolean; // Flag for tasks at risk of missing deadline
   isCompleted: boolean; // PM approval - task fully completed and reviewed
   dependsOn?: number; // ID of task this depends on (must be done first)
+  linkedTasks?: number[]; // IDs of related tasks (not blocking)
   tags: string[];
   crewMember?: string; // Crew member related to this task
   isDraft: boolean; // Draft mode - only visible to creator
@@ -42,6 +43,7 @@ export interface CreateTaskData {
   atRisk?: boolean;
   isCompleted?: boolean;
   dependsOn?: number | null; // null to clear dependency
+  linkedTasks?: number[];
   tags?: string[];
   crewMember?: string | null;
   isDraft?: boolean;
@@ -62,6 +64,7 @@ export interface UpdateTaskData {
   atRisk?: boolean;
   isCompleted?: boolean;
   dependsOn?: number | null;
+  linkedTasks?: number[];
   tags?: string[];
   crewMember?: string | null;
   isDraft?: boolean;

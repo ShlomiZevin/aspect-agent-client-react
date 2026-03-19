@@ -1,29 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAgentConfig } from '../../../context';
 import { useKnowledgeBase } from '../../../hooks';
 import { formatBytes } from '../../../utils';
 import { Button, Modal } from '../../common';
-import { SyncKBModal } from '../SyncKBModal';
+// SyncKBModal no longer used — sync is inline per provider
 import { downloadFile, getProviderFiles, deleteProviderFile, previewFile } from '../../../services/kbService';
 import type { ProviderFile, ProviderFilesResponse } from '../../../services/kbService';
 import * as dynamicKBService from '../../../services/dynamicKBService';
 import type { DynamicFile } from '../../../types/dynamicKB';
-import type { KBProvider } from '../../../types';
+import type { KBProviderName } from '../../../types';
 import styles from './KBManager.module.css';
 
-const PROVIDER_LABELS: Record<KBProvider, string> = {
+const PROVIDER_LABELS: Record<KBProviderName, string> = {
   openai: 'OpenAI',
   google: 'Gemini',
-  both: 'Both',
   anthropic: 'Anthropic',
 };
 
-const PROVIDER_HINTS: Record<KBProvider, string> = {
+const PROVIDER_HINTS: Record<KBProviderName, string> = {
   openai: 'Uses OpenAI vector stores for semantic search',
   google: 'Uses Google File Search (free storage)',
-  both: 'Creates on both OpenAI and Google simultaneously',
   anthropic: 'Files injected as document blocks into Claude context (no semantic search)',
 };
+
+const ALL_PROVIDERS: KBProviderName[] = ['openai', 'google', 'anthropic'];
 
 export function KBManager() {
   const config = useAgentConfig();
@@ -49,11 +49,12 @@ export function KBManager() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [confirmDeleteKBId, setConfirmDeleteKBId] = useState<number | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showSyncModal, setShowSyncModal] = useState(false);
   const [newKBName, setNewKBName] = useState('');
   const [newKBDescription, setNewKBDescription] = useState('');
-  const [newKBProvider, setNewKBProvider] = useState<KBProvider>('openai');
+  const [newKBProviders, setNewKBProviders] = useState<KBProviderName[]>(['openai']);
   const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [syncSelectedProviders, setSyncSelectedProviders] = useState<KBProviderName[]>([]);
   const [showAttachDynamic, setShowAttachDynamic] = useState(false);
   const [dynamicFiles, setDynamicFiles] = useState<DynamicFile[]>([]);
   const [attachingFileId, setAttachingFileId] = useState<number | null>(null);
@@ -85,11 +86,11 @@ export function KBManager() {
   const handleCreateKB = async () => {
     if (!newKBName.trim()) return;
     try {
-      await createKnowledgeBase(newKBName.trim(), newKBDescription.trim(), newKBProvider);
+      await createKnowledgeBase(newKBName.trim(), newKBDescription.trim(), newKBProviders);
       setShowCreateModal(false);
       setNewKBName('');
       setNewKBDescription('');
-      setNewKBProvider('openai');
+      setNewKBProviders(['openai']);
     } catch {
       // Error handled by hook
     }
@@ -102,11 +103,6 @@ export function KBManager() {
     setShowUploadModal(false);
   };
 
-  const handleSync = async (targetProvider: KBProvider) => {
-    if (!selectedKB) return;
-    await syncKnowledgeBase(selectedKB.id, targetProvider);
-    setShowSyncModal(false);
-  };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -130,12 +126,10 @@ export function KBManager() {
     return '📎';
   };
 
-  // Determine which provider(s) the selected KB can still sync to
-  const syncTargetProvider: KBProvider | null = selectedKB
-    ? selectedKB.provider === 'openai' ? 'google'
-    : selectedKB.provider === 'google' ? 'openai'
-    : null // 'both' — already on all providers
-    : null;
+  // Determine which providers the selected KB doesn't have yet
+  const missingProviders: KBProviderName[] = selectedKB
+    ? ALL_PROVIDERS.filter(p => !selectedKB.providers.includes(p))
+    : [];
 
   return (
     <div className={styles.container}>
@@ -171,17 +165,16 @@ export function KBManager() {
                   className={`${styles.kbCard} ${selectedKB?.id === kb.id ? styles.active : ''}`}
                   onClick={() => selectKnowledgeBase(kb)}
                 >
-                  <div className={styles.kbCardHeader}>
-                    <div className={styles.kbName}>{kb.name}</div>
-                    <span
-                      className={styles.providerBadge}
-                      data-provider={kb.provider}
-                    >
-                      {PROVIDER_LABELS[kb.provider]}
-                    </span>
-                  </div>
+                  <div className={styles.kbName}>{kb.name}</div>
                   <div className={styles.kbMeta}>
                     {kb.fileCount} files • {formatBytes(kb.totalSize)}
+                  </div>
+                  <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', marginTop: '4px' }}>
+                    {kb.providers.map(p => (
+                      <span key={p} className={styles.providerBadge} data-provider={p}>
+                        {p === 'openai' ? 'OAI' : p === 'google' ? 'GEM' : 'CLA'}
+                      </span>
+                    ))}
                   </div>
                   <button
                     className={styles.deleteKBBtn}
@@ -213,15 +206,8 @@ export function KBManager() {
                         <span className={styles.idValue} title={selectedKB.vectorStoreId}>
                           {selectedKB.vectorStoreId}
                         </span>
-                        {selectedKB.provider === 'both' && (
-                          <button
-                            className={styles.detachBtn}
-                            onClick={() => detachProvider(selectedKB.id, 'openai')}
-                            disabled={isSyncing}
-                            title="Detach OpenAI provider"
-                          >
-                            Detach
-                          </button>
+                        {selectedKB.providers.length > 1 && (
+                          <button className={styles.detachBtn} onClick={() => detachProvider(selectedKB.id, 'openai')} disabled={isSyncing}>Detach</button>
                         )}
                       </div>
                     )}
@@ -231,30 +217,31 @@ export function KBManager() {
                         <span className={styles.idValue} title={selectedKB.googleCorpusId}>
                           {selectedKB.googleCorpusId}
                         </span>
-                        {selectedKB.provider === 'both' && (
-                          <button
-                            className={styles.detachBtn}
-                            onClick={() => detachProvider(selectedKB.id, 'google')}
-                            disabled={isSyncing}
-                            title="Detach Google provider"
-                          >
-                            Detach
-                          </button>
+                        {selectedKB.providers.length > 1 && (
+                          <button className={styles.detachBtn} onClick={() => detachProvider(selectedKB.id, 'google')} disabled={isSyncing}>Detach</button>
+                        )}
+                      </div>
+                    )}
+                    {selectedKB.providers.includes('anthropic') && (
+                      <div className={styles.idRow}>
+                        <span className={styles.idLabel}>Anthropic:</span>
+                        <span className={styles.idValue}>Files API</span>
+                        {selectedKB.providers.length > 1 && (
+                          <button className={styles.detachBtn} onClick={() => detachProvider(selectedKB.id, 'anthropic')} disabled={isSyncing}>Detach</button>
                         )}
                       </div>
                     )}
                   </div>
                 </div>
                 <div className={styles.headerActions}>
-                  {syncTargetProvider && (
+                  {missingProviders.length > 0 && (
                     <Button
                       variant="secondary"
                       size="sm"
                       onClick={() => setShowSyncModal(true)}
                       disabled={isSyncing}
-                      isLoading={isSyncing}
                     >
-                      Sync to {PROVIDER_LABELS[syncTargetProvider]}
+                      + Sync to Provider
                     </Button>
                   )}
                   <Button onClick={() => setShowUploadModal(true)}>
@@ -536,7 +523,7 @@ export function KBManager() {
                                 isLoading={deletingDBFileId === (file.id ?? file.openaiFileId)}
                                 disabled={deletingDBFileId !== null || (file.id === null && !file.openaiFileId)}
                                 onClick={async () => {
-                                  const fileKey = file.id ?? file.openaiFileId;
+                                  const fileKey = file.id ?? file.openaiFileId ?? null;
                                   setDeletingDBFileId(fileKey);
                                   try {
                                     await deleteFile(file);
@@ -592,24 +579,47 @@ export function KBManager() {
             />
           </div>
           <div className={styles.field}>
-            <label>Provider</label>
-            <select
-              className={styles.providerSelect}
-              value={newKBProvider}
-              onChange={(e) => setNewKBProvider(e.target.value as KBProvider)}
-            >
-              <option value="openai">OpenAI</option>
-              <option value="google">Google Gemini</option>
-              <option value="both">Both (OpenAI + Google)</option>
-              <option value="anthropic">Anthropic (Claude context injection)</option>
-            </select>
-            <span className={styles.providerHint}>{PROVIDER_HINTS[newKBProvider]}</span>
+            <label>Providers</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {ALL_PROVIDERS.map(p => {
+                const isChecked = newKBProviders.includes(p);
+                return (
+                  <label
+                    key={p}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer',
+                      padding: '10px 12px', borderRadius: '8px',
+                      border: `2px solid ${isChecked ? 'var(--primary-color, #6d28d9)' : 'var(--border, #e2e8f0)'}`,
+                      background: isChecked ? 'rgba(109, 40, 217, 0.04)' : '#fff',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setNewKBProviders(prev => [...prev, p]);
+                        } else {
+                          setNewKBProviders(prev => prev.filter(x => x !== p));
+                        }
+                      }}
+                      style={{ accentColor: 'var(--primary-color, #6d28d9)', width: '16px', height: '16px', flexShrink: 0 }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary, #1e293b)' }}>{PROVIDER_LABELS[p]}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>{PROVIDER_HINTS[p]}</div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
           </div>
           <div className={styles.actions}>
             <Button variant="secondary" onClick={() => setShowCreateModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateKB} disabled={!newKBName.trim() || isLoading} isLoading={isLoading}>
+            <Button onClick={handleCreateKB} disabled={!newKBName.trim() || newKBProviders.length === 0 || isLoading} isLoading={isLoading}>
               Create
             </Button>
           </div>
@@ -713,17 +723,75 @@ export function KBManager() {
         </div>
       </Modal>
 
-      {/* Sync Modal */}
-      {selectedKB && syncTargetProvider && (
-        <SyncKBModal
-          isOpen={showSyncModal}
-          sourceKB={selectedKB}
-          targetProvider={syncTargetProvider}
-          isSyncing={isSyncing}
-          onSync={handleSync}
-          onClose={() => setShowSyncModal(false)}
-        />
-      )}
+      {/* Sync to Provider Modal */}
+      <Modal
+        isOpen={showSyncModal}
+        onClose={() => { if (!isSyncing) { setShowSyncModal(false); setSyncSelectedProviders([]); } }}
+        title="Sync to Providers"
+        size="sm"
+      >
+        <div className={styles.form}>
+          <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '12px' }}>
+            Select which providers to sync <strong>{selectedKB?.name}</strong> to.
+            All existing files will be copied to the selected providers.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
+            {missingProviders.map(p => {
+              const isChecked = syncSelectedProviders.includes(p);
+              return (
+                <label
+                  key={p}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer',
+                    padding: '10px 12px', borderRadius: '8px',
+                    border: `2px solid ${isChecked ? 'var(--primary-color, #6d28d9)' : 'var(--border, #e2e8f0)'}`,
+                    background: isChecked ? 'rgba(109, 40, 217, 0.04)' : '#fff',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={e => {
+                      if (e.target.checked) setSyncSelectedProviders(prev => [...prev, p]);
+                      else setSyncSelectedProviders(prev => prev.filter(x => x !== p));
+                    }}
+                    style={{ accentColor: 'var(--primary-color, #6d28d9)', width: '16px', height: '16px', flexShrink: 0 }}
+                  />
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 600 }}>{PROVIDER_LABELS[p]}</div>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>{PROVIDER_HINTS[p]}</div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+          {selectedKB && (
+            <p style={{ fontSize: '12px', color: '#94a3b8' }}>
+              {selectedKB.fileCount} file{selectedKB.fileCount !== 1 ? 's' : ''} will be synced to each selected provider.
+            </p>
+          )}
+          <div className={styles.actions}>
+            <Button variant="secondary" onClick={() => { setShowSyncModal(false); setSyncSelectedProviders([]); }} disabled={isSyncing}>
+              Cancel
+            </Button>
+            <Button
+              disabled={syncSelectedProviders.length === 0 || isSyncing}
+              isLoading={isSyncing}
+              onClick={async () => {
+                if (!selectedKB) return;
+                for (const p of syncSelectedProviders) {
+                  await syncKnowledgeBase(selectedKB.id, p);
+                }
+                setShowSyncModal(false);
+                setSyncSelectedProviders([]);
+              }}
+            >
+              Sync to {syncSelectedProviders.length > 0 ? syncSelectedProviders.map(p => PROVIDER_LABELS[p]).join(' + ') : '...'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Confirm Delete KB Modal */}
       <Modal

@@ -1,5 +1,5 @@
 import { apiRequest, getBaseURL } from './api';
-import type { KnowledgeBase, KBFile, KBProvider } from '../types';
+import type { KnowledgeBase, KBFile, KBProviderName } from '../types';
 
 interface KBListResponse {
   knowledgeBases: Array<{
@@ -7,7 +7,7 @@ interface KBListResponse {
     name: string;
     description: string;
     agentName: string;
-    provider: KBProvider;
+    providers: KBProviderName[];
     vectorStoreId?: string;
     googleCorpusId?: string;
     syncedFromId?: number;
@@ -42,7 +42,7 @@ function mapKB(kb: KBListResponse['knowledgeBases'][0]): KnowledgeBase {
     name: kb.name,
     description: kb.description,
     agentName: kb.agentName || '',
-    provider: kb.provider || 'openai',
+    providers: kb.providers || ['openai'],
     vectorStoreId: kb.vectorStoreId,
     googleCorpusId: kb.googleCorpusId,
     syncedFromId: kb.syncedFromId,
@@ -93,14 +93,14 @@ export async function createKnowledgeBase(
   name: string,
   description: string,
   agentName: string,
-  provider: KBProvider,
+  providers: KBProviderName[],
   baseURL?: string
 ): Promise<KnowledgeBase> {
   const data = await apiRequest<{ success: boolean; knowledgeBase: KBListResponse['knowledgeBases'][0] }>(
     '/api/kb/create',
     {
       method: 'POST',
-      body: JSON.stringify({ name, description, agentName, provider }),
+      body: JSON.stringify({ name, description, agentName, providers }),
     },
     baseURL || getBaseURL()
   );
@@ -204,7 +204,7 @@ export function downloadFile(
 
 export async function detachProvider(
   kbId: number,
-  provider: KBProvider,
+  provider: KBProviderName,
   baseURL?: string
 ): Promise<KnowledgeBase> {
   const data = await apiRequest<{
@@ -223,7 +223,7 @@ export async function detachProvider(
 
 export async function syncKnowledgeBase(
   kbId: number,
-  targetProvider: KBProvider,
+  targetProvider: KBProviderName,
   baseURL?: string
 ): Promise<{ syncedCount: number; totalFiles: number; knowledgeBase: KnowledgeBase }> {
   const data = await apiRequest<{

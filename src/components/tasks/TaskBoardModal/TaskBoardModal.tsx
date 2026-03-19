@@ -67,6 +67,7 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
   const [showDraftsOnly, setShowDraftsOnly] = useState(false);
   const [showLimbo, setShowLimbo] = useState(false);
+  const [myTasksMode, setMyTasksMode] = useState(false);
   const [selectedDrafts, setSelectedDrafts] = useState<Set<number>>(new Set());
   const [selectedExports, setSelectedExports] = useState<Set<number>>(new Set());
   const [exportCopied, setExportCopied] = useState(false);
@@ -239,10 +240,17 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
   }, [tasks, showCompleted, currentUserId]);
   const boardTasksAll = useMemo(() => filteredTasks.filter(t => t.type !== 'goal' && t.type !== 'agenda'), [filteredTasks]);
   const boardTasks = useMemo(() => {
-    if (!titleSearch.trim()) return boardTasksAll;
-    const q = titleSearch.trim().toLowerCase();
-    return boardTasksAll.filter(t => t.title.toLowerCase().includes(q));
-  }, [boardTasksAll, titleSearch]);
+    let result = boardTasksAll;
+    if (titleSearch.trim()) {
+      const q = titleSearch.trim().toLowerCase();
+      result = result.filter(t => t.title.toLowerCase().includes(q));
+    }
+    if (myTasksMode && notificationsState.identity) {
+      const me = notificationsState.identity.toLowerCase();
+      result = result.filter(t => t.assignee?.toLowerCase() === me);
+    }
+    return result;
+  }, [boardTasksAll, titleSearch, myTasksMode, notificationsState.identity]);
 
   // Goals: last meeting date + notes
   const meetingDate = useMemo(() => {
@@ -361,8 +369,28 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     setPresetType(null);
   };
 
+  // Pending form data when test warning is shown
+  const pendingFormDataRef = useRef<CreateTaskData | null>(null);
+
   const handleUpdateTask = async (data: CreateTaskData) => {
     if (!editingTask) return;
+
+    // Warn if test task moved to done with unchecked checkboxes
+    if (data.status === 'done' && editingTask.status !== 'done' && data.type === 'test' && data.description) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = data.description;
+      const items = tempDiv.querySelectorAll('.checklist-item');
+      const unchecked = Array.from(items).filter(item => {
+        const state = item.getAttribute('data-state');
+        return !state || state === 'unchecked';
+      });
+      if (unchecked.length > 0) {
+        pendingFormDataRef.current = data;
+        setTestWarning({ taskId: editingTask.id, uncheckedCount: unchecked.length, source: 'form' });
+        return;
+      }
+    }
+
     // Set createdBy when marking as draft, pass updatedBy for notification attribution
     const taskData = {
       ...data,
@@ -768,16 +796,22 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
 
           <div className={styles.viewToggle}>
             <button
-              className={`${styles.viewBtn} ${viewMode === 'list' ? styles.active : ''}`}
-              onClick={() => { setViewMode('list'); }}
+              className={`${styles.viewBtn} ${viewMode === 'list' && !myTasksMode ? styles.active : ''}`}
+              onClick={() => { setViewMode('list'); setMyTasksMode(false); }}
             >
               List
             </button>
             <button
               className={`${styles.viewBtn} ${viewMode === 'board' ? styles.active : ''}`}
-              onClick={() => { setViewMode('board'); setSelectedExports(new Set()); setExportMode(false); }}
+              onClick={() => { setViewMode('board'); setSelectedExports(new Set()); setExportMode(false); setMyTasksMode(false); }}
             >
               Board
+            </button>
+            <button
+              className={`${styles.viewBtn} ${myTasksMode ? styles.active : ''}`}
+              onClick={() => { setViewMode('list'); setMyTasksMode(!myTasksMode); }}
+            >
+              My Tasks
             </button>
           </div>
 
@@ -1199,13 +1233,27 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                   className={styles.deleteConfirmBtn}
                   style={{ background: '#f59e0b' }}
                   onClick={async () => {
-                    const { taskId } = testWarning;
+                    const { taskId, source } = testWarning;
                     setTestWarning(null);
-                    setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, status: 'done' as const } : t)));
-                    try {
-                      await taskService.updateTask(taskId, { status: 'done' });
-                    } catch {
-                      loadData();
+                    if (source === 'form' && pendingFormDataRef.current && editingTask) {
+                      const data = pendingFormDataRef.current;
+                      pendingFormDataRef.current = null;
+                      const taskData = {
+                        ...data,
+                        createdBy: data.isDraft ? (editingTask.createdBy || currentUserId) : data.createdBy,
+                        updatedBy: notificationsState.identity || undefined,
+                      };
+                      const updated = await taskService.updateTask(editingTask.id, taskData);
+                      setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+                      setEditingTask(null);
+                      setShowForm(false);
+                    } else {
+                      setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, status: 'done' as const } : t)));
+                      try {
+                        await taskService.updateTask(taskId, { status: 'done' });
+                      } catch {
+                        loadData();
+                      }
                     }
                   }}
                 >
