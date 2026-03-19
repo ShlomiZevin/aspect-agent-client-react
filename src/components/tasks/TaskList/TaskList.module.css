@@ -79,6 +79,15 @@
   background: rgba(239, 68, 68, 0.1);
 }
 
+/* Completed row — strikethrough and faded */
+.table tbody tr.completedRow {
+  opacity: 0.5;
+}
+
+.table tbody tr.completedRow .title {
+  text-decoration: line-through;
+}
+
 .titleCell { white-space: normal !important; }
 
 .titleWrapper {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAgentConfig } from '../../../context';
 import { useKnowledgeBase } from '../../../hooks';
 import { formatBytes } from '../../../utils';
@@ -523,7 +523,7 @@ export function KBManager() {
                                 isLoading={deletingDBFileId === (file.id ?? file.openaiFileId)}
                                 disabled={deletingDBFileId !== null || (file.id === null && !file.openaiFileId)}
                                 onClick={async () => {
-                                  const fileKey = file.id ?? file.openaiFileId;
+                                  const fileKey = file.id ?? file.openaiFileId ?? null;
                                   setDeletingDBFileId(fileKey);
                                   try {
                                     await deleteFile(file);

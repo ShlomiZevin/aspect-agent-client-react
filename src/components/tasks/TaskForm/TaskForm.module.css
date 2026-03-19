@@ -624,7 +624,7 @@
 /* Depends On - inline row layout */
 .dependsOnRow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-sm);
 }
@@ -636,6 +636,7 @@
   white-space: nowrap;
   flex-shrink: 0;
   min-width: 70px;
+  margin-top: 6px;
 }
 
 .dependsOnField {
@@ -644,6 +645,15 @@
 }
 
 /* Selected dependency chip */
+.linkedChips {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+  max-height: 90px;
+  overflow-y: auto;
+}
+
 .selectedDependency {
   display: flex;
   align-items: center;
@@ -659,7 +669,6 @@
   border-radius: var(--radius-sm);
   font-size: var(--font-size-xs);
   font-weight: 500;
-  max-width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
