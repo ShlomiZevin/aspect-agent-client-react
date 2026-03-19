@@ -129,6 +129,37 @@ export async function getNeedsAttention(identity: string): Promise<number[]> {
   return apiRequest<number[]>(`/api/tasks/needs-attention?identity=${encodeURIComponent(identity)}`);
 }
 
+// ─── Deploy Tracking ────────────────────────────────────────────────
+
+/**
+ * Mark a task as deployed
+ */
+export async function markDeployed(id: number, identity?: string): Promise<Task> {
+  const data = await apiRequest<{ task: Task }>(`/api/tasks/${id}/deploy`, {
+    method: 'POST',
+    body: JSON.stringify({ identity }),
+  });
+  return { ...data.task, createdAt: new Date(data.task.createdAt), updatedAt: new Date(data.task.updatedAt) };
+}
+
+/**
+ * Get deployed tasks not yet reviewed by identity
+ */
+export async function getWhatsNew(identity: string): Promise<Task[]> {
+  const data = await apiRequest<{ tasks: Task[] }>(`/api/tasks/whats-new?identity=${encodeURIComponent(identity)}`);
+  return data.tasks.map(t => ({ ...t, createdAt: new Date(t.createdAt), updatedAt: new Date(t.updatedAt) }));
+}
+
+/**
+ * Dismiss a deployed task from "What's New"
+ */
+export async function dismissDeployed(id: number, identity: string): Promise<void> {
+  await apiRequest(`/api/tasks/${id}/dismiss-deployed`, {
+    method: 'POST',
+    body: JSON.stringify({ identity }),
+  });
+}
+
 export async function addAssignee(name: string): Promise<Assignee> {
   const data = await apiRequest<{ assignee: Assignee }>('/api/assignees', {
     method: 'POST',

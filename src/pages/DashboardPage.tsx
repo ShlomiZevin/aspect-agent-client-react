@@ -12,6 +12,7 @@ import { BillingPage } from '../components/dashboard/BillingPage';
 import { ApiKeysPage } from '../components/dashboard/ApiKeysPage';
 import { KBManager } from '../components/kb';
 import { DynamicKBPage } from '../components/dashboard/DynamicKBPage';
+import { TaskBoardContent } from '../components/tasks/TaskBoardModal/TaskBoardContent';
 import { aspectConfig, bankingOnboarderConfig, bankingOnboarderV2Config, compassConfig, freedaConfig, zer4uConfig } from '../agents';
 import type { AgentConfig } from '../types';
 
@@ -64,6 +65,14 @@ export function DashboardPage() {
         >
           <Routes>
             <Route index element={<Navigate to="feedback" replace />} />
+            <Route
+              path="task-board"
+              element={
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }} dir="ltr">
+                  <TaskBoardContent isActive={true} />
+                </div>
+              }
+            />
             <Route
               path="feedback"
               element={<FeedbackPage agentName={config.agentName} baseURL={config.baseURL} />}

@@ -400,6 +400,24 @@
   color: #64748b;
 }
 
+.toggleChip.deployBtn {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+  cursor: pointer;
+}
+
+.toggleChip.deployBtn:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.toggleChip.deployedBadge {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+  cursor: default;
+}
+
 .toggleChip.draftActive {
   background: rgba(168, 85, 247, 0.1);
   border-color: rgba(168, 85, 247, 0.3);

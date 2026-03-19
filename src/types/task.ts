@@ -27,6 +27,8 @@ export interface Task {
   isDraft: boolean; // Draft mode - only visible to creator
   createdBy?: string; // Browser-based user identifier
   opener?: string; // Human-readable name of who opened the task ("who you are" identity)
+  deployedAt?: string; // When task was deployed to production
+  deployedReviewedBy?: string[]; // Users who dismissed from "What's New"
   createdAt: Date;
   updatedAt: Date;
 }

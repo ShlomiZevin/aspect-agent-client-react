@@ -123,7 +123,7 @@ export function DynamicKBPage({ agentName }: DynamicKBPageProps) {
       {/* Sidebar */}
       <div className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
-          <span className={styles.sidebarTitle}>Dynamic Files</span>
+          <span className={styles.sidebarTitle}>Dynamic KB Files</span>
           <button className={styles.newFileBtn} onClick={() => setShowCreateModal(true)}>
             + New
           </button>

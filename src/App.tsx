@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, CompassPage, DemoPage, FreedaPage, HomePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, PitchDeckPage, TiktokPage, Zer4UPage } from './pages';
+import { AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, CompassPage, DemoPage, FreedaPage, HomePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, PitchDeckPage, TaskBoardPage, TiktokPage, Zer4UPage } from './pages';
 import { useTaskBoard, useQuickBug } from './hooks';
 import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
 import { QuickBugModal } from './components/tasks/QuickBugModal/QuickBugModal';
@@ -68,6 +68,9 @@ function AppContent() {
         <Route path="/tiktok/conversations/:conversationId" element={<TiktokPage />} />
         <Route path="/zer4u" element={<Zer4UPage />} />
         <Route path="/zer4u/conversations/:conversationId" element={<Zer4UPage />} />
+
+        {/* Task Board - standalone full page */}
+        <Route path="/tasks" element={<TaskBoardPage />} />
 
         {/* Dashboard routes */}
         <Route path="/:agent/dashboard/*" element={<DashboardPage />} />
