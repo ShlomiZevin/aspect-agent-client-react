@@ -369,8 +369,28 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
     setPresetType(null);
   };
 
+  // Pending form data when test warning is shown
+  const pendingFormDataRef = useRef<CreateTaskData | null>(null);
+
   const handleUpdateTask = async (data: CreateTaskData) => {
     if (!editingTask) return;
+
+    // Warn if test task moved to done with unchecked checkboxes
+    if (data.status === 'done' && editingTask.status !== 'done' && data.type === 'test' && data.description) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = data.description;
+      const items = tempDiv.querySelectorAll('.checklist-item');
+      const unchecked = Array.from(items).filter(item => {
+        const state = item.getAttribute('data-state');
+        return !state || state === 'unchecked';
+      });
+      if (unchecked.length > 0) {
+        pendingFormDataRef.current = data;
+        setTestWarning({ taskId: editingTask.id, uncheckedCount: unchecked.length, source: 'form' });
+        return;
+      }
+    }
+
     // Set createdBy when marking as draft, pass updatedBy for notification attribution
     const taskData = {
       ...data,
@@ -1213,13 +1233,27 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                   className={styles.deleteConfirmBtn}
                   style={{ background: '#f59e0b' }}
                   onClick={async () => {
-                    const { taskId } = testWarning;
+                    const { taskId, source } = testWarning;
                     setTestWarning(null);
-                    setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, status: 'done' as const } : t)));
-                    try {
-                      await taskService.updateTask(taskId, { status: 'done' });
-                    } catch {
-                      loadData();
+                    if (source === 'form' && pendingFormDataRef.current && editingTask) {
+                      const data = pendingFormDataRef.current;
+                      pendingFormDataRef.current = null;
+                      const taskData = {
+                        ...data,
+                        createdBy: data.isDraft ? (editingTask.createdBy || currentUserId) : data.createdBy,
+                        updatedBy: notificationsState.identity || undefined,
+                      };
+                      const updated = await taskService.updateTask(editingTask.id, taskData);
+                      setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+                      setEditingTask(null);
+                      setShowForm(false);
+                    } else {
+                      setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, status: 'done' as const } : t)));
+                      try {
+                        await taskService.updateTask(taskId, { status: 'done' });
+                      } catch {
+                        loadData();
+                      }
                     }
                   }}
                 >
