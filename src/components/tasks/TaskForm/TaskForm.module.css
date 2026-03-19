@@ -674,6 +674,15 @@
   white-space: nowrap;
 }
 
+.dependencyChipClickable {
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.dependencyChipClickable:hover {
+  opacity: 0.85;
+}
+
 .removeDepBtn {
   background: var(--surface-light);
   border: none;

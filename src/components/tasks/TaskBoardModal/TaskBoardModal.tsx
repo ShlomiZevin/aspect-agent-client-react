@@ -1153,6 +1153,9 @@ export function TaskBoardModal({ isOpen, onClose, openInDraftsMode, onDraftsMode
                   setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, status: newStatus as Task['status'], isCompleted: newCompleted } : t));
                   handleCloseForm();
                 } : undefined}
+                onLinkedTaskClick={(linkedTask) => {
+                  setEditingTask(linkedTask);
+                }}
                 onCancel={handleCloseForm}
                 onDelete={editingTask ? () => handleDeleteTask(editingTask) : undefined}
               />

@@ -41,6 +41,7 @@ interface TaskFormProps {
   onSubmit: (data: CreateTaskData) => void;
   onAutoSave?: (data: CreateTaskData) => Promise<void>;
   onMarkRead?: () => void;
+  onLinkedTaskClick?: (task: Task) => void;
   onCancel: () => void;
   onDelete?: () => void;
 }
@@ -139,7 +140,7 @@ function TestStepsSidebar({ description, onStepClick, onNoteChange }: { descript
   );
 }
 
-export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, currentIdentity, onSubmit, onAutoSave, onMarkRead, onCancel, onDelete }: TaskFormProps) {
+export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, currentIdentity, onSubmit, onAutoSave, onMarkRead, onLinkedTaskClick, onCancel, onDelete }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [description, setDescription] = useState('');
@@ -677,7 +678,10 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                         const lt = allTasks.find(t => t.id === ltId);
                         return (
                           <div key={ltId} className={styles.selectedDependency}>
-                            <span className={styles.dependencyChip}>
+                            <span
+                              className={`${styles.dependencyChip} ${onLinkedTaskClick && lt ? styles.dependencyChipClickable : ''}`}
+                              onClick={() => { if (onLinkedTaskClick && lt) onLinkedTaskClick(lt); }}
+                            >
                               #{ltId} {lt?.title || 'Unknown'}
                             </span>
                             <button
