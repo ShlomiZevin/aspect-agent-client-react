@@ -4,6 +4,7 @@ import { useKnowledgeBase } from '../../../hooks';
 import { formatBytes } from '../../../utils';
 import { Button, Modal } from '../../common';
 import { SyncKBModal } from '../SyncKBModal';
+import { AttachDynamicFileModal } from '../AttachDynamicFileModal';
 import { downloadFile } from '../../../services/kbService';
 import type { KBProvider } from '../../../types';
 import styles from './KBManager.module.css';
@@ -47,6 +48,7 @@ export function KBManager() {
   const [confirmDeleteKBId, setConfirmDeleteKBId] = useState<number | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const [showAttachDynamicModal, setShowAttachDynamicModal] = useState(false);
   const [newKBName, setNewKBName] = useState('');
   const [newKBDescription, setNewKBDescription] = useState('');
   const [newKBProvider, setNewKBProvider] = useState<KBProvider>('openai');
@@ -227,6 +229,9 @@ export function KBManager() {
                       Sync to {PROVIDER_LABELS[syncTargetProvider]}
                     </Button>
                   )}
+                  <Button variant="secondary" onClick={() => setShowAttachDynamicModal(true)}>
+                    Attach Dynamic File
+                  </Button>
                   <Button onClick={() => setShowUploadModal(true)}>
                     Upload Files
                   </Button>
@@ -262,11 +267,18 @@ export function KBManager() {
                       </tr>
                     </thead>
                     <tbody>
-                      {files.map(file => (
+                      {files.map(file => {
+                        const isDynamic = !!file.originalFileUrl?.startsWith('dynamic-files/');
+                        return (
                         <tr key={file.id}>
                           <td>
                             <span className={styles.fileIcon}>{getFileIcon(file.type)}</span>
                             {file.name}
+                            {isDynamic && (
+                              <span className={styles.dynamicBadge} title="Managed via Dynamic KB">
+                                dynamic
+                              </span>
+                            )}
                           </td>
                           <td>{file.type}</td>
                           <td>{formatBytes(file.size)}</td>
@@ -292,7 +304,8 @@ export function KBManager() {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 )}
@@ -453,6 +466,19 @@ export function KBManager() {
           </div>
         </div>
       </Modal>
+
+      {/* Attach Dynamic File Modal */}
+      {selectedKB && (
+        <AttachDynamicFileModal
+          isOpen={showAttachDynamicModal}
+          onClose={() => setShowAttachDynamicModal(false)}
+          kbId={selectedKB.id}
+          agentName={config.agentName}
+          baseURL={config.baseURL}
+          existingFiles={files}
+          onAttached={() => selectKnowledgeBase(selectedKB)}
+        />
+      )}
 
       {/* Sync Modal */}
       {selectedKB && syncTargetProvider && (

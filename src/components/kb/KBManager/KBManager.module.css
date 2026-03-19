@@ -549,3 +549,17 @@
     order: 1;
   }
 }
+
+.dynamicBadge {
+  display: inline-block;
+  margin-left: 6px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 500;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
