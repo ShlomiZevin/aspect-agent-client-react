@@ -777,9 +777,8 @@
 }
 
 .formContainer {
-  width: 90%;
-  max-width: 480px;
-  max-height: 85%;
+  width: min(90vw, 480px);
+  max-height: 85vh;
   background: var(--surface);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
@@ -789,6 +788,46 @@
 
 .formContainerEdit {
   max-width: 1100px;
+}
+
+.formRow {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  max-height: 85vh;
+}
+
+.sideTaskContainer {
+  width: 520px;
+  min-width: 320px;
+  max-height: 85vh;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  animation: scaleIn 0.15s ease;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.closeSideBtn {
+  position: absolute;
+  top: 8px;
+  right: 36px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-muted);
+  z-index: 2;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.closeSideBtn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
 }
 
 @keyframes scaleIn {

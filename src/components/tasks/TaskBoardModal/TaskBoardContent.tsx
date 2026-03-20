@@ -60,6 +60,9 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
   const hasLoadedRef = useRef(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [sideTask, setSideTask] = useState<Task | null>(null);
+  const sideTaskRef = useRef<Task | null>(null);
+  sideTaskRef.current = sideTask;
   const [showAllDomains, setShowAllDomains] = useState(false);
   const [filterDomain, setFilterDomain] = useState<string>('current');
   const [filterAssignee, setFilterAssignee] = useState<string | null>(null);
@@ -451,6 +454,20 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
     setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
   }, [currentUserId, notificationsState.identity]);
 
+  const handleUpdateSideTask = async (data: CreateTaskData) => {
+    if (!sideTaskRef.current) return;
+    const updated = await taskService.updateTask(sideTaskRef.current.id, data);
+    setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+    setSideTask(null);
+  };
+
+  const handleAutoSaveSideTask = useCallback(async (data: CreateTaskData) => {
+    if (!sideTaskRef.current) return;
+    const updated = await taskService.updateTask(sideTaskRef.current.id, data);
+    setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+    setSideTask(updated);
+  }, []);
+
   const handleDeleteTask = async (task: Task) => {
     setTaskToDelete(task);
   };
@@ -640,6 +657,7 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
   const handleCloseForm = async () => {
     setEditingTask(null);
     setShowForm(false);
+    setSideTask(null);
     setPresetGoalMode(false);
     setPresetType(null);
     // Re-fetch attention list if filter is active (user may have liked/replied)
@@ -1217,36 +1235,62 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
       {/* Form overlay */}
       {showForm && (
         <div className={styles.formOverlay} onClick={handleCloseForm}>
-          <div className={`${styles.formContainer} ${editingTask ? styles.formContainerEdit : ''}`} onClick={(e) => e.stopPropagation()}>
-            <TaskForm
-              task={editingTask}
-              assignees={assignees}
-              allTasks={tasks}
-              currentDomain={currentDomain}
-              showAllDomains={showAllDomains}
-              crewMembers={crewMembers}
-              commentRefreshTrigger={commentRefreshTrigger}
-              initialType={presetGoalMode ? (presetType || 'goal') : undefined}
-              currentIdentity={notificationsState.identity || undefined}
-              onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
-              onAutoSave={editingTask ? handleAutoSave : undefined}
-              onDirtyChange={(dirty) => { formDirtyRef.current = dirty; }}
-              onMarkRead={(editingTask?.type === 'read' || editingTask?.type === 'test') ? async () => {
-                const isRead = editingTask.isCompleted;
-                const newStatus = isRead ? 'todo' : 'done';
-                const newCompleted = !isRead;
-                await taskService.updateTask(editingTask.id, { status: newStatus, isCompleted: newCompleted });
-                setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, status: newStatus as Task['status'], isCompleted: newCompleted } : t));
-                handleCloseForm();
-              } : undefined}
-              onLinkedTaskClick={(linkedTask) => {
-                setEditingTask(linkedTask);
-              }}
-              onDeploy={editingTask?.status === 'done' && !editingTask?.deployedAt ? handleDeploy : undefined}
-              onUndeploy={editingTask?.deployedAt ? handleUndeploy : undefined}
-              onCancel={handleCloseForm}
-              onDelete={editingTask ? () => handleDeleteTask(editingTask) : undefined}
-            />
+          <div className={styles.formRow} onClick={(e) => e.stopPropagation()}>
+            <div className={`${styles.formContainer} ${editingTask ? styles.formContainerEdit : ''}`}>
+              <TaskForm
+                task={editingTask}
+                assignees={assignees}
+                allTasks={tasks}
+                currentDomain={currentDomain}
+                showAllDomains={showAllDomains}
+                crewMembers={crewMembers}
+                commentRefreshTrigger={commentRefreshTrigger}
+                initialType={presetGoalMode ? (presetType || 'goal') : undefined}
+                currentIdentity={notificationsState.identity || undefined}
+                onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
+                onAutoSave={editingTask ? handleAutoSave : undefined}
+                onDirtyChange={(dirty) => { formDirtyRef.current = dirty; }}
+                onMarkRead={(editingTask?.type === 'read' || editingTask?.type === 'test') ? async () => {
+                  const isRead = editingTask.isCompleted;
+                  const newStatus = isRead ? 'todo' : 'done';
+                  const newCompleted = !isRead;
+                  await taskService.updateTask(editingTask.id, { status: newStatus, isCompleted: newCompleted });
+                  setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, status: newStatus as Task['status'], isCompleted: newCompleted } : t));
+                  handleCloseForm();
+                } : undefined}
+                onLinkedTaskClick={(linkedTask) => {
+                  setSideTask(linkedTask);
+                  taskService.getTask(linkedTask.id).then(fresh => { if (fresh) setSideTask(fresh); }).catch(() => {});
+                }}
+                onDeploy={editingTask?.status === 'done' && !editingTask?.deployedAt ? handleDeploy : undefined}
+                onUndeploy={editingTask?.deployedAt ? handleUndeploy : undefined}
+                onCancel={handleCloseForm}
+                onDelete={editingTask ? () => handleDeleteTask(editingTask) : undefined}
+              />
+            </div>
+            {sideTask && (
+              <div className={styles.sideTaskContainer}>
+                <button className={styles.closeSideBtn} onClick={() => setSideTask(null)} title="Close">×</button>
+                <TaskForm
+                  task={sideTask}
+                  assignees={assignees}
+                  allTasks={tasks}
+                  currentDomain={currentDomain}
+                  showAllDomains={showAllDomains}
+                  crewMembers={crewMembers}
+                  commentRefreshTrigger={commentRefreshTrigger}
+                  currentIdentity={notificationsState.identity || undefined}
+                  onSubmit={handleUpdateSideTask}
+                  onAutoSave={handleAutoSaveSideTask}
+                  onDirtyChange={() => {}}
+                  onLinkedTaskClick={(linkedTask) => {
+                    setSideTask(linkedTask);
+                    taskService.getTask(linkedTask.id).then(fresh => { if (fresh) setSideTask(fresh); }).catch(() => {});
+                  }}
+                  onCancel={() => setSideTask(null)}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}

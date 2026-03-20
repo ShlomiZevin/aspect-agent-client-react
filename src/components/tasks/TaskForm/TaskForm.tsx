@@ -228,12 +228,24 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   suggestionsRef.current = dependsOnSuggestions;
 
   // Calculate fixed position for autocomplete dropdown (escapes overflow:hidden parents)
+  // Also updates on resize/scroll so position stays correct after window resize
   useLayoutEffect(() => {
-    if (showDependsOnDropdown && dependsOnSuggestions.length > 0 && dependsOnInputRef.current) {
-      const rect = dependsOnInputRef.current.getBoundingClientRect();
-      setDropdownPos({ top: rect.bottom + 2, left: rect.left, width: rect.width });
-    } else {
-      setDropdownPos(null);
+    const updatePos = () => {
+      if (showDependsOnDropdown && dependsOnSuggestions.length > 0 && dependsOnInputRef.current) {
+        const rect = dependsOnInputRef.current.getBoundingClientRect();
+        setDropdownPos({ top: rect.bottom + 2, left: rect.left, width: rect.width });
+      } else {
+        setDropdownPos(null);
+      }
+    };
+    updatePos();
+    if (showDependsOnDropdown && dependsOnSuggestions.length > 0) {
+      window.addEventListener('resize', updatePos);
+      window.addEventListener('scroll', updatePos, true);
+      return () => {
+        window.removeEventListener('resize', updatePos);
+        window.removeEventListener('scroll', updatePos, true);
+      };
     }
   }, [showDependsOnDropdown, dependsOnSuggestions]);
 
