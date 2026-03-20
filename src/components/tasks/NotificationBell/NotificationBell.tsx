@@ -28,6 +28,7 @@ function formatText(type: string, taskId: number): string {
     return `Task #${taskId} was moved to ${label}`;
   }
   if (type === 'status_changed') return `Task #${taskId} was moved to a new status`; // legacy
+  if (type === 'deployed') return `🚀 Task #${taskId} was deployed to production`;
   return `Someone commented on your task #${taskId}`;
 }
 
@@ -35,6 +36,7 @@ function dotClass(type: string): string {
   if (type === 'mention') return 'dotMention';
   if (type === 'assigned' || type.startsWith('assigned_by:')) return 'dotAssigned';
   if (type.startsWith('moved_to_') || type === 'status_changed') return 'dotStatus';
+  if (type === 'deployed') return 'dotStatus';
   return 'dotComment';
 }
 
