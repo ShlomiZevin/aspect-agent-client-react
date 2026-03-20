@@ -298,6 +298,7 @@ export interface UseChatOptions {
   personaOverride?: string; // Session override for agent-level persona
   kbOverrides?: Record<string, string[]>;  // Session overrides: { crewName: string[] }
   thinkingPromptOverrides?: Record<string, string>; // Session overrides: { crewName: thinkingPrompt }
+  thinkingModelOverrides?: Record<string, string>;  // Session overrides: { crewName: thinkingModel }
   thinkerDisabled?: Record<string, boolean>; // Session overrides: { crewName: true } to disable thinker
   onCrewInfo?: (crew: CrewMember) => void;
   onCrewTransition?: (transition: CrewTransition) => void;
@@ -326,7 +327,7 @@ export interface UseChatReturn {
  * Main chat hook - handles messaging, streaming, and thinking indicators
  */
 export function useChat(options: UseChatOptions): UseChatReturn {
-  const { config, conversationId, userId, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkerDisabled, onCrewInfo, onCrewTransition, onFieldExtracted } = options;
+  const { config, conversationId, userId, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, onCrewInfo, onCrewTransition, onFieldExtracted } = options;
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
     conversationId,
@@ -369,6 +370,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             personaOverride,
             kbOverrides,
             thinkingPromptOverrides,
+            thinkingModelOverrides,
             thinkerDisabled,
           },
           {
@@ -463,6 +465,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       fallbackOverrides,
       kbOverrides,
       thinkingPromptOverrides,
+      thinkingModelOverrides,
       thinkerDisabled,
       onCrewInfo,
       onCrewTransition,

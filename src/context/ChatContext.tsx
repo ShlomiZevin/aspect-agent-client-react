@@ -42,6 +42,7 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   setPersonaOverride: (persona: string | null) => void;
   setKBOverride: (crewMemberId: string, sources: string[]) => void;
   setThinkingPromptOverride: (crewMemberId: string, prompt: string) => void;
+  setThinkingModelOverride: (crewMemberId: string, model: string) => void;
   thinkerDisabled: Record<string, boolean>;
   setThinkerDisabled: (crewMemberId: string, disabled: boolean) => void;
   // Fields editor
@@ -172,6 +173,19 @@ export function ChatProvider({ children }: ChatProviderProps) {
     }
   }, []);
 
+  const [thinkingModelOverrides, setThinkingModelOverrides] = useState<Record<string, string>>({});
+  const setThinkingModelOverride = useCallback((crewMemberId: string, model: string) => {
+    if (model) {
+      setThinkingModelOverrides(prev => ({ ...prev, [crewMemberId]: model }));
+    } else {
+      setThinkingModelOverrides(prev => {
+        const next = { ...prev };
+        delete next[crewMemberId];
+        return next;
+      });
+    }
+  }, []);
+
   const conversation = useConversation(
     config.storagePrefix,
     config.agentName,
@@ -213,6 +227,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     personaOverride: debugMode ? (personaOverride || undefined) : undefined,
     kbOverrides: debugMode ? kbOverrides : undefined,
     thinkingPromptOverrides: debugMode ? thinkingPromptOverrides : undefined,
+    thinkingModelOverrides: debugMode ? thinkingModelOverrides : undefined,
     thinkerDisabled: debugMode ? thinkerDisabled : undefined,
     onCrewInfo: (crewInfo) => {
       crew.setCurrentCrew(crewInfo);
@@ -479,6 +494,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     setPersonaOverride,
     setKBOverride,
     setThinkingPromptOverride,
+    setThinkingModelOverride,
     thinkerDisabled,
     setThinkerDisabled,
     // Fields editor

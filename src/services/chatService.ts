@@ -16,6 +16,7 @@ export interface StreamChatOptions {
   personaOverride?: string; // Session override for agent-level persona (applies to all crews)
   kbOverrides?: Record<string, string[]>; // Session override: { crewName: string[] } - same pattern as modelOverrides
   thinkingPromptOverrides?: Record<string, string>; // Session override: { crewName: thinkingPrompt }
+  thinkingModelOverrides?: Record<string, string>;  // Session override: { crewName: thinkingModel }
   thinkerDisabled?: Record<string, boolean>; // Session override: { crewName: true } to disable thinker
 }
 
@@ -49,7 +50,7 @@ export async function streamChat(
   options: StreamChatOptions,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const { message, conversationId, agentName, userId, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkerDisabled } = options;
+  const { message, conversationId, agentName, userId, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled } = options;
   const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onModelUsed, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onFieldExtracted } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
@@ -71,6 +72,7 @@ export async function streamChat(
         ...(personaOverride && { personaOverride }),
         ...(kbOverrides && Object.keys(kbOverrides).length > 0 && { kbOverrides }),
         ...(thinkingPromptOverrides && Object.keys(thinkingPromptOverrides).length > 0 && { thinkingPromptOverrides }),
+        ...(thinkingModelOverrides && Object.keys(thinkingModelOverrides).length > 0 && { thinkingModelOverrides }),
         ...(thinkerDisabled && Object.keys(thinkerDisabled).length > 0 && { thinkerDisabled }),
       }),
     });

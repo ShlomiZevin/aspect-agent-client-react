@@ -85,6 +85,7 @@ interface PromptEditorPanelProps {
   personaOverride: string | null;
   onPersonaOverride: (persona: string | null) => void;
   onThinkingPromptOverride: (crewMemberId: string, prompt: string) => void;
+  onThinkingModelOverride: (crewMemberId: string, model: string) => void;
   thinkerDisabled: Record<string, boolean>;
   onThinkerDisabledToggle: (crewMemberId: string, disabled: boolean) => void;
 }
@@ -110,6 +111,7 @@ export function PromptEditorPanel({
   personaOverride,
   onPersonaOverride,
   onThinkingPromptOverride,
+  onThinkingModelOverride,
   thinkerDisabled,
   onThinkerDisabledToggle,
 }: PromptEditorPanelProps) {
@@ -136,6 +138,7 @@ export function PromptEditorPanel({
   const [providerOverrides, setProviderOverrides] = useState<Record<string, string>>({});
   // Fallback model override state
   const [fallbackOverrides, setFallbackOverrides] = useState<Record<string, string>>({});
+  const [thinkingModelOverrides, setThinkingModelOverrides] = useState<Record<string, string>>({});
 
   // Status message
   const [status, setStatus] = useState<Status>({ type: null, message: '' });
@@ -1177,9 +1180,20 @@ export function PromptEditorPanel({
                           />
                           <span>Thinker {isDisabled ? 'off' : 'on'}</span>
                         </label>
-                        <span className={styles.thinkerModel}>
-                          Model: {selectedCrewMember?.thinkingModel || 'claude-sonnet-4-6'}
-                        </span>
+                        <select
+                          className={`${styles.modelSelect} ${thinkingModelOverrides[selectedCrewId] ? styles.modelOverride : ''}`}
+                          value={thinkingModelOverrides[selectedCrewId] || selectedCrewMember?.thinkingModel || 'claude-sonnet-4-6'}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const defaultThinkerModel = selectedCrewMember?.thinkingModel || 'claude-sonnet-4-6';
+                            setThinkingModelOverrides(prev => ({ ...prev, [selectedCrewId]: val }));
+                            onThinkingModelOverride(selectedCrewId, val === defaultThinkerModel ? '' : val);
+                          }}
+                        >
+                          {[...ANTHROPIC_MODELS, ...OPENAI_MODELS, ...GOOGLE_MODELS].map(m => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
                       </div>
                       <textarea
                         className={`${styles.promptTextarea} ${styles.transitionTextarea} ${isThinkingDirty ? styles.dirty : ''}`}
