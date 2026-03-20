@@ -131,7 +131,7 @@ export function DebugPanel({ data }: DebugPanelProps) {
       content: [
         `Configured: ${data.model}${data.modelSource === 'session_override' ? ' (session override)' : ''}`,
         `Fallback: ${data.fallbackModel || 'gpt-4o (default)'}${data.fallbackModelSource === 'session_override' ? ' (session override)' : ''}`,
-        ...(data.modelUsed ? [`Actually used: ${data.modelUsed}${data.fallbackUsed ? ' *** FALLBACK (primary failed) ***' : ''}`] : []),
+        ...(data.modelUsed ? [`Actually used: ${data.fallbackUsed ? 'Fallback' : 'Primary'} (${data.modelUsed})`] : []),
       ].join('\n'),
     },
     { key: 'instructions', label: 'Full Instructions (Sent to LLM)', content: data.fullInstructions },
