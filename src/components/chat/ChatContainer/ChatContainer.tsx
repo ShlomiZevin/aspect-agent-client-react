@@ -45,6 +45,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     baseURL,
     setPromptOverride,
     setModelOverride,
+    setFallbackOverride,
     personaOverride,
     setPersonaOverride,
     setKBOverride,
@@ -233,6 +234,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           onClose={() => setIsPromptPanelOpen(false)}
           onSessionOverride={setPromptOverride}
           onModelOverride={setModelOverride}
+          onFallbackOverride={setFallbackOverride}
           onKBOverride={setKBOverride}
           onFireTransitionPrompt={injectTransitionPrompt}
           personaOverride={personaOverride}

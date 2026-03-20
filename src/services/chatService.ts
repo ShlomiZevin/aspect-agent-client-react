@@ -11,7 +11,8 @@ export interface StreamChatOptions {
   overrideCrewMember?: string | null;
   debug?: boolean;
   promptOverrides?: Record<string, string>; // Session overrides: { crewName: prompt }
-  modelOverrides?: Record<string, string>;  // Session overrides: { crewName: modelName }
+  modelOverrides?: Record<string, string>;      // Session overrides: { crewName: modelName }
+  fallbackOverrides?: Record<string, string>;   // Session overrides: { crewName: fallbackModelName }
   personaOverride?: string; // Session override for agent-level persona (applies to all crews)
   kbOverrides?: Record<string, string[]>; // Session override: { crewName: string[] } - same pattern as modelOverrides
   thinkingPromptOverrides?: Record<string, string>; // Session override: { crewName: thinkingPrompt }
@@ -34,6 +35,7 @@ export interface StreamCallbacks {
   onCrewInfo?: (crew: CrewMember) => void;
   onCrewTransition?: (transition: CrewTransition) => void;
   onDebugData?: (data: DebugPromptData) => void;
+  onModelUsed?: (data: { model: string; modelUsed: string; fallbackUsed: boolean }) => void;
   onDebugContextUpdate?: (data: PostExtractionContext) => void;
   onMessageSaved?: (messageId: number) => void;
   onUserMessageSaved?: (messageId: number) => void;
@@ -47,8 +49,8 @@ export async function streamChat(
   options: StreamChatOptions,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const { message, conversationId, agentName, userId, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkerDisabled } = options;
-  const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onFieldExtracted } = callbacks;
+  const { message, conversationId, agentName, userId, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkerDisabled } = options;
+  const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onModelUsed, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onFieldExtracted } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
 
@@ -65,6 +67,7 @@ export async function streamChat(
         ...(debug && { debug: true }),
         ...(promptOverrides && Object.keys(promptOverrides).length > 0 && { promptOverrides }),
         ...(modelOverrides && Object.keys(modelOverrides).length > 0 && { modelOverrides }),
+        ...(fallbackOverrides && Object.keys(fallbackOverrides).length > 0 && { fallbackOverrides }),
         ...(personaOverride && { personaOverride }),
         ...(kbOverrides && Object.keys(kbOverrides).length > 0 && { kbOverrides }),
         ...(thinkingPromptOverrides && Object.keys(thinkingPromptOverrides).length > 0 && { thinkingPromptOverrides }),
@@ -152,6 +155,10 @@ export async function streamChat(
             // Handle debug prompt data (dev debug mode)
             else if (parsed.type === 'debug_prompt' && parsed.data) {
               onDebugData?.(parsed.data);
+            }
+            // Handle model_used event — which model actually responded
+            else if (parsed.type === 'model_used') {
+              onModelUsed?.({ model: parsed.model, modelUsed: parsed.modelUsed, fallbackUsed: parsed.fallbackUsed });
             }
             // Handle debug context update (post-extraction)
             else if (parsed.type === 'debug_context_update' && parsed.data) {

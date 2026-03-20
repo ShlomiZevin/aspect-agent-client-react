@@ -75,6 +75,11 @@ export interface DebugPromptData {
   model: string;
   modelSource?: string; // 'crew_default' or 'session_override'
   defaultModel?: string; // Original hardcoded model for comparison
+  fallbackModel?: string; // Configured fallback model
+  fallbackModelSource?: string; // 'crew_default' or 'session_override'
+  // Populated after response completes (from model_used event)
+  modelUsed?: string; // Model that actually generated the response
+  fallbackUsed?: boolean; // true when fallback model was used
   maxTokens: number;
   tools: Record<string, unknown>[];
   knowledgeBase: { enabled: boolean; storeId: string | null } | null;
@@ -154,6 +159,7 @@ export type ChatAction =
   | { type: 'CLEAR_ERROR' }
   | { type: 'SET_DEBUG_DATA'; payload: DebugPromptData }
   | { type: 'UPDATE_DEBUG_CONTEXT'; payload: PostExtractionContext }
+  | { type: 'UPDATE_DEBUG_FALLBACK'; payload: { modelUsed: string; fallbackUsed: boolean } }
   | { type: 'SET_MESSAGE_DB_ID'; payload: number }
   | { type: 'SET_USER_MESSAGE_DB_ID'; payload: number }
   | { type: 'DELETE_MESSAGE'; payload: string }

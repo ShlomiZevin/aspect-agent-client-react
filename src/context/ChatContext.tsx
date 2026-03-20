@@ -37,6 +37,7 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   // Prompt overrides (debug mode)
   setPromptOverride: (crewMemberId: string, prompt: string) => void;
   setModelOverride: (crewMemberId: string, model: string) => void;
+  setFallbackOverride: (crewMemberId: string, model: string) => void;
   personaOverride: string | null;
   setPersonaOverride: (persona: string | null) => void;
   setKBOverride: (crewMemberId: string, sources: string[]) => void;
@@ -111,6 +112,20 @@ export function ChatProvider({ children }: ChatProviderProps) {
       setModelOverrides(prev => ({ ...prev, [crewMemberId]: model }));
     } else {
       setModelOverrides(prev => {
+        const next = { ...prev };
+        delete next[crewMemberId];
+        return next;
+      });
+    }
+  }, []);
+
+  // Fallback model overrides for debug mode (session-only)
+  const [fallbackOverrides, setFallbackOverrides] = useState<Record<string, string>>({});
+  const setFallbackOverride = useCallback((crewMemberId: string, model: string) => {
+    if (model) {
+      setFallbackOverrides(prev => ({ ...prev, [crewMemberId]: model }));
+    } else {
+      setFallbackOverrides(prev => {
         const next = { ...prev };
         delete next[crewMemberId];
         return next;
@@ -194,6 +209,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     debug: debugMode,
     promptOverrides: debugMode ? promptOverrides : undefined, // Only use in debug mode
     modelOverrides: debugMode ? modelOverrides : undefined,
+    fallbackOverrides: debugMode ? fallbackOverrides : undefined,
     personaOverride: debugMode ? (personaOverride || undefined) : undefined,
     kbOverrides: debugMode ? kbOverrides : undefined,
     thinkingPromptOverrides: debugMode ? thinkingPromptOverrides : undefined,
@@ -458,6 +474,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     // Prompt overrides (debug mode)
     setPromptOverride,
     setModelOverride,
+    setFallbackOverride,
     personaOverride,
     setPersonaOverride,
     setKBOverride,

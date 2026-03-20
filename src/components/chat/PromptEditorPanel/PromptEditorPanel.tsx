@@ -79,6 +79,7 @@ interface PromptEditorPanelProps {
   onClose: () => void;
   onSessionOverride: (crewMemberId: string, prompt: string) => void;
   onModelOverride: (crewMemberId: string, model: string) => void;
+  onFallbackOverride: (crewMemberId: string, model: string) => void;
   onKBOverride: (crewMemberId: string, sources: string[]) => void;
   onFireTransitionPrompt?: (content: string, crewMemberName?: string) => Promise<void>;
   personaOverride: string | null;
@@ -103,6 +104,7 @@ export function PromptEditorPanel({
   onClose,
   onSessionOverride,
   onModelOverride,
+  onFallbackOverride,
   onKBOverride,
   onFireTransitionPrompt,
   personaOverride,
@@ -132,6 +134,8 @@ export function PromptEditorPanel({
   // Model/provider override state
   const [modelOverrides, setModelOverrides] = useState<Record<string, string>>({});
   const [providerOverrides, setProviderOverrides] = useState<Record<string, string>>({});
+  // Fallback model override state
+  const [fallbackOverrides, setFallbackOverrides] = useState<Record<string, string>>({});
 
   // Status message
   const [status, setStatus] = useState<Status>({ type: null, message: '' });
@@ -534,6 +538,28 @@ export function PromptEditorPanel({
     }
   }, [selectedCrewId, selectedVersion, agentName, baseURL]);
 
+  // Default fallback model for selected crew — from prompts API or crew list
+  const defaultFallbackModel = selectedPromptData?.fallbackModel || selectedCrewMember?.fallbackModel || 'gpt-4o';
+  const currentFallbackModel = fallbackOverrides[selectedCrewId] || defaultFallbackModel;
+  const hasFallbackOverride = selectedCrewId in fallbackOverrides;
+
+  // Handle fallback model change
+  const handleFallbackModelChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newModel = e.target.value;
+    if (newModel === defaultFallbackModel) {
+      setFallbackOverrides(prev => {
+        const next = { ...prev };
+        delete next[selectedCrewId];
+        return next;
+      });
+      onFallbackOverride(selectedCrewId, '');
+    } else {
+      setFallbackOverrides(prev => ({ ...prev, [selectedCrewId]: newModel }));
+      onFallbackOverride(selectedCrewId, newModel);
+      setStatus({ type: 'info', message: `Fallback model override: ${newModel}` });
+    }
+  }, [selectedCrewId, defaultFallbackModel, onFallbackOverride]);
+
   // Handle model change
   const handleModelChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newModel = e.target.value;
@@ -587,6 +613,13 @@ export function PromptEditorPanel({
         return next;
       });
       onModelOverride(selectedCrewId, '');
+      // Also revert fallback override
+      setFallbackOverrides(prev => {
+        const next = { ...prev };
+        delete next[selectedCrewId];
+        return next;
+      });
+      onFallbackOverride(selectedCrewId, '');
       setProviderOverrides(prev => {
         const next = { ...prev };
         delete next[selectedCrewId];
@@ -842,6 +875,22 @@ export function PromptEditorPanel({
                 >
                   {AVAILABLE_PROVIDERS.map(provider => (
                     <option key={provider} value={provider}>{provider}</option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.modelSection}>
+                <label className={styles.selectorLabel}>
+                  Fallback{hasFallbackOverride && <span className={styles.hasContentBadge}>OVERRIDE</span>}
+                </label>
+                <select
+                  className={styles.crewSelect}
+                  value={currentFallbackModel}
+                  onChange={handleFallbackModelChange}
+                >
+                  {availableModels.map(model => (
+                    <option key={model} value={model}>
+                      {model}{model === defaultFallbackModel ? ' (default)' : ''}
+                    </option>
                   ))}
                 </select>
               </div>
