@@ -174,6 +174,27 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return { ...state, messages };
     }
 
+    case 'UPDATE_DEBUG_FALLBACK': {
+      // Patch the last assistant message's debugData with actual model used info
+      const messages = [...state.messages];
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage?.role === 'assistant' && lastMessage.debugData) {
+        messages[messages.length - 1] = {
+          ...lastMessage,
+          debugData: {
+            ...lastMessage.debugData,
+            modelUsed: action.payload.modelUsed,
+            fallbackUsed: action.payload.fallbackUsed,
+          },
+        };
+      }
+      // Also patch pendingDebugData in case message hasn't been created yet
+      const updatedPending = state.pendingDebugData
+        ? { ...state.pendingDebugData, modelUsed: action.payload.modelUsed, fallbackUsed: action.payload.fallbackUsed }
+        : state.pendingDebugData;
+      return { ...state, messages, pendingDebugData: updatedPending };
+    }
+
     case 'SET_MESSAGE_DB_ID': {
       const messages = [...state.messages];
       const lastMessage = messages[messages.length - 1];
@@ -273,9 +294,11 @@ export interface UseChatOptions {
   debug?: boolean;
   promptOverrides?: Record<string, string>; // Session overrides: { crewName: prompt }
   modelOverrides?: Record<string, string>;  // Session overrides: { crewName: modelName }
+  fallbackOverrides?: Record<string, string>; // Session overrides: { crewName: fallbackModelName }
   personaOverride?: string; // Session override for agent-level persona
   kbOverrides?: Record<string, string[]>;  // Session overrides: { crewName: string[] }
   thinkingPromptOverrides?: Record<string, string>; // Session overrides: { crewName: thinkingPrompt }
+  thinkingModelOverrides?: Record<string, string>;  // Session overrides: { crewName: thinkingModel }
   thinkerDisabled?: Record<string, boolean>; // Session overrides: { crewName: true } to disable thinker
   onCrewInfo?: (crew: CrewMember) => void;
   onCrewTransition?: (transition: CrewTransition) => void;
@@ -304,7 +327,7 @@ export interface UseChatReturn {
  * Main chat hook - handles messaging, streaming, and thinking indicators
  */
 export function useChat(options: UseChatOptions): UseChatReturn {
-  const { config, conversationId, userId, overrideCrewMember, debug, promptOverrides, modelOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkerDisabled, onCrewInfo, onCrewTransition, onFieldExtracted } = options;
+  const { config, conversationId, userId, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, onCrewInfo, onCrewTransition, onFieldExtracted } = options;
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
     conversationId,
@@ -343,9 +366,11 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             debug,
             promptOverrides,
             modelOverrides,
+            fallbackOverrides,
             personaOverride,
             kbOverrides,
             thinkingPromptOverrides,
+            thinkingModelOverrides,
             thinkerDisabled,
           },
           {
@@ -405,6 +430,9 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             onDebugData: (data) => {
               dispatch({ type: 'SET_DEBUG_DATA', payload: data });
             },
+            onModelUsed: (data) => {
+              dispatch({ type: 'UPDATE_DEBUG_FALLBACK', payload: { modelUsed: data.modelUsed, fallbackUsed: data.fallbackUsed } });
+            },
             onDebugContextUpdate: (data) => {
               dispatch({ type: 'UPDATE_DEBUG_CONTEXT', payload: data });
             },
@@ -434,8 +462,10 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       debug,
       promptOverrides,
       modelOverrides,
+      fallbackOverrides,
       kbOverrides,
       thinkingPromptOverrides,
+      thinkingModelOverrides,
       thinkerDisabled,
       onCrewInfo,
       onCrewTransition,

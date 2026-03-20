@@ -125,6 +125,15 @@ export function DebugPanel({ data }: DebugPanelProps) {
       label: `Agent Persona${data.personaSource === 'session_override' ? ' (OVERRIDE)' : ''}`,
       content: data.persona,
     }] : []),
+    {
+      key: 'model',
+      label: 'Model',
+      content: [
+        `Configured: ${data.model}${data.modelSource === 'session_override' ? ' (session override)' : ''}`,
+        `Fallback: ${data.fallbackModel || 'gpt-4o (default)'}${data.fallbackModelSource === 'session_override' ? ' (session override)' : ''}`,
+        ...(data.modelUsed ? [`Actually used: ${data.fallbackUsed ? 'Fallback' : 'Primary'} (${data.modelUsed})`] : []),
+      ].join('\n'),
+    },
     { key: 'instructions', label: 'Full Instructions (Sent to LLM)', content: data.fullInstructions },
     { key: 'message', label: 'Processed Message (User Input)', content: data.processedMessage },
     { key: 'tools', label: `Tools (${data.tools.length})`, content: JSON.stringify(data.tools, null, 2) },
@@ -148,6 +157,7 @@ export function DebugPanel({ data }: DebugPanelProps) {
           {data.crewDisplayName} | {data.model}
           {data.modelSource === 'session_override' && ' (OVERRIDE)'}
           {data.modelSource === 'crew_default' && data.defaultModel && data.defaultModel !== data.model && ` (was: ${data.defaultModel})`}
+          {data.fallbackUsed && data.modelUsed && ` → FALLBACK: ${data.modelUsed}`}
           {' '}| {data.maxTokens} tokens
         </span>
         <svg

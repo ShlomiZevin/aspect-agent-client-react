@@ -37,10 +37,12 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   // Prompt overrides (debug mode)
   setPromptOverride: (crewMemberId: string, prompt: string) => void;
   setModelOverride: (crewMemberId: string, model: string) => void;
+  setFallbackOverride: (crewMemberId: string, model: string) => void;
   personaOverride: string | null;
   setPersonaOverride: (persona: string | null) => void;
   setKBOverride: (crewMemberId: string, sources: string[]) => void;
   setThinkingPromptOverride: (crewMemberId: string, prompt: string) => void;
+  setThinkingModelOverride: (crewMemberId: string, model: string) => void;
   thinkerDisabled: Record<string, boolean>;
   setThinkerDisabled: (crewMemberId: string, disabled: boolean) => void;
   // Fields editor
@@ -118,6 +120,20 @@ export function ChatProvider({ children }: ChatProviderProps) {
     }
   }, []);
 
+  // Fallback model overrides for debug mode (session-only)
+  const [fallbackOverrides, setFallbackOverrides] = useState<Record<string, string>>({});
+  const setFallbackOverride = useCallback((crewMemberId: string, model: string) => {
+    if (model) {
+      setFallbackOverrides(prev => ({ ...prev, [crewMemberId]: model }));
+    } else {
+      setFallbackOverrides(prev => {
+        const next = { ...prev };
+        delete next[crewMemberId];
+        return next;
+      });
+    }
+  }, []);
+
   // KB overrides for debug mode (session-only)
   const [kbOverrides, setKBOverrides] = useState<Record<string, string[]>>({});
   const setKBOverride = useCallback((crewMemberId: string, sources: string[]) => {
@@ -150,6 +166,19 @@ export function ChatProvider({ children }: ChatProviderProps) {
       setThinkingPromptOverrides(prev => ({ ...prev, [crewMemberId]: prompt }));
     } else {
       setThinkingPromptOverrides(prev => {
+        const next = { ...prev };
+        delete next[crewMemberId];
+        return next;
+      });
+    }
+  }, []);
+
+  const [thinkingModelOverrides, setThinkingModelOverrides] = useState<Record<string, string>>({});
+  const setThinkingModelOverride = useCallback((crewMemberId: string, model: string) => {
+    if (model) {
+      setThinkingModelOverrides(prev => ({ ...prev, [crewMemberId]: model }));
+    } else {
+      setThinkingModelOverrides(prev => {
         const next = { ...prev };
         delete next[crewMemberId];
         return next;
@@ -194,9 +223,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
     debug: debugMode,
     promptOverrides: debugMode ? promptOverrides : undefined, // Only use in debug mode
     modelOverrides: debugMode ? modelOverrides : undefined,
+    fallbackOverrides: debugMode ? fallbackOverrides : undefined,
     personaOverride: debugMode ? (personaOverride || undefined) : undefined,
     kbOverrides: debugMode ? kbOverrides : undefined,
     thinkingPromptOverrides: debugMode ? thinkingPromptOverrides : undefined,
+    thinkingModelOverrides: debugMode ? thinkingModelOverrides : undefined,
     thinkerDisabled: debugMode ? thinkerDisabled : undefined,
     onCrewInfo: (crewInfo) => {
       crew.setCurrentCrew(crewInfo);
@@ -458,10 +489,12 @@ export function ChatProvider({ children }: ChatProviderProps) {
     // Prompt overrides (debug mode)
     setPromptOverride,
     setModelOverride,
+    setFallbackOverride,
     personaOverride,
     setPersonaOverride,
     setKBOverride,
     setThinkingPromptOverride,
+    setThinkingModelOverride,
     thinkerDisabled,
     setThinkerDisabled,
     // Fields editor

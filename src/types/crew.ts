@@ -25,6 +25,8 @@ export interface CrewMember {
   usesThinker?: boolean;
   thinkingPrompt?: string | null;
   thinkingModel?: string | null;
+  thinkingFallbackModel?: string;
+  fallbackModel?: string;
 }
 
 /**

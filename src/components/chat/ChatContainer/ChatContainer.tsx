@@ -45,10 +45,12 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     baseURL,
     setPromptOverride,
     setModelOverride,
+    setFallbackOverride,
     personaOverride,
     setPersonaOverride,
     setKBOverride,
     setThinkingPromptOverride,
+    setThinkingModelOverride,
     thinkerDisabled,
     setThinkerDisabled,
     conversationId,
@@ -233,11 +235,13 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           onClose={() => setIsPromptPanelOpen(false)}
           onSessionOverride={setPromptOverride}
           onModelOverride={setModelOverride}
+          onFallbackOverride={setFallbackOverride}
           onKBOverride={setKBOverride}
           onFireTransitionPrompt={injectTransitionPrompt}
           personaOverride={personaOverride}
           onPersonaOverride={setPersonaOverride}
           onThinkingPromptOverride={setThinkingPromptOverride}
+          onThinkingModelOverride={setThinkingModelOverride}
           thinkerDisabled={thinkerDisabled}
           onThinkerDisabledToggle={setThinkerDisabled}
         />

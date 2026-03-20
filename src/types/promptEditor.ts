@@ -32,6 +32,7 @@ export interface CrewMemberPrompt {
   crewMemberName: string;
   displayName: string;
   model?: string; // The crew's default model from server
+  fallbackModel?: string; // The crew's fallback model
   versions: PromptVersion[];
   currentVersion: PromptVersion;
 }
