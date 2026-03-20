@@ -546,6 +546,26 @@ export function PromptEditorPanel({
   const currentFallbackModel = fallbackOverrides[selectedCrewId] || defaultFallbackModel;
   const hasFallbackOverride = selectedCrewId in fallbackOverrides;
 
+  // Fallback provider — inferred from current fallback model, independent of primary provider
+  const currentFallbackProvider = inferProvider(currentFallbackModel);
+  const availableFallbackModels = useMemo(() => {
+    return MODELS_BY_PROVIDER[currentFallbackProvider] || OPENAI_MODELS;
+  }, [currentFallbackProvider]);
+
+  // Handle fallback provider change — switch provider and reset model to first of that provider
+  const handleFallbackProviderChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newProvider = e.target.value;
+    const newModel = (MODELS_BY_PROVIDER[newProvider] || OPENAI_MODELS)[0];
+    if (newModel === defaultFallbackModel) {
+      setFallbackOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
+      onFallbackOverride(selectedCrewId, '');
+    } else {
+      setFallbackOverrides(prev => ({ ...prev, [selectedCrewId]: newModel }));
+      onFallbackOverride(selectedCrewId, newModel);
+      setStatus({ type: 'info', message: `Fallback provider: ${newProvider}, model: ${newModel}` });
+    }
+  }, [selectedCrewId, defaultFallbackModel, onFallbackOverride]);
+
   // Handle fallback model change
   const handleFallbackModelChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newModel = e.target.value;
@@ -881,16 +901,28 @@ export function PromptEditorPanel({
                   ))}
                 </select>
               </div>
-              <div className={styles.modelSection}>
+              <div className={styles.providerSection}>
                 <label className={styles.selectorLabel}>
-                  Fallback{hasFallbackOverride && <span className={styles.hasContentBadge}>OVERRIDE</span>}
+                  Fallback Provider{hasFallbackOverride && <span className={styles.hasContentBadge}>OVERRIDE</span>}
                 </label>
+                <select
+                  className={styles.crewSelect}
+                  value={currentFallbackProvider}
+                  onChange={handleFallbackProviderChange}
+                >
+                  {AVAILABLE_PROVIDERS.map(provider => (
+                    <option key={provider} value={provider}>{provider}</option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.modelSection}>
+                <label className={styles.selectorLabel}>Fallback Model</label>
                 <select
                   className={styles.crewSelect}
                   value={currentFallbackModel}
                   onChange={handleFallbackModelChange}
                 >
-                  {availableModels.map(model => (
+                  {availableFallbackModels.map(model => (
                     <option key={model} value={model}>
                       {model}{model === defaultFallbackModel ? ' (default)' : ''}
                     </option>
