@@ -65,6 +65,9 @@ const MODELS_BY_PROVIDER: Record<string, string[]> = {
 
 const AVAILABLE_PROVIDERS = ['openai', 'anthropic', 'google'];
 
+// Feature flag: show fallback model/provider selectors in debug panel
+const SHOW_FALLBACK_MODEL_UI = false;
+
 function inferProvider(model: string): string {
   if (model.startsWith('claude-')) return 'anthropic';
   if (model.startsWith('gemini-')) return 'google';
@@ -901,6 +904,7 @@ export function PromptEditorPanel({
                   ))}
                 </select>
               </div>
+              {SHOW_FALLBACK_MODEL_UI && (<>
               <div className={styles.providerSection}>
                 <label className={styles.selectorLabel}>
                   Fallback Provider{hasFallbackOverride && <span className={styles.hasContentBadge}>OVERRIDE</span>}
@@ -929,6 +933,7 @@ export function PromptEditorPanel({
                   ))}
                 </select>
               </div>
+              </>)}
             </div>
           )}
         </div>
