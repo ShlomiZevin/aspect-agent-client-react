@@ -1,4 +1,4 @@
-import { useRef, useCallback, type KeyboardEvent } from 'react';
+import { useRef, useState, useCallback, useEffect, type KeyboardEvent } from 'react';
 import type { TableData } from '../../../types/dynamicKB';
 import styles from './TableEditor.module.css';
 
@@ -10,7 +10,15 @@ interface TableEditorProps {
 
 export function TableEditor({ value, onChange, onImport }: TableEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const tableWrapRef = useRef<HTMLDivElement>(null);
+  const [isRTL, setIsRTL] = useState(false);
   const { headers, rows } = value;
+
+  useEffect(() => {
+    if (tableWrapRef.current) {
+      tableWrapRef.current.scrollLeft = isRTL ? tableWrapRef.current.scrollWidth : 0;
+    }
+  }, [isRTL]);
 
   const updateHeader = useCallback((colIdx: number, val: string) => {
     const newHeaders = [...headers];
@@ -93,8 +101,8 @@ export function TableEditor({ value, onChange, onImport }: TableEditorProps) {
 
   return (
     <div className={styles.container}>
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
+      <div className={styles.tableWrap} ref={tableWrapRef}>
+        <table className={styles.table} dir={isRTL ? 'rtl' : 'ltr'}>
           <thead>
             <tr>
               <th className={styles.rowNumHeader}>#</th>
@@ -104,6 +112,7 @@ export function TableEditor({ value, onChange, onImport }: TableEditorProps) {
                     id={`header-${colIdx}`}
                     className={styles.headerInput}
                     value={h}
+                    size={Math.max(h.length + 2, 8)}
                     onChange={e => updateHeader(colIdx, e.target.value)}
                     onKeyDown={e => handleKeyDown(e, -1, colIdx)}
                   />
@@ -140,6 +149,7 @@ export function TableEditor({ value, onChange, onImport }: TableEditorProps) {
                       id={`cell-${rowIdx}-${colIdx}`}
                       className={styles.cellInput}
                       value={cell}
+                      size={Math.max(cell.length + 1, 6)}
                       onChange={e => updateCell(rowIdx, colIdx, e.target.value)}
                       onKeyDown={e => handleKeyDown(e, rowIdx, colIdx)}
                     />
@@ -155,6 +165,13 @@ export function TableEditor({ value, onChange, onImport }: TableEditorProps) {
         <button className={styles.addBtn} onClick={addRow}>+ Add Row</button>
         <button className={styles.importBtnInline} onClick={() => fileInputRef.current?.click()}>
           Import .csv / .xls / .xlsx
+        </button>
+        <button
+          className={`${styles.addBtn} ${isRTL ? styles.dirToggleActive : ''}`}
+          onClick={() => setIsRTL(!isRTL)}
+          title={isRTL ? 'Switch to LTR' : 'Switch to RTL'}
+        >
+          {isRTL ? '← LTR' : 'RTL →'}
         </button>
       </div>
       <input

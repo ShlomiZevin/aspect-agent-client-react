@@ -180,17 +180,19 @@ export function DynamicKBPage({ agentName }: DynamicKBPageProps) {
           )}
 
           <div className={styles.editorHeader}>
-            <input
-              className={styles.fileNameInput}
-              value={editingName}
-              onChange={e => setEditingName(e.target.value)}
-              onBlur={handleNameBlur}
-              onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-            />
-            <span className={`${styles.typeBadge} ${selectedFile.fileType === 'text' ? styles.typeBadgeText : styles.typeBadgeTable}`}>
-              {selectedFile.fileType}
-            </span>
-            {isDirty && <div className={styles.dirtyDot} title="Unsaved changes" />}
+            <div className={styles.editorHeaderLeft}>
+              <input
+                className={styles.fileNameInput}
+                value={editingName}
+                onChange={e => setEditingName(e.target.value)}
+                onBlur={handleNameBlur}
+                onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+              />
+              {isDirty && <div className={styles.dirtyDot} title="Unsaved changes" />}
+              <span className={`${styles.typeBadge} ${selectedFile.fileType === 'text' ? styles.typeBadgeText : styles.typeBadgeTable}`}>
+                {selectedFile.fileType}
+              </span>
+            </div>
             <span className={styles.savedAt}>
               Last saved: {formatDate(selectedFile.updatedAt)}
             </span>

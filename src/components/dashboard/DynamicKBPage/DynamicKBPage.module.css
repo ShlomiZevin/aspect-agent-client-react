@@ -145,10 +145,17 @@
 .editorHeader {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
   padding: 12px 20px;
   border-bottom: 1px solid var(--border-color, #e2e8f0);
   flex-wrap: wrap;
+  gap: 8px;
+}
+
+.editorHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .fileNameInput {

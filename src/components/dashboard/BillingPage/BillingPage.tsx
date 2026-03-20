@@ -26,8 +26,10 @@ interface ProviderBilling {
   totalOutputTokens?: number;
   totalTokens?: number;
   totalCostUsd?: number | null;
+  totalCost?: number | null;
   totalCredits?: number | null;
   netCostUsd?: number | null;
+  netCost?: number | null;
   totalCostLocal?: number | null;
   currency?: string | null;
   modelBreakdown?: ModelBreakdown;
@@ -52,9 +54,10 @@ function formatTokens(n?: number): string {
   return n.toString();
 }
 
-function formatCost(usd?: number | null): string {
-  if (usd == null) return '—';
-  return `$${usd.toFixed(4)}`;
+function formatCost(amount?: number | null, currency?: string | null): string {
+  if (amount == null) return '—';
+  const symbol = currency === 'ILS' ? '₪' : '$';
+  return `${symbol}${amount.toFixed(4)}`;
 }
 
 function ProviderCard({ data }: { data: ProviderBilling }) {
@@ -121,19 +124,19 @@ function ProviderCard({ data }: { data: ProviderBilling }) {
               </>
             )}
             <div className={`${styles.stat} ${styles.statCost}`}>
-              <div className={styles.statLabel}>{data.provider === 'google' ? 'Gross Cost' : 'Total Cost'} (USD)</div>
-              <div className={styles.statValue}>{formatCost(data.totalCostUsd)}</div>
+              <div className={styles.statLabel}>{data.provider === 'google' ? 'Gross Cost' : 'Total Cost'} ({data.currency || 'USD'})</div>
+              <div className={styles.statValue}>{formatCost(data.totalCost ?? data.totalCostUsd, data.currency)}</div>
             </div>
             {data.totalCredits != null && data.totalCredits !== 0 && (
               <div className={styles.stat}>
                 <div className={styles.statLabel}>Credits</div>
-                <div className={styles.statValue}>{formatCost(data.totalCredits)}</div>
+                <div className={styles.statValue}>{formatCost(data.totalCredits, data.currency)}</div>
               </div>
             )}
-            {data.netCostUsd != null && (
+            {(data.netCost != null || data.netCostUsd != null) && (
               <div className={`${styles.stat} ${styles.statCost}`}>
-                <div className={styles.statLabel}>Net Cost (USD)</div>
-                <div className={styles.statValue}>{formatCost(data.netCostUsd)}</div>
+                <div className={styles.statLabel}>Net Cost ({data.currency || 'USD'})</div>
+                <div className={styles.statValue}>{formatCost(data.netCost ?? data.netCostUsd, data.currency)}</div>
               </div>
             )}
           </div>
@@ -156,7 +159,7 @@ function ProviderCard({ data }: { data: ProviderBilling }) {
                       <td className={styles.modelName}>{model}</td>
                       <td>{formatTokens(stats.input_tokens)}</td>
                       <td>{formatTokens(stats.output_tokens)}</td>
-                      {stats.cost_usd != null && <td>{formatCost(stats.cost_usd)}</td>}
+                      {stats.cost_usd != null && <td>{formatCost(stats.cost_usd, data.currency)}</td>}
                     </tr>
                   ))}
                 </tbody>
@@ -190,9 +193,9 @@ function ProviderCard({ data }: { data: ProviderBilling }) {
                       return (
                         <tr key={svc}>
                           <td className={styles.modelName}>{svc}</td>
-                          <td>{formatCost(cost)}</td>
-                          {hasCredits && <td>{isObj ? formatCost(e.credits) : '—'}</td>}
-                          {hasObjectBreakdown && <td>{isObj ? formatCost(e.net) : formatCost(cost)}</td>}
+                          <td>{formatCost(cost, data.currency)}</td>
+                          {hasCredits && <td>{isObj ? formatCost(e.credits, data.currency) : '—'}</td>}
+                          {hasObjectBreakdown && <td>{isObj ? formatCost(e.net, data.currency) : formatCost(cost, data.currency)}</td>}
                         </tr>
                       );
                     })}

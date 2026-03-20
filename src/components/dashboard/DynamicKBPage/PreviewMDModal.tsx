@@ -14,10 +14,9 @@ interface PreviewMDModalProps {
 function tableToMarkdown(name: string, headers: string[], rows: string[][]): string {
   const now = new Date().toISOString().split('T')[0];
 
-  // Filter out junk rows (>50% empty cells)
+  // Filter out completely empty rows
   const dataRows = rows.filter(row => {
-    const filled = row.filter(c => c && c.trim()).length;
-    return filled > row.length * 0.5;
+    return row.some(c => c && c.trim());
   });
 
   const h1 = headers[0] || 'Column 1';
