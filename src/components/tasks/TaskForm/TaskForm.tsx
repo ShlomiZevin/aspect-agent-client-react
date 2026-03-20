@@ -44,6 +44,7 @@ interface TaskFormProps {
   onMarkRead?: () => void;
   onLinkedTaskClick?: (task: Task) => void;
   onDeploy?: () => void;
+  onUndeploy?: () => void;
   onCancel: () => void;
   onDelete?: () => void;
 }
@@ -142,7 +143,7 @@ function TestStepsSidebar({ description, onStepClick, onNoteChange }: { descript
   );
 }
 
-export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, currentIdentity, onSubmit, onAutoSave, onDirtyChange, onMarkRead, onLinkedTaskClick, onDeploy, onCancel, onDelete }: TaskFormProps) {
+export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, currentIdentity, onSubmit, onAutoSave, onDirtyChange, onMarkRead, onLinkedTaskClick, onDeploy, onUndeploy, onCancel, onDelete }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [description, setDescription] = useState('');
@@ -920,10 +921,10 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                   🚀 Deploy
                 </button>
               )}
-              {task?.deployedAt && (
-                <span className={`${styles.toggleChip} ${styles.deployedBadge}`}>
-                  🚀 Deployed
-                </span>
+              {task?.deployedAt && onUndeploy && (
+                <button type="button" className={`${styles.toggleChip} ${styles.deployedBadge}`} onClick={onUndeploy}>
+                  🚀 Deployed ×
+                </button>
               )}
             </div>
           )}

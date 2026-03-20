@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as notificationsService from '../services/notificationsService';
 import type { TaskNotification } from '../services/notificationsService';
+import * as taskService from '../services/taskService';
 
 const IDENTITY_STORAGE_KEY = 'aspect_commenter_identity';
 const POLL_INTERVAL_MS = 10_000;
@@ -41,6 +42,8 @@ export interface UseNotificationsReturn {
   notifications: TaskNotification[];
   /** Count of notifications newer than the last time this browser cleared the badge */
   newCount: number;
+  /** Count of deployed tasks not yet reviewed by this user */
+  whatsNewCount: number;
   identity: string | null;
   /** Set identity, persist to localStorage, and immediately fetch notifications */
   setIdentity: (name: string) => void;
@@ -48,12 +51,13 @@ export interface UseNotificationsReturn {
   clearNew: () => void;
 }
 
-export function useNotifications(enabled: boolean): UseNotificationsReturn {
+export function useNotifications(enabled: boolean, onRefresh?: () => void): UseNotificationsReturn {
   const [identity, setIdentityState] = useState<string | null>(
     () => localStorage.getItem(IDENTITY_STORAGE_KEY)
   );
   const [notifications, setNotifications] = useState<TaskNotification[]>([]);
   const [newCount, setNewCount] = useState(0);
+  const [whatsNewCount, setWhatsNewCount] = useState(0);
   // Track which IDs were already seen this session so sound plays only once per new batch
   const prevSeenIdsRef = useRef<Set<number>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -66,7 +70,10 @@ export function useNotifications(enabled: boolean): UseNotificationsReturn {
 
   const fetchNotifications = useCallback(async (currentIdentity: string) => {
     try {
-      const data = await notificationsService.getNotifications(currentIdentity);
+      const [data, whatsNew] = await Promise.all([
+        notificationsService.getNotifications(currentIdentity),
+        taskService.getWhatsNew(currentIdentity).catch(() => []),
+      ]);
 
       // Play sound only for IDs not seen before AND newer than last cleared timestamp
       const clearedStr = localStorage.getItem(lastClearedKey(currentIdentity));
@@ -76,11 +83,13 @@ export function useNotifications(enabled: boolean): UseNotificationsReturn {
       );
       if (genuinelyNew.length > 0) {
         playNotificationSound();
+        onRefresh?.();
       }
       prevSeenIdsRef.current = new Set(data.map(n => n.id));
 
       setNotifications(data);
       setNewCount(computeNewCount(data, currentIdentity));
+      setWhatsNewCount(whatsNew.length);
     } catch {
       // silent — board still usable
     }
@@ -95,6 +104,7 @@ export function useNotifications(enabled: boolean): UseNotificationsReturn {
       }
       setNotifications([]);
       setNewCount(0);
+      setWhatsNewCount(0);
       prevSeenIdsRef.current = new Set();
       return;
     }
@@ -141,6 +151,7 @@ export function useNotifications(enabled: boolean): UseNotificationsReturn {
   return {
     notifications,
     newCount,
+    whatsNewCount,
     identity,
     setIdentity,
     clearNew,

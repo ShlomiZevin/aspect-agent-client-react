@@ -103,6 +103,9 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
   // Test task unchecked warning modal
   const [testWarning, setTestWarning] = useState<{ taskId: number; uncheckedCount: number; source: 'status' | 'form' } | null>(null);
 
+  // Manual refresh
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   // What's New (deployed tasks)
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [whatsNewTasks, setWhatsNewTasks] = useState<Task[]>([]);
@@ -111,8 +114,9 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
   // Get current user ID for draft filtering
   const currentUserId = useMemo(() => getUserId(), []);
 
-  // Notifications: poll every 10s while active
-  const notificationsState = useNotifications(isActive);
+  // Notifications: poll every 10s while active, refresh board on new notifications
+  const loadDataRef = useRef<() => void>(() => {});
+  const notificationsState = useNotifications(isActive, () => loadDataRef.current());
 
   // Live board updates via SSE
   const [commentRefreshTrigger, setCommentRefreshTrigger] = useState(0);
@@ -326,6 +330,7 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
       setIsLoading(false);
     }
   }, []);
+  loadDataRef.current = loadData;
 
   // Determine the best domain to fetch crews from
   const crewFetchDomain = useMemo(() => {
@@ -470,9 +475,17 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
     setTaskToDelete(null);
   };
 
-  const handleTaskClick = (task: Task) => {
+  const handleTaskClick = async (task: Task) => {
+    // Show immediately with local data, then refetch from server
     setEditingTask(task);
     setShowForm(true);
+    try {
+      const fresh = await taskService.getTask(task.id);
+      setEditingTask(fresh);
+      setTasks(prev => prev.map(t => (t.id === fresh.id ? fresh : t)));
+    } catch {
+      // Keep local version if fetch fails
+    }
   };
 
   const handleStatusChange = async (taskId: number, newStatus: TaskStatus) => {
@@ -728,6 +741,13 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
     setEditingTask(updated);
   };
 
+  const handleUndeploy = async () => {
+    if (!editingTask) return;
+    const updated = await taskService.updateTask(editingTask.id, { deployedAt: null, deployedReviewedBy: [] } as any);
+    setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+    setEditingTask(updated);
+  };
+
   const handleLoadWhatsNew = async () => {
     if (!notificationsState.identity) return;
     setWhatsNewLoading(true);
@@ -752,6 +772,12 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
       <div className={styles.header}>
         <h2 className={styles.title}>
           {goalsFullScreen ? '🎯 Goals & Priorities' : '📋 Task Board'}
+          <button
+            className={`${styles.refreshBtn} ${isRefreshing ? styles.refreshSpin : ''}`}
+            onClick={async () => { setIsRefreshing(true); await loadData(); setIsRefreshing(false); }}
+            disabled={isRefreshing}
+            title="Refresh tasks"
+          >↻</button>
         </h2>
         {goalsFullScreen ? (
           <div className={styles.headerRight}>
@@ -780,12 +806,12 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
         ) : (
           <div className={styles.headerRight}>
             <button
-              className={`${styles.whatsNewBtn} ${whatsNewTasks.length > 0 ? styles.whatsNewActive : ''}`}
+              className={`${styles.whatsNewBtn} ${(notificationsState.whatsNewCount > 0 || whatsNewTasks.length > 0) ? styles.whatsNewActive : ''}`}
               onClick={showWhatsNew ? () => setShowWhatsNew(false) : handleLoadWhatsNew}
               disabled={whatsNewLoading}
               title="Recently deployed features"
             >
-              {whatsNewLoading ? '⏳' : '🚀'} What's New{whatsNewTasks.length > 0 ? ` (${whatsNewTasks.length})` : ''}
+              {whatsNewLoading ? '⏳' : '🚀'} What's New{(showWhatsNew ? whatsNewTasks.length : notificationsState.whatsNewCount) > 0 ? ` (${showWhatsNew ? whatsNewTasks.length : notificationsState.whatsNewCount})` : ''}
             </button>
             <NotificationBell notifications={notificationsState} assignees={assignees} onOpenTask={handleOpenTaskById} />
             {onClose && (
@@ -1217,6 +1243,7 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
                 setEditingTask(linkedTask);
               }}
               onDeploy={editingTask?.status === 'done' && !editingTask?.deployedAt ? handleDeploy : undefined}
+              onUndeploy={editingTask?.deployedAt ? handleUndeploy : undefined}
               onCancel={handleCloseForm}
               onDelete={editingTask ? () => handleDeleteTask(editingTask) : undefined}
             />

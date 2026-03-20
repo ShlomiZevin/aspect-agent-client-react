@@ -66,6 +66,14 @@ export async function getTasks(filters?: TaskFilters): Promise<Task[]> {
 }
 
 /**
+ * Get a single task by ID (fresh from server)
+ */
+export async function getTask(id: number): Promise<Task> {
+  const data = await apiRequest<{ task: Task }>(`/api/tasks/${id}`, { method: 'GET' });
+  return { ...data.task, createdAt: new Date(data.task.createdAt), updatedAt: new Date(data.task.updatedAt) };
+}
+
+/**
  * Create a new task
  */
 export async function createTask(taskData: CreateTaskData): Promise<Task> {
