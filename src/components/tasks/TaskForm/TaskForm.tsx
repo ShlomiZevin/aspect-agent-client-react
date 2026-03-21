@@ -206,19 +206,13 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const computeDropDirection = useCallback(() => {
     if (!dependsOnInputRef.current) return;
     const rect = dependsOnInputRef.current.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const openUp = spaceBelow < 220;
     const style: React.CSSProperties = {
       position: 'fixed',
       left: rect.left,
       width: rect.width,
+      top: rect.bottom + 2,
       zIndex: 1000,
     };
-    if (openUp) {
-      style.bottom = window.innerHeight - rect.top;
-    } else {
-      style.top = rect.bottom + 2;
-    }
     setDropdownStyle(style);
   }, []);
 
