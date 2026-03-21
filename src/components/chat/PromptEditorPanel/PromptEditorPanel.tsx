@@ -35,6 +35,7 @@ const OPENAI_MODELS = [
 
 const ANTHROPIC_MODELS = [
   'claude-opus-4-6',
+  'claude-sonnet-4-6',
   'claude-sonnet-4-5-20250929',
   'claude-haiku-4-5-20251001',
   'claude-sonnet-3-7-20250219',
@@ -132,6 +133,7 @@ export function PromptEditorPanel({
 
   // Original prompt (for dirty checking and revert)
   const [originalPrompt, setOriginalPrompt] = useState<string>('');
+  const [originalThinkingPrompt, setOriginalThinkingPrompt] = useState<string>('');
 
   // Session override state
   const [sessionOverrides, setSessionOverrides] = useState<Record<string, string>>({});
@@ -187,6 +189,7 @@ export function PromptEditorPanel({
 
   // KB override state - { crewName: string[] }
   const [kbOverrides, setKbOverrides] = useState<Record<string, string[]>>({});
+  const [originalKBSources, setOriginalKBSources] = useState<string[]>([]);
   // Available KBs for this agent (loaded once)
   const [availableKBs, setAvailableKBs] = useState<KnowledgeBase[]>([]);
   const [showKBOverride, setShowKBOverride] = useState(false);
@@ -199,10 +202,18 @@ export function PromptEditorPanel({
       .catch(err => console.warn('Could not load KBs:', err.message));
   }, [agentName, baseURL]);
 
+  // Get current crew's configured KB sources (from crew member definition)
+  const crewKBSources: string[] = useMemo(() => {
+    const crew = crewMembers.find(c => c.name === selectedCrewId);
+    const raw = crew?.knowledgeBase?.sources || [];
+    return raw.map((s: string | { name: string }) => typeof s === 'string' ? s : s.name);
+  }, [crewMembers, selectedCrewId]);
+
   // Toggle a KB source override for the selected crew
   const handleKBToggle = useCallback((kbName: string) => {
     setKbOverrides(prev => {
-      const current = prev[selectedCrewId] || [];
+      // Start from current override if exists, otherwise from crew's configured sources
+      const current = prev[selectedCrewId] !== undefined ? prev[selectedCrewId] : crewKBSources;
       const next = current.includes(kbName)
         ? current.filter(n => n !== kbName)
         : [...current, kbName];
@@ -210,14 +221,7 @@ export function PromptEditorPanel({
       onKBOverride(selectedCrewId, next);
       return updated;
     });
-  }, [selectedCrewId, onKBOverride]);
-
-  // Get current crew's configured KB sources (from crew member definition)
-  const crewKBSources: string[] = useMemo(() => {
-    const crew = crewMembers.find(c => c.name === selectedCrewId);
-    const raw = crew?.knowledgeBase?.sources || [];
-    return raw.map((s: string | { name: string }) => typeof s === 'string' ? s : s.name);
-  }, [crewMembers, selectedCrewId]);
+  }, [selectedCrewId, crewKBSources, onKBOverride]);
 
   // Current effective KB sources (override or crew config)
   const activeKBSources = kbOverrides[selectedCrewId] !== undefined
@@ -358,9 +362,11 @@ export function PromptEditorPanel({
         // Restore saved KB sources from version (or clear override)
         if (selectedVersion.kbSources && selectedVersion.kbSources.length > 0) {
           setKbOverrides(prev => ({ ...prev, [selectedCrewId]: selectedVersion.kbSources! }));
+          setOriginalKBSources(selectedVersion.kbSources);
           onKBOverride(selectedCrewId, selectedVersion.kbSources);
         } else {
           setKbOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
+          setOriginalKBSources(crewKBSources);
           onKBOverride(selectedCrewId, []);
         }
         // Restore saved persona from version (or revert to code default)
@@ -374,9 +380,11 @@ export function PromptEditorPanel({
         // Restore saved thinking prompt from version (or clear override)
         if (selectedVersion.thinkingPrompt) {
           setThinkingPromptOverrides(prev => ({ ...prev, [selectedCrewId]: selectedVersion.thinkingPrompt! }));
+          setOriginalThinkingPrompt(selectedVersion.thinkingPrompt);
           onThinkingPromptOverride(selectedCrewId, selectedVersion.thinkingPrompt);
         } else {
           setThinkingPromptOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
+          setOriginalThinkingPrompt(codeThinkingPrompt);
           onThinkingPromptOverride(selectedCrewId, '');
         }
       }
@@ -384,9 +392,10 @@ export function PromptEditorPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCrewId, selectedVersion?.id]);
 
-  // Reset version selection when crew changes
+  // Reset version selection when crew changes (originals are set by the version load effect)
   useEffect(() => {
     setSelectedVersionId(null);
+    lastLoadedVersionRef.current = null; // Force version load effect to re-run for new crew
   }, [selectedCrewId]);
 
   // Sync with current crew when it changes externally (not from dropdown)
@@ -466,6 +475,8 @@ export function PromptEditorPanel({
       onSessionOverride(selectedCrewId, '');
       // Update originalPrompt so guidance doesn't show as dirty
       setOriginalPrompt(editedPrompt);
+      setOriginalThinkingPrompt(thinkingPromptOverrides[selectedCrewId] ?? codeThinkingPrompt);
+      setOriginalKBSources(kbOverrides[selectedCrewId] || []);
       // Reset version load ref so the effect picks up the new version cleanly
       lastLoadedVersionRef.current = null;
       setShowSaveModal(false);
@@ -499,6 +510,8 @@ export function PromptEditorPanel({
       const data = await getAgentPrompts(agentName, baseURL);
       setPrompts(data);
       setOriginalPrompt(editedPrompt);
+      setOriginalThinkingPrompt(thinkingPromptOverrides[selectedCrewId] ?? codeThinkingPrompt);
+      setOriginalKBSources(kbOverrides[selectedCrewId] || []);
       lastLoadedVersionRef.current = null;
       setStatus({ type: 'success', message: `Saved v${selectedVersion.version}` });
     } catch {
@@ -947,7 +960,7 @@ export function PromptEditorPanel({
           >
             <span className={styles.editorLabelText}>
               Knowledge Bases
-              {kbOverrides[selectedCrewId] !== undefined && (
+              {kbOverrides[selectedCrewId] !== undefined && JSON.stringify(kbOverrides[selectedCrewId]?.slice().sort()) !== JSON.stringify(originalKBSources.slice().sort()) && (
                 <span className={styles.hasContentBadge}>OVERRIDE</span>
               )}
             </span>
@@ -1013,7 +1026,7 @@ export function PromptEditorPanel({
                       ))
                     }
                   </div>
-                  {kbOverrides[selectedCrewId] !== undefined && (
+                  {kbOverrides[selectedCrewId] !== undefined && JSON.stringify(kbOverrides[selectedCrewId]?.slice().sort()) !== JSON.stringify(originalKBSources.slice().sort()) && (
                     <button
                       className={styles.fireNowButton}
                       onClick={() => {
@@ -1186,7 +1199,7 @@ export function PromptEditorPanel({
                 {/* Thinking Prompt (only for thinker crews - editable for session override) */}
                 {isThinkerCrew && codeThinkingPrompt && (() => {
                   const editedThinking = thinkingPromptOverrides[selectedCrewId] ?? codeThinkingPrompt;
-                  const isThinkingDirty = editedThinking !== codeThinkingPrompt;
+                  const isThinkingDirty = editedThinking !== originalThinkingPrompt;
                   const isDisabled = thinkerDisabled[selectedCrewId] || false;
                   return (
                     <div style={{ padding: '8px 0' }}>
@@ -1255,21 +1268,17 @@ export function PromptEditorPanel({
                           <button
                             className={styles.fireNowButton}
                             onClick={() => {
-                              setThinkingPromptOverrides(prev => {
-                                const next = { ...prev };
-                                delete next[selectedCrewId];
-                                return next;
-                              });
-                              onThinkingPromptOverride(selectedCrewId, '');
+                              setThinkingPromptOverrides(prev => ({ ...prev, [selectedCrewId]: originalThinkingPrompt }));
+                              onThinkingPromptOverride(selectedCrewId, originalThinkingPrompt !== codeThinkingPrompt ? originalThinkingPrompt : '');
                             }}
-                            title="Clear thinking prompt override and revert to code default"
+                            title="Revert thinking prompt"
                             type="button"
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                               <path d="M3 3v5h5" />
                             </svg>
-                            Revert to Code
+                            Revert
                           </button>
                         )}
                       </div>
@@ -1598,7 +1607,7 @@ export function PromptEditorPanel({
       {/* Thinking Prompt Enlarge Modal */}
       {showThinkingModal && isThinkerCrew && codeThinkingPrompt && (() => {
         const editedThinking = thinkingPromptOverrides[selectedCrewId] ?? codeThinkingPrompt;
-        const isThinkingDirty = editedThinking !== codeThinkingPrompt;
+        const isThinkingDirty = editedThinking !== originalThinkingPrompt;
         return (
           <div className={styles.modalOverlay} onClick={() => setShowThinkingModal(false)}>
             <div className={`${styles.modal} ${styles.promptModal}`} onClick={e => e.stopPropagation()}>
@@ -1650,16 +1659,12 @@ export function PromptEditorPanel({
                     <button
                       className={`${styles.actionButton} ${styles.revertButton}`}
                       onClick={() => {
-                        setThinkingPromptOverrides(prev => {
-                          const next = { ...prev };
-                          delete next[selectedCrewId];
-                          return next;
-                        });
-                        onThinkingPromptOverride(selectedCrewId, '');
+                        setThinkingPromptOverrides(prev => ({ ...prev, [selectedCrewId]: originalThinkingPrompt }));
+                        onThinkingPromptOverride(selectedCrewId, originalThinkingPrompt !== codeThinkingPrompt ? originalThinkingPrompt : '');
                       }}
                       style={{ flex: 'none' }}
                     >
-                      Revert to Code
+                      Revert
                     </button>
                   )}
                   <button

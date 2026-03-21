@@ -1,5 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { Task, Assignee, CreateTaskData, TaskStatus, TaskPriority, TaskType } from '../../../types/task';
 import type { CrewMember } from '../../../types/crew';
 import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
@@ -168,10 +167,10 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const isFirstRenderForTaskRef = useRef(true);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const dependsOnRef = useRef<HTMLDivElement>(null);
   const dependsOnInputRef = useRef<HTMLInputElement>(null);
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // Auto-resize title textarea
   useEffect(() => {
@@ -203,6 +202,26 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
     return depTask?.title || '';
   }, [dependsOn, allTasks]);
 
+  // Compute fixed-position style for the dropdown so it escapes overflow containers
+  const computeDropDirection = useCallback(() => {
+    if (!dependsOnInputRef.current) return;
+    const rect = dependsOnInputRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUp = spaceBelow < 220;
+    const style: React.CSSProperties = {
+      position: 'fixed',
+      left: rect.left,
+      width: rect.width,
+      zIndex: 1000,
+    };
+    if (openUp) {
+      style.bottom = window.innerHeight - rect.top;
+    } else {
+      style.top = rect.bottom + 2;
+    }
+    setDropdownStyle(style);
+  }, []);
+
   // Close dropdown when clicking outside (but not on the portal dropdown itself)
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -227,27 +246,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const suggestionsRef = useRef(dependsOnSuggestions);
   suggestionsRef.current = dependsOnSuggestions;
 
-  // Calculate fixed position for autocomplete dropdown (escapes overflow:hidden parents)
-  // Also updates on resize/scroll so position stays correct after window resize
-  useLayoutEffect(() => {
-    const updatePos = () => {
-      if (showDependsOnDropdown && dependsOnSuggestions.length > 0 && dependsOnInputRef.current) {
-        const rect = dependsOnInputRef.current.getBoundingClientRect();
-        setDropdownPos({ top: rect.bottom + 2, left: rect.left, width: rect.width });
-      } else {
-        setDropdownPos(null);
-      }
-    };
-    updatePos();
-    if (showDependsOnDropdown && dependsOnSuggestions.length > 0) {
-      window.addEventListener('resize', updatePos);
-      window.addEventListener('scroll', updatePos, true);
-      return () => {
-        window.removeEventListener('resize', updatePos);
-        window.removeEventListener('scroll', updatePos, true);
-      };
-    }
-  }, [showDependsOnDropdown, dependsOnSuggestions]);
+
 
   // Handle keyboard navigation for autocomplete
   const handleDependsOnKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -658,22 +657,19 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                       onChange={(e) => {
                         setDependsOnSearch(e.target.value);
                         setShowDependsOnDropdown(true);
+                        computeDropDirection();
                       }}
-                      onFocus={() => setShowDependsOnDropdown(true)}
+                      onFocus={() => { setShowDependsOnDropdown(true); computeDropDirection(); }}
                       onKeyDown={handleDependsOnKeyDown}
                       placeholder={linkedTasks.length ? 'Add another...' : 'Search board tasks to link...'}
                       autoComplete="off"
                     />
-                    {showDependsOnDropdown && dependsOnSuggestions.length > 0 && dropdownPos && createPortal(
-                      <div
-                        className={styles.autocompleteDropdown}
-                        data-depends-dropdown
-                        style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
-                      >
+                    {showDependsOnDropdown && dependsOnSuggestions.length > 0 && (
+                      <div className={styles.suggestionsList} style={dropdownStyle} data-depends-dropdown>
                         {dependsOnSuggestions.filter(t => !linkedTasks.includes(t.id)).map((t, index) => (
                           <div
                             key={t.id}
-                            className={`${styles.autocompleteItem} ${index === highlightedIndex ? styles.highlighted : ''}`}
+                            className={`${styles.suggestionItem} ${index === highlightedIndex ? styles.highlighted : ''}`}
                             onClick={() => {
                               setLinkedTasks(prev => [...prev, t.id]);
                               setDependsOnSearch('');
@@ -688,8 +684,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                             </span>
                           </div>
                         ))}
-                      </div>,
-                      document.body
+                      </div>
                     )}
                   </div>
                   {linkedTasks.length > 0 && (
@@ -845,21 +840,17 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                           setDependsOnSearch(e.target.value);
                           setShowDependsOnDropdown(true);
                         }}
-                        onFocus={() => setShowDependsOnDropdown(true)}
+                        onFocus={() => { setShowDependsOnDropdown(true); computeDropDirection(); }}
                         onKeyDown={handleDependsOnKeyDown}
                         placeholder="Type 3+ letters to search..."
                         autoComplete="off"
                       />
-                      {showDependsOnDropdown && dependsOnSuggestions.length > 0 && dropdownPos && createPortal(
-                        <div
-                          className={styles.autocompleteDropdown}
-                          data-depends-dropdown
-                          style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
-                        >
+                      {showDependsOnDropdown && dependsOnSuggestions.length > 0 && (
+                        <div className={styles.suggestionsList} style={dropdownStyle} data-depends-dropdown>
                           {dependsOnSuggestions.map((t, index) => (
                             <div
                               key={t.id}
-                              className={`${styles.autocompleteItem} ${index === highlightedIndex ? styles.highlighted : ''}`}
+                              className={`${styles.suggestionItem} ${index === highlightedIndex ? styles.highlighted : ''}`}
                               onClick={() => {
                                 setDependsOn(t.id);
                                 setDependsOnSearch('');
@@ -874,8 +865,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                               </span>
                             </div>
                           ))}
-                        </div>,
-                        document.body
+                        </div>
                       )}
                     </div>
                   )}

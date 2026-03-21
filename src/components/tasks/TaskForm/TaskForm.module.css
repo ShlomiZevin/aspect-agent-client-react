@@ -140,7 +140,8 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  max-height: 80vh;
+  max-height: 85vh;
+  position: relative;
 }
 
 /* When inside twoColumn, form fills height naturally */
@@ -747,6 +748,45 @@
 .autocompleteWrapper input:focus {
   outline: none;
   border-color: var(--primary-color);
+}
+
+.suggestionsList {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.suggestionItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  direction: ltr;
+  gap: 8px;
+  min-width: 0;
+}
+
+.suggestionItem .autocompleteTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.suggestionItem .autocompleteStatus {
+  flex-shrink: 0;
+}
+
+.suggestionItem:hover,
+.suggestionItem.highlighted {
+  background: var(--surface-hover, rgba(0, 0, 0, 0.04));
 }
 
 .autocompleteDropdown {
