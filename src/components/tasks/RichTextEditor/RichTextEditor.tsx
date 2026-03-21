@@ -28,6 +28,15 @@ function avatarColor(name: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
+// Check if text is mostly Hebrew (RTL) by comparing Hebrew vs Latin letter counts
+function isMostlyHebrew(html: string): boolean {
+  // Strip HTML tags to get plain text
+  const text = html.replace(/<[^>]*>/g, '');
+  const hebrew = text.match(/[\u0590-\u05FF]/g)?.length || 0;
+  const latin = text.match(/[a-zA-Z]/g)?.length || 0;
+  return hebrew > latin;
+}
+
 export function RichTextEditor({ value, onChange, placeholder, expanded, assignees }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const isInternalChange = useRef(false);
@@ -759,6 +768,7 @@ export function RichTextEditor({ value, onChange, placeholder, expanded, assigne
           ref={editorRef}
           className={`${styles.content} ${expanded ? styles.expandedContent : ''}`}
           contentEditable
+          dir={isMostlyHebrew(value) ? 'rtl' : 'ltr'}
           onInput={handleInput}
           onPaste={handlePaste}
           onClick={handleClick}
