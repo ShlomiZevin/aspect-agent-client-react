@@ -40,6 +40,13 @@ function authorColor(name: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
+function isMostlyHebrew(html: string): boolean {
+  const text = html.replace(/<[^>]*>/g, '');
+  const hebrew = text.match(/[\u0590-\u05FF]/g)?.length || 0;
+  const latin = text.match(/[a-zA-Z]/g)?.length || 0;
+  return hebrew > latin;
+}
+
 function isHtmlEmpty(html: string): boolean {
   if (!html || html === '<br>') return true;
   const div = document.createElement('div');
@@ -217,6 +224,7 @@ export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsS
               </div>
               <div
                 className={styles.commentContent}
+                dir={isMostlyHebrew(c.content) ? 'rtl' : 'ltr'}
                 dangerouslySetInnerHTML={{ __html: highlightMentions(c.content) }}
                 onClick={handleCommentContentClick}
               />

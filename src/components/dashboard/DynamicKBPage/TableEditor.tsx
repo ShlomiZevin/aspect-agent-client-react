@@ -12,7 +12,7 @@ export function TableEditor({ value, onChange, onImport }: TableEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tableWrapRef = useRef<HTMLDivElement>(null);
   const [isRTL, setIsRTL] = useState(false);
-  const { headers, rows } = value;
+  const { headers, rows, indexColumns = [] } = value;
 
   useEffect(() => {
     if (tableWrapRef.current) {
@@ -23,34 +23,45 @@ export function TableEditor({ value, onChange, onImport }: TableEditorProps) {
   const updateHeader = useCallback((colIdx: number, val: string) => {
     const newHeaders = [...headers];
     newHeaders[colIdx] = val;
-    onChange({ headers: newHeaders, rows });
-  }, [headers, rows, onChange]);
+    onChange({ headers: newHeaders, rows, indexColumns });
+  }, [headers, rows, indexColumns, onChange]);
 
   const updateCell = useCallback((rowIdx: number, colIdx: number, val: string) => {
     const newRows = rows.map((r, i) => i === rowIdx ? r.map((c, j) => j === colIdx ? val : c) : [...r]);
-    onChange({ headers, rows: newRows });
-  }, [headers, rows, onChange]);
+    onChange({ headers, rows: newRows, indexColumns });
+  }, [headers, rows, indexColumns, onChange]);
 
   const addRow = useCallback(() => {
     const newRow = headers.map(() => '');
-    onChange({ headers, rows: [...rows, newRow] });
-  }, [headers, rows, onChange]);
+    onChange({ headers, rows: [...rows, newRow], indexColumns });
+  }, [headers, rows, indexColumns, onChange]);
 
   const addColumn = useCallback(() => {
     const newHeaders = [...headers, `Column ${headers.length + 1}`];
     const newRows = rows.map(r => [...r, '']);
-    onChange({ headers: newHeaders, rows: newRows });
-  }, [headers, rows, onChange]);
+    onChange({ headers: newHeaders, rows: newRows, indexColumns });
+  }, [headers, rows, indexColumns, onChange]);
 
   const deleteRow = useCallback((rowIdx: number) => {
-    onChange({ headers, rows: rows.filter((_, i) => i !== rowIdx) });
-  }, [headers, rows, onChange]);
+    onChange({ headers, rows: rows.filter((_, i) => i !== rowIdx), indexColumns });
+  }, [headers, rows, indexColumns, onChange]);
 
   const deleteColumn = useCallback((colIdx: number) => {
     const newHeaders = headers.filter((_, i) => i !== colIdx);
     const newRows = rows.map(r => r.filter((_, i) => i !== colIdx));
-    onChange({ headers: newHeaders, rows: newRows });
-  }, [headers, rows, onChange]);
+    // Adjust index columns: remove if deleted, shift down indices above
+    const newIndexColumns = indexColumns
+      .filter(i => i !== colIdx)
+      .map(i => i > colIdx ? i - 1 : i);
+    onChange({ headers: newHeaders, rows: newRows, indexColumns: newIndexColumns });
+  }, [headers, rows, indexColumns, onChange]);
+
+  const toggleIndex = useCallback((colIdx: number) => {
+    const newIndexColumns = indexColumns.includes(colIdx)
+      ? indexColumns.filter(i => i !== colIdx)
+      : [...indexColumns, colIdx].sort((a, b) => a - b);
+    onChange({ headers, rows, indexColumns: newIndexColumns });
+  }, [headers, rows, indexColumns, onChange]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>, rowIdx: number, colIdx: number) => {
     if (e.key === 'Tab') {
@@ -116,6 +127,13 @@ export function TableEditor({ value, onChange, onImport }: TableEditorProps) {
                     onChange={e => updateHeader(colIdx, e.target.value)}
                     onKeyDown={e => handleKeyDown(e, -1, colIdx)}
                   />
+                  <button
+                    className={`${styles.indexColBtn} ${indexColumns.includes(colIdx) ? styles.indexColBtnActive : ''}`}
+                    onClick={() => toggleIndex(colIdx)}
+                    title={indexColumns.includes(colIdx) ? 'Remove from index' : 'Mark as index (used as heading in KB)'}
+                  >
+                    ⚷
+                  </button>
                   <button
                     className={styles.deleteColBtn}
                     onClick={() => deleteColumn(colIdx)}

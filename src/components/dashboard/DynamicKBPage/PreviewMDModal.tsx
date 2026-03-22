@@ -11,32 +11,36 @@ interface PreviewMDModalProps {
 }
 
 /** Client-side table → markdown conversion (mirrors server logic) */
-function tableToMarkdown(name: string, headers: string[], rows: string[][]): string {
+function tableToMarkdown(name: string, headers: string[], rows: string[][], indexColumns: number[] = []): string {
   const now = new Date().toISOString().split('T')[0];
 
-  // Filter out completely empty rows
-  const dataRows = rows.filter(row => {
-    return row.some(c => c && c.trim());
-  });
-
-  const h1 = headers[0] || 'Column 1';
-  const h2 = headers[1] || 'Column 2';
+  const dataRows = rows.filter(row => row.some(c => c && c.trim()));
 
   const lines = [
     `# ${name}`,
     `> Last updated: ${now}`,
     `> ${dataRows.length} items`,
-    `> Columns: ${h1} | ${h2}`,
-    '',
+    `> Columns: ${headers.join(' | ')}`,
   ];
+  if (indexColumns.length > 0) {
+    lines.push(`> Index: ${indexColumns.join(',')}`);
+  }
+  lines.push('');
 
-  for (const row of dataRows) {
+  for (let rowIdx = 0; rowIdx < dataRows.length; rowIdx++) {
+    const row = dataRows[rowIdx];
     lines.push('---');
-    const col1 = (row[0] || '').trim();
-    const col2 = (row[1] || '').trim();
-    const heading = col2 ? `${col1} — ${col2}` : col1 || 'Item';
+
+    let heading: string;
+    if (indexColumns.length > 0) {
+      const parts = indexColumns.map(i => (row[i] || '').trim()).filter(Boolean);
+      heading = parts.length > 0 ? parts.join(' — ') : `Row ${rowIdx + 1}`;
+    } else {
+      heading = `Row ${rowIdx + 1}`;
+    }
     lines.push(`## ${heading}`);
-    for (let i = 2; i < headers.length; i++) {
+
+    for (let i = 0; i < headers.length; i++) {
       const val = (row[i] || '').trim();
       if (val) {
         lines.push(`- ${headers[i]}: ${val}`);
@@ -56,7 +60,7 @@ export function PreviewMDModal({ isOpen, onClose, fileType, fileName, content }:
   let markdown: string;
   if (fileType === 'table') {
     const data = content as TableData;
-    markdown = tableToMarkdown(fileName, data.headers || [], data.rows || []);
+    markdown = tableToMarkdown(fileName, data.headers || [], data.rows || [], data.indexColumns || []);
   } else {
     markdown = content as string;
   }

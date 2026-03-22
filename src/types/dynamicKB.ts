@@ -19,4 +19,5 @@ export interface DynamicFileAttachment {
 export interface TableData {
   headers: string[];
   rows: string[][];
+  indexColumns?: number[];
 }

@@ -40,6 +40,29 @@
   background: #e0f2fe;
 }
 
+.indexColBtn {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  line-height: 1;
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  cursor: pointer;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+.indexColBtnActive {
+  opacity: 1 !important;
+  color: var(--primary-color, #2563eb);
+}
+.headerCell:hover .indexColBtn { opacity: 1; }
+.indexColBtn:hover { color: var(--primary-color, #2563eb); }
+
 .deleteColBtn {
   position: absolute;
   top: 2px;
