@@ -3,6 +3,7 @@ import { apiRequest, getBaseURL } from './api';
 export interface FieldDefinition {
   name: string;
   description: string;
+  shared?: boolean;
 }
 
 export interface CrewMemberInfo {

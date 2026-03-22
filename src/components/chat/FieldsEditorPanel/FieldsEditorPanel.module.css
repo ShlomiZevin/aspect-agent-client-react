@@ -245,6 +245,35 @@
   box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.1);
 }
 
+.fieldRow.currentCrewField {
+  background: rgba(99, 102, 241, 0.05);
+  border-left: 3px solid rgba(99, 102, 241, 0.3);
+}
+
+.fieldRow.currentCrewField.collected {
+  border-left: 3px solid var(--success-color);
+}
+
+.fieldRow.sharedField {
+  opacity: 0.75;
+  border-left: 3px solid transparent;
+}
+
+.fieldRow.sharedField.collected {
+  border-left: 3px solid var(--primary-color);
+}
+
+.sharedBadge {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface-hover);
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
 .fieldHeader {
   display: flex;
   align-items: center;

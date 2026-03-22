@@ -244,26 +244,36 @@ export function FieldsEditorPanel({
   }, [status]);
 
   // Build list of fields to display
+  // Count collected fields for current crew (only fields in fieldDefinitions)
+  const currentCrewFieldNames = new Set(fieldDefinitions.filter(f => !f.shared).map(f => f.name));
+  const sharedFieldNames = new Set(fieldDefinitions.filter(f => f.shared).map(f => f.name));
+  const currentCrewCollected = Object.keys(collectedFields).filter(
+    name => currentCrewFieldNames.has(name)
+  ).length;
+  const currentCrewTotal = currentCrewFieldNames.size;
+  const sharedCollected = Object.keys(collectedFields).filter(
+    name => sharedFieldNames.has(name)
+  ).length;
+  const sharedTotal = sharedFieldNames.size;
+
   // Show all field definitions + any collected fields not in definitions
   const allFieldNames = new Set([
     ...fieldDefinitions.map(f => f.name),
     ...Object.keys(collectedFields),
   ]);
 
-  const fieldsList = Array.from(allFieldNames).map(name => ({
-    name,
-    description: fieldDefinitions.find(f => f.name === name)?.description || '',
-    value: getDisplayValue(name),
-    isCollected: name in collectedFields || name in editedFields,
-    isDirty: isFieldDirty(name),
-  }));
-
-  // Count collected fields for current crew (only fields in fieldDefinitions)
-  const currentCrewFieldNames = new Set(fieldDefinitions.map(f => f.name));
-  const currentCrewCollected = Object.keys(collectedFields).filter(
-    name => currentCrewFieldNames.has(name)
-  ).length;
-  const currentCrewTotal = fieldDefinitions.length;
+  const fieldsList = Array.from(allFieldNames).map(name => {
+    const def = fieldDefinitions.find(f => f.name === name);
+    return {
+      name,
+      description: def?.description || '',
+      shared: def?.shared || false,
+      isCurrentCrew: currentCrewFieldNames.has(name),
+      value: getDisplayValue(name),
+      isCollected: name in collectedFields || name in editedFields,
+      isDirty: isFieldDirty(name),
+    };
+  });
 
   // Filter and sort fields
   const filteredFields = [...fieldsList]
@@ -275,7 +285,11 @@ export function FieldsEditorPanel({
         return a.name.localeCompare(b.name);
       }
       if (sortMode === 'crew') {
-        // Current crew fields first, then others
+        // Crew-specific first, shared last
+        const aShared = a.shared ? 1 : 0;
+        const bShared = b.shared ? 1 : 0;
+        if (aShared !== bShared) return aShared - bShared;
+        // Within each group: current crew first, then others
         const aInCrew = currentCrewFieldNames.has(a.name) ? 0 : 1;
         const bInCrew = currentCrewFieldNames.has(b.name) ? 0 : 1;
         if (aInCrew !== bInCrew) return aInCrew - bInCrew;
@@ -285,7 +299,10 @@ export function FieldsEditorPanel({
         if (aCollected !== bCollected) return aCollected - bCollected;
         return a.name.localeCompare(b.name);
       }
-      return 0;
+      // Default: shared fields after crew-specific
+      const aShared = a.shared ? 1 : 0;
+      const bShared = b.shared ? 1 : 0;
+      return aShared - bShared;
     });
 
   return (
@@ -323,11 +340,19 @@ export function FieldsEditorPanel({
               </span>
             </div>
             <div className={styles.progressItem}>
-              <span className={styles.progressLabel}>Overall:</span>
+              <span className={styles.progressLabel}>All:</span>
               <span className={styles.progressBadge}>
                 {Object.keys(collectedFields).length}/{totalFieldsToCurrentCrew}
               </span>
             </div>
+            {sharedTotal > 0 && (
+              <div className={styles.progressItem}>
+                <span className={styles.progressLabel}>Shared:</span>
+                <span className={styles.progressBadge}>
+                  {sharedCollected}/{sharedTotal}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -398,11 +423,12 @@ export function FieldsEditorPanel({
           ) : filteredFields.map(field => (
             <div
               key={field.name}
-              className={`${styles.fieldRow} ${field.isCollected ? styles.collected : ''} ${field.isDirty ? styles.dirty : ''}`}
+              className={`${styles.fieldRow} ${field.isCollected ? styles.collected : ''} ${field.isDirty ? styles.dirty : ''} ${field.shared ? styles.sharedField : ''} ${field.isCurrentCrew ? styles.currentCrewField : ''}`}
             >
               <div className={styles.fieldHeader}>
                 <label className={styles.fieldName} title={field.description}>
                   {field.name}
+                  {field.shared && <span className={styles.sharedBadge}>shared</span>}
                 </label>
                 {field.isCollected && (
                   <div className={styles.fieldActions}>
