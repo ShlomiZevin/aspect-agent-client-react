@@ -612,3 +612,33 @@
 .user .copyFeedback {
   color: rgba(255, 255, 255, 0.9);
 }
+
+/* UI Elements (buttons, chips, etc.) */
+.uiElementRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.uiElement {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--primary-color);
+  background: transparent;
+  color: var(--primary-color);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.uiElement:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+.uiDisabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}

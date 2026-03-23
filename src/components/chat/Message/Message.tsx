@@ -27,6 +27,17 @@ function isRTL(text: string): boolean {
   return firstLetter ? rtlChar.test(firstLetter[0]) : false;
 }
 
+/** Parse UI element markup from message text. Supports any type: [buttons: a | b], [chips: x | y], etc. */
+function parseUIElements(text: string): { cleanText: string; elements: { type: string; options: string[] }[] } {
+  const regex = /\[(\w+):\s*(.+?)\]/g;
+  const elements: { type: string; options: string[] }[] = [];
+  const cleanText = text.replace(regex, (_, type, opts) => {
+    elements.push({ type, options: opts.split('|').map((o: string) => o.trim()) });
+    return '';
+  }).trim();
+  return { cleanText, elements };
+}
+
 // Known domains for task filtering
 const KNOWN_DOMAINS = ['freeda', 'aspect', 'banking', 'byline'];
 
@@ -42,7 +53,7 @@ function getDomainFromUrl(): string {
 }
 
 export function Message({ message }: MessageProps) {
-  const { debugMode, deleteMessagesFrom, crewMembers, conversationId, selectedMessageIds, toggleMessageSelect, copyMessages, copyFromMessage } = useChatContext();
+  const { debugMode, deleteMessagesFrom, crewMembers, conversationId, selectedMessageIds, toggleMessageSelect, copyMessages, copyFromMessage, messages, sendMessage } = useChatContext();
   const { t, language } = useLanguage();
   const config = useAgentConfig();
   const [showFeedback, setShowFeedback] = useState(false);
@@ -58,6 +69,14 @@ export function Message({ message }: MessageProps) {
   const rtl = isRTL(message.content);
   const canFeedback = !isUser && !isDeveloper && message.dbId;
   const canReportBug = debugMode && !isUser && !isDeveloper;
+
+  // Parse UI elements from bot messages
+  const { cleanText: uiCleanText, elements: uiElements } = (!isUser && !isDeveloper)
+    ? parseUIElements(message.content)
+    : { cleanText: message.content, elements: [] };
+  // Disable UI elements if a subsequent message exists (user already responded)
+  const msgIndex = messages.findIndex((m: MessageType) => m.id === message.id);
+  const uiDisabled = uiElements.length > 0 && msgIndex >= 0 && msgIndex < messages.length - 1;
 
   const handleDeleteClick = () => {
     setShowDeleteConfirm(true);
@@ -276,9 +295,26 @@ export function Message({ message }: MessageProps) {
                   )
                 }}
               >
-                {message.content}
+                {uiCleanText}
               </ReactMarkdown>
             </div>
+            {uiElements.length > 0 && (
+              <div className={styles.uiElementRow}>
+                {uiElements.map((el, i) =>
+                  el.options.map((option, j) => (
+                    <button
+                      key={`${i}-${j}`}
+                      type="button"
+                      className={`${styles.uiElement} ${styles[`uiType_${el.type}`] || ''} ${uiDisabled ? styles.uiDisabled : ''}`}
+                      disabled={uiDisabled}
+                      onClick={() => sendMessage(option)}
+                    >
+                      {option}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
             {debugMode && message.debugData && (
               <DebugPanel data={message.debugData} />
             )}
