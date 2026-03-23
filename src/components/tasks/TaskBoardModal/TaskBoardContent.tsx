@@ -1235,64 +1235,62 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
 
       {/* Form overlay */}
       {showForm && (
-        <div className={styles.formOverlay} onClick={handleCloseForm}>
-          <div className={styles.formRow} onClick={(e) => e.stopPropagation()}>
-            <div className={`${styles.formContainer} ${editingTask ? styles.formContainerEdit : ''}`}>
+        <div className={`${styles.formOverlay} ${sideTask ? styles.formOverlayWithSide : ''}`} onClick={handleCloseForm}>
+          <div className={`${styles.formContainer} ${editingTask ? styles.formContainerEdit : ''}`} onClick={(e) => e.stopPropagation()}>
+            <TaskForm
+              task={editingTask}
+              assignees={assignees}
+              allTasks={tasks}
+              currentDomain={currentDomain}
+              showAllDomains={showAllDomains}
+              crewMembers={crewMembers}
+              commentRefreshTrigger={commentRefreshTrigger}
+              initialType={presetGoalMode ? (presetType || 'goal') : undefined}
+              currentIdentity={notificationsState.identity || undefined}
+              onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
+              onAutoSave={editingTask ? handleAutoSave : undefined}
+              onDirtyChange={(dirty) => { formDirtyRef.current = dirty; }}
+              onMarkRead={(editingTask?.type === 'read' || editingTask?.type === 'test') ? async () => {
+                const isRead = editingTask.isCompleted;
+                const newStatus = isRead ? 'todo' : 'done';
+                const newCompleted = !isRead;
+                await taskService.updateTask(editingTask.id, { status: newStatus, isCompleted: newCompleted });
+                setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, status: newStatus as Task['status'], isCompleted: newCompleted } : t));
+                handleCloseForm();
+              } : undefined}
+              onLinkedTaskClick={(linkedTask) => {
+                setSideTask(linkedTask);
+                taskService.getTask(linkedTask.id).then(fresh => { if (fresh) setSideTask(fresh); }).catch(() => {});
+              }}
+              onDeploy={editingTask?.status === 'done' && !editingTask?.deployedAt ? handleDeploy : undefined}
+              onUndeploy={editingTask?.deployedAt ? handleUndeploy : undefined}
+              onCancel={handleCloseForm}
+              onDelete={editingTask ? () => handleDeleteTask(editingTask) : undefined}
+            />
+          </div>
+          {sideTask && (
+            <div className={styles.sideTaskContainer} onClick={(e) => e.stopPropagation()}>
+              <button className={styles.closeSideBtn} onClick={() => setSideTask(null)} title="Close">×</button>
               <TaskForm
-                task={editingTask}
+                task={sideTask}
                 assignees={assignees}
                 allTasks={tasks}
                 currentDomain={currentDomain}
                 showAllDomains={showAllDomains}
                 crewMembers={crewMembers}
                 commentRefreshTrigger={commentRefreshTrigger}
-                initialType={presetGoalMode ? (presetType || 'goal') : undefined}
                 currentIdentity={notificationsState.identity || undefined}
-                onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
-                onAutoSave={editingTask ? handleAutoSave : undefined}
-                onDirtyChange={(dirty) => { formDirtyRef.current = dirty; }}
-                onMarkRead={(editingTask?.type === 'read' || editingTask?.type === 'test') ? async () => {
-                  const isRead = editingTask.isCompleted;
-                  const newStatus = isRead ? 'todo' : 'done';
-                  const newCompleted = !isRead;
-                  await taskService.updateTask(editingTask.id, { status: newStatus, isCompleted: newCompleted });
-                  setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, status: newStatus as Task['status'], isCompleted: newCompleted } : t));
-                  handleCloseForm();
-                } : undefined}
+                onSubmit={handleUpdateSideTask}
+                onAutoSave={handleAutoSaveSideTask}
+                onDirtyChange={() => {}}
                 onLinkedTaskClick={(linkedTask) => {
                   setSideTask(linkedTask);
                   taskService.getTask(linkedTask.id).then(fresh => { if (fresh) setSideTask(fresh); }).catch(() => {});
                 }}
-                onDeploy={editingTask?.status === 'done' && !editingTask?.deployedAt ? handleDeploy : undefined}
-                onUndeploy={editingTask?.deployedAt ? handleUndeploy : undefined}
-                onCancel={handleCloseForm}
-                onDelete={editingTask ? () => handleDeleteTask(editingTask) : undefined}
+                onCancel={() => setSideTask(null)}
               />
             </div>
-            {sideTask && (
-              <div className={styles.sideTaskContainer}>
-                <button className={styles.closeSideBtn} onClick={() => setSideTask(null)} title="Close">×</button>
-                <TaskForm
-                  task={sideTask}
-                  assignees={assignees}
-                  allTasks={tasks}
-                  currentDomain={currentDomain}
-                  showAllDomains={showAllDomains}
-                  crewMembers={crewMembers}
-                  commentRefreshTrigger={commentRefreshTrigger}
-                  currentIdentity={notificationsState.identity || undefined}
-                  onSubmit={handleUpdateSideTask}
-                  onAutoSave={handleAutoSaveSideTask}
-                  onDirtyChange={() => {}}
-                  onLinkedTaskClick={(linkedTask) => {
-                    setSideTask(linkedTask);
-                    taskService.getTask(linkedTask.id).then(fresh => { if (fresh) setSideTask(fresh); }).catch(() => {});
-                  }}
-                  onCancel={() => setSideTask(null)}
-                />
-              </div>
-            )}
-          </div>
+          )}
         </div>
       )}
 

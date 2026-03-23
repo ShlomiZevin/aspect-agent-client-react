@@ -453,6 +453,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     switchToChat,
     deleteChat: conversation.deleteChat,
     deleteAllChats: conversation.deleteAllChats,
+    duplicateChat: conversation.duplicateChat,
     updateTitle: conversation.updateTitle,
     updateChatTitle: conversation.updateChatTitle,
     loadConversations: conversation.loadConversations,

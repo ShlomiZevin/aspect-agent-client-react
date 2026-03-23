@@ -124,6 +124,26 @@ export async function deleteConversation(
   );
 }
 
+export async function duplicateConversation(
+  conversationId: string,
+  baseURL?: string
+): Promise<Conversation> {
+  const data = await apiRequest<{ success: boolean; conversation: { externalId: string; metadata?: { title?: string }; channel?: 'web' | 'whatsapp'; createdAt: string; updatedAt: string } }>(
+    `/api/conversation/${conversationId}/duplicate`,
+    { method: 'POST' },
+    baseURL || getBaseURL()
+  );
+  const conv = data.conversation;
+  return {
+    id: conv.externalId,
+    title: conv.metadata?.title || 'Copy of Conversation',
+    messageCount: 0,
+    channel: conv.channel,
+    createdAt: new Date(conv.createdAt),
+    updatedAt: new Date(conv.updatedAt),
+  };
+}
+
 export async function deleteAllConversations(
   userId: string,
   agentName: string,
