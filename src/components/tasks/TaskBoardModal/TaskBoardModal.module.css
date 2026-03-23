@@ -775,8 +775,9 @@
 }
 
 .formContainer {
+  width: 90%;
   max-width: 480px;
-  max-height: 85vh;
+  max-height: 85%;
   background: var(--surface);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
@@ -789,12 +790,10 @@
   min-width: 0;
 }
 
-.formRow {
-  display: flex;
+.formOverlayWithSide {
   gap: 12px;
   align-items: flex-start;
-  justify-content: center;
-  max-height: 85vh;
+  padding: 40px 20px;
 }
 
 .sideTaskContainer {

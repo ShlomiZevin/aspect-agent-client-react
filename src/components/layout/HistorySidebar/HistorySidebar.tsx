@@ -17,11 +17,12 @@ interface DeleteConfirmState {
 }
 
 export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
-  const { conversations, conversationId, switchToChat, deleteChat, deleteAllChats, updateChatTitle } = useChatContext();
+  const { conversations, conversationId, switchToChat, deleteChat, deleteAllChats, duplicateChat, updateChatTitle } = useChatContext();
   const { t } = useLanguage();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState>({
     isOpen: false,
     type: 'single',
@@ -65,6 +66,18 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
   const handleCancelDelete = () => {
     if (!isDeleting) {
       setDeleteConfirm({ isOpen: false, type: 'single' });
+    }
+  };
+
+  const handleDuplicateClick = async (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation();
+    setDuplicatingId(chatId);
+    try {
+      await duplicateChat(chatId);
+    } catch (err) {
+      console.error('Failed to duplicate conversation:', err);
+    } finally {
+      setDuplicatingId(null);
     }
   };
 
@@ -199,16 +212,35 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
                     </div>
                     <div className={styles.itemActions}>
                       {!isEditing && (
-                        <button
-                          className={styles.editBtn}
-                          onClick={(e) => handleEditClick(e, conv.id, conv.title)}
-                          aria-label="Edit conversation name"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                          </svg>
-                        </button>
+                        <>
+                          <button
+                            className={styles.editBtn}
+                            onClick={(e) => handleEditClick(e, conv.id, conv.title)}
+                            aria-label="Edit conversation name"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </button>
+                          <button
+                            className={styles.editBtn}
+                            onClick={(e) => handleDuplicateClick(e, conv.id)}
+                            aria-label="Duplicate conversation"
+                            disabled={duplicatingId === conv.id}
+                          >
+                            {duplicatingId === conv.id ? (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 0.8s linear infinite' }}>
+                                <circle cx="12" cy="12" r="10" strokeDasharray="31.4" strokeDashoffset="10" />
+                              </svg>
+                            ) : (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                              </svg>
+                            )}
+                          </button>
+                        </>
                       )}
                       <button
                         className={styles.deleteBtn}

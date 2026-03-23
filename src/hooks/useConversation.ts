@@ -7,6 +7,7 @@ import {
   deleteConversation as deleteConversationApi,
   deleteAllConversations as deleteAllConversationsApi,
   updateConversationTitle as updateTitleApi,
+  duplicateConversation as duplicateConversationApi,
 } from '../services/conversationService';
 import type { Conversation, Message } from '../types';
 
@@ -19,6 +20,7 @@ export interface UseConversationReturn {
   switchToChat: (chatId: string) => Promise<Message[]>;
   deleteChat: (chatId: string) => Promise<void>;
   deleteAllChats: () => Promise<void>;
+  duplicateChat: (chatId: string) => Promise<void>;
   updateTitle: (title: string) => Promise<void>;
   updateChatTitle: (chatId: string, title: string) => Promise<void>;
   loadConversations: () => Promise<void>;
@@ -163,6 +165,19 @@ export function useConversation(
     [userId, agentName, baseURL, createNewChat]
   );
 
+  const duplicateChat = useCallback(
+    async (chatId: string) => {
+      try {
+        const newConv = await duplicateConversationApi(chatId, baseURL);
+        setConversations(prev => [newConv, ...prev]);
+      } catch (err) {
+        console.error('Error duplicating conversation:', err);
+        throw err;
+      }
+    },
+    [baseURL]
+  );
+
   const updateTitle = useCallback(
     async (title: string) => {
       try {
@@ -205,6 +220,7 @@ export function useConversation(
     switchToChat,
     deleteChat,
     deleteAllChats,
+    duplicateChat,
     updateTitle,
     updateChatTitle,
     loadConversations,
