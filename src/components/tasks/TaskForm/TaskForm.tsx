@@ -913,7 +913,14 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                 </label>
               )}
               {task && status === 'done' && onDeploy && !task.deployedAt && (
-                <button type="button" className={`${styles.toggleChip} ${styles.deployBtn}`} onClick={onDeploy}>
+                <button type="button" className={`${styles.toggleChip} ${styles.deployBtn}`} onClick={async () => {
+                  // Save any pending changes first, then deploy
+                  if (isDirty && onAutoSave) {
+                    await onAutoSave(buildSubmitData());
+                    setIsDirty(false);
+                  }
+                  onDeploy();
+                }}>
                   🚀 Deploy
                 </button>
               )}
