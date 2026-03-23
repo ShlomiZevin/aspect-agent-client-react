@@ -177,6 +177,9 @@ export function TaskCard({ task, dependencyInfo, crewDisplayNames, onClick, onAt
           <span className={`${styles.type} ${styles[task.type]}`}>
             {TYPE_ICONS[task.type] || task.type.toUpperCase()}
           </span>
+          {task.deployedAt && (
+            <span className={styles.deployedBadge} title={`Deployed ${new Date(task.deployedAt).toLocaleDateString()}`}>🚀</span>
+          )}
           {task.domain && task.domain !== 'general' && (
             <span className={styles.domain}>{task.domain}</span>
           )}

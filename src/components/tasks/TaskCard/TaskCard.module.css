@@ -210,6 +210,11 @@
   gap: 6px;
 }
 
+.deployedBadge {
+  font-size: 12px;
+  line-height: 1;
+}
+
 .domain {
   font-size: 10px;
   font-weight: 500;

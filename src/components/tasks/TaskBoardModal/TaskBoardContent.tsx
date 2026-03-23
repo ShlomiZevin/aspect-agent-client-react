@@ -780,8 +780,9 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
 
   const handleDismissDeployed = async (taskId: number) => {
     if (!notificationsState.identity) return;
-    await taskService.dismissDeployed(taskId, notificationsState.identity);
     setWhatsNewTasks(prev => prev.filter(t => t.id !== taskId));
+    notificationsState.decrementWhatsNew();
+    await taskService.dismissDeployed(taskId, notificationsState.identity);
   };
 
   return (
