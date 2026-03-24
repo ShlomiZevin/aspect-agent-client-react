@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import styles from './ConfirmDialog.module.css';
 
 interface ConfirmDialogProps {
@@ -9,6 +9,7 @@ interface ConfirmDialogProps {
   cancelText?: string;
   variant?: 'danger' | 'warning' | 'default';
   isLoading?: boolean;
+  children?: ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -21,6 +22,7 @@ export function ConfirmDialog({
   cancelText = 'Cancel',
   variant = 'danger',
   isLoading = false,
+  children,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -89,6 +91,8 @@ export function ConfirmDialog({
 
         <h2 id="confirm-dialog-title" className={styles.title}>{title}</h2>
         <p id="confirm-dialog-message" className={styles.message}>{message}</p>
+
+        {children}
 
         <div className={styles.actions}>
           <button
