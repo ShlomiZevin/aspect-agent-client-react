@@ -5,21 +5,24 @@ import styles from './WelcomeSection.module.css';
 
 export function WelcomeSection() {
   const config = useLocalizedConfig();
-  const { sendMessage } = useChatContext();
+  const { sendMessage, selectedTheme } = useChatContext();
   const { t } = useLanguage();
 
   const handleQuickQuestion = (question: string) => {
     sendMessage(question);
   };
 
+  // Use theme logo if a brand theme is selected, otherwise fall back to config
+  const welcomeIcon = selectedTheme?.logo || config.welcomeIcon;
+
   // Check if welcomeIcon is an image path or an emoji
-  const isImagePath = config.welcomeIcon.startsWith('/') || config.welcomeIcon.startsWith('http');
+  const isImagePath = welcomeIcon.startsWith('/') || welcomeIcon.startsWith('http');
 
   return (
     <div className={styles.welcome}>
       <div className={styles.header}>
         {isImagePath ? (
-          <img src={config.welcomeIcon} alt="" className={styles.iconImage} />
+          <img src={welcomeIcon} alt="" className={styles.iconImage} />
         ) : (
           <span className={styles.icon}>{config.welcomeIcon}</span>
         )}
