@@ -126,11 +126,12 @@ export async function deleteConversation(
 
 export async function duplicateConversation(
   conversationId: string,
-  baseURL?: string
+  baseURL?: string,
+  title?: string
 ): Promise<Conversation> {
   const data = await apiRequest<{ success: boolean; conversation: { externalId: string; metadata?: { title?: string }; channel?: 'web' | 'whatsapp'; createdAt: string; updatedAt: string } }>(
     `/api/conversation/${conversationId}/duplicate`,
-    { method: 'POST' },
+    { method: 'POST', body: JSON.stringify({ title }), headers: { 'Content-Type': 'application/json' } },
     baseURL || getBaseURL()
   );
   const conv = data.conversation;

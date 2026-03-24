@@ -20,7 +20,7 @@ export interface UseConversationReturn {
   switchToChat: (chatId: string) => Promise<Message[]>;
   deleteChat: (chatId: string) => Promise<void>;
   deleteAllChats: () => Promise<void>;
-  duplicateChat: (chatId: string) => Promise<void>;
+  duplicateChat: (chatId: string, title?: string) => Promise<void>;
   updateTitle: (title: string) => Promise<void>;
   updateChatTitle: (chatId: string, title: string) => Promise<void>;
   loadConversations: () => Promise<void>;
@@ -166,9 +166,9 @@ export function useConversation(
   );
 
   const duplicateChat = useCallback(
-    async (chatId: string) => {
+    async (chatId: string, title?: string) => {
       try {
-        const newConv = await duplicateConversationApi(chatId, baseURL);
+        const newConv = await duplicateConversationApi(chatId, baseURL, title);
         setConversations(prev => [newConv, ...prev]);
       } catch (err) {
         console.error('Error duplicating conversation:', err);

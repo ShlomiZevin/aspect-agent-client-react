@@ -27,6 +27,11 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
     isOpen: false,
     type: 'single',
   });
+  const [duplicateConfirm, setDuplicateConfirm] = useState<{ isOpen: boolean; chatId: string | null; title: string }>({
+    isOpen: false,
+    chatId: null,
+    title: '',
+  });
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Focus input when editing starts
@@ -69,11 +74,17 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
     }
   };
 
-  const handleDuplicateClick = async (e: React.MouseEvent, chatId: string) => {
+  const handleDuplicateClick = (e: React.MouseEvent, chatId: string, currentTitle: string) => {
     e.stopPropagation();
-    setDuplicatingId(chatId);
+    setDuplicateConfirm({ isOpen: true, chatId, title: `Copy of ${currentTitle || 'Conversation'}` });
+  };
+
+  const handleConfirmDuplicate = async () => {
+    if (!duplicateConfirm.chatId) return;
+    setDuplicatingId(duplicateConfirm.chatId);
     try {
-      await duplicateChat(chatId);
+      await duplicateChat(duplicateConfirm.chatId, duplicateConfirm.title);
+      setDuplicateConfirm({ isOpen: false, chatId: null, title: '' });
     } catch (err) {
       console.error('Failed to duplicate conversation:', err);
     } finally {
@@ -225,7 +236,7 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
                           </button>
                           <button
                             className={styles.editBtn}
-                            onClick={(e) => handleDuplicateClick(e, conv.id)}
+                            onClick={(e) => handleDuplicateClick(e, conv.id, conv.title)}
                             aria-label="Duplicate conversation"
                             disabled={duplicatingId === conv.id}
                           >
@@ -259,6 +270,28 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
           )}
         </div>
       </aside>
+
+      {/* Duplicate Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={duplicateConfirm.isOpen}
+        title="Duplicate Conversation"
+        message="Enter a name for the duplicated conversation:"
+        confirmText="Duplicate"
+        cancelText="Cancel"
+        variant="default"
+        isLoading={duplicatingId === duplicateConfirm.chatId}
+        onConfirm={handleConfirmDuplicate}
+        onCancel={() => setDuplicateConfirm({ isOpen: false, chatId: null, title: '' })}
+      >
+        <input
+          className={styles.editInput}
+          style={{ marginBottom: 'var(--spacing-lg)', display: 'block' }}
+          value={duplicateConfirm.title}
+          onChange={(e) => setDuplicateConfirm(prev => ({ ...prev, title: e.target.value }))}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmDuplicate(); }}
+          autoFocus
+        />
+      </ConfirmDialog>
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
