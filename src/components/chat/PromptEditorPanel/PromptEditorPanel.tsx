@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { CrewMember } from '../../../types/crew';
 import type { CrewMemberPrompt } from '../../../types/promptEditor';
 import type { TransitionLogicConfig } from '../../../types/chat';
+import type { AgentTheme } from '../../../types';
 import {
   getAgentPrompts,
   createPromptVersion,
@@ -92,6 +93,10 @@ interface PromptEditorPanelProps {
   onThinkingModelOverride: (crewMemberId: string, model: string) => void;
   thinkerDisabled: Record<string, boolean>;
   onThinkerDisabledToggle: (crewMemberId: string, disabled: boolean) => void;
+  // Theme selection (brand themes)
+  themes?: AgentTheme[];
+  selectedTheme: AgentTheme | null;
+  onThemeSelect: (themeId: string | null) => void;
 }
 
 type StatusType = 'success' | 'error' | 'info' | null;
@@ -118,6 +123,9 @@ export function PromptEditorPanel({
   onThinkingModelOverride,
   thinkerDisabled,
   onThinkerDisabledToggle,
+  themes,
+  selectedTheme,
+  onThemeSelect,
 }: PromptEditorPanelProps) {
   // Prompts data from API
   const [prompts, setPrompts] = useState<CrewMemberPrompt[]>([]);
@@ -165,6 +173,7 @@ export function PromptEditorPanel({
   // Collapsible section states
   const [showVersions, setShowVersions] = useState(false);
   const [showModel, setShowModel] = useState(false);
+  const [showThemeSection, setShowThemeSection] = useState(false);
   const [showPrompting, setShowPrompting] = useState(true);
 
   // Thinking prompt override state (per-crew, session-only)
@@ -950,6 +959,60 @@ export function PromptEditorPanel({
             </div>
           )}
         </div>
+
+        {/* 3.5. Theme - collapsible, only shown when agent has themes */}
+        {themes && themes.length > 0 && (
+          <div className={styles.editorSection}>
+            <button
+              className={styles.collapsibleHeader}
+              onClick={() => setShowThemeSection(!showThemeSection)}
+              type="button"
+            >
+              <span className={styles.editorLabelText}>
+                Theme
+                {selectedTheme && (
+                  <span className={styles.transitionLogicMeta}>{selectedTheme.name}</span>
+                )}
+              </span>
+              <svg
+                className={`${styles.chevron} ${showThemeSection ? styles.expanded : ''}`}
+                width="14" height="14" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" strokeWidth="2"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {showThemeSection && (
+              <div className={styles.themeGrid}>
+                {themes.map(theme => (
+                  <button
+                    key={theme.id}
+                    className={`${styles.themeCard} ${selectedTheme?.id === theme.id ? styles.themeCardActive : ''}`}
+                    onClick={() => onThemeSelect(theme.id)}
+                    type="button"
+                  >
+                    <img
+                      src={theme.logo}
+                      alt={theme.name}
+                      className={styles.themeLogo}
+                      onLoad={(e) => {
+                        const img = e.currentTarget;
+                        const ratio = img.naturalWidth / img.naturalHeight;
+                        img.classList.toggle(styles.themeLogoWide, ratio > 2);
+                        img.classList.toggle(styles.themeLogoSquare, ratio <= 1.2);
+                      }}
+                    />
+                    <span className={styles.themeName}>{theme.name}</span>
+                    <div className={styles.themeColors}>
+                      <span className={styles.colorDot} style={{ background: theme.colors.primary }} />
+                      <span className={styles.colorDot} style={{ background: theme.colors.secondary }} />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 4. Knowledge Bases - collapsible */}
         <div className={styles.editorSection}>

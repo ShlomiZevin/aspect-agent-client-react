@@ -20,11 +20,15 @@ export function Header({
 }: HeaderProps) {
   const config = useLocalizedConfig();
   const { t } = useLanguage();
-  const { conversations, conversationId, canShowFieldsEditor, isFieldsEditorOpen, setFieldsEditorOpen, isContextEditorOpen, setContextEditorOpen, debugMode } = useChatContext();
+  const { conversations, conversationId, canShowFieldsEditor, isFieldsEditorOpen, setFieldsEditorOpen, isContextEditorOpen, setContextEditorOpen, debugMode, selectedTheme } = useChatContext();
 
   // Check if current conversation is a WhatsApp conversation
   const currentConversation = conversations.find(c => c.id === conversationId);
   const isWhatsAppConversation = currentConversation?.channel === 'whatsapp';
+
+  // Use theme logo if a brand theme is selected
+  const logoSrc = selectedTheme?.logo || config.logo.src;
+  const logoAlt = selectedTheme?.name || config.logo.alt;
 
   return (
     <header className={styles.header}>
@@ -38,7 +42,7 @@ export function Header({
         </button>
 
         <div className={styles.logo}>
-          <img src={config.logo.src} alt={config.logo.alt} className={styles.logoImg} />
+          <img src={logoSrc} alt={logoAlt} className={styles.logoImg} />
           <div className={styles.logoText}>
             <h1 className={styles.title}>{config.headerTitle}</h1>
             <p className={styles.subtitle}>{config.headerSubtitle}</p>

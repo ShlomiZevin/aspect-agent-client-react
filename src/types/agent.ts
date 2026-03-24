@@ -6,6 +6,16 @@ export interface QuickQuestion {
   questionKey?: string;
 }
 
+export interface AgentTheme {
+  id: string;
+  name: string;
+  logo: string;
+  colors: {
+    primary: string;
+    secondary: string;
+  };
+}
+
 export interface AgentConfig {
   // Identity
   agentName: string;
@@ -47,6 +57,10 @@ export interface AgentConfig {
 
   // Theming
   themeClass: string;
+
+  // Themes (optional — agents without themes work as before)
+  themes?: AgentTheme[];
+  defaultTheme?: string;
 
   // Database connection (enables Query Optimizer in dashboard)
   database?: {

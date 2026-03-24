@@ -65,6 +65,8 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     selectedMessageIds,
     copyMessages,
     clearMessageSelection,
+    selectedTheme,
+    setSelectedTheme,
   } = useChatContext();
   const { config } = useAgentContext();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -244,6 +246,9 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           onThinkingModelOverride={setThinkingModelOverride}
           thinkerDisabled={thinkerDisabled}
           onThinkerDisabledToggle={setThinkerDisabled}
+          themes={config.themes}
+          selectedTheme={selectedTheme}
+          onThemeSelect={setSelectedTheme}
         />
       )}
 

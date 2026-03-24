@@ -1108,3 +1108,72 @@
   color: var(--text-muted);
   font-family: monospace;
 }
+
+/* Theme selection grid */
+.themeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.themeCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  font-family: inherit;
+}
+
+.themeCard:hover {
+  border-color: var(--text-secondary);
+  background: var(--surface-light);
+}
+
+.themeCardActive {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.themeLogo {
+  width: 100%;
+  height: 40px;
+  object-fit: contain;
+}
+
+/* Wide logos (ratio > 2) — give them more height so text is readable */
+.themeLogoWide {
+  height: 52px;
+}
+
+/* Square logos (ratio <= 1.2) — cap width so they don't dominate the card */
+.themeLogoSquare {
+  width: 48px;
+  height: 48px;
+}
+
+.themeName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.themeColors {
+  display: flex;
+  gap: 4px;
+}
+
+.colorDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+}

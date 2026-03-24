@@ -1,6 +1,7 @@
 import { createContext, useContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useChat, useConversation, useCrew, useDebugShortcut, useLocalStorageString, type UseChatReturn, type UseConversationReturn } from '../hooks';
 import { useAgentContext } from './AgentContext';
+import type { AgentTheme } from '../types';
 import { useUserContext } from './UserContext';
 import type { CrewMember, CrewJourneyStep } from '../types/crew';
 import { linkPhone as linkPhoneApi, goMobile as goMobileApi } from '../services/phoneService';
@@ -56,6 +57,9 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   injectTransitionPrompt: (content: string, crewMemberName?: string) => Promise<void>;
   // Fields refresh key (increments when fields are extracted)
   fieldsRefreshKey: number;
+  // Theme selection (brand themes)
+  selectedTheme: AgentTheme | null;
+  setSelectedTheme: (themeId: string | null) => void;
 }
 
 export const ChatContext = createContext<ChatContextValue | null>(null);
@@ -65,7 +69,7 @@ interface ChatProviderProps {
 }
 
 export function ChatProvider({ children }: ChatProviderProps) {
-  const { config } = useAgentContext();
+  const { config, selectedTheme, setSelectedTheme } = useAgentContext();
   const { userId, switchUser } = useUserContext();
   // Phone linking state (persisted in localStorage)
   const [linkedPhone, setLinkedPhone] = useLocalStorageString(`${config.storagePrefix}linked_phone`, null);
@@ -511,6 +515,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
     addDeveloperMessage: chat.addDeveloperMessage,
     // Fields refresh key (increments when fields are extracted)
     fieldsRefreshKey,
+    // Theme selection (brand themes)
+    selectedTheme,
+    setSelectedTheme,
   };
 
   return (

@@ -184,5 +184,45 @@ export const bankingOnboarderV2Config: AgentConfig = {
 
   themeClass: 'theme-banking-onboarder',
 
+  themes: [
+    {
+      id: 'lybi',
+      name: 'LYBI',
+      logo: '/img/lybi-logo-transparent.png',
+      colors: { primary: '#680662', secondary: '#9D1687' },
+    },
+    {
+      id: 'discount',
+      name: 'בנק דיסקונט',
+      logo: '/banking/images/discont-bank-logo.png',
+      colors: { primary: '#2EC05D', secondary: '#21B783' },
+    },
+    {
+      id: 'leumi',
+      name: 'בנק לאומי',
+      logo: '/banking/images/leumi-bank-logo.png',
+      colors: { primary: '#10069A', secondary: '#0066FF' },
+    },
+    {
+      id: 'poalim',
+      name: 'בנק הפועלים',
+      logo: '/banking/images/poalim-bank-logo.png',
+      colors: { primary: '#ED1C24', secondary: '#515153' },
+    },
+    {
+      id: 'mizrahi',
+      name: 'בנק מזרחי',
+      logo: '/banking/images/tfhaot-bank-logo.png',
+      colors: { primary: '#F5821F', secondary: '#4D555A' },
+    },
+    {
+      id: 'international',
+      name: 'הבינלאומי',
+      logo: '/banking/images/international-bank-logo.png',
+      colors: { primary: '#00529B', secondary: '#FDB726' },
+    },
+  ],
+  defaultTheme: 'lybi',
+
   profileSchema: bankingProfileSchema,
 };
