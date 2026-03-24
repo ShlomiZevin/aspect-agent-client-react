@@ -27,9 +27,13 @@ function isRTL(text: string): boolean {
   return firstLetter ? rtlChar.test(firstLetter[0]) : false;
 }
 
-/** Parse UI element markup from message text. Supports any type: [buttons: a | b], [chips: x | y], etc. */
+/** Known UI element types. Only these are parsed as interactive markup. */
+const UI_ELEMENT_TYPES = ['buttons', 'chips', 'checkbox', 'radio', 'toggle', 'select'];
+
+/** Parse UI element markup from message text. Only matches known types: [buttons: a | b], [chips: x | y], etc. */
 function parseUIElements(text: string): { cleanText: string; elements: { type: string; options: string[] }[] } {
-  const regex = /\[(\w+):\s*(.+?)\]/g;
+  const typesPattern = UI_ELEMENT_TYPES.join('|');
+  const regex = new RegExp(`\\[(${typesPattern}):\\s*(.+?)\\]`, 'g');
   const elements: { type: string; options: string[] }[] = [];
   const cleanText = text.replace(regex, (_, type, opts) => {
     elements.push({ type, options: opts.split('|').map((o: string) => o.trim()) });
