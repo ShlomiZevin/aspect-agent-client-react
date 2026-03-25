@@ -464,7 +464,7 @@ function ClusterSection({ cluster }: { cluster: ProfileCluster }) {
 
 const MODELS_BY_PROVIDER: Record<string, string[]> = {
   openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1', 'gpt-4.1-nano', 'o4-mini'],
-  anthropic: ['claude-sonnet-4-6', 'claude-sonnet-4-20250514', 'claude-haiku-4-6', 'claude-haiku-4-20250414'],
+  anthropic: ['claude-sonnet-4-6', 'claude-sonnet-4-20250514', 'claude-haiku-4-5-20251001'],
   google: ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'],
 };
 
@@ -627,10 +627,11 @@ function ProfilerConfigEditor({
 
   const availableModels = MODELS_BY_PROVIDER[provider] || MODELS_BY_PROVIDER.openai;
 
-  // Get description from last response
-  const lastDescription = lastRaw && typeof lastRaw === 'object' && '_profilerDescription' in (lastRaw as Record<string, unknown>)
-    ? String((lastRaw as Record<string, unknown>)._profilerDescription)
-    : null;
+  // Parse last raw envelope: { response, durationSec, model }
+  const lastEnvelope = lastRaw && typeof lastRaw === 'object' ? lastRaw as Record<string, unknown> : null;
+  const lastResponse = lastEnvelope?.response;
+  const lastDuration = lastEnvelope?.durationSec ? `${lastEnvelope.durationSec}s` : null;
+  const lastModel = lastEnvelope?.model ? String(lastEnvelope.model) : null;
 
   return (
     <>
@@ -714,13 +715,13 @@ function ProfilerConfigEditor({
       <DebugSection
         icon="📨"
         title="Last Response"
-        badge={lastDescription || undefined}
+        badge={lastDuration ? `${lastDuration} · ${lastModel || ''}` : undefined}
       >
         <div>
           <pre className={styles.configRawResponse}>
-            {lastRaw ? JSON.stringify(lastRaw, null, 2) : 'No response yet'}
+            {lastResponse ? JSON.stringify(lastResponse, null, 2) : 'No response yet'}
           </pre>
-          {lastRaw != null && (
+          {lastResponse != null && (
             <button
               className={styles.configResetBtn}
               onClick={() => setShowModal(true)}
@@ -734,8 +735,8 @@ function ProfilerConfigEditor({
       </DebugSection>
 
       {/* Modal */}
-      {showModal && lastRaw != null && (
-        <RawResponseModal data={lastRaw} onClose={() => setShowModal(false)} />
+      {showModal && lastResponse != null && (
+        <RawResponseModal data={lastResponse} onClose={() => setShowModal(false)} />
       )}
     </>
   );

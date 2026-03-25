@@ -196,8 +196,8 @@ export async function streamChat(
               onProfileUpdate?.(parsed.data);
             }
             // Handle raw profiler response (debug)
-            else if (parsed.type === 'profiler_raw' && parsed.data) {
-              onProfilerRaw?.(parsed.data);
+            else if (parsed.type === 'profiler_raw') {
+              onProfilerRaw?.({ response: parsed.data, durationSec: parsed.durationSec, model: parsed.model });
             }
           } catch {
             // Skip invalid JSON
