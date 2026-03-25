@@ -303,6 +303,9 @@ export interface UseChatOptions {
   onCrewInfo?: (crew: CrewMember) => void;
   onCrewTransition?: (transition: CrewTransition) => void;
   onFieldExtracted?: (field: string, value: string) => void;
+  onProfileUpdate?: (data: import('../services/chatService').ProfileUpdateData) => void;
+  onProfilerRaw?: (data: unknown) => void;
+  profilerFreshStart?: boolean;
 }
 
 export interface UseChatReturn {
@@ -327,7 +330,7 @@ export interface UseChatReturn {
  * Main chat hook - handles messaging, streaming, and thinking indicators
  */
 export function useChat(options: UseChatOptions): UseChatReturn {
-  const { config, conversationId, userId, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, onCrewInfo, onCrewTransition, onFieldExtracted } = options;
+  const { config, conversationId, userId, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, onCrewInfo, onCrewTransition, onFieldExtracted, onProfileUpdate, onProfilerRaw, profilerFreshStart } = options;
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
     conversationId,
@@ -372,6 +375,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             thinkingPromptOverrides,
             thinkingModelOverrides,
             thinkerDisabled,
+            profilerFreshStart,
           },
           {
             onThinkingStep: (step) => {
@@ -443,6 +447,8 @@ export function useChat(options: UseChatOptions): UseChatReturn {
               dispatch({ type: 'SET_USER_MESSAGE_DB_ID', payload: messageId });
             },
             onFieldExtracted,
+            onProfileUpdate,
+            onProfilerRaw,
           }
         );
       } catch (error) {
@@ -467,9 +473,12 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       thinkingPromptOverrides,
       thinkingModelOverrides,
       thinkerDisabled,
+      profilerFreshStart,
       onCrewInfo,
       onCrewTransition,
       onFieldExtracted,
+      onProfileUpdate,
+      onProfilerRaw,
     ]
   );
 

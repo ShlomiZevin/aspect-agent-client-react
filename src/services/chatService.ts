@@ -18,6 +18,7 @@ export interface StreamChatOptions {
   thinkingPromptOverrides?: Record<string, string>; // Session override: { crewName: thinkingPrompt }
   thinkingModelOverrides?: Record<string, string>;  // Session override: { crewName: thinkingModel }
   thinkerDisabled?: Record<string, boolean>; // Session override: { crewName: true } to disable thinker
+  profilerFreshStart?: boolean; // Debug: ignore existing profile, start from scratch
 }
 
 export interface CrewTransition {
@@ -41,6 +42,17 @@ export interface StreamCallbacks {
   onMessageSaved?: (messageId: number) => void;
   onUserMessageSaved?: (messageId: number) => void;
   onFieldExtracted?: (field: string, value: string) => void;
+  onProfileUpdate?: (data: ProfileUpdateData) => void;
+  onProfilerRaw?: (data: unknown) => void;
+}
+
+export interface ProfileUpdateData {
+  clusters: Record<string, { fields: Record<string, { value: string | null; confidence: number; source: string; updatedNow: boolean }> }>;
+  clusterScores: Record<string, { depth: number }>;
+  summary: { general_overview: string; key_profile_traits: string[]; potential_index: number; focused_action_recommendation: string } | null;
+  overallDepth: number;
+  overallConfidence: number;
+  profileTier: string;
 }
 
 /**
@@ -50,8 +62,8 @@ export async function streamChat(
   options: StreamChatOptions,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const { message, conversationId, agentName, userId, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled } = options;
-  const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onModelUsed, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onFieldExtracted } = callbacks;
+  const { message, conversationId, agentName, userId, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, profilerFreshStart } = options;
+  const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onModelUsed, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onFieldExtracted, onProfileUpdate, onProfilerRaw } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
 
@@ -74,6 +86,7 @@ export async function streamChat(
         ...(thinkingPromptOverrides && Object.keys(thinkingPromptOverrides).length > 0 && { thinkingPromptOverrides }),
         ...(thinkingModelOverrides && Object.keys(thinkingModelOverrides).length > 0 && { thinkingModelOverrides }),
         ...(thinkerDisabled && Object.keys(thinkerDisabled).length > 0 && { thinkerDisabled }),
+        ...(profilerFreshStart && { profilerFreshStart: true }),
       }),
     });
 
@@ -107,6 +120,10 @@ export async function streamChat(
           const data = line.slice(6).trim();
           if (data === '[DONE]') {
             onComplete(fullText);
+            // Don't return — keep reading for late profiler events
+            continue;
+          }
+          if (data === '[STREAM_END]') {
             return;
           }
 
@@ -173,6 +190,14 @@ export async function streamChat(
             // Handle user message saved event (for delete functionality)
             else if (parsed.type === 'user_message_saved' && parsed.messageId) {
               onUserMessageSaved?.(parsed.messageId);
+            }
+            // Handle profile update from async profiler
+            else if (parsed.type === 'profile_update' && parsed.data) {
+              onProfileUpdate?.(parsed.data);
+            }
+            // Handle raw profiler response (debug)
+            else if (parsed.type === 'profiler_raw' && parsed.data) {
+              onProfilerRaw?.(parsed.data);
             }
           } catch {
             // Skip invalid JSON

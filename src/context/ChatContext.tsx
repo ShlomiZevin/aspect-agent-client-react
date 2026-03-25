@@ -5,6 +5,7 @@ import type { AgentTheme } from '../types';
 import { useUserContext } from './UserContext';
 import type { CrewMember, CrewJourneyStep } from '../types/crew';
 import { linkPhone as linkPhoneApi, goMobile as goMobileApi } from '../services/phoneService';
+import type { ProfileUpdateData } from '../services/chatService';
 
 interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 'switchToChat'> {
   switchToChat: (chatId: string) => Promise<void>;
@@ -57,6 +58,13 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   injectTransitionPrompt: (content: string, crewMemberName?: string) => Promise<void>;
   // Fields refresh key (increments when fields are extracted)
   fieldsRefreshKey: number;
+  // Profiler data (pushed via SSE from async profiler)
+  profileData: ProfileUpdateData | null;
+  // Profiler raw response (debug)
+  profilerLastRaw: unknown | null;
+  // Profiler fresh start (debug) — ignore existing profile, start from scratch
+  profilerFreshStart: boolean;
+  setProfilerFreshStart: (value: boolean) => void;
   // Theme selection (brand themes)
   selectedTheme: AgentTheme | null;
   setSelectedTheme: (themeId: string | null) => void;
@@ -216,6 +224,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
   // Context editor state (debug mode only)
   const [isContextEditorOpen, setContextEditorOpen] = useState(false);
 
+  // Profiler data state (pushed via SSE from async profiler)
+  const [profileData, setProfileData] = useState<ProfileUpdateData | null>(null);
+  const [profilerLastRaw, setProfilerLastRaw] = useState<unknown | null>(null);
+  const [profilerFreshStart, setProfilerFreshStart] = useState(true);
+
   // Persona override for debug mode (session-only, agent-level)
   const [personaOverride, setPersonaOverride] = useState<string | null>(null);
 
@@ -233,6 +246,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     thinkingPromptOverrides: debugMode ? thinkingPromptOverrides : undefined,
     thinkingModelOverrides: debugMode ? thinkingModelOverrides : undefined,
     thinkerDisabled: debugMode ? thinkerDisabled : undefined,
+    profilerFreshStart: profilerFreshStart || undefined,
     onCrewInfo: (crewInfo) => {
       crew.setCurrentCrew(crewInfo);
       // Refresh fields panel when crew is set (including initial crew)
@@ -252,6 +266,12 @@ export function ChatProvider({ children }: ChatProviderProps) {
     onFieldExtracted: () => {
       // Increment refresh key to trigger FieldsEditorPanel reload
       setFieldsRefreshKey(prev => prev + 1);
+    },
+    onProfileUpdate: (data) => {
+      setProfileData(data);
+    },
+    onProfilerRaw: (data) => {
+      setProfilerLastRaw(data);
     },
   });
 
@@ -515,6 +535,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
     addDeveloperMessage: chat.addDeveloperMessage,
     // Fields refresh key (increments when fields are extracted)
     fieldsRefreshKey,
+    // Profiler data (pushed via SSE from async profiler)
+    profileData,
+    profilerLastRaw,
+    profilerFreshStart,
+    setProfilerFreshStart,
     // Theme selection (brand themes)
     selectedTheme,
     setSelectedTheme,

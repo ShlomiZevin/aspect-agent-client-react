@@ -17,8 +17,8 @@ export interface ProfileClusterDef {
   id: string;
   name: string;
   icon: string;
-  /** 'fields' shows all fields (empty or filled), 'tags' only shows fields with values */
-  displayMode: 'fields' | 'tags';
+  /** 'fields' shows all fields (empty or filled), 'tags' only shows fields with values, 'summary' renders narrative blocks */
+  displayMode: 'fields' | 'tags' | 'summary';
   fields: ProfileFieldDef[];
 }
 
@@ -52,7 +52,7 @@ export interface ProfileCluster {
   id: string;
   name: string;
   icon: string;
-  displayMode: 'fields' | 'tags';
+  displayMode: 'fields' | 'tags' | 'summary';
   fields: ProfileField[];
   depth: number; // 0–100
 }

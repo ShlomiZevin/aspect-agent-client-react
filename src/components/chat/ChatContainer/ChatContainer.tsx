@@ -67,6 +67,10 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     clearMessageSelection,
     selectedTheme,
     setSelectedTheme,
+    profileData,
+    profilerLastRaw,
+    profilerFreshStart,
+    setProfilerFreshStart,
   } = useChatContext();
   const { config } = useAgentContext();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -280,6 +284,12 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           baseURL={baseURL}
           profileSchema={config.profileSchema}
           refreshKey={fieldsRefreshKey}
+          profilerData={profileData}
+          profilerLastRaw={profilerLastRaw}
+          debugMode={debugMode}
+          agentName={config.agentName}
+          freshStart={profilerFreshStart}
+          onFreshStartChange={setProfilerFreshStart}
           onClose={() => setIsProfilePanelOpen(false)}
         />
       )}
