@@ -1,0 +1,618 @@
+/* Architecture Page - Tech Stack Showcase */
+
+.container {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  background: #0f172a;
+  color: #f1f5f9;
+  min-height: 100vh;
+}
+
+/* Navigation */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.navContent {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.75rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navLogo {
+  background: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+}
+
+.navLogo img {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.navLinks a {
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+}
+
+.navLinks a:hover {
+  color: #ffffff;
+}
+
+/* Hero */
+.hero {
+  padding: 7rem 4rem 4rem;
+  text-align: center;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.hero h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+  color: #ffffff;
+}
+
+.hero h1 span {
+  color: #60a5fa;
+}
+
+.heroSub {
+  font-size: 1.2rem;
+  color: #94a3b8;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* Section base */
+.section {
+  padding: 5rem 4rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.sectionAlt {
+  padding: 5rem 4rem;
+  background: #1e293b;
+}
+
+.sectionAltInner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.sectionTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 0.5rem;
+  text-align: center;
+}
+
+.sectionSub {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 1.05rem;
+  margin: 0 0 3rem;
+}
+
+/* ──────────────────────────────────────────────
+   HIGH-LEVEL ARCHITECTURE DIAGRAM
+   ────────────────────────────────────────────── */
+
+.diagram {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 2rem 0;
+}
+
+/* Diagram row */
+.diagramRow {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+/* Arrow connector between rows */
+.diagramArrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 0.75rem 0;
+  color: #475569;
+}
+
+.diagramArrow .arrowLine {
+  width: 2px;
+  height: 20px;
+  background: #475569;
+}
+
+.diagramArrow .arrowLabel {
+  font-size: 0.75rem;
+  color: #64748b;
+  padding: 0.25rem 0.75rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 1rem;
+  white-space: nowrap;
+}
+
+.diagramArrow .arrowHead {
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #475569;
+}
+
+/* Diagram box */
+.diagramBox {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  text-align: center;
+  min-width: 160px;
+  flex: 1;
+  max-width: 220px;
+  transition: border-color 0.2s;
+}
+
+.diagramBox:hover {
+  border-color: #3b82f6;
+}
+
+.diagramBoxAccent {
+  composes: diagramBox;
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, #1e293b 0%, #172554 100%);
+}
+
+.diagramBoxGreen {
+  composes: diagramBox;
+  border-color: #22c55e;
+  background: linear-gradient(135deg, #1e293b 0%, #052e16 100%);
+}
+
+.diagramBoxPurple {
+  composes: diagramBox;
+  border-color: #a855f7;
+  background: linear-gradient(135deg, #1e293b 0%, #2e1065 100%);
+}
+
+.diagramBoxAmber {
+  composes: diagramBox;
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, #1e293b 0%, #451a03 100%);
+}
+
+.diagramBoxIcon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.diagramBoxTitle {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #ffffff;
+  margin-bottom: 0.25rem;
+}
+
+.diagramBoxDetail {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+/* Wide box spanning full row */
+.diagramBoxWide {
+  composes: diagramBox;
+  max-width: 100%;
+  flex-basis: 100%;
+}
+
+/* Horizontal connector line between boxes in a row */
+.diagramHConnector {
+  display: flex;
+  align-items: center;
+  color: #475569;
+}
+
+.diagramHConnector .hLine {
+  width: 24px;
+  height: 2px;
+  background: #475569;
+}
+
+/* ──────────────────────────────────────────────
+   TECH CARDS GRID
+   ────────────────────────────────────────────── */
+
+.techGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.techCard {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 1rem;
+  padding: 1.75rem;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.techCard:hover {
+  transform: translateY(-4px);
+  border-color: #3b82f6;
+}
+
+.techCardIcon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.techCardTitle {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.techCardDesc {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.techTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tag {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 1rem;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  white-space: nowrap;
+}
+
+.tagGreen {
+  composes: tag;
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.tagPurple {
+  composes: tag;
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border-color: rgba(168, 85, 247, 0.25);
+}
+
+.tagAmber {
+  composes: tag;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.tagRed {
+  composes: tag;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+/* ──────────────────────────────────────────────
+   CREW SYSTEM FLOW
+   ────────────────────────────────────────────── */
+
+.crewFlow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  flex-wrap: wrap;
+  padding: 1rem 0;
+}
+
+.crewStep {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  text-align: center;
+  min-width: 140px;
+  max-width: 180px;
+  flex-shrink: 0;
+}
+
+.crewStep:hover {
+  border-color: #a855f7;
+}
+
+.crewStepIcon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.crewStepTitle {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #ffffff;
+  margin-bottom: 0.25rem;
+}
+
+.crewStepDetail {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  line-height: 1.3;
+}
+
+.crewArrow {
+  color: #a855f7;
+  font-size: 1.5rem;
+  padding: 0 0.5rem;
+  flex-shrink: 0;
+}
+
+/* ──────────────────────────────────────────────
+   SSE STREAMING TIMELINE
+   ────────────────────────────────────────────── */
+
+.streamTimeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.streamEvent {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.streamDot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  padding-top: 0.25rem;
+}
+
+.streamDotCircle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3b82f6;
+  border: 2px solid #60a5fa;
+  flex-shrink: 0;
+}
+
+.streamDotCircleGreen {
+  composes: streamDotCircle;
+  background: #22c55e;
+  border-color: #4ade80;
+}
+
+.streamDotCirclePurple {
+  composes: streamDotCircle;
+  background: #a855f7;
+  border-color: #c084fc;
+}
+
+.streamDotCircleAmber {
+  composes: streamDotCircle;
+  background: #f59e0b;
+  border-color: #fbbf24;
+}
+
+.streamDotLine {
+  width: 2px;
+  height: 32px;
+  background: #334155;
+}
+
+.streamContent {
+  padding-bottom: 1.5rem;
+}
+
+.streamLabel {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #ffffff;
+  margin-bottom: 0.15rem;
+}
+
+.streamDesc {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+/* ──────────────────────────────────────────────
+   LLM PROVIDERS COMPARISON
+   ────────────────────────────────────────────── */
+
+.providerGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.providerCard {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 1rem;
+  padding: 2rem;
+  text-align: center;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.providerCard:hover {
+  transform: translateY(-4px);
+}
+
+.providerIcon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.providerName {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.25rem;
+}
+
+.providerModels {
+  font-size: 0.85rem;
+  color: #60a5fa;
+  margin-bottom: 1rem;
+}
+
+.providerFeatures {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.providerFeatures li {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #334155;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.providerFeatures li:last-child {
+  border-bottom: none;
+}
+
+.checkIcon {
+  color: #4ade80;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.providerOpenAI:hover { border-color: #10b981; }
+.providerAnthropic:hover { border-color: #f59e0b; }
+.providerGoogle:hover { border-color: #3b82f6; }
+
+/* ──────────────────────────────────────────────
+   FOOTER
+   ────────────────────────────────────────────── */
+
+.footer {
+  background: #0f172a;
+  padding: 3rem 4rem;
+  border-top: 1px solid #334155;
+  text-align: center;
+}
+
+.footerText {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* ──────────────────────────────────────────────
+   RESPONSIVE
+   ────────────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .techGrid,
+  .providerGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .crewFlow {
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 5rem 1.5rem 2rem;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+  }
+
+  .section,
+  .sectionAlt {
+    padding: 3rem 1.5rem;
+  }
+
+  .techGrid,
+  .providerGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .diagramRow {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .diagramBox,
+  .diagramBoxAccent,
+  .diagramBoxGreen,
+  .diagramBoxPurple,
+  .diagramBoxAmber {
+    max-width: 100%;
+  }
+
+  .diagramHConnector {
+    display: none;
+  }
+
+  .crewFlow {
+    flex-direction: column;
+  }
+
+  .crewArrow {
+    transform: rotate(90deg);
+  }
+
+  .navLinks a {
+    display: none;
+  }
+}

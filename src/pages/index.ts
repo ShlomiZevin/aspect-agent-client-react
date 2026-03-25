@@ -1,4 +1,5 @@
 export { AspectPage } from './AspectPage';
+export { ArchitecturePage } from './ArchitecturePage';
 export { AspectLandingPage } from './AspectLandingPage';
 export { BankingOnboarderPage } from './BankingOnboarderPage';
 export { BankingOnboarderV2Page } from './BankingOnboarderV2Page';
