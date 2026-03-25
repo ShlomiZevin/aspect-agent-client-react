@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getContext, type ContextResponse } from '../../../services/contextService';
 import { getFields } from '../../../services/fieldsService';
-import { getProfilerConfig, updateProfilerConfig, resetProfilerConfig, clearProfileData } from '../../../services/profilerService';
+import { getProfilerConfig, updateProfilerConfig, resetProfilerConfig } from '../../../services/profilerService';
 import type {
   ProfileSchema,
   ProfileData,
@@ -720,7 +720,7 @@ function ProfilerConfigEditor({
           <pre className={styles.configRawResponse}>
             {lastRaw ? JSON.stringify(lastRaw, null, 2) : 'No response yet'}
           </pre>
-          {lastRaw && (
+          {lastRaw != null && (
             <button
               className={styles.configResetBtn}
               onClick={() => setShowModal(true)}
@@ -734,7 +734,7 @@ function ProfilerConfigEditor({
       </DebugSection>
 
       {/* Modal */}
-      {showModal && lastRaw && (
+      {showModal && lastRaw != null && (
         <RawResponseModal data={lastRaw} onClose={() => setShowModal(false)} />
       )}
     </>
