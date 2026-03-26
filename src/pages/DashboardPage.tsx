@@ -7,6 +7,7 @@ import { CrewPage } from '../components/dashboard/CrewPage';
 import { CrewEditorAI } from '../components/dashboard/CrewEditorAI';
 import { CrewPlayground } from '../components/dashboard/CrewPlayground';
 import { QueryOptimizerPage } from '../components/dashboard/QueryOptimizerPage';
+import { DataLoaderPage } from '../components/dashboard/DataLoaderPage';
 import { PodcastPage } from '../components/dashboard/PodcastPage';
 import { BillingPage } from '../components/dashboard/BillingPage';
 import { ApiKeysPage } from '../components/dashboard/ApiKeysPage';
@@ -105,6 +106,12 @@ export function DashboardPage() {
               <Route
                 path="query-optimizer"
                 element={<QueryOptimizerPage agentName={config.agentName} baseURL={config.baseURL} />}
+              />
+            )}
+            {showQueryOptimizer && (
+              <Route
+                path="data-loader"
+                element={<DataLoaderPage agentName={config.agentName} baseURL={config.baseURL} schemaName={config.database!.schema} />}
               />
             )}
             {showPodcast && (

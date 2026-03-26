@@ -28,6 +28,12 @@ const QUERY_OPTIMIZER_ITEM = {
   icon: 'M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z M13 2v7h7 M9 17l2-2 4-4',
 };
 
+const DATA_LOADER_ITEM = {
+  path: 'data-loader',
+  label: 'Data Loader',
+  icon: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4 M7 10l5 5 5-5 M12 15V3',
+};
+
 const PODCAST_ITEM = {
   path: 'podcast',
   label: 'Podcast',
@@ -49,7 +55,7 @@ const API_KEYS_ITEM = {
 export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showPodcast, children }: DashboardLayoutProps) {
   const navItems = [
     ...BASE_NAV_ITEMS,
-    ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM] : []),
+    ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM, DATA_LOADER_ITEM] : []),
     ...(showPodcast ? [PODCAST_ITEM] : []),
     BILLING_ITEM,
     API_KEYS_ITEM,
