@@ -285,7 +285,7 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
         <div className={styles.section} ref={currentRunRef}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>
-              {isLive ? 'Current Run' : 'Last Run'}
+              {(isLive || runStatus === 'loaded') ? 'Current Run' : 'Last Run'}
             </h2>
           </div>
           <CurrentRunPanel
