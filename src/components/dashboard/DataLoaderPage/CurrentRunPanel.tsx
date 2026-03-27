@@ -7,6 +7,7 @@ import styles from './DataLoaderPage.module.css';
 export interface RunState {
   id: number;
   status: string;
+  phase?: 'import' | 'indexing';
   step?: string;
   triggeredBy?: string;
   triggered_by?: string;
@@ -64,6 +65,8 @@ function formatDuration(started?: string, completed?: string) {
 
 export function CurrentRunPanel({ run, logs, filesCompleted }: CurrentRunPanelProps) {
   const isRunning = run?.status === 'running';
+  const isLoaded = run?.status === 'loaded';
+  const isActive = isRunning || isLoaded;
   const startedAt = run?.startedAt ?? run?.started_at;
   const completedAt = run?.completedAt ?? run?.completed_at;
   const triggeredBy = run?.triggeredBy ?? run?.triggered_by;
@@ -72,10 +75,12 @@ export function CurrentRunPanel({ run, logs, filesCompleted }: CurrentRunPanelPr
   const errorMessage = run?.errorMessage ?? run?.error_message;
   const elapsed = useElapsed(startedAt, isRunning);
 
+  const phaseLabel = run?.phase === 'import' ? 'Import' : run?.phase === 'indexing' ? 'Indexing' : null;
+
   if (!run) {
     return (
       <div className={styles.panelEmpty}>
-        No reload runs yet. Click <strong>Reload Now</strong> to start.
+        No runs yet. Click <strong>Import Data</strong> to start.
       </div>
     );
   }
@@ -87,6 +92,12 @@ export function CurrentRunPanel({ run, logs, filesCompleted }: CurrentRunPanelPr
           <span className={styles.metaLabel}>Status</span>
           <StatusBadge status={run.status} step={run.step} />
         </div>
+        {phaseLabel && (
+          <div className={styles.runMetaRow}>
+            <span className={styles.metaLabel}>Phase</span>
+            <span>{phaseLabel}</span>
+          </div>
+        )}
         {run.step && (
           <div className={styles.runMetaRow}>
             <span className={styles.metaLabel}>Step</span>
@@ -96,7 +107,7 @@ export function CurrentRunPanel({ run, logs, filesCompleted }: CurrentRunPanelPr
         {startedAt && (
           <div className={styles.runMetaRow}>
             <span className={styles.metaLabel}>Started</span>
-            <span>{new Date(startedAt).toLocaleTimeString('en-GB', { hour12: false })}</span>
+            <span>{new Date(startedAt).toLocaleDateString('en-GB')} {new Date(startedAt).toLocaleTimeString('en-GB', { hour12: false })}</span>
           </div>
         )}
         {isRunning && elapsed && (
@@ -105,7 +116,7 @@ export function CurrentRunPanel({ run, logs, filesCompleted }: CurrentRunPanelPr
             <span>{elapsed}</span>
           </div>
         )}
-        {!isRunning && completedAt && (
+        {!isActive && completedAt && (
           <div className={styles.runMetaRow}>
             <span className={styles.metaLabel}>Duration</span>
             <span>{formatDuration(startedAt, completedAt)}</span>
@@ -130,6 +141,12 @@ export function CurrentRunPanel({ run, logs, filesCompleted }: CurrentRunPanelPr
           </div>
         )}
       </div>
+
+      {isLoaded && (
+        <div className={styles.loadedNotice}>
+          Import complete. Click <strong>Create Indexes</strong> to finish.
+        </div>
+      )}
 
       {errorMessage && (
         <div className={styles.errorBox}>

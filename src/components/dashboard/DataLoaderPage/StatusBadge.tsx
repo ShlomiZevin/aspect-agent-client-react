@@ -24,6 +24,7 @@ export function StatusBadge({ status, step }: StatusBadgeProps) {
     : status === 'completed' ? 'Completed'
     : status === 'failed' ? 'Failed'
     : status === 'running' ? 'Running'
+    : status === 'loaded' ? 'Import Done'
     : 'Idle';
 
   const cls = status === 'running'
@@ -32,6 +33,8 @@ export function StatusBadge({ status, step }: StatusBadgeProps) {
     ? styles.badgeCompleted
     : status === 'failed'
     ? styles.badgeFailed
+    : status === 'loaded'
+    ? styles.badgeLoaded
     : styles.badgeIdle;
 
   return (

@@ -1,6 +1,5 @@
 .page {
   padding: var(--spacing-xl);
-  max-width: 1100px;
   overflow-y: auto;
   height: 100%;
 }
@@ -32,11 +31,19 @@
   font-size: 0.8em;
 }
 
-/* ── Reload Button ──────────────────────────────────────── */
+/* ── Header Actions ─────────────────────────────────────── */
 
-.reloadBtn {
+.headerActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+
+.reloadBtn,
+.indexBtn {
   padding: 8px 20px;
-  background: var(--primary-color);
   color: white;
   border: none;
   border-radius: var(--radius-md);
@@ -47,13 +54,34 @@
   white-space: nowrap;
 }
 
-.reloadBtn:hover:not(:disabled) {
+.reloadBtn {
+  background: var(--primary-color);
+}
+
+.indexBtn {
+  background: #7c3aed;
+}
+
+.reloadBtn:hover:not(:disabled),
+.indexBtn:hover:not(:disabled) {
   opacity: 0.9;
 }
 
 .reloadBtnDisabled {
-  background: var(--text-muted);
+  background: var(--text-muted) !important;
   cursor: not-allowed;
+}
+
+/* ── Loaded Notice ───────────────────────────────────────── */
+
+.loadedNotice {
+  background: #1e3a1e;
+  border: 1px solid #2d6a2d;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: var(--font-size-sm);
+  color: #7ec87e;
+  margin-bottom: 12px;
 }
 
 /* ── Sections ───────────────────────────────────────────── */
@@ -176,6 +204,7 @@
 .badgeRunning   { background: #14532d; color: #4ade80; }
 .badgeCompleted { background: #052e16; color: #22c55e; }
 .badgeFailed    { background: #450a0a; color: #f87171; }
+.badgeLoaded    { background: #2e1a5e; color: #a78bfa; }
 .badgeIdle      { background: var(--surface-light); color: var(--text-muted); }
 
 .badgeDot {

@@ -35,11 +35,12 @@ function formatTime(ts: string) {
 }
 
 export function LogViewer({ logs, autoScroll = true }: LogViewerProps) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll the log container to bottom on every new entry
   useEffect(() => {
-    if (autoScroll && bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (autoScroll && containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [logs, autoScroll]);
 
@@ -52,7 +53,7 @@ export function LogViewer({ logs, autoScroll = true }: LogViewerProps) {
   }
 
   return (
-    <div className={styles.logViewer}>
+    <div className={styles.logViewer} ref={containerRef}>
       {logs.map((entry, i) => {
         const color = STEP_COLORS[entry.step] || '#94a3b8';
         return (
@@ -65,7 +66,6 @@ export function LogViewer({ logs, autoScroll = true }: LogViewerProps) {
           </div>
         );
       })}
-      <div ref={bottomRef} />
     </div>
   );
 }

@@ -17,13 +17,18 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   const [history, setHistory] = useState<HistoryRun[]>([]);
   const [liveLogs, setLiveLogs] = useState<LogEntry[]>([]);
   const [fileProgress, setFileProgress] = useState<FileProgress[]>([]);
-  const [isReloading, setIsReloading] = useState(false);
+  const [isLive, setIsLive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState(false);
+  const [confirming, setConfirming] = useState<'import' | 'index' | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const currentRunRef = useRef<HTMLDivElement>(null);
 
   const apiBase = `${baseURL}/api/admin/data-loader/${schemaName}`;
+
+  const runStatus = currentRun?.status;
+  const isBusy = runStatus === 'running';
+  const isLoaded = runStatus === 'loaded';
 
   const loadData = useCallback(async () => {
     try {
@@ -40,7 +45,7 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
       if (filesData.files) setFiles(filesData.files);
       if (statusData.status) {
         setCurrentRun(statusData.status);
-        setIsReloading(statusData.status?.status === 'running' || statusData.status?.isLive);
+        setIsLive(!!statusData.status?.isLive);
       }
       if (historyData.history) setHistory(historyData.history);
     } catch (e: unknown) {
@@ -71,7 +76,6 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
         totalFiles: data.totalFiles,
         totalRows: data.totalRows,
       } : prev);
-      // Update file progress
       if (data.currentFile) {
         setFileProgress(prev => {
           const existing = prev.findIndex(fp => fp.file === data.currentFile);
@@ -92,26 +96,26 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
 
     es.addEventListener('status', (e) => {
       const data = JSON.parse(e.data);
-      setCurrentRun(data);
-      setIsReloading(data?.status === 'running');
+      setCurrentRun(prev => prev ? { ...prev, ...data } : data);
+      // 'loaded' = phase 1 done, waiting for indexing — keep live for SSE
+      // 'running' = actively running
+      setIsLive(data?.status === 'running' || data?.status === 'loaded');
     });
 
     es.addEventListener('complete', (e) => {
       const data = JSON.parse(e.data);
-      setIsReloading(false);
+      setIsLive(false);
       setCurrentRun(prev => prev ? { ...prev, ...data, status: 'completed' } : null);
-      // Mark all files as loaded
       setFileProgress(prev =>
         prev.map(fp => fp.status === 'loading' ? { ...fp, status: 'loaded' } : fp)
       );
       es.close();
       eventSourceRef.current = null;
-      // Refresh history
       loadData();
     });
 
     es.addEventListener('error', () => {
-      setIsReloading(false);
+      setIsLive(false);
       es.close();
       eventSourceRef.current = null;
       loadData();
@@ -127,13 +131,13 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
     loadData();
   }, [loadData]);
 
-  // Auto-connect SSE if already running on mount
+  // Auto-connect SSE if already live on mount
   useEffect(() => {
-    if (isReloading && !eventSourceRef.current) {
+    if (isLive && !eventSourceRef.current) {
       connectSSE();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReloading]);
+  }, [isLive]);
 
   useEffect(() => {
     return () => {
@@ -141,32 +145,59 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
     };
   }, []);
 
-  async function handleReloadClick() {
-    setConfirming(true);
-  }
-
-  async function handleReloadConfirm() {
-    setConfirming(false);
+  async function handleImportConfirm() {
+    setConfirming(null);
     try {
-      const res = await fetch(`${apiBase}/reload`, {
+      const res = await fetch(`${apiBase}/load`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ triggeredBy: 'manual' }),
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Failed to start reload');
+        throw new Error(data.error || 'Failed to start import');
       }
-      setIsReloading(true);
+      setIsLive(true);
       setLiveLogs([]);
       setFileProgress([]);
-      setCurrentRun(prev => prev ? { ...prev, status: 'running', step: 'starting' } : {
-        id: 0, status: 'running', step: 'starting',
-        startedAt: new Date().toISOString(), triggeredBy: 'manual',
-      } as RunState);
+      setCurrentRun(prev => ({
+        ...(prev ?? {}),
+        status: 'running',
+        phase: 'import',
+        step: 'starting',
+        startedAt: new Date().toISOString(),
+        completedAt: undefined,
+      } as RunState));
       connectSSE();
+      setTimeout(() => currentRunRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Failed to start reload');
+      alert(e instanceof Error ? e.message : 'Failed to start import');
+    }
+  }
+
+  async function handleIndexConfirm() {
+    setConfirming(null);
+    try {
+      const res = await fetch(`${apiBase}/index`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ triggeredBy: 'manual' }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to start indexing');
+      }
+      setIsLive(true);
+      setCurrentRun(prev => prev ? {
+        ...prev,
+        status: 'running',
+        phase: 'indexing',
+        step: 'creating_indexes',
+      } : prev);
+      connectSSE();
+      setTimeout(() => currentRunRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Failed to start indexing');
     }
   }
 
@@ -185,23 +216,47 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
           <h1 className={styles.pageTitle}>Data Loader</h1>
           <p className={styles.pageSubtitle}>Schema: <code>{schemaName}</code></p>
         </div>
-        <button
-          className={`${styles.reloadBtn} ${isReloading ? styles.reloadBtnDisabled : ''}`}
-          onClick={handleReloadClick}
-          disabled={isReloading}
-        >
-          {isReloading ? '● Reloading...' : '▶ Reload Now'}
-        </button>
+        <div className={styles.headerActions}>
+          <button
+            className={`${styles.reloadBtn} ${isBusy || isLoaded ? styles.reloadBtnDisabled : ''}`}
+            onClick={() => setConfirming('import')}
+            disabled={isBusy || isLoaded}
+            title={isLoaded ? 'Import already done — create indexes next' : ''}
+          >
+            {isBusy && currentRun?.phase === 'import' ? '● Importing...' : '▶ Import Data'}
+          </button>
+          <button
+            className={`${styles.indexBtn} ${!isLoaded || isBusy ? styles.reloadBtnDisabled : ''}`}
+            onClick={() => setConfirming('index')}
+            disabled={!isLoaded || isBusy}
+            title={!isLoaded ? 'Run Import first' : ''}
+          >
+            {isBusy && currentRun?.phase === 'indexing' ? '● Indexing...' : '⚡ Create Indexes'}
+          </button>
+        </div>
       </div>
 
-      {confirming && (
+      {confirming === 'import' && (
         <div className={styles.confirmOverlay}>
           <div className={styles.confirmDialog}>
-            <p>Start a full data reload for <strong>{schemaName}</strong>?</p>
-            <p className={styles.confirmNote}>The live agent will not be affected during reload.</p>
+            <p>Start data import for <strong>{schemaName}</strong>?</p>
+            <p className={styles.confirmNote}>This loads all CSV files from GCS into a shadow schema. The live agent is not affected.</p>
             <div className={styles.confirmActions}>
-              <button className={styles.confirmBtn} onClick={handleReloadConfirm}>Start Reload</button>
-              <button className={styles.cancelBtn} onClick={() => setConfirming(false)}>Cancel</button>
+              <button className={styles.confirmBtn} onClick={handleImportConfirm}>Start Import</button>
+              <button className={styles.cancelBtn} onClick={() => setConfirming(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirming === 'index' && (
+        <div className={styles.confirmOverlay}>
+          <div className={styles.confirmDialog}>
+            <p>Create indexes for <strong>{schemaName}</strong>?</p>
+            <p className={styles.confirmNote}>This creates all indexes and materialized views, then swaps the schema live atomically.</p>
+            <div className={styles.confirmActions}>
+              <button className={styles.confirmBtn} onClick={handleIndexConfirm}>Create Indexes</button>
+              <button className={styles.cancelBtn} onClick={() => setConfirming(null)}>Cancel</button>
             </div>
           </div>
         </div>
@@ -215,34 +270,38 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
         <SourceFilesTable
           files={files}
           fileProgress={fileProgress}
-          isReloading={isReloading}
+          isReloading={isBusy}
         />
       </div>
 
-      <div className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>
-            {isReloading ? 'Current Run' : 'Last Run'}
-          </h2>
+      {(isLive || currentRun) && (
+        <div className={styles.section} ref={currentRunRef}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>
+              {isLive ? 'Current Run' : 'Last Run'}
+            </h2>
+          </div>
+          <CurrentRunPanel
+            run={currentRun}
+            logs={liveLogs}
+            filesCompleted={currentRun?.filesLoaded ?? currentRun?.files_loaded}
+          />
         </div>
-        <CurrentRunPanel
-          run={currentRun}
-          logs={liveLogs}
-          filesCompleted={currentRun?.filesLoaded ?? currentRun?.files_loaded}
-        />
-      </div>
+      )}
 
-      <div className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Run History</h2>
-          <span className={styles.sectionCount}>{history.length} runs</span>
+      {history.length > 0 && (
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Run History</h2>
+            <span className={styles.sectionCount}>{history.length} runs</span>
+          </div>
+          <RunHistoryTable
+            history={history}
+            baseURL={baseURL}
+            schemaName={schemaName}
+          />
         </div>
-        <RunHistoryTable
-          history={history}
-          baseURL={baseURL}
-          schemaName={schemaName}
-        />
-      </div>
+      )}
     </div>
   );
 }
