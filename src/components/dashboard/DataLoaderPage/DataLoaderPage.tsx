@@ -46,6 +46,13 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
       if (statusData.status) {
         setCurrentRun(statusData.status);
         setIsLive(!!statusData.status?.isLive);
+        // When status='loaded', SSE replay may be unavailable — load logs from DB directly
+        if (statusData.status.status === 'loaded' && statusData.status.id) {
+          fetch(`${apiBase}/runs/${statusData.status.id}/log`)
+            .then(r => r.json())
+            .then(d => { if (d.logs?.length > 0) setLiveLogs(d.logs); })
+            .catch(() => {});
+        }
       }
       if (historyData.history) setHistory(historyData.history);
     } catch (e: unknown) {

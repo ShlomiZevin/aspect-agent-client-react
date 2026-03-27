@@ -91,10 +91,17 @@ export function RunHistoryTable({ history, baseURL, schemaName }: RunHistoryTabl
             <>
               <tr key={run.id}>
                 <td>{formatDate(run.started_at)}</td>
-                <td>{formatDuration(run.started_at, run.completed_at)}</td>
+                <td>{run.status === 'loaded' ? 'pending index' : formatDuration(run.started_at, run.completed_at)}</td>
                 <td>
-                  <span className={run.status === 'completed' ? styles.statusDone : styles.statusFailed}>
-                    {run.status === 'completed' ? 'Done' : run.status === 'failed' ? 'Failed' : run.status}
+                  <span className={
+                    run.status === 'completed' ? styles.statusDone :
+                    run.status === 'loaded' ? styles.statusLoaded :
+                    styles.statusFailed
+                  }>
+                    {run.status === 'completed' ? 'Done' :
+                     run.status === 'failed' ? 'Failed' :
+                     run.status === 'loaded' ? 'Pending Index' :
+                     run.status}
                   </span>
                 </td>
                 <td>{run.files_loaded != null ? `${run.files_loaded}/${run.total_files ?? '?'}` : '—'}</td>

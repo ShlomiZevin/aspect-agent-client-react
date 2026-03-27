@@ -167,6 +167,7 @@
 
 .statusDone   { color: #22c55e; font-weight: 500; }
 .statusFailed { color: #ef4444; font-weight: 500; }
+.statusLoaded { color: #a78bfa; font-weight: 500; }
 
 .viewLogBtn {
   padding: 3px 10px;
