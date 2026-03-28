@@ -84,6 +84,23 @@
   margin-bottom: 12px;
 }
 
+/* ── Two-column layout ──────────────────────────────────── */
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+  align-items: start;
+}
+
+.leftCol,
+.rightCol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  min-width: 0;
+}
+
 /* ── Sections ───────────────────────────────────────────── */
 
 .section {

@@ -259,46 +259,52 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
         </div>
       )}
 
-      <div className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Source Files</h2>
-          <span className={styles.sectionCount}>{files.length} files</span>
+      <div className={styles.twoCol}>
+        <div className={styles.leftCol}>
+          <div className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Source Files</h2>
+              <span className={styles.sectionCount}>{files.length} files</span>
+            </div>
+            <SourceFilesTable
+              files={files}
+              fileProgress={fileProgress}
+              isReloading={isBusy}
+            />
+          </div>
         </div>
-        <SourceFilesTable
-          files={files}
-          fileProgress={fileProgress}
-          isReloading={isBusy}
-        />
+
+        <div className={styles.rightCol}>
+          {(isLive || currentRun) && (
+            <div className={styles.section} ref={currentRunRef}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>
+                  {isLive ? 'Current Run' : 'Last Run'}
+                </h2>
+              </div>
+              <CurrentRunPanel
+                run={currentRun}
+                logs={liveLogs}
+                filesCompleted={currentRun?.filesLoaded ?? currentRun?.files_loaded}
+              />
+            </div>
+          )}
+
+          {history.length > 0 && (
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Run History</h2>
+                <span className={styles.sectionCount}>{history.length} runs</span>
+              </div>
+              <RunHistoryTable
+                history={history}
+                baseURL={baseURL}
+                schemaName={schemaName}
+              />
+            </div>
+          )}
+        </div>
       </div>
-
-      {(isLive || currentRun) && (
-        <div className={styles.section} ref={currentRunRef}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>
-              {isLive ? 'Current Run' : 'Last Run'}
-            </h2>
-          </div>
-          <CurrentRunPanel
-            run={currentRun}
-            logs={liveLogs}
-            filesCompleted={currentRun?.filesLoaded ?? currentRun?.files_loaded}
-          />
-        </div>
-      )}
-
-      {history.length > 0 && (
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Run History</h2>
-            <span className={styles.sectionCount}>{history.length} runs</span>
-          </div>
-          <RunHistoryTable
-            history={history}
-            baseURL={baseURL}
-            schemaName={schemaName}
-          />
-        </div>
-      )}
     </div>
   );
 }
