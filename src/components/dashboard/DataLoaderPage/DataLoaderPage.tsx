@@ -28,7 +28,6 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
 
   const runStatus = currentRun?.status;
   const isBusy = runStatus === 'running';
-  const isLoaded = runStatus === 'loaded';
 
   const loadData = useCallback(async () => {
     try {
@@ -46,13 +45,6 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
       if (statusData.status) {
         setCurrentRun(statusData.status);
         setIsLive(!!statusData.status?.isLive);
-        // When status='loaded', SSE replay may be unavailable — load logs from DB directly
-        if (statusData.status.status === 'loaded' && statusData.status.id) {
-          fetch(`${apiBase}/runs/${statusData.status.id}/log`)
-            .then(r => r.json())
-            .then(d => { if (d.logs?.length > 0) setLiveLogs(d.logs); })
-            .catch(() => {});
-        }
       }
       if (historyData.history) setHistory(historyData.history);
     } catch (e: unknown) {
@@ -104,9 +96,7 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
     es.addEventListener('status', (e) => {
       const data = JSON.parse(e.data);
       setCurrentRun(prev => prev ? { ...prev, ...data } : data);
-      // 'loaded' = phase 1 done, waiting for indexing — keep live for SSE
-      // 'running' = actively running
-      setIsLive(data?.status === 'running' || data?.status === 'loaded');
+      setIsLive(data?.status === 'running');
     });
 
     es.addEventListener('complete', (e) => {
@@ -188,19 +178,21 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
       const res = await fetch(`${apiBase}/index`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ triggeredBy: 'manual' }),
       });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Failed to start indexing');
       }
       setIsLive(true);
-      setCurrentRun(prev => prev ? {
-        ...prev,
+      setLiveLogs([]);
+      setCurrentRun(prev => ({
+        ...(prev ?? {}),
         status: 'running',
         phase: 'indexing',
         step: 'creating_indexes',
-      } : prev);
+        startedAt: new Date().toISOString(),
+        completedAt: undefined,
+      } as RunState));
       connectSSE();
       setTimeout(() => currentRunRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     } catch (e: unknown) {
@@ -225,18 +217,16 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
         </div>
         <div className={styles.headerActions}>
           <button
-            className={`${styles.reloadBtn} ${isBusy || isLoaded ? styles.reloadBtnDisabled : ''}`}
+            className={`${styles.reloadBtn} ${isBusy ? styles.reloadBtnDisabled : ''}`}
             onClick={() => setConfirming('import')}
-            disabled={isBusy || isLoaded}
-            title={isLoaded ? 'Import already done — create indexes next' : ''}
+            disabled={isBusy}
           >
             {isBusy && currentRun?.phase === 'import' ? '● Importing...' : '▶ Import Data'}
           </button>
           <button
-            className={`${styles.indexBtn} ${!isLoaded || isBusy ? styles.reloadBtnDisabled : ''}`}
+            className={`${styles.indexBtn} ${isBusy ? styles.reloadBtnDisabled : ''}`}
             onClick={() => setConfirming('index')}
-            disabled={!isLoaded || isBusy}
-            title={!isLoaded ? 'Run Import first' : ''}
+            disabled={isBusy}
           >
             {isBusy && currentRun?.phase === 'indexing' ? '● Indexing...' : '⚡ Create Indexes'}
           </button>
@@ -260,7 +250,7 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
         <div className={styles.confirmOverlay}>
           <div className={styles.confirmDialog}>
             <p>Create indexes for <strong>{schemaName}</strong>?</p>
-            <p className={styles.confirmNote}>This creates all indexes and materialized views, then swaps the schema live atomically.</p>
+            <p className={styles.confirmNote}>Creates all indexes and materialized views on the live schema. The system stays accessible during indexing.</p>
             <div className={styles.confirmActions}>
               <button className={styles.confirmBtn} onClick={handleIndexConfirm}>Create Indexes</button>
               <button className={styles.cancelBtn} onClick={() => setConfirming(null)}>Cancel</button>
@@ -285,7 +275,7 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
         <div className={styles.section} ref={currentRunRef}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>
-              {(isLive || runStatus === 'loaded') ? 'Current Run' : 'Last Run'}
+              {isLive ? 'Current Run' : 'Last Run'}
             </h2>
           </div>
           <CurrentRunPanel

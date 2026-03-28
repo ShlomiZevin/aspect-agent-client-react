@@ -65,8 +65,6 @@ function formatDuration(started?: string, completed?: string) {
 
 export function CurrentRunPanel({ run, logs, filesCompleted }: CurrentRunPanelProps) {
   const isRunning = run?.status === 'running';
-  const isLoaded = run?.status === 'loaded';
-  const isActive = isRunning || isLoaded;
   const startedAt = run?.startedAt ?? run?.started_at;
   const completedAt = run?.completedAt ?? run?.completed_at;
   const triggeredBy = run?.triggeredBy ?? run?.triggered_by;
@@ -116,7 +114,7 @@ export function CurrentRunPanel({ run, logs, filesCompleted }: CurrentRunPanelPr
             <span>{elapsed}</span>
           </div>
         )}
-        {!isActive && completedAt && (
+        {!isRunning && completedAt && (
           <div className={styles.runMetaRow}>
             <span className={styles.metaLabel}>Duration</span>
             <span>{formatDuration(startedAt, completedAt)}</span>
@@ -142,12 +140,6 @@ export function CurrentRunPanel({ run, logs, filesCompleted }: CurrentRunPanelPr
         )}
       </div>
 
-      {isLoaded && (
-        <div className={styles.loadedNotice}>
-          Import complete. Click <strong>Create Indexes</strong> to finish.
-        </div>
-      )}
-
       {errorMessage && (
         <div className={styles.errorBox}>
           <strong>Error:</strong> {errorMessage}
@@ -164,7 +156,7 @@ export function CurrentRunPanel({ run, logs, filesCompleted }: CurrentRunPanelPr
 
       <div className={styles.logSection}>
         <div className={styles.logHeader}>
-          {isRunning ? 'Live Log' : 'Last Run Log'}
+          {isRunning ? 'Live Log' : 'Log'}
         </div>
         <LogViewer logs={logs} autoScroll={isRunning} />
       </div>
