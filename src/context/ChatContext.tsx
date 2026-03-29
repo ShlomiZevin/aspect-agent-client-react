@@ -148,10 +148,12 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
   // KB overrides for debug mode (session-only)
   const [kbOverrides, setKBOverrides] = useState<Record<string, string[]>>({});
-  const setKBOverride = useCallback((crewMemberId: string, sources: string[]) => {
-    if (sources && sources.length > 0) {
+  const setKBOverride = useCallback((crewMemberId: string, sources: string[] | null) => {
+    if (sources != null) {
+      // Empty array [] = "disable KB"; non-empty = override sources
       setKBOverrides(prev => ({ ...prev, [crewMemberId]: sources }));
     } else {
+      // null = remove override, revert to crew default
       setKBOverrides(prev => {
         const next = { ...prev };
         delete next[crewMemberId];
