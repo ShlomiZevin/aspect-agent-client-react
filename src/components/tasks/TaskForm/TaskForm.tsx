@@ -912,19 +912,12 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                   ✓ Done
                 </label>
               )}
-              {task && status === 'done' && onDeploy && !task.deployedAt && (
-                <button type="button" className={`${styles.toggleChip} ${styles.deployBtn}`} onClick={async () => {
-                  // Save any pending changes first, then deploy
-                  if (isDirty && onAutoSave) {
-                    await onAutoSave(buildSubmitData());
-                    setIsDirty(false);
-                  }
-                  onDeploy();
-                }}>
+              {task && status === 'done' && onDeploy && !task.deployedAt && !isDirty && (
+                <button type="button" className={`${styles.toggleChip} ${styles.deployBtn}`} onClick={onDeploy}>
                   🚀 Deploy
                 </button>
               )}
-              {task?.deployedAt && onUndeploy && (
+              {task?.deployedAt && onUndeploy && !isDirty && (
                 <button type="button" className={`${styles.toggleChip} ${styles.deployedBadge}`} onClick={onUndeploy}>
                   🚀 Deployed ×
                 </button>
