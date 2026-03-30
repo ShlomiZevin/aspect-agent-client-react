@@ -1,4 +1,4 @@
-export type TestRunType = 'individuals' | 'conversation' | 'review';
+export type TestRunType = 'individuals' | 'population' | 'conversation' | 'review';
 export type TestRunStatus = 'pending' | 'running' | 'completed' | 'failed';
 
 export interface TestRun {
@@ -64,6 +64,27 @@ export interface IndividualProfile {
   unique_fact: string;
 }
 
+export interface MotivationDef {
+  key: string;
+  description: string;
+}
+
 export interface TestRunConfig {
-  motivations: string[];
+  id?: number;
+  agentName: string;
+  motivations: MotivationDef[];
+  generatorPrompt: string;
+  userMessageTemplate: string;
+  personaSchema?: Record<string, unknown> | null;
+  defaultModel: string;
+  defaultCount: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface UpdateTestConfigData {
+  motivations?: MotivationDef[];
+  generatorPrompt?: string;
+  userMessageTemplate?: string;
+  defaultModel?: string;
+  defaultCount?: number;
 }

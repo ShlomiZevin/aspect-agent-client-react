@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import * as testRunnerService from '../../../services/testRunnerService';
-import type { TestRun, IndividualProfile } from '../../../types/testRunner';
+import type { TestRun, IndividualProfile, TestRunConfig, MotivationDef } from '../../../types/testRunner';
 import styles from './TestRunnerPage.module.css';
 
 interface Props {
@@ -9,7 +9,9 @@ interface Props {
 }
 
 export function TestRunnerPage({ agentName, baseURL }: Props) {
-  const [activeTab, setActiveTab] = useState<'individuals' | 'populations' | 'conversations' | 'reviewer'>('individuals');
+  const [activeTab, setActiveTab] = useState<'individuals' | 'populations'>('individuals');
+  const [showSettings, setShowSettings] = useState(false);
+  const [configVersion, setConfigVersion] = useState(0);
 
   return (
     <div className={styles.page}>
@@ -39,13 +41,28 @@ export function TestRunnerPage({ agentName, baseURL }: Props) {
         <button className={`${styles.tab} ${styles.tabDisabled}`} disabled title="Coming soon">
           4. Reviewer
         </button>
+        <div style={{ flex: 1 }} />
+        {activeTab === 'individuals' && <button
+          className={styles.settingsBtn}
+          onClick={() => setShowSettings(true)}
+          title="Configure prompts and motivations"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+          </svg>
+        </button>}
       </div>
 
       {activeTab === 'individuals' && (
-        <IndividualsTab agentName={agentName} baseURL={baseURL} />
+        <IndividualsTab agentName={agentName} baseURL={baseURL} key={configVersion} />
       )}
       {activeTab === 'populations' && (
         <PopulationsTab agentName={agentName} baseURL={baseURL} />
+      )}
+
+      {showSettings && (
+        <SettingsModal agentName={agentName} baseURL={baseURL} onClose={() => { setShowSettings(false); setConfigVersion(v => v + 1); }} />
       )}
     </div>
   );
@@ -56,7 +73,7 @@ export function TestRunnerPage({ agentName, baseURL }: Props) {
 // ─────────────────────────────────────────────────────────────────
 
 function IndividualsTab({ agentName, baseURL }: Props) {
-  const [motivations, setMotivations] = useState<string[]>([]);
+  const [motivations, setMotivations] = useState<MotivationDef[]>([]);
   const [selectedMotivation, setSelectedMotivation] = useState('');
   const [count, setCount] = useState(10);
   const [runs, setRuns] = useState<TestRun[]>([]);
@@ -94,9 +111,12 @@ function IndividualsTab({ agentName, baseURL }: Props) {
   const loadConfig = async () => {
     try {
       const config = await testRunnerService.getTestRunConfig(agentName, baseURL);
-      setMotivations(config.motivations);
-      if (config.motivations.length > 0 && !selectedMotivation) {
-        setSelectedMotivation(config.motivations[0]);
+      const mots: MotivationDef[] = (config.motivations || []).map(
+        (m: string | MotivationDef) => typeof m === 'string' ? { key: m, description: '' } : m
+      );
+      setMotivations(mots);
+      if (mots.length > 0 && !selectedMotivation) {
+        setSelectedMotivation(mots[0].key);
       }
     } catch {
       setMotivations([]);
@@ -211,7 +231,7 @@ function IndividualsTab({ agentName, baseURL }: Props) {
                 <option value="">No motivations configured</option>
               )}
               {motivations.map(m => (
-                <option key={m} value={m}>{m}</option>
+                <option key={m.key} value={m.key}>{m.key}</option>
               ))}
             </select>
           </div>
@@ -361,30 +381,37 @@ function IndividualsTab({ agentName, baseURL }: Props) {
 // ─────────────────────────────────────────────────────────────────
 
 function PopulationsTab({ agentName, baseURL }: Props) {
-  const [runs, setRuns] = useState<TestRun[]>([]);
+  const [individualRuns, setIndividualRuns] = useState<TestRun[]>([]);
+  const [savedPopulations, setSavedPopulations] = useState<TestRun[]>([]);
+  const [selectedPopulation, setSelectedPopulation] = useState<TestRun | null>(null);
+  const [populationName, setPopulationName] = useState('');
   const [populationSize, setPopulationSize] = useState(20);
   const [mode, setMode] = useState<'random' | 'manual'>('random');
   const [percentages, setPercentages] = useState<Record<string, number>>({});
-  const [population, setPopulation] = useState<IndividualProfile[]>([]);
+  const [builtPopulation, setBuiltPopulation] = useState<IndividualProfile[] | null>(null);
   const [selectedIndividual, setSelectedIndividual] = useState<IndividualProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [editName, setEditName] = useState('');
 
   useEffect(() => {
-    loadRuns();
+    loadData();
   }, [agentName]);
 
-  const loadRuns = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const result = await testRunnerService.getTestRuns(
-        { type: 'individuals', agentName },
-        baseURL
-      );
-      setRuns(result.filter(r => r.status === 'completed'));
+      const [indRuns, popRuns] = await Promise.all([
+        testRunnerService.getTestRuns({ type: 'individuals', agentName }, baseURL),
+        testRunnerService.getTestRuns({ type: 'population', agentName }, baseURL),
+      ]);
+      setIndividualRuns(indRuns.filter(r => r.status === 'completed'));
+      setSavedPopulations(popRuns.filter(r => r.status === 'completed'));
 
-      // Init percentages from available motivations
+      // Init percentages
       const motivations = new Set<string>();
-      for (const run of result) {
+      for (const run of indRuns) {
         if (run.status === 'completed') {
           const m = (run.input as Record<string, unknown>).motivation as string;
           if (m) motivations.add(m);
@@ -401,37 +428,33 @@ function PopulationsTab({ agentName, baseURL }: Props) {
     }
   };
 
-  // Collect all individuals grouped by motivation
   const poolByMotivation = useMemo(() => {
     const pool: Record<string, IndividualProfile[]> = {};
-    for (const run of runs) {
+    for (const run of individualRuns) {
       const motivation = (run.input as Record<string, unknown>).motivation as string;
       if (!motivation || !Array.isArray(run.output)) continue;
       if (!pool[motivation]) pool[motivation] = [];
       pool[motivation].push(...(run.output as IndividualProfile[]));
     }
     return pool;
-  }, [runs]);
+  }, [individualRuns]);
 
   const availableMotivations = Object.keys(poolByMotivation);
   const totalAvailable = Object.values(poolByMotivation).reduce((s, arr) => s + arr.length, 0);
+  const totalPercentage = Object.values(percentages).reduce((s, v) => s + v, 0);
 
   const handlePercentageChange = (motivation: string, value: number) => {
     setPercentages(prev => ({ ...prev, [motivation]: Math.max(0, Math.min(100, value)) }));
   };
 
-  const totalPercentage = Object.values(percentages).reduce((s, v) => s + v, 0);
-
   const buildPopulation = () => {
     const result: IndividualProfile[] = [];
 
     if (mode === 'random') {
-      // Flatten all individuals, shuffle, pick N
       const all = Object.values(poolByMotivation).flat();
       const shuffled = [...all].sort(() => Math.random() - 0.5);
       result.push(...shuffled.slice(0, populationSize));
     } else {
-      // Pick by percentage
       for (const motivation of availableMotivations) {
         const pct = percentages[motivation] || 0;
         const count = Math.round((pct / 100) * populationSize);
@@ -441,9 +464,96 @@ function PopulationsTab({ agentName, baseURL }: Props) {
       }
     }
 
-    setPopulation(result);
+    setBuiltPopulation(result);
+    setSelectedPopulation(null);
+    setSelectedIndividual(null);
+    if (!populationName) {
+      setPopulationName(`Population ${savedPopulations.length + 1}`);
+    }
+  };
+
+  const handleSavePopulation = async () => {
+    if (!builtPopulation || builtPopulation.length === 0) return;
+    setSaving(true);
+
+    try {
+      const counts: Record<string, number> = {};
+      for (const ind of builtPopulation) {
+        counts[ind.motivation_primary] = (counts[ind.motivation_primary] || 0) + 1;
+      }
+
+      const name = populationName || `Population ${savedPopulations.length + 1}`;
+
+      const run = await testRunnerService.createTestRun({
+        type: 'population',
+        agentName,
+        input: {
+          name,
+          size: builtPopulation.length,
+          mode,
+          percentages: mode === 'manual' ? percentages : null,
+          breakdown: counts,
+        },
+      }, baseURL);
+
+      // Save population output via execute (server will handle 'population' type)
+      // We need to add server support for this
+      await testRunnerService.saveTestRunOutput(run.id, builtPopulation, baseURL);
+
+      setBuiltPopulation(null);
+      setPopulationName('');
+      await loadData();
+    } catch (err) {
+      console.error('Failed to save population:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSelectPopulation = async (pop: TestRun) => {
+    if (!pop.output) {
+      const full = await testRunnerService.getTestRun(pop.id, baseURL);
+      setSelectedPopulation(full);
+    } else {
+      setSelectedPopulation(pop);
+    }
+    setBuiltPopulation(null);
     setSelectedIndividual(null);
   };
+
+  const handleRename = async () => {
+    if (!selectedPopulation || !editName.trim()) {
+      setEditingName(false);
+      return;
+    }
+    await testRunnerService.updateTestRunInput(selectedPopulation.id, { name: editName.trim() }, baseURL);
+    setEditingName(false);
+    await loadData();
+    // Re-select to refresh
+    const updated = await testRunnerService.getTestRun(selectedPopulation.id, baseURL);
+    setSelectedPopulation(updated);
+  };
+
+  const handleDeletePopulation = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await testRunnerService.deleteTestRun(id, baseURL);
+    if (selectedPopulation?.id === id) setSelectedPopulation(null);
+    await loadData();
+  };
+
+  // Current display: either built (unsaved) or selected saved population
+  const displayPopulation: IndividualProfile[] =
+    builtPopulation
+      ? builtPopulation
+      : selectedPopulation?.status === 'completed' && Array.isArray(selectedPopulation.output)
+        ? (selectedPopulation.output as IndividualProfile[])
+        : [];
+
+  const displayName = builtPopulation
+    ? populationName || 'Unsaved population'
+    : selectedPopulation
+      ? (selectedPopulation.input as Record<string, unknown>).name as string || 'Population'
+      : '';
 
   if (loading) {
     return <div className={styles.loading}><span className={styles.spinner} /> Loading...</div>;
@@ -459,20 +569,31 @@ function PopulationsTab({ agentName, baseURL }: Props) {
 
   return (
     <>
+      {/* Build config */}
       <div className={styles.configPanel}>
         <div className={styles.populationHeader}>
           <div className={styles.field}>
-            <label className={styles.fieldLabel}>Population Size</label>
+            <label className={styles.fieldLabel}>Name</label>
+            <input
+              type="text"
+              className={styles.select}
+              style={{ minWidth: 200 }}
+              value={populationName}
+              onChange={e => setPopulationName(e.target.value)}
+              placeholder="Population name..."
+            />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.fieldLabel}>Size</label>
             <input
               type="number"
               className={styles.input}
-              style={{ width: 100, minWidth: 100 }}
+              style={{ width: 80, minWidth: 80 }}
               value={populationSize}
               onChange={e => setPopulationSize(Math.max(1, parseInt(e.target.value) || 1))}
               min={1}
             />
           </div>
-
           <div className={styles.field}>
             <label className={styles.fieldLabel}>Mode</label>
             <select
@@ -485,9 +606,8 @@ function PopulationsTab({ agentName, baseURL }: Props) {
               <option value="manual">Set percentages</option>
             </select>
           </div>
-
           <button className={styles.generateBtn} onClick={buildPopulation}>
-            Build Population
+            Build
           </button>
         </div>
 
@@ -496,7 +616,7 @@ function PopulationsTab({ agentName, baseURL }: Props) {
             {availableMotivations.map(m => (
               <div key={m} className={styles.percentageRow}>
                 <span className={styles.percentageLabel}>{m}</span>
-                <span className={styles.percentagePool}>({poolByMotivation[m].length} available)</span>
+                <span className={styles.percentagePool}>({poolByMotivation[m].length})</span>
                 <input
                   type="number"
                   className={styles.percentageInput}
@@ -519,21 +639,86 @@ function PopulationsTab({ agentName, baseURL }: Props) {
 
         {mode === 'random' && (
           <div className={styles.poolSummary}>
-            Available pool: {totalAvailable} individuals across {availableMotivations.length} motivations
-            ({availableMotivations.map(m => `${m}: ${poolByMotivation[m].length}`).join(', ')})
+            Pool: {totalAvailable} individuals — {availableMotivations.map(m => `${m}: ${poolByMotivation[m].length}`).join(', ')}
           </div>
         )}
       </div>
 
-      {/* Population results */}
-      {population.length > 0 && (
+      {/* Saved populations chips */}
+      {(savedPopulations.length > 0 || builtPopulation) && (
+        <div className={styles.runChips}>
+          {builtPopulation && (
+            <div className={styles.chipWrapper}>
+              <button className={`${styles.chip} ${styles.chipActive}`}>
+                {populationName || 'Unsaved'} &middot; {builtPopulation.length}
+              </button>
+              <button
+                className={styles.chipSave}
+                onClick={handleSavePopulation}
+                disabled={saving}
+                title="Save population"
+              >
+                {saving ? '...' : '✓'}
+              </button>
+            </div>
+          )}
+          {savedPopulations.map(pop => {
+            const name = (pop.input as Record<string, unknown>).name as string || 'Population';
+            const size = (pop.input as Record<string, unknown>).size as number || 0;
+            const isActive = !builtPopulation && selectedPopulation?.id === pop.id;
+            return (
+              <div key={pop.id} className={styles.chipWrapper}>
+                <button
+                  className={`${styles.chip} ${isActive ? styles.chipActive : ''}`}
+                  onClick={() => handleSelectPopulation(pop)}
+                >
+                  {name} &middot; {size}
+                </button>
+                <button
+                  className={styles.chipDelete}
+                  onClick={(e) => handleDeletePopulation(pop.id, e)}
+                  title="Delete population"
+                >
+                  &times;
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Population cards */}
+      {displayPopulation.length > 0 && (
         <>
           <div className={styles.resultsHeader}>
-            <span className={styles.resultsTitle}>Population ({population.length})</span>
+            {editingName && selectedPopulation ? (
+              <input
+                className={styles.editNameInput}
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                onBlur={handleRename}
+                onKeyDown={e => e.key === 'Enter' && handleRename()}
+                autoFocus
+              />
+            ) : (
+              <span
+                className={styles.resultsTitle}
+                style={selectedPopulation ? { cursor: 'pointer' } : undefined}
+                onClick={() => {
+                  if (selectedPopulation) {
+                    setEditName(displayName);
+                    setEditingName(true);
+                  }
+                }}
+                title={selectedPopulation ? 'Click to rename' : undefined}
+              >
+                {displayName} ({displayPopulation.length})
+              </span>
+            )}
             <span className={styles.resultsMeta}>
               {(() => {
                 const counts: Record<string, number> = {};
-                for (const ind of population) {
+                for (const ind of displayPopulation) {
                   counts[ind.motivation_primary] = (counts[ind.motivation_primary] || 0) + 1;
                 }
                 return Object.entries(counts).map(([m, c]) => `${m}: ${c}`).join(', ');
@@ -544,7 +729,7 @@ function PopulationsTab({ agentName, baseURL }: Props) {
           <div className={styles.resultsArea}>
             <div className={`${styles.cardsSection} ${selectedIndividual ? styles.cardsSectionNarrow : ''}`}>
               <div className={styles.cardsGrid}>
-                {population.map((ind, i) => {
+                {displayPopulation.map((ind, i) => {
                   const isActive = selectedIndividual === ind;
                   const difficultyClass = ind.difficulty === 'קשה'
                     ? styles.badgeDifficultyHard
@@ -558,7 +743,7 @@ function PopulationsTab({ agentName, baseURL }: Props) {
                     >
                       <div className={styles.cardHeader}>
                         <span className={styles.cardName}>{ind.name}</span>
-                        <span className={styles.cardId}>{ind.motivation_primary?.slice(0, 3).toUpperCase()}-{ind.id}</span>
+                        <span className={styles.cardId}>{ind.id}</span>
                       </div>
                       <div className={styles.cardSummary}>
                         {ind.age}, {ind.gender} &middot; {ind.occupation}
@@ -582,10 +767,7 @@ function PopulationsTab({ agentName, baseURL }: Props) {
 
             {selectedIndividual && (
               <div className={styles.detailPanel}>
-                <button
-                  className={styles.detailClose}
-                  onClick={() => setSelectedIndividual(null)}
-                >
+                <button className={styles.detailClose} onClick={() => setSelectedIndividual(null)}>
                   &times;
                 </button>
                 <IndividualDetail individual={selectedIndividual} />
@@ -595,6 +777,225 @@ function PopulationsTab({ agentName, baseURL }: Props) {
         </>
       )}
     </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Settings Modal
+// ─────────────────────────────────────────────────────────────────
+
+function SettingsModal({ agentName, baseURL, onClose }: Props & { onClose: () => void }) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const [motivations, setMotivations] = useState<MotivationDef[]>([]);
+  const [generatorPrompt, setGeneratorPrompt] = useState('');
+  const [userMessageTemplate, setUserMessageTemplate] = useState('');
+  const [defaultModel, setDefaultModel] = useState('gpt-4o');
+  const [defaultCount, setDefaultCount] = useState(10);
+
+  useEffect(() => {
+    loadConfig();
+  }, [agentName]);
+
+  const loadConfig = async () => {
+    try {
+      setLoading(true);
+      const cfg = await testRunnerService.getTestRunConfig(agentName, baseURL);
+      const mots: MotivationDef[] = (cfg.motivations || []).map(
+        (m: string | MotivationDef) => typeof m === 'string' ? { key: m, description: '' } : m
+      );
+      setMotivations(mots);
+      setGeneratorPrompt(cfg.generatorPrompt || '');
+      setUserMessageTemplate(cfg.userMessageTemplate || '');
+      setDefaultModel(cfg.defaultModel || 'gpt-4o');
+      setDefaultCount(cfg.defaultCount || 10);
+    } catch {
+      setError('Failed to load config');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMotivationChange = (index: number, field: 'key' | 'description', value: string) => {
+    setMotivations(prev => prev.map((m, i) => i === index ? { ...m, [field]: value } : m));
+  };
+
+  const addMotivation = () => {
+    setMotivations(prev => [...prev, { key: '', description: '' }]);
+    // Scroll to bottom after render
+    setTimeout(() => {
+      const list = document.querySelector('[class*="motivationsList"]');
+      if (list) list.scrollTop = list.scrollHeight;
+    }, 50);
+  };
+
+  const removeMotivation = (index: number) => {
+    setMotivations(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Build the assembled prompt preview (template + motivations injected)
+  const assembledPrompt = useMemo(() => {
+    const motivationsDefs = motivations
+      .filter(m => m.key.trim())
+      .map(m => `${m.key} — ${m.description}`)
+      .join('\n\n');
+    return generatorPrompt.replace(/\{\{motivations_definitions\}\}/g, motivationsDefs);
+  }, [generatorPrompt, motivations]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaved(false);
+    setError(null);
+
+    try {
+      const cleanMotivations = motivations.filter(m => m.key.trim());
+      await testRunnerService.updateTestRunConfig(agentName, {
+        motivations: cleanMotivations,
+        generatorPrompt,
+        userMessageTemplate,
+        defaultModel,
+        defaultCount,
+      }, baseURL);
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modalContentWide} onClick={e => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <h2 className={styles.modalTitle}>Test Runner Settings</h2>
+          <button className={styles.modalClose} onClick={onClose}>&times;</button>
+        </div>
+
+        {loading ? (
+          <div className={styles.loading}><span className={styles.spinner} /> Loading config...</div>
+        ) : (
+          <div className={styles.modalBody}>
+            {error && <div className={styles.error}>{error}</div>}
+
+            {/* Defaults row */}
+            <div className={styles.settingsSection}>
+              <div className={styles.settingsRow}>
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel}>Default Model</label>
+                  <select className={styles.select} value={defaultModel} onChange={e => setDefaultModel(e.target.value)}>
+                    <option value="gpt-4o">GPT-4o</option>
+                    <option value="gpt-4o-mini">GPT-4o Mini</option>
+                    <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+                    <option value="claude-opus-4-6">Claude Opus 4.6</option>
+                  </select>
+                </div>
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel}>Default Count</label>
+                  <input type="number" className={styles.input} value={defaultCount} onChange={e => setDefaultCount(parseInt(e.target.value) || 10)} min={1} max={50} />
+                </div>
+              </div>
+            </div>
+
+            {/* Side-by-side: Motivations + Prompt Preview */}
+            <div className={styles.splitSettings}>
+              {/* Left: Motivations editor */}
+              <div className={styles.splitLeft}>
+                <h3 className={styles.sectionLabel}>Motivations</h3>
+                <p className={styles.sectionDesc}>
+                  Define motivation types. Key appears in the dropdown, description is injected into the prompt.
+                </p>
+                <div className={styles.motivationsList}>
+                  {motivations.map((m, i) => (
+                    <div key={i} className={styles.motivationRow}>
+                      <span className={styles.motivationNumber}>{i + 1}</span>
+                      <div className={styles.motivationFields}>
+                        <input
+                          className={styles.motivationKey}
+                          value={m.key}
+                          onChange={e => handleMotivationChange(i, 'key', e.target.value)}
+                          placeholder="key (e.g. bad_experience)"
+                        />
+                        <textarea
+                          className={styles.motivationDesc}
+                          value={m.description}
+                          onChange={e => handleMotivationChange(i, 'description', e.target.value)}
+                          placeholder="Description in Hebrew — injected into the prompt"
+                          rows={2}
+                        />
+                      </div>
+                      <button className={styles.motivationRemove} onClick={() => removeMotivation(i)} title="Remove">&times;</button>
+                    </div>
+                  ))}
+                  <button className={styles.motivationAdd} onClick={addMotivation}>+ Add motivation</button>
+                </div>
+              </div>
+
+              {/* Right: Live prompt preview */}
+              <div className={styles.splitRight}>
+                <h3 className={styles.sectionLabel}>Prompt Preview</h3>
+                <p className={styles.sectionDesc}>
+                  The final prompt sent to the LLM — motivations are injected automatically.
+                </p>
+                <pre className={styles.promptPreview}>{assembledPrompt}</pre>
+              </div>
+            </div>
+
+            {/* Advanced: raw template + user message */}
+            <div className={styles.advancedSection}>
+              <button
+                className={styles.advancedToggle}
+                onClick={() => setShowAdvanced(!showAdvanced)}
+              >
+                {showAdvanced ? '▾' : '▸'} Advanced — Edit raw prompt template
+              </button>
+
+              {showAdvanced && (
+                <div className={styles.advancedBody}>
+                  <div className={styles.settingsSection}>
+                    <h3 className={styles.sectionLabel}>Prompt Template</h3>
+                    <p className={styles.sectionDesc}>
+                      The raw template. Use {'{{motivations_definitions}}'} where motivation descriptions should appear.
+                    </p>
+                    <textarea
+                      className={styles.settingsTextareaLarge}
+                      value={generatorPrompt}
+                      onChange={e => setGeneratorPrompt(e.target.value)}
+                      rows={16}
+                    />
+                  </div>
+                  <div className={styles.settingsSection}>
+                    <h3 className={styles.sectionLabel}>User Message Template</h3>
+                    <p className={styles.sectionDesc}>
+                      Appended as the user message. Use {'{{motivation}}'} and {'{{count}}'} as placeholders.
+                    </p>
+                    <textarea
+                      className={styles.settingsTextarea}
+                      value={userMessageTemplate}
+                      onChange={e => setUserMessageTemplate(e.target.value)}
+                      rows={5}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className={styles.modalFooter}>
+          <button className={styles.cancelBtn} onClick={onClose}>Cancel</button>
+          <button className={styles.generateBtn} onClick={handleSave} disabled={saving || loading}>
+            {saving ? 'Saving...' : saved ? 'Saved!' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

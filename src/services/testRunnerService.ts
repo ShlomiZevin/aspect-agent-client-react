@@ -5,7 +5,7 @@
  */
 
 import { apiRequest, getBaseURL } from './api';
-import type { TestRun, CreateTestRunData, TestRunFilters, TestRunConfig } from '../types/testRunner';
+import type { TestRun, CreateTestRunData, TestRunFilters, TestRunConfig, UpdateTestConfigData } from '../types/testRunner';
 
 export async function getTestRuns(
   filters: TestRunFilters = {},
@@ -49,6 +49,38 @@ export async function getTestRunConfig(agentName: string, baseURL?: string): Pro
   return apiRequest<TestRunConfig>(
     `/api/admin/test-runs/config/${encodeURIComponent(agentName)}`,
     { method: 'GET' },
+    baseURL || getBaseURL()
+  );
+}
+
+export async function updateTestRunInput(id: number, inputUpdates: Record<string, unknown>, baseURL?: string): Promise<TestRun> {
+  return apiRequest<TestRun>(`/api/admin/test-runs/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(inputUpdates),
+  }, baseURL || getBaseURL());
+}
+
+export async function saveTestRunOutput(id: number, output: unknown, baseURL?: string): Promise<TestRun> {
+  return apiRequest<TestRun>(`/api/admin/test-runs/${id}/save-output`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ output }),
+  }, baseURL || getBaseURL());
+}
+
+export async function updateTestRunConfig(
+  agentName: string,
+  data: UpdateTestConfigData,
+  baseURL?: string
+): Promise<TestRunConfig> {
+  return apiRequest<TestRunConfig>(
+    `/api/admin/test-runs/config/${encodeURIComponent(agentName)}`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    },
     baseURL || getBaseURL()
   );
 }
