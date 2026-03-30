@@ -323,7 +323,7 @@ function IndividualsTab({ agentName, baseURL }: Props) {
         <div className={styles.resultsArea}>
           <div className={`${styles.cardsSection} ${selectedIndividual ? styles.cardsSectionNarrow : ''}`}>
             <div className={styles.cardsGrid}>
-              {individuals.map((ind, i) => {
+              {individuals.map((ind, _i) => {
                 const isActive = selectedIndividual?.id === ind.id && (selectedIndividual as IndividualProfile & { _runId?: number })._runId === ind._runId;
                 const difficultyClass = ind.difficulty === 'קשה'
                   ? styles.badgeDifficultyHard
@@ -1106,6 +1106,3 @@ function DetailGrid({ items }: { items: [string, string][] }) {
   );
 }
 
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}

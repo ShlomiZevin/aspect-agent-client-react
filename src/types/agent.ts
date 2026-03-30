@@ -53,6 +53,8 @@ export interface AgentConfig {
     hasChatHistory: boolean;
     /** Show full crew journey (all upcoming crews) instead of just current + next */
     showFullJourney?: boolean;
+    /** Show data freshness bar (last sync run + last data date) — requires database.schema */
+    showDataStatus?: boolean;
   };
 
   // Theming

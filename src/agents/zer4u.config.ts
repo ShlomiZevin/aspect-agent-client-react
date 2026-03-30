@@ -68,6 +68,7 @@ export const zer4uConfig: AgentConfig = {
     hasLogoUpload: false,
     hasFileUpload: false,
     hasChatHistory: true,
+    showDataStatus: true,
   },
 
   themeClass: 'theme-zer4u',
