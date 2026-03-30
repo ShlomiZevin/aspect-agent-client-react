@@ -12,6 +12,7 @@ import { PodcastPage } from '../components/dashboard/PodcastPage';
 import { BillingPage } from '../components/dashboard/BillingPage';
 import { ApiKeysPage } from '../components/dashboard/ApiKeysPage';
 import { KBManager } from '../components/kb';
+import { TestRunnerPage } from '../components/dashboard/TestRunnerPage';
 import { DynamicKBPage } from '../components/dashboard/DynamicKBPage';
 import { TaskBoardContent } from '../components/tasks/TaskBoardModal/TaskBoardContent';
 import { aspectConfig, bankingOnboarderConfig, bankingOnboarderV2Config, compassConfig, freedaConfig, zer4uConfig } from '../agents';
@@ -120,6 +121,10 @@ export function DashboardPage() {
                 element={<PodcastPage baseURL={config.baseURL} agentName={config.agentName} />}
               />
             )}
+            <Route
+              path="test-runner"
+              element={<TestRunnerPage agentName={config.agentName} baseURL={config.baseURL} />}
+            />
             <Route
               path="billing"
               element={<BillingPage baseURL={config.baseURL} />}

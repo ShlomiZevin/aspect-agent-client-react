@@ -40,6 +40,12 @@ const PODCAST_ITEM = {
   icon: 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z M19 10v2a7 7 0 0 1-14 0v-2 M12 19v4 M8 23h8',
 };
 
+const TEST_RUNNER_ITEM = {
+  path: 'test-runner',
+  label: 'Test Runner',
+  icon: 'M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z',
+};
+
 const BILLING_ITEM = {
   path: 'billing',
   label: 'Billing',
@@ -57,6 +63,7 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
     ...BASE_NAV_ITEMS,
     ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM, DATA_LOADER_ITEM] : []),
     ...(showPodcast ? [PODCAST_ITEM] : []),
+    TEST_RUNNER_ITEM,
     BILLING_ITEM,
     API_KEYS_ITEM,
   ];
