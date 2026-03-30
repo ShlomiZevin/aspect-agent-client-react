@@ -15,6 +15,7 @@ import { ContextEditorPanel } from '../ContextEditorPanel';
 import { ProfilePanel } from '../ProfilePanel';
 import { MOCK_CREW_MEMBERS } from '../../../mocks/promptMocks';
 import { CrewTabs } from '../CrewTabs';
+import { DataStatusBar } from '../DataStatusBar';
 import styles from './ChatContainer.module.css';
 
 interface ChatContainerProps {
@@ -195,6 +196,10 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           isOpen={isJourneyModalOpen}
           onClose={closeJourneyModal}
         />
+
+        {config.features.showDataStatus && config.database?.schema && (
+          <DataStatusBar baseURL={baseURL} schema={config.database.schema} />
+        )}
 
         <div className={styles.messages} ref={messagesContainerRef}>
           {!hasStartedChat ? (
