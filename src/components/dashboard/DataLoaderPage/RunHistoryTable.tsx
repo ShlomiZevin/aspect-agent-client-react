@@ -102,8 +102,8 @@ export function RunHistoryTable({ history, baseURL, schemaName }: RunHistoryTabl
                      run.status}
                   </span>
                 </td>
-                <td>{run.files_loaded != null ? `${run.files_loaded}/${run.total_files ?? '?'}` : '—'}</td>
-                <td>{run.total_rows ? Number(run.total_rows).toLocaleString() : '—'}</td>
+                <td>{run.total_files == null ? '—' : `${run.files_loaded ?? 0}/${run.total_files}`}</td>
+                <td>{run.total_files == null ? '—' : run.total_rows ? Number(run.total_rows).toLocaleString() : '—'}</td>
                 <td>{run.triggered_by}</td>
                 <td>
                   <button

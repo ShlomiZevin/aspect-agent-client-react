@@ -149,6 +149,7 @@ export function CurrentRunPanel({ run, logs, filesCompleted }: CurrentRunPanelPr
       {isRunning && (
         <ProgressBar
           step={run.step ?? 'starting'}
+          phase={run.phase}
           filesCompleted={filesCompleted}
           totalFiles={totalFiles}
         />
