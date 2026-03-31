@@ -44,18 +44,23 @@ function formatDate(iso: string) {
   }
 }
 
-function getStatusCell(fp?: FileProgress) {
-  if (!fp) return null;
+function getStatusCell(fp?: FileProgress, isReloading?: boolean) {
+  if (!fp) return isReloading ? <span className={styles.fileStatusPending}>Queued</span> : null;
   if (fp.status === 'loading') {
-    return <span className={styles.fileStatusLoading}>Loading... {fp.rowsLoaded ? fp.rowsLoaded.toLocaleString() + ' rows' : ''}</span>;
+    const rows = fp.rowsLoaded;
+    return (
+      <span className={styles.fileStatusLoading}>
+        Loading{rows ? `… ${rows.toLocaleString()} rows` : '…'}
+      </span>
+    );
   }
   if (fp.status === 'loaded') {
-    return <span className={styles.fileStatusDone}>{fp.rows?.toLocaleString()} rows</span>;
+    return <span className={styles.fileStatusDone}>Done — {fp.rows?.toLocaleString()} rows</span>;
   }
   if (fp.status === 'error') {
-    return <span className={styles.fileStatusError}>Error: {fp.error}</span>;
+    return <span className={styles.fileStatusError}>{fp.error}</span>;
   }
-  return <span className={styles.fileStatusPending}>Pending</span>;
+  return isReloading ? <span className={styles.fileStatusPending}>Queued</span> : null;
 }
 
 export function SourceFilesTable({ files, fileProgress, isReloading }: SourceFilesTableProps) {
@@ -84,7 +89,7 @@ export function SourceFilesTable({ files, fileProgress, isReloading }: SourceFil
               <td className={styles.fileNameCell}>{file.basename}</td>
               <td>{formatBytes(file.size)}</td>
               <td>{formatDate(file.updated)}</td>
-              {showStatus && <td>{getStatusCell(fp)}</td>}
+              {showStatus && <td>{getStatusCell(fp, isReloading)}</td>}
             </tr>
           );
         })}

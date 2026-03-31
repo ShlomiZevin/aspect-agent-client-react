@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import * as testRunnerService from '../../../services/testRunnerService';
-import type { TestRun, IndividualProfile, TestRunConfig, MotivationDef } from '../../../types/testRunner';
+import type { TestRun, IndividualProfile, MotivationDef } from '../../../types/testRunner';
 import styles from './TestRunnerPage.module.css';
 
 interface Props {

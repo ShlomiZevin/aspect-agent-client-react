@@ -64,6 +64,27 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
     es.addEventListener('log', (e) => {
       const entry: LogEntry = JSON.parse(e.data);
       setLiveLogs(prev => [...prev, entry]);
+
+      // Reconstruct file progress from log data.
+      // Works for both live events and replayed buffer on reconnect.
+      const d = (entry.data ?? {}) as { file?: string; rows?: number; error?: string };
+      if (d.file) {
+        setFileProgress(prev => {
+          const idx = prev.findIndex(fp => fp.file === d.file);
+          let updated: FileProgress;
+          if (d.error) {
+            updated = { file: d.file!, status: 'error', error: d.error };
+          } else if (d.rows !== undefined) {
+            updated = { file: d.file!, status: 'loaded', rows: d.rows };
+          } else {
+            // file_start: only add/set loading if not already in a terminal state
+            if (idx >= 0 && (prev[idx].status === 'loaded' || prev[idx].status === 'error')) return prev;
+            updated = { file: d.file!, status: 'loading' };
+          }
+          if (idx >= 0) { const next = [...prev]; next[idx] = updated; return next; }
+          return [...prev, updated];
+        });
+      }
     });
 
     es.addEventListener('progress', (e) => {
@@ -75,19 +96,13 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
         totalFiles: data.totalFiles,
         totalRows: data.totalRows,
       } : prev);
+      // Update live row count for the currently-loading file only
       if (data.currentFile) {
         setFileProgress(prev => {
-          const existing = prev.findIndex(fp => fp.file === data.currentFile);
-          const updated: FileProgress = {
-            file: data.currentFile,
-            status: 'loading',
-            rowsLoaded: data.currentFileRows,
-          };
-          if (existing >= 0) {
-            const next = [...prev];
-            next[existing] = updated;
-            return next;
-          }
+          const idx = prev.findIndex(fp => fp.file === data.currentFile);
+          if (idx >= 0 && prev[idx].status !== 'loading') return prev; // don't override loaded/error
+          const updated: FileProgress = { file: data.currentFile, status: 'loading', rowsLoaded: data.currentFileRows };
+          if (idx >= 0) { const next = [...prev]; next[idx] = updated; return next; }
           return [...prev, updated];
         });
       }
