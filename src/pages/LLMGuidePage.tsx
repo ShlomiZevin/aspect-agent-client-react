@@ -2,37 +2,56 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './LLMGuidePage.module.css';
 
-/* ===== Mini Neural Network SVG ===== */
+/* ===== Neural Network SVG (just the nodes) ===== */
 
-function NeuralNetworkDiagram() {
-  const layerY = [[30, 90, 150], [15, 65, 115, 165], [15, 65, 115, 165], [55, 125]];
-  const layerX = [40, 160, 280, 400];
+function NetworkNodes() {
+  const layerY = [[20, 65, 110, 155], [15, 55, 95, 135, 175], [15, 55, 95, 135, 175], [20, 65, 110, 155]];
+  const layerX = [30, 110, 190, 270];
   const active: [number, number, number, number][] = [
-    [0, 0, 1, 1], [0, 2, 1, 2], [1, 1, 2, 0], [1, 2, 2, 2], [2, 0, 3, 0], [2, 2, 3, 1],
+    [0, 0, 1, 1], [0, 1, 1, 2], [0, 3, 1, 3],
+    [1, 1, 2, 0], [1, 2, 2, 2], [1, 3, 2, 4],
+    [2, 0, 3, 0], [2, 2, 3, 1], [2, 4, 3, 3],
   ];
   const isAct = (li: number, ni: number) =>
     active.some(([l1, n1, l2, n2]) => (li === l1 && ni === n1) || (li === l2 && ni === n2));
 
   return (
-    <div className={styles.nnContainer}>
-      <svg viewBox="0 0 440 200" width="100%" style={{ maxWidth: 420, display: 'block', margin: '0 auto' }}>
-        {layerY.map((ys, li) => li < layerY.length - 1 && ys.map((y1, ni) =>
-          layerY[li + 1].map((y2, nj) => {
-            const a = active.some(([l1, n1, l2, n2]) => l1 === li && n1 === ni && l2 === li + 1 && n2 === nj);
-            return <line key={`${li}-${ni}-${nj}`} x1={layerX[li]} y1={y1} x2={layerX[li + 1]} y2={y2}
-              className={a ? styles.nnLineActive : styles.nnLine} />;
-          })
-        ))}
-        {layerY.map((ys, li) => ys.map((y, ni) =>
-          <circle key={`n-${li}-${ni}`} cx={layerX[li]} cy={y} r={isAct(li, ni) ? 14 : 12}
-            fill={isAct(li, ni) ? '#680662' : '#FAF7F7'} stroke={isAct(li, ni) ? '#680662' : '#D6D3D1'}
-            strokeWidth={isAct(li, ni) ? 2 : 1.5} opacity={isAct(li, ni) ? 1 : 0.55} />
-        ))}
-        <text x={layerX[0]} y={192} textAnchor="middle" fontSize="10" fill="#78716C" fontFamily="DM Sans">Your words</text>
-        <text x={(layerX[1] + layerX[2]) / 2} y={192} textAnchor="middle" fontSize="10" fill="#78716C" fontFamily="DM Sans">Pattern matching</text>
-        <text x={layerX[3]} y={192} textAnchor="middle" fontSize="10" fill="#78716C" fontFamily="DM Sans">Best guess</text>
-      </svg>
-    </div>
+    <svg viewBox="0 0 300 190" width="100%" style={{ maxWidth: 280, display: 'block' }}>
+      {layerY.map((ys, li) => li < layerY.length - 1 && ys.map((y1, ni) =>
+        layerY[li + 1].map((y2, nj) => {
+          const a = active.some(([l1, n1, l2, n2]) => l1 === li && n1 === ni && l2 === li + 1 && n2 === nj);
+          return <line key={`${li}-${ni}-${nj}`} x1={layerX[li]} y1={y1} x2={layerX[li + 1]} y2={y2}
+            className={a ? styles.nnLineActive : styles.nnLine} />;
+        })
+      ))}
+      {layerY.map((ys, li) => ys.map((y, ni) =>
+        <circle key={`n-${li}-${ni}`} cx={layerX[li]} cy={y} r={isAct(li, ni) ? 10 : 8}
+          fill={isAct(li, ni) ? '#680662' : '#FAF7F7'} stroke={isAct(li, ni) ? '#680662' : '#D6D3D1'}
+          strokeWidth={isAct(li, ni) ? 2 : 1.5} opacity={isAct(li, ni) ? 1 : 0.5} />
+      ))}
+    </svg>
+  );
+}
+
+/* ===== Tiny Network for model comparison cards ===== */
+
+function TinyNetwork({ color }: { color: string }) {
+  const ys = [[12, 36, 60], [8, 28, 48, 68], [8, 28, 48, 68], [18, 50]];
+  const xs = [12, 38, 64, 90];
+  return (
+    <svg viewBox="0 0 102 76" width="100" height="74" style={{ display: 'block', margin: '0 auto' }}>
+      {ys.map((layer, li) => li < ys.length - 1 && layer.map((y1, ni) =>
+        ys[li + 1].map((y2, nj) =>
+          <line key={`${li}-${ni}-${nj}`} x1={xs[li]} y1={y1} x2={xs[li + 1]} y2={y2}
+            stroke="#D6D3D1" strokeWidth="0.7" />
+        )
+      ))}
+      {ys.map((layer, li) => layer.map((y, ni) =>
+        <circle key={`n-${li}-${ni}`} cx={xs[li]} cy={y} r={4}
+          fill={li === 0 || li === ys.length - 1 ? color : '#FAF7F7'}
+          stroke={color} strokeWidth="1.2" opacity={0.8} />
+      ))}
+    </svg>
   );
 }
 
@@ -83,23 +102,8 @@ export function LLMGuidePage() {
           </div>
         </div>
 
-        {/* === 2. THE NETWORK === */}
+        {/* === 2. HOW IT'S BUILT === */}
         <div className={`${styles.slide} ${styles.bgSecondary}`}>
-          <div className={styles.slideInner}>
-            <p className={styles.eyebrow}>The product</p>
-            <h2 className={styles.h2}>An AI model is a network</h2>
-            <p className={styles.bodyText}>
-              A network of connected nodes. Words go in one side, the "best guess" comes out the other.
-            </p>
-            <NeuralNetworkDiagram />
-            <p className={`${styles.bodySmall} ${styles.centered}`}>
-              Simplified. Real models have billions of these nodes — but the idea is the same.
-            </p>
-          </div>
-        </div>
-
-        {/* === 3. HOW IT'S BUILT === */}
-        <div className={`${styles.slide} ${styles.bgPrimary}`}>
           <div className={styles.slideInner}>
             <p className={styles.eyebrow}>How it's made</p>
             <h2 className={styles.h2}>Building a model = training the network</h2>
@@ -141,6 +145,69 @@ export function LLMGuidePage() {
                 and you get a <strong>completely different model</strong> with different probabilities for every word.
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* === 3. THE NETWORK === */}
+        <div className={`${styles.slide} ${styles.bgPrimary}`}>
+          <div className={styles.slideInnerWide}>
+            <p className={styles.eyebrow}>The product</p>
+            <h2 className={styles.h2}>An AI model is a network</h2>
+            <p className={styles.bodyText}>
+              Everything goes in on the left. The network processes it. A response comes out on the right.
+            </p>
+
+            <div className={styles.nnFull}>
+              {/* LEFT — Inputs */}
+              <div className={styles.nnInputs}>
+                <div className={styles.nnInputItem}>
+                  <span>System prompt</span>
+                  <span className={styles.nnInputIcon}>📋</span>
+                </div>
+                <div className={styles.nnInputItem}>
+                  <span>Chat history</span>
+                  <span className={styles.nnInputIcon}>💬</span>
+                </div>
+                <div className={styles.nnInputItem}>
+                  <span>User message</span>
+                  <span className={styles.nnInputIcon}>✍️</span>
+                </div>
+                <div className={styles.nnInputItem}>
+                  <span>KB results</span>
+                  <span className={styles.nnInputIcon}>📁</span>
+                </div>
+              </div>
+
+              <span className={styles.nnArrowIn}>→</span>
+
+              {/* CENTER — Network */}
+              <div className={styles.nnNetworkBox}>
+                <NetworkNodes />
+                <span className={styles.nnNetworkLabel}>The neural network</span>
+              </div>
+
+              <span className={styles.nnArrowOut}>→</span>
+
+              {/* RIGHT — Outputs */}
+              <div className={styles.nnOutputs}>
+                <div className={styles.nnOutputItem}>
+                  <span className={styles.nnOutputIcon}>💬</span>
+                  <span>Word 1</span>
+                </div>
+                <div className={styles.nnOutputItem}>
+                  <span className={styles.nnOutputIcon}>💬</span>
+                  <span>Word 2</span>
+                </div>
+                <div className={styles.nnOutputItem}>
+                  <span className={styles.nnOutputIcon}>💬</span>
+                  <span>Word 3...</span>
+                </div>
+              </div>
+            </div>
+
+            <p className={`${styles.bodySmall} ${styles.centered}`} style={{ marginTop: 28 }}>
+              The network takes ALL the input together, calculates probabilities, and generates the response one word at a time.
+            </p>
           </div>
         </div>
 
@@ -233,17 +300,18 @@ export function LLMGuidePage() {
             <p className={styles.eyebrow}>Different products</p>
             <h2 className={styles.h2}>Different models = different networks</h2>
             <p className={styles.bodyText}>
-              Each company trained their own network with their own ingredients. Different result.
+              Each company built and trained their own network. Each one has different probabilities for every word.
             </p>
 
             <div className={styles.vsContainer}>
               <div className={styles.vsCard}>
-                <h3 className={styles.vsCardTitle}>🏎️ GPT-4o (OpenAI)</h3>
+                <h3 className={styles.vsCardTitle}>🏎️ GPT-4o</h3>
+                <div className={styles.vsNetworkMini}>
+                  <TinyNetwork color="#10a37f" />
+                </div>
                 <div className={styles.vsPipe}>
                   <span className={styles.vsPipeItem}>OpenAI's data</span>
-                  <span className={styles.vsArrowDown}>↓</span>
                   <span className={styles.vsPipeItem}>OpenAI's structure</span>
-                  <span className={styles.vsArrowDown}>↓</span>
                   <span className={styles.vsPipeItem}>OpenAI's settings</span>
                 </div>
                 <div className={styles.vsResult}>
@@ -254,22 +322,40 @@ export function LLMGuidePage() {
               <div className={styles.vsDivider}>≠</div>
 
               <div className={styles.vsCard}>
-                <h3 className={styles.vsCardTitle}>🚀 Claude (Anthropic)</h3>
+                <h3 className={styles.vsCardTitle}>🚀 Claude</h3>
+                <div className={styles.vsNetworkMini}>
+                  <TinyNetwork color="#680662" />
+                </div>
                 <div className={styles.vsPipe}>
                   <span className={styles.vsPipeItem}>Anthropic's data</span>
-                  <span className={styles.vsArrowDown}>↓</span>
                   <span className={styles.vsPipeItem}>Anthropic's structure</span>
-                  <span className={styles.vsArrowDown}>↓</span>
                   <span className={styles.vsPipeItem}>Anthropic's settings</span>
                 </div>
                 <div className={styles.vsResult}>
                   "greet warmly" → <strong>"Hi there" 68%</strong>
                 </div>
               </div>
+
+              <div className={styles.vsDivider}>≠</div>
+
+              <div className={styles.vsCard}>
+                <h3 className={styles.vsCardTitle}>💎 Gemini</h3>
+                <div className={styles.vsNetworkMini}>
+                  <TinyNetwork color="#4285f4" />
+                </div>
+                <div className={styles.vsPipe}>
+                  <span className={styles.vsPipeItem}>Google's data</span>
+                  <span className={styles.vsPipeItem}>Google's structure</span>
+                  <span className={styles.vsPipeItem}>Google's settings</span>
+                </div>
+                <div className={styles.vsResult}>
+                  "greet warmly" → <strong>"Welcome!" 55%</strong>
+                </div>
+              </div>
             </div>
 
             <p className={`${styles.bodySmall} ${styles.centered}`}>
-              Same prompt → different probabilities → different output. Not a bug — different products.
+              3 companies, 3 networks, 3 different results. Same prompt. Not a bug — different products.
             </p>
           </div>
         </div>
