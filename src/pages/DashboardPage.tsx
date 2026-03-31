@@ -10,6 +10,7 @@ import { QueryOptimizerPage } from '../components/dashboard/QueryOptimizerPage';
 import { DataLoaderPage } from '../components/dashboard/DataLoaderPage';
 import { PodcastPage } from '../components/dashboard/PodcastPage';
 import { BillingPage } from '../components/dashboard/BillingPage';
+import { LLMUsagePage } from '../components/dashboard/LLMUsagePage';
 import { ApiKeysPage } from '../components/dashboard/ApiKeysPage';
 import { KBManager } from '../components/kb';
 import { TestRunnerPage } from '../components/dashboard/TestRunnerPage';
@@ -128,6 +129,10 @@ export function DashboardPage() {
             <Route
               path="billing"
               element={<BillingPage baseURL={config.baseURL} />}
+            />
+            <Route
+              path="llm-usage"
+              element={<LLMUsagePage baseURL={config.baseURL} />}
             />
             <Route
               path="api-keys"

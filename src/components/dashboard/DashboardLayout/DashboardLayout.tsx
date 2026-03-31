@@ -58,6 +58,12 @@ const API_KEYS_ITEM = {
   icon: 'M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4',
 };
 
+const LLM_USAGE_ITEM = {
+  path: 'llm-usage',
+  label: 'LLM Usage',
+  icon: 'M18 20V10 M12 20V4 M6 20v-6',
+};
+
 export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showPodcast, children }: DashboardLayoutProps) {
   const navItems = [
     ...BASE_NAV_ITEMS,
@@ -65,6 +71,7 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
     ...(showPodcast ? [PODCAST_ITEM] : []),
     TEST_RUNNER_ITEM,
     BILLING_ITEM,
+    LLM_USAGE_ITEM,
     API_KEYS_ITEM,
   ];
 
