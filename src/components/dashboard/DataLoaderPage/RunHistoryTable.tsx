@@ -95,11 +95,12 @@ export function RunHistoryTable({ history, baseURL, schemaName }: RunHistoryTabl
                 <td>
                   <span className={
                     run.status === 'completed' ? styles.statusDone :
-                    styles.statusFailed
+                    run.status === 'failed'    ? styles.statusFailed :
+                                                styles.statusRunning
                   }>
                     {run.status === 'completed' ? 'Done' :
-                     run.status === 'failed' ? 'Failed' :
-                     run.status}
+                     run.status === 'failed'    ? 'Failed' :
+                                                  'Running'}
                   </span>
                 </td>
                 <td>{run.total_files == null ? '—' : `${run.files_loaded ?? 0}/${run.total_files}`}</td>
