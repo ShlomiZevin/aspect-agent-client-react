@@ -1016,6 +1016,205 @@
   font-weight: 500;
 }
 
+/* ===== Stack / Foundation Visual ===== */
+.stackComparison {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  align-items: flex-end;
+  margin: 28px 0;
+  flex-wrap: wrap;
+}
+
+.stackCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 220px;
+}
+
+.stackLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #78716C;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.stackBlocks {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.stackBlock {
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.3;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: none;
+}
+
+.stackBlock:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.stackBlock:last-child {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0 0 8px 8px;
+}
+
+.stackFoundation {
+  background: #680662;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 13px;
+  border-color: #680662 !important;
+  border-radius: 0 0 8px 8px !important;
+}
+
+.stackOk {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0 !important;
+}
+
+.stackBroken {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca !important;
+  position: relative;
+}
+
+.stackBroken::after {
+  content: '⚠';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+}
+
+.stackNeutral {
+  background: #ffffff;
+  color: #57534E;
+}
+
+.stackArrow {
+  font-size: 24px;
+  color: #D6D3D1;
+  align-self: center;
+  margin-bottom: 60px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .stackComparison {
+    gap: 16px;
+  }
+  .stackCol {
+    width: 180px;
+  }
+  .stackArrow {
+    margin-bottom: 0;
+    transform: rotate(90deg);
+  }
+}
+
+/* ===== Fluid Comparison ===== */
+.fluidRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+}
+
+.fluidLabel {
+  width: 110px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 500;
+  color: #57534E;
+  flex-shrink: 0;
+}
+
+.fluidTrack {
+  flex: 1;
+  height: 24px;
+  background: #F3EFF0;
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.fluidRange {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 9px;
+  opacity: 0.7;
+}
+
+.fluidDot {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.fluidLow {
+  font-size: 10px;
+  color: #A8A29E;
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.fluidHigh {
+  font-size: 10px;
+  color: #A8A29E;
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.fluidContainer {
+  max-width: 560px;
+  margin: 24px auto;
+}
+
+.fluidLegend {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+.fluidLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #57534E;
+}
+
+.fluidLegendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 /* ===== Error Type Cards ===== */
 .errorGrid {
   display: flex;

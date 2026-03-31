@@ -57,7 +57,7 @@ function TinyNetwork({ color }: { color: string }) {
 
 /* ===== Main ===== */
 
-const TOTAL_SLIDES = 12;
+const TOTAL_SLIDES = 14;
 
 export function LLMGuidePage() {
   const [current, setCurrent] = useState(0);
@@ -360,7 +360,191 @@ export function LLMGuidePage() {
           </div>
         </div>
 
-        {/* === 7. "I WROTE IT" === */}
+        {/* === 7. CHOOSING A MODEL === */}
+        <div className={`${styles.slide} ${styles.bgPrimary}`}>
+          <div className={styles.slideInnerWide}>
+            <p className={styles.eyebrow}>It's just products</p>
+            <h2 className={styles.h2}>You already do this every day</h2>
+
+            <div className={styles.cardsGrid} style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+              <div className={styles.card}>
+                <span className={styles.cardIcon}>📱</span>
+                <h3 className={styles.cardTitle}>Phone</h3>
+                <p className={styles.cardText}>
+                  iPhone or Android? You pick one. Your apps, charger, case — all follow that choice.
+                </p>
+              </div>
+              <div className={styles.card}>
+                <span className={styles.cardIcon}>🚗</span>
+                <h3 className={styles.cardTitle}>Car</h3>
+                <p className={styles.cardText}>
+                  Toyota or BMW? You pick one. You learn how it drives, what fuel it needs.
+                </p>
+              </div>
+              <div className={styles.card}>
+                <span className={styles.cardIcon}>🏗️</span>
+                <h3 className={styles.cardTitle}>Building a website</h3>
+                <p className={styles.cardText}>
+                  Wix or WordPress? You pick one. Your design, plugins, workflow — all built around it.
+                </p>
+              </div>
+              <div className={styles.card}>
+                <span className={styles.cardIcon}>🤖</span>
+                <h3 className={styles.cardTitle}>AI Model</h3>
+                <p className={styles.cardText}>
+                  GPT or Claude or Gemini? <strong>Same thing.</strong> You pick one. Everything follows.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.pipeline} style={{ marginTop: 32 }}>
+              <div className={styles.pipeStep}>
+                <span className={styles.pipeIcon}>🔍</span>
+                <span className={styles.pipeLabel}>Research</span>
+              </div>
+              <span className={styles.pipeArrow}>→</span>
+              <div className={styles.pipeStep}>
+                <span className={styles.pipeIcon}>👆</span>
+                <span className={styles.pipeLabel}>Choose one</span>
+              </div>
+              <span className={styles.pipeArrow}>→</span>
+              <div className={`${styles.pipeStep} ${styles.pipeStepHighlight}`}>
+                <span className={styles.pipeIcon}>🧠</span>
+                <span className={styles.pipeLabel}>Your model</span>
+              </div>
+              <span className={styles.pipeArrow}>→</span>
+              <div className={styles.pipeStep}>
+                <span className={styles.pipeIcon}>🔧</span>
+                <span className={styles.pipeLabel}>Write prompts for it</span>
+              </div>
+              <span className={styles.pipeArrow}>→</span>
+              <div className={styles.pipeStep}>
+                <span className={styles.pipeIcon}>🔄</span>
+                <span className={styles.pipeLabel}>Test & adjust</span>
+              </div>
+              <span className={styles.pipeArrow}>→</span>
+              <div className={styles.pipeStep}>
+                <span className={styles.pipeIcon}>🔄</span>
+                <span className={styles.pipeLabel}>Test & adjust</span>
+              </div>
+              <span className={styles.pipeArrow}>→</span>
+              <div className={`${styles.pipeStep} ${styles.pipeStepHighlight}`}>
+                <span className={styles.pipeIcon}>✅</span>
+                <span className={styles.pipeLabel}>It works</span>
+              </div>
+            </div>
+
+            <p className={`${styles.bodySmall} ${styles.centered}`} style={{ marginTop: 20 }}>
+              Nobody tries every phone on the market. You research, you choose, you adjust to it.
+            </p>
+          </div>
+        </div>
+
+        {/* === 8. FLUID PROS/CONS === */}
+        <div className={`${styles.slide} ${styles.bgSecondary}`}>
+          <div className={styles.slideInner}>
+            <p className={styles.eyebrow}>But it's even harder than that</p>
+            <h2 className={styles.h2}>Comparing models isn't like comparing features</h2>
+            <p className={styles.bodyText}>
+              With a phone you can compare: "has Face ID — yes or no." With AI models,
+              nothing is yes or no. Everything is a range — and the range <em>shifts</em> depending
+              on what you ask.
+            </p>
+
+            <div className={styles.fluidContainer}>
+              <div className={styles.fluidLegend}>
+                <div className={styles.fluidLegendItem}>
+                  <div className={styles.fluidLegendDot} style={{ background: '#10a37f' }} />
+                  <span>GPT-4o</span>
+                </div>
+                <div className={styles.fluidLegendItem}>
+                  <div className={styles.fluidLegendDot} style={{ background: '#680662' }} />
+                  <span>Claude</span>
+                </div>
+                <div className={styles.fluidLegendItem}>
+                  <div className={styles.fluidLegendDot} style={{ background: '#4285f4' }} />
+                  <span>Gemini Flash</span>
+                </div>
+              </div>
+
+              <div className={styles.fluidRow}>
+                <span className={styles.fluidLabel}>Following instructions</span>
+                <div className={styles.fluidTrack}>
+                  <div className={styles.fluidRange} style={{ left: '55%', width: '30%', background: '#10a37f' }} />
+                  <div className={styles.fluidRange} style={{ left: '65%', width: '25%', background: '#680662' }} />
+                  <div className={styles.fluidRange} style={{ left: '30%', width: '40%', background: '#4285f4' }} />
+                  <div className={styles.fluidDot} style={{ left: '70%', background: '#10a37f' }} />
+                  <div className={styles.fluidDot} style={{ left: '80%', background: '#680662' }} />
+                  <div className={styles.fluidDot} style={{ left: '50%', background: '#4285f4' }} />
+                </div>
+              </div>
+
+              <div className={styles.fluidRow}>
+                <span className={styles.fluidLabel}>Speed</span>
+                <div className={styles.fluidTrack}>
+                  <div className={styles.fluidRange} style={{ left: '55%', width: '25%', background: '#10a37f' }} />
+                  <div className={styles.fluidRange} style={{ left: '40%', width: '25%', background: '#680662' }} />
+                  <div className={styles.fluidRange} style={{ left: '70%', width: '22%', background: '#4285f4' }} />
+                  <div className={styles.fluidDot} style={{ left: '68%', background: '#10a37f' }} />
+                  <div className={styles.fluidDot} style={{ left: '52%', background: '#680662' }} />
+                  <div className={styles.fluidDot} style={{ left: '82%', background: '#4285f4' }} />
+                </div>
+              </div>
+
+              <div className={styles.fluidRow}>
+                <span className={styles.fluidLabel}>KB usage</span>
+                <div className={styles.fluidTrack}>
+                  <div className={styles.fluidRange} style={{ left: '50%', width: '35%', background: '#10a37f' }} />
+                  <div className={styles.fluidRange} style={{ left: '55%', width: '30%', background: '#680662' }} />
+                  <div className={styles.fluidRange} style={{ left: '25%', width: '45%', background: '#4285f4' }} />
+                  <div className={styles.fluidDot} style={{ left: '68%', background: '#10a37f' }} />
+                  <div className={styles.fluidDot} style={{ left: '72%', background: '#680662' }} />
+                  <div className={styles.fluidDot} style={{ left: '45%', background: '#4285f4' }} />
+                </div>
+              </div>
+
+              <div className={styles.fluidRow}>
+                <span className={styles.fluidLabel}>Accuracy</span>
+                <div className={styles.fluidTrack}>
+                  <div className={styles.fluidRange} style={{ left: '60%', width: '28%', background: '#10a37f' }} />
+                  <div className={styles.fluidRange} style={{ left: '58%', width: '32%', background: '#680662' }} />
+                  <div className={styles.fluidRange} style={{ left: '30%', width: '40%', background: '#4285f4' }} />
+                  <div className={styles.fluidDot} style={{ left: '75%', background: '#10a37f' }} />
+                  <div className={styles.fluidDot} style={{ left: '76%', background: '#680662' }} />
+                  <div className={styles.fluidDot} style={{ left: '48%', background: '#4285f4' }} />
+                </div>
+              </div>
+
+              <div className={styles.fluidRow}>
+                <span className={styles.fluidLabel}>Natural tone</span>
+                <div className={styles.fluidTrack}>
+                  <div className={styles.fluidRange} style={{ left: '45%', width: '25%', background: '#10a37f' }} />
+                  <div className={styles.fluidRange} style={{ left: '65%', width: '25%', background: '#680662' }} />
+                  <div className={styles.fluidRange} style={{ left: '35%', width: '35%', background: '#4285f4' }} />
+                  <div className={styles.fluidDot} style={{ left: '58%', background: '#10a37f' }} />
+                  <div className={styles.fluidDot} style={{ left: '80%', background: '#680662' }} />
+                  <div className={styles.fluidDot} style={{ left: '52%', background: '#4285f4' }} />
+                </div>
+              </div>
+            </div>
+
+            <p className={`${styles.bodySmall} ${styles.centered}`}>
+              The dots are averages. The bars are the range — sometimes better, sometimes worse, depending on the question.
+            </p>
+
+            <div className={styles.callout}>
+              <p className={styles.calloutTitle}>Why this makes comparing so hard</p>
+              <p className={styles.calloutText}>
+                A model that follows instructions well on Monday might miss one on Tuesday. A model
+                that's great with one prompt might struggle with a slightly different one.
+                It's all statistics — not fixed features. You can't just compare a spec sheet.
+                You have to try it with <em>your</em> use case and see.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* === 9. "I WROTE IT" === */}
         <div className={`${styles.slide} ${styles.bgPrimary}`}>
           <div className={styles.slideInner}>
             <p className={styles.eyebrow}>The prompt</p>
