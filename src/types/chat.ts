@@ -91,6 +91,8 @@ export interface DebugPromptData {
   transitionPromptInjected?: boolean;
   transitionLogic?: TransitionLogicData | null;
   thinkingAdvice?: Record<string, unknown> | null;
+  temperature?: number;
+  topK?: number;
 }
 
 export interface Message {

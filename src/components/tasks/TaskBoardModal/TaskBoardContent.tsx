@@ -25,10 +25,10 @@ export interface TaskBoardContentProps {
 type ViewMode = 'board' | 'list';
 
 // Known domains (agents) in the system
-const KNOWN_DOMAINS = ['freeda', 'aspect', 'banking', 'byline'];
+const KNOWN_DOMAINS = ['freeda', 'freeda-1.0', 'aspect', 'banking', 'byline'];
 
 // Lybi domains - when on any of these, show all of them in filter
-const LYBI_DOMAINS = ['freeda', 'banking'];
+const LYBI_DOMAINS = ['freeda', 'freeda-1.0', 'banking'];
 
 // Map URL domain slugs to actual server agent names (used for crew API calls)
 const DOMAIN_TO_AGENT_NAME: Record<string, string> = {

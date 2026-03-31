@@ -1177,3 +1177,14 @@
   border-radius: 50%;
   border: 1px solid var(--border);
 }
+
+/* Range slider styling */
+.rangeSlider {
+  width: 100%;
+  outline: none;
+  margin: 4px 0;
+}
+
+.rangeSlider:focus {
+  outline: none;
+}

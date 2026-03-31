@@ -47,6 +47,8 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   setThinkingModelOverride: (crewMemberId: string, model: string) => void;
   thinkerDisabled: Record<string, boolean>;
   setThinkerDisabled: (crewMemberId: string, disabled: boolean) => void;
+  setTemperatureOverride: (crewMemberId: string, temperature: number | null) => void;
+  setTopKOverride: (crewMemberId: string, topK: number | null) => void;
   // Fields editor
   isFieldsEditorOpen: boolean;
   setFieldsEditorOpen: (open: boolean) => void;
@@ -200,6 +202,34 @@ export function ChatProvider({ children }: ChatProviderProps) {
     }
   }, []);
 
+  // Temperature overrides for debug mode (session-only)
+  const [temperatureOverrides, setTemperatureOverrides] = useState<Record<string, number>>({});
+  const setTemperatureOverride = useCallback((crewMemberId: string, temperature: number | null) => {
+    if (temperature != null) {
+      setTemperatureOverrides(prev => ({ ...prev, [crewMemberId]: temperature }));
+    } else {
+      setTemperatureOverrides(prev => {
+        const next = { ...prev };
+        delete next[crewMemberId];
+        return next;
+      });
+    }
+  }, []);
+
+  // Top K overrides for debug mode (session-only)
+  const [topKOverrides, setTopKOverrides] = useState<Record<string, number>>({});
+  const setTopKOverride = useCallback((crewMemberId: string, topK: number | null) => {
+    if (topK != null) {
+      setTopKOverrides(prev => ({ ...prev, [crewMemberId]: topK }));
+    } else {
+      setTopKOverrides(prev => {
+        const next = { ...prev };
+        delete next[crewMemberId];
+        return next;
+      });
+    }
+  }, []);
+
   const conversation = useConversation(
     config.storagePrefix,
     config.agentName,
@@ -248,6 +278,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
     thinkingPromptOverrides: debugMode ? thinkingPromptOverrides : undefined,
     thinkingModelOverrides: debugMode ? thinkingModelOverrides : undefined,
     thinkerDisabled: debugMode ? thinkerDisabled : undefined,
+    temperatureOverrides: debugMode ? temperatureOverrides : undefined,
+    topKOverrides: debugMode ? topKOverrides : undefined,
     profilerFreshStart: profilerFreshStart || undefined,
     onCrewInfo: (crewInfo) => {
       crew.setCurrentCrew(crewInfo);
@@ -524,6 +556,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
     setThinkingModelOverride,
     thinkerDisabled,
     setThinkerDisabled,
+    setTemperatureOverride,
+    setTopKOverride,
     // Fields editor
     isFieldsEditorOpen,
     setFieldsEditorOpen,

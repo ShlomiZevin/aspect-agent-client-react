@@ -300,6 +300,8 @@ export interface UseChatOptions {
   thinkingPromptOverrides?: Record<string, string>; // Session overrides: { crewName: thinkingPrompt }
   thinkingModelOverrides?: Record<string, string>;  // Session overrides: { crewName: thinkingModel }
   thinkerDisabled?: Record<string, boolean>; // Session overrides: { crewName: true } to disable thinker
+  temperatureOverrides?: Record<string, number>;    // Session overrides: { crewName: number }
+  topKOverrides?: Record<string, number>;            // Session overrides: { crewName: number }
   onCrewInfo?: (crew: CrewMember) => void;
   onCrewTransition?: (transition: CrewTransition) => void;
   onFieldExtracted?: (field: string, value: string) => void;
@@ -330,7 +332,7 @@ export interface UseChatReturn {
  * Main chat hook - handles messaging, streaming, and thinking indicators
  */
 export function useChat(options: UseChatOptions): UseChatReturn {
-  const { config, conversationId, userId, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, onCrewInfo, onCrewTransition, onFieldExtracted, onProfileUpdate, onProfilerRaw, profilerFreshStart } = options;
+  const { config, conversationId, userId, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, onCrewInfo, onCrewTransition, onFieldExtracted, onProfileUpdate, onProfilerRaw, profilerFreshStart } = options;
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
     conversationId,
@@ -375,6 +377,8 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             thinkingPromptOverrides,
             thinkingModelOverrides,
             thinkerDisabled,
+            temperatureOverrides,
+            topKOverrides,
             profilerFreshStart,
           },
           {
@@ -473,6 +477,8 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       thinkingPromptOverrides,
       thinkingModelOverrides,
       thinkerDisabled,
+      temperatureOverrides,
+      topKOverrides,
       profilerFreshStart,
       onCrewInfo,
       onCrewTransition,

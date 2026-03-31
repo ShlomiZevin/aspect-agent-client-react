@@ -159,6 +159,8 @@ export function DebugPanel({ data }: DebugPanelProps) {
           {data.modelSource === 'crew_default' && data.defaultModel && data.defaultModel !== data.model && ` (was: ${data.defaultModel})`}
           {data.fallbackUsed && data.modelUsed && ` → FALLBACK: ${data.modelUsed}`}
           {' '}| {data.maxTokens} tokens
+          {data.temperature != null && ` | temp=${data.temperature}`}
+          {data.topK != null && ` | topK=${data.topK}`}
         </span>
         <svg
           className={`${styles.chevron} ${isExpanded ? styles.expanded : ''}`}

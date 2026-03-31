@@ -7,10 +7,10 @@ import { getDraftDefault } from '../../../utils/userIdentifier';
 import styles from './TaskForm.module.css';
 
 // All known domains in the system
-const ALL_DOMAINS = ['freeda', 'aspect', 'banking', 'byline'];
+const ALL_DOMAINS = ['freeda', 'freeda-1.0', 'aspect', 'banking', 'byline'];
 
 // Lybi domains - when on any of these, show all of them + general
-const LYBI_DOMAINS = ['freeda', 'banking'];
+const LYBI_DOMAINS = ['freeda', 'freeda-1.0', 'banking'];
 
 /**
  * Convert plain URLs in text/HTML to clickable anchor tags

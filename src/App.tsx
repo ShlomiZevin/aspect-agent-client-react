@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, CompassPage, DemoPage, FreedaPage, HomePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, PitchDeckPage, TaskBoardPage, TiktokPage, Zer4UPage } from './pages';
+import { ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, CompassPage, DemoPage, FreedaPage, HomePage, LLMGuidePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, PitchDeckPage, TaskBoardPage, TiktokPage, Zer4UPage } from './pages';
 import { useTaskBoard, useQuickBug } from './hooks';
 import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
 import { QuickBugModal } from './components/tasks/QuickBugModal/QuickBugModal';
@@ -50,6 +50,7 @@ function AppContent() {
         <Route path="/aspect/ai" element={<AspectLandingPage />} />
         <Route path="/aspect/architecture" element={<ArchitecturePage />} />
         <Route path="/aspect/pitch" element={<PitchDeckPage />} />
+        <Route path="/lybi/llm-guide" element={<LLMGuidePage />} />
         <Route path="/lybi/*" element={<LybiLandingPage />} />
 
         {/* Main agent routes with optional conversation ID */}

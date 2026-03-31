@@ -68,6 +68,8 @@ export interface SaveVersionPayload {
   kbSources?: string[];
   persona?: string;
   thinkingPrompt?: string;
+  temperature?: number | null;
+  topK?: number | null;
 }
 
 export async function createPromptVersion(

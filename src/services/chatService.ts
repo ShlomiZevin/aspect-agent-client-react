@@ -18,6 +18,8 @@ export interface StreamChatOptions {
   thinkingPromptOverrides?: Record<string, string>; // Session override: { crewName: thinkingPrompt }
   thinkingModelOverrides?: Record<string, string>;  // Session override: { crewName: thinkingModel }
   thinkerDisabled?: Record<string, boolean>; // Session override: { crewName: true } to disable thinker
+  temperatureOverrides?: Record<string, number>;    // Session override: { crewName: number }
+  topKOverrides?: Record<string, number>;            // Session override: { crewName: number }
   profilerFreshStart?: boolean; // Debug: ignore existing profile, start from scratch
 }
 
@@ -62,7 +64,7 @@ export async function streamChat(
   options: StreamChatOptions,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const { message, conversationId, agentName, userId, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, profilerFreshStart } = options;
+  const { message, conversationId, agentName, userId, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, profilerFreshStart } = options;
   const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onModelUsed, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onFieldExtracted, onProfileUpdate, onProfilerRaw } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
@@ -86,6 +88,8 @@ export async function streamChat(
         ...(thinkingPromptOverrides && Object.keys(thinkingPromptOverrides).length > 0 && { thinkingPromptOverrides }),
         ...(thinkingModelOverrides && Object.keys(thinkingModelOverrides).length > 0 && { thinkingModelOverrides }),
         ...(thinkerDisabled && Object.keys(thinkerDisabled).length > 0 && { thinkerDisabled }),
+        ...(temperatureOverrides && Object.keys(temperatureOverrides).length > 0 && { temperatureOverrides }),
+        ...(topKOverrides && Object.keys(topKOverrides).length > 0 && { topKOverrides }),
         ...(profilerFreshStart && { profilerFreshStart: true }),
       }),
     });

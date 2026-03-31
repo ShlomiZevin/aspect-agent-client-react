@@ -54,6 +54,8 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     setThinkingModelOverride,
     thinkerDisabled,
     setThinkerDisabled,
+    setTemperatureOverride,
+    setTopKOverride,
     conversationId,
     isFieldsEditorOpen,
     setFieldsEditorOpen,
@@ -255,6 +257,8 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           onThinkingModelOverride={setThinkingModelOverride}
           thinkerDisabled={thinkerDisabled}
           onThinkerDisabledToggle={setThinkerDisabled}
+          onTemperatureOverride={setTemperatureOverride}
+          onTopKOverride={setTopKOverride}
           themes={config.themes}
           selectedTheme={selectedTheme}
           onThemeSelect={setSelectedTheme}

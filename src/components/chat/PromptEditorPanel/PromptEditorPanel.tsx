@@ -93,6 +93,8 @@ interface PromptEditorPanelProps {
   onThinkingModelOverride: (crewMemberId: string, model: string) => void;
   thinkerDisabled: Record<string, boolean>;
   onThinkerDisabledToggle: (crewMemberId: string, disabled: boolean) => void;
+  onTemperatureOverride: (crewMemberId: string, temperature: number | null) => void;
+  onTopKOverride: (crewMemberId: string, topK: number | null) => void;
   // Theme selection (brand themes)
   themes?: AgentTheme[];
   selectedTheme: AgentTheme | null;
@@ -123,6 +125,8 @@ export function PromptEditorPanel({
   onThinkingModelOverride,
   thinkerDisabled,
   onThinkerDisabledToggle,
+  onTemperatureOverride,
+  onTopKOverride,
   themes,
   selectedTheme,
   onThemeSelect,
@@ -152,6 +156,10 @@ export function PromptEditorPanel({
   // Fallback model override state
   const [fallbackOverrides, setFallbackOverrides] = useState<Record<string, string>>({});
   const [thinkingModelOverrides, setThinkingModelOverrides] = useState<Record<string, string>>({});
+
+  // Temperature & Top K overrides
+  const [temperatureOverrides, setTemperatureOverrides] = useState<Record<string, number | null>>({});
+  const [topKOverrides, setTopKOverrides] = useState<Record<string, number | null>>({});
 
   // Status message
   const [status, setStatus] = useState<Status>({ type: null, message: '' });
@@ -396,6 +404,21 @@ export function PromptEditorPanel({
           setOriginalThinkingPrompt(codeThinkingPrompt);
           onThinkingPromptOverride(selectedCrewId, '');
         }
+        // Restore saved temperature/topK from version (or clear override)
+        if (selectedVersion.temperature != null) {
+          setTemperatureOverrides(prev => ({ ...prev, [selectedCrewId]: selectedVersion.temperature! }));
+          onTemperatureOverride(selectedCrewId, selectedVersion.temperature!);
+        } else {
+          setTemperatureOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
+          onTemperatureOverride(selectedCrewId, null);
+        }
+        if (selectedVersion.topK != null) {
+          setTopKOverrides(prev => ({ ...prev, [selectedCrewId]: selectedVersion.topK! }));
+          onTopKOverride(selectedCrewId, selectedVersion.topK!);
+        } else {
+          setTopKOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
+          onTopKOverride(selectedCrewId, null);
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -472,6 +495,8 @@ export function PromptEditorPanel({
         kbSources: kbOverrides[selectedCrewId]?.length ? kbOverrides[selectedCrewId] : undefined,
         persona: isPersonaDirty ? editedPersona : undefined,
         thinkingPrompt: thinkingPromptOverrides[selectedCrewId] || undefined,
+        temperature: temperatureOverrides[selectedCrewId] ?? undefined,
+        topK: topKOverrides[selectedCrewId] ?? undefined,
       };
       const newVersion = await createPromptVersion(agentName, selectedCrewId, payload, baseURL);
       // Reload prompts to show new version
@@ -514,6 +539,8 @@ export function PromptEditorPanel({
         kbSources: kbOverrides[selectedCrewId]?.length ? kbOverrides[selectedCrewId] : undefined,
         persona: isPersonaDirty ? editedPersona : (selectedVersion.persona || undefined),
         thinkingPrompt: thinkingPromptOverrides[selectedCrewId] || undefined,
+        temperature: temperatureOverrides[selectedCrewId] ?? undefined,
+        topK: topKOverrides[selectedCrewId] ?? undefined,
       };
       await updatePromptVersion(agentName, selectedCrewId, selectedVersion.id, payload, baseURL);
       const data = await getAgentPrompts(agentName, baseURL);
@@ -897,7 +924,7 @@ export function PromptEditorPanel({
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </button>
-          {showModel && (
+          {showModel && (<>
             <div className={styles.modelProviderRow}>
               <div className={styles.modelSection}>
                 <label className={styles.selectorLabel}>Model</label>
@@ -957,7 +984,76 @@ export function PromptEditorPanel({
               </div>
               </>)}
             </div>
-          )}
+            {/* Temperature & Top K sliders */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label className={styles.selectorLabel} style={{ margin: 0 }} title="Controls randomness. 0 = deterministic, 0.7 = balanced, 2.0 = very creative/random">
+                    Temperature {(temperatureOverrides[selectedCrewId] ?? 0.7).toFixed(1)}
+                    {temperatureOverrides[selectedCrewId] != null && (
+                      <>
+                        <span className={styles.hasContentBadge}>OVERRIDE</span>
+                        <button
+                          onClick={() => {
+                            setTemperatureOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
+                            onTemperatureOverride(selectedCrewId, null);
+                          }}
+                          title="Reset to default"
+                          style={{ padding: 0, fontSize: 11, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--primary-color)', textDecoration: 'underline', marginLeft: 4 }}
+                        >reset</button>
+                      </>
+                    )}
+                  </label>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.1"
+                  className={styles.rangeSlider}
+                  value={temperatureOverrides[selectedCrewId] ?? 0.7}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setTemperatureOverrides(prev => ({ ...prev, [selectedCrewId]: val }));
+                    onTemperatureOverride(selectedCrewId, val);
+                  }}
+                />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label className={styles.selectorLabel} style={{ margin: 0 }} title="Limits token selection pool. Lower = more focused, higher = more diverse. Maps to top_p (OpenAI/Google) or top_k (Claude)">
+                    Top K / Top P {(topKOverrides[selectedCrewId] ?? 1).toFixed(2)}
+                    {topKOverrides[selectedCrewId] != null && (
+                      <>
+                        <span className={styles.hasContentBadge}>OVERRIDE</span>
+                        <button
+                          onClick={() => {
+                            setTopKOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
+                            onTopKOverride(selectedCrewId, null);
+                          }}
+                          title="Reset to default"
+                          style={{ padding: 0, fontSize: 11, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--primary-color)', textDecoration: 'underline', marginLeft: 4 }}
+                        >reset</button>
+                      </>
+                    )}
+                  </label>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  className={styles.rangeSlider}
+                  value={topKOverrides[selectedCrewId] ?? 1}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setTopKOverrides(prev => ({ ...prev, [selectedCrewId]: val }));
+                    onTopKOverride(selectedCrewId, val);
+                  }}
+                />
+              </div>
+            </div>
+          </>)}
         </div>
 
         {/* 3.5. Theme - collapsible, only shown when agent has themes */}

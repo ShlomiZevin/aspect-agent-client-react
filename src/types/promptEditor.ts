@@ -19,6 +19,8 @@ export interface PromptVersion {
   kbSources?: string[];    // Saved active KB sources
   persona?: string;        // Saved persona override
   thinkingPrompt?: string; // Saved thinker prompt for thinking-crew architecture
+  temperature?: number;    // Saved LLM temperature override (0.0 - 2.0)
+  topK?: number;           // Saved LLM top_k / top_p override
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

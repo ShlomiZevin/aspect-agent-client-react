@@ -13,6 +13,7 @@ export { DashboardPage } from './DashboardPage';
 export { NotFoundPage } from './NotFoundPage';
 export { CompassPage } from './CompassPage';
 export { Zer4UPage } from './Zer4UPage';
+export { LLMGuidePage } from './LLMGuidePage';
 export { PitchDeckPage } from './PitchDeckPage';
 export { TaskBoardPage } from './TaskBoardPage';
 export { TiktokPage } from './TiktokPage';
