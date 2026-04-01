@@ -180,12 +180,23 @@
   height: 28px;
   border-radius: var(--radius-sm);
   color: var(--text-muted);
-  opacity: 0;
   transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
-.item:hover .editBtn,
+.editBtn {
+  opacity: 0;
+}
+
+.deleteBtn {
+  opacity: 0.35;
+  margin-left: auto;
+}
+
+.item:hover .editBtn {
+  opacity: 1;
+}
+
 .item:hover .deleteBtn {
   opacity: 1;
 }
