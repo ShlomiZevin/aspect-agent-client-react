@@ -228,6 +228,18 @@
   flex-shrink: 0;
   cursor: pointer;
   accent-color: var(--primary-color);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+/* Show checkbox on hover */
+.item:hover .checkbox {
+  opacity: 1;
+}
+
+/* Show all checkboxes when at least one item is selected */
+.hasSelection .checkbox {
+  opacity: 1;
 }
 
 .deleteAllBtn {
