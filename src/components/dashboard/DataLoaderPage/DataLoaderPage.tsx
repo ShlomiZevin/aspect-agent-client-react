@@ -160,7 +160,7 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   async function handleImportConfirm() {
     setConfirming(null);
     try {
-      const res = await fetch(`${apiBase}/reload`, {
+      const res = await fetch(`${apiBase}/load`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ triggeredBy: 'manual' }),
