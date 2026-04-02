@@ -152,6 +152,7 @@ export function CurrentRunPanel({ run, logs, filesCompleted }: CurrentRunPanelPr
           phase={run.phase}
           filesCompleted={filesCompleted}
           totalFiles={totalFiles}
+          isRunning={isRunning}
         />
       )}
 
@@ -159,7 +160,7 @@ export function CurrentRunPanel({ run, logs, filesCompleted }: CurrentRunPanelPr
         <div className={styles.logHeader}>
           {isRunning ? 'Live Log' : 'Log'}
         </div>
-        <LogViewer logs={logs} autoScroll={isRunning} />
+        <LogViewer logs={logs} autoScroll={isRunning} isRunning={isRunning} />
       </div>
     </div>
   );

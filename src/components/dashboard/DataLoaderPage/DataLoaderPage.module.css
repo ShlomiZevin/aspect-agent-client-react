@@ -241,13 +241,16 @@
 
 /* ── Progress Bar ───────────────────────────────────────── */
 
+.progressWrapper {
+  margin: var(--spacing-md) var(--spacing-lg) var(--spacing-xs);
+}
+
 .progressBar {
   position: relative;
   height: 24px;
   background: var(--surface-light);
   border-radius: var(--radius-sm);
   overflow: hidden;
-  margin: var(--spacing-md) var(--spacing-lg);
 }
 
 .progressFill {
@@ -267,6 +270,29 @@
   font-weight: 600;
   color: white;
   mix-blend-mode: difference;
+}
+
+.progressIndeterminate {
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+  animation: indeterminate 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes indeterminate {
+  0%   { left: -40%; }
+  100% { left: 100%; }
+}
+
+.progressStepLabel {
+  margin-top: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  padding: 0 2px;
 }
 
 /* ── Current Run Panel ──────────────────────────────────── */
@@ -345,6 +371,30 @@
 
 .logEmpty {
   color: #475569;
+}
+
+.logInitializing {
+  color: #60a5fa;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+}
+
+.logDots::after {
+  content: '...';
+  animation: dots 1.4s steps(4, end) infinite;
+  display: inline-block;
+  width: 1.5em;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+
+@keyframes dots {
+  0%  { width: 0; }
+  25% { width: 0.5em; }
+  50% { width: 1em; }
+  75% { width: 1.5em; }
+  100%{ width: 0; }
 }
 
 .logLine {
