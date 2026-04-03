@@ -99,13 +99,6 @@
   margin-bottom: 2px;
 }
 
-.item:nth-child(odd) {
-  background-color: var(--surface-light);
-}
-
-.item:nth-child(even) {
-  background-color: transparent;
-}
 
 .item:hover {
   background-color: var(--primary-light);
