@@ -312,7 +312,8 @@ export function PromptEditorPanel({
   const selectedCrewMember = crewMembers.find(c => c.name === selectedCrewId);
   const isThinkerCrew = selectedCrewMember?.usesThinker === true;
   const codeThinkingPrompt = selectedCrewMember?.thinkingPrompt || '';
-  const defaultModel = selectedPromptData?.model || selectedCrewMember?.model || 'gpt-4';
+  // Default model: active DB version's model takes precedence, then code default
+  const defaultModel = selectedVersion?.model || selectedPromptData?.model || selectedCrewMember?.model || 'gpt-4';
   const currentProvider = providerOverrides[selectedCrewId] || inferProvider(defaultModel);
 
   // Build available models list - filter by provider and include server's model if not already in list
@@ -366,7 +367,9 @@ export function PromptEditorPanel({
         setEditedTransitionPrompt(selectedVersion.transitionSystemPrompt || '');
         setOriginalTransitionPrompt(selectedVersion.transitionSystemPrompt || '');
         // Restore saved model/provider override from version (or clear override)
-        if (selectedVersion.model) {
+        // Active version: server already uses DB model, no session override needed
+        // Non-active version: set as session override so server uses it
+        if (selectedVersion.model && !selectedVersion.isActive) {
           const vProvider = selectedVersion.provider || inferProvider(selectedVersion.model);
           setModelOverrides(prev => ({ ...prev, [selectedCrewId]: selectedVersion.model! }));
           setProviderOverrides(prev => ({ ...prev, [selectedCrewId]: vProvider }));
@@ -375,6 +378,11 @@ export function PromptEditorPanel({
           setModelOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
           setProviderOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
           onModelOverride(selectedCrewId, '');
+          // Set provider to match version's model for correct dropdown display
+          if (selectedVersion.model) {
+            const vProvider = selectedVersion.provider || inferProvider(selectedVersion.model);
+            setProviderOverrides(prev => ({ ...prev, [selectedCrewId]: vProvider }));
+          }
         }
         // Restore saved KB sources from version (or clear override)
         if (selectedVersion.kbSources && selectedVersion.kbSources.length > 0) {
