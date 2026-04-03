@@ -12,18 +12,19 @@ export interface LogEntry {
 interface LogViewerProps {
   logs: LogEntry[];
   autoScroll?: boolean;
+  isRunning?: boolean;
 }
 
 const STEP_COLORS: Record<string, string> = {
-  scanning: '#60a5fa',
+  scanning:        '#60a5fa',
   creating_schema: '#a78bfa',
-  loading_data: '#34d399',
-  creating_indexes: '#fbbf24',
-  creating_views: '#f97316',
-  swapping: '#e879f9',
-  cleanup: '#94a3b8',
-  completed: '#4ade80',
-  failed: '#f87171',
+  loading_data:    '#34d399',
+  creating_indexes:'#fbbf24',
+  creating_views:  '#f97316',
+  swapping:        '#e879f9',
+  cleanup:         '#94a3b8',
+  completed:       '#4ade80',
+  failed:          '#f87171',
 };
 
 function formatTime(ts: string) {
@@ -34,10 +35,9 @@ function formatTime(ts: string) {
   }
 }
 
-export function LogViewer({ logs, autoScroll = true }: LogViewerProps) {
+export function LogViewer({ logs, autoScroll = true, isRunning }: LogViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll the log container to bottom on every new entry
   useEffect(() => {
     if (autoScroll && containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -47,7 +47,10 @@ export function LogViewer({ logs, autoScroll = true }: LogViewerProps) {
   if (logs.length === 0) {
     return (
       <div className={styles.logViewer}>
-        <span className={styles.logEmpty}>No log entries yet.</span>
+        {isRunning
+          ? <span className={styles.logInitializing}>Initializing<span className={styles.logDots} /></span>
+          : <span className={styles.logEmpty}>No log entries yet.</span>
+        }
       </div>
     );
   }
