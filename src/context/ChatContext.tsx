@@ -67,6 +67,8 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   // Profiler fresh start (debug) — ignore existing profile, start from scratch
   profilerFreshStart: boolean;
   setProfilerFreshStart: (value: boolean) => void;
+  profilerEnabled: boolean;
+  setProfilerEnabled: (value: boolean) => void;
   // Theme selection (brand themes)
   selectedTheme: AgentTheme | null;
   setSelectedTheme: (themeId: string | null) => void;
@@ -260,6 +262,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const [profileData, setProfileData] = useState<ProfileUpdateData | null>(null);
   const [profilerLastRaw, setProfilerLastRaw] = useState<unknown | null>(null);
   const [profilerFreshStart, setProfilerFreshStart] = useState(true);
+  const [profilerEnabled, setProfilerEnabled] = useState(false);
 
   // Persona override for debug mode (session-only, agent-level)
   const [personaOverride, setPersonaOverride] = useState<string | null>(null);
@@ -281,6 +284,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     temperatureOverrides: debugMode ? temperatureOverrides : undefined,
     topKOverrides: debugMode ? topKOverrides : undefined,
     profilerFreshStart: profilerFreshStart || undefined,
+    profilerEnabled: profilerEnabled || undefined,
     onCrewInfo: (crewInfo) => {
       crew.setCurrentCrew(crewInfo);
       // Refresh fields panel when crew is set (including initial crew)
@@ -576,6 +580,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
     profilerLastRaw,
     profilerFreshStart,
     setProfilerFreshStart,
+    profilerEnabled,
+    setProfilerEnabled,
     // Theme selection (brand themes)
     selectedTheme,
     setSelectedTheme,

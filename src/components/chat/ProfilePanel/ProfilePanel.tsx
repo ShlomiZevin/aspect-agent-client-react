@@ -22,6 +22,8 @@ interface ProfilePanelProps {
   agentName?: string;
   freshStart?: boolean;
   onFreshStartChange?: (value: boolean) => void;
+  profilerEnabled?: boolean;
+  onProfilerEnabledChange?: (value: boolean) => void;
   onClose?: () => void;
 }
 
@@ -755,6 +757,8 @@ export function ProfilePanel({
   agentName,
   freshStart = true,
   onFreshStartChange,
+  profilerEnabled = false,
+  onProfilerEnabledChange,
   onClose,
 }: ProfilePanelProps) {
   const hasProfiler = !!profilerData;
@@ -844,7 +848,14 @@ export function ProfilePanel({
         <div className={styles.headerLeft}>
           <h3 className={styles.headerTitle}>{profileSchema.title}</h3>
           <span className={`${styles.activityDot} ${isPulsing ? styles.activityDotActive : ''}`} />
-          {debugMode && onFreshStartChange && (
+          {debugMode && onProfilerEnabledChange && (
+            <label className={styles.toggleLabel} title="הפעל/כבה את הפרופיילר">
+              <div className={`${styles.toggleTrack} ${profilerEnabled ? styles.toggleTrackOn : ''}`} onClick={() => onProfilerEnabledChange(!profilerEnabled)}>
+                <div className={`${styles.toggleThumb} ${profilerEnabled ? styles.toggleThumbOn : ''}`} />
+              </div>
+            </label>
+          )}
+          {debugMode && profilerEnabled && onFreshStartChange && (
             <label className={styles.freshStartLabel} title="התחל פרופיל מאפס בכל שיחה">
               <input
                 type="checkbox"

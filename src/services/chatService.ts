@@ -21,6 +21,7 @@ export interface StreamChatOptions {
   temperatureOverrides?: Record<string, number>;    // Session override: { crewName: number }
   topKOverrides?: Record<string, number>;            // Session override: { crewName: number }
   profilerFreshStart?: boolean; // Debug: ignore existing profile, start from scratch
+  profilerEnabled?: boolean; // Debug: enable profiler (disabled by default)
 }
 
 export interface CrewTransition {
@@ -64,7 +65,7 @@ export async function streamChat(
   options: StreamChatOptions,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const { message, conversationId, agentName, userId, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, profilerFreshStart } = options;
+  const { message, conversationId, agentName, userId, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, profilerFreshStart, profilerEnabled } = options;
   const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onModelUsed, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onFieldExtracted, onProfileUpdate, onProfilerRaw } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
@@ -91,6 +92,7 @@ export async function streamChat(
         ...(temperatureOverrides && Object.keys(temperatureOverrides).length > 0 && { temperatureOverrides }),
         ...(topKOverrides && Object.keys(topKOverrides).length > 0 && { topKOverrides }),
         ...(profilerFreshStart && { profilerFreshStart: true }),
+        ...(profilerEnabled && { profilerEnabled: true }),
       }),
     });
 

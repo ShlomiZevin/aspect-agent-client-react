@@ -308,6 +308,7 @@ export interface UseChatOptions {
   onProfileUpdate?: (data: import('../services/chatService').ProfileUpdateData) => void;
   onProfilerRaw?: (data: unknown) => void;
   profilerFreshStart?: boolean;
+  profilerEnabled?: boolean;
 }
 
 export interface UseChatReturn {
@@ -332,7 +333,7 @@ export interface UseChatReturn {
  * Main chat hook - handles messaging, streaming, and thinking indicators
  */
 export function useChat(options: UseChatOptions): UseChatReturn {
-  const { config, conversationId, userId, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, onCrewInfo, onCrewTransition, onFieldExtracted, onProfileUpdate, onProfilerRaw, profilerFreshStart } = options;
+  const { config, conversationId, userId, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, onCrewInfo, onCrewTransition, onFieldExtracted, onProfileUpdate, onProfilerRaw, profilerFreshStart, profilerEnabled } = options;
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
     conversationId,
@@ -380,6 +381,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             temperatureOverrides,
             topKOverrides,
             profilerFreshStart,
+            profilerEnabled,
           },
           {
             onThinkingStep: (step) => {
@@ -480,6 +482,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       temperatureOverrides,
       topKOverrides,
       profilerFreshStart,
+      profilerEnabled,
       onCrewInfo,
       onCrewTransition,
       onFieldExtracted,
