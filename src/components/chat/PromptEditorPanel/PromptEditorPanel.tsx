@@ -655,25 +655,45 @@ export function PromptEditorPanel({
       });
       onModelOverride(selectedCrewId, '');
     } else {
-      setModelOverrides(prev => ({ ...prev, [selectedCrewId]: newModel }));
-      onModelOverride(selectedCrewId, newModel);
-      setStatus({ type: 'info', message: `Model override: ${newModel}` });
+      const isWelcomeCrew = selectedCrewMember?.isDefault === true;
+      if (isWelcomeCrew && crewMembers.length > 1) {
+        // Propagate welcome crew model to all other crews for session continuity
+        const newOverrides: Record<string, string> = {};
+        crewMembers.forEach(c => { newOverrides[c.name] = newModel; });
+        setModelOverrides(prev => ({ ...prev, ...newOverrides }));
+        crewMembers.forEach(c => onModelOverride(c.name, newModel));
+        setStatus({ type: 'info', message: `Model override: ${newModel} (applied to all crews)` });
+      } else {
+        setModelOverrides(prev => ({ ...prev, [selectedCrewId]: newModel }));
+        onModelOverride(selectedCrewId, newModel);
+        setStatus({ type: 'info', message: `Model override: ${newModel}` });
+      }
     }
-  }, [selectedCrewId, defaultModel, onModelOverride]);
+  }, [selectedCrewId, defaultModel, onModelOverride, selectedCrewMember, crewMembers]);
 
   // Handle provider change
   const handleProviderChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newProvider = e.target.value;
-    setProviderOverrides(prev => ({ ...prev, [selectedCrewId]: newProvider }));
-
-    // Reset model to first available model for the new provider
     const newAvailableModels = MODELS_BY_PROVIDER[newProvider] || OPENAI_MODELS;
     const newModel = newAvailableModels[0];
-    setModelOverrides(prev => ({ ...prev, [selectedCrewId]: newModel }));
-    onModelOverride(selectedCrewId, newModel);
+    const isWelcomeCrew = selectedCrewMember?.isDefault === true;
 
-    setStatus({ type: 'info', message: `Provider changed to ${newProvider}, model set to ${newModel}` });
-  }, [selectedCrewId, onModelOverride]);
+    if (isWelcomeCrew && crewMembers.length > 1) {
+      // Propagate provider/model to all crews
+      const providerUpdates: Record<string, string> = {};
+      const modelUpdates: Record<string, string> = {};
+      crewMembers.forEach(c => { providerUpdates[c.name] = newProvider; modelUpdates[c.name] = newModel; });
+      setProviderOverrides(prev => ({ ...prev, ...providerUpdates }));
+      setModelOverrides(prev => ({ ...prev, ...modelUpdates }));
+      crewMembers.forEach(c => onModelOverride(c.name, newModel));
+      setStatus({ type: 'info', message: `Provider changed to ${newProvider} (applied to all crews)` });
+    } else {
+      setProviderOverrides(prev => ({ ...prev, [selectedCrewId]: newProvider }));
+      setModelOverrides(prev => ({ ...prev, [selectedCrewId]: newModel }));
+      onModelOverride(selectedCrewId, newModel);
+      setStatus({ type: 'info', message: `Provider changed to ${newProvider}, model set to ${newModel}` });
+    }
+  }, [selectedCrewId, onModelOverride, selectedCrewMember, crewMembers]);
 
   // Revert to original prompt and model
   const handleRevert = useCallback(() => {
