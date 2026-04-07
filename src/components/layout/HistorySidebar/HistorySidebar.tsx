@@ -273,7 +273,7 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
                         onClick={(e) => e.stopPropagation()}
                       />
                     ) : (
-                      <span className={styles.itemTitle}>
+                      <span className={styles.itemTitle} title={conv.title || 'New Conversation'}>
                         {conv.title || 'New Conversation'}
                       </span>
                     )}
