@@ -144,6 +144,46 @@ export function useDynamicKB(agentName: string) {
     }
   }, []);
 
+  const reimportDocAndSave = useCallback(async (file: File) => {
+    if (!selectedFileRef.current) return null;
+    try {
+      setError(null);
+      setIsSaving(true);
+      const imported = await dynamicKBService.importDoc(file);
+      const newContent = imported.text;
+      setContent(newContent);
+      const result = await dynamicKBService.saveContent(selectedFileRef.current.id, newContent);
+      setSavedContent(newContent);
+      await loadFiles();
+      return result;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to re-import document');
+      return null;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [loadFiles]);
+
+  const reimportSpreadsheetAndSave = useCallback(async (file: File) => {
+    if (!selectedFileRef.current) return null;
+    try {
+      setError(null);
+      setIsSaving(true);
+      const imported = await dynamicKBService.importSpreadsheet(file);
+      const newContent: TableData = { headers: imported.headers, rows: imported.rows };
+      setContent(newContent);
+      const result = await dynamicKBService.saveContent(selectedFileRef.current.id, newContent);
+      setSavedContent(newContent);
+      await loadFiles();
+      return result;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to re-import spreadsheet');
+      return null;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [loadFiles]);
+
   const attachToKB = useCallback(async (kbId: number) => {
     if (!selectedFile) return;
     try {
@@ -190,6 +230,8 @@ export function useDynamicKB(agentName: string) {
     saveContent,
     importFromDoc,
     importFromSpreadsheet,
+    reimportDocAndSave,
+    reimportSpreadsheetAndSave,
     attachToKB,
     detachFromKB,
     clearError: () => setError(null),

@@ -272,6 +272,23 @@
 }
 .previewBtn:hover { background: var(--hover-bg, #f1f5f9); color: var(--text-primary, #1e293b); }
 
+.reimportBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--text-secondary, #64748b);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.reimportBtn:hover { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+.reimportBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .importBtn {
   display: flex;
   align-items: center;

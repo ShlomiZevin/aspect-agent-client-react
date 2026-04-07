@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDynamicKB } from '../../../hooks/useDynamicKB';
 import { TextEditor } from './TextEditor';
 import { TableEditor } from './TableEditor';
@@ -28,9 +28,12 @@ export function DynamicKBPage({ agentName }: DynamicKBPageProps) {
     saveContent,
     importFromDoc,
     importFromSpreadsheet,
+    reimportDocAndSave,
+    reimportSpreadsheetAndSave,
     clearError,
   } = useDynamicKB(agentName);
 
+  const reimportInputRef = useRef<HTMLInputElement>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newFileName, setNewFileName] = useState('');
   const [newFileType, setNewFileType] = useState<'text' | 'table'>('text');
@@ -111,6 +114,23 @@ export function DynamicKBPage({ agentName }: DynamicKBPageProps) {
       importFromSpreadsheet(file);
     }
   }, [isDirty, selectedFile, importFromDoc, importFromSpreadsheet]);
+
+  const handleReimport = useCallback(async (file: File) => {
+    if (!selectedFile) return;
+    const label = selectedFile.fileType === 'text' ? '.doc / .docx' : '.csv / .xls / .xlsx';
+    if (!confirm(`Re-import will replace all current content with the new file and save immediately${attachments.length > 0 ? `, syncing to ${attachments.length} KB${attachments.length > 1 ? 's' : ''}` : ''}. Continue?`)) return;
+    const result = selectedFile.fileType === 'text'
+      ? await reimportDocAndSave(file)
+      : await reimportSpreadsheetAndSave(file);
+    if (result) {
+      const msg = result.synced
+        ? `Re-imported and synced to ${result.syncedKBs.length} KB${result.syncedKBs.length > 1 ? 's' : ''}`
+        : 'Re-imported and saved';
+      setToast(msg);
+      setTimeout(() => setToast(null), 3000);
+    }
+    void label;
+  }, [selectedFile, attachments, reimportDocAndSave, reimportSpreadsheetAndSave]);
 
   const formatDate = (d: Date) => {
     return new Date(d).toLocaleDateString(undefined, {
@@ -238,6 +258,25 @@ export function DynamicKBPage({ agentName }: DynamicKBPageProps) {
                 ? `Save & Sync to ${attachments.length} KB${attachments.length > 1 ? 's' : ''}`
                 : 'Save'}
             </button>
+            <button
+              className={styles.reimportBtn}
+              onClick={() => reimportInputRef.current?.click()}
+              disabled={isSaving}
+              title="Replace all content by importing a new file, then save automatically"
+            >
+              Re-import & Save
+            </button>
+            <input
+              ref={reimportInputRef}
+              type="file"
+              accept={selectedFile?.fileType === 'text' ? '.doc,.docx' : '.csv,.xls,.xlsx'}
+              style={{ display: 'none' }}
+              onChange={e => {
+                const file = e.target.files?.[0];
+                if (file) handleReimport(file);
+                e.target.value = '';
+              }}
+            />
             <button className={styles.previewBtn} onClick={() => setShowPreview(true)}>
               Preview MD
             </button>
