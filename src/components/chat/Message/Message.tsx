@@ -28,7 +28,7 @@ function isRTL(text: string): boolean {
 }
 
 /** Known UI element types. Only these are parsed as interactive markup. */
-const UI_ELEMENT_TYPES = ['buttons', 'chips', 'checkbox', 'radio', 'toggle', 'select', 'id'];
+const UI_ELEMENT_TYPES = ['buttons', 'chips', 'checkbox', 'radio', 'toggle', 'select', 'id', 'input'];
 
 /** Parse UI element markup from message text. Only matches known types: [buttons: a | b], [chips: x | y], etc. */
 function parseUIElements(text: string): { cleanText: string; elements: { type: string; options: string[] }[] } {
@@ -68,6 +68,7 @@ export function Message({ message }: MessageProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [idProcessing, setIdProcessing] = useState(false);
+  const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const isUser = message.role === 'user';
   const isDeveloper = message.role === 'developer';
   const hasThinkingSteps = !isUser && !isDeveloper && message.thinkingSteps && message.thinkingSteps.length > 0;
@@ -82,6 +83,22 @@ export function Message({ message }: MessageProps) {
   // Disable UI elements if a subsequent message exists (user already responded)
   const msgIndex = messages.findIndex((m: MessageType) => m.id === message.id);
   const uiDisabled = uiElements.length > 0 && msgIndex >= 0 && msgIndex < messages.length - 1;
+
+  // When disabled, parse the next user message to recover submitted input values (for display)
+  const collectedInputs: Record<string, string> = {};
+  if (uiDisabled) {
+    const nextUserMsg = messages.slice(msgIndex + 1).find((m: MessageType) => m.role === 'user');
+    if (nextUserMsg?.content) {
+      for (const line of nextUserMsg.content.split('\n')) {
+        const idx = line.indexOf(':');
+        if (idx > 0) {
+          const k = line.slice(0, idx).trim();
+          const v = line.slice(idx + 1).trim();
+          if (k && v) collectedInputs[k] = v;
+        }
+      }
+    }
+  }
 
   const handleDeleteClick = () => {
     setShowDeleteConfirm(true);
@@ -303,9 +320,67 @@ export function Message({ message }: MessageProps) {
                 {uiCleanText}
               </ReactMarkdown>
             </div>
-            {uiElements.length > 0 && (
-              <div className={styles.uiElementRow}>
-                {uiElements.map((el, i) => {
+            {uiElements.length > 0 && (() => {
+              const inputEls = uiElements.filter(e => e.type === 'input');
+              const otherEls = uiElements.filter(e => e.type !== 'input');
+              const handleInputSubmit = () => {
+                if (uiDisabled) return;
+                const lines = inputEls
+                  .map(el => {
+                    const label = el.options[0] || '';
+                    const val = (inputValues[label] || '').trim();
+                    return val ? `${label}: ${val}` : null;
+                  })
+                  .filter(Boolean);
+                if (lines.length === 0) return;
+                sendMessage(lines.join('\n'));
+              };
+              return (
+                <>
+                  {(() => {
+                    const visibleInputEls = uiDisabled
+                      ? inputEls.filter(el => collectedInputs[el.options[0] || ''])
+                      : inputEls;
+                    if (visibleInputEls.length === 0) return null;
+                    return (
+                    <div className={`${styles.uiInputForm} ${uiDisabled ? styles.uiInputFormCollected : ''}`}>
+                      {visibleInputEls.map((el, i) => {
+                        const label = el.options[0] || '';
+                        const displayValue = uiDisabled
+                          ? (collectedInputs[label] || '')
+                          : (inputValues[label] || '');
+                        return (
+                          <div key={`in-${i}`} className={styles.uiInputField}>
+                            <label className={styles.uiInputLabel}>{label}</label>
+                            <input
+                              type="text"
+                              className={`${styles.uiInputBox} ${uiDisabled && displayValue ? styles.uiInputBoxCollected : ''}`}
+                              disabled={uiDisabled}
+                              value={displayValue}
+                              onChange={(e) => setInputValues(v => ({ ...v, [label]: e.target.value }))}
+                              onKeyDown={(e) => { if (e.key === 'Enter') handleInputSubmit(); }}
+                            />
+                          </div>
+                        );
+                      })}
+                      {!uiDisabled && (
+                        <button
+                          type="button"
+                          className={`${styles.uiElement} ${styles.uiInputSubmit}`}
+                          onClick={handleInputSubmit}
+                        >
+                          שליחה
+                        </button>
+                      )}
+                      {uiDisabled && (
+                        <div className={styles.uiInputCollectedBadge}>✅ נשלח</div>
+                      )}
+                    </div>
+                    );
+                  })()}
+                  {otherEls.length > 0 && (
+                    <div className={styles.uiElementRow}>
+                      {otherEls.map((el, i) => {
                   if (el.type === 'id') {
                     const label = el.options[0] || 'העלאת תעודת זהות 📷';
                     const inputId = `id-upload-${message.id}-${i}`;
@@ -356,9 +431,12 @@ export function Message({ message }: MessageProps) {
                       {option}
                     </button>
                   ));
-                })}
-              </div>
-            )}
+                      })}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
             {debugMode && message.debugData && (
               <DebugPanel data={message.debugData} />
             )}

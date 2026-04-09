@@ -672,6 +672,81 @@
   opacity: 1 !important;
 }
 
+/* Input form (grouped text inputs with a single submit button) */
+.uiInputForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--primary-color);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.uiInputField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.uiInputLabel {
+  font-size: 13px;
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.uiInputBox {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.uiInputBox:focus {
+  border-color: var(--primary-color);
+}
+
+.uiInputBox:disabled {
+  background: #f5f5f5;
+  cursor: default;
+}
+
+.uiInputSubmit {
+  align-self: flex-end;
+  margin-top: 4px;
+  background: var(--primary-color);
+  color: white;
+}
+
+.uiInputSubmit:hover {
+  opacity: 0.9;
+}
+
+.uiInputFormCollected {
+  border-style: solid;
+  border-color: #4caf50;
+  background: rgba(76, 175, 80, 0.06);
+}
+
+.uiInputBoxCollected {
+  background: white !important;
+  border-color: #4caf50 !important;
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+.uiInputCollectedBadge {
+  align-self: flex-end;
+  font-size: 13px;
+  color: #2e7d32;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
 .idProcessing {
   display: inline-flex;
   align-items: center;
