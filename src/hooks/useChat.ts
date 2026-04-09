@@ -103,6 +103,15 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return { ...state, messages };
     }
 
+    case 'REPLACE_MESSAGE': {
+      const messages = [...state.messages];
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && lastMessage.role === 'assistant') {
+        messages[messages.length - 1] = { ...lastMessage, content: action.payload };
+      }
+      return { ...state, messages, isLoading: false, thinkingSteps: [] };
+    }
+
     case 'COMPLETE_MESSAGE':
       return {
         ...state,
@@ -451,6 +460,9 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             },
             onUserMessageSaved: (messageId) => {
               dispatch({ type: 'SET_USER_MESSAGE_DB_ID', payload: messageId });
+            },
+            onReplaceMessage: (text) => {
+              dispatch({ type: 'REPLACE_MESSAGE', payload: text });
             },
             onFieldExtracted,
             onProfileUpdate,

@@ -168,4 +168,5 @@ export type ChatAction =
   | { type: 'DELETE_MESSAGES_FROM'; payload: string }
   | { type: 'ADD_DEVELOPER_MESSAGE'; payload: Message }
   | { type: 'CREW_TRANSITION'; payload: { to: string; displayName?: string } }
-  | { type: 'FINALIZE_TRANSITION_THINKING' };
+  | { type: 'FINALIZE_TRANSITION_THINKING' }
+  | { type: 'REPLACE_MESSAGE'; payload: string };

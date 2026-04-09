@@ -44,6 +44,7 @@ export interface StreamCallbacks {
   onDebugContextUpdate?: (data: PostExtractionContext) => void;
   onMessageSaved?: (messageId: number) => void;
   onUserMessageSaved?: (messageId: number) => void;
+  onReplaceMessage?: (text: string) => void;
   onFieldExtracted?: (field: string, value: string) => void;
   onProfileUpdate?: (data: ProfileUpdateData) => void;
   onProfilerRaw?: (data: unknown) => void;
@@ -66,7 +67,7 @@ export async function streamChat(
   callbacks: StreamCallbacks
 ): Promise<void> {
   const { message, conversationId, agentName, userId, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, profilerFreshStart, profilerEnabled } = options;
-  const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onModelUsed, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onFieldExtracted, onProfileUpdate, onProfilerRaw } = callbacks;
+  const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onModelUsed, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onReplaceMessage, onFieldExtracted, onProfileUpdate, onProfilerRaw } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
 
@@ -196,6 +197,10 @@ export async function streamChat(
             // Handle user message saved event (for delete functionality)
             else if (parsed.type === 'user_message_saved' && parsed.messageId) {
               onUserMessageSaved?.(parsed.messageId);
+            }
+            // Handle mid-stream error — replace partial bubble with error text
+            else if (parsed.type === 'replace_message' && parsed.text) {
+              onReplaceMessage?.(parsed.text);
             }
             // Handle profile update from async profiler
             else if (parsed.type === 'profile_update' && parsed.data) {
