@@ -412,6 +412,12 @@ export function PromptEditorPanel({
           setOriginalThinkingPrompt(codeThinkingPrompt);
           onThinkingPromptOverride(selectedCrewId, '');
         }
+        // Restore saved thinking model from version (or clear override)
+        if (selectedVersion.thinkingModel) {
+          setThinkingModelOverrides(prev => ({ ...prev, [selectedCrewId]: selectedVersion.thinkingModel! }));
+        } else {
+          setThinkingModelOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
+        }
         // Restore saved temperature/topK from version (or clear override)
         if (selectedVersion.temperature != null) {
           setTemperatureOverrides(prev => ({ ...prev, [selectedCrewId]: selectedVersion.temperature! }));
@@ -503,6 +509,7 @@ export function PromptEditorPanel({
         kbSources: kbOverrides[selectedCrewId]?.length ? kbOverrides[selectedCrewId] : undefined,
         persona: isPersonaDirty ? editedPersona : undefined,
         thinkingPrompt: thinkingPromptOverrides[selectedCrewId] || undefined,
+        thinkingModel: thinkingModelOverrides[selectedCrewId] || undefined,
         temperature: temperatureOverrides[selectedCrewId] ?? undefined,
         topK: topKOverrides[selectedCrewId] ?? undefined,
       };
@@ -530,7 +537,7 @@ export function PromptEditorPanel({
     } finally {
       setIsSavingVersion(false);
     }
-  }, [selectedCrewId, editedPrompt, editedTransitionPrompt, modelOverrides, providerOverrides, kbOverrides, editedPersona, codePersona, thinkingPromptOverrides, agentName, baseURL]);
+  }, [selectedCrewId, editedPrompt, editedTransitionPrompt, modelOverrides, providerOverrides, kbOverrides, editedPersona, codePersona, thinkingPromptOverrides, thinkingModelOverrides, agentName, baseURL]);
 
   // Overwrite the currently selected DB version with current edits
   const handleOverwriteVersion = useCallback(async () => {
@@ -547,6 +554,7 @@ export function PromptEditorPanel({
         kbSources: kbOverrides[selectedCrewId]?.length ? kbOverrides[selectedCrewId] : undefined,
         persona: isPersonaDirty ? editedPersona : (selectedVersion.persona || undefined),
         thinkingPrompt: thinkingPromptOverrides[selectedCrewId] || undefined,
+        thinkingModel: thinkingModelOverrides[selectedCrewId] || undefined,
         temperature: temperatureOverrides[selectedCrewId] ?? undefined,
         topK: topKOverrides[selectedCrewId] ?? undefined,
       };
@@ -563,7 +571,7 @@ export function PromptEditorPanel({
     } finally {
       setIsSavingVersion(false);
     }
-  }, [selectedCrewId, selectedVersion, editedPrompt, editedTransitionPrompt, modelOverrides, providerOverrides, kbOverrides, editedPersona, isPersonaDirty, thinkingPromptOverrides, agentName, baseURL]);
+  }, [selectedCrewId, selectedVersion, editedPrompt, editedTransitionPrompt, modelOverrides, providerOverrides, kbOverrides, editedPersona, isPersonaDirty, thinkingPromptOverrides, thinkingModelOverrides, agentName, baseURL]);
 
   // Activate selected version as the default (without saving a new one)
   const handleActivateVersion = useCallback(async () => {

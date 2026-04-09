@@ -68,6 +68,7 @@ export interface SaveVersionPayload {
   kbSources?: string[];
   persona?: string;
   thinkingPrompt?: string;
+  thinkingModel?: string;
   temperature?: number | null;
   topK?: number | null;
 }
