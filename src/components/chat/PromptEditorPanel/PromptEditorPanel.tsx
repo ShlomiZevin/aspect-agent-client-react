@@ -166,6 +166,8 @@ export function PromptEditorPanel({
 
   // Selected version ID (for version switching)
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [versionDropdownOpen, setVersionDropdownOpen] = useState(false);
+  const versionDropdownRef = useRef<HTMLDivElement>(null);
 
   // Transition system prompt state
   const [editedTransitionPrompt, setEditedTransitionPrompt] = useState<string>('');
@@ -444,6 +446,17 @@ export function PromptEditorPanel({
     lastLoadedVersionRef.current = null; // Force version load effect to re-run for new crew
   }, [selectedCrewId]);
 
+  // Close version dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (versionDropdownRef.current && !versionDropdownRef.current.contains(e.target as Node)) {
+        setVersionDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Sync with current crew when it changes externally (not from dropdown)
   useEffect(() => {
     if (currentCrew) {
@@ -537,7 +550,7 @@ export function PromptEditorPanel({
     } finally {
       setIsSavingVersion(false);
     }
-  }, [selectedCrewId, editedPrompt, editedTransitionPrompt, modelOverrides, providerOverrides, kbOverrides, editedPersona, codePersona, thinkingPromptOverrides, thinkingModelOverrides, agentName, baseURL]);
+  }, [selectedCrewId, editedPrompt, editedTransitionPrompt, modelOverrides, providerOverrides, kbOverrides, editedPersona, codePersona, thinkingPromptOverrides, thinkingModelOverrides, agentName, baseURL, saveVersionDescription]);
 
   // Overwrite the currently selected DB version with current edits
   const handleOverwriteVersion = useCallback(async () => {
@@ -807,24 +820,54 @@ export function PromptEditorPanel({
             </button>
             {showVersions && (
               <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <select
-                  className={styles.crewSelect}
-                  value={selectedVersionId || selectedPromptData.currentVersion?.id || ''}
-                  onChange={handleVersionSelect}
-                >
-                  {selectedPromptData.versions.map(version => (
-                    <option key={version.id} value={version.id}>
-                      v{version.version}
-                      {version.name ? ` - ${version.name}` : ''}
-                      {version.isActive ? ' (Active)' : ''}
-                    </option>
-                  ))}
-                </select>
-                {selectedVersion?.description && (
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '2px 0' }}>
-                    {selectedVersion.description}
-                  </div>
-                )}
+                <div className={styles.versionDropdown} ref={versionDropdownRef}>
+                  <button
+                    type="button"
+                    className={`${styles.versionDropdownTrigger} ${versionDropdownOpen ? styles.open : ''}`}
+                    onClick={() => setVersionDropdownOpen(o => !o)}
+                  >
+                    <div className={styles.versionDropdownTriggerText}>
+                      <div className={styles.versionDropdownTriggerMain}>
+                        v{selectedVersion?.version ?? '?'}
+                        {selectedVersion?.name ? ` - ${selectedVersion.name}` : ''}
+                        {selectedVersion?.isActive ? ' (Active)' : ''}
+                      </div>
+                      {selectedVersion?.description && (
+                        <div className={styles.versionDropdownTriggerDesc}>{selectedVersion.description}</div>
+                      )}
+                    </div>
+                    <svg className={`${styles.versionDropdownChevron} ${versionDropdownOpen ? styles.open : ''}`}
+                      width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                  {versionDropdownOpen && (
+                    <div className={styles.versionDropdownMenu}>
+                      {selectedPromptData.versions.map(version => {
+                        const isSelected = version.id === (selectedVersionId || selectedPromptData.currentVersion?.id);
+                        return (
+                          <div
+                            key={version.id}
+                            className={`${styles.versionDropdownOption} ${isSelected ? styles.selected : ''}`}
+                            onClick={() => {
+                              handleVersionSelect({ target: { value: version.id } } as React.ChangeEvent<HTMLSelectElement>);
+                              setVersionDropdownOpen(false);
+                            }}
+                          >
+                            <div className={styles.versionDropdownOptionMain}>
+                              v{version.version}
+                              {version.name ? ` - ${version.name}` : ''}
+                              {version.isActive ? ' (Active)' : ''}
+                            </div>
+                            {version.description && (
+                              <div className={styles.versionDropdownOptionDesc}>{version.description}</div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
                 {selectedVersion && (
                   <div style={{ display: 'flex', gap: '6px' }}>
                     {!selectedVersion.isActive && (
