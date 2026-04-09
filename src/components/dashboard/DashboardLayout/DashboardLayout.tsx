@@ -9,6 +9,7 @@ interface DashboardLayoutProps {
   basePath: string;
   showQueryOptimizer?: boolean;
   showPodcast?: boolean;
+  showConversationTrends?: boolean;
   children: ReactNode;
 }
 
@@ -32,6 +33,12 @@ const DATA_LOADER_ITEM = {
   path: 'data-loader',
   label: 'Data Loader',
   icon: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4 M7 10l5 5 5-5 M12 15V3',
+};
+
+const CONVERSATION_TRENDS_ITEM = {
+  path: 'conversation-trends',
+  label: 'Conversation Trends',
+  icon: 'M3 3v18h18 M7 14l4-4 4 4 5-5',
 };
 
 const PODCAST_ITEM = {
@@ -64,11 +71,12 @@ const LLM_USAGE_ITEM = {
   icon: 'M18 20V10 M12 20V4 M6 20v-6',
 };
 
-export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showPodcast, children }: DashboardLayoutProps) {
+export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showPodcast, showConversationTrends, children }: DashboardLayoutProps) {
   const navItems = [
     ...BASE_NAV_ITEMS,
     ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM, DATA_LOADER_ITEM] : []),
     ...(showPodcast ? [PODCAST_ITEM] : []),
+    ...(showConversationTrends ? [CONVERSATION_TRENDS_ITEM] : []),
     TEST_RUNNER_ITEM,
     BILLING_ITEM,
     LLM_USAGE_ITEM,

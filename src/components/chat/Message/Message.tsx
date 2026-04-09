@@ -28,7 +28,7 @@ function isRTL(text: string): boolean {
 }
 
 /** Known UI element types. Only these are parsed as interactive markup. */
-const UI_ELEMENT_TYPES = ['buttons', 'chips', 'checkbox', 'radio', 'toggle', 'select'];
+const UI_ELEMENT_TYPES = ['buttons', 'chips', 'checkbox', 'radio', 'toggle', 'select', 'id'];
 
 /** Parse UI element markup from message text. Only matches known types: [buttons: a | b], [chips: x | y], etc. */
 function parseUIElements(text: string): { cleanText: string; elements: { type: string; options: string[] }[] } {
@@ -67,6 +67,7 @@ export function Message({ message }: MessageProps) {
   const [bugAssignees, setBugAssignees] = useState<import('../../../types/task').Assignee[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [idProcessing, setIdProcessing] = useState(false);
   const isUser = message.role === 'user';
   const isDeveloper = message.role === 'developer';
   const hasThinkingSteps = !isUser && !isDeveloper && message.thinkingSteps && message.thinkingSteps.length > 0;
@@ -304,8 +305,47 @@ export function Message({ message }: MessageProps) {
             </div>
             {uiElements.length > 0 && (
               <div className={styles.uiElementRow}>
-                {uiElements.map((el, i) =>
-                  el.options.map((option, j) => (
+                {uiElements.map((el, i) => {
+                  if (el.type === 'id') {
+                    const label = el.options[0] || 'העלאת תעודת זהות 📷';
+                    const inputId = `id-upload-${message.id}-${i}`;
+                    const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = '';
+                      if (!file || idProcessing || uiDisabled) return;
+                      setIdProcessing(true);
+                      setTimeout(() => {
+                        sendMessage('העליתי את תעודת הזהות שלי. מספר זהות: 305123456');
+                        setIdProcessing(false);
+                      }, 2000);
+                    };
+                    return (
+                      <span key={i}>
+                        <input
+                          id={inputId}
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          disabled={uiDisabled || idProcessing}
+                          onChange={handleFileSelected}
+                        />
+                        <label
+                          htmlFor={inputId}
+                          className={`${styles.uiElement} ${styles.uiType_id} ${(uiDisabled || idProcessing) ? styles.uiDisabled : ''} ${uiDisabled && !idProcessing ? styles.uiType_id_uploaded : ''}`}
+                        >
+                          {idProcessing ? (
+                            <span className={styles.idProcessing}>
+                              <span className={styles.idSpinner} />
+                              מעבד את תעודת הזהות שלך...
+                            </span>
+                          ) : uiDisabled ? (
+                            '✅ תעודת זהות הועלתה'
+                          ) : label}
+                        </label>
+                      </span>
+                    );
+                  }
+                  return el.options.map((option, j) => (
                     <button
                       key={`${i}-${j}`}
                       type="button"
@@ -315,8 +355,8 @@ export function Message({ message }: MessageProps) {
                     >
                       {option}
                     </button>
-                  ))
-                )}
+                  ));
+                })}
               </div>
             )}
             {debugMode && message.debugData && (

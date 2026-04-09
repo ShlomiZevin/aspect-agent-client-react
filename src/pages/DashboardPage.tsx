@@ -15,6 +15,7 @@ import { ApiKeysPage } from '../components/dashboard/ApiKeysPage';
 import { KBManager } from '../components/kb';
 import { TestRunnerPage } from '../components/dashboard/TestRunnerPage';
 import { DynamicKBPage } from '../components/dashboard/DynamicKBPage';
+import { ConversationTrendsPage } from '../components/dashboard/ConversationTrendsPage';
 import { TaskBoardContent } from '../components/tasks/TaskBoardModal/TaskBoardContent';
 import { aspectConfig, bankingOnboarderConfig, bankingOnboarderV2Config, compassConfig, freedaConfig, zer4uConfig } from '../agents';
 import type { AgentConfig } from '../types';
@@ -54,6 +55,7 @@ export function DashboardPage() {
 
   const showQueryOptimizer = !!config.database?.schema;
   const showPodcast = agent?.toLowerCase() === 'freeda';
+  const showConversationTrends = agent?.toLowerCase() === 'banking-v2';
 
   return (
     <ThemeProvider storagePrefix={config.storagePrefix}>
@@ -65,6 +67,7 @@ export function DashboardPage() {
           basePath={basePath}
           showQueryOptimizer={showQueryOptimizer}
           showPodcast={showPodcast}
+          showConversationTrends={showConversationTrends}
         >
           <Routes>
             <Route index element={<Navigate to="feedback" replace />} />
@@ -120,6 +123,12 @@ export function DashboardPage() {
               <Route
                 path="podcast"
                 element={<PodcastPage baseURL={config.baseURL} agentName={config.agentName} />}
+              />
+            )}
+            {showConversationTrends && (
+              <Route
+                path="conversation-trends"
+                element={<ConversationTrendsPage />}
               />
             )}
             <Route

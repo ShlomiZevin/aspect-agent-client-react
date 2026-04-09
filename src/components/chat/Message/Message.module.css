@@ -642,3 +642,52 @@
   cursor: default;
   pointer-events: none;
 }
+
+/* ID upload variant — larger, dashed, distinct */
+.uiType_id {
+  padding: 14px 24px;
+  border-radius: 12px;
+  border: 2px dashed var(--primary-color);
+  font-size: 15px;
+  font-weight: 500;
+  min-width: 220px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.uiType_id:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+.uiType_id:disabled {
+  cursor: default;
+}
+
+.uiType_id_uploaded {
+  border-style: solid;
+  background: var(--primary-color);
+  color: white;
+  opacity: 1 !important;
+}
+
+.idProcessing {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.idSpinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: idSpin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes idSpin {
+  to { transform: rotate(360deg); }
+}
