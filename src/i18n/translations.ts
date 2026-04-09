@@ -25,6 +25,7 @@ export const translations: LanguageConfig = {
     'chat.attachFile': 'Attach file',
     'chat.startRecording': 'Start voice input',
     'chat.stopRecording': 'Stop recording',
+    'chat.sendWithCtrlEnter': 'Send with Ctrl+Enter',
 
     // Message Actions
     'message.delete': 'Delete',
@@ -255,6 +256,7 @@ export const translations: LanguageConfig = {
     'chat.attachFile': 'צרף קובץ',
     'chat.startRecording': 'הקלטת קול',
     'chat.stopRecording': 'עצור הקלטה',
+    'chat.sendWithCtrlEnter': 'שליחה עם Ctrl+Enter',
 
     // Message Actions
     'message.delete': 'מחק',

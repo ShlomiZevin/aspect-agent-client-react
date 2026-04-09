@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, type FormEvent, type Keyboard
 import { useChatContext } from '../../../context';
 import { useAgentConfig } from '../../../context/AgentContext';
 import { useLanguage } from '../../../context/LanguageContext';
-import { useLocalizedConfig } from '../../../hooks';
+import { useLocalizedConfig, useLocalStorage } from '../../../hooks';
 import styles from './ChatInput.module.css';
 
 export function ChatInput() {
@@ -11,6 +11,7 @@ export function ChatInput() {
   const { sendMessage, isLoading } = useChatContext();
   const { t } = useLanguage();
   const [input, setInput] = useState('');
+  const [ctrlEnterSends, setCtrlEnterSends] = useLocalStorage<boolean>('chatInput.ctrlEnterSends', false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Voice recording state
@@ -35,7 +36,13 @@ export function ChatInput() {
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key !== 'Enter') return;
+    // Default: Enter sends, Shift+Enter = newline
+    // When ctrlEnterSends is checked: Ctrl/Cmd+Enter sends, Enter = newline
+    const shouldSend = ctrlEnterSends
+      ? (e.ctrlKey || e.metaKey)
+      : !e.shiftKey && !e.ctrlKey && !e.metaKey;
+    if (shouldSend) {
       e.preventDefault();
       handleSubmit(e);
     }
@@ -167,6 +174,15 @@ export function ChatInput() {
           </svg>
         </button>
       </div>
+
+      <label className={styles.enterToggle}>
+        <input
+          type="checkbox"
+          checked={ctrlEnterSends}
+          onChange={(e) => setCtrlEnterSends(e.target.checked)}
+        />
+        <span>{t('chat.sendWithCtrlEnter')}</span>
+      </label>
     </form>
   );
 }
