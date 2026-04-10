@@ -1,6 +1,4 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { getContext, type ContextResponse } from '../../../services/contextService';
-import { getFields } from '../../../services/fieldsService';
 import { getProfilerConfig, updateProfilerConfig, resetProfilerConfig } from '../../../services/profilerService';
 import type {
   ProfileSchema,
@@ -29,120 +27,6 @@ interface ProfilePanelProps {
 
 // ─── Value resolver (legacy: source-based) ─────────────────────
 
-function resolveValue(
-  source: string,
-  contextData: ContextResponse | null,
-  fieldsData: Record<string, string>
-): string | null {
-  if (!source) return null;
-
-  if (source.startsWith('field:')) {
-    const fieldName = source.slice(6);
-    const val = fieldsData[fieldName];
-    return val && val.trim() ? val : null;
-  }
-
-  if (source.startsWith('context:')) {
-    const rest = source.slice(8);
-    const colonIdx = rest.indexOf(':');
-    if (colonIdx === -1 || !contextData) return null;
-
-    const level = rest.slice(0, colonIdx);
-    const path = rest.slice(colonIdx + 1);
-
-    const root =
-      level === 'user'
-        ? contextData.userLevel
-        : level === 'conv'
-          ? contextData.conversationLevel
-          : null;
-    if (!root) return null;
-
-    const parts = path.split('.');
-    let current: unknown = root;
-    for (const part of parts) {
-      if (current == null || typeof current !== 'object') return null;
-      current = (current as Record<string, unknown>)[part];
-    }
-
-    if (current == null) return null;
-    if (typeof current === 'boolean') return current ? 'כן' : 'לא';
-    if (typeof current === 'number') return String(current);
-    if (typeof current === 'string') return current.trim() || null;
-    if (Array.isArray(current)) return current.join(', ') || null;
-    return JSON.stringify(current);
-  }
-
-  return null;
-}
-
-// ─── Profile computation (legacy) ────────────────────────────
-
-function computeProfileLegacy(
-  schema: ProfileSchema,
-  contextData: ContextResponse | null,
-  fieldsData: Record<string, string>,
-  prevFields: Map<string, string | null>
-): ProfileData {
-  const clusters: ProfileCluster[] = schema.clusters.map((clusterDef) => {
-    const fields: ProfileField[] = clusterDef.fields.map((fieldDef) => {
-      const value = resolveValue(fieldDef.source, contextData, fieldsData);
-      const prevValue = prevFields.get(fieldDef.key);
-      const isNew = value !== null && prevValue !== value && prevValue !== undefined;
-      const confidence = value != null ? (fieldDef.isInsight ? 80 : 100) : 0;
-
-      return {
-        key: fieldDef.key,
-        label: fieldDef.label,
-        value,
-        badge: fieldDef.badge,
-        confidence,
-        isInsight: fieldDef.isInsight,
-        isNew,
-      };
-    });
-
-    const filledCount = fields.filter((f) => f.value != null).length;
-    const depth = fields.length > 0 ? Math.round((filledCount / fields.length) * 100) : 0;
-
-    return {
-      id: clusterDef.id,
-      name: clusterDef.name,
-      icon: clusterDef.icon,
-      displayMode: clusterDef.displayMode,
-      fields,
-      depth,
-    };
-  });
-
-  const totalFields = clusters.reduce((sum, c) => sum + c.fields.length, 0);
-  const filledFields = clusters.reduce(
-    (sum, c) => sum + c.fields.filter((f) => f.value != null).length,
-    0
-  );
-  const overallDepth = totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0;
-
-  const filledFieldsList = clusters.flatMap((c) => c.fields.filter((f) => f.value != null));
-  const overallConfidence =
-    filledFieldsList.length > 0
-      ? Math.round(
-          filledFieldsList.reduce((sum, f) => sum + f.confidence, 0) / filledFieldsList.length
-        )
-      : 0;
-
-  const sortedLabels = [...schema.depthLabels].sort((a, b) => a.maxPercent - b.maxPercent);
-  const matchedLabel = sortedLabels.find((l) => overallDepth <= l.maxPercent) ||
-    sortedLabels[sortedLabels.length - 1] || { label: '', color: undefined };
-
-  return {
-    clusters,
-    overallDepth,
-    overallConfidence,
-    depthLabel: matchedLabel.label,
-    depthLabelColor: matchedLabel.color,
-  };
-}
-
 // ─── Profile computation (from profiler data) ────────────────
 // The profiler returns a flat JSON where each key is a cluster ID.
 // Each cluster contains fields directly: { fieldKey: { value, confidence, source } }
@@ -150,18 +34,18 @@ function computeProfileLegacy(
 
 function computeProfileFromProfiler(
   schema: ProfileSchema,
-  profilerData: ProfileUpdateData,
+  profilerData: ProfileUpdateData | null,
   prevFields: Map<string, string | null>
 ): ProfileData {
-  const rawClusters = profilerData.clusters as Record<string, Record<string, unknown>>;
+  const rawClusters = (profilerData?.clusters || {}) as Record<string, Record<string, unknown>>;
 
   const clusters: ProfileCluster[] = schema.clusters.map((clusterDef) => {
     const clusterRaw = rawClusters[clusterDef.id] as Record<string, unknown> | undefined;
-    const clusterScore = profilerData.clusterScores?.[clusterDef.id];
+    const clusterScore = profilerData?.clusterScores?.[clusterDef.id];
 
     // Special handling for summary cluster
     if (clusterDef.displayMode === 'summary') {
-      const summary = (profilerData.summary || clusterRaw || {}) as Record<string, unknown>;
+      const summary = (profilerData?.summary || clusterRaw || {}) as Record<string, unknown>;
       const traits = Array.isArray(summary.key_profile_traits)
         ? (summary.key_profile_traits as string[]).join(', ')
         : null;
@@ -220,15 +104,16 @@ function computeProfileFromProfiler(
     };
   });
 
+  const overallDepth = profilerData?.overallDepth ?? 0;
   const sortedLabels = [...schema.depthLabels].sort((a, b) => a.maxPercent - b.maxPercent);
-  const matchedLabel = sortedLabels.find((l) => profilerData.overallDepth <= l.maxPercent) ||
+  const matchedLabel = sortedLabels.find((l) => overallDepth <= l.maxPercent) ||
     sortedLabels[sortedLabels.length - 1] || { label: '', color: undefined };
 
   return {
     clusters,
-    overallDepth: profilerData.overallDepth,
-    overallConfidence: profilerData.overallConfidence,
-    depthLabel: profilerData.profileTier || matchedLabel.label,
+    overallDepth,
+    overallConfidence: profilerData?.overallConfidence ?? 0,
+    depthLabel: profilerData?.profileTier || matchedLabel.label,
     depthLabelColor: matchedLabel.color,
   };
 }
@@ -761,52 +646,17 @@ export function ProfilePanel({
   onProfilerEnabledChange,
   onClose,
 }: ProfilePanelProps) {
-  const hasProfiler = !!profilerData;
-
-  // Legacy data loading (only when profiler data not available)
-  const [contextData, setContextData] = useState<ContextResponse | null>(null);
-  const [fieldsData, setFieldsData] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(!hasProfiler);
+  const [isLoading, setIsLoading] = useState(false);
   const prevFieldsRef = useRef<Map<string, string | null>>(new Map());
 
-  const loadData = useCallback(async () => {
-    if (!conversationId || hasProfiler) return;
-
-    try {
-      const [ctx, fields] = await Promise.allSettled([
-        getContext(conversationId, baseURL),
-        getFields(conversationId, baseURL),
-      ]);
-
-      if (ctx.status === 'fulfilled') {
-        setContextData(ctx.value);
-      }
-      if (fields.status === 'fulfilled') {
-        setFieldsData(fields.value.collectedFields);
-      }
-    } catch {
-      // Silently handle — panel is informational
-    } finally {
-      setIsLoading(false);
-    }
-  }, [conversationId, baseURL, hasProfiler]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData, refreshKey]);
-
-  // When profiler data arrives, clear loading state
-  useEffect(() => {
-    if (hasProfiler) setIsLoading(false);
-  }, [hasProfiler]);
-
-  // Compute profile data — choose path based on data source
+  // Compute profile data — only from profiler data (SSE push)
   const profileData = useMemo(() => {
-    if (hasProfiler && profilerData) {
+    if (profilerData) {
       return computeProfileFromProfiler(profileSchema, profilerData, prevFieldsRef.current);
     }
-    return computeProfileLegacy(profileSchema, contextData, fieldsData, prevFieldsRef.current);
-  }, [profileSchema, profilerData, hasProfiler, contextData, fieldsData]);
+    // No profiler data yet — return empty profile
+    return computeProfileFromProfiler(profileSchema, null, prevFieldsRef.current);
+  }, [profileSchema, profilerData]);
 
   // Update prev fields for animation detection
   useEffect(() => {
