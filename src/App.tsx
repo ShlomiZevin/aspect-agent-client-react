@@ -76,6 +76,7 @@ function AppContent() {
 
         {/* Task Board - standalone full page */}
         <Route path="/tasks" element={<TaskBoardPage />} />
+        <Route path="/tasks/:taskId" element={<TaskBoardPage />} />
 
         {/* Dashboard routes */}
         <Route path="/:agent/dashboard/*" element={<DashboardPage />} />

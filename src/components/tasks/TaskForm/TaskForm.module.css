@@ -235,6 +235,13 @@
   opacity: 0.75;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .closeBtn {
   background: none;
   border: none;
@@ -246,6 +253,22 @@
 }
 
 .closeBtn:hover {
+  color: var(--text-primary);
+}
+
+.copyLinkBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.copyLinkBtn:hover {
+  background: var(--surface-light);
   color: var(--text-primary);
 }
 

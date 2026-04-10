@@ -1,8 +1,9 @@
 import { TaskBoardContent } from '../components/tasks/TaskBoardModal/TaskBoardContent';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 export function TaskBoardPage() {
   const navigate = useNavigate();
+  const { taskId } = useParams<{ taskId: string }>();
 
   return (
     <div style={{
@@ -16,6 +17,7 @@ export function TaskBoardPage() {
       <TaskBoardContent
         isActive={true}
         onClose={() => navigate(-1)}
+        initialTaskId={taskId ? parseInt(taskId, 10) : undefined}
       />
     </div>
   );

@@ -165,6 +165,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const [crewMember, setCrewMember] = useState<string>('');
   const [isDirty, setIsDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [linkCopied, setLinkCopied] = useState(false);
   const isFirstRenderForTaskRef = useRef(true);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
@@ -515,7 +516,16 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
             <span className={styles.taskId}>#{task.id}</span>
             {task.assignee && <span className={styles.readAssignee}>for {task.assignee}</span>}
           </h3>
-          <button type="button" className={styles.closeBtn} onClick={onCancel}>×</button>
+          <div className={styles.headerActions}>
+            <button type="button" className={styles.copyLinkBtn} title="Copy link to task" onClick={() => {
+              const url = `${window.location.origin}/tasks/${task.id}`;
+              navigator.clipboard.writeText(url).then(() => {
+                setLinkCopied(true);
+                setTimeout(() => setLinkCopied(false), 2000);
+              });
+            }}>{linkCopied ? 'Copied!' : 'Copy link'}</button>
+            <button type="button" className={styles.closeBtn} onClick={onCancel}>×</button>
+          </div>
         </div>
         {task.description && (
           <div className={styles.readContent} dangerouslySetInnerHTML={{ __html: task.description }} />
@@ -560,9 +570,18 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
               </span>
             )}
           </h3>
-          <button type="button" className={styles.closeBtn} onClick={onCancel}>
-            ×
-          </button>
+          <div className={styles.headerActions}>
+            {task && <button type="button" className={styles.copyLinkBtn} title="Copy link to task" onClick={() => {
+              const url = `${window.location.origin}/tasks/${task.id}`;
+              navigator.clipboard.writeText(url).then(() => {
+                setLinkCopied(true);
+                setTimeout(() => setLinkCopied(false), 2000);
+              });
+            }}>{linkCopied ? 'Copied!' : 'Copy link'}</button>}
+            <button type="button" className={styles.closeBtn} onClick={onCancel}>
+              ×
+            </button>
+          </div>
         </div>
 
         <div className={styles.formBody}>

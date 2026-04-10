@@ -20,6 +20,7 @@ export interface TaskBoardContentProps {
   onClose?: () => void;
   openInDraftsMode?: boolean;
   onDraftsModeAcknowledged?: () => void;
+  initialTaskId?: number;
 }
 
 type ViewMode = 'board' | 'list';
@@ -52,12 +53,13 @@ function getCurrentDomain(): string {
   return 'general';
 }
 
-export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDraftsModeAcknowledged }: TaskBoardContentProps) {
+export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDraftsModeAcknowledged, initialTaskId }: TaskBoardContentProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [assignees, setAssignees] = useState<Assignee[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('board');
   const [isLoading, setIsLoading] = useState(true);
   const hasLoadedRef = useRef(false);
+  const initialTaskOpenedRef = useRef(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [sideTask, setSideTask] = useState<Task | null>(null);
@@ -371,8 +373,19 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
     } else {
       // Reset so next open shows the spinner again
       hasLoadedRef.current = false;
+      initialTaskOpenedRef.current = false;
     }
   }, [isActive, loadData]);
+
+  // Auto-open task from URL (e.g. /tasks/123)
+  useEffect(() => {
+    if (!initialTaskId || initialTaskOpenedRef.current || tasks.length === 0) return;
+    const task = tasks.find(t => t.id === initialTaskId);
+    if (task) {
+      initialTaskOpenedRef.current = true;
+      setEditingTask(task);
+    }
+  }, [initialTaskId, tasks]);
 
   const handleAddAssignee = async (name: string) => {
     const assignee = await taskService.addAssignee(name);
