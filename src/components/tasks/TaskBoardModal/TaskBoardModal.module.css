@@ -683,6 +683,16 @@
   color: var(--text-primary);
 }
 
+/* Mobile filters toggle button — hidden on desktop */
+.filtersToggleBtn {
+  display: none;
+}
+
+/* Filter group — inline on desktop, full-width row on mobile */
+.filterGroup {
+  display: contents; /* transparent on desktop — children flow as normal */
+}
+
 /* Flex row: board content + goals sidebar */
 .contentWithSidebar {
   flex: 1;
@@ -1086,4 +1096,211 @@
 .whatsNewDismiss:hover {
   background: rgba(0, 0, 0, 0.05);
   color: #64748b;
+}
+
+/* ── Mobile ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Toolbar rows: compact, allow wrapping */
+  .toolbarRow1 {
+    padding: var(--spacing-sm) var(--spacing-md);
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    border-bottom: none;
+  }
+
+  .toolbarRow2 {
+    padding: 0;
+    gap: 0;
+    flex-wrap: nowrap;
+    flex-direction: column;
+    align-items: stretch;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  /* Select font size */
+  .domainFilter,
+  .crewFilter {
+    font-size: 13px !important;
+  }
+
+  /* Each group = a padded row with bottom divider */
+  .filterGroup {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .filterGroup:last-child {
+    border-bottom: none;
+  }
+
+  /* toggleGroup inside toolbarRow2 = its own row */
+  .toggleGroup {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    padding: 8px 12px;
+    width: 100%;
+    margin-left: 0;
+    box-sizing: border-box;
+    border-bottom: none;
+  }
+
+  /* Hidden/visible states for filter row on mobile */
+  .toolbarRow2Hidden {
+    display: none;
+  }
+
+  .toolbarRow2Visible {
+    display: flex;
+  }
+
+  /* Filters toggle button — visible only on mobile */
+  .filtersToggleBtn {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    background: var(--surface-light);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* toggleGroup (Drafts/Completed/Limbo) — full-width row, left-aligned */
+  .toggleGroup {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+  }
+
+  /* Hide secondary filter controls that clutter mobile toolbar */
+  .attentionHint,
+  .openerFilter,
+  .showCompletedLabel {
+    display: none;
+  }
+
+  /* Expand search inputs to fill available space */
+  .titleSearch,
+  .titleSearch:focus {
+    flex: 1;
+    min-width: 80px;
+    width: auto;
+    max-width: none;
+  }
+
+  /* #ID search — compact */
+  .idSearch,
+  .idSearch:focus {
+    width: 56px;
+  }
+
+  .contentWithSidebar {
+    flex-direction: row;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .content {
+    padding: var(--spacing-xs) 0 var(--spacing-sm);
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .sidebarColumn {
+    display: none;
+  }
+
+  /* Form overlay: full-screen fixed */
+  .formOverlay {
+    position: fixed;
+    inset: 0;
+    padding: 0;
+    background: var(--surface);
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .formOverlayWithSide {
+    position: fixed;
+    inset: 0;
+    padding: 0;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  /* Form container: full screen */
+  .formContainer,
+  .formContainerEdit {
+    width: 100%;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  /* Side task panel: full-screen on top when open */
+  .sideTaskContainer {
+    width: 100%;
+    min-width: 0;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  /* Bulk / export actions bars */
+  .bulkActions,
+  .exportActions {
+    padding: var(--spacing-xs) var(--spacing-md);
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+  }
+
+  /* What's New panel */
+  .whatsNewPanel {
+    width: 100%;
+    max-height: 80dvh;
+  }
+
+  .boardArea {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Goals header controls: hide on mobile */
+  .goalsHeaderControls {
+    display: none;
+  }
+
+  /* Header: hide secondary buttons, keep title + close */
+  .mobileHide {
+    display: none;
+  }
+
+  .title {
+    font-size: var(--font-size-base);
+  }
+
+  .header {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
 }

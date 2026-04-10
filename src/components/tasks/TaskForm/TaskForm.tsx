@@ -4,6 +4,7 @@ import type { CrewMember } from '../../../types/crew';
 import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
 import { CommentsSection } from '../CommentsSection/CommentsSection';
 import { getDraftDefault } from '../../../utils/userIdentifier';
+import * as commentsService from '../../../services/commentsService';
 import styles from './TaskForm.module.css';
 
 // All known domains in the system
@@ -166,12 +167,20 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const [isDirty, setIsDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showMobileComments, setShowMobileComments] = useState(false);
+  const [commentCount, setCommentCount] = useState<number | null>(null);
   const isFirstRenderForTaskRef = useRef(true);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const dependsOnRef = useRef<HTMLDivElement>(null);
   const dependsOnInputRef = useRef<HTMLInputElement>(null);
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Load comment count for mobile button
+  useEffect(() => {
+    if (!task) return;
+    commentsService.getComments(task.id).then(c => setCommentCount(c.length)).catch(() => {});
+  }, [task?.id, commentRefreshTrigger]);
 
   // Auto-resize title textarea
   useEffect(() => {
@@ -518,7 +527,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
           </h3>
           <div className={styles.headerActions}>
             <button type="button" className={styles.copyLinkBtn} title="Copy link to task" onClick={() => {
-              const url = `${window.location.origin}/tasks/${task.id}`;
+              const url = `${window.location.origin}${window.location.pathname.replace(/\/\d+$/, '')}/${task.id}`;
               navigator.clipboard.writeText(url).then(() => {
                 setLinkCopied(true);
                 setTimeout(() => setLinkCopied(false), 2000);
@@ -572,7 +581,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
           </h3>
           <div className={styles.headerActions}>
             {task && <button type="button" className={styles.copyLinkBtn} title="Copy link to task" onClick={() => {
-              const url = `${window.location.origin}/tasks/${task.id}`;
+              const url = `${window.location.origin}${window.location.pathname.replace(/\/\d+$/, '')}/${task.id}`;
               navigator.clipboard.writeText(url).then(() => {
                 setLinkCopied(true);
                 setTimeout(() => setLinkCopied(false), 2000);
@@ -890,6 +899,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
         </div>
 
         <div className={styles.actions}>
+          <div className={styles.actionsRow1}>
           {task && onDelete && (
             <button type="button" className={styles.deleteBtn} onClick={onDelete}>
               Delete
@@ -943,7 +953,17 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
               )}
             </div>
           )}
+          </div>{/* /actionsRow1 */}
           <div className={styles.rightActions}>
+            {task && (
+              <button
+                type="button"
+                className={`${styles.cancelBtn} ${styles.mobileCommentsBtn}`}
+                onClick={() => setShowMobileComments(true)}
+              >
+                Comments{commentCount !== null && commentCount > 0 ? ` (${commentCount})` : ''}
+              </button>
+            )}
             <button type="button" className={styles.cancelBtn} onClick={onCancel}>
               Cancel
             </button>
@@ -991,10 +1011,25 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
         }} />
       )}
 
-      {/* Comments column — only for existing tasks */}
+      {/* Comments column — only for existing tasks, hidden on mobile */}
       {task && (
         <div className={styles.commentsColumn}>
           <CommentsSection taskId={task.id} assignees={assignees} refreshTrigger={commentRefreshTrigger} />
+        </div>
+      )}
+
+      {/* Mobile: comments overlay */}
+      {task && showMobileComments && (
+        <div className={styles.mobileCommentsOverlay} onClick={() => setShowMobileComments(false)}>
+          <div className={styles.mobileCommentsPanel} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.mobileCommentsHeader}>
+              <span>Comments</span>
+              <button type="button" className={styles.closeBtn} onClick={() => setShowMobileComments(false)}>×</button>
+            </div>
+            <div className={styles.mobileCommentsBody}>
+              <CommentsSection taskId={task.id} assignees={assignees} refreshTrigger={commentRefreshTrigger} hideHeader />
+            </div>
+          </div>
         </div>
       )}
       </div>

@@ -322,16 +322,21 @@ export function TaskList({ tasks, crewDisplayNames, onTaskClick, onDeleteTask, s
                 {task.description && (
                   <span className={styles.description}>{stripHtml(task.description)}</span>
                 )}
+                <span className={styles.mobileMeta}>
+                  {task.assignee && <span className={styles.assignee}>@{task.assignee}</span>}
+                  <span className={`${styles.priority} ${styles[task.priority]}`}>{PRIORITY_LABELS[task.priority]}</span>
+                  <span className={`${styles.status} ${styles[task.status]}`}>{STATUS_LABELS[task.status]}</span>
+                </span>
               </td>
               <td><span className={styles.domain}>{task.domain === 'general' ? 'Gen' : task.domain.charAt(0).toUpperCase() + task.domain.slice(1)}</span></td>
               <td>{task.crewMember ? <span className={styles.crewMember}>{crewDisplayNames?.[task.crewMember] || task.crewMember}</span> : <span className={styles.unassigned}>—</span>}</td>
               <td><span className={`${styles.badge} ${styles[task.type]}`}>{TYPE_LABELS[task.type]}</span></td>
-              <td>{task.assignee ? <span className={styles.assignee}>@{task.assignee}</span> : <span className={styles.unassigned}>—</span>}</td>
-              <td><span className={`${styles.priority} ${styles[task.priority]}`}>{PRIORITY_LABELS[task.priority]}</span></td>
+              <td className={styles.mobileShow}>{task.assignee ? <span className={styles.assignee}>@{task.assignee}</span> : <span className={styles.unassigned}>—</span>}</td>
+              <td className={styles.mobileShow}><span className={`${styles.priority} ${styles[task.priority]}`}>{PRIORITY_LABELS[task.priority]}</span></td>
               <td>{(() => { const due = formatDueDate(task.dueDate); if (!due) return <span className={styles.noDueDate}>—</span>; return <span className={`${styles.dueDate} ${due.isOverdue ? styles.overdue : ''}`}>{due.text}</span>; })()}</td>
               <td>{task.createdAt ? <span className={styles.createdAt}>{formatCreatedAt(task.createdAt)}</span> : <span className={styles.noDueDate}>—</span>}</td>
-              <td><span className={`${styles.status} ${styles[task.status]}`}>{STATUS_LABELS[task.status]}</span></td>
-              <td><button className={styles.deleteBtn} onClick={(e) => { e.stopPropagation(); onDeleteTask(task); }} title="Delete">×</button></td>
+              <td className={styles.mobileShow}><span className={`${styles.status} ${styles[task.status]}`}>{STATUS_LABELS[task.status]}</span></td>
+              <td className={styles.deleteCell}><button className={styles.deleteBtn} onClick={(e) => { e.stopPropagation(); onDeleteTask(task); }} title="Delete">×</button></td>
             </tr>
           ))}
         </tbody>

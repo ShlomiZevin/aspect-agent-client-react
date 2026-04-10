@@ -168,3 +168,45 @@
 .proceedBtn:hover {
   background: #d97706;
 }
+
+/* ── Mobile ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .boardWrapper {
+    min-height: 0;
+  }
+
+  /* Horizontal scroll: each column stays full-width for easy tap */
+  .board {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: var(--spacing-sm);
+    align-items: flex-start;
+    padding-bottom: var(--spacing-md);
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .column {
+    flex: 0 0 85vw;
+    min-width: 260px;
+    max-width: 340px;
+    scroll-snap-align: start;
+    height: 100%;
+  }
+
+  .columnContent {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  /* Disable drag-hover on touch */
+  .column.dragOver {
+    border: none;
+    background: var(--surface-light);
+  }
+
+  .draggableCard {
+    cursor: pointer;
+  }
+}

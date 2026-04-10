@@ -14,6 +14,7 @@ interface CommentsSectionProps {
   taskId: number;
   assignees: Assignee[];
   refreshTrigger?: number;
+  hideHeader?: boolean;
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -54,7 +55,7 @@ function isHtmlEmpty(html: string): boolean {
   return !div.textContent?.trim() && !div.querySelector('img');
 }
 
-export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsSectionProps) {
+export function CommentsSection({ taskId, assignees, refreshTrigger, hideHeader }: CommentsSectionProps) {
   const { identity, setIdentity } = useCommenterIdentity();
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,19 +156,21 @@ export function CommentsSection({ taskId, assignees, refreshTrigger }: CommentsS
 
   return (
     <div className={styles.section}>
-      <div className={styles.header}>
-        <span className={styles.title}>
-          Comments {comments.length > 0 && <span className={styles.count}>({comments.length})</span>}
-        </span>
-        {identity && (
-          <div className={styles.identity}>
-            <span>Commenting as <strong>{identity}</strong></span>
-            <button className={styles.changeIdentityBtn} onClick={() => setShowIdentityPicker(true)}>
-              Not {identity}?
-            </button>
-          </div>
-        )}
-      </div>
+      {!hideHeader && (
+        <div className={styles.header}>
+          <span className={styles.title}>
+            Comments {comments.length > 0 && <span className={styles.count}>({comments.length})</span>}
+          </span>
+          {identity && (
+            <div className={styles.identity}>
+              <span>Commenting as <strong>{identity}</strong></span>
+              <button className={styles.changeIdentityBtn} onClick={() => setShowIdentityPicker(true)}>
+                Not {identity}?
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Identity picker overlay */}
       {showIdentityPicker && (

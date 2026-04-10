@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from './DashboardLayout.module.css';
 
@@ -72,6 +72,8 @@ const LLM_USAGE_ITEM = {
 };
 
 export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showPodcast, showConversationTrends, children }: DashboardLayoutProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   const navItems = [
     ...BASE_NAV_ITEMS,
     ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM, DATA_LOADER_ITEM] : []),
@@ -85,7 +87,8 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
 
   return (
     <div className={styles.layout}>
-      <aside className={styles.sidebar}>
+      {menuOpen && <div className={styles.sidebarBackdrop} onClick={() => setMenuOpen(false)} />}
+      <aside className={`${styles.sidebar} ${menuOpen ? styles.open : ''}`}>
         <div className={styles.sidebarHeader}>
           <img src={agentLogo} alt={agentDisplayName} className={styles.logo} />
           <div>
@@ -100,12 +103,13 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
             className={({ isActive }) =>
               `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
             }
+            onClick={() => setMenuOpen(false)}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 11l3 3L22 4" />
               <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
             </svg>
-            Task Board
+            <span>Task Board</span>
           </NavLink>
           <div style={{ borderBottom: '1px solid rgba(0,0,0,0.08)', margin: '4px 12px' }} />
           {navItems.map(item => (
@@ -115,11 +119,12 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
               className={({ isActive }) =>
                 `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
               }
+              onClick={() => setMenuOpen(false)}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d={item.icon} />
               </svg>
-              {item.label}
+              <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>
@@ -130,7 +135,7 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
               <line x1="19" y1="12" x2="5" y2="12" />
               <polyline points="12 19 5 12 12 5" />
             </svg>
-            Back to Chat
+            <span>Back to Chat</span>
           </NavLink>
         </div>
       </aside>
@@ -138,6 +143,10 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
       <main className={styles.content}>
         {children}
       </main>
+
+      <button className={styles.burgerBtn} onClick={() => setMenuOpen(o => !o)} aria-label="Menu">
+        ☰
+      </button>
     </div>
   );
 }

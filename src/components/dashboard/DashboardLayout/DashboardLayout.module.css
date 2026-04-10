@@ -98,37 +98,60 @@
   min-width: 0;
 }
 
+.burgerBtn {
+  display: none;
+}
+
 @media (max-width: 768px) {
+  .layout {
+    position: relative;
+  }
+
+  /* Hide sidebar by default on mobile */
   .sidebar {
-    width: 56px;
-    overflow: hidden;
+    display: none;
+    position: fixed;
+    inset: 0;
+    width: 240px;
+    z-index: 200;
+    box-shadow: 4px 0 16px rgba(0,0,0,0.15);
   }
 
-  .sidebarHeader {
-    padding: var(--spacing-md);
+  .sidebar.open {
+    display: flex;
+  }
+
+  /* Overlay behind open sidebar */
+  .sidebarBackdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 199;
+  }
+
+  /* Burger button — visible only on mobile */
+  .burgerBtn {
+    display: flex;
+    align-items: center;
     justify-content: center;
+    position: fixed;
+    bottom: 20px;
+    left: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    cursor: pointer;
+    z-index: 198;
+    font-size: 20px;
+    line-height: 1;
   }
 
-  .sidebarHeader > div {
-    display: none;
-  }
-
-  .navItem {
-    justify-content: center;
-    padding: var(--spacing-sm);
-  }
-
-  .navItem span,
-  .navItem::after {
-    display: none;
-  }
-
-  .sidebarFooter {
-    padding: var(--spacing-md);
-    text-align: center;
-  }
-
-  .backLink span {
-    display: none;
+  .content {
+    width: 100%;
   }
 }
