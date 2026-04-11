@@ -79,7 +79,1037 @@
   overflow: hidden;
 }
 
-/* Left: Chat Area (mock) */
+/* ===== Builder-first Layout ===== */
+.builderLayout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.builderArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Chain Canvas (hero area) */
+.chainCanvas {
+  background: #ffffff;
+  border-bottom: 1px solid #E7E5E4;
+  padding: 16px 24px;
+  flex-shrink: 0;
+}
+
+.chainCanvasHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.chainCanvasTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1C1917;
+}
+
+.chainNodeLarge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 2px solid #E7E5E4;
+  background: #FAF7F7;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  min-width: 90px;
+}
+
+.chainNodeLarge:hover {
+  border-color: var(--step-color);
+  background: #ffffff;
+}
+
+.chainNodeLargeActive {
+  border-color: var(--step-color);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--step-color) 15%, transparent);
+}
+
+.chainNodeLargeIcon {
+  font-size: 22px;
+}
+
+.chainNodeLargeName {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1C1917;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.chainNodeLargeModel {
+  font-size: 9px;
+  color: #a8a29e;
+  font-weight: 400;
+}
+
+.chainConnectorArrow {
+  color: #D6D3D1;
+  font-size: 16px;
+}
+
+.chainBgRow {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #E7E5E4;
+}
+
+/* Tab Bar */
+.tabBar {
+  display: flex;
+  background: #ffffff;
+  border-bottom: 1px solid #E7E5E4;
+  padding: 0 24px;
+  flex-shrink: 0;
+}
+
+.tab {
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #78716C;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s;
+}
+
+.tab:hover {
+  color: #1C1917;
+}
+
+.tabActive {
+  color: #680662;
+  border-bottom-color: #680662;
+}
+
+.tabContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+.tabHint {
+  font-size: 12px;
+  color: #a8a29e;
+  display: block;
+  margin-bottom: 12px;
+}
+
+/* Chain tab */
+.chainTabContent {}
+
+.chainStepList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chainStepRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid #E7E5E4;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  width: 100%;
+  transition: all 0.15s;
+}
+
+.chainStepRow:hover {
+  border-color: #680662;
+  background: rgba(104, 6, 98, 0.02);
+}
+
+.chainStepRowDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chainStepRowIcon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.chainStepRowName {
+  font-weight: 500;
+  color: #1C1917;
+  flex: 1;
+}
+
+.chainStepRowModel {
+  font-size: 11px;
+  color: #a8a29e;
+}
+
+.chainStepRowBadge {
+  font-size: 9px;
+  font-weight: 500;
+  background: rgba(139, 92, 246, 0.08);
+  color: #8b5cf6;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.chainStepRowBadgeBg {
+  font-size: 9px;
+  font-weight: 500;
+  background: rgba(236, 72, 153, 0.08);
+  color: #ec4899;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.chainStepRowArrow {
+  color: #D6D3D1;
+  font-size: 14px;
+}
+
+/* Fields tab */
+.fieldsTabContent {}
+
+.fieldsTabHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+/* Persona tab */
+.personaTabContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.personaSection {}
+
+.personaSectionHeader {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1C1917;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+/* Triggered context tab */
+.triggeredTabContent {}
+
+.triggeredFieldBtn {
+  padding: 10px 16px;
+  background: #ffffff;
+  border: 1px solid #E7E5E4;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1C1917;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.triggeredFieldBtn:hover {
+  border-color: #680662;
+}
+
+.triggeredFieldCount {
+  font-size: 10px;
+  color: #a8a29e;
+  font-weight: 400;
+}
+
+/* ===== Persona Sidebar (left) ===== */
+.personaSidebar {
+  width: 240px;
+  background: #ffffff;
+  border-right: 1px solid #E7E5E4;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.personaSidebarSection {
+  padding: 14px 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.personaSidebarTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1C1917;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.personaTextarea {
+  width: 100%;
+  flex: 1;
+  min-height: 80px;
+  padding: 10px;
+  border: 1px solid #E7E5E4;
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #1C1917;
+  resize: none;
+}
+
+.personaSidebarDivider {
+  height: 1px;
+  background: #E7E5E4;
+  margin: 0 16px;
+}
+
+/* ===== Fields + Triggered Area ===== */
+.fieldsArea {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  border-top: 1px solid #E7E5E4;
+}
+
+.fieldsPanel {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid #E7E5E4;
+}
+
+.fieldsPanelHeader {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #f0eded;
+  flex-shrink: 0;
+}
+
+.fieldsPanelTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1C1917;
+}
+
+.fieldsPanelCount {
+  font-size: 10px;
+  color: #a8a29e;
+  background: #F3EFF0;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-right: auto;
+}
+
+.fieldsList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fieldCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #FAF7F7;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  text-align: left;
+  width: 100%;
+}
+
+.fieldCard:hover {
+  border-color: #680662;
+  background: #ffffff;
+}
+
+.fieldCardName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1C1917;
+  font-family: monospace;
+}
+
+.fieldCardMeta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fieldCardTrigger {
+  font-size: 11px;
+}
+
+/* Fields panel footer */
+.fieldsPanelFooter {
+  padding: 8px;
+  border-top: 1px solid #f0eded;
+  flex-shrink: 0;
+}
+
+.triggeredBtn {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(22, 163, 74, 0.04);
+  border: 1px solid rgba(22, 163, 74, 0.15);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.triggeredBtn:hover {
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.triggeredBtnCount {
+  font-size: 10px;
+  color: #a8a29e;
+  font-weight: 400;
+  margin-left: auto;
+}
+
+/* ===== Brain Panel ===== */
+.brainPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.brainDomains {
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+  flex: 1;
+  overflow-y: auto;
+  align-content: start;
+}
+
+.brainDomain {
+  background: #FAF7F7;
+  border: 1px solid #E7E5E4;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+  transition: all 0.15s;
+  color: inherit;
+}
+
+.brainDomain:hover {
+  border-color: #6366f1;
+  background: #ffffff;
+}
+
+/* Brain Editor Modal */
+.brainEditorSection {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0eded;
+}
+
+.brainEditorHint {
+  font-size: 11px;
+  color: #a8a29e;
+  margin: 4px 0 10px;
+}
+
+.brainEditorChecks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.brainEditorCheck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #FAF7F7;
+  border: 1px solid #E7E5E4;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.brainEditorCheck:hover {
+  background: #ffffff;
+}
+
+.brainEditorCheck input {
+  accent-color: #680662;
+}
+
+.brainEditorFieldCount {
+  font-size: 9px;
+  color: #a8a29e;
+  background: rgba(0,0,0,0.04);
+  padding: 1px 5px;
+  border-radius: 8px;
+  margin-left: auto;
+}
+
+.brainDomainHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.brainDomainIcon {
+  font-size: 14px;
+}
+
+.brainDomainName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1C1917;
+  font-family: monospace;
+}
+
+.brainDomainFields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.brainDomainField {
+  font-size: 10px;
+  font-family: monospace;
+  color: #57534E;
+  background: #ffffff;
+  border: 1px solid #E7E5E4;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.brainDomainIO {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brainDomainWriters, .brainDomainReaders {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.brainIOLabel {
+  font-size: 10px;
+  flex-shrink: 0;
+  width: 16px;
+}
+
+.brainDomainAdd {
+  padding: 8px;
+  border: 1px dashed #D6D3D1;
+  border-radius: 8px;
+  background: transparent;
+  color: #a8a29e;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.brainDomainAdd:hover {
+  border-color: #680662;
+  color: #680662;
+}
+
+.fieldCardDomain {
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.brainIOChip {
+  font-size: 9px;
+  color: #78716C;
+  background: rgba(0, 0, 0, 0.03);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* Triggered panel — keep for compat but now unused as main panel */
+.triggeredPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.triggeredDesc {
+  font-size: 11px;
+  color: #a8a29e;
+  padding: 0 16px;
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.triggeredCards {
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.triggeredCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #FAF7F7;
+  border: 1px solid #E7E5E4;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+  transition: all 0.15s;
+}
+
+.triggeredCard:hover {
+  border-color: #680662;
+  background: #ffffff;
+}
+
+.triggeredCardName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1C1917;
+}
+
+.triggeredCardValues {
+  font-size: 10px;
+  color: #a8a29e;
+  flex: 1;
+}
+
+.triggeredCardArrow {
+  color: #D6D3D1;
+  font-size: 14px;
+}
+
+/* Chat sidebar (small) */
+.chatSidebar {
+  width: 280px;
+  background: #ffffff;
+  border-left: 1px solid #E7E5E4;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.chatSidebarHeader {
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #78716C;
+  border-bottom: 1px solid #E7E5E4;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.chatSidebarMessages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chatSidebarInput {
+  padding: 8px 12px;
+  border-top: 1px solid #E7E5E4;
+}
+
+/* Builder modals (larger) */
+.builderModal {
+  background: #ffffff;
+  border-radius: 14px;
+  width: 640px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.builderModalHeader {
+  padding: 18px 24px;
+  border-bottom: 1px solid #E7E5E4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.builderModalTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1C1917;
+}
+
+.builderModalIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.builderModalBody {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.builderModalFooter {
+  padding: 14px 24px;
+  border-top: 1px solid #E7E5E4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.builderModalFooter > div {
+  display: flex;
+  gap: 8px;
+}
+
+.builderModalRemove {
+  font-size: 12px;
+  color: #dc2626;
+  background: none;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.builderModalRemove:hover {
+  background: #fef2f2;
+}
+
+/* Settings grid inside modal */
+.settingsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.settingsItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settingsLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: #57534E;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.settingsHint {
+  font-size: 11px;
+  color: #a8a29e;
+  font-weight: 400;
+  display: block;
+}
+
+.settingsSelect {
+  padding: 7px 10px;
+  border: 1px solid #E7E5E4;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #1C1917;
+  background: #ffffff;
+}
+
+/* Fixed (locked) settings row */
+.fixedRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.fixedChip {
+  font-size: 11px;
+  color: #78716C;
+  background: #F3EFF0;
+  padding: 4px 10px;
+  border-radius: 5px;
+}
+
+.settingsFixed {
+  font-size: 12px;
+  color: #78716C;
+  padding: 7px 0;
+}
+
+/* Brain (shared context) config */
+.brainConfig {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.brainRowWrite {
+  background: rgba(20, 184, 166, 0.04);
+  border-color: rgba(20, 184, 166, 0.12);
+}
+
+.brainRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(99, 102, 241, 0.04);
+  border: 1px solid rgba(99, 102, 241, 0.1);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.brainIcon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.brainLabel {
+  font-weight: 500;
+  color: #57534E;
+  flex-shrink: 0;
+}
+
+.brainValue {
+  color: #1C1917;
+  flex: 1;
+}
+
+.settingsPromptSection {
+  margin-top: 16px;
+}
+
+.settingsTextarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  border: 1px solid #E7E5E4;
+  border-radius: 8px;
+  font-family: 'DM Sans', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #1C1917;
+  resize: vertical;
+  margin-top: 6px;
+}
+
+.settingsFieldsSection {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0eded;
+}
+
+.settingsFieldsList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0;
+}
+
+.settingsFieldRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #FAF7F7;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.settingsFieldName {
+  font-weight: 600;
+  color: #1C1917;
+  font-family: monospace;
+}
+
+.settingsFieldType {
+  font-size: 10px;
+  color: #78716C;
+  background: rgba(0,0,0,0.04);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.settingsFieldTrigger {
+  font-size: 9px;
+  color: #16a34a;
+  background: rgba(22,163,74,0.08);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.settingsFieldDesc {
+  color: #a8a29e;
+  flex: 1;
+  text-align: right;
+}
+
+/* Transition modal */
+.transitionTypeRow {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.transitionTypeBtn {
+  flex: 1;
+  padding: 14px;
+  border: 2px solid #E7E5E4;
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: all 0.15s;
+}
+
+.transitionTypeBtn:hover {
+  border-color: #0ea5e9;
+}
+
+.transitionTypeBtnActive {
+  border-color: #0ea5e9;
+  background: rgba(14, 165, 233, 0.04);
+}
+
+.transitionTypeBtn > span:first-child {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.transitionTypeBtn strong {
+  font-size: 13px;
+  color: #1C1917;
+  display: block;
+}
+
+.transitionRules {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transitionRule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.transitionAnd {
+  font-size: 11px;
+  font-weight: 600;
+  color: #a8a29e;
+}
+
+.transitionTarget {
+  padding-top: 12px;
+  border-top: 1px solid #f0eded;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stepTypeBg {
+  font-size: 9px;
+  font-weight: 500;
+  background: rgba(236, 72, 153, 0.08);
+  color: #ec4899;
+  padding: 2px 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* Left: Chat Area (mock) — legacy, keep for compat */
 .chatArea {
   flex: 1;
   display: flex;
@@ -389,6 +1419,324 @@
   overflow: hidden;
 }
 
+/* ===== Visual Chain ===== */
+.chainVisual {
+  background: #ffffff;
+  border: 1px solid #E7E5E4;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.chainVisualLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1C1917;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chainAddInline {
+  font-size: 10px;
+  font-weight: 500;
+  color: #680662;
+  background: rgba(104, 6, 98, 0.06);
+  border: 1px solid rgba(104, 6, 98, 0.12);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.chainAddInline:hover {
+  background: rgba(104, 6, 98, 0.12);
+}
+
+.chainTrack {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chainNode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background: #FAF7F7;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  min-width: 70px;
+}
+
+.chainNode:hover {
+  border-color: var(--step-color);
+  background: #ffffff;
+}
+
+.chainNodeActive {
+  border-color: var(--step-color);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--step-color) 15%, transparent);
+}
+
+.chainNodeIcon {
+  font-size: 18px;
+}
+
+.chainNodeName {
+  font-size: 9px;
+  font-weight: 500;
+  color: #57534E;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.chainConnector {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: #D6D3D1;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.chainBgSection {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #E7E5E4;
+}
+
+.chainBgLabelHint {
+  font-weight: 400;
+  color: #a8a29e;
+  font-size: 9px;
+}
+
+.stepTypeGroupLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: #a8a29e;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 0 2px;
+}
+
+.chainBgLabel {
+  font-size: 9px;
+  font-weight: 500;
+  color: #a8a29e;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.chainAddBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px dashed #D6D3D1;
+  background: transparent;
+  color: #a8a29e;
+  font-size: 16px;
+  cursor: pointer;
+  font-family: inherit;
+  margin-left: 4px;
+  transition: all 0.15s;
+}
+
+.chainAddBtn:hover {
+  border-color: #680662;
+  color: #680662;
+}
+
+.chainRemoveBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chainRemoveBtn:hover {
+  background: #fee2e2;
+}
+
+.chainHint {
+  text-align: center;
+  padding: 16px;
+  font-size: 12px;
+  color: #a8a29e;
+}
+
+.editorDivider {
+  height: 1px;
+  background: #E7E5E4;
+  margin: 6px 0;
+}
+
+/* ===== Step Editor (shared form for all steps) ===== */
+.stepEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stepEditorGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.stepEditorItem {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stepEditorLabel {
+  font-size: 10px;
+  font-weight: 500;
+  color: #a8a29e;
+}
+
+/* ===== Step Config Grid (8 properties) ===== */
+.stepDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.stepConfigBadge {
+  font-size: 9px;
+  font-weight: 500;
+  color: #78716C;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+
+.stepConfigGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.stepConfigItem {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stepConfigLabel {
+  font-size: 10px;
+  font-weight: 500;
+  color: #a8a29e;
+}
+
+.stepConfigValue {
+  font-size: 11px;
+  font-weight: 500;
+  color: #1C1917;
+}
+
+.calloutMockup {
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.toggleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+/* ===== Step Type Picker (Add modal) ===== */
+.stepTypePicker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stepTypeCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1px solid #E7E5E4;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+  font-family: inherit;
+  width: 100%;
+}
+
+.stepTypeCard:hover {
+  border-color: #680662;
+  background: rgba(104, 6, 98, 0.02);
+}
+
+.stepTypeIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.stepTypeInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stepTypeName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1C1917;
+}
+
+.stepTypeDesc {
+  font-size: 11px;
+  color: #78716C;
+  line-height: 1.4;
+}
+
+.stepTypeArrow {
+  font-size: 14px;
+  color: #D6D3D1;
+  flex-shrink: 0;
+}
+
 .triggerFieldHeader {
   padding: 8px 12px;
   display: flex;
@@ -606,6 +1954,16 @@
   background: #F3EFF0;
   color: #78716C;
   font-weight: 500;
+  margin-left: auto;
+}
+
+.fieldDefExtractor {
+  font-size: 9px;
+  font-weight: 500;
+  color: #57534E;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 1px 6px;
+  border-radius: 3px;
   margin-left: auto;
 }
 
