@@ -1,0 +1,13 @@
+.taskBoardWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .taskBoardWrapper {
+    height: 100%;
+    overflow: hidden;
+  }
+}

@@ -20,6 +20,7 @@ export interface TaskBoardContentProps {
   onClose?: () => void;
   openInDraftsMode?: boolean;
   onDraftsModeAcknowledged?: () => void;
+  initialTaskId?: number;
 }
 
 type ViewMode = 'board' | 'list';
@@ -52,12 +53,14 @@ function getCurrentDomain(): string {
   return 'general';
 }
 
-export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDraftsModeAcknowledged }: TaskBoardContentProps) {
+export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDraftsModeAcknowledged, initialTaskId }: TaskBoardContentProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [assignees, setAssignees] = useState<Assignee[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('board');
   const [isLoading, setIsLoading] = useState(true);
   const hasLoadedRef = useRef(false);
+  const initialTaskOpenedRef = useRef(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [sideTask, setSideTask] = useState<Task | null>(null);
@@ -371,8 +374,35 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
     } else {
       // Reset so next open shows the spinner again
       hasLoadedRef.current = false;
+      initialTaskOpenedRef.current = false;
     }
   }, [isActive, loadData]);
+
+  // Auto-open task from URL (e.g. /tasks/123 or .../task-board/123)
+  useEffect(() => {
+    if (!initialTaskId || initialTaskOpenedRef.current || tasks.length === 0) return;
+    const task = tasks.find(t => t.id === initialTaskId);
+    if (task) {
+      initialTaskOpenedRef.current = true;
+      setEditingTask(task);
+      setShowForm(true);
+    }
+  }, [initialTaskId, tasks]);
+
+  // Sync URL when task is opened/closed
+  useEffect(() => {
+    const basePath = window.location.pathname.replace(/\/\d+$/, '');
+    if (editingTask && showForm) {
+      const newUrl = `${basePath}/${editingTask.id}`;
+      if (window.location.pathname !== newUrl) {
+        window.history.pushState(null, '', newUrl);
+      }
+    } else {
+      if (window.location.pathname !== basePath) {
+        window.history.replaceState(null, '', basePath);
+      }
+    }
+  }, [editingTask, showForm]);
 
   const handleAddAssignee = async (name: string) => {
     const assignee = await taskService.addAssignee(name);
@@ -837,15 +867,17 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
           </div>
         ) : (
           <div className={styles.headerRight}>
-            <button
-              className={`${styles.whatsNewBtn} ${(notificationsState.whatsNewCount > 0 || whatsNewTasks.length > 0) ? styles.whatsNewActive : ''}`}
-              onClick={showWhatsNew ? () => setShowWhatsNew(false) : handleLoadWhatsNew}
-              disabled={whatsNewLoading}
-              title="Recently deployed features"
-            >
-              {whatsNewLoading ? '⏳' : '🚀'} What's New{(showWhatsNew ? whatsNewTasks.length : notificationsState.whatsNewCount) > 0 ? ` (${showWhatsNew ? whatsNewTasks.length : notificationsState.whatsNewCount})` : ''}
-            </button>
-            <NotificationBell notifications={notificationsState} assignees={assignees} onOpenTask={handleOpenTaskById} />
+            <span className={styles.mobileHide}>
+              <button
+                className={`${styles.whatsNewBtn} ${(notificationsState.whatsNewCount > 0 || whatsNewTasks.length > 0) ? styles.whatsNewActive : ''}`}
+                onClick={showWhatsNew ? () => setShowWhatsNew(false) : handleLoadWhatsNew}
+                disabled={whatsNewLoading}
+                title="Recently deployed features"
+              >
+                {whatsNewLoading ? '⏳' : '🚀'} What's New{(showWhatsNew ? whatsNewTasks.length : notificationsState.whatsNewCount) > 0 ? ` (${showWhatsNew ? whatsNewTasks.length : notificationsState.whatsNewCount})` : ''}
+              </button>
+              <NotificationBell notifications={notificationsState} assignees={assignees} onOpenTask={handleOpenTaskById} />
+            </span>
             {onClose && (
               <button className={styles.closeBtn} onClick={onClose} title="Close (Esc)">
                 ×
@@ -961,110 +993,125 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
           onKeyDown={(e) => { if (e.key === 'Enter') handleIdSearchSubmit(); }}
           onClick={(e) => e.stopPropagation()}
         />
+        <button
+          className={styles.filtersToggleBtn}
+          onClick={() => setShowFilters(v => !v)}
+        >
+          {showFilters ? 'Filters ▴' : 'Filters ▾'}
+        </button>
       </div>
 
       {/* Toolbar - Row 2: Board filters + toggle buttons */}
-      <div className={styles.toolbarRow2}>
+      <div className={`${styles.toolbarRow2} ${showFilters ? styles.toolbarRow2Visible : styles.toolbarRow2Hidden}`}>
         {viewMode === 'board' && (
           <>
-            <select
-              className={styles.domainFilter}
-              value={filterDomain}
-              onChange={(e) => setFilterDomain(e.target.value)}
-            >
-              {showAllDomains ? (
-                <>
-                  {KNOWN_DOMAINS.map(domain => (
-                    <option key={domain} value={domain}>
-                      {domain.charAt(0).toUpperCase() + domain.slice(1)}
-                    </option>
-                  ))}
-                </>
-              ) : LYBI_DOMAINS.includes(currentDomain) ? (
-                <>
-                  {LYBI_DOMAINS.map(domain => (
-                    <option key={domain} value={domain}>
-                      {domain.charAt(0).toUpperCase() + domain.slice(1)}
-                    </option>
-                  ))}
-                </>
-              ) : (
-                <option value="current">
-                  {currentDomain === 'general' ? 'General' : currentDomain.charAt(0).toUpperCase() + currentDomain.slice(1)}
-                </option>
-              )}
-              <option value="general">General (Engine)</option>
-              <option value="all">All Domains</option>
-            </select>
-
-            {crewMembers.length > 0 && (
+            {/* Group 1: Domain + Crew */}
+            <div className={styles.filterGroup}>
               <select
-                className={styles.crewFilter}
-                value={filterCrewMember || ''}
-                onChange={(e) => setFilterCrewMember(e.target.value || null)}
+                className={styles.domainFilter}
+                value={filterDomain}
+                onChange={(e) => setFilterDomain(e.target.value)}
               >
-                <option value="">All Crews</option>
-                {crewMembers.map(crew => (
-                  <option key={crew.name} value={crew.name}>
-                    {crew.displayName || crew.name}
+                {showAllDomains ? (
+                  <>
+                    {KNOWN_DOMAINS.map(domain => (
+                      <option key={domain} value={domain}>
+                        {domain.charAt(0).toUpperCase() + domain.slice(1)}
+                      </option>
+                    ))}
+                  </>
+                ) : LYBI_DOMAINS.includes(currentDomain) ? (
+                  <>
+                    {LYBI_DOMAINS.map(domain => (
+                      <option key={domain} value={domain}>
+                        {domain.charAt(0).toUpperCase() + domain.slice(1)}
+                      </option>
+                    ))}
+                  </>
+                ) : (
+                  <option value="current">
+                    {currentDomain === 'general' ? 'General' : currentDomain.charAt(0).toUpperCase() + currentDomain.slice(1)}
                   </option>
-                ))}
+                )}
+                <option value="general">General (Engine)</option>
+                <option value="all">All Domains</option>
               </select>
-            )}
 
-            <AssigneeManager
-              assignees={assignees}
-              onAddAssignee={handleAddAssignee}
-              selectedAssignee={filterAssignee}
-              showUnassigned
-              unassignedCount={unassignedCount}
-              showUnassignedOnly={showUnassignedOnly}
-              onAssigneeClick={(assignee) => {
-                setShowUnassignedOnly(false);
-                setFilterAssignee(assignee);
-              }}
-              onUnassignedClick={() => {
-                setShowUnassignedOnly(!showUnassignedOnly);
-                if (!showUnassignedOnly) setFilterAssignee(null);
-              }}
-            />
+              {crewMembers.length > 0 && (
+                <select
+                  className={styles.crewFilter}
+                  value={filterCrewMember || ''}
+                  onChange={(e) => setFilterCrewMember(e.target.value || null)}
+                >
+                  <option value="">All Crews</option>
+                  {crewMembers.map(crew => (
+                    <option key={crew.name} value={crew.name}>
+                      {crew.displayName || crew.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
 
-            <select
-              className={styles.crewFilter}
-              value={filterPriority || ''}
-              onChange={(e) => setFilterPriority(e.target.value || null)}
-            >
-              <option value="">All Priorities</option>
-              <option value="critical">Critical</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
+            {/* Group 2: Assignees */}
+            <div className={styles.filterGroup}>
+              <AssigneeManager
+                assignees={assignees}
+                onAddAssignee={handleAddAssignee}
+                selectedAssignee={filterAssignee}
+                showUnassigned
+                unassignedCount={unassignedCount}
+                showUnassignedOnly={showUnassignedOnly}
+                onAssigneeClick={(assignee) => {
+                  setShowUnassignedOnly(false);
+                  setFilterAssignee(assignee);
+                }}
+                onUnassignedClick={() => {
+                  setShowUnassignedOnly(!showUnassignedOnly);
+                  if (!showUnassignedOnly) setFilterAssignee(null);
+                }}
+              />
+            </div>
 
-            <select
-              className={styles.crewFilter}
-              value={filterType || ''}
-              onChange={(e) => setFilterType(e.target.value || null)}
-            >
-              <option value="">All Types</option>
-              <option value="task">Task</option>
-              <option value="feature">Feature</option>
-              <option value="bug">Bug</option>
-              <option value="idea">Idea</option>
-            </select>
-
-            {assignees.length > 0 && (
+            {/* Group 3: Priority + Type + Creator */}
+            <div className={styles.filterGroup}>
               <select
                 className={styles.crewFilter}
-                value={filterOpener || ''}
-                onChange={(e) => setFilterOpener(e.target.value || null)}
+                value={filterPriority || ''}
+                onChange={(e) => setFilterPriority(e.target.value || null)}
               >
-                <option value="">By Creator</option>
-                {assignees.map(a => (
-                  <option key={a.id} value={a.name}>{a.name}</option>
-                ))}
+                <option value="">All Priorities</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
               </select>
-            )}
+
+              <select
+                className={styles.crewFilter}
+                value={filterType || ''}
+                onChange={(e) => setFilterType(e.target.value || null)}
+              >
+                <option value="">All Types</option>
+                <option value="task">Task</option>
+                <option value="feature">Feature</option>
+                <option value="bug">Bug</option>
+                <option value="idea">Idea</option>
+              </select>
+
+              {assignees.length > 0 && (
+                <select
+                  className={styles.crewFilter}
+                  value={filterOpener || ''}
+                  onChange={(e) => setFilterOpener(e.target.value || null)}
+                >
+                  <option value="">By Creator</option>
+                  {assignees.map(a => (
+                    <option key={a.id} value={a.name}>{a.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
           </>
         )}
 

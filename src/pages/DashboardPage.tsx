@@ -1,4 +1,5 @@
 import { useParams, Navigate, Routes, Route } from 'react-router-dom';
+
 import { ThemeProvider, AgentProvider } from '../context';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { FeedbackPage } from '../components/dashboard/FeedbackPage';
@@ -17,6 +18,7 @@ import { TestRunnerPage } from '../components/dashboard/TestRunnerPage';
 import { DynamicKBPage } from '../components/dashboard/DynamicKBPage';
 import { ConversationTrendsPage } from '../components/dashboard/ConversationTrendsPage';
 import { TaskBoardContent } from '../components/tasks/TaskBoardModal/TaskBoardContent';
+import dashStyles from './DashboardPage.module.css';
 import { aspectConfig, bankingOnboarderConfig, bankingOnboarderV2Config, compassConfig, freedaConfig, zer4uConfig } from '../agents';
 import type { AgentConfig } from '../types';
 
@@ -28,6 +30,16 @@ const agentConfigs: Record<string, AgentConfig> = {
   freeda: freedaConfig,
   zer4u: zer4uConfig,
 };
+
+function TaskBoardPageWithId() {
+  const { taskId } = useParams<{ taskId: string }>();
+  const id = taskId ? parseInt(taskId, 10) : undefined;
+  return (
+    <div style={{ height: '100%', overflow: 'hidden' }} dir="ltr">
+      <TaskBoardContent isActive={true} initialTaskId={id} />
+    </div>
+  );
+}
 
 export function DashboardPage() {
   const { agent } = useParams<{ agent: string }>();
@@ -74,9 +86,15 @@ export function DashboardPage() {
             <Route
               path="task-board"
               element={
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }} dir="ltr">
+                <div className={dashStyles.taskBoardWrapper} dir="ltr">
                   <TaskBoardContent isActive={true} />
                 </div>
+              }
+            />
+            <Route
+              path="task-board/:taskId"
+              element={
+                <TaskBoardPageWithId />
               }
             />
             <Route

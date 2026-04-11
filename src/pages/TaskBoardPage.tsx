@@ -1,21 +1,17 @@
 import { TaskBoardContent } from '../components/tasks/TaskBoardModal/TaskBoardContent';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import styles from './TaskBoardPage.module.css';
 
 export function TaskBoardPage() {
   const navigate = useNavigate();
+  const { taskId } = useParams<{ taskId: string }>();
 
   return (
-    <div style={{
-      width: '100vw',
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      background: '#fff',
-      overflow: 'hidden',
-    }} dir="ltr">
+    <div className={styles.page} dir="ltr">
       <TaskBoardContent
         isActive={true}
         onClose={() => navigate(-1)}
+        initialTaskId={taskId ? parseInt(taskId, 10) : undefined}
       />
     </div>
   );
