@@ -16,6 +16,8 @@ export { Zer4UPage } from './Zer4UPage';
 export { CrewBuilderMockupPage } from './CrewBuilderMockupPage';
 export { HowWeBuildPage } from './HowWeBuildPage';
 export { ChainArchitecturePage } from './ChainArchitecturePage';
+export { KBvsTriggeredPage } from './KBvsTriggeredPage';
+export { LybiKnowledgePage } from './LybiKnowledgePage';
 export { LLMGuidePage } from './LLMGuidePage';
 export { PitchDeckPage } from './PitchDeckPage';
 export { TaskBoardPage } from './TaskBoardPage';
