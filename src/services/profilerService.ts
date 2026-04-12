@@ -76,6 +76,27 @@ export async function resetProfilerConfig(
 }
 
 /**
+ * Ask the profiler a question about the current profile
+ */
+export async function askProfiler(
+  agentName: string,
+  conversationId: string,
+  question: string,
+  baseURL?: string
+): Promise<{ answer: string }> {
+  const url = baseURL || getBaseURL();
+  return apiRequest<{ answer: string }>(
+    `/api/agents/${encodeURIComponent(agentName)}/profiler/ask`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId, question }),
+    },
+    url
+  );
+}
+
+/**
  * Clear profile data for a conversation's user (start fresh)
  */
 export async function clearProfileData(

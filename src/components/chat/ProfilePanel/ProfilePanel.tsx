@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { getProfilerConfig, updateProfilerConfig, resetProfilerConfig } from '../../../services/profilerService';
+import { getProfilerConfig, updateProfilerConfig, resetProfilerConfig, askProfiler } from '../../../services/profilerService';
 import type {
   ProfileSchema,
   ProfileData,
@@ -629,6 +629,105 @@ function ProfilerConfigEditor({
   );
 }
 
+// ─── Ask the Profiler ────────────────────────────────────────
+
+function ProfilerAsk({ agentName, conversationId, baseURL }: {
+  agentName: string;
+  conversationId: string;
+  baseURL?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [question, setQuestion] = useState('');
+  const [answer, setAnswer] = useState<string | null>(null);
+  const [isAsking, setIsAsking] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleAsk = useCallback(async () => {
+    if (!question.trim() || isAsking) return;
+    setIsAsking(true);
+    setAnswer(null);
+    try {
+      const res = await askProfiler(agentName, conversationId, question.trim(), baseURL);
+      setAnswer(res.answer);
+    } catch {
+      setAnswer('שגיאה — לא ניתן לקבל תשובה');
+    } finally {
+      setIsAsking(false);
+    }
+  }, [agentName, conversationId, question, baseURL, isAsking]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleAsk();
+    }
+  }, [handleAsk]);
+
+  useEffect(() => {
+    if (isOpen && inputRef.current) inputRef.current.focus();
+  }, [isOpen]);
+
+  return (
+    <div className={styles.askSection}>
+      <button
+        className={styles.askToggle}
+        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+      >
+        <span className={styles.askToggleIcon}>💬</span>
+        <span>שאל על הפרופיל</span>
+        <span className={`${styles.chevron} ${!isOpen ? styles.chevronUp : ''}`}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </span>
+      </button>
+
+      {isOpen && (
+        <div className={styles.askBody}>
+          <div className={styles.askInputRow}>
+            <input
+              ref={inputRef}
+              className={styles.askInput}
+              type="text"
+              placeholder="מה תרצה לדעת על הלקוח?"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isAsking}
+              dir="auto"
+            />
+            <button
+              className={styles.askSendBtn}
+              onClick={handleAsk}
+              disabled={isAsking || !question.trim()}
+              title="שלח"
+            >
+              {isAsking ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                  <circle cx="12" cy="12" r="10" strokeDasharray="60" strokeDashoffset="20" />
+                </svg>
+              ) : '←'}
+            </button>
+          </div>
+          {isAsking && (
+            <div className={styles.askLoading}>
+              <div className={styles.askLoadingDots}>
+                <span /><span /><span />
+              </div>
+            </div>
+          )}
+          {answer && !isAsking && (
+            <div className={styles.askAnswer} dir="auto">
+              {answer}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main ProfilePanel ───────────────────────────────────────
 
 export function ProfilePanel({
@@ -769,6 +868,11 @@ export function ProfilePanel({
             <ClusterSection key={cluster.id} cluster={cluster} />
           ))}
         </div>
+      )}
+
+      {/* Ask the Profiler — sticky footer */}
+      {agentName && conversationId && (
+        <ProfilerAsk agentName={agentName} conversationId={conversationId} baseURL={baseURL} />
       )}
     </div>
   );
