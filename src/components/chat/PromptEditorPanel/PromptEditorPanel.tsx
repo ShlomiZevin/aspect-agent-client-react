@@ -394,7 +394,7 @@ export function PromptEditorPanel({
         } else {
           setKbOverrides(prev => { const next = { ...prev }; delete next[selectedCrewId]; return next; });
           setOriginalKBSources(crewKBSources);
-          onKBOverride(selectedCrewId, []);
+          (onKBOverride as (id: string, sources: string[] | null) => void)(selectedCrewId, null);
         }
         // Restore saved persona from version (or revert to code default)
         if (selectedVersion.persona) {
@@ -1258,7 +1258,7 @@ export function PromptEditorPanel({
                           delete next[selectedCrewId];
                           return next;
                         });
-                        onKBOverride(selectedCrewId, []);
+                        (onKBOverride as (id: string, sources: string[] | null) => void)(selectedCrewId, null);
                       }}
                       type="button"
                     >
