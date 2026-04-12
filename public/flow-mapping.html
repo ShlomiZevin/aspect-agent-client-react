@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freeda.ai - Complete Flow Mapping &amp; Change Analysis</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222633;
+    --border: #2e3344;
+    --text: #e1e4ed;
+    --text2: #8b90a0;
+    --accent: #a78bfa;
+    --accent2: #7c3aed;
+    --green: #34d399;
+    --red: #f87171;
+    --orange: #fbbf24;
+    --blue: #60a5fa;
+    --pink: #f472b6;
+    --cyan: #22d3ee;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+  /* Navigation */
+  .nav { position: sticky; top: 0; z-index: 100; background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; gap: 12px; align-items: center; }
+  .nav-btn { padding: 8px 20px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--text2); cursor: pointer; font-size: 14px; transition: all .2s; }
+  .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .nav-btn.active { background: var(--accent2); border-color: var(--accent); color: #fff; }
+  .nav-title { font-size: 18px; font-weight: 700; color: var(--accent); margin-right: auto; }
+
+  /* Pages */
+  .page { display: none; padding: 24px; max-width: 1800px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  h1 { font-size: 28px; color: var(--accent); margin-bottom: 8px; }
+  h2 { font-size: 22px; color: var(--green); margin: 32px 0 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  h3 { font-size: 17px; color: var(--blue); margin: 20px 0 10px; }
+  p, li { font-size: 14px; color: var(--text); }
+  .subtitle { color: var(--text2); font-size: 14px; margin-bottom: 24px; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .card-title { font-size: 16px; font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+
+  /* Flow diagram */
+  .flow-diagram { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; align-items: center; }
+  .flow-node { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-family: 'Cascadia Code', 'Fira Code', monospace; }
+  .flow-node.router { background: #3b2d5e; border: 1px solid var(--accent); color: var(--accent); }
+  .flow-node.fixed { background: #1e3a2f; border: 1px solid var(--green); color: var(--green); }
+  .flow-node.ai { background: #3b2d1e; border: 1px solid var(--orange); color: var(--orange); }
+  .flow-node.custom { background: #1e2a3b; border: 1px solid var(--blue); color: var(--blue); }
+  .flow-arrow { color: var(--text2); font-size: 16px; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; margin: 16px 0; border-radius: 12px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: var(--surface2); color: var(--accent); font-weight: 600; padding: 12px 10px; text-align: left; position: sticky; top: 0; white-space: nowrap; border-bottom: 2px solid var(--accent2); }
+  tbody td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:hover { background: rgba(167, 139, 250, 0.05); }
+  tbody tr.section-header td { background: var(--surface2); font-weight: 700; color: var(--cyan); font-size: 14px; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin: 1px; }
+  .badge-fixed { background: #1e3a2f; color: var(--green); border: 1px solid #2d5a42; }
+  .badge-ai { background: #3b2d1e; color: var(--orange); border: 1px solid #5a422d; }
+  .badge-router { background: #3b2d5e; color: var(--accent); border: 1px solid #5a3d8e; }
+  .badge-custom { background: #1e2a3b; color: var(--blue); border: 1px solid #2d3d5a; }
+  .badge-onit { background: #2d1e3b; color: var(--pink); border: 1px solid #4a2d5a; }
+  .badge-demo { background: #1e2a3b; color: var(--cyan); border: 1px solid #2d4a5a; }
+  .badge-both { background: #2a2d1e; color: #a3e635; border: 1px solid #4a5a2d; }
+  .badge-unused { background: #3b1e1e; color: var(--red); border: 1px solid #5a2d2d; }
+
+  /* Change indicators */
+  .change-delete { background: rgba(248, 113, 113, 0.1); border-left: 3px solid var(--red); }
+  .change-modify { background: rgba(251, 191, 36, 0.1); border-left: 3px solid var(--orange); }
+  .change-add { background: rgba(52, 211, 153, 0.1); border-left: 3px solid var(--green); }
+  .change-keep { opacity: 0.7; }
+  .change-tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+  .tag-delete { background: var(--red); color: #1a1d27; }
+  .tag-change { background: var(--orange); color: #1a1d27; }
+  .tag-add { background: var(--green); color: #1a1d27; }
+  .tag-keep { background: var(--text2); color: #1a1d27; }
+  .tag-bug { background: var(--pink); color: #1a1d27; }
+
+  /* Text cells */
+  .text-cell { max-width: 380px; }
+  .text-cell .he { direction: rtl; text-align: right; font-size: 12px; }
+  .text-cell .en { font-size: 12px; }
+  .text-preview { background: var(--surface2); padding: 6px 8px; border-radius: 4px; margin: 4px 0; font-size: 11px; line-height: 1.5; max-height: 120px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+  .text-preview.he { direction: rtl; text-align: right; }
+  .text-preview.new-text { border: 1px solid var(--green); background: rgba(52, 211, 153, 0.05); }
+  .text-preview.old-text { border: 1px solid var(--red); background: rgba(248, 113, 113, 0.05); text-decoration: line-through; opacity: 0.6; }
+
+  .key-code { font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 11px; color: var(--orange); background: rgba(251, 191, 36, 0.1); padding: 1px 5px; border-radius: 3px; }
+  .file-ref { font-family: monospace; font-size: 11px; color: var(--text2); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; padding: 12px; background: var(--surface); border-radius: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center; }
+  .stat-num { font-size: 32px; font-weight: 700; }
+  .stat-label { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+  ul { margin: 8px 0 8px 20px; }
+  li { margin: 4px 0; }
+  code { background: var(--surface2); padding: 1px 5px; border-radius: 3px; font-size: 12px; color: var(--orange); }
+
+  .collapsible { cursor: pointer; user-select: none; }
+  .collapsible::before { content: '▸ '; color: var(--accent); }
+  .collapsible.open::before { content: '▾ '; }
+  .collapsible-content { display: none; }
+  .collapsible-content.open { display: block; }
+
+  .note { background: rgba(96, 165, 250, 0.1); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 6px; padding: 10px 14px; font-size: 12px; margin: 8px 0; }
+  .warning { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 6px; padding: 10px 14px; font-size: 12px; margin: 8px 0; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <span class="nav-title">Freeda.ai Flow Mapping</span>
+  <button class="nav-btn active" onclick="showPage('page1', this)">Page 1: Current State</button>
+  <button class="nav-btn" onclick="showPage('page2', this)">Page 2: Cross-Reference &amp; Changes</button>
+</div>
+
+<!-- ==================== PAGE 1: CURRENT STATE ==================== -->
+<div id="page1" class="page active">
+
+<h1>Page 1: Current Active Flows - Complete Mapping</h1>
+<p class="subtitle">Generated from codebase analysis. All text extracted from <code>bot-content.ts</code>, flow logic from <code>engine-flows/</code>.</p>
+
+<!-- Architecture Overview -->
+<h2>1. Architecture Overview</h2>
+
+<div class="stats">
+  <div class="stat"><div class="stat-num" style="color:var(--accent)">2</div><div class="stat-label">Active Flows (ONIT + DEMO)</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--green)">2</div><div class="stat-label">Languages (HE + EN)</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--orange)">~23</div><div class="stat-label">Active Flow Steps</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--blue)">100</div><div class="stat-label">BotContentKey Entries</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--red)">12+</div><div class="stat-label">Unused/Legacy Keys</div></div>
+</div>
+
+<div class="card">
+  <div class="card-title">Key Source Files</div>
+  <ul>
+    <li><code>backend/src/services/bot-content.ts</code> &mdash; All fixed text (EN: <code>botContent</code>, HE: <code>botContentHe</code>), ~600 lines</li>
+    <li><code>backend/src/services/flow-content.ts</code> &mdash; Maps keys to {en, he} for runtime language selection</li>
+    <li><code>backend/src/engine-flows/onboarding/onboarding-flow.ts</code> &mdash; Main onboarding routing (ONIT vs DEMO)</li>
+    <li><code>backend/src/engine-flows/onboarding/name-age-flow.ts</code> &mdash; Name &amp; age collection steps (AI-powered)</li>
+    <li><code>backend/src/engine-flows/onboarding/status-flows.ts</code> &mdash; Menstrual status collection &amp; stopped-reason</li>
+    <li><code>backend/src/engine-flows/onboarding/calculateStage.ts</code> &mdash; Menopause stage calculation logic</li>
+    <li><code>backend/src/engine-flows/assessment/assessment.ts</code> &mdash; 4-group symptom intake (vasomotor, emotional, cognitive, physical)</li>
+    <li><code>backend/src/engine-flows/assessment/top-symptoms-steps.ts</code> &mdash; Top-3 selection + impact rating</li>
+    <li><code>backend/src/engine-flows/ama-flows/general-flow.ts</code> &mdash; Post-assessment open AI conversation</li>
+    <li><code>backend/src/engine-flows/tenant-config.ts</code> &mdash; Tenant-specific AI instructions (ONIT doctor scheduling)</li>
+    <li><code>backend/src/engine-flows/nudges.ts</code> &mdash; Timed nudge/reminder definitions</li>
+    <li><code>backend/src/engine-flows/prompts.ts</code> &mdash; Shared AI prompt builders</li>
+    <li><code>backend/src/engine-flows/feedback.ts</code> &mdash; One-time feedback preference step</li>
+  </ul>
+</div>
+
+<div class="card">
+  <div class="card-title">Tenant Routing Logic</div>
+  <p>Entry point: <code>obStart</code> &rarr; checks <code>state.context.tenant</code></p>
+  <ul>
+    <li><code>"onit"</code> &rarr; ONIT flow (name pre-assigned from <code>future-tenants</code> Firestore collection)</li>
+    <li><code>"demo"</code> (default) &rarr; DEMO flow (collects name, shows 48h demo notice)</li>
+  </ul>
+  <p style="margin-top:8px"><strong>Language detection:</strong> First user message scanned for Hebrew Unicode chars (<code>/[\u0590-\u05FF]/</code>). Hebrew &rarr; <code>"he"</code>, else &rarr; <code>"en"</code>.</p>
+</div>
+
+<!-- Flow Diagram -->
+<h2>2. Visual Flow Diagram</h2>
+<div class="card">
+  <div class="card-title">ONIT Flow Path</div>
+  <div class="flow-diagram">
+    <span class="flow-node router">obStart</span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node fixed">obStartOnit<br><small>ONBOARDING_INTRO_ONIT (4 msgs)</small></span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node ai">obOnitCollectAge<br><small>ASK_AGE + AI</small></span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node ai">menstrualStatus<br><small>MENSTRUAL_STATUS_INQUIRY + AI</small></span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node custom">onboardingPreAssessmentStep<br><small>calculateStage()</small></span><span class="flow-arrow">&rarr;</span>
+    <span style="color:var(--text2)">[Assessment]</span>
+  </div>
+
+  <div class="card-title" style="margin-top:16px">DEMO Flow Path</div>
+  <div class="flow-diagram">
+    <span class="flow-node router">obStart</span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node fixed">obStartDemo<br><small>ONBOARDING_INTRO_DEMO (4 msgs)</small></span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node ai">obDemoCollectName<br><small>ASK_NAME + AI</small></span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node fixed">obDemoAfterName<br><small>AFTER_NAME_DEMO (2-3 msgs)</small></span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node ai">obDemoCollectAge<br><small>ASK_AGE + AI</small></span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node fixed">postNameIntro<br><small>POST_NAME_AGE_INTRO (4 msgs)</small></span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node ai">menstrualStatus</span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node custom">onboardingPreAssessmentStep</span><span class="flow-arrow">&rarr;</span>
+    <span style="color:var(--text2)">[Assessment]</span>
+  </div>
+
+  <div class="card-title" style="margin-top:16px">Converged Assessment Path</div>
+  <div class="flow-diagram">
+    <span class="flow-node custom">intakeStart</span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node ai">Vasomotor</span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node ai">Emotional</span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node ai">Cognitive</span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node ai">Physical</span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node router">Gateway</span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node ai">Top3 (if &gt;3)</span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node ai">Impact (1-5)</span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node fixed">SummaryIntro</span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node custom">GenerateReport</span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node fixed">ReportLink</span><span class="flow-arrow">&rarr;</span>
+    <span class="flow-node ai">generalAma</span>
+  </div>
+
+  <div class="card-title" style="margin-top:16px">Branching Points</div>
+  <div class="flow-diagram">
+    <span class="flow-node ai">menstrualStatus</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span style="color:var(--text2)">age&lt;40 &amp; regular &rarr;</span>
+    <span class="flow-node fixed" style="border-color:var(--red);color:var(--red)">intakeTooYoung (EXIT)</span>
+  </div>
+  <div class="flow-diagram">
+    <span class="flow-node ai">menstrualStatus</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span style="color:var(--text2)">stopped &rarr;</span>
+    <span class="flow-node ai">stoppedReason<br><small>STOPPED_OPTIONS + AI</small></span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-node custom">onboardingPreAssessmentStep</span>
+  </div>
+  <div class="flow-diagram">
+    <span class="flow-node router">TopSymptomsGateway</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span style="color:var(--text2)">&gt;3 symptoms &rarr; Top3 &rarr; Impact | 1-3 &rarr; Impact | 0 &rarr; SummaryIntro</span>
+  </div>
+
+  <div class="legend" style="margin-top:16px">
+    <div class="legend-item"><span class="flow-node router" style="padding:2px 8px">router</span> Branching logic</div>
+    <div class="legend-item"><span class="flow-node fixed" style="padding:2px 8px">fixed</span> send-message (fixed text)</div>
+    <div class="legend-item"><span class="flow-node ai" style="padding:2px 8px">ai</span> collect-input-ai-complex (fixed intro + AI prompt)</div>
+    <div class="legend-item"><span class="flow-node custom" style="padding:2px 8px">custom</span> custom-fn</div>
+  </div>
+</div>
+
+<!-- Stage Calculation -->
+<h2>3. Menopause Stage Calculation</h2>
+<div class="card">
+  <div class="card-title">calculateStage() logic &mdash; <code>calculateStage.ts</code></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Menstrual Status</th><th>Stopped Reason</th><th>Months Stopped</th><th>Calculated Stage</th><th>Assessment Message</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>regular</td><td>-</td><td>-</td><td>PREMENOPAUSE</td><td rowspan="2">MIGHT_WITH_TRANSITION</td></tr>
+        <tr><td>regular + age&lt;40</td><td>-</td><td>-</td><td>&#x26A0; intakeTooYoung EXIT</td></tr>
+        <tr><td>irregular</td><td>-</td><td>-</td><td>PERIMENOPAUSE</td><td>PROBABLY_WITH_TRANSITION</td></tr>
+        <tr><td>stopped</td><td>a/&#x05D0; (natural)</td><td>&lt;12</td><td>PERIMENOPAUSE</td><td>PROBABLY_WITH_TRANSITION</td></tr>
+        <tr><td>stopped</td><td>a/&#x05D0; (natural)</td><td>&ge;12</td><td>POSTMENOPAUSE</td><td>PROBABLY_WITH_TRANSITION</td></tr>
+        <tr><td>stopped</td><td>b/&#x05D1; (bilateral oophorectomy)</td><td>-</td><td>SURGICAL_MENOPAUSE</td><td>PROBABLY_WITH_TRANSITION</td></tr>
+        <tr><td>stopped</td><td>c/&#x05D2; (hysterectomy only)</td><td>-</td><td>UNKNOWN</td><td>MIGHT_WITH_TRANSITION</td></tr>
+        <tr><td>stopped</td><td>d/&#x05D3; (hormone therapy)</td><td>-</td><td>POSTMENOPAUSE</td><td>PROBABLY_WITH_TRANSITION</td></tr>
+        <tr><td>stopped</td><td>e/&#x05D4; (contraception)</td><td>-</td><td>UNKNOWN</td><td>MIGHT_WITH_TRANSITION</td></tr>
+        <tr><td>stopped</td><td>f/&#x05D5; (chemo/radiation)</td><td>-</td><td>UNKNOWN</td><td>MIGHT_WITH_TRANSITION</td></tr>
+        <tr><td>stopped</td><td>g/&#x05D6; (other)</td><td>-</td><td>UNKNOWN</td><td>MIGHT_WITH_TRANSITION</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Complete Step-by-Step Table -->
+<h2>4. Complete Step-by-Step Flow Table (All Active Steps)</h2>
+
+<div class="legend">
+  <div class="legend-item"><span class="badge badge-fixed">Fixed Text</span> Hardcoded bot message</div>
+  <div class="legend-item"><span class="badge badge-ai">AI Prompt</span> AI generates response</div>
+  <div class="legend-item"><span class="badge badge-router">Router</span> Branching logic</div>
+  <div class="legend-item"><span class="badge badge-custom">Custom</span> Custom function</div>
+  <div class="legend-item"><span class="badge badge-onit">ONIT</span> ONIT only</div>
+  <div class="legend-item"><span class="badge badge-demo">DEMO</span> DEMO only</div>
+  <div class="legend-item"><span class="badge badge-both">BOTH</span> Both flows</div>
+</div>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+  <th>#</th>
+  <th>Category</th>
+  <th>Step ID</th>
+  <th>Content Key</th>
+  <th>Type</th>
+  <th>Flow</th>
+  <th>Current Hebrew Text</th>
+  <th>Current English Text</th>
+  <th>Notes / Prompt Details</th>
+</tr>
+</thead>
+<tbody>
+
+<!-- ROUTING -->
+<tr class="section-header"><td colspan="9">ENTRY POINT &amp; ROUTING</td></tr>
+<tr>
+  <td>1</td>
+  <td>Router</td>
+  <td><code>obStart</code></td>
+  <td>&mdash;</td>
+  <td><span class="badge badge-router">Router</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td>&mdash;</td>
+  <td>&mdash;</td>
+  <td>Empty custom-fn. Routes based on <code>state.context.tenant</code>: "onit" &rarr; obStartOnit, else &rarr; obStartDemo</td>
+</tr>
+
+<!-- ONIT ONBOARDING -->
+<tr class="section-header"><td colspan="9">ONIT ONBOARDING PATH</td></tr>
+<tr>
+  <td>2</td>
+  <td>Onboarding (ONIT)</td>
+  <td><code>obStartOnit</code></td>
+  <td><span class="key-code">ONBOARDING_INTRO_ONIT</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span><br>(4 messages)</td>
+  <td><span class="badge badge-onit">ONIT</span></td>
+  <td class="text-cell">
+    <div class="text-preview he"><strong>Msg1:</strong> שלום {{name}}, אני פרידה, הוכשרתי כמומחית מבוססת בינה מלאכותית (AI) בנושא מנפאוזה, ואני פה לסייע לך לנווט בביטחון את המסע שלך בגיל הַמֵעֵבֶר. תחשבי עליי כעל השותפה שלך למסע הזה...</div>
+    <div class="text-preview he"><strong>Msg2:</strong> אני יכולה לסייע לך בהבנת התסמינים, לשאול את השאלות הנכונות מול הרופא/ה, להמליץ על טיפולים אפשריים ולכוון אותך למידע שמתאים בדיוק לך. אני כאן גם כדי להקשיב...</div>
+    <div class="text-preview he"><strong>Msg3:</strong> חשוב שתדעי – פרידה היא עוזרת דיגיטלית מבוססת בינה מלאכותית, והיא לא מחליפה ייעוץ רפואי אישי... 💬 בכך שאת ממשיכה את השיחה, את מאשרת שקראת...</div>
+    <div class="text-preview he"><strong>Msg4:</strong> בואי נתחיל בכמה שאלות, שיעזרו לי להכיר אותך טוב יותר... השלב הזה לוקח בערך 7-10 דקות... מוכנה להתחיל?</div>
+  </td>
+  <td class="text-cell">
+    <div class="text-preview en"><strong>Msg1:</strong> Hello {{name}}, I'm Freeda, an AI-powered menopause specialist. I'm here to help you navigate your menopause journey with confidence. Think of me as your partner in this journey...</div>
+    <div class="text-preview en"><strong>Msg2:</strong> I can help you understand your symptoms, ask the right questions to your doctor, recommend possible treatments... I'm also here to listen...</div>
+    <div class="text-preview en"><strong>Msg3:</strong> Important to know – Freeda is an AI-powered digital assistant and does not replace personal medical advice... 💬 By continuing this conversation, you confirm...</div>
+    <div class="text-preview en"><strong>Msg4:</strong> Let's start with a few questions... This step takes about 7-10 minutes... Ready to start?</div>
+  </td>
+  <td>Name pre-assigned from future-tenants Firestore. Includes disclaimer + consent + questions intro all in one step.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td>Onboarding (ONIT)</td>
+  <td><code>obOnitCollectAge</code></td>
+  <td><span class="key-code">ONBOARDING_ASK_AGE</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span> + <span class="badge badge-ai">AI Prompt</span></td>
+  <td><span class="badge badge-onit">ONIT</span></td>
+  <td class="text-cell"><div class="text-preview he">בת כמה את?</div></td>
+  <td class="text-cell"><div class="text-preview en">Could you please tell me your age?</div></td>
+  <td><strong>Prompt-dependent:</strong> AI collects age via function calling (<code>collectInfo</code>). Prompt: "Ask 'What is your age?' never 'How old are you'"</td>
+</tr>
+
+<!-- DEMO ONBOARDING -->
+<tr class="section-header"><td colspan="9">DEMO ONBOARDING PATH</td></tr>
+<tr>
+  <td>4</td>
+  <td>Onboarding (Demo)</td>
+  <td><code>obStartDemo</code></td>
+  <td><span class="key-code">ONBOARDING_INTRO_DEMO</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span><br>(4 messages)</td>
+  <td><span class="badge badge-demo">DEMO</span></td>
+  <td class="text-cell">
+    <div class="text-preview he"><strong>Msg1:</strong> היי, אני פרידה – בת הברית שלך במסע גיל הַמֵעֵבֶר 🌼 אני כאן כדי ללוות אותך בכל שלב, עם הבנה, כלים, ותמיכה – כדי שיהיה לך יותר ברור, יותר בטוח, והרבה פחות לבד.</div>
+    <div class="text-preview he"><strong>Msg2:</strong> אני יכולה לסייע לך בהבנת התסמינים, לשאול את השאלות הנכונות מול הרופא/ה, להמליץ על טיפולים אפשריים ולכוון אותך למידע שמתאים בדיוק לך. אני כאן גם כדי להקשיב...</div>
+    <div class="text-preview he"><strong>Msg3:</strong> חשוב שתדעי – פרידה היא עוזרת דיגיטלית... 💬 בכך שאת ממשיכה את השיחה... לפרטים המלאים: https://app.freeda.ai/tos/{{analyticsId}}</div>
+    <div class="text-preview he"><strong>Msg4:</strong> שימי לב – את כרגע משוחחת עם גרסת הדמו של פרידה הזמינה לך ל-48 שעות הקרובות...</div>
+  </td>
+  <td class="text-cell">
+    <div class="text-preview en"><strong>Msg1:</strong> Hi, I'm Freeda – your ally in the menopause journey 🌼 I'm here to accompany you every step of the way...</div>
+    <div class="text-preview en"><strong>Msg2:</strong> I can help you understand your symptoms... I'm also here to listen...</div>
+    <div class="text-preview en"><strong>Msg3:</strong> Important to know – Freeda is an AI-powered digital assistant... 💬 By continuing... For full details: https://app.freeda.ai/tos/{{analyticsId}}</div>
+    <div class="text-preview en"><strong>Msg4:</strong> Please note – you're currently chatting with the demo version of Freeda, available for the next 48 hours...</div>
+  </td>
+  <td>Msg4 is the 48h demo notice. ONIT doesn't have this.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td>Onboarding (Demo)</td>
+  <td><code>obDemoCollectName</code></td>
+  <td><span class="key-code">ONBOARDING_ASK_NAME</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span> + <span class="badge badge-ai">AI Prompt</span></td>
+  <td><span class="badge badge-demo">DEMO</span></td>
+  <td class="text-cell"><div class="text-preview he">נתחיל בדבר הכי חשוב – איך לקרוא לך?</div></td>
+  <td class="text-cell"><div class="text-preview en">First things first, what's your name, or how would you like me to address you?</div></td>
+  <td><strong>Prompt-dependent:</strong> AI collects name via function calling</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td>Onboarding (Demo)</td>
+  <td><code>obDemoAfterName</code></td>
+  <td><span class="key-code">ONBOARDING_AFTER_NAME_DEMO</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span><br>(HE: 2 msgs, EN: 3 msgs)</td>
+  <td><span class="badge badge-demo">DEMO</span></td>
+  <td class="text-cell">
+    <div class="text-preview he"><strong>Msg1:</strong> נעים להכיר, {{name}} 🌼</div>
+    <div class="text-preview he"><strong>Msg2:</strong> בואי נתחיל בכמה שאלות, שיעזרו לי להכיר אותך טוב יותר, ולהכין לך מפת דרכים ראשונית... השלב הזה לוקח בערך 7-10 דקות... מוכנה להתחיל?</div>
+  </td>
+  <td class="text-cell">
+    <div class="text-preview en"><strong>Msg1:</strong> Hello {{name}}, it's lovely to meet you 🌼. As we delve deeper into understanding your menopause journey, please know that your privacy is paramount to us... (https://app.freeda.ai/tos/{{analyticsId}})...</div>
+    <div class="text-preview en"><strong>Msg2:</strong> Let's begin with a few questions. I'll explain things as we go. This part takes around 7–10 minutes...</div>
+    <div class="text-preview en"><strong>Msg3:</strong> At the end of this step, you'll receive your personalised roadmap... It's not a diagnosis, it's a strong starting point...</div>
+  </td>
+  <td>&#x26A0; HE has 2 messages, EN has 3. EN Msg3 about roadmap has no HE equivalent here.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td>Onboarding (Demo)</td>
+  <td><code>obDemoCollectAge</code></td>
+  <td><span class="key-code">ONBOARDING_ASK_AGE</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span> + <span class="badge badge-ai">AI Prompt</span></td>
+  <td><span class="badge badge-demo">DEMO</span></td>
+  <td class="text-cell"><div class="text-preview he">בת כמה את?</div></td>
+  <td class="text-cell"><div class="text-preview en">Could you please tell me your age?</div></td>
+  <td><strong>Prompt-dependent:</strong> AI collects age. Same key as ONIT row #3</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td>Onboarding (Demo)</td>
+  <td><code>postNameIntro</code></td>
+  <td><span class="key-code">POST_NAME_AGE_INTRO</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span><br>(4 messages)</td>
+  <td><span class="badge badge-demo">DEMO</span></td>
+  <td class="text-cell">
+    <div class="text-preview he"><strong>Msg1:</strong> שלום {{name}}, נעים מאוד להכיר אותך 🌼</div>
+    <div class="text-preview he"><strong>Msg2:</strong> בואי נתחיל עם כמה שאלות. אני אסביר דברים תוך כדי.</div>
+    <div class="text-preview he"><strong>Msg3:</strong> החלק הזה לוקח בערך 7-10 דקות, ואנחנו יכולות לעשות הפסקה בכל זמן. אני זוכרת כל מה שאנחנו מדברות עליו...</div>
+    <div class="text-preview he"><strong>Msg4:</strong> בסוף השלב הזה, תקבלי את מפת הדרכים האישית שלך... זה לא אבחנה, זה נקודת התחלה חזקה...</div>
+  </td>
+  <td class="text-cell">
+    <div class="text-preview en"><strong>Msg1:</strong> Hello {{name}}, it's lovely to meet you 🌼</div>
+    <div class="text-preview en"><strong>Msg2:</strong> Let's begin with a few questions. I'll explain things as we go.</div>
+    <div class="text-preview en"><strong>Msg3:</strong> This part takes around 7–10 minutes, and we can pause anytime. I remember everything we talk about...</div>
+    <div class="text-preview en"><strong>Msg4:</strong> At the end of this step, you'll receive your personalised roadmap... It's not a diagnosis, it's a strong starting point...</div>
+  </td>
+  <td>&#x26A0; <strong>Content duplication:</strong> This step overlaps heavily with row #6 (obDemoAfterName). User sees both sequentially in DEMO flow.</td>
+</tr>
+
+<!-- CONVERGED -->
+<tr class="section-header"><td colspan="9">CONVERGED PATH: MENSTRUAL STATUS (BOTH FLOWS)</td></tr>
+<tr>
+  <td>9</td>
+  <td>Assessment (Menstrual)</td>
+  <td><code>menstrualStatus</code></td>
+  <td><span class="key-code">MENSTRUAL_STATUS_INQUIRY</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span> + <span class="badge badge-ai">AI Prompt</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td class="text-cell"><div class="text-preview he">עכשיו, הייתי רוצה להבין יותר על המחזור החודשי שלך. את יכולה להגיד לי אם הווסת שלך סדירה, האם היא הפכה לא סדירה, או שהיא נפסקה? זכרי, לא סדיר יכול גם להיות שינויים בכמות, לא רק בתדירות.</div></td>
+  <td class="text-cell"><div class="text-preview en">Now, I would like to understand more about your menstrual cycle. Could you tell me if your periods are regular, have they become irregular, or have they stopped? Remember, irregular can also mean changes in volume, not just frequency.</div></td>
+  <td><strong>Prompt-dependent:</strong> AI collects menstrualStatus enum (regular/irregular/stopped). <strong>Branches:</strong> age&lt;40+regular &rarr; intakeTooYoung; stopped &rarr; stoppedReason; else &rarr; preAssessment</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td>Branch: Too Young</td>
+  <td><code>intakeTooYoung</code></td>
+  <td><span class="key-code">INTAKE_TOO_YOUNG</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span><br>(4 messages)</td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td class="text-cell">
+    <div class="text-preview he"><strong>Msg1:</strong> בהתחשב בכך שאת מתחת לגיל 40 והמחזור שלך סדיר, לא סביר שאת עוברת לגיל המעבר כל כך מוקדם...</div>
+    <div class="text-preview he"><strong>Msg2:</strong> אבל לפני שנפרדות, {{name}}, אם השיחה שלנו עזרה לך, זה יהיה חשוב לי מאוד אם תוכלי לשתף את Freeda.ai...</div>
+    <div class="text-preview he"><strong>Msg3:</strong> https://app.freeda.ai/share/{{userCode}}</div>
+    <div class="text-preview he"><strong>Msg4:</strong> תודה שבטחת בפרידה, ותמיד זכרי, אנחנו כאן מתי שתצטרכי תמיכה. 🙏🏼💜</div>
+  </td>
+  <td class="text-cell">
+    <div class="text-preview en"><strong>Msg1:</strong> Considering you're under 40 and your period is regular, it's unlikely you're transitioning into menopause this early...</div>
+    <div class="text-preview en"><strong>Msg2:</strong> But before we part ways, {{name}}... share Freeda.ai...</div>
+    <div class="text-preview en"><strong>Msg3:</strong> https://app.freeda.ai/share/{{userCode}}</div>
+    <div class="text-preview en"><strong>Msg4:</strong> Thank you for trusting Freeda... 🙏🏼💜</div>
+  </td>
+  <td><strong>Condition:</strong> age&lt;40 AND regular. Next step loops back to <code>obStart</code>. Effectively an exit with re-entry.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td>Branch: Stopped</td>
+  <td><code>onboardingMenstrualStatusStoppedReason</code></td>
+  <td><span class="key-code">MENSTRUAL_STATUS_STOPPED_OPTIONS</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span> + <span class="badge badge-ai">AI Prompt</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td class="text-cell"><div class="text-preview he">אנא הסבירי למה הפסקת לוסת.
+א) הווסת שלי נפסקה באופן טבעי.
+ב) ניתוח - כריתת שחלות דו-צדדית...
+ג) ניתוח - כריתת רחם (הסרת הרחם)
+ד) אני בטיפול הורמונלי
+ה) גלולות מניעה רציפות...
+ו) עקב כימותרפיה או הקרנות
+ז) אחר</div></td>
+  <td class="text-cell"><div class="text-preview en">Please explain why you stopped menstruating.
+a) My periods stopped naturally.
+b) Surgical- Bilateral Oophorectomy...
+c) Surgical- Hysterectomy (Removal of uterus)
+d) I am on hormone therapy
+e) Continuous birth control pills...
+f) Due to chemotherapy or radiation therapy
+g) Other</div></td>
+  <td><strong>Prompt-dependent:</strong> AI collects stoppedReason (a-g / א-ז) + monthsSinceStopped + optional stoppedReasonOther. <strong>Condition:</strong> menstrualStatus === "stopped"</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td>Pre-Assessment</td>
+  <td><code>onboardingPreAssessmentStep</code></td>
+  <td><span class="key-code">ASSESSMENT_MENOPAUSE_JOURNEY_PROBABLY_WITH_TRANSITION</span> or<br><span class="key-code">ASSESSMENT_MENOPAUSE_JOURNEY_MIGHT_WITH_TRANSITION</span></td>
+  <td><span class="badge badge-custom">Custom</span> + <span class="badge badge-fixed">Fixed Text</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td class="text-cell">
+    <div class="text-preview he"><strong>If probably:</strong> את כנראה במסע גיל המעבר שלך. כדי לעזור לזהות את השלב הנוכחי שלך ואת התסמינים שאת חווה, אני אצטרך לשאול כמה שאלות נוספות.</div>
+    <div class="text-preview he"><strong>If might:</strong> את עשויה להיות במסע גיל המעבר שלך...</div>
+  </td>
+  <td class="text-cell">
+    <div class="text-preview en"><strong>If probably:</strong> You're probably in your menopause journey. To help pinpoint your current stage and the symptoms you're experiencing, I'll need to ask a few additional questions.</div>
+    <div class="text-preview en"><strong>If might:</strong> You might be in your menopause journey...</div>
+  </td>
+  <td>Runs <code>calculateStage()</code>, sets stage in context, sends one of two messages. "Probably" for MENOPAUSE/PERIMENOPAUSE/POSTMENOPAUSE stages.</td>
+</tr>
+
+<!-- SYMPTOM INTAKE -->
+<tr class="section-header"><td colspan="9">SYMPTOM INTAKE (4 GROUPS, CONVERGED PATH)</td></tr>
+<tr>
+  <td>13</td>
+  <td>Intake Start</td>
+  <td><code>intakeStart</code></td>
+  <td>&mdash;</td>
+  <td><span class="badge badge-custom">Custom</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td>&mdash;</td>
+  <td>&mdash;</td>
+  <td>Empty routing step &rarr; intakeSymptomsVasomotor</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td>Vasomotor Symptoms</td>
+  <td><code>intakeSymptomsVasomotor</code></td>
+  <td><span class="key-code">INTAKE_VASOMOTOR_SYMPTOMS</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span> (HE:6, EN:5 msgs) + <span class="badge badge-ai">AI Prompt</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td class="text-cell">
+    <div class="text-preview he"><strong>Msg1:</strong> {{name}}, הייתי רוצה שעכשיו נעבור על התסמינים השונים של גיל הַמֵעֵבֶר, כדי שנוכל להבין לעומק אילו תסמינים את חווה.</div>
+    <div class="text-preview he"><strong>Msg2:</strong> מהניסיון שלי, הרבה נשים חוות תסמינים שהן אינן מקשרות לגיל הַמֵעֵבֶר, אנחנו נוטות לייחס את התסמינים ללחץ... אבל תאמיני לי - אין שום סיבה לסבול מתסמינים שיש להם פתרון.</div>
+    <div class="text-preview he"><strong>Msg3:</strong> אז אני צריכה אותך קצת סבלנית, וקשובה לעצמך. אני לא רוצה לחפור, אבל רוצה שתיהיה לנו את התמונה המלאה...</div>
+    <div class="text-preview he"><strong>Msg4:</strong> בואי נתחיל עם הקבוצה הראשונה של התסמינים, שאני אוהבת לקרוא להם תסמיני הסלב... 70%-80%... גלי החום, גלי קור, הזעות לילה וקשיי שינה</div>
+    <div class="text-preview he"><strong>Msg5:</strong> [image: vasomotor-illustration-he.png]</div>
+    <div class="text-preview he"><strong>Msg6:</strong> האם את חווה חלק מתמינים אלה?</div>
+  </td>
+  <td class="text-cell">
+    <div class="text-preview en"><strong>Msg1:</strong> {{name}}, let's explore menopause symptoms to see if you might be experiencing any of them.</div>
+    <div class="text-preview en"><strong>Msg2:</strong> A lot of us go through things we can't quite explain, changes we chalk up to stress, age, or "just life."...</div>
+    <div class="text-preview en"><strong>Msg3:</strong> Hot flushes, 🥵 night sweats, 💦 and disrupted sleep, 🌜💤 are the most common symptoms of menopause, with 70%-80%...</div>
+    <div class="text-preview en"><strong>Msg4:</strong> [image: vasomotor-illustration.png]</div>
+    <div class="text-preview en"><strong>Msg5:</strong> Have you noticed any of these symptoms? 🤔</div>
+  </td>
+  <td><strong>Prompt-dependent:</strong> AI collects symptoms[] + acknowledgementReply via <code>collectSymptoms</code> function. YES/NO/AWK keys exist but are <strong>commented out</strong> &mdash; AI generates response. Nudges: 30min AI + 3day template.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td>Emotional Symptoms</td>
+  <td><code>intakeSymptomsEmotional</code></td>
+  <td><span class="key-code">INTAKE_EMOTIONAL_SYMPTOMS</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span> (5 msgs) + <span class="badge badge-ai">AI Prompt</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td class="text-cell">
+    <div class="text-preview he"><strong>Msg1:</strong> בואי נעבור לקבוצה הבאה של התסמינים, התסמינים הריגשים</div>
+    <div class="text-preview he"><strong>Msg2:</strong> [image: emotional-illustration-he.png]</div>
+    <div class="text-preview he"><strong>Msg3:</strong> כל אישה חווה את השינויים הרגשיים האלה בצורה קצת שונה ✨ הנה כמה תיאורים שנשים משתמשות בהם כדי לבטא...</div>
+    <div class="text-preview he"><strong>Msg4:</strong> [image: emotional-descriptors-he.png]</div>
+    <div class="text-preview he"><strong>Msg5:</strong> האם שמת לב לשינויים רגשיים אצלך בתקופה האחרונה?</div>
+  </td>
+  <td class="text-cell">
+    <div class="text-preview en"><strong>Msg1:</strong> 🔍Let us examine other groups of symptoms. Emotional Symptoms💕</div>
+    <div class="text-preview en"><strong>Msg2:</strong> [image: emotional-illustration.png]</div>
+    <div class="text-preview en"><strong>Msg3:</strong> Every woman experiences these emotional shifts uniquely. 🌟 Here are some descriptors women often use...</div>
+    <div class="text-preview en"><strong>Msg4:</strong> [image: emotional-descriptors.png]</div>
+    <div class="text-preview en"><strong>Msg5:</strong> Have you noticed any emotional changes in yourself?</div>
+  </td>
+  <td><strong>Prompt-dependent:</strong> Same AI pattern as vasomotor. YES/NO/AWK keys not used in flow.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td>Cognitive Symptoms</td>
+  <td><code>intakeSymptomsCognitive</code></td>
+  <td><span class="key-code">INTAKE_COGNITIVE_SYMPTOMS</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span> (3 msgs) + <span class="badge badge-ai">AI Prompt</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td class="text-cell">
+    <div class="text-preview he"><strong>Msg1:</strong> בואי נעבור על תסמינים קוגניטיביים 🧠</div>
+    <div class="text-preview he"><strong>Msg2:</strong> [image: cognitive-illustration-he.png]</div>
+    <div class="text-preview he"><strong>Msg3:</strong> האם שמת לב לשינויים בתפקודים הקוגנטיבים לאחרונה?</div>
+  </td>
+  <td class="text-cell">
+    <div class="text-preview en"><strong>Msg1:</strong> I would like us to chat about Cognitive Symptoms🧠.</div>
+    <div class="text-preview en"><strong>Msg2:</strong> [image: cognitive-illustration.png]</div>
+    <div class="text-preview en"><strong>Msg3:</strong> Have you noticed any changes in your cognitive abilities recently?</div>
+  </td>
+  <td><strong>Prompt-dependent:</strong> Same AI pattern.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td>Physical Symptoms</td>
+  <td><code>intakeSymptomsPhysical</code></td>
+  <td><span class="key-code">INTAKE_PHYSICAL_SYMPTOMS</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span> (HE:3, EN:4 msgs) + <span class="badge badge-ai">AI Prompt</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td class="text-cell">
+    <div class="text-preview he"><strong>Msg1:</strong> עכשיו הייתי רוצה לשאול אותך על תסמינים גופניים. בגוף שלנו יש קולטנים לאסטרוגן כמעט בכל איבר... 🍏 חילוף חומרים 💪 חוזק העצמות ❤️ בריאות הלב 🧴 עור ועוד... אל תדאגי אם הרשימה הבאה נראית קצת ארוכה...</div>
+    <div class="text-preview he"><strong>Msg2:</strong> [image: physical-descriptors-he.png]</div>
+    <div class="text-preview he"><strong>Msg3:</strong> האם חווית שינויים פיזיים כאלה או אחרים לאחרונה?</div>
+  </td>
+  <td class="text-cell">
+    <div class="text-preview en"><strong>Msg1:</strong> I would like to ask you now about Physical Symptoms. Oestrogen receptors are found throughout our bodies... metabolism 🍏, skin, bone strength 💪, heart health ❤️...</div>
+    <div class="text-preview en"><strong>Msg2:</strong> Don't worry if the next list seems daunting - many women only experience a few 🤏...</div>
+    <div class="text-preview en"><strong>Msg3:</strong> [image: physical-descriptors.png]</div>
+    <div class="text-preview en"><strong>Msg4:</strong> Have you experienced any physical changes?</div>
+  </td>
+  <td><strong>Prompt-dependent:</strong> Same AI pattern. Note HE combines intro+disclaimer in 1 msg, EN splits into 2.</td>
+</tr>
+
+<!-- TOP SYMPTOMS -->
+<tr class="section-header"><td colspan="9">TOP SYMPTOMS &amp; IMPACT</td></tr>
+<tr>
+  <td>18</td>
+  <td>Gateway</td>
+  <td><code>intakeTopSymptomsGateway</code></td>
+  <td>&mdash;</td>
+  <td><span class="badge badge-router">Router</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td>&mdash;</td>
+  <td>&mdash;</td>
+  <td>Counts total unique symptoms across all 4 groups. &gt;3 &rarr; intakeTop3Symptoms. 1-3 &rarr; intakeTop3SymptomsImpact (auto-sets all as top). 0 &rarr; intakeSummaryIntro (skips impact, sets impact=1).</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td>Top 3 Selection</td>
+  <td><code>intakeTop3Symptoms</code></td>
+  <td><span class="key-code">INTAKE_TOP_SYMPTOMS</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span> (2 msgs) + <span class="badge badge-ai">AI Prompt</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td class="text-cell">
+    <div class="text-preview he"><strong>Msg1:</strong> אנחנו כמעט סיימנו 💬.</div>
+    <div class="text-preview he"><strong>Msg2:</strong> עכשיו שעברנו על כל התסמינים השונים, את יכולה לזהות 📍 את התסמינים שמטרידים אותך הכי הרבה? 🤔</div>
+  </td>
+  <td class="text-cell">
+    <div class="text-preview en"><strong>Msg1:</strong> We are almost done 💬.</div>
+    <div class="text-preview en"><strong>Msg2:</strong> Now that we've covered all the various symptoms, could you pinpoint 📍 the symptoms that bother you the most? 🤔</div>
+  </td>
+  <td><strong>Prompt-dependent:</strong> AI collects top symptoms from full reported list. Only shown if &gt;3 total symptoms. <strong>Condition:</strong> totalSymptoms &gt; 3</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td>Impact Rating</td>
+  <td><code>intakeTop3SymptomsImpact</code></td>
+  <td><span class="key-code">INTAKE_TOP_SYMPTOMS_IMPACT</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span> + <span class="badge badge-ai">AI Prompt</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td class="text-cell"><div class="text-preview he">בסקאלה של 1-5, כמה משמעותית התסמינים האלה משפיעים על איכות החיים שלך? כאשר 1 זה 'כמעט לא מורגש' ו-5 זה 'מאוד מפריע, הופך את החיים למאתגרים מאוד.' 🤔</div></td>
+  <td class="text-cell"><div class="text-preview en">On a scale of 1-5, how significantly do these symptoms impact the quality of your life? With 1 being 'barely noticeable' and 5 being 'extremely disruptive, making life very challenging.' 🤔</div></td>
+  <td><strong>Prompt-dependent:</strong> AI collects symptomsImpact (1-5) + acknowledgementReply. Prompt instructs to mention research about untreated symptoms + end positive. Skipped if 0 symptoms.</td>
+</tr>
+
+<!-- SUMMARY & REPORT -->
+<tr class="section-header"><td colspan="9">SUMMARY, REPORT &amp; POST-ASSESSMENT</td></tr>
+<tr>
+  <td>21</td>
+  <td>Summary Intro</td>
+  <td><code>intakeSummaryIntro</code></td>
+  <td><span class="key-code">INTAKE_SUMMARY_INTRO</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span><br>(2 msgs)</td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td class="text-cell">
+    <div class="text-preview he"><strong>Msg1:</strong> ✍️ זהו סיימנו את השלב של השאלות, תודה על הסבלנות והפתיחות. אני אנתח את המידע ואכין לך מפת דרכים אישית🧠💻 בזמן שאני מעבדת את הנתונים 🔍, חשוב לי שתדעי – המסע שלך לניהול איכות החיים שלך והבריאות שלך ⭐ מתחיל עכשיו. נעבור את זה יחד...</div>
+    <div class="text-preview he"><strong>Msg2:</strong> אני רוצה שתחשבי על המפה שתקבלי כנקודת המוצא של המסע שלך... כל אחת חווה את השינויים בגיל הַמֵעֵבֶר אחרת... את הנהגת, אני כאן כדי לסייע לך בניווט. 🧭</div>
+  </td>
+  <td class="text-cell">
+    <div class="text-preview en"><strong>Msg1:</strong> Okay, I've got everything I need. Based on what you've shared so far, I'm now preparing your personalised roadmap. This will take just a few moments. 🛠️</div>
+    <div class="text-preview en"><strong>Msg2:</strong> Think of it as your starting point... Every woman's experience is different. There's no one way to do this. You're in the driver's seat. I'm here to help you steer. 🧭</div>
+  </td>
+  <td></td>
+</tr>
+<tr>
+  <td>22</td>
+  <td>Report Generate</td>
+  <td><code>intakeSummaryGenerate</code></td>
+  <td>&mdash;</td>
+  <td><span class="badge badge-custom">Custom</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td>&mdash;</td>
+  <td>&mdash;</td>
+  <td>Calls <code>reportingService.generateReportData()</code>, saves to Firestore, generates shareable link. Sets <code>reportTips</code> and <code>reportLink</code> in context. Fires <code>assessmentCompleted</code> analytics event. 3.5s delay.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td>Report Link</td>
+  <td><code>intakeSummaryReport</code></td>
+  <td><span class="key-code">INTAKE_SUMMARY_REPORT</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td class="text-cell"><div class="text-preview he">הנה הקישור לתוצאות ההערכה שלך. תסתכלי! אני בטוחה שיהיו לך הרבה שאלות בהמשך. תרגישי חופשיה להגיע - אני כאן כדי לעזור בכל דרך שאני יכולה.🙏
+{{reportLink}}</div></td>
+  <td class="text-cell"><div class="text-preview en">Here's the link to your assessment results. Take a look! I'm sure you'll have many questions moving forward. Feel free to reach out - I'm here to help in any way that I can.🙏
+{{reportLink}}</div></td>
+  <td>Next step: generalAma</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td>General AMA</td>
+  <td><code>generalAma</code></td>
+  <td>&mdash;</td>
+  <td><span class="badge badge-ai">AI QA</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td colspan="2"><em>Fully AI-generated. No fixed text. System prompt covers treatment discussion (HRT, lifestyle, nutrition), symptom management. Uses vector DB for article retrieval.</em></td>
+  <td>Open-ended conversation. Nudges: 30min AI, feedbackNudge 30min, symptomTracker, 7-day template, 14-day template. First exit &rarr; feedback step, then loops.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td>Feedback</td>
+  <td><code>feedback</code></td>
+  <td><span class="key-code">FEEDBACK_CONVERSATION_PREFERENCE</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td class="text-cell"><div class="text-preview he">הערה קצרה: אני כאן כדי להתאים את השיחה שלנו לטעם שלך. אל תהססי להגיד לי אם את רוצה תגובות מפורטות יותר, תגובות קצרות יותר, או גישה שונה בדיונים שלנו.</div></td>
+  <td class="text-cell"><div class="text-preview en">A quick note: I'm here to tailor our conversation to your liking. Don't hesitate to tell me if you'd like more detailed responses, shorter responses, or a different approach in our discussions.</div></td>
+  <td>One-time, triggered on first exit from generalAma. Sets <code>feedbackSent=true</code>. Returns to generalAma.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td>Post-Report Nudge</td>
+  <td>(nudge)</td>
+  <td><span class="key-code">NUDGE_POST_REPORT_FEEDBACK</span></td>
+  <td><span class="badge badge-fixed">Fixed Text</span> (nudge)</td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td class="text-cell"><div class="text-preview he">היי {{name}} 🌼 האם הספקת להסתכל על הסיכום שלך? כמה נשים מוצאות את זה מרגיע. אחרות חושבות, "מאיפה אני בכלל מתחילה?" בכל מקרה, זה בסדר גמור! אני כאן כדי לעזור לך להמשיך... 💡 פשוט תגידי לי על מה את רוצה להתמקד הבא...</div></td>
+  <td class="text-cell"><div class="text-preview en">Hi {{name}} 🌼 Did you get a chance to take a look at your summary? Some women find it reassuring. Others think, "Where do I even start?" Either way, it's completely okay! I'm here to help you keep going... 💡 Just tell me what you'd like to focus on next...</div></td>
+  <td>Sent as <code>feedbackNudge</code> 30 min after generalAma starts, only if <code>__startedAma !== true</code>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<!-- Unused Keys -->
+<h2>5. Unused / Legacy Keys in bot-content.ts</h2>
+<div class="warning">These keys are defined in <code>bot-content.ts</code> (both EN and HE) but are NOT wired into any active flow step. They were previously used for YES/NO/AWK branching before the AI-generated acknowledgement pattern was adopted.</div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Key</th><th>EN Text</th><th>HE Text</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td><code>INTAKE_VASOMOTOR_SYMPTOMS_YES_SYMPTOMS</code></td><td>I'm sorry to hear that 😔, can you please specify which ones?</td><td>אני מצטערת לשמוע את זה 😔, את יכולה בבקשה לפרט אילו?</td><td><span class="badge badge-unused">Commented out</span></td></tr>
+<tr><td><code>INTAKE_VASOMOTOR_SYMPTOMS_NO_SYMPTOMS</code></td><td>I'm happy to hear that.</td><td>אני שמחה לשמוע את זה.</td><td><span class="badge badge-unused">Commented out</span></td></tr>
+<tr><td><code>INTAKE_VASOMOTOR_SYMPTOMS_AWK_SYMPTOMS</code></td><td>Thank you for sharing 💕</td><td>תודה שחלקת איתי 💕</td><td><span class="badge badge-unused">Commented out</span></td></tr>
+<tr><td><code>INTAKE_EMOTIONAL_SYMPTOMS_YES_SYMPTOMS</code></td><td>Please describe what you feel...</td><td>אנא תארי מה את מרגישה...</td><td><span class="badge badge-unused">Not used in flow</span></td></tr>
+<tr><td><code>INTAKE_EMOTIONAL_SYMPTOMS_NO_SYMPTOMS</code></td><td>Great news!💃</td><td>חדשות טובות!💃</td><td><span class="badge badge-unused">Not used in flow</span></td></tr>
+<tr><td><code>INTAKE_EMOTIONAL_SYMPTOMS_AWK_SYMPTOMS</code></td><td>I hear you, that can be really tough...</td><td>אני שומעת אותך, זה יכול להיות ממש קשה...</td><td><span class="badge badge-unused">Not used in flow</span></td></tr>
+<tr><td><code>INTAKE_COGNITIVE_SYMPTOMS_YES_SYMPTOMS</code></td><td>Please tell me using the examples provided...</td><td>בבקשה ספרי לי באמצעות הדוגמאות...</td><td><span class="badge badge-unused">Not used in flow</span></td></tr>
+<tr><td><code>INTAKE_COGNITIVE_SYMPTOMS_NO_SYMPTOMS</code></td><td>That's wonderful to hear 🙌</td><td>זה נפלא לשמוע 🙌</td><td><span class="badge badge-unused">Not used in flow</span></td></tr>
+<tr><td><code>INTAKE_COGNITIVE_SYMPTOMS_AWK_SYMPTOMS</code></td><td>This can be stressful, but it's only temporary...</td><td>זה יכול להיות מלחיץ, אבל זה רק זמני...</td><td><span class="badge badge-unused">Not used in flow</span></td></tr>
+<tr><td><code>INTAKE_PHYSICAL_SYMPTOMS_YES_SYMPTOMS</code></td><td>Can you share with me the physical symptoms...?</td><td>את יכולה לשתף איתי את התסמינים הפיזיים...?</td><td><span class="badge badge-unused">Not used in flow</span></td></tr>
+<tr><td><code>INTAKE_PHYSICAL_SYMPTOMS_NO_SYMPTOMS</code></td><td>Consider yourself lucky 🍀</td><td>תחשבי על עצמך כבת מזל 🍀</td><td><span class="badge badge-unused">Not used in flow</span></td></tr>
+<tr><td><code>INTAKE_PHYSICAL_SYMPTOMS_AWK_SYMPTOMS</code></td><td>Thank you for sharing.</td><td>תודה שחלקת.</td><td><span class="badge badge-unused">Not used in flow</span></td></tr>
+<tr><td><code>ONBOARDING_WELCOME</code></td><td>Hi {{name}}, I'm Freeda, your AI menopause companion 🌼.</td><td>שלום, אני פרידה, החברה הדיגיטלית שלך לגיל המעבר 🌼.</td><td><span class="badge badge-unused">Legacy</span></td></tr>
+<tr><td><code>ONBOARDING_WELCOME_ONIT</code></td><td>Hello {{name}}, I'm Freeda...</td><td>שלום {{name}}, אני פרידה...</td><td><span class="badge badge-unused">Legacy (replaced by INTRO_ONIT)</span></td></tr>
+<tr><td><code>ONBOARDING_WELCOME_DEMO</code></td><td>Hi, I'm Freeda – your ally...</td><td>היי, אני פרידה – בת הברית שלך...</td><td><span class="badge badge-unused">Legacy (replaced by INTRO_DEMO)</span></td></tr>
+<tr><td><code>ONBOARDING_CAPABILITIES</code></td><td>I can help you understand your symptoms...</td><td>אני יכולה לסייע לך בהבנת התסמינים...</td><td><span class="badge badge-unused">Legacy (folded into INTRO)</span></td></tr>
+<tr><td><code>ONBOARDING_DISCLAIMER</code></td><td>Important to know – Freeda is an AI...</td><td>חשוב שתדעי – פרידה היא עוזרת דיגיטלית...</td><td><span class="badge badge-unused">Legacy (folded into INTRO)</span></td></tr>
+<tr><td><code>ONBOARDING_DEMO_NOTICE</code></td><td>Please note – you're currently chatting with the demo version...</td><td>שימי לב – את כרגע משוחחת עם גרסת הדמו...</td><td><span class="badge badge-unused">Legacy (folded into INTRO_DEMO)</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ONIT Tenant Config -->
+<h2>6. ONIT Tenant-Specific AI Instructions</h2>
+<div class="card">
+  <div class="card-title">tenant-config.ts &mdash; ONIT special guidelines</div>
+  <p>These instructions are injected into ALL AI prompts when tenant is "onit":</p>
+  <ul>
+    <li><strong>Primary Goal:</strong> Doctor appointment scheduling via <code>https://www.onitfast.com/auth/signin</code></li>
+    <li><strong>When:</strong> After assessment completion, proactively offer. During assessment only if user struggles.</li>
+    <li><strong>Secondary:</strong> Bone density test (DEXA) &mdash; separate from doctor appointment, no-cost add-on.</li>
+    <li><strong>Hebrew examples included</strong> for doctor appointment messaging.</li>
+    <li><strong>DEMO tenant:</strong> No special instructions (undefined).</li>
+  </ul>
+</div>
+
+<!-- Nudges -->
+<h2>7. Nudge / Reminder Schedule</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Nudge</th><th>Type</th><th>Delay</th><th>Condition</th><th>Content</th></tr></thead>
+<tbody>
+<tr><td><code>intakeNudge</code></td><td>AI-generated</td><td>30 min</td><td>No reply during intake</td><td>AI generates follow-up based on conversation history</td></tr>
+<tr><td><code>intakeNudge3Days</code></td><td>WhatsApp template<br><code>mid_assessment_nudge</code></td><td>3 days</td><td>No reply during intake</td><td>Pre-approved template with user name</td></tr>
+<tr><td><code>feedbackNudge</code></td><td>Fixed text<br><code>NUDGE_POST_REPORT_FEEDBACK</code></td><td>30 min</td><td><code>__startedAma !== true</code></td><td>Report follow-up nudge (see row #26)</td></tr>
+<tr><td><code>amaNudge</code></td><td>AI-generated</td><td>Next good time (6AM-10:30AM window logic)</td><td>No reply in AMA</td><td>AI picks up topic from: symptom check-in, tip feedback, time acknowledgement, question invitation</td></tr>
+<tr><td><code>amaNudge7Days</code></td><td>WhatsApp template<br><code>general_our_bodies_go</code></td><td>7 days</td><td><code>shouldTrackSymptoms !== true</code></td><td>Re-engagement template</td></tr>
+<tr><td><code>amaNudge14Days</code></td><td>WhatsApp template<br><code>general_been_a_while</code></td><td>14 days</td><td><code>shouldTrackSymptoms !== true</code></td><td>Re-engagement template</td></tr>
+<tr><td><code>symptomTrackerScheduler</code></td><td>Step trigger</td><td>Configurable (default 1 week)</td><td><code>shouldTrackSymptoms !== false &amp;&amp; symptomTrackerEnabled &amp;&amp; frequency !== "never"</code></td><td>Triggers symptom tracking flow</td></tr>
+</tbody>
+</table>
+</div>
+
+</div><!-- end page1 -->
+
+
+<!-- ==================== PAGE 2: CROSS-REFERENCE ==================== -->
+<div id="page2" class="page">
+
+<h1>Page 2: Cross-Reference &mdash; Current State vs. Requested Changes</h1>
+<p class="subtitle">Mapping the change request table against each active flow step. <span class="change-tag tag-delete">DELETE</span> <span class="change-tag tag-change">CHANGE TEXT</span> <span class="change-tag tag-add">ADD NEW</span> <span class="change-tag tag-keep">NO CHANGE</span> <span class="change-tag tag-bug">BUG FIX</span></p>
+
+<h2>Change Summary Statistics</h2>
+<div class="stats">
+  <div class="stat"><div class="stat-num" style="color:var(--red)">~12</div><div class="stat-label">Steps to DELETE / Skip</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--orange)">~18</div><div class="stat-label">Text Changes (HE + EN)</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--green)">~6</div><div class="stat-label">New Text to ADD</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--pink)">~5</div><div class="stat-label">Bug Fixes</div></div>
+</div>
+
+<div class="warning"><strong>Important:</strong> This page maps requested changes against the <em>actual active code paths</em>. Some rows in the change request table reference keys/steps that are already unused in the active flow (commented out). These are flagged below.</div>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+  <th>#</th>
+  <th>Category</th>
+  <th>Step ID / Key</th>
+  <th>Flow</th>
+  <th>Change Type</th>
+  <th>Current HEB (in code)</th>
+  <th>Requested New HEB</th>
+  <th>Current EN (in code)</th>
+  <th>Requested New EN</th>
+  <th>Implementation Notes</th>
+</tr>
+</thead>
+<tbody>
+
+<!-- ONBOARDING INTRO DEMO -->
+<tr class="section-header"><td colspan="10">ONBOARDING INTRO (DEMO &amp; ONIT)</td></tr>
+
+<tr class="change-modify">
+  <td>1</td>
+  <td>Onboarding</td>
+  <td><code>obStartDemo</code><br><span class="key-code">ONBOARDING_INTRO_DEMO</span><br>Msg1</td>
+  <td><span class="badge badge-demo">DEMO</span></td>
+  <td><span class="change-tag tag-change">CHANGE</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">היי, אני פרידה – בת הברית שלך במסע גיל הַמֵעֵבֶר 🌼 אני כאן כדי ללוות אותך בכל שלב, עם הבנה, כלים, ותמיכה – כדי שיהיה לך יותר ברור, יותר בטוח, והרבה פחות לבד.</div></td>
+  <td class="text-cell"><div class="text-preview he new-text">היי, אני פרידה 🌼, הוכשרתי כמומחית מבוססת בינה מלאכותית (AI) לגיל המעבר, אני משלבת ידע מחקרי וקליני עם הבנה אנושית-חברתית עמוקה, שנבנתה מתוך אינספור שיחות עם נשים, כדי לסייע לך לנווט בביטחון את המסע שלך בגיל הַמֵעֵבֶר.</div></td>
+  <td class="text-cell"><div class="text-preview en old-text">Hi, I'm Freeda – your ally in the menopause journey 🌼 I'm here to accompany you every step of the way...</div></td>
+  <td class="text-cell"><div class="text-preview en new-text">Hello {{name}}, I'm Freeda🌼, an AI-powered menopause specialist. I'm here to help you navigate your menopause journey with confidence.</div></td>
+  <td>&#x26A0; EN new text uses {{name}} but DEMO flow hasn't collected name yet at this step! Name is collected at obDemoCollectName (next step). Either move name collection before intro, or remove {{name}} from new EN text.</td>
+</tr>
+
+<tr class="change-modify">
+  <td>2</td>
+  <td>Onboarding</td>
+  <td><code>obStartDemo</code><br><span class="key-code">ONBOARDING_INTRO_DEMO</span><br>Msg2</td>
+  <td><span class="badge badge-demo">DEMO</span></td>
+  <td><span class="change-tag tag-change">CHANGE</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">אני יכולה לסייע לך בהבנת התסמינים, לשאול את השאלות הנכונות מול הרופא/ה, להמליץ על טיפולים אפשריים ולכוון אותך למידע שמתאים בדיוק לך. אני כאן גם כדי להקשיב...</div></td>
+  <td class="text-cell"><div class="text-preview he new-text">תחשבי עליי כעל השותפה שלך למסע הזה 🤝 אני כאן כדי להנגיש לך מידע אמין, בגובה העיניים להפיג חששות ובלבול, לעשות סדר, להכווין אותך אל האפשרויות השונות העומדות בפנייך ולסייע לך לבחור את מה שנכון עבורך בכל רגע נתון. ✨</div></td>
+  <td class="text-cell"><div class="text-preview en old-text">I can help you understand your symptoms, ask the right questions to your doctor...</div></td>
+  <td class="text-cell"><div class="text-preview en new-text">Think of me as your partner in this journey 🤝. I'm here to provide reliable, accessible information, address concerns and confusion, guide you through your options, and help you choose what's right for you at every step.</div></td>
+  <td>Update array index [1] in both botContent and botContentHe.</td>
+</tr>
+
+<tr class="change-modify">
+  <td>4</td>
+  <td>Onboarding</td>
+  <td><code>obStartDemo</code><br><span class="key-code">ONBOARDING_INTRO_DEMO</span><br>Msg3 (disclaimer)</td>
+  <td><span class="badge badge-demo">DEMO</span></td>
+  <td><span class="change-tag tag-change">CHANGE</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">חשוב שתדעי – פרידה היא עוזרת דיגיטלית... 💬 בכך שאת ממשיכה את השיחה, את מאשרת שקראת... לפרטים המלאים: [link]</div></td>
+  <td class="text-cell"><div class="text-preview he new-text">לפני שמתחילות, משהו קטן וחשוב 🌿 אני עוזרת דיגיטלית מבוססת בינה מלאכותית, לא רופאה... כדי שנוכל לדבר בפתיחות, חשוב לי שתדעי שהמידע האישי שתשתפי איתי נשמר ומוגן... אני צריכה את הסכמתך כדי להמשיך. 💜 [למדיניות הפרטיות]</div></td>
+  <td class="text-cell"><div class="text-preview en old-text">Important to know – Freeda is an AI-powered digital assistant... 💬 By continuing... For full details: https://app.freeda.ai/tos/{{analyticsId}}</div></td>
+  <td class="text-cell"><div class="text-preview en new-text">Before we begin, just one small thing 🌿 I'm an AI-powered digital assistant, not a doctor... I need your consent to continue. 💜 For full terms: https://app.freeda.ai/tos/ar50nb4r</div></td>
+  <td>&#x26A0; Change request also asks to add a consent "אני מסכימה - בואי נתחיל" button. This requires adding a <code>collect-input-button</code> step after the disclaimer. Currently no consent button exists.</td>
+</tr>
+
+<tr class="change-delete">
+  <td>7</td>
+  <td>Onboarding</td>
+  <td><code>obStartDemo</code><br><span class="key-code">ONBOARDING_INTRO_DEMO</span><br>Msg4 (demo notice)</td>
+  <td><span class="badge badge-demo">DEMO</span></td>
+  <td><span class="change-tag tag-delete">DELETE</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">שימי לב – את כרגע משוחחת עם גרסת הדמו של פרידה הזמינה לך ל-48 שעות הקרובות...</div></td>
+  <td>&mdash;</td>
+  <td class="text-cell"><div class="text-preview en old-text">Please note – you're currently chatting with the demo version of Freeda, available for the next 48 hours...</div></td>
+  <td>&mdash;</td>
+  <td>Remove array index [3] from ONBOARDING_INTRO_DEMO in both languages. Also delete the standalone <code>ONBOARDING_DEMO_NOTICE</code> key.</td>
+</tr>
+
+<tr class="change-modify">
+  <td>8</td>
+  <td>Onboarding</td>
+  <td><code>obDemoCollectName</code><br><span class="key-code">ONBOARDING_ASK_NAME</span></td>
+  <td><span class="badge badge-demo">DEMO</span></td>
+  <td><span class="change-tag tag-change">CHANGE HEB</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">נתחיל בדבר הכי חשוב – איך לקרוא לך?</div></td>
+  <td class="text-cell"><div class="text-preview he new-text">נתחיל בדבר הכי חשוב, איך תרצי שאקרא לך?</div></td>
+  <td class="text-cell"><div class="text-preview en">First things first, what's your name, or how would you like me to address you?</div></td>
+  <td class="text-cell"><span class="change-tag tag-keep">NO CHANGE</span></td>
+  <td>HEB only change. Small wording tweak.</td>
+</tr>
+
+<tr class="change-modify">
+  <td>10</td>
+  <td>Onboarding</td>
+  <td><code>obDemoAfterName</code><br><span class="key-code">ONBOARDING_AFTER_NAME_DEMO</span></td>
+  <td><span class="badge badge-demo">DEMO</span></td>
+  <td><span class="change-tag tag-change">CHANGE</span></td>
+  <td class="text-cell">
+    <div class="text-preview he old-text">HE Msg1: נעים להכיר, {{name}} 🌼</div>
+    <div class="text-preview he old-text">HE Msg2: בואי נתחיל בכמה שאלות... 7-10 דקות... מוכנה להתחיל?</div>
+  </td>
+  <td class="text-cell">
+    <div class="text-preview he new-text">HE Msg1: (keep) Nice to meet</div>
+    <div class="text-preview he new-text">HE Msg2: אני רוצה שנתחיל בכמה שאלות שיעזרו לי להכיר אותך יותר טוב 🤍, ולכוון אותך למידע ולפתרונות שמתאימים בדיוק לך 🎯 השלב הזה לוקח בערך 5-7 דקות ⏱️, ואנחנו יכולות לעצור בכל רגע ולהמשיך מתי שנוח לך</div>
+  </td>
+  <td class="text-cell">
+    <div class="text-preview en old-text">EN Msg1: Hello {{name}}, it's lovely to meet you 🌼...</div>
+    <div class="text-preview en old-text">EN Msg2: Let's begin with a few questions... 7–10 minutes...</div>
+    <div class="text-preview en old-text">EN Msg3: At the end of this step, you'll receive your personalised roadmap...</div>
+  </td>
+  <td class="text-cell">
+    <div class="text-preview en new-text">EN Msg1: Nice to meet you, {{name}} 🌼</div>
+    <div class="text-preview en new-text">EN Msg2: I'd love to start by getting to know you a little better 🤍 — so I can point you toward the information and solutions that actually fit your life 🎯 This will take around 5-7 minutes ⏱️, and we can pause and pick up whenever works for you 🌸</div>
+    <div class="text-preview en"><span class="change-tag tag-delete">DELETE Msg3</span> (roadmap preview)</div>
+  </td>
+  <td>EN Msg3 about "personalised roadmap" to be deleted. Time estimate changed from 7-10 to 5-7 minutes. Also: HEB currently missing the "ask age" message which is now added to this step.</td>
+</tr>
+
+<tr class="change-modify">
+  <td>12</td>
+  <td>Onboarding</td>
+  <td><code>obDemoAfterName</code><br><span class="key-code">ONBOARDING_AFTER_NAME_DEMO</span><br>(Age question)</td>
+  <td><span class="badge badge-demo">DEMO</span></td>
+  <td><span class="change-tag tag-change">CHANGE HEB</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">בת כמה את?</div></td>
+  <td class="text-cell"><div class="text-preview he new-text">תוכלי לומר לי בבקשה בת כמה את?</div></td>
+  <td class="text-cell"><div class="text-preview en">Could you please tell me your age?</div></td>
+  <td><span class="change-tag tag-keep">NO CHANGE</span></td>
+  <td>This is the <code>ONBOARDING_ASK_AGE</code> key. HEB-only polite rewording.</td>
+</tr>
+
+<!-- POST NAME INTRO -->
+<tr class="section-header"><td colspan="10">POST NAME INTRO (DEMO ONLY) &mdash; REQUESTED: DELETE ENTIRELY</td></tr>
+<tr class="change-delete">
+  <td>14-15</td>
+  <td>Onboarding</td>
+  <td><code>postNameIntro</code><br><span class="key-code">POST_NAME_AGE_INTRO</span><br>All 4 messages</td>
+  <td><span class="badge badge-demo">DEMO</span></td>
+  <td><span class="change-tag tag-delete">DELETE ALL</span></td>
+  <td class="text-cell">
+    <div class="text-preview he old-text">Msg1: שלום {{name}}, נעים מאוד להכיר אותך 🌼</div>
+    <div class="text-preview he old-text">Msg2: בואי נתחיל עם כמה שאלות...</div>
+    <div class="text-preview he old-text">Msg3: החלק הזה לוקח בערך 7-10 דקות...</div>
+    <div class="text-preview he old-text">Msg4: בסוף השלב הזה, תקבלי את מפת הדרכים האישית שלך...</div>
+  </td>
+  <td>&mdash;</td>
+  <td class="text-cell">
+    <div class="text-preview en old-text">Msg1: Hello {{name}}, it's lovely to meet you 🌼</div>
+    <div class="text-preview en old-text">Msg2: Let's begin with a few questions...</div>
+    <div class="text-preview en old-text">Msg3: This part takes around 7–10 minutes...</div>
+    <div class="text-preview en old-text">Msg4: At the end of this step... personalised roadmap...</div>
+  </td>
+  <td>&mdash;</td>
+  <td><strong>Delete entire step.</strong> This was duplicating content from obDemoAfterName. Change <code>obDemoCollectAge</code> nextStep from "postNameIntro" to "menstrualStatus" directly. Remove <code>postNameIntro</code> step from flow.</td>
+</tr>
+
+<!-- MENSTRUAL STATUS -->
+<tr class="section-header"><td colspan="10">MENSTRUAL STATUS ASSESSMENT</td></tr>
+<tr class="change-modify">
+  <td>M1</td>
+  <td>Menstrual Status</td>
+  <td><code>menstrualStatus</code><br><span class="key-code">MENSTRUAL_STATUS_INQUIRY</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-change">CHANGE</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">עכשיו, הייתי רוצה להבין יותר על המחזור החודשי שלך. את יכולה להגיד לי אם הווסת שלך סדירה...</div></td>
+  <td class="text-cell">
+    <div class="text-preview he new-text">תודה {Name}🌼, שינויים במחזור החודשי שלנו הם אחד המדדים החשובים ביותר שיש לשים אליהם לב באופן כללי ובוודאי בהקשר של גיל המעבר 🔍.</div>
+    <div class="text-preview he new-text"><span class="change-tag tag-add">ADD</span> תוכלי בבקשה לשתף אותי מה סטטוס המחזור החודשי שלך, האם הפסיק לחלוטין, במידה שאת עדיין מקבלת מחזור - האם הבחנת בשינוי בדפוס...</div>
+  </td>
+  <td class="text-cell"><div class="text-preview en old-text">Now, I would like to understand more about your menstrual cycle...</div></td>
+  <td class="text-cell">
+    <div class="text-preview en new-text">Thank you for sharing {🌼name} Our menstrual cycle is one of the most important signals our body sends us, and during perimenopause and menopause, it becomes even more so 🔍</div>
+    <div class="text-preview en new-text"><span class="change-tag tag-add">ADD</span> I'd love to hear a little about where you're at with yours. Has your period stopped, or is it still showing up? And if it is- has anything felt different recently?...</div>
+  </td>
+  <td>Currently 1 message, needs to become 2 messages (context + question). Changes from single array item to 2-item array in both languages.</td>
+</tr>
+
+<tr class="change-modify">
+  <td>M2</td>
+  <td>Menstrual Status Stopped</td>
+  <td><code>onboardingMenstrualStatusStoppedReason</code><br><span class="key-code">MENSTRUAL_STATUS_STOPPED_OPTIONS</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-change">CHANGE</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">אנא הסבירי למה הפסקת לוסת. א) הווסת שלי נפסקה באופן טבעי. ב) ניתוח - כריתת שחלות דו-צדדית... ג) ניתוח - כריתת רחם... ד) אני בטיפול הורמונלי ה) גלולות מניעה רציפות... ו) עקב כימותרפיה או הקרנות ז) אחר</div></td>
+  <td class="text-cell"><div class="text-preview he new-text">תוכלי לפרט את הסיבה להפסקת המחזור? 🩸
+1. המחזור שלי פסק באופן טבעי
+2. בעקבות ניתוח בו הוסרו שתי השחלות
+3. בעקבות ניתוח להסרת רחם (השחלות נשארו)
+4. אני בטיפול הורמונלי
+5. אני נוטלת אמצעי מניעה הורמונליים רציפים (גלולות / התקן תוך-רחמי הורמונלי / שתל)
+6. בעקבות כימותרפיה או טיפול קרינתי
+7. אחר</div></td>
+  <td class="text-cell"><div class="text-preview en old-text">Please explain why you stopped menstruating. a) My periods stopped naturally...</div></td>
+  <td class="text-cell"><div class="text-preview en new-text">Why did your periods stop? 🩸
+1. My periods stopped naturally
+2. Surgical - Both of my ovaries were removed
+3. Surgical - My uterus was removed
+4. I'm on hormone therapy
+5. Continuous contraception (birth control pills / hormonal IUD / Depo-Provera / implant)
+6. Due to chemotherapy or radiation therapy
+7. Other</div></td>
+  <td>&#x26A0; Options change from letters (a-g / א-ז) to numbers (1-7). Must update the <code>calculateStage()</code> function enum and the AI function parameter enum to accept "1"-"7" in addition to or instead of letters. This is a <strong>code change</strong> beyond text.</td>
+</tr>
+
+<!-- TOO YOUNG -->
+<tr class="section-header"><td colspan="10">TOO YOUNG EXIT</td></tr>
+<tr class="change-modify">
+  <td>17</td>
+  <td>Too Young</td>
+  <td><code>intakeTooYoung</code><br><span class="key-code">INTAKE_TOO_YOUNG</span><br>Msg1</td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-change">CHANGE</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">בהתחשב בכך שאת מתחת לגיל 40 והמחזור שלך סדיר...</div></td>
+  <td class="text-cell"><div class="text-preview he new-text">בהתחשב בכך שאת בת {age} והמחזור שלך סדיר, לא סביר שהתחלת את מסע גיל המעבר שלך, יחד עם זאת, החוויה של כל אישה שונה. אם יש לך תסמינים או דאגות... אני ממליצה לדון בהם עם רופא/ה.</div></td>
+  <td class="text-cell"><div class="text-preview en old-text">Considering you're under 40 and your period is regular...</div></td>
+  <td class="text-cell"><div class="text-preview en new-text">Considering you're under {age} and your period is regular... (same but with dynamic age)</div></td>
+  <td>Add {{age}} template variable. Currently hardcoded "under 40" / "מתחת לגיל 40".</td>
+</tr>
+<tr class="change-delete">
+  <td>17b</td>
+  <td>Too Young</td>
+  <td><span class="key-code">INTAKE_TOO_YOUNG</span><br>Msg2 (share link)</td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-delete">DELETE</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">אבל לפני שנפרדות, {{name}}... שתף את Freeda.ai...</div></td>
+  <td>&mdash;</td>
+  <td class="text-cell"><div class="text-preview en old-text">But before we part ways, {{name}}... share Freeda.ai...</div></td>
+  <td>&mdash;</td>
+  <td>Remove share CTA from too-young exit.</td>
+</tr>
+<tr class="change-delete">
+  <td>17c</td>
+  <td>Too Young</td>
+  <td><span class="key-code">INTAKE_TOO_YOUNG</span><br>Msg3 (share URL)</td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-delete">DELETE</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">https://app.freeda.ai/share/{{userCode}}</div></td>
+  <td>&mdash;</td>
+  <td class="text-cell"><div class="text-preview en old-text">https://app.freeda.ai/share/{{userCode}}</div></td>
+  <td>&mdash;</td>
+  <td>Remove share URL.</td>
+</tr>
+<tr class="change-modify">
+  <td>17d</td>
+  <td>Too Young</td>
+  <td><span class="key-code">INTAKE_TOO_YOUNG</span><br>Msg4 (goodbye)</td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-change">CHANGE HEB</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">תודה שבטחת בפרידה, ותמיד זכרי, אנחנו כאן מתי שתצטרכי תמיכה. 🙏🏼💜</div></td>
+  <td class="text-cell"><div class="text-preview he new-text">תודה שפנית לפרידה, ונשמח לתת מענה כשזה יהיה רלוונטי🙏🏼💜</div></td>
+  <td class="text-cell"><div class="text-preview en">Thank you for trusting Freeda... 🙏🏼💜</div></td>
+  <td><span class="change-tag tag-keep">NO CHANGE EN</span></td>
+  <td>HEB-only change.</td>
+</tr>
+
+<!-- PRE-ASSESSMENT -->
+<tr class="section-header"><td colspan="10">PRE-ASSESSMENT TRANSITION</td></tr>
+<tr class="change-delete">
+  <td>PA1</td>
+  <td>Pre-Assessment</td>
+  <td><code>onboardingPreAssessmentStep</code><br><span class="key-code">PROBABLY/MIGHT_WITH_TRANSITION</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-delete">DELETE</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">את כנראה במסע גיל המעבר שלך. כדי לעזור לזהות את השלב הנוכחי שלך...</div></td>
+  <td>&mdash;</td>
+  <td class="text-cell"><div class="text-preview en old-text">You're probably in your menopause journey. To help pinpoint your current stage...</div></td>
+  <td>&mdash;</td>
+  <td>Request says "delete completely and skip to next step". The <code>sendMessage()</code> call should be removed from the custom-fn, but keep the stage calculation logic. Step should still run <code>calculateStage()</code> silently.</td>
+</tr>
+
+<!-- VASOMOTOR -->
+<tr class="section-header"><td colspan="10">VASOMOTOR SYMPTOMS INTAKE</td></tr>
+<tr class="change-modify">
+  <td>V1</td>
+  <td>Vasomotor</td>
+  <td><code>intakeSymptomsVasomotor</code><br><span class="key-code">INTAKE_VASOMOTOR_SYMPTOMS</span><br>Msg2 (HE) / Msg2 (EN)</td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-change">CHANGE</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">מהניסיון שלי, הרבה נשים חוות תסמינים... אנחנו נוטות לייחס... אבל תאמיני לי - אין שום סיבה לסבול...</div></td>
+  <td class="text-cell"><div class="text-preview he new-text">מהניסיון שלי, הרבה נשים חוות תסמינים... 🇮🇱. אבל חשוב להכיר את התסמינים השונים ולהבין את התמונה הכוללת של התסמינים שאת חווה כדי להתאים את הפתרונות הנכונים, אין שום סיבה לסבול מתסמינים שפוגעים באיכות החיים שלך,</div></td>
+  <td class="text-cell"><div class="text-preview en">A lot of us go through things we can't quite explain...</div></td>
+  <td><span class="change-tag tag-keep">NO CHANGE EN</span></td>
+  <td>HEB-only: Slight rewording of "superpower" paragraph. Removes "superpower" line, adds quality-of-life framing.</td>
+</tr>
+<tr class="change-modify">
+  <td>V2</td>
+  <td>Vasomotor</td>
+  <td><span class="key-code">INTAKE_VASOMOTOR_SYMPTOMS</span><br>Msg3 (HE)</td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-change">CHANGE HEB</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">אז אני צריכה אותך קצת סבלנית, וקשובה לעצמך. אני לא רוצה לחפור, אבל רוצה שתיהיה לנו את התמונה המלאה...</div></td>
+  <td class="text-cell"><div class="text-preview he new-text">בשאלות הבאות נתחיל להרכיב את התמונה שלב אחרי שלב. אז אני צריכה אותך קצת סבלנית, וקשובה לעצמך. אני לא רוצה לחפור, אבל חשוב שיהיה לנו מיפוי מהימן של נקודת המוצא שלך.</div></td>
+  <td class="text-cell"><div class="text-preview en">So in the next few questions, we'll gently start putting those pieces together...</div></td>
+  <td><span class="change-tag tag-keep">NO CHANGE EN</span></td>
+  <td>HEB-only rewording.</td>
+</tr>
+
+<tr class="change-modify">
+  <td>V-YES</td>
+  <td>Vasomotor</td>
+  <td><span class="key-code">INTAKE_VASOMOTOR_SYMPTOMS_YES_SYMPTOMS</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-bug">BUG FIX</span></td>
+  <td colspan="4"><em>Key exists but is NOT USED in active flow (commented out). AI generates acknowledgement instead. The change request says "need to ask follow-up question to collect symptoms" &mdash; but this IS what the AI prompt does. The "bug" is likely that the AI sometimes doesn't ask follow-up.</em></td>
+  <td>Investigate AI prompt behavior for YES responses. May need to strengthen the prompt instruction to always ask "which ones?" when user says yes without specifics. Consider re-enabling the fixed text key.</td>
+</tr>
+
+<!-- EMOTIONAL / COGNITIVE / PHYSICAL - SAME PATTERN -->
+<tr class="section-header"><td colspan="10">EMOTIONAL / COGNITIVE / PHYSICAL &mdash; YES/NO/AWK RESPONSES</td></tr>
+<tr class="change-modify">
+  <td>E/C/P-YES</td>
+  <td>All symptom groups</td>
+  <td><span class="key-code">*_YES_SYMPTOMS</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-bug">BUG FIX</span></td>
+  <td colspan="4"><em>Same issue as vasomotor: YES/NO/AWK keys are defined but NOT wired. AI generates all acknowledgements. Bug report says "need to ask follow-up question to collect symptoms" for YES responses.</em></td>
+  <td>All 4 symptom groups use the same <code>createSymptomSteps()</code> factory. Fix needs to be applied once in the factory function. Options: (1) Re-enable YES/NO/AWK keys and add branching, or (2) Strengthen AI prompt to always follow up on YES without specifics.</td>
+</tr>
+<tr class="change-modify">
+  <td>C-AWK</td>
+  <td>Cognitive</td>
+  <td><span class="key-code">INTAKE_COGNITIVE_SYMPTOMS_AWK_SYMPTOMS</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-bug">BUG FIX</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">אני מבינה, (cognitiveSymptom) יכול להיות מאתגר, אבל חשוב לדעת שזה חולף<br><em>THEN AGAIN:</em> אני מבינה, Memory Lapses יכול להיות מאתגר...</div></td>
+  <td>&mdash;</td>
+  <td class="text-cell"><div class="text-preview en">This can be stressful, but it's only temporary...</div></td>
+  <td>&mdash;</td>
+  <td><span class="change-tag tag-bug">BUG:</span> HEB cognitive AWK response shows symptom name twice &mdash; first in Hebrew then in English. This is the AI-generated ack, not the fixed text. Fix in prompt or contextMapper.</td>
+</tr>
+
+<!-- PHYSICAL -->
+<tr class="section-header"><td colspan="10">PHYSICAL SYMPTOMS</td></tr>
+<tr class="change-modify">
+  <td>P1</td>
+  <td>Physical</td>
+  <td><code>intakeSymptomsPhysical</code><br><span class="key-code">INTAKE_PHYSICAL_SYMPTOMS</span><br>Msg1</td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-change">CHANGE</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">עכשיו הייתי רוצה לשאול אותך על תסמינים גופניים. בגוף שלנו יש קולטנים לאסטרוגן... 🍏 חילוף חומרים 💪 חוזק העצמות ❤️ בריאות הלב 🧴 עור ועוד... אל תדאגי אם הרשימה הבאה נראית קצת ארוכה — רוב הנשים חוות רק חלק קטן 🤏...</div></td>
+  <td class="text-cell"><div class="text-preview he new-text">בואי נדבר על התסמינים הגופניים. בגוף שלנו יש קולטנים לאסטרוגן... 🍏 חילוף חומרים 💪 ירידה במסת שריר וצפיפות עצם ❤️ שינויים קרדיווסקולארים🧴 שינויים בעור, בציפריניים בשיער ועוד... חוסר היכרות עם התסמינים מביא לכך שנשים רבות מתרוצצות בין רופאים מומחים...</div></td>
+  <td class="text-cell"><div class="text-preview en old-text">I would like to ask you now about Physical Symptoms. Oestrogen receptors are found throughout our bodies...</div></td>
+  <td class="text-cell"><div class="text-preview en new-text">Now let's talk the Physical symptoms. 💫 Oestrogen receptors exist in almost every organ we have... 🍏 Metabolism 💪 Muscle mass and bone density ❤️ Cardiovascular changes 🧴 Skin, hair, and nails... This is exactly why so many women find themselves going from specialist to specialist...</div></td>
+  <td>Both languages: expanded symptom categories, added "specialist shopping" framing.</td>
+</tr>
+<tr class="change-modify">
+  <td>P1b</td>
+  <td>Physical</td>
+  <td><span class="key-code">INTAKE_PHYSICAL_SYMPTOMS</span><br>Msg2 (disclaimer)</td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-change">CHANGE</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">(combined in Msg1 above)</div></td>
+  <td class="text-cell"><div class="text-preview he new-text"><span class="change-tag tag-add">ADD as separate msg:</span> קיימים כ- 85 סימפטומים מתועדים אבל אל דאגה רוב הנשים לא חוות יותר מ3-4 סימפטומים במקביל, הרשימה שלפנייך מביאה קבוצות עיקריות...</div></td>
+  <td class="text-cell"><div class="text-preview en old-text">Don't worry if the next list seems daunting - many women only experience a few 🤏...</div></td>
+  <td class="text-cell"><div class="text-preview en new-text">There are around 85 documented symptoms of perimenopause and menopause - but don't let that number scare you 🤏 Most women experience only 3-4 at any given time. The list below covers the main groups...</div></td>
+  <td>HEB: needs to be split into a separate message (currently combined). EN: rewrite with "85 symptoms" framing.</td>
+</tr>
+
+<!-- TOP SYMPTOMS -->
+<tr class="section-header"><td colspan="10">TOP SYMPTOMS &amp; IMPACT</td></tr>
+<tr class="change-modify">
+  <td>T1</td>
+  <td>Top Symptoms</td>
+  <td><span class="key-code">INTAKE_TOP_SYMPTOMS</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-bug">BUG FIX HEB</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">אנחנו כמעט סיימנו 💬. עכשיו שעברנו על כל התסמינים השונים, את יכולה לזהות...</div></td>
+  <td class="text-cell"><div class="text-preview he new-text"><span class="change-tag tag-bug">BUG:</span> In HEB flow this step is reportedly skipped entirely. Need to verify flow logic for HEB path. Also: this should only appear if &gt;3 symptoms collected (which is correct in code).</div></td>
+  <td class="text-cell"><div class="text-preview en">We are almost done 💬. Now that we've covered all the various symptoms, could you pinpoint 📍 the symptoms that bother you the most? 🤔</div></td>
+  <td><span class="change-tag tag-keep">NO CHANGE EN</span></td>
+  <td>Bug: HEB flow reportedly skips top symptoms selection. Investigate if this is a language detection issue or a flow routing bug in <code>intakeTopSymptomsGateway</code>.</td>
+</tr>
+<tr class="change-modify">
+  <td>T2</td>
+  <td>Impact Rating</td>
+  <td><span class="key-code">INTAKE_TOP_SYMPTOMS_IMPACT</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-change">CHANGE HEB</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">בסקאלה של 1-5... כאשר 1 זה 'כמעט לא מורגש' ו-5 זה 'מאוד מפריע, הופך את החיים למאתגרים מאוד.' 🤔</div></td>
+  <td class="text-cell"><div class="text-preview he new-text">כיצד היית מדרגת את מידת ההשפעה של התסמינים שמנית על איכות החיים שלך בסולם של 1 עד 5, כאשר 1 משקף השפעה מועטה של התסמינם ו5 תסמינים שפוגעים משמעותית באיכות החיים שלך?</div></td>
+  <td class="text-cell"><div class="text-preview en">On a scale of 1-5... 🤔</div></td>
+  <td><span class="change-tag tag-keep">NO CHANGE EN</span></td>
+  <td>HEB-only reword. More formal phrasing.</td>
+</tr>
+
+<!-- SUMMARY -->
+<tr class="section-header"><td colspan="10">SUMMARY &amp; REPORT</td></tr>
+<tr class="change-modify">
+  <td>S1</td>
+  <td>Summary Intro</td>
+  <td><code>intakeSummaryIntro</code><br><span class="key-code">INTAKE_SUMMARY_INTRO</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-change">CHANGE</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">Msg1: ✍️ זהו סיימנו את השלב של השאלות... אני אנתח את המידע ואכין לך מפת דרכים אישית🧠💻...</div></td>
+  <td class="text-cell">
+    <div class="text-preview he new-text">Msg1: ✍️ זהו יש לי את כל המידע הנדרש כדי להכין לך מפת דרכים ראשונית שהיא למעשה נקודת המוצא של המסע שלך... אחרי שתקראי, נוכל להעמיק ולהתקדם יחד...</div>
+    <div class="text-preview he new-text"><span class="change-tag tag-add">ADD Msg2:</span> כל אחת חווה את השינויים בגיל הַמֵעֵבֶר אחרת, וכל אחת מאיתנו צריכה דברים שונים בשלבים שונים, אין דרך אחת נכונה... ואני כאן עם מידע מבוסס מחקר, וכלים מוכחים... 💕</div>
+  </td>
+  <td class="text-cell"><div class="text-preview en old-text">Okay, I've got everything I need... preparing your personalised roadmap... Think of it as your starting point... You're in the driver's seat...</div></td>
+  <td class="text-cell"><div class="text-preview en"><span class="change-tag tag-keep">NO CHANGE</span> (EN text already matches requested direction)</div></td>
+  <td>HEB rewrite. EN stays as is (already contains the roadmap framing). EN Msgs about "driver's seat" etc. remain but are requested to be deleted in change table &mdash; contradiction since they already exist in current EN. Verify with stakeholder.</td>
+</tr>
+<tr class="change-modify">
+  <td>S2</td>
+  <td>Report Link</td>
+  <td><code>intakeSummaryReport</code><br><span class="key-code">INTAKE_SUMMARY_REPORT</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-change">CHANGE HEB</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">הנה הקישור לתוצאות ההערכה שלך... אני בטוחה שיהיו לך הרבה שאלות בהמשך... 🙏 {{reportLink}}</div></td>
+  <td class="text-cell"><div class="text-preview he new-text">{name} רצ״ב הלינק למפת הדרכים הראשונית שלך, לאחר שתקראי, אני מחכה לך כאן כדי לסייע לך להתקדם על עבר איכות חיים מיטבית.</div></td>
+  <td class="text-cell"><div class="text-preview en">Here's the link to your assessment results... 🙏 {{reportLink}}</div></td>
+  <td><span class="change-tag tag-keep">NO CHANGE EN</span></td>
+  <td>HEB-only rewrite.</td>
+</tr>
+
+<!-- POST-ASSESSMENT -->
+<tr class="section-header"><td colspan="10">POST-ASSESSMENT NUDGE</td></tr>
+<tr class="change-modify">
+  <td>N1</td>
+  <td>Post-Report</td>
+  <td><span class="key-code">NUDGE_POST_REPORT_FEEDBACK</span></td>
+  <td><span class="badge badge-both">BOTH</span></td>
+  <td><span class="change-tag tag-change">CHANGE HEB</span></td>
+  <td class="text-cell"><div class="text-preview he old-text">היי {{name}} 🌼 האם הספקת להסתכל על הסיכום שלך? כמה נשים מוצאות את זה מרגיע. אחרות חושבות, "מאיפה אני בכלל מתחילה?"...</div></td>
+  <td class="text-cell"><div class="text-preview he new-text">היי {name} 🌼 האם הספקת להסתכל על מפת הדרכים שלך? אני בטוחה שיש לך הרבה שאלות מאיפה תרצי להתחיל? תרצי שנדייק את הטיפים שקיבלת? שנדבר על אפשרויות טיפול? מה הכי חשוב לך כרגע?. אני כאן בשבילך מתי שאת מוכנה.</div></td>
+  <td class="text-cell"><div class="text-preview en">Hi {{name}} 🌼 Did you get a chance to take a look at your summary?...</div></td>
+  <td><span class="change-tag tag-keep">NO CHANGE EN</span></td>
+  <td>HEB-only rewrite. More action-oriented follow-up questions.</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+<!-- Implementation Considerations -->
+<h2>Implementation Risk Assessment</h2>
+<div class="card">
+  <div class="card-title" style="color:var(--red)">High-Impact Changes (Require Code Changes Beyond Text)</div>
+  <ul>
+    <li><strong>Consent Button:</strong> Adding "אני מסכימה - בואי נתחיל" button requires a new <code>collect-input-button</code> step after disclaimer. New step type in the flow.</li>
+    <li><strong>Stopped Reason Numbering:</strong> Changing a-g/א-ז to 1-7 requires updating <code>calculateStage.ts</code> switch cases AND the AI function parameter enum in <code>status-flows.ts</code>.</li>
+    <li><strong>Delete postNameIntro:</strong> Requires changing <code>obDemoCollectAge</code> next step from "postNameIntro" to "menstrualStatus". Must verify no other step references postNameIntro.</li>
+    <li><strong>{{name}} in DEMO intro:</strong> New EN text uses {{name}} before name is collected. Either reorder flow or remove {{name}} from intro.</li>
+    <li><strong>Delete pre-assessment message:</strong> Keep <code>calculateStage()</code> logic but remove the <code>sendMessage()</code> call in <code>onboardingPreAssessmentStep</code>.</li>
+  </ul>
+</div>
+<div class="card">
+  <div class="card-title" style="color:var(--orange)">Medium-Impact Changes (Text + Array Structure)</div>
+  <ul>
+    <li><strong>ONBOARDING_INTRO_DEMO:</strong> Array goes from 4 items to 3 (remove demo notice). Both languages.</li>
+    <li><strong>MENSTRUAL_STATUS_INQUIRY:</strong> Changes from 1-item array to 2-item array (context paragraph + question). Both languages.</li>
+    <li><strong>INTAKE_PHYSICAL_SYMPTOMS:</strong> HEB needs message split (currently 1 combined msg &rarr; 2 separate msgs).</li>
+    <li><strong>INTAKE_TOO_YOUNG:</strong> Array goes from 4 items to 2 (remove share msgs). Add {{age}} variable.</li>
+  </ul>
+</div>
+<div class="card">
+  <div class="card-title" style="color:var(--green)">Low-Impact Changes (Text-Only Swaps)</div>
+  <ul>
+    <li>ONBOARDING_ASK_NAME HEB wording tweak</li>
+    <li>ONBOARDING_ASK_AGE HEB polite rewording</li>
+    <li>Vasomotor HEB Msg2 &amp; Msg3 rewording</li>
+    <li>Physical HEB/EN Msg1 expanded text</li>
+    <li>Impact rating HEB reword</li>
+    <li>Summary intro HEB rewrite</li>
+    <li>Report link HEB rewrite</li>
+    <li>Post-report nudge HEB rewrite</li>
+    <li>Too-young Msg4 HEB rewrite</li>
+  </ul>
+</div>
+
+</div><!-- end page2 -->
+
+<script>
+function showPage(pageId, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+
+</body>
+</html>

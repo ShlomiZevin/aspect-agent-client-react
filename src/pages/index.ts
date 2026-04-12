@@ -20,3 +20,4 @@ export { LLMGuidePage } from './LLMGuidePage';
 export { PitchDeckPage } from './PitchDeckPage';
 export { TaskBoardPage } from './TaskBoardPage';
 export { TiktokPage } from './TiktokPage';
+export { FreedaLegacyFlowPage } from './FreedaLegacyFlowPage';
