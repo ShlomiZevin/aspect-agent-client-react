@@ -298,6 +298,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
       if (newCrew) {
         crew.setCurrentCrew(newCrew);
       }
+      // Propagate model override from departing crew to new crew so the selected
+      // model persists across transitions (task #449)
+      if (modelOverrides[transition.from] && !modelOverrides[transition.to]) {
+        setModelOverride(transition.to, modelOverrides[transition.from]);
+      }
       // Refresh fields panel to show new crew's field definitions
       setFieldsRefreshKey(prev => prev + 1);
     },
