@@ -520,7 +520,7 @@ export function PromptEditorPanel({
         model: modelOverrides[selectedCrewId] || undefined,
         provider: providerOverrides[selectedCrewId] || undefined,
         kbSources: kbOverrides[selectedCrewId]?.length ? kbOverrides[selectedCrewId] : undefined,
-        persona: isPersonaDirty ? editedPersona : undefined,
+        persona: isPersonaDirty ? editedPersona : (selectedVersion?.persona || undefined),
         thinkingPrompt: thinkingPromptOverrides[selectedCrewId] || undefined,
         thinkingModel: thinkingModelOverrides[selectedCrewId] || undefined,
         temperature: temperatureOverrides[selectedCrewId] ?? undefined,
@@ -550,7 +550,7 @@ export function PromptEditorPanel({
     } finally {
       setIsSavingVersion(false);
     }
-  }, [selectedCrewId, editedPrompt, editedTransitionPrompt, modelOverrides, providerOverrides, kbOverrides, editedPersona, codePersona, thinkingPromptOverrides, thinkingModelOverrides, agentName, baseURL, saveVersionDescription]);
+  }, [selectedCrewId, selectedVersion, editedPrompt, editedTransitionPrompt, modelOverrides, providerOverrides, kbOverrides, editedPersona, isPersonaDirty, codePersona, thinkingPromptOverrides, thinkingModelOverrides, agentName, baseURL, saveVersionDescription]);
 
   // Overwrite the currently selected DB version with current edits
   const handleOverwriteVersion = useCallback(async () => {
