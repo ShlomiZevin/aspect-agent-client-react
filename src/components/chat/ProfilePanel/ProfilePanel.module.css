@@ -413,6 +413,28 @@
   color: var(--border);
 }
 
+.fieldBugBtn {
+  opacity: 0;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  border-radius: 3px;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.field:hover .fieldBugBtn {
+  opacity: 1;
+}
+
+.fieldBugBtn:hover {
+  color: var(--error-color);
+}
+
 /* ─── Confidence dot ────────────────────────────────────────── */
 
 .confidenceDot {

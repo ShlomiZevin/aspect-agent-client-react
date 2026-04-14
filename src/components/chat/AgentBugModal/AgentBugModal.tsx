@@ -55,11 +55,18 @@ interface FieldIssue {
   expectedValue: string;
 }
 
+interface ProfileFieldContext {
+  key: string;
+  label: string;
+  value: string | null;
+}
+
 interface AgentBugModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: CreateTaskData) => Promise<void>;
-  message: Message;
+  message?: Message;
+  profileField?: ProfileFieldContext;
   currentDomain: string;
   conversationUrl: string;
   crewMembers: CrewMember[];
@@ -79,6 +86,7 @@ export function AgentBugModal({
   onClose,
   onSubmit,
   message,
+  profileField,
   currentDomain,
   conversationUrl,
   crewMembers,
@@ -161,26 +169,25 @@ export function AgentBugModal({
     }
   }, [isOpen, conversationId]);
 
-  // Reset form when opened - use message.crewMember as default source crew
+  // Reset form when opened
   useEffect(() => {
     if (isOpen) {
-      setTitle('');
-      setCategory('wrong_reply');
+      setTitle(profileField ? `[Profiler] ${profileField.label}` : '');
+      setCategory(profileField ? 'field_falsely_caught' : 'wrong_reply');
       setPriority('medium');
       setNotes('');
       setAssignee('');
-      // Default to the crew that generated this message
-      const messageCrewName = message.crewMember || '';
+      const messageCrewName = message?.crewMember || '';
       const matchingCrew = crewMembers.find(c =>
         c.name === messageCrewName || c.displayName === messageCrewName
       );
       setSourceCrew(matchingCrew?.name || messageCrewName);
       setTargetCrew('');
-      setFieldIssues([{ fieldName: '', actualValue: '', expectedValue: '' }]);
+      setFieldIssues([{ fieldName: profileField?.key || '', actualValue: profileField?.value || '', expectedValue: '' }]);
       setFieldSearch('');
       setCollectedFields({});
     }
-  }, [isOpen, message.crewMember, crewMembers]);
+  }, [isOpen, message?.crewMember, crewMembers, profileField]);
 
   // Handle Escape key
   useEffect(() => {
@@ -336,9 +343,30 @@ export function AgentBugModal({
 <div style="margin:0;padding:12px;background:#f8fafc;border-radius:6px;line-height:1.5;">${notes}</div>`;
     }
 
-    // Message context
-    html += `\n\n<hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;">
-<h4 style="margin:0 0 12px 0;font-size:14px;color:#64748b;">Message Context</h4>
+    // Context section
+    html += `\n\n<hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;">`;
+    if (profileField) {
+      html += `<h4 style="margin:0 0 12px 0;font-size:14px;color:#64748b;">Profiler Field Context</h4>
+<table style="border-collapse:collapse;width:100%;margin-bottom:12px;">
+<tr>
+  <td style="padding:4px 12px 4px 0;font-weight:600;width:120px;">Field Key</td>
+  <td style="padding:4px 0;"><code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;">${profileField.key}</code></td>
+</tr>
+<tr>
+  <td style="padding:4px 12px 4px 0;font-weight:600;">Label</td>
+  <td style="padding:4px 0;">${profileField.label}</td>
+</tr>
+<tr>
+  <td style="padding:4px 12px 4px 0;font-weight:600;">Current Value</td>
+  <td style="padding:4px 0;">${profileField.value ?? '—'}</td>
+</tr>
+<tr>
+  <td style="padding:4px 12px 4px 0;font-weight:600;">Conversation</td>
+  <td style="padding:4px 0;"><a href="${conversationUrl}" style="color:#3b82f6;word-break:break-all;">${conversationUrl}</a></td>
+</tr>
+</table>`;
+    } else if (message) {
+      html += `<h4 style="margin:0 0 12px 0;font-size:14px;color:#64748b;">Message Context</h4>
 <table style="border-collapse:collapse;width:100%;margin-bottom:12px;">
 <tr>
   <td style="padding:4px 12px 4px 0;font-weight:600;width:120px;">Message ID</td>
@@ -358,6 +386,7 @@ export function AgentBugModal({
 <summary style="cursor:pointer;font-weight:600;color:#64748b;font-size:13px;">Message Preview</summary>
 <blockquote style="margin:8px 0 0 0;padding:12px;background:#f8fafc;border-left:3px solid #cbd5e1;border-radius:0 6px 6px 0;font-size:13px;line-height:1.5;">${truncateMessage(message.content, 300).replace(/\n/g, '<br>')}</blockquote>
 </details>`;
+    }
 
     return html;
   };
@@ -415,15 +444,29 @@ export function AgentBugModal({
           </div>
 
           <div className={styles.body}>
-            {/* Message Preview */}
+            {/* Context Preview */}
             <div className={styles.messagePreview}>
-              <div className={styles.previewHeader}>
-                <span className={styles.crewBadge}>{message.crewMember || 'Assistant'}</span>
-                <span className={styles.messageId}>ID: {message.dbId || message.id}</span>
-              </div>
-              <div className={styles.previewContent}>
-                {truncateMessage(message.content, 150)}
-              </div>
+              {profileField ? (
+                <>
+                  <div className={styles.previewHeader}>
+                    <span className={styles.crewBadge}>Profiler Field</span>
+                    <span className={styles.messageId}>{profileField.key}</span>
+                  </div>
+                  <div className={styles.previewContent}>
+                    {profileField.label}: {profileField.value ?? '—'}
+                  </div>
+                </>
+              ) : message ? (
+                <>
+                  <div className={styles.previewHeader}>
+                    <span className={styles.crewBadge}>{message.crewMember || 'Assistant'}</span>
+                    <span className={styles.messageId}>ID: {message.dbId || message.id}</span>
+                  </div>
+                  <div className={styles.previewContent}>
+                    {truncateMessage(message.content, 150)}
+                  </div>
+                </>
+              ) : null}
             </div>
 
             {/* Title */}
