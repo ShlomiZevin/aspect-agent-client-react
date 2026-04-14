@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, FreedaPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, KBvsTriggeredPage, LLMGuidePage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, PitchDeckPage, TaskBoardPage, TiktokPage, Zer4UPage } from './pages';
+import { ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, FreedaPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, KBvsTriggeredPage, LLMGuidePage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TaskBoardPage, TiktokPage, Zer4UPage } from './pages';
 import { useTaskBoard, useQuickBug } from './hooks';
 import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
 import { QuickBugModal } from './components/tasks/QuickBugModal/QuickBugModal';
@@ -76,6 +76,14 @@ function AppContent() {
         <Route path="/tiktok/conversations/:conversationId" element={<TiktokPage />} />
         <Route path="/zer4u" element={<Zer4UPage />} />
         <Route path="/zer4u/conversations/:conversationId" element={<Zer4UPage />} />
+
+        {/* ONE ZERO - Aspect demo for digital bank churn.
+            Chat lives at top-level /onezero so the shared conversation routing works unchanged.
+            Landing + dashboard remain nested under /aspect/onezero/ for demo URL structure. */}
+        <Route path="/aspect/onezero" element={<OneZeroLandingPage />} />
+        <Route path="/aspect/onezero/dashboard" element={<OneZeroDashboardPage />} />
+        <Route path="/onezero" element={<OneZeroPage />} />
+        <Route path="/onezero/conversations/:conversationId" element={<OneZeroPage />} />
 
         {/* Task Board - standalone full page */}
         <Route path="/tasks" element={<TaskBoardPage />} />

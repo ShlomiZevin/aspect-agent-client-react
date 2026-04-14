@@ -4,3 +4,4 @@ export { LanguageToggle } from './LanguageToggle';
 export { Modal } from './Modal';
 export { StatusIndicator } from './StatusIndicator';
 export { ConfirmDialog } from './ConfirmDialog';
+export { FloatingChatWidget, type FloatingChatWidgetProps } from './FloatingChatWidget';
