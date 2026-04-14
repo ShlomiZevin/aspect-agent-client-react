@@ -17,6 +17,7 @@ import { KBManager } from '../components/kb';
 import { TestRunnerPage } from '../components/dashboard/TestRunnerPage';
 import { DynamicKBPage } from '../components/dashboard/DynamicKBPage';
 import { ConversationTrendsPage } from '../components/dashboard/ConversationTrendsPage';
+import { PineconeAdmin } from '../components/pinecone';
 import { TaskBoardContent } from '../components/tasks/TaskBoardModal/TaskBoardContent';
 import dashStyles from './DashboardPage.module.css';
 import { aspectConfig, bankingOnboarderConfig, bankingOnboarderV2Config, compassConfig, freedaConfig, zer4uConfig } from '../agents';
@@ -124,6 +125,10 @@ export function DashboardPage() {
             <Route
               path="dynamic-kb"
               element={<DynamicKBPage agentName={config.agentName} />}
+            />
+            <Route
+              path="library"
+              element={<PineconeAdmin agentName={config.agentName} baseURL={config.baseURL} />}
             />
             {showQueryOptimizer && (
               <Route
