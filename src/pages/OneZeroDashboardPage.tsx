@@ -1164,7 +1164,7 @@ export function OneZeroDashboardPage() {
 
       {/* Embedded chat */}
       <FloatingChatWidget
-        iframeSrc="/onezero?embed=true"
+        iframeSrc="/aspect/onezero/chat?embed=true"
         title="ONE ZERO Churn AI"
         accentColor="#3b82f6"
         buttonText="שאל את ה-AI"

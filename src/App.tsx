@@ -77,13 +77,11 @@ function AppContent() {
         <Route path="/zer4u" element={<Zer4UPage />} />
         <Route path="/zer4u/conversations/:conversationId" element={<Zer4UPage />} />
 
-        {/* ONE ZERO - Aspect demo for digital bank churn.
-            Chat lives at top-level /onezero so the shared conversation routing works unchanged.
-            Landing + dashboard remain nested under /aspect/onezero/ for demo URL structure. */}
+        {/* ONE ZERO - Aspect demo for digital bank churn */}
         <Route path="/aspect/onezero" element={<OneZeroLandingPage />} />
         <Route path="/aspect/onezero/dashboard" element={<OneZeroDashboardPage />} />
-        <Route path="/onezero" element={<OneZeroPage />} />
-        <Route path="/onezero/conversations/:conversationId" element={<OneZeroPage />} />
+        <Route path="/aspect/onezero/chat" element={<OneZeroPage />} />
+        <Route path="/aspect/onezero/chat/conversations/:conversationId" element={<OneZeroPage />} />
 
         {/* Task Board - standalone full page */}
         <Route path="/tasks" element={<TaskBoardPage />} />

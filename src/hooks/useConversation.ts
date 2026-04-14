@@ -48,12 +48,14 @@ export function useConversation(
   // Track if we've done initial URL sync
   const hasInitialized = useRef(false);
 
-  // Derive the base path from current location (e.g., /freeda or /aspect)
+  // Derive the base path from current location. Strips trailing /conversations/<id>
+  // so both single-segment routes (/freeda) and nested routes (/aspect/onezero/chat) work.
+  // Output is identical for all existing single-segment agent paths.
   const getBasePath = useCallback(() => {
-    const pathParts = location.pathname.split('/');
-    // First non-empty part is the agent path
-    const agentPath = pathParts[1] || '';
-    return `/${agentPath}`;
+    const path = location.pathname;
+    const idx = path.indexOf('/conversations/');
+    if (idx >= 0) return path.slice(0, idx);
+    return path.replace(/\/$/, '') || '/';
   }, [location.pathname]);
 
   // Determine the active conversation ID (URL takes precedence)
