@@ -688,6 +688,11 @@
   display: none;
 }
 
+/* On desktop, mobileHide span is transparent — children remain direct flex items */
+.mobileHide {
+  display: contents;
+}
+
 /* Filter group — inline on desktop, full-width row on mobile */
 .filterGroup {
   display: contents; /* transparent on desktop — children flow as normal */

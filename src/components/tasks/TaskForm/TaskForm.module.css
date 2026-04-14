@@ -464,6 +464,11 @@
   background: var(--surface);
 }
 
+/* On desktop, actionsRow1 is transparent — children remain direct flex items of .actions */
+.actionsRow1 {
+  display: contents;
+}
+
 .toggles {
   display: flex;
   align-items: center;
