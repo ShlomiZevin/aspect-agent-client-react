@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getProfilerConfig, updateProfilerConfig, resetProfilerConfig, askProfiler } from '../../../services/profilerService';
+import { createTask, getAssignees } from '../../../services/taskService';
+import { useCommenterIdentity } from '../../../hooks/useCommenterIdentity';
+import { AgentBugModal } from '../AgentBugModal/AgentBugModal';
 import type {
   ProfileSchema,
   ProfileData,
@@ -7,6 +10,7 @@ import type {
   ProfileField,
 } from '../../../types/profile';
 import type { ProfileUpdateData } from '../../../services/chatService';
+import type { Assignee } from '../../../types/task';
 import styles from './ProfilePanel.module.css';
 
 interface ProfilePanelProps {
@@ -243,7 +247,7 @@ function SummarySection({ cluster }: { cluster: ProfileCluster }) {
 
 // ─── Cluster section ──────────────────────────────────────────
 
-function ClusterSection({ cluster }: { cluster: ProfileCluster }) {
+function ClusterSection({ cluster, debugMode, onBugClick }: { cluster: ProfileCluster; debugMode?: boolean; onBugClick?: (field: { key: string; label: string; value: string | null }) => void }) {
   // Summary clusters get special rendering
   if (cluster.displayMode === 'summary') {
     return <SummarySection cluster={cluster} />;
@@ -335,6 +339,20 @@ function ClusterSection({ cluster }: { cluster: ProfileCluster }) {
                       </>
                     ) : (
                       <span className={styles.fieldEmpty}>—</span>
+                    )}
+                    {debugMode && (
+                      <button
+                        className={styles.fieldBugBtn}
+                        title="Report a bug on this field"
+                        onClick={() => onBugClick?.({ key: field.key, label: field.label, value: field.value })}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 9a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0V9z" />
+                          <path d="M6 9l-3-2" /><path d="M18 9l3-2" />
+                          <path d="M6 12H3" /><path d="M21 12h-3" />
+                          <path d="M7 17l-2 2" /><path d="M17 17l2 2" />
+                        </svg>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -746,7 +764,14 @@ export function ProfilePanel({
   onClose,
 }: ProfilePanelProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [bugField, setBugField] = useState<{ key: string; label: string; value: string | null } | null>(null);
+  const [bugAssignees, setBugAssignees] = useState<Assignee[]>([]);
+  const { identity: commenterIdentity } = useCommenterIdentity();
   const prevFieldsRef = useRef<Map<string, string | null>>(new Map());
+
+  useEffect(() => {
+    getAssignees().then(setBugAssignees).catch(() => {});
+  }, []);
 
   // Compute profile data — only from profiler data (SSE push)
   const profileData = useMemo(() => {
@@ -867,7 +892,12 @@ export function ProfilePanel({
         /* Clusters */
         <div className={styles.clustersContainer}>
           {profileData.clusters.map((cluster) => (
-            <ClusterSection key={cluster.id} cluster={cluster} />
+            <ClusterSection
+              key={cluster.id}
+              cluster={cluster}
+              debugMode={debugMode}
+              onBugClick={setBugField}
+            />
           ))}
         </div>
       )}
@@ -875,6 +905,22 @@ export function ProfilePanel({
       {/* Ask the Profiler — sticky footer */}
       {agentName && conversationId && (
         <ProfilerAsk agentName={agentName} conversationId={conversationId} baseURL={baseURL} />
+      )}
+
+      {/* Profile field bug modal */}
+      {bugField && (
+        <AgentBugModal
+          isOpen={!!bugField}
+          onClose={() => setBugField(null)}
+          onSubmit={async (data) => { await createTask(data); }}
+          profileField={bugField}
+          currentDomain={window.location.hostname}
+          conversationUrl={window.location.href}
+          crewMembers={[]}
+          assignees={bugAssignees}
+          openerIdentity={commenterIdentity || undefined}
+          conversationId={conversationId}
+        />
       )}
     </div>
   );
