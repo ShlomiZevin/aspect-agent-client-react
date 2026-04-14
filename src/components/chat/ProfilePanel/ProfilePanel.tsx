@@ -113,8 +113,8 @@ function computeProfileFromProfiler(
     clusters,
     overallDepth,
     overallConfidence: profilerData?.overallConfidence ?? 0,
-    depthLabel: profilerData?.profileTier || matchedLabel.label,
-    depthLabelColor: matchedLabel.color,
+    depthLabel: overallDepth < 15 ? '' : (profilerData?.profileTier || matchedLabel.label),
+    depthLabelColor: overallDepth < 15 ? undefined : matchedLabel.color,
   };
 }
 
@@ -836,12 +836,14 @@ export function ProfilePanel({
         <div className={styles.overallRow}>
           <div className={styles.overallLabel}>עומק פרופיל</div>
           <div className={styles.overallStats}>
-            <span
-              className={styles.depthLabelBadge}
-              style={profileData.depthLabelColor ? { background: profileData.depthLabelColor } : undefined}
-            >
-              {profileData.depthLabel}
-            </span>
+            {profileData.depthLabel && (
+              <span
+                className={styles.depthLabelBadge}
+                style={profileData.depthLabelColor ? { background: profileData.depthLabelColor } : undefined}
+              >
+                {profileData.depthLabel}
+              </span>
+            )}
             <span className={styles.overallPercent}>{profileData.overallDepth}%</span>
           </div>
         </div>
