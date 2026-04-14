@@ -26,7 +26,7 @@ const bankingProfileSchema: ProfileSchema = {
         { key: 'city', label: 'עיר מגורים', source: 'context:conv:advisor_state.city', badge: 'user' },
         { key: 'eligibility_status', label: 'סטטוס זכאות', source: 'context:conv:advisor_state.eligibilityStatus', badge: 'system', isInsight: true },
         { key: 'account_type', label: 'סוג החשבון', source: 'context:user:onboarding_profile.accountType', badge: 'user' },
-        { key: 'kyc_status', label: 'סטטוס KYC', source: 'context:conv:closing_state.kycStatus', badge: 'system', isInsight: true },
+        { key: 'Eligibility', label: 'זכאות', source: 'context:conv:advisor_state.eligibility', badge: 'system', isInsight: true },
       ],
     },
 
@@ -44,7 +44,6 @@ const bankingProfileSchema: ProfileSchema = {
         { key: 'income_frequency', label: 'תדירות הכנסה', source: 'context:conv:advisor_state.incomeFrequency', badge: 'system', isInsight: true },
         { key: 'income_sources_count', label: 'מספר מקורות הכנסה', source: 'context:conv:advisor_state.incomeSources', badge: 'user' },
         { key: 'expected_credit_usage', label: 'שימוש במסגרת אשראי צפויה', source: 'context:conv:advisor_state.expectedCreditUsage', badge: 'system', isInsight: true },
-        { key: 'existing_financial_commitments', label: 'התחייבויות פיננסיות קיימות', source: 'context:conv:advisor_state.financialCommitments', badge: 'user' },
         { key: 'cash_flow_stability_indicator', label: 'אינדיקטור ליציבות התזרים', source: 'context:conv:advisor_state.cashflowIndicator', badge: 'system', isInsight: true },
         { key: 'is_first_bank_account', label: 'חשבון בנק ראשון', source: 'context:conv:advisor_state.firstBankAccount', badge: 'user' },
         { key: 'bank_accounts_count', label: 'מספר חשבונות בנק', source: 'context:conv:advisor_state.numBankAccounts', badge: 'user' },
@@ -119,6 +118,9 @@ const bankingProfileSchema: ProfileSchema = {
         { key: 'standing_orders_recommendation', label: 'הצעת הוראות קבע', source: 'context:conv:advisor_state.standingOrdersOffer', badge: 'system', isInsight: true },
         { key: 'expense_management_tools', label: 'כלי ניהול הוצאות', source: 'context:conv:advisor_state.expenseToolsOffer', badge: 'system', isInsight: true },
         { key: 'additional_recommendations', label: 'המלצות נוספות', source: 'context:conv:advisor_state.additionalRecommendations', badge: 'system', isInsight: true },
+        { key: 'for_current_agent', label: 'לסוכן הנוכחי', source: 'context:conv:advisor_state.forCurrentAgent', badge: 'system', isInsight: true },
+        { key: 'for_follow_up_banker', label: 'לבנקאי המשך', source: 'context:conv:advisor_state.forFollowUpBanker', badge: 'system', isInsight: true },
+        { key: 'post_opening', label: 'לאחר פתיחה', source: 'context:conv:advisor_state.postOpening', badge: 'system', isInsight: true },
       ],
     },
 
