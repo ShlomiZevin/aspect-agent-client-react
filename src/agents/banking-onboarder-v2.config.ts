@@ -8,10 +8,10 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'https://aspect-agent-server-10
 const bankingProfileSchema: ProfileSchema = {
   title: 'בונה פרופיל לקוח',
   depthLabels: [
-    { maxPercent: 25, label: 'פרופיל בסיסי', color: 'rgba(239, 68, 68, 0.15)' },
-    { maxPercent: 50, label: 'פרופיל פונקציונאלי', color: 'rgba(245, 158, 11, 0.15)' },
-    { maxPercent: 75, label: 'פרופיל תובנות מוכן', color: 'rgba(37, 99, 235, 0.15)' },
-    { maxPercent: 100, label: 'פרופיל פרסונליזציה מלא', color: 'rgba(16, 185, 129, 0.15)' },
+    { maxPercent: 25, label: 'פרופיל בסיסי', color: 'rgba(104, 6, 98, 0.12)' },
+    { maxPercent: 50, label: 'פרופיל פונקציונאלי', color: 'rgba(157, 22, 135, 0.15)' },
+    { maxPercent: 75, label: 'פרופיל תובנות מוכן', color: 'rgba(249, 72, 198, 0.18)' },
+    { maxPercent: 100, label: 'פרופיל פרסונליזציה מלא', color: 'rgba(104, 6, 98, 0.25)' },
   ],
   clusters: [
     // ── 1. Identity & Eligibility ───────────────────────────────

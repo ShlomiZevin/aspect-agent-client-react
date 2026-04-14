@@ -25,10 +25,10 @@
 }
 
 @keyframes overlayFlash {
-  0% { background: rgba(37, 99, 235, 0); }
-  12% { background: rgba(37, 99, 235, 0.07); }
-  35% { background: rgba(37, 99, 235, 0.03); }
-  100% { background: rgba(37, 99, 235, 0); }
+  0% { background: rgba(104, 6, 98, 0); }
+  12% { background: rgba(104, 6, 98, 0.07); }
+  35% { background: rgba(104, 6, 98, 0.03); }
+  100% { background: rgba(104, 6, 98, 0); }
 }
 
 /* ─── Header ─────────────────────────────────────────────────── */
@@ -65,8 +65,8 @@
 }
 
 @keyframes dotPulse {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5); }
-  40% { transform: scale(1.4); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0); }
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(104, 6, 98, 0.5); }
+  40% { transform: scale(1.4); box-shadow: 0 0 0 4px rgba(104, 6, 98, 0); }
   100% { transform: scale(1); box-shadow: none; }
 }
 
@@ -108,7 +108,7 @@
 }
 
 .toggleTrackOn {
-  background: #16a34a;
+  background: var(--primary-color);
 }
 
 .toggleThumb {
@@ -206,7 +206,7 @@
 
 .overallBarFill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+  background: linear-gradient(90deg, var(--primary-color), #F948C6);
   border-radius: 3px;
   transition: width 0.6s ease;
 }
