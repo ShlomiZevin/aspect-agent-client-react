@@ -73,8 +73,9 @@ function computeProfileFromProfiler(
 
     const fields: ProfileField[] = clusterDef.fields.map((fieldDef) => {
       // The LLM returns { value, confidence, source } directly under the cluster
-      const fieldData = clusterRaw?.[fieldDef.key] as { value?: string | null; confidence?: number; source?: string } | undefined;
+      const fieldData = clusterRaw?.[fieldDef.key] as { value?: string | null; confidence?: number; source?: string; _filtered?: boolean } | undefined;
       const value = fieldData?.value ?? null;
+      const isFiltered = fieldData?._filtered === true;
       const prevValue = prevFields.get(fieldDef.key);
       const isNew = value !== null && prevValue !== value && prevValue !== undefined;
       const confidence = fieldData?.confidence ?? 0;
@@ -93,6 +94,7 @@ function computeProfileFromProfiler(
         confidence,
         isInsight: fieldDef.isInsight,
         isNew,
+        isFiltered,
       };
     });
 
@@ -268,10 +270,10 @@ function ClusterSection({ cluster, debugMode, onBugClick }: { cluster: ProfileCl
     prevFilledRef.current = filledCount;
   }, [filledCount]);
 
-  // For tags mode, only show fields with values
+  // For tags mode, only show fields with values (filtered fields shown in debug mode)
   const visibleFields =
     cluster.displayMode === 'tags'
-      ? cluster.fields.filter((f) => f.value != null)
+      ? cluster.fields.filter((f) => f.value != null || (debugMode && f.isFiltered))
       : cluster.fields;
 
   return (
@@ -324,11 +326,16 @@ function ClusterSection({ cluster, debugMode, onBugClick }: { cluster: ProfileCl
             visibleFields.map((field) => (
               <div
                 key={field.key}
-                className={`${styles.field} ${field.value != null ? styles.fieldFilled : ''} ${field.isNew ? styles.fieldNew : ''}`}
+                className={`${styles.field} ${field.value != null ? styles.fieldFilled : ''} ${field.isNew ? styles.fieldNew : ''} ${debugMode && field.isFiltered ? styles.fieldFiltered : ''}`}
               >
                 <div className={styles.fieldRow}>
                   <div className={styles.fieldLabel}>
                     {field.value != null && <ConfidenceDot confidence={field.confidence} />}
+                    {debugMode && field.isFiltered && (
+                      <span className={styles.confidenceFiltered} title={`Filtered: confidence ${field.confidence}% is below threshold`}>
+                        {field.confidence}%
+                      </span>
+                    )}
                     <span>{field.label}</span>
                   </div>
                   <div className={styles.fieldValue}>
@@ -337,6 +344,8 @@ function ClusterSection({ cluster, debugMode, onBugClick }: { cluster: ProfileCl
                         <span className={styles.fieldValueText}>{field.value}</span>
                         {field.badge && <BadgeIcon badge={field.badge} />}
                       </>
+                    ) : field.isFiltered && debugMode ? (
+                      <span className={styles.fieldFilteredValue} title="Filtered by confidence threshold">filtered</span>
                     ) : (
                       <span className={styles.fieldEmpty}>—</span>
                     )}
@@ -463,6 +472,7 @@ function ProfilerConfigEditor({
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState('claude-sonnet-4-6');
   const [provider, setProvider] = useState('anthropic');
+  const [confidenceThreshold, setConfidenceThreshold] = useState(70);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasOverrides, setHasOverrides] = useState(false);
@@ -480,6 +490,7 @@ function ProfilerConfigEditor({
           setPrompt(res.config.prompt || '');
           setModel(res.config.model || 'claude-sonnet-4-6');
           setProvider(res.config.provider || inferProvider(res.config.model || 'claude-sonnet-4-6'));
+          setConfidenceThreshold(res.config.confidenceThreshold ?? 70);
           setHasOverrides(res.hasOverrides);
         }
         setConfigLoaded(true);
@@ -498,7 +509,7 @@ function ProfilerConfigEditor({
     setIsSaving(true);
     setStatus(null);
     try {
-      await updateProfilerConfig(agentName, { prompt, model, provider }, baseURL);
+      await updateProfilerConfig(agentName, { prompt, model, provider, confidenceThreshold }, baseURL);
       setHasOverrides(true);
       setStatus('Saved');
       setTimeout(() => setStatus(null), 2000);
@@ -519,6 +530,7 @@ function ProfilerConfigEditor({
         setPrompt(res.config.prompt || '');
         setModel(res.config.model || 'claude-sonnet-4-6');
         setProvider(res.config.provider || inferProvider(res.config.model || 'claude-sonnet-4-6'));
+        setConfidenceThreshold(res.config.confidenceThreshold ?? 70);
       }
       setHasOverrides(false);
       setStatus('Reset to default');
@@ -576,6 +588,25 @@ function ProfilerConfigEditor({
                       <option key={m} value={m}>{m}</option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Confidence Threshold */}
+              <div className={styles.configRow}>
+                <div className={styles.configField}>
+                  <label className={styles.configLabel}>Confidence Threshold (%)</label>
+                  <input
+                    type="number"
+                    className={styles.configInput}
+                    min={0}
+                    max={100}
+                    value={confidenceThreshold}
+                    onChange={(e) => setConfidenceThreshold(Number(e.target.value))}
+                  />
+                </div>
+                <div className={styles.configField}>
+                  <label className={styles.configLabel} style={{ visibility: 'hidden' }}>-</label>
+                  <span className={styles.configHint}>Fields below this % are filtered out</span>
                 </div>
               </div>
 
@@ -752,7 +783,7 @@ export function ProfilePanel({
   conversationId,
   baseURL,
   profileSchema,
-  refreshKey,
+  refreshKey: _refreshKey,
   profilerData,
   profilerLastRaw,
   debugMode,
@@ -763,7 +794,7 @@ export function ProfilePanel({
   onProfilerEnabledChange,
   onClose,
 }: ProfilePanelProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [bugField, setBugField] = useState<{ key: string; label: string; value: string | null } | null>(null);
   const [bugAssignees, setBugAssignees] = useState<Assignee[]>([]);
   const { identity: commenterIdentity } = useCommenterIdentity();

@@ -51,12 +51,13 @@ export interface StreamCallbacks {
 }
 
 export interface ProfileUpdateData {
-  clusters: Record<string, { fields: Record<string, { value: string | null; confidence: number; source: string; updatedNow: boolean }> }>;
+  clusters: Record<string, { fields: Record<string, { value: string | null; confidence: number; source: string; updatedNow: boolean; _filtered?: boolean }> }>;
   clusterScores: Record<string, { depth: number }>;
   summary: { general_overview: string; key_profile_traits: string[]; potential_index: number; focused_action_recommendation: string } | null;
   overallDepth: number;
   overallConfidence: number;
   profileTier: string;
+  confidenceThreshold?: number;
 }
 
 /**

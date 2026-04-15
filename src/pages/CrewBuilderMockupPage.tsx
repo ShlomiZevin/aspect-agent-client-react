@@ -71,7 +71,7 @@ const STEP_TYPES = [
 ];
 
 /* ===== Fixed config per step type ===== */
-const STEP_FIXED: Record<string, { speaks: string; output: string; timing: string; kbOption: boolean; historyOptions: string[] }> = {
+const STEP_FIXED: Record<string, { speaks: string; output: string; timing: string; kbOption: boolean; historyOptions: string[]; runEvery?: boolean }> = {
   'input-extractor': { speaks: 'No', output: 'Fields → Memory', timing: 'Sync', kbOption: false, historyOptions: ['Last 2–3', 'Last 3–5', 'Last message only'] },
   'vibe-extractor': { speaks: 'No', output: 'Fields → Memory', timing: 'Background', kbOption: false, historyOptions: ['Last 5–8', 'Last 3–5', 'Full'] },
   'strategic': { speaks: 'No', output: 'Strategy → Memory', timing: 'Sync', kbOption: true, historyOptions: ['Full', 'Last 10', 'Last 5–8', 'Summary'] },

@@ -11,6 +11,7 @@ export interface ProfilerConfig {
   model: string;
   provider: string | null;
   maxTokens: number;
+  confidenceThreshold: number;
 }
 
 export interface ProfilerConfigResponse {
@@ -45,7 +46,7 @@ export async function getProfilerConfig(
  */
 export async function updateProfilerConfig(
   agentName: string,
-  updates: { prompt?: string; model?: string; provider?: string },
+  updates: { prompt?: string; model?: string; provider?: string; confidenceThreshold?: number },
   baseURL?: string
 ): Promise<{ success: boolean; config: Partial<ProfilerConfig> }> {
   const url = baseURL || getBaseURL();

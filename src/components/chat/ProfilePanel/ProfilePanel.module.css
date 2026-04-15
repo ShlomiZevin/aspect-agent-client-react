@@ -994,3 +994,56 @@
   0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
   40% { opacity: 1; transform: scale(1); }
 }
+
+/* ─── Filtered fields (debug mode) ─────────────────────────── */
+
+.fieldFiltered {
+  opacity: 0.5;
+}
+
+.fieldFiltered .fieldLabel span {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.confidenceFiltered {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--error-color);
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: 3px;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.fieldFilteredValue {
+  font-size: 10px;
+  color: var(--error-color);
+  font-style: italic;
+  opacity: 0.8;
+}
+
+/* ─── Config input + hint ───────────────────────────────────── */
+
+.configInput {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: var(--font-size-xs);
+  font-family: inherit;
+  width: 80px;
+}
+
+.configInput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.configHint {
+  font-size: 10px;
+  color: var(--text-muted);
+  align-self: flex-end;
+  padding-bottom: 4px;
+}

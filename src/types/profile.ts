@@ -66,4 +66,6 @@ export interface ProfileField {
   isInsight?: boolean;
   /** Marked true when value just changed (for animation) */
   isNew?: boolean;
+  /** Marked true when field was present but below confidence threshold — visible only in debug mode */
+  isFiltered?: boolean;
 }
