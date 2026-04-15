@@ -6,6 +6,7 @@ import { useUserContext } from './UserContext';
 import type { CrewMember, CrewJourneyStep } from '../types/crew';
 import { linkPhone as linkPhoneApi, goMobile as goMobileApi } from '../services/phoneService';
 import type { ProfileUpdateData } from '../services/chatService';
+import { runProfiler } from '../services/profilerService';
 
 interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 'switchToChat'> {
   switchToChat: (chatId: string) => Promise<void>;
@@ -69,6 +70,8 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   setProfilerFreshStart: (value: boolean) => void;
   profilerEnabled: boolean;
   setProfilerEnabled: (value: boolean) => void;
+  // Manual profiler re-run
+  rerunProfiler: () => Promise<void>;
   // Theme selection (brand themes)
   selectedTheme: AgentTheme | null;
   setSelectedTheme: (themeId: string | null) => void;
@@ -263,6 +266,16 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const [profilerLastRaw, setProfilerLastRaw] = useState<unknown | null>(null);
   const [profilerFreshStart, setProfilerFreshStart] = useState(true);
   const [profilerEnabled, setProfilerEnabled] = useState(false);
+
+  const rerunProfiler = useCallback(async () => {
+    if (!conversation.conversationId || !config.agentName) return;
+    try {
+      const result = await runProfiler(config.agentName, conversation.conversationId, config.baseURL);
+      if (result.data) setProfileData(result.data);
+    } catch (err) {
+      console.error('[Profiler] Manual re-run failed:', err);
+    }
+  }, [conversation.conversationId, config.agentName, config.baseURL]);
 
   // Persona override for debug mode (session-only, agent-level)
   const [personaOverride, setPersonaOverride] = useState<string | null>(null);
@@ -587,6 +600,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     setProfilerFreshStart,
     profilerEnabled,
     setProfilerEnabled,
+    rerunProfiler,
     // Theme selection (brand themes)
     selectedTheme,
     setSelectedTheme,

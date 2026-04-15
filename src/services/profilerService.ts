@@ -77,6 +77,26 @@ export async function resetProfilerConfig(
 }
 
 /**
+ * Manually trigger profiler re-run for a conversation
+ */
+export async function runProfiler(
+  agentName: string,
+  conversationId: string,
+  baseURL?: string
+): Promise<{ success: boolean; data?: import('../services/chatService').ProfileUpdateData }> {
+  const url = baseURL || getBaseURL();
+  return apiRequest<{ success: boolean; data?: import('../services/chatService').ProfileUpdateData }>(
+    `/api/agents/${encodeURIComponent(agentName)}/profiler/run`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId }),
+    },
+    url
+  );
+}
+
+/**
  * Ask the profiler a question about the current profile
  */
 export async function askProfiler(

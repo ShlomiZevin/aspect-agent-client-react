@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getProfilerConfig, updateProfilerConfig, resetProfilerConfig, askProfiler } from '../../../services/profilerService';
 import { createTask, getAssignees } from '../../../services/taskService';
 import { useCommenterIdentity } from '../../../hooks/useCommenterIdentity';
+import { useChatContext } from '../../../context';
 import { AgentBugModal } from '../AgentBugModal/AgentBugModal';
 import type {
   ProfileSchema,
@@ -795,9 +796,11 @@ export function ProfilePanel({
   onClose,
 }: ProfilePanelProps) {
   const [isLoading] = useState(false);
+  const [isRerunning, setIsRerunning] = useState(false);
   const [bugField, setBugField] = useState<{ key: string; label: string; value: string | null } | null>(null);
   const [bugAssignees, setBugAssignees] = useState<Assignee[]>([]);
   const { identity: commenterIdentity } = useCommenterIdentity();
+  const { rerunProfiler } = useChatContext();
   const prevFieldsRef = useRef<Map<string, string | null>>(new Map());
 
   useEffect(() => {
@@ -870,6 +873,30 @@ export function ProfilePanel({
               />
               <span className={styles.freshStartText}>מאפס</span>
             </label>
+          )}
+          {profilerEnabled && (
+            <button
+              className={styles.rerunBtn}
+              title="Run profiler now"
+              disabled={isRerunning}
+              onClick={async () => {
+                setIsRerunning(true);
+                await rerunProfiler();
+                setIsRerunning(false);
+              }}
+            >
+              {isRerunning ? (
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.rerunSpinner}>
+                  <circle cx="12" cy="12" r="10" strokeOpacity="0.3" />
+                  <path d="M12 2a10 10 0 0 1 10 10" />
+                </svg>
+              ) : (
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="23 4 23 10 17 10" />
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                </svg>
+              )}
+            </button>
           )}
         </div>
         {onClose && (

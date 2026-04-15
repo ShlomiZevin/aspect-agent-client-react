@@ -995,6 +995,38 @@
   40% { opacity: 1; transform: scale(1); }
 }
 
+/* ─── Re-run profiler button ────────────────────────────────── */
+
+.rerunBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.rerunBtn:hover:not(:disabled) {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.rerunBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.rerunSpinner {
+  animation: spin 0.8s linear infinite;
+}
+
 /* ─── Filtered fields (debug mode) ─────────────────────────── */
 
 .fieldFiltered {
