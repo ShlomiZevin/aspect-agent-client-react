@@ -1,4 +1,5 @@
 export { AboutShlomiPage } from './AboutShlomiPage';
+export { AICompliancePage } from './AICompliancePage';
 export { AspectPage } from './AspectPage';
 export { ArchitecturePage } from './ArchitecturePage';
 export { AspectLandingPage } from './AspectLandingPage';

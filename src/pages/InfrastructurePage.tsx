@@ -79,7 +79,7 @@ export function InfrastructurePage() {
               <h3>Firebase Hosting</h3>
               <p>
                 React SPA served via global CDN. Automatic cache headers for static assets.
-                SPA rewrites for client-side routing. Two projects: Aspect + Freeda.
+                SPA rewrites for client-side routing. Multiple project targets supported.
               </p>
               <div className={styles.domainFeaturedMeta}>Frontend CDN</div>
             </div>
@@ -319,7 +319,7 @@ export function InfrastructurePage() {
               <h3>Containerized deployment</h3>
               <p>
                 Docker containers on Node.js 22 slim. Deploy script handles environment selection
-                (Aspect vs Freeda), Cloud SQL binding, environment variables. One command to production.
+                environment selection, Cloud SQL binding, environment variables. One command to production.
               </p>
               <div className={styles.domainFeaturedMeta}>Docker + Cloud Run</div>
             </div>
