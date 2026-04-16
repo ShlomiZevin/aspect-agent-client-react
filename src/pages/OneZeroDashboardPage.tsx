@@ -422,6 +422,38 @@ function fmtCurrency(n: number) {
   return '₪' + n.toLocaleString('he-IL');
 }
 
+function fmtBigCurrency(n: number) {
+  if (n >= 1_000_000_000) return '₪' + (n / 1_000_000_000).toFixed(2) + 'B';
+  if (n >= 1_000_000) return '₪' + (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 1_000) return '₪' + (n / 1_000).toFixed(0) + 'K';
+  return '₪' + n.toLocaleString('he-IL');
+}
+
+function InfoTip({ text }: { text: string }) {
+  return (
+    <span
+      title={text}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 14,
+        height: 14,
+        borderRadius: '50%',
+        background: 'rgba(148, 163, 184, 0.25)',
+        color: '#94a3b8',
+        fontSize: 10,
+        fontWeight: 700,
+        marginInlineStart: 10,
+        cursor: 'help',
+        verticalAlign: 'middle',
+      }}
+    >
+      ?
+    </span>
+  );
+}
+
 function riskBand(score: number): { label: string; color: string; bg: string } {
   if (score >= 80) return { label: 'קריטי', color: '#fca5a5', bg: '#7f1d1d' };
   if (score >= 65) return { label: 'גבוה', color: '#fdba74', bg: '#7c2d12' };
@@ -635,7 +667,7 @@ export function OneZeroDashboardPage() {
   };
 
   useEffect(() => {
-    document.title = 'ONE ZERO - חיזוי נטישת לקוחות';
+    document.title = 'בנק - חיזוי נטישת לקוחות';
     document.documentElement.lang = 'he';
     document.documentElement.dir = 'rtl';
     document.documentElement.style.overflow = 'auto';
@@ -677,14 +709,16 @@ export function OneZeroDashboardPage() {
 
   const selected = CUSTOMERS.find((c) => c.id === selectedId) || CUSTOMERS[0];
 
-  // ── Aggregate KPIs ────────────────────────────────────────────
-  const totalCustomers = CUSTOMERS.length;
-  const atRisk = CUSTOMERS.filter((c) => c.churnScore >= 65).length;
-  const critical = CUSTOMERS.filter((c) => c.churnScore >= 80).length;
-  const aumAtRisk = CUSTOMERS.filter((c) => c.churnScore >= 65).reduce((s, c) => s + c.aum, 0);
-  const savedThisMonth = 7 + Object.values(dashState.status).filter((s) => s === 'saved').length;
-  const savedAum = 1840000 + CUSTOMERS.filter((c) => dashState.status[c.id] === 'saved').reduce((s, c) => s + c.aum, 0);
-  const todaysActions = Object.values(dashState.doneActions).reduce((sum, arr) => sum + arr.length, 0);
+  // ── Aggregate KPIs (bank-scale realistic numbers) ─────────────
+  // The 14 customers in the list below are a representative sample; the KPIs
+  // reflect the full portfolio size for the demo.
+  const totalCustomers = 142_350;
+  const atRisk = 8_247;
+  const critical = 418;
+  const aumAtRisk = 4_820_000_000; // ₪4.82B
+  const savedThisMonth = 142 + Object.values(dashState.status).filter((s) => s === 'saved').length;
+  const savedAum = 87_400_000 + CUSTOMERS.filter((c) => dashState.status[c.id] === 'saved').reduce((s, c) => s + c.aum, 0);
+  const todaysActions = 23 + Object.values(dashState.doneActions).reduce((sum, arr) => sum + arr.length, 0);
 
   // ── Segment breakdown ────────────────────────────────────────
   const segments = ['פרימיום', 'מתקדם', 'בסיסי', 'חדש'] as const;
@@ -707,10 +741,10 @@ export function OneZeroDashboardPage() {
       {/* Top nav */}
       <header className={styles.topNav}>
         <div className={styles.brandWrap}>
-          <div className={styles.brandLogo}>0</div>
+          <div className={styles.brandLogo}>🏦</div>
           <div>
-            <div className={styles.brandName}>ONE ZERO</div>
-            <div className={styles.brandSub}>Churn Intelligence · Powered by Aspect AI</div>
+            <div className={styles.brandName}>בנק</div>
+            <div className={styles.brandSub}>מערכת חיזוי נטישה · Powered by Aspect AI</div>
           </div>
         </div>
         <nav className={styles.navLinks}>
@@ -738,7 +772,10 @@ export function OneZeroDashboardPage() {
 
       <div className={styles.pageTitle}>
         <div>
-          <h1>חיזוי נטישת לקוחות</h1>
+          <h1>
+            חיזוי נטישת לקוחות
+            <InfoTip text="דשבורד המרכז את כל הלקוחות בסיכון עזיבה. המודל מנתח מדי יום 7 קבוצות סיגנלים התנהגותיים ומחשב ניקוד נטישה אישי לכל לקוח." />
+          </h1>
           <p className={styles.subtitle}>
             המודל סורק את כל החשבונות מדי יום ומזהה לקוחות בסיכון לפני שהם עוזבים. עדכון אחרון: היום, 09:24
           </p>
@@ -763,32 +800,50 @@ export function OneZeroDashboardPage() {
       {/* KPI strip */}
       <section className={styles.kpiGrid}>
         <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>לקוחות פעילים</div>
+          <div className={styles.kpiLabel}>
+            לקוחות פעילים
+            <InfoTip text="סך הלקוחות הפעילים בבנק - כלל תיק הלקוחות עם חשבון פעיל ב-90 הימים האחרונים" />
+          </div>
           <div className={styles.kpiValue}>{totalCustomers.toLocaleString('he-IL')}</div>
           <div className={styles.kpiTrendUp}>+2.1% החודש</div>
         </div>
         <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>בסיכון נטישה</div>
-          <div className={styles.kpiValue}>{atRisk}</div>
-          <div className={styles.kpiTrendDown}>{critical} ברמה קריטית</div>
+          <div className={styles.kpiLabel}>
+            בסיכון נטישה
+            <InfoTip text="לקוחות עם ניקוד נטישה 65+ על פי המודל — צפי נטישה בתוך 90 יום" />
+          </div>
+          <div className={styles.kpiValue}>{atRisk.toLocaleString('he-IL')}</div>
+          <div className={styles.kpiTrendDown}>{critical} ברמה קריטית (80+)</div>
         </div>
         <div className={`${styles.kpiCard} ${styles.kpiCritical}`}>
-          <div className={styles.kpiLabel}>נכסים בסיכון</div>
-          <div className={styles.kpiValue}>{fmtCurrency(aumAtRisk)}</div>
+          <div className={styles.kpiLabel}>
+            נכסים בסיכון
+            <InfoTip text="סך הנכסים המנוהלים של הלקוחות בסיכון - חשיפה פוטנציאלית לבנק אם יעזבו" />
+          </div>
+          <div className={styles.kpiValue}>{fmtBigCurrency(aumAtRisk)}</div>
           <div className={styles.kpiTrendDown}>חשיפה ב-90 יום</div>
         </div>
         <div className={`${styles.kpiCard} ${styles.kpiGood}`}>
-          <div className={styles.kpiLabel}>שומרו החודש</div>
-          <div className={styles.kpiValue}>{savedThisMonth} לקוחות</div>
-          <div className={styles.kpiTrendUp}>{fmtCurrency(savedAum)} נכסים</div>
+          <div className={styles.kpiLabel}>
+            שומרו החודש
+            <InfoTip text="לקוחות שסומנו כ״שומר״ החודש לאחר פעולות שימור מוצלחות" />
+          </div>
+          <div className={styles.kpiValue}>{savedThisMonth.toLocaleString('he-IL')}</div>
+          <div className={styles.kpiTrendUp}>{fmtBigCurrency(savedAum)} נכסים</div>
         </div>
         <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>פעולות היום</div>
+          <div className={styles.kpiLabel}>
+            פעולות היום
+            <InfoTip text="מספר פעולות השימור שהצוות ביצע היום - שיחות, הצעות, עדכוני סטטוס" />
+          </div>
           <div className={styles.kpiValue}>{todaysActions}</div>
           <div className={styles.kpiTrendUp}>על ידי הצוות</div>
         </div>
         <div className={styles.kpiCard}>
-          <div className={styles.kpiLabel}>דיוק המודל</div>
+          <div className={styles.kpiLabel}>
+            דיוק המודל
+            <InfoTip text="דיוק מודל החיזוי - אחוז הלקוחות שסומנו בסיכון ואכן נטשו (מדד AUC)" />
+          </div>
           <div className={styles.kpiValue}>87.4%</div>
           <div className={styles.kpiTrendUp}>+1.8 ל-AUC</div>
         </div>
@@ -796,7 +851,10 @@ export function OneZeroDashboardPage() {
 
       {/* Signal category quick filter chips */}
       <section className={styles.chipBar}>
-        <span className={styles.chipBarLabel}>סנן לפי סיגנל:</span>
+        <span className={styles.chipBarLabel}>
+          סנן לפי סיגנל:
+          <InfoTip text="סנן את רשימת הלקוחות לפי קטגוריית הסיגנל המדאיג. כל קטגוריה מייצגת סוג התנהגות שמנבא נטישה." />
+        </span>
         <button
           className={`${styles.chipFilter} ${signalCatFilter === null ? styles.chipFilterActive : ''}`}
           onClick={() => setSignalCatFilter(null)}
@@ -821,7 +879,10 @@ export function OneZeroDashboardPage() {
         <div className={styles.listPanel}>
           <div className={styles.listHeader}>
             <div className={styles.listHeaderTop}>
-              <h2>לקוחות בסיכון <span className={styles.listCount}>({filtered.length})</span></h2>
+              <h2>
+                לקוחות בסיכון <span className={styles.listCount}>({filtered.length})</span>
+                <InfoTip text="רשימת לקוחות בתיק הבנק ממוינת לפי ניקוד נטישה. בחר לקוח כדי לראות סיגנלים, המלצות שימור, ולבצע פעולות." />
+              </h2>
             </div>
             <input
               type="text"
@@ -908,7 +969,10 @@ export function OneZeroDashboardPage() {
         <div className={styles.detailPanel}>
           <div className={styles.detailHeader}>
             <div>
-              <div className={styles.detailName}>{selected.name}</div>
+              <div className={styles.detailName}>
+                {selected.name}
+                <InfoTip text="פרופיל מלא של הלקוח/ה: ניקוד נטישה, סיגנלים שזוהו, מגמת יתרה, מדדי מעורבות דיגיטלית, המלצות שימור של ה-AI, ותיעוד פעולות." />
+              </div>
               <div className={styles.detailMeta}>
                 {selected.id} · {selected.age} · {selected.occupation} · {selected.city}
               </div>
@@ -964,7 +1028,7 @@ export function OneZeroDashboardPage() {
           </div>
 
           <div className={styles.detailSection}>
-            <h3>מגמת יתרה (12 שבועות אחרונים)</h3>
+            <h3>מגמת יתרה (12 שבועות אחרונים)<InfoTip text="שינוי היתרה לאורך זמן. ירידה חדה יכולה להצביע על הסטת כספים לבנק מתחרה או על ירידה בהכנסות." /></h3>
             <div className={styles.bigChart}>
               <Sparkline data={selected.balanceTrend} color={selected.churnScore >= 65 ? '#ef4444' : '#10b981'} />
               <div className={styles.bigChartStats}>
@@ -978,7 +1042,7 @@ export function OneZeroDashboardPage() {
           </div>
 
           <div className={styles.detailSection}>
-            <h3>סיגנלים מזוהים ({selected.signals.length})</h3>
+            <h3>סיגנלים מזוהים ({selected.signals.length})<InfoTip text="סימני אזהרה התנהגותיים שזוהו ב-30 הימים האחרונים. כל סיגנל משויך לאחת מ-7 קטגוריות ומשפיע על ניקוד הנטישה." /></h3>
             <div className={styles.signalsList}>
               {selected.signals.map((s) => {
                 const meta = SIGNAL_CATEGORY_META[s.category];
@@ -1003,7 +1067,7 @@ export function OneZeroDashboardPage() {
           </div>
 
           <div className={styles.detailSection}>
-            <h3>פעולות שימור מומלצות</h3>
+            <h3>פעולות שימור מומלצות<InfoTip text="המלצות AI מותאמות אישית לפי הפרופיל והסיגנלים של הלקוח. לחץ ״בצע״ כדי לסמן שטופלה." /></h3>
             <div className={styles.actionsList}>
               {selected.recommendedActions.map((a, i) => {
                 const done = (dashState.doneActions[selected.id] || []).includes(i);
@@ -1054,7 +1118,7 @@ export function OneZeroDashboardPage() {
           </div>
 
           <div className={styles.detailSection}>
-            <h3>מדדי מעורבות דיגיטלית</h3>
+            <h3>מדדי מעורבות דיגיטלית<InfoTip text="אינדיקטורים לשימוש הלקוח באפליקציה ובאתר. ירידה חדה מסמנת שהלקוח ״מתחיל לעזוב״." /></h3>
             <div className={styles.engagementGrid}>
               <div className={styles.engBox}>
                 <div className={styles.engLabel}>כניסות לאפליקציה (30 יום)</div>
@@ -1078,7 +1142,7 @@ export function OneZeroDashboardPage() {
       {/* Bottom analytics */}
       <section className={styles.bottomGrid}>
         <div className={styles.analyticsCard}>
-          <h3>פילוח סיכון לפי סגמנט</h3>
+          <h3>פילוח סיכון לפי סגמנט<InfoTip text="ניקוד נטישה ממוצע לכל סגמנט לקוחות. עוזר לזהות אילו קבוצות דורשות טיפול מערכתי." /></h3>
           <div className={styles.segmentList}>
             {segmentStats.map((s) => (
               <div key={s.seg} className={styles.segmentRow}>
@@ -1097,7 +1161,7 @@ export function OneZeroDashboardPage() {
         </div>
 
         <div className={styles.analyticsCard}>
-          <h3>סיגנלים נפוצים</h3>
+          <h3>סיגנלים נפוצים<InfoTip text="הקטגוריות הנפוצות ביותר של סימני נטישה בתיק. מסייע לזהות דפוסים מערכתיים." /></h3>
           <div className={styles.signalCategoryList}>
             {Object.entries(signalCounts)
               .sort((a, b) => b[1] - a[1])
@@ -1117,7 +1181,7 @@ export function OneZeroDashboardPage() {
         </div>
 
         <div className={styles.analyticsCard}>
-          <h3>פעולות שננקטו השבוע</h3>
+          <h3>פעולות שננקטו השבוע<InfoTip text="פעולות שימור אחרונות שבוצעו על ידי צוות הבנק - שקוף לכל הצוות." /></h3>
           <div className={styles.actionLog}>
             <div className={styles.logRow}>
               <span className={styles.logIcon}>📞</span>
@@ -1149,7 +1213,7 @@ export function OneZeroDashboardPage() {
       </section>
 
       <footer className={styles.footer}>
-        <span>ONE ZERO Bank · Demo Environment · Powered by</span>
+        <span>הבנק · סביבת דמו · Powered by</span>
         <Link to="/aspect/ai" className={styles.footerLink}>Aspect AI Platform</Link>
       </footer>
 
@@ -1165,7 +1229,7 @@ export function OneZeroDashboardPage() {
       {/* Embedded chat */}
       <FloatingChatWidget
         iframeSrc="/aspect/onezero/chat?embed=true"
-        title="ONE ZERO Churn AI"
+        title="יועץ נטישה - AI"
         accentColor="#3b82f6"
         buttonText="שאל את ה-AI"
         buttonIcon="🤖"
