@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, FreedaPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, KBvsTriggeredPage, LLMGuidePage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TaskBoardPage, TiktokPage, Zer4UPage } from './pages';
+import { AboutShlomiPage, ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, FreedaPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, KBvsTriggeredPage, LLMGuidePage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TaskBoardPage, TiktokPage, Zer4UPage } from './pages';
 import { useTaskBoard, useQuickBug } from './hooks';
 import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
 import { QuickBugModal } from './components/tasks/QuickBugModal/QuickBugModal';
@@ -55,7 +55,9 @@ function AppContent() {
         <Route path="/lybi/chain" element={<ChainArchitecturePage />} />
         <Route path="/lybi/crew-builder" element={<CrewBuilderMockupPage />} />
         <Route path="/lybi/kb-vs-triggered" element={<KBvsTriggeredPage />} />
+        <Route path="/lybi/infrastructure" element={<InfrastructurePage />} />
         <Route path="/lybi/knowledge" element={<LybiKnowledgePage />} />
+        <Route path="/lybi/about/shlomi" element={<AboutShlomiPage />} />
         <Route path="/lybi/freeda-legacy" element={<FreedaLegacyFlowPage />} />
         <Route path="/lybi/*" element={<LybiLandingPage />} />
 

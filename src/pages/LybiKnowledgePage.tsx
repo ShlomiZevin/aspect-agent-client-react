@@ -8,6 +8,8 @@ const PAGES = [
   { path: '/lybi/how-we-build', icon: '🔧', title: 'How We Build Agents', desc: 'Crews, chain steps, personas, and how it all fits together', slides: 9 },
   { path: '/lybi/chain', icon: '⛓️', title: 'Chain Architecture', desc: 'The full message pipeline — every step, timing, and where issues happen', slides: null },
   { path: '/lybi/crew-builder', icon: '🛠️', title: 'Agent Builder', desc: 'Interactive mockup — chain, fields, memory, triggered context', slides: null },
+  { path: '/lybi/infrastructure', icon: '☁️', title: 'Infrastructure', desc: 'Cloud, database, LLM providers, DevOps, AI-powered development', slides: null },
+  { path: '/lybi/about/shlomi', icon: '👤', title: 'About Shlomi Zevin', desc: 'CTO — 20+ years in tech, AI agents, startup speed', slides: null },
 ];
 
 export function LybiKnowledgePage() {
@@ -19,7 +21,7 @@ export function LybiKnowledgePage() {
   }, []);
 
   return (
-    <div className={styles.container} style={{ minHeight: '100vh' }}>
+    <div style={{ fontFamily: "'DM Sans', sans-serif", background: '#FAF7F7', color: '#1C1917', minHeight: '100vh', lineHeight: 1.75 }}>
       <nav className={styles.nav}>
         <div className={styles.navContent}>
           <div className={styles.navLeft}>

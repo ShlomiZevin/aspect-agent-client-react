@@ -1,3 +1,4 @@
+export { AboutShlomiPage } from './AboutShlomiPage';
 export { AspectPage } from './AspectPage';
 export { ArchitecturePage } from './ArchitecturePage';
 export { AspectLandingPage } from './AspectLandingPage';
@@ -19,6 +20,7 @@ export { Zer4UPage } from './Zer4UPage';
 export { CrewBuilderMockupPage } from './CrewBuilderMockupPage';
 export { HowWeBuildPage } from './HowWeBuildPage';
 export { ChainArchitecturePage } from './ChainArchitecturePage';
+export { InfrastructurePage } from './InfrastructurePage';
 export { KBvsTriggeredPage } from './KBvsTriggeredPage';
 export { LybiKnowledgePage } from './LybiKnowledgePage';
 export { LLMGuidePage } from './LLMGuidePage';
