@@ -28,5 +28,6 @@ export { LybiKnowledgePage } from './LybiKnowledgePage';
 export { LLMGuidePage } from './LLMGuidePage';
 export { PitchDeckPage } from './PitchDeckPage';
 export { TaskBoardPage } from './TaskBoardPage';
+export { TechBacklogPage } from './TechBacklogPage';
 export { TiktokPage } from './TiktokPage';
 export { FreedaLegacyFlowPage } from './FreedaLegacyFlowPage';
