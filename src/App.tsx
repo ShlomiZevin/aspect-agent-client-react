@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AboutShlomiPage, AICompliancePage, ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, FreedaPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, KBvsTriggeredPage, LLMGuidePage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TaskBoardPage, TiktokPage, Zer4UPage } from './pages';
+import { AboutShlomiPage, AICompliancePage, ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, FreedaPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, IPDisclosurePage, KBvsTriggeredPage, LLMGuidePage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TaskBoardPage, TiktokPage, Zer4UPage } from './pages';
 import { useTaskBoard, useQuickBug } from './hooks';
 import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
 import { QuickBugModal } from './components/tasks/QuickBugModal/QuickBugModal';
@@ -50,6 +50,7 @@ function AppContent() {
         <Route path="/aspect/ai" element={<AspectLandingPage />} />
         <Route path="/aspect/architecture" element={<ArchitecturePage />} />
         <Route path="/aspect/ai-compliance" element={<AICompliancePage />} />
+        <Route path="/aspect/ip-disclosure" element={<IPDisclosurePage />} />
         <Route path="/aspect/pitch" element={<PitchDeckPage />} />
         <Route path="/lybi/llm-guide" element={<LLMGuidePage />} />
         <Route path="/lybi/how-we-build" element={<HowWeBuildPage />} />

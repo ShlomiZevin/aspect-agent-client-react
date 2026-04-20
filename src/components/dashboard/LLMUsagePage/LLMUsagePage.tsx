@@ -14,6 +14,7 @@ interface UsageRow {
   provider: string;
   inputTokens: number;
   outputTokens: number;
+  durationMs: number | null;
   conversationId: string | null;
   userId: number | null;
   createdAt: string;
@@ -24,6 +25,7 @@ interface ProcessSummary {
   count: number;
   totalInput: number;
   totalOutput: number;
+  avgDurationMs: number;
 }
 
 interface ModelSummary {
@@ -32,6 +34,7 @@ interface ModelSummary {
   count: number;
   totalInput: number;
   totalOutput: number;
+  avgDurationMs: number;
 }
 
 // Client-side cost estimation ($/M tokens)
@@ -188,6 +191,7 @@ export function LLMUsagePage({ baseURL }: Props) {
                   <th>Output Tokens</th>
                   <th>Avg Input</th>
                   <th>Avg Output</th>
+                  <th>Avg Time</th>
                   <th>Est. Cost</th>
                 </tr>
               </thead>
@@ -200,6 +204,7 @@ export function LLMUsagePage({ baseURL }: Props) {
                     <td>{formatTokens(p.totalOutput)}</td>
                     <td>{p.count ? formatTokens(Math.round(p.totalInput / p.count)) : '-'}</td>
                     <td>{p.count ? formatTokens(Math.round(p.totalOutput / p.count)) : '-'}</td>
+                    <td>{p.avgDurationMs ? `${(p.avgDurationMs / 1000).toFixed(1)}s` : '-'}</td>
                     <td className={styles.costHighlight}>{formatCost(costByProcess[p.process] || 0)}</td>
                   </tr>
                 ))}
@@ -220,6 +225,7 @@ export function LLMUsagePage({ baseURL }: Props) {
                   <th>Output</th>
                   <th>Avg Input</th>
                   <th>Avg Output</th>
+                  <th>Avg Time</th>
                   <th>Est. Cost</th>
                 </tr>
               </thead>
@@ -233,6 +239,7 @@ export function LLMUsagePage({ baseURL }: Props) {
                     <td>{formatTokens(m.totalOutput)}</td>
                     <td>{m.count ? formatTokens(Math.round(m.totalInput / m.count)) : '-'}</td>
                     <td>{m.count ? formatTokens(Math.round(m.totalOutput / m.count)) : '-'}</td>
+                    <td>{m.avgDurationMs ? `${(m.avgDurationMs / 1000).toFixed(1)}s` : '-'}</td>
                     <td className={styles.costHighlight}>{formatCost(estimateCost(m.model, m.totalInput, m.totalOutput))}</td>
                   </tr>
                 ))}
@@ -255,6 +262,7 @@ export function LLMUsagePage({ baseURL }: Props) {
                     <th>Crew</th>
                     <th>Input</th>
                     <th>Output</th>
+                    <th>Duration</th>
                     <th>Est. Cost</th>
                   </tr>
                 </thead>
@@ -267,6 +275,7 @@ export function LLMUsagePage({ baseURL }: Props) {
                       <td>{r.crewMember || '-'}</td>
                       <td>{formatTokens(r.inputTokens)}</td>
                       <td>{formatTokens(r.outputTokens)}</td>
+                      <td>{r.durationMs ? `${(r.durationMs / 1000).toFixed(1)}s` : '-'}</td>
                       <td className={styles.costHighlight}>{formatCost(estimateCost(r.model, r.inputTokens, r.outputTokens))}</td>
                     </tr>
                   ))}

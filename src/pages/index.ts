@@ -1,6 +1,7 @@
 export { AboutShlomiPage } from './AboutShlomiPage';
 export { AICompliancePage } from './AICompliancePage';
 export { AspectPage } from './AspectPage';
+export { IPDisclosurePage } from './IPDisclosurePage';
 export { ArchitecturePage } from './ArchitecturePage';
 export { AspectLandingPage } from './AspectLandingPage';
 export { BankingOnboarderPage } from './BankingOnboarderPage';
