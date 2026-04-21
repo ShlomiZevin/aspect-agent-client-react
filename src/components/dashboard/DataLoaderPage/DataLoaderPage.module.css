@@ -490,6 +490,21 @@
   color: var(--text-primary);
 }
 
+.dangerBtn {
+  padding: 8px 20px;
+  background: transparent;
+  color: #e53e3e;
+  border: 1px solid #e53e3e;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.dangerBtn:hover {
+  background: #e53e3e;
+  color: #fff;
+}
+
 /* ── Misc ───────────────────────────────────────────────── */
 
 .loading {

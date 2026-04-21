@@ -20,7 +20,7 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   const [isLive, setIsLive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState<'import' | 'index' | null>(null);
+  const [confirming, setConfirming] = useState<'import' | 'index' | 'cancel' | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const currentRunRef = useRef<HTMLDivElement>(null);
 
@@ -187,6 +187,23 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
     }
   }
 
+  async function handleCancelConfirm() {
+    setConfirming(null);
+    try {
+      const res = await fetch(`${apiBase}/cancel`, { method: 'POST' });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to cancel');
+      }
+      setIsLive(false);
+      eventSourceRef.current?.close();
+      eventSourceRef.current = null;
+      await loadData();
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Failed to cancel run');
+    }
+  }
+
   async function handleIndexConfirm() {
     setConfirming(null);
     try {
@@ -245,6 +262,14 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
           >
             {isBusy && currentRun?.phase === 'indexing' ? '● Indexing...' : '⚡ Create Indexes'}
           </button>
+          {isBusy && (
+            <button
+              className={styles.dangerBtn}
+              onClick={() => setConfirming('cancel')}
+            >
+              ✕ Force Cancel
+            </button>
+          )}
         </div>
       </div>
 
@@ -256,6 +281,19 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
             <div className={styles.confirmActions}>
               <button className={styles.confirmBtn} onClick={handleImportConfirm}>Start Import</button>
               <button className={styles.cancelBtn} onClick={() => setConfirming(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirming === 'cancel' && (
+        <div className={styles.confirmOverlay}>
+          <div className={styles.confirmDialog}>
+            <p>Force-cancel the running job for <strong>{schemaName}</strong>?</p>
+            <p className={styles.confirmNote}>The background process may still be running on the server. This only marks the run as failed in the database so you can start a new one.</p>
+            <div className={styles.confirmActions}>
+              <button className={styles.dangerBtn} onClick={handleCancelConfirm}>Force Cancel</button>
+              <button className={styles.cancelBtn} onClick={() => setConfirming(null)}>Keep Running</button>
             </div>
           </div>
         </div>
