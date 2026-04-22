@@ -262,7 +262,7 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
           >
             {isBusy && currentRun?.phase === 'indexing' ? '● Indexing...' : '⚡ Create Indexes'}
           </button>
-          {isBusy && (
+          {(isBusy || runStatus === 'running') && (
             <button
               className={styles.dangerBtn}
               onClick={() => setConfirming('cancel')}
