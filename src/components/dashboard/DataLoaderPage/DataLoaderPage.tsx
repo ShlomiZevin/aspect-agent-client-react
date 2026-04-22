@@ -27,7 +27,7 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   const apiBase = `${baseURL}/api/admin/data-loader/${schemaName}`;
 
   const runStatus = currentRun?.status;
-  const isBusy = runStatus === 'running';
+  const isBusy = runStatus === 'running' && isLive;
 
   const loadData = useCallback(async () => {
     try {
