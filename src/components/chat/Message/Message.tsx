@@ -85,17 +85,17 @@ export function Message({ message }: MessageProps) {
   const uiDisabled = uiElements.length > 0 && msgIndex >= 0 && msgIndex < messages.length - 1;
 
   // When disabled, parse the next user message to recover submitted input values (for display)
+  const nextUserMsg = uiElements.length > 0
+    ? messages.slice(msgIndex + 1).find((m: MessageType) => m.role === 'user')
+    : undefined;
   const collectedInputs: Record<string, string> = {};
-  if (uiDisabled) {
-    const nextUserMsg = messages.slice(msgIndex + 1).find((m: MessageType) => m.role === 'user');
-    if (nextUserMsg?.content) {
-      for (const line of nextUserMsg.content.split('\n')) {
-        const idx = line.indexOf(':');
-        if (idx > 0) {
-          const k = line.slice(0, idx).trim();
-          const v = line.slice(idx + 1).trim();
-          if (k && v) collectedInputs[k] = v;
-        }
+  if (uiDisabled && nextUserMsg?.content) {
+    for (const line of nextUserMsg.content.split('\n')) {
+      const idx = line.indexOf(':');
+      if (idx > 0) {
+        const k = line.slice(0, idx).trim();
+        const v = line.slice(idx + 1).trim();
+        if (k && v) collectedInputs[k] = v;
       }
     }
   }
