@@ -12,7 +12,7 @@ import { ParseModal } from '../ParseModal';
 import { SpreadDatesModal } from '../SpreadDatesModal';
 import styles from './DemoEditor.module.css';
 
-type DisplayMode = 'framed' | 'fullscreen' | 'embedded';
+type DisplayMode = 'framed' | 'fullscreen' | 'embedded' | 'popup';
 
 interface DemoEditorProps {
   mockupId?: string;
@@ -43,19 +43,23 @@ export function DemoEditor({ mockupId, isViewOnly = false, isEmbed = false }: De
   const [showParseModal, setShowParseModal] = useState(false);
   const [showSpreadDatesModal, setShowSpreadDatesModal] = useState(false);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('framed');
+  const [popupOpen, setPopupOpen] = useState(false);
 
-  // Handle escape key to exit fullscreen in view mode
+  // Handle escape key to exit fullscreen/popup in view mode
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && displayMode === 'fullscreen') {
         setDisplayMode('framed');
+      }
+      if (e.key === 'Escape' && popupOpen) {
+        setPopupOpen(false);
       }
     };
     if (isViewOnly) {
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [displayMode, isViewOnly]);
+  }, [displayMode, isViewOnly, popupOpen]);
 
   // Load mockup if editing
   useEffect(() => {
@@ -256,34 +260,12 @@ export function DemoEditor({ mockupId, isViewOnly = false, isEmbed = false }: De
                 {isExporting ? 'Exporting...' : '📷 Export Image'}
               </button>
               <div className={styles.displayModeToggle}>
-                <button
-                  className={styles.modeButton}
-                  onClick={() => setDisplayMode('framed')}
-                  title="Phone frame"
-                >
-                  📱
-                </button>
-                <button
-                  className={`${styles.modeButton} ${styles.modeButtonActive}`}
-                  onClick={() => setDisplayMode('fullscreen')}
-                  title="Fullscreen"
-                >
-                  ⛶
-                </button>
-                <button
-                  className={styles.modeButton}
-                  onClick={() => setDisplayMode('embedded')}
-                  title="Website embed"
-                >
-                  🌐
-                </button>
+                <button className={styles.modeButton} onClick={() => setDisplayMode('framed')} title="Phone frame">📱</button>
+                <button className={`${styles.modeButton} ${styles.modeButtonActive}`} onClick={() => setDisplayMode('fullscreen')} title="Fullscreen">⛶</button>
+                <button className={styles.modeButton} onClick={() => setDisplayMode('embedded')} title="Website embed — always visible">🌐</button>
+                <button className={styles.modeButton} onClick={() => { setDisplayMode('popup'); setPopupOpen(false); }} title="Popup widget — click to open">💬</button>
               </div>
-              <button
-                className={styles.iconButton}
-                onClick={() => navigate('/demo')}
-              >
-                ← Back
-              </button>
+              <button className={styles.iconButton} onClick={() => navigate('/demo')}>← Back</button>
             </div>
           </div>
           <div className={styles.fullscreenChat} ref={chatContainerRef}>
@@ -305,44 +287,19 @@ export function DemoEditor({ mockupId, isViewOnly = false, isEmbed = false }: De
             <span className={styles.viewOnlyTitle}>{title}</span>
             <div className={styles.viewOnlyActions}>
               <div className={styles.displayModeToggle}>
-                <button
-                  className={styles.modeButton}
-                  onClick={() => setDisplayMode('framed')}
-                  title="Phone frame"
-                >
-                  📱
-                </button>
-                <button
-                  className={styles.modeButton}
-                  onClick={() => setDisplayMode('fullscreen')}
-                  title="Fullscreen"
-                >
-                  ⛶
-                </button>
-                <button
-                  className={`${styles.modeButton} ${styles.modeButtonActive}`}
-                  onClick={() => setDisplayMode('embedded')}
-                  title="Website embed"
-                >
-                  🌐
-                </button>
+                <button className={styles.modeButton} onClick={() => setDisplayMode('framed')} title="Phone frame">📱</button>
+                <button className={styles.modeButton} onClick={() => setDisplayMode('fullscreen')} title="Fullscreen">⛶</button>
+                <button className={`${styles.modeButton} ${styles.modeButtonActive}`} onClick={() => setDisplayMode('embedded')} title="Website embed — always visible">🌐</button>
+                <button className={styles.modeButton} onClick={() => { setDisplayMode('popup'); setPopupOpen(false); }} title="Popup widget — click to open">💬</button>
               </div>
-              <button
-                className={styles.iconButton}
-                onClick={() => navigate('/demo')}
-              >
-                ← Back
-              </button>
+              <button className={styles.iconButton} onClick={() => navigate('/demo')}>← Back</button>
             </div>
           </div>
           <div className={styles.fakeWebsite}>
             <div className={styles.fakeWebsiteNav}>
               <div className={styles.fakeNavLogo}>ACME Corp</div>
               <div className={styles.fakeNavLinks}>
-                <span>Products</span>
-                <span>Solutions</span>
-                <span>Pricing</span>
-                <span>Contact</span>
+                <span>Products</span><span>Solutions</span><span>Pricing</span><span>Contact</span>
               </div>
             </div>
             <div className={styles.fakeWebsiteContent}>
@@ -363,6 +320,66 @@ export function DemoEditor({ mockupId, isViewOnly = false, isEmbed = false }: De
       );
     }
 
+    // Popup view - floating chat button that opens a popup overlay
+    if (displayMode === 'popup') {
+      return (
+        <div className={styles.viewOnlyContainer}>
+          <div className={styles.viewOnlyHeader}>
+            <span className={styles.viewOnlyTitle}>{title}</span>
+            <div className={styles.viewOnlyActions}>
+              <div className={styles.displayModeToggle}>
+                <button className={styles.modeButton} onClick={() => setDisplayMode('framed')} title="Phone frame">📱</button>
+                <button className={styles.modeButton} onClick={() => setDisplayMode('fullscreen')} title="Fullscreen">⛶</button>
+                <button className={styles.modeButton} onClick={() => setDisplayMode('embedded')} title="Website embed — always visible">🌐</button>
+                <button className={`${styles.modeButton} ${styles.modeButtonActive}`} onClick={() => { setDisplayMode('popup'); setPopupOpen(false); }} title="Popup widget — click to open">💬</button>
+              </div>
+              <button className={styles.iconButton} onClick={() => navigate('/demo')}>← Back</button>
+            </div>
+          </div>
+          <div className={styles.fakeWebsite}>
+            <div className={styles.fakeWebsiteNav}>
+              <div className={styles.fakeNavLogo}>ACME Corp</div>
+              <div className={styles.fakeNavLinks}>
+                <span>Products</span><span>Solutions</span><span>Pricing</span><span>Contact</span>
+              </div>
+            </div>
+            <div className={styles.fakeWebsiteContent}>
+              <div className={styles.fakeHero}>
+                <h1>Welcome to Our Website</h1>
+                <p>Click the chat button in the bottom-right corner to open the assistant.</p>
+              </div>
+            </div>
+            {/* Floating chat trigger button */}
+            <button
+              className={styles.popupTriggerBtn}
+              onClick={() => setPopupOpen(true)}
+              title="Open chat"
+            >
+              💬
+            </button>
+            {/* Popup overlay */}
+            {popupOpen && (
+              <div className={styles.popupOverlay} onClick={(e) => { if (e.target === e.currentTarget) setPopupOpen(false); }}>
+                <div className={styles.popupWindow}>
+                  <div className={styles.popupHeader}>
+                    <span className={styles.popupTitle}>Chat Assistant</span>
+                    <button className={styles.popupCloseBtn} onClick={() => setPopupOpen(false)}>✕</button>
+                  </div>
+                  <div className={styles.popupBody}>
+                    {viewMode === 'whatsapp' ? (
+                      <WhatsAppView messages={messages} config={config} />
+                    ) : (
+                      <RegularView messages={messages} config={config} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     // Framed view (default)
     return (
       <div className={styles.viewOnlyContainer}>
@@ -378,27 +395,10 @@ export function DemoEditor({ mockupId, isViewOnly = false, isEmbed = false }: De
               {isExporting ? 'Exporting...' : '📷 Export Image'}
             </button>
             <div className={styles.displayModeToggle}>
-              <button
-                className={`${styles.modeButton} ${styles.modeButtonActive}`}
-                onClick={() => setDisplayMode('framed')}
-                title="Phone frame"
-              >
-                📱
-              </button>
-              <button
-                className={styles.modeButton}
-                onClick={() => setDisplayMode('fullscreen')}
-                title="Fullscreen"
-              >
-                ⛶
-              </button>
-              <button
-                className={styles.modeButton}
-                onClick={() => setDisplayMode('embedded')}
-                title="Website embed"
-              >
-                🌐
-              </button>
+              <button className={`${styles.modeButton} ${styles.modeButtonActive}`} onClick={() => setDisplayMode('framed')} title="Phone frame">📱</button>
+              <button className={styles.modeButton} onClick={() => setDisplayMode('fullscreen')} title="Fullscreen">⛶</button>
+              <button className={styles.modeButton} onClick={() => setDisplayMode('embedded')} title="Website embed — always visible">🌐</button>
+              <button className={styles.modeButton} onClick={() => { setDisplayMode('popup'); setPopupOpen(false); }} title="Popup widget — click to open">💬</button>
             </div>
             <button
               className={styles.iconButton}

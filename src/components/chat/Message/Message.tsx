@@ -384,6 +384,8 @@ export function Message({ message }: MessageProps) {
                   if (el.type === 'id') {
                     const label = el.options[0] || 'העלאת תעודת זהות 📷';
                     const inputId = `id-upload-${message.id}-${i}`;
+                    const MOCK_UPLOAD_PREFIX = 'העליתי את תעודת הזהות שלי';
+                    const wasUploaded = nextUserMsg?.content?.includes(MOCK_UPLOAD_PREFIX);
                     const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
                       const file = e.target.files?.[0];
                       e.target.value = '';
@@ -394,29 +396,45 @@ export function Message({ message }: MessageProps) {
                         setIdProcessing(false);
                       }, 2000);
                     };
+                    if (uiDisabled) {
+                      const doneText = wasUploaded ? '✅ תעודת זהות הועלתה' : '✅ מספר זהות הוזן';
+                      return (
+                        <span key={i}>
+                          <label className={`${styles.uiElement} ${styles.uiType_id} ${styles.uiDisabled} ${styles.uiType_id_uploaded}`}>
+                            {doneText}
+                          </label>
+                        </span>
+                      );
+                    }
                     return (
-                      <span key={i}>
+                      <span key={i} className={styles.idChoiceRow}>
                         <input
                           id={inputId}
                           type="file"
                           accept="image/*"
                           style={{ display: 'none' }}
-                          disabled={uiDisabled || idProcessing}
+                          disabled={idProcessing}
                           onChange={handleFileSelected}
                         />
                         <label
                           htmlFor={inputId}
-                          className={`${styles.uiElement} ${styles.uiType_id} ${(uiDisabled || idProcessing) ? styles.uiDisabled : ''} ${uiDisabled && !idProcessing ? styles.uiType_id_uploaded : ''}`}
+                          className={`${styles.uiElement} ${styles.uiType_id} ${idProcessing ? styles.uiDisabled : ''}`}
                         >
                           {idProcessing ? (
                             <span className={styles.idProcessing}>
                               <span className={styles.idSpinner} />
                               מעבד את תעודת הזהות שלך...
                             </span>
-                          ) : uiDisabled ? (
-                            '✅ תעודת זהות הועלתה'
                           ) : label}
                         </label>
+                        <button
+                          type="button"
+                          className={`${styles.uiElement} ${styles.uiType_idManual}`}
+                          disabled={idProcessing}
+                          onClick={() => sendMessage('הקלדה ידנית')}
+                        >
+                          הקלדה ידנית ⌨️
+                        </button>
                       </span>
                     );
                   }
