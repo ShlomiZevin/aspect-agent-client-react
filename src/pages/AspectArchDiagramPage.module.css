@@ -1,0 +1,588 @@
+/* Aspect Architecture Diagram Page — Investor-Facing */
+
+.container {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  background: #0f172a;
+  color: #f1f5f9;
+  min-height: 100vh;
+}
+
+/* Nav */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.navContent {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0.75rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navLogo {
+  background: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  text-decoration: none;
+}
+
+.navLogo img {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.navLinks a {
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: color 0.2s;
+}
+
+.navLinks a:hover {
+  color: #ffffff;
+}
+
+/* Hero */
+.hero {
+  padding: 7rem 2rem 2rem;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+  color: #ffffff;
+}
+
+.hero h1 span {
+  color: #60a5fa;
+}
+
+.heroSub {
+  font-size: 1.05rem;
+  color: #94a3b8;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ─── FLOW DIAGRAM ─── */
+
+.flowSection {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 3rem 2rem 4rem;
+}
+
+.flowTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  margin: 0 0 0.5rem;
+}
+
+.flowSub {
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 0 0 2.5rem;
+}
+
+/* The vertical flow */
+.flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+/* Step row — holds the box + optional side annotation */
+.stepRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 700px;
+}
+
+/* Main step box */
+.stepBox {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.75rem;
+  flex: 1;
+  max-width: 480px;
+  transition: border-color 0.2s;
+}
+
+.stepBox:hover {
+  border-color: #475569;
+}
+
+.stepHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.stepNum {
+  background: #3b82f6;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stepNumGreen {
+  composes: stepNum;
+  background: #22c55e;
+}
+
+.stepNumAmber {
+  composes: stepNum;
+  background: #f59e0b;
+  color: #1a1a1a;
+}
+
+.stepNumPurple {
+  composes: stepNum;
+  background: #a855f7;
+}
+
+.stepTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.stepDesc {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Side annotation (provider badge) */
+.sideAnnotation {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  padding: 0.6rem 1rem;
+  text-align: center;
+  min-width: 130px;
+  flex-shrink: 0;
+}
+
+.sideLabel {
+  font-size: 0.7rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.sideValue {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #60a5fa;
+}
+
+.sideValueGreen {
+  composes: sideValue;
+  color: #4ade80;
+}
+
+.sideValueAmber {
+  composes: sideValue;
+  color: #fbbf24;
+}
+
+/* Arrow between steps */
+.arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.4rem 0;
+}
+
+.arrowLine {
+  width: 2px;
+  height: 16px;
+  background: #334155;
+}
+
+.arrowLabel {
+  font-size: 0.7rem;
+  color: #475569;
+  padding: 0.15rem 0.5rem;
+  white-space: nowrap;
+}
+
+.arrowHead {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #334155;
+}
+
+/* Highlighted step variants */
+.stepBoxBlue {
+  composes: stepBox;
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, #1e293b 0%, #172554 100%);
+}
+
+.stepBoxGreen {
+  composes: stepBox;
+  border-color: #22c55e;
+  background: linear-gradient(135deg, #1e293b 0%, #052e16 100%);
+}
+
+.stepBoxAmber {
+  composes: stepBox;
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, #1e293b 0%, #451a03 100%);
+}
+
+.stepBoxPurple {
+  composes: stepBox;
+  border-color: #a855f7;
+  background: linear-gradient(135deg, #1e293b 0%, #2e1065 100%);
+}
+
+/* ─── ACCOUNTS / BILLING SECTION ─── */
+
+.billingSection {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 2rem 4rem;
+}
+
+.billingGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.billingCard {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.billingCard:hover {
+  border-color: #3b82f6;
+}
+
+.billingIcon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.billingProvider {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.25rem;
+}
+
+.billingAccount {
+  font-size: 0.8rem;
+  color: #60a5fa;
+  margin-bottom: 0.75rem;
+  font-family: monospace;
+}
+
+.billingDesc {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.billingItems {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+  text-align: left;
+}
+
+.billingItems li {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.billingItems li:last-child {
+  border-bottom: none;
+}
+
+.billingDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3b82f6;
+  flex-shrink: 0;
+}
+
+.billingDotGreen {
+  composes: billingDot;
+  background: #22c55e;
+}
+
+.billingDotAmber {
+  composes: billingDot;
+  background: #f59e0b;
+}
+
+/* ─── FOOTER ─── */
+.footer {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 2rem 3rem;
+  border-top: 1px solid #334155;
+  text-align: center;
+}
+
+.footerText {
+  color: #64748b;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* ─── THEME TOGGLE ─── */
+.themeToggle {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 2rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  line-height: 1;
+}
+
+.themeToggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ─── LIGHT MODE ─── */
+.light {
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.light .nav {
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom-color: #e2e8f0;
+}
+
+.light .navLinks a {
+  color: #64748b;
+}
+
+.light .navLinks a:hover {
+  color: #0f172a;
+}
+
+.light .themeToggle {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: #e2e8f0;
+}
+
+.light .themeToggle:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.light h1 {
+  color: #0f172a;
+}
+
+.light h1 span {
+  color: #2563eb;
+}
+
+.light .heroSub {
+  color: #64748b;
+}
+
+.light .flowTitle {
+  color: #0f172a;
+}
+
+.light .flowSub {
+  color: #94a3b8;
+}
+
+.light .stepBox {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.light .stepBox:hover {
+  border-color: #cbd5e1;
+}
+
+.light .stepBoxBlue {
+  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+  border-color: #93c5fd;
+}
+
+.light .stepBoxGreen {
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  border-color: #86efac;
+}
+
+.light .stepBoxAmber {
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+  border-color: #fcd34d;
+}
+
+.light .stepBoxPurple {
+  background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+  border-color: #d8b4fe;
+}
+
+.light .stepTitle {
+  color: #0f172a;
+}
+
+.light .stepDesc {
+  color: #64748b;
+}
+
+.light .sideAnnotation {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.light .sideLabel {
+  color: #94a3b8;
+}
+
+.light .sideValue {
+  color: #2563eb;
+}
+
+.light .sideValueGreen {
+  color: #16a34a;
+}
+
+.light .sideValueAmber {
+  color: #d97706;
+}
+
+.light .arrowLine {
+  background: #cbd5e1;
+}
+
+.light .arrowLabel {
+  color: #94a3b8;
+}
+
+.light .arrowHead {
+  border-top-color: #cbd5e1;
+}
+
+.light .billingCard {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.light .billingCard:hover {
+  border-color: #93c5fd;
+}
+
+.light .billingProvider {
+  color: #0f172a;
+}
+
+.light .billingAccount {
+  color: #2563eb;
+}
+
+.light .billingItems li {
+  color: #475569;
+  border-bottom-color: #f1f5f9;
+}
+
+.light .footer {
+  border-top-color: #e2e8f0;
+}
+
+.light .footerText {
+  color: #94a3b8;
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 768px) {
+  .hero {
+    padding: 5rem 1.5rem 2rem;
+  }
+
+  .hero h1 {
+    font-size: 1.8rem;
+  }
+
+  .flowSection,
+  .billingSection {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  .stepRow {
+    flex-direction: column;
+  }
+
+  .sideAnnotation {
+    min-width: auto;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .billingGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .navLinks {
+    display: none;
+  }
+}

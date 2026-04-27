@@ -386,6 +386,7 @@ export function Message({ message }: MessageProps) {
                     const inputId = `id-upload-${message.id}-${i}`;
                     const MOCK_UPLOAD_PREFIX = 'העליתי את תעודת הזהות שלי';
                     const wasUploaded = nextUserMsg?.content?.includes(MOCK_UPLOAD_PREFIX);
+                    const hasIdNumber = nextUserMsg?.content ? /\d{9}/.test(nextUserMsg.content) : false;
                     const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
                       const file = e.target.files?.[0];
                       e.target.value = '';
@@ -396,7 +397,7 @@ export function Message({ message }: MessageProps) {
                         setIdProcessing(false);
                       }, 2000);
                     };
-                    if (uiDisabled) {
+                    if (uiDisabled && (wasUploaded || hasIdNumber)) {
                       const doneText = wasUploaded ? '✅ תעודת זהות הועלתה' : '✅ מספר זהות הוזן';
                       return (
                         <span key={i}>
@@ -407,7 +408,7 @@ export function Message({ message }: MessageProps) {
                       );
                     }
                     return (
-                      <span key={i} className={styles.idChoiceRow}>
+                      <span key={i}>
                         <input
                           id={inputId}
                           type="file"
@@ -427,14 +428,6 @@ export function Message({ message }: MessageProps) {
                             </span>
                           ) : label}
                         </label>
-                        <button
-                          type="button"
-                          className={`${styles.uiElement} ${styles.uiType_idManual}`}
-                          disabled={idProcessing}
-                          onClick={() => sendMessage('הקלדה ידנית')}
-                        >
-                          הקלדה ידנית ⌨️
-                        </button>
                       </span>
                     );
                   }
