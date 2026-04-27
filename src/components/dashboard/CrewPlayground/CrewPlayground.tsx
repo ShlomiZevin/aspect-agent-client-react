@@ -165,6 +165,7 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
     conversationId: testConversationId,
     userId: null,
     overrideCrewMember: registeredSession?.crewName || null,
+    playgroundConfig: activatedConfig,
     debug: debugMode,
     onCrewInfo: () => {},
     onFieldExtracted: () => {},

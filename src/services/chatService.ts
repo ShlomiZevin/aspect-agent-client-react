@@ -9,6 +9,7 @@ export interface StreamChatOptions {
   userId: string | null;
   baseURL?: string;
   overrideCrewMember?: string | null;
+  playgroundConfig?: object | null;
   debug?: boolean;
   promptOverrides?: Record<string, string>; // Session overrides: { crewName: prompt }
   modelOverrides?: Record<string, string>;      // Session overrides: { crewName: modelName }
@@ -67,7 +68,7 @@ export async function streamChat(
   options: StreamChatOptions,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const { message, conversationId, agentName, userId, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, profilerFreshStart, profilerEnabled } = options;
+  const { message, conversationId, agentName, userId, baseURL, overrideCrewMember, playgroundConfig, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, profilerFreshStart, profilerEnabled } = options;
   const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onModelUsed, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onReplaceMessage, onFieldExtracted, onProfileUpdate, onProfilerRaw } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
@@ -82,6 +83,7 @@ export async function streamChat(
         userId,
         agentName,
         ...(overrideCrewMember && { overrideCrewMember }),
+        ...(playgroundConfig && { playgroundConfig }),
         ...(debug && { debug: true }),
         ...(promptOverrides && Object.keys(promptOverrides).length > 0 && { promptOverrides }),
         ...(modelOverrides && Object.keys(modelOverrides).length > 0 && { modelOverrides }),
