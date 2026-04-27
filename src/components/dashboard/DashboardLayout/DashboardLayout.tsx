@@ -72,6 +72,13 @@ const LLM_USAGE_ITEM = {
   icon: 'M18 20V10 M12 20V4 M6 20v-6',
 };
 
+const CLOUD_RUN_LOGS_ITEM = {
+  path: 'cloud-run-logs',
+  label: 'Cloud Run Logs',
+  icon: 'M4 17L10 11 4 5 M12 19h8',
+};
+
+
 export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showPodcast, showConversationTrends, children }: DashboardLayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -84,6 +91,7 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
     BILLING_ITEM,
     LLM_USAGE_ITEM,
     API_KEYS_ITEM,
+    CLOUD_RUN_LOGS_ITEM,
   ];
 
   return (

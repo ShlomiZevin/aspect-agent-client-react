@@ -17,6 +17,7 @@ import { KBManager } from '../components/kb';
 import { TestRunnerPage } from '../components/dashboard/TestRunnerPage';
 import { DynamicKBPage } from '../components/dashboard/DynamicKBPage';
 import { ConversationTrendsPage } from '../components/dashboard/ConversationTrendsPage';
+import { CloudRunLogsPage } from '../components/dashboard/CloudRunLogsPage';
 import { PineconeAdmin } from '../components/pinecone';
 import { TaskBoardContent } from '../components/tasks/TaskBoardModal/TaskBoardContent';
 import dashStyles from './DashboardPage.module.css';
@@ -169,6 +170,10 @@ export function DashboardPage() {
             <Route
               path="api-keys"
               element={<ApiKeysPage baseURL={config.baseURL} />}
+            />
+            <Route
+              path="cloud-run-logs"
+              element={<CloudRunLogsPage baseURL={config.baseURL} />}
             />
           </Routes>
         </DashboardLayout>
