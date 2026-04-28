@@ -9,6 +9,7 @@ import {
   deleteKnowledgeBase as deleteKBApi,
   syncKnowledgeBase as syncKBApi,
   detachProvider as detachProviderApi,
+  renameKnowledgeBase as renameKBApi,
 } from '../services/kbService';
 import type { FileUploadProgress } from '../services/kbService';
 import type { KnowledgeBase, KBFile, KBProviderName } from '../types';
@@ -27,6 +28,7 @@ export interface UseKnowledgeBaseReturn {
   loadKnowledgeBases: () => Promise<void>;
   selectKnowledgeBase: (kb: KnowledgeBase | null) => Promise<void>;
   createKnowledgeBase: (name: string, description: string, providers: KBProviderName[]) => Promise<KnowledgeBase>;
+  renameKnowledgeBase: (kbId: number, name: string) => Promise<void>;
   uploadFiles: (files: File[], tags?: string[]) => Promise<void>;
   deleteFile: (file: KBFile) => Promise<void>;
   deleteKnowledgeBase: (kbId: number) => Promise<void>;
@@ -217,6 +219,22 @@ export function useKnowledgeBase(
     [baseURL, selectedKB]
   );
 
+  const renameKnowledgeBase = useCallback(
+    async (kbId: number, name: string) => {
+      setError(null);
+      try {
+        const updatedKB = await renameKBApi(kbId, name, baseURL);
+        setKnowledgeBases(prev => prev.map(kb => kb.id === kbId ? updatedKB : kb));
+        if (selectedKB?.id === kbId) setSelectedKB(updatedKB);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to rename knowledge base';
+        setError(msg);
+        throw new Error(msg);
+      }
+    },
+    [baseURL, selectedKB]
+  );
+
   const clearError = useCallback(() => setError(null), []);
 
   return {
@@ -231,6 +249,7 @@ export function useKnowledgeBase(
     loadKnowledgeBases,
     selectKnowledgeBase,
     createKnowledgeBase,
+    renameKnowledgeBase,
     uploadFiles,
     deleteFile,
     deleteKnowledgeBase,

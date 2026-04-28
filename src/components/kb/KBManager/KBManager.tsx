@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAgentConfig } from '../../../context';
 import { useKnowledgeBase } from '../../../hooks';
 import { formatBytes } from '../../../utils';
@@ -38,6 +38,7 @@ export function KBManager() {
     error,
     selectKnowledgeBase,
     createKnowledgeBase,
+    renameKnowledgeBase,
     uploadFiles,
     deleteFile,
     deleteKnowledgeBase,
@@ -46,6 +47,10 @@ export function KBManager() {
     clearError,
   } = useKnowledgeBase(config.agentName, config.baseURL);
 
+  const [editingKBId, setEditingKBId] = useState<number | null>(null);
+  const [editingKBLocation, setEditingKBLocation] = useState<'sidebar' | 'header' | null>(null);
+  const [editingKBName, setEditingKBName] = useState('');
+  const justOpenedRef = useRef(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [confirmDeleteKBId, setConfirmDeleteKBId] = useState<number | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -81,6 +86,27 @@ export function KBManager() {
     } finally {
       setDeletingProviderFileId(null);
     }
+  };
+
+  const handleStartRename = (kb: { id: number; name: string }, location: 'sidebar' | 'header', e: React.MouseEvent) => {
+    e.stopPropagation();
+    justOpenedRef.current = true;
+    setEditingKBId(kb.id);
+    setEditingKBLocation(location);
+    setEditingKBName(kb.name);
+    setTimeout(() => { justOpenedRef.current = false; }, 300);
+  };
+
+  const handleSaveRename = async (kbId: number) => {
+    const trimmed = editingKBName.trim();
+    if (trimmed) await renameKnowledgeBase(kbId, trimmed);
+    setEditingKBId(null);
+    setEditingKBLocation(null);
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent, kbId: number) => {
+    if (e.key === 'Enter') handleSaveRename(kbId);
+    if (e.key === 'Escape') { setEditingKBId(null); setEditingKBLocation(null); }
   };
 
   const handleCreateKB = async () => {
@@ -165,7 +191,21 @@ export function KBManager() {
                   className={`${styles.kbCard} ${selectedKB?.id === kb.id ? styles.active : ''}`}
                   onClick={() => selectKnowledgeBase(kb)}
                 >
-                  <div className={styles.kbName}>{kb.name}</div>
+                  <div className={styles.kbName}>
+                    {editingKBId === kb.id && editingKBLocation === 'sidebar' ? (
+                      <input
+                        autoFocus
+                        value={editingKBName}
+                        onChange={e => setEditingKBName(e.target.value)}
+                        onKeyDown={e => handleRenameKeyDown(e, kb.id)}
+                        onBlur={() => { if (!justOpenedRef.current) handleSaveRename(kb.id); }}
+                        onClick={e => e.stopPropagation()}
+                        style={{ width: '100%', fontSize: 'inherit', fontWeight: 'inherit', padding: '0 2px', border: '1px solid var(--primary-color, #6d28d9)', borderRadius: '3px', outline: 'none' }}
+                      />
+                    ) : (
+                      <span onDoubleClick={e => handleStartRename(kb, 'sidebar', e)} title="Double-click to rename">{kb.name}</span>
+                    )}
+                  </div>
                   <div className={styles.kbMeta}>
                     {kb.fileCount} files • {formatBytes(kb.totalSize)}
                   </div>
@@ -195,7 +235,27 @@ export function KBManager() {
             <>
               <div className={styles.mainHeader}>
                 <div>
-                  <h2>{selectedKB.name}</h2>
+                  <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {editingKBId === selectedKB.id && editingKBLocation === 'header' ? (
+                      <input
+                        autoFocus
+                        value={editingKBName}
+                        onChange={e => setEditingKBName(e.target.value)}
+                        onKeyDown={e => handleRenameKeyDown(e, selectedKB.id)}
+                        onBlur={() => { if (!justOpenedRef.current) handleSaveRename(selectedKB.id); }}
+                        style={{ fontSize: 'inherit', fontWeight: 'inherit', padding: '2px 6px', border: '1px solid var(--primary-color, #6d28d9)', borderRadius: '4px', outline: 'none', minWidth: '200px' }}
+                      />
+                    ) : (
+                      <>
+                        <span>{selectedKB.name}</span>
+                        <button
+                          onClick={e => handleStartRename(selectedKB, 'header', e)}
+                          title="Rename"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px 4px', fontSize: '13px', lineHeight: 1 }}
+                        >✎</button>
+                      </>
+                    )}
+                  </h2>
                   {selectedKB.description && (
                     <p className={styles.description}>{selectedKB.description}</p>
                   )}

@@ -152,6 +152,19 @@ export async function uploadFiles(
   }
 }
 
+export async function renameKnowledgeBase(
+  kbId: number,
+  name: string,
+  baseURL?: string
+): Promise<KnowledgeBase> {
+  const data = await apiRequest<{ knowledgeBase: KBListResponse['knowledgeBases'][0] }>(
+    `/api/kb/${kbId}`,
+    { method: 'PATCH', body: JSON.stringify({ name }) },
+    baseURL || getBaseURL()
+  );
+  return mapKB(data.knowledgeBase);
+}
+
 export async function deleteKnowledgeBase(
   kbId: number,
   baseURL?: string
