@@ -389,9 +389,11 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
     }
   }, [initialTaskId, tasks]);
 
-  // Sync URL when task is opened/closed
+  // Sync URL when task is opened/closed (only on dedicated task routes, not when open as modal over other pages)
   useEffect(() => {
     const basePath = window.location.pathname.replace(/\/\d+$/, '');
+    const isTaskRoute = basePath.includes('/tasks') || basePath.includes('/task-board');
+    if (!isTaskRoute) return;
     if (editingTask && showForm) {
       const newUrl = `${basePath}/${editingTask.id}`;
       if (window.location.pathname !== newUrl) {

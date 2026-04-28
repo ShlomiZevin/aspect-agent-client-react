@@ -527,7 +527,11 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
           </h3>
           <div className={styles.headerActions}>
             <button type="button" className={styles.copyLinkBtn} title="Copy link to task" onClick={() => {
-              const url = `${window.location.origin}${window.location.pathname.replace(/\/\d+$/, '')}/${task.id}`;
+              const basePath = window.location.pathname.replace(/\/\d+$/, '');
+              const isTaskRoute = basePath.includes('/tasks') || basePath.includes('/task-board');
+              const url = isTaskRoute
+                ? `${window.location.origin}${basePath}/${task.id}`
+                : `${window.location.origin}/tasks/${task.id}`;
               navigator.clipboard.writeText(url).then(() => {
                 setLinkCopied(true);
                 setTimeout(() => setLinkCopied(false), 2000);
@@ -581,7 +585,11 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
           </h3>
           <div className={styles.headerActions}>
             {task && <button type="button" className={styles.copyLinkBtn} title="Copy link to task" onClick={() => {
-              const url = `${window.location.origin}${window.location.pathname.replace(/\/\d+$/, '')}/${task.id}`;
+              const basePath = window.location.pathname.replace(/\/\d+$/, '');
+              const isTaskRoute = basePath.includes('/tasks') || basePath.includes('/task-board');
+              const url = isTaskRoute
+                ? `${window.location.origin}${basePath}/${task.id}`
+                : `${window.location.origin}/tasks/${task.id}`;
               navigator.clipboard.writeText(url).then(() => {
                 setLinkCopied(true);
                 setTimeout(() => setLinkCopied(false), 2000);
