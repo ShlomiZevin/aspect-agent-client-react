@@ -2,6 +2,10 @@ import { type ReactNode, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from './DashboardLayout.module.css';
 
+type UserType = 'admin' | 'business';
+
+const BUSINESS_PATHS = new Set(['knowledge-base', 'dynamic-kb', 'conversation-trends']);
+
 interface DashboardLayoutProps {
   agentName: string;
   agentDisplayName: string;
@@ -81,18 +85,28 @@ const CLOUD_RUN_LOGS_ITEM = {
 
 export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showPodcast, showConversationTrends, children }: DashboardLayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userType, setUserType] = useState<UserType>(() => (localStorage.getItem('adminUserType') as UserType) || 'admin');
 
-  const navItems = [
+  const changeUserType = (type: UserType) => {
+    setUserType(type);
+    localStorage.setItem('adminUserType', type);
+  };
+
+  const allNavItems = [
     ...BASE_NAV_ITEMS,
     ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM, DATA_LOADER_ITEM] : []),
     ...(showPodcast ? [PODCAST_ITEM] : []),
-    ...(showConversationTrends ? [CONVERSATION_TRENDS_ITEM] : []),
+    ...(showConversationTrends || userType === 'business' ? [CONVERSATION_TRENDS_ITEM] : []),
     TEST_RUNNER_ITEM,
     BILLING_ITEM,
     LLM_USAGE_ITEM,
     API_KEYS_ITEM,
     CLOUD_RUN_LOGS_ITEM,
   ];
+
+  const navItems = userType === 'business'
+    ? allNavItems.filter(item => BUSINESS_PATHS.has(item.path))
+    : allNavItems;
 
   return (
     <div className={styles.layout}>
@@ -102,25 +116,54 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
           <img src={agentLogo} alt={agentDisplayName} className={styles.logo} />
           <div>
             <div className={styles.agentName}>{agentDisplayName}</div>
-            <div className={styles.dashboardLabel}>Dashboard</div>
+            <div className={styles.dashboardLabel}>Admin</div>
+          </div>
+        </div>
+
+        <div style={{ padding: '8px 12px 4px' }}>
+          <div style={{ display: 'flex', background: 'rgba(0,0,0,0.06)', borderRadius: '8px', padding: '3px', gap: '2px' }}>
+            <button
+              onClick={() => changeUserType('admin')}
+              style={{
+                flex: 1, padding: '5px 8px', fontSize: '11px', fontWeight: 600, border: 'none', borderRadius: '6px', cursor: 'pointer',
+                background: userType === 'admin' ? '#fff' : 'transparent',
+                color: userType === 'admin' ? '#1e293b' : '#64748b',
+                boxShadow: userType === 'admin' ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+                transition: 'all 0.15s',
+              }}
+            >Admin</button>
+            <button
+              onClick={() => changeUserType('business')}
+              style={{
+                flex: 1, padding: '5px 8px', fontSize: '11px', fontWeight: 600, border: 'none', borderRadius: '6px', cursor: 'pointer',
+                background: userType === 'business' ? '#fff' : 'transparent',
+                color: userType === 'business' ? '#1e293b' : '#64748b',
+                boxShadow: userType === 'business' ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+                transition: 'all 0.15s',
+              }}
+            >Business</button>
           </div>
         </div>
 
         <nav className={styles.nav}>
-          <NavLink
-            to={`${basePath}/task-board`}
-            className={({ isActive }) =>
-              `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
-            }
-            onClick={() => setMenuOpen(false)}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 11l3 3L22 4" />
-              <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
-            </svg>
-            <span>Task Board</span>
-          </NavLink>
-          <div style={{ borderBottom: '1px solid rgba(0,0,0,0.08)', margin: '4px 12px' }} />
+          {userType === 'admin' && (
+            <>
+              <NavLink
+                to={`${basePath}/task-board`}
+                className={({ isActive }) =>
+                  `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
+                }
+                onClick={() => setMenuOpen(false)}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 11l3 3L22 4" />
+                  <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+                </svg>
+                <span>Task Board</span>
+              </NavLink>
+              <div style={{ borderBottom: '1px solid rgba(0,0,0,0.08)', margin: '4px 12px' }} />
+            </>
+          )}
           {navItems.map(item => (
             <NavLink
               key={item.path}
