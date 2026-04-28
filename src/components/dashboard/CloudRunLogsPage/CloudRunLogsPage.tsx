@@ -24,6 +24,18 @@ function isErrorSev(sev: string) {
   return ['ERROR', 'CRITICAL', 'ALERT', 'EMERGENCY'].includes(sev.toUpperCase());
 }
 
+const ERROR_KEYWORDS_RE = /(error|errors|failed|failure|exception|critical|alert|emergency|unhandled|uncaught|fatal)/gi;
+
+function highlightMsg(msg: string) {
+  const parts = msg.split(ERROR_KEYWORDS_RE);
+  // split with a capturing group: even indices = plain text, odd indices = matched keyword
+  return parts.map((part, i) =>
+    i % 2 === 1
+      ? <mark key={i} style={{ background: '#ffe000', color: '#000', borderRadius: '2px', padding: '0 1px' }}>{part}</mark>
+      : part
+  );
+}
+
 function isStackFrame(msg: string) {
   return /^\s+at\s/.test(msg) || /^\s*\.\.\.\s+\d+\s+more/.test(msg);
 }
@@ -74,7 +86,7 @@ function LogRow({ entry }: { entry: GroupedEntry }) {
       >
         <span className={styles.ts}>{fmtTs(entry.timestamp)}</span>
         <span className={styles.sev}>{entry.severity}</span>
-        <span className={styles.msg}>{entry.message || <em className={styles.noMsg}>—</em>}</span>
+        <span className={styles.msg}>{entry.message ? highlightMsg(entry.message) : <em className={styles.noMsg}>—</em>}</span>
         {hasStack && <span className={styles.stackToggle}>{open ? '▲' : `▼ ${entry.stackFrames.length}`}</span>}
       </div>
       {open && hasStack && entry.stackFrames.map((f, i) => (
@@ -144,12 +156,17 @@ export function CloudRunLogsPage({ baseURL }: { baseURL: string }) {
 
   const errorCount = grouped.filter(e => isErrorSev(e.severity)).length;
 
+  const bottomRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!loading) bottomRef.current?.scrollIntoView();
+  }, [loading]);
+
   return (
     <div className={styles.page}>
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Cloud Run Logs</h1>
-          <p className={styles.pageSubtitle}>Production server — last 200 entries, newest first</p>
+          <p className={styles.pageSubtitle}>Production server — last 200 entries, oldest first</p>
         </div>
         <button className={styles.refreshBtn} onClick={() => fetchLogs(filter)} disabled={loading}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -187,18 +204,19 @@ export function CloudRunLogsPage({ baseURL }: { baseURL: string }) {
       {fetchError && <div className={styles.errBanner}>{fetchError}</div>}
 
       <div className={styles.logList}>
-        {loading && <div className={styles.centerMsg}>Loading logs...</div>}
-        {!loading && visible.length === 0 && <div className={styles.centerMsg}>No entries found.</div>}
-        {visible.map((entry, i) => (
-          <LogRow key={entry.insertId || i} entry={entry} />
-        ))}
         {!loading && nextPageToken && (
           <div className={styles.loadMoreRow}>
             <button className={styles.loadMoreBtn} onClick={() => fetchLogs(filter, nextPageToken)} disabled={loadingMore}>
-              {loadingMore ? 'Loading...' : 'Load 200 more'}
+              {loadingMore ? 'Loading...' : 'Load 200 older'}
             </button>
           </div>
         )}
+        {loading && <div className={styles.centerMsg}>Loading logs...</div>}
+        {!loading && visible.length === 0 && <div className={styles.centerMsg}>No entries found.</div>}
+        {[...visible].reverse().map((entry, i) => (
+          <LogRow key={entry.insertId || i} entry={entry} />
+        ))}
+        <div ref={bottomRef} />
       </div>
     </div>
   );
