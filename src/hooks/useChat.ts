@@ -300,7 +300,6 @@ export interface UseChatOptions {
   conversationId: string;
   userId: string | null;
   overrideCrewMember?: string | null;
-  playgroundConfig?: object | null;
   debug?: boolean;
   promptOverrides?: Record<string, string>; // Session overrides: { crewName: prompt }
   modelOverrides?: Record<string, string>;  // Session overrides: { crewName: modelName }
@@ -343,7 +342,7 @@ export interface UseChatReturn {
  * Main chat hook - handles messaging, streaming, and thinking indicators
  */
 export function useChat(options: UseChatOptions): UseChatReturn {
-  const { config, conversationId, userId, overrideCrewMember, playgroundConfig, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, onCrewInfo, onCrewTransition, onFieldExtracted, onProfileUpdate, onProfilerRaw, profilerFreshStart, profilerEnabled } = options;
+  const { config, conversationId, userId, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, onCrewInfo, onCrewTransition, onFieldExtracted, onProfileUpdate, onProfilerRaw, profilerFreshStart, profilerEnabled } = options;
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
     conversationId,
@@ -379,7 +378,6 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             userId,
             baseURL: config.baseURL,
             overrideCrewMember,
-            playgroundConfig,
             debug,
             promptOverrides,
             modelOverrides,
@@ -485,7 +483,6 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       conversationId,
       userId,
       overrideCrewMember,
-      playgroundConfig,
       debug,
       promptOverrides,
       modelOverrides,
