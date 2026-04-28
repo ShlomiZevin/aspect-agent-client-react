@@ -77,6 +77,9 @@ const MODEL_OPTIONS = [
 
 const DRAFT_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+const EMPTY_SET = new Set<string>();
+const NOOP = () => {};
+
 export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
   const DRAFT_KEY = `playground-draft-${agentName}`;
 
@@ -964,6 +967,12 @@ export function CrewPlayground({ agentName, baseURL }: CrewPlaygroundProps) {
                     deleteMessagesFrom: testChat.deleteMessagesFrom,
                     crewMembers: [],
                     conversationId: testConversationId,
+                    messages: testChat.messages,
+                    sendMessage: testChat.sendMessage,
+                    selectedMessageIds: EMPTY_SET,
+                    toggleMessageSelect: NOOP,
+                    copyMessages: NOOP,
+                    copyFromMessage: NOOP,
                   } as any}>
                     {!registeredSession ? (
                       <div className={styles.chatEmpty}>
