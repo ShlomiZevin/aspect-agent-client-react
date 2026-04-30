@@ -16,6 +16,7 @@ export { OneZeroPage } from './OneZeroPage';
 export { OneZeroDashboardPage } from './OneZeroDashboardPage';
 export { OneZeroLandingPage } from './OneZeroLandingPage';
 export { KBPage } from './KBPage';
+export { KostaHandoffPage } from './KostaHandoffPage';
 export { DashboardPage } from './DashboardPage';
 export { NotFoundPage } from './NotFoundPage';
 export { CompassPage } from './CompassPage';
