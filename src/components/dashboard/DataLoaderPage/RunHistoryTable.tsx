@@ -34,6 +34,18 @@ function formatDate(iso: string) {
   }
 }
 
+function parseTriggeredBy(raw: string): { by: string; type: string } {
+  // New compound format: '{by}-{type}' e.g. 'manual-import', 'cron-index', 'manual-full-index'
+  const dashIdx = raw.indexOf('-');
+  if (dashIdx > 0) {
+    return { by: raw.slice(0, dashIdx), type: raw.slice(dashIdx + 1) };
+  }
+  // Legacy single-value format
+  if (raw === 'index') return { by: '—', type: 'index' };
+  if (raw === 'cron')  return { by: 'cron', type: 'import' };
+  return { by: raw, type: 'import' }; // 'manual' → import
+}
+
 function formatDuration(started: string, completed?: string) {
   if (!completed) return '—';
   const ms = new Date(completed).getTime() - new Date(started).getTime();
@@ -83,6 +95,7 @@ export function RunHistoryTable({ history, baseURL, schemaName }: RunHistoryTabl
             <th>Files</th>
             <th>Rows</th>
             <th>By</th>
+            <th>Type</th>
             <th></th>
           </tr>
         </thead>
@@ -105,7 +118,8 @@ export function RunHistoryTable({ history, baseURL, schemaName }: RunHistoryTabl
                 </td>
                 <td>{run.total_files == null ? '—' : `${run.files_loaded ?? 0}/${run.total_files}`}</td>
                 <td>{run.total_files == null ? '—' : run.total_rows ? Number(run.total_rows).toLocaleString() : '—'}</td>
-                <td>{run.triggered_by}</td>
+                <td>{parseTriggeredBy(run.triggered_by).by}</td>
+                <td>{parseTriggeredBy(run.triggered_by).type}</td>
                 <td>
                   <button
                     className={styles.viewLogBtn}
@@ -118,7 +132,7 @@ export function RunHistoryTable({ history, baseURL, schemaName }: RunHistoryTabl
               </tr>
               {expandedId === run.id && (
                 <tr key={`log-${run.id}`}>
-                  <td colSpan={7} className={styles.expandedLog}>
+                  <td colSpan={8} className={styles.expandedLog}>
                     <LogViewer logs={expandedLogs[run.id] ?? []} autoScroll={false} />
                   </td>
                 </tr>
