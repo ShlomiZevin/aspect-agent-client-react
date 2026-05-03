@@ -52,14 +52,27 @@ function computeProfileFromProfiler(
     if (clusterDef.displayMode === 'summary') {
       const summary = (profilerData?.summary || clusterRaw || {}) as Record<string, unknown>;
       const traits = Array.isArray(summary.key_profile_traits)
-        ? (summary.key_profile_traits as string[]).join(', ')
+        ? (summary.key_profile_traits as unknown[])
+            .map(t => typeof t === 'string' ? t : (t && typeof t === 'object' && 'value' in t ? String((t as {value: unknown}).value) : ''))
+            .filter(Boolean)
+            .join(', ')
         : null;
 
+      // Defensive unwrap: profiler sometimes returns summary fields as { value, confidence, source } objects
+      const unwrap = (v: unknown): string | null => {
+        if (v == null) return null;
+        if (typeof v === 'string') return v;
+        if (typeof v === 'number') return String(v);
+        if (Array.isArray(v)) return v.join(', ');
+        if (typeof v === 'object' && 'value' in v) return unwrap((v as { value: unknown }).value);
+        return null;
+      };
+
       const summaryFields: ProfileField[] = [
-        { key: 'general_overview', label: 'תמונת מצב כללי', value: (summary.general_overview as string) || null, confidence: 80, isNew: false },
-        { key: 'key_profile_traits', label: 'מאפייני פרופיל מרכזיים', value: traits, confidence: 80, isNew: false },
-        { key: 'potential_index', label: 'אינדקציית פוטנציאל', value: summary.potential_index != null ? String(summary.potential_index) : null, confidence: 80, isNew: false },
-        { key: 'focused_action_recommendation', label: 'המלצת פעולה ממוקדת', value: (summary.focused_action_recommendation as string) || null, confidence: 80, isNew: false },
+        { key: 'general_overview', label: 'תמונת מצב כללי', value: unwrap(summary.general_overview), confidence: 80, isNew: false },
+        { key: 'key_profile_traits', label: 'מאפייני פרופיל מרכזיים', value: traits ?? unwrap(summary.key_profile_traits), confidence: 80, isNew: false },
+        { key: 'potential_index', label: 'אינדקציית פוטנציאל', value: unwrap(summary.potential_index), confidence: 80, isNew: false },
+        { key: 'focused_action_recommendation', label: 'המלצת פעולה ממוקדת', value: unwrap(summary.focused_action_recommendation), confidence: 80, isNew: false },
       ];
 
       return {
