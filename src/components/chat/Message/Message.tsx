@@ -68,6 +68,7 @@ export function Message({ message }: MessageProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [idProcessing, setIdProcessing] = useState(false);
+  const [idCaptured, setIdCaptured] = useState(false);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const isUser = message.role === 'user';
   const isDeveloper = message.role === 'developer';
@@ -323,6 +324,7 @@ export function Message({ message }: MessageProps) {
             {uiElements.length > 0 && (() => {
               const inputEls = uiElements.filter(e => e.type === 'input');
               const otherEls = uiElements.filter(e => e.type !== 'input');
+              const hasInputs = inputEls.length > 0;
               const handleInputSubmit = () => {
                 if (uiDisabled) return;
                 const lines = inputEls
@@ -332,6 +334,9 @@ export function Message({ message }: MessageProps) {
                     return val ? `${label}: ${val}` : null;
                   })
                   .filter(Boolean);
+                if (idCaptured) {
+                  lines.push('העליתי את תעודת הזהות שלי. מספר זהות: 036538809');
+                }
                 if (lines.length === 0) return;
                 sendMessage(lines.join('\n'));
               };
@@ -393,8 +398,12 @@ export function Message({ message }: MessageProps) {
                       if (!file || idProcessing || uiDisabled) return;
                       setIdProcessing(true);
                       setTimeout(() => {
-                        sendMessage('העליתי את תעודת הזהות שלי. מספר זהות: 305123456');
                         setIdProcessing(false);
+                        if (hasInputs) {
+                          setIdCaptured(true);
+                        } else {
+                          sendMessage('העליתי את תעודת הזהות שלי. מספר זהות: 036538809');
+                        }
                       }, 2000);
                     };
                     if (uiDisabled && (wasUploaded || hasIdNumber)) {
@@ -414,18 +423,20 @@ export function Message({ message }: MessageProps) {
                           type="file"
                           accept="image/*"
                           style={{ display: 'none' }}
-                          disabled={idProcessing}
+                          disabled={idProcessing || idCaptured}
                           onChange={handleFileSelected}
                         />
                         <label
                           htmlFor={inputId}
-                          className={`${styles.uiElement} ${styles.uiType_id} ${idProcessing ? styles.uiDisabled : ''}`}
+                          className={`${styles.uiElement} ${styles.uiType_id} ${(idProcessing || idCaptured) ? styles.uiDisabled : ''} ${idCaptured ? styles.uiType_id_uploaded : ''}`}
                         >
                           {idProcessing ? (
                             <span className={styles.idProcessing}>
                               <span className={styles.idSpinner} />
                               מעבד את תעודת הזהות שלך...
                             </span>
+                          ) : idCaptured ? (
+                            '✅ תעודת זהות הועלתה'
                           ) : label}
                         </label>
                       </span>
