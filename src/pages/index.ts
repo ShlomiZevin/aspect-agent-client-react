@@ -9,6 +9,7 @@ export { BankingOnboarderPage } from './BankingOnboarderPage';
 export { BankingOnboarderV2Page } from './BankingOnboarderV2Page';
 export { BylinePage } from './BylinePage';
 export { DemoPage } from './DemoPage';
+export { ForemanPage } from './ForemanPage';
 export { FreedaPage } from './FreedaPage';
 export { HomePage } from './HomePage';
 export { LybiLandingPage } from './LybiLandingPage';

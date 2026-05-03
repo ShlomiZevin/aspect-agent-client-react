@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AboutShlomiPage, AICompliancePage, AspectArchDiagramPage, ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, FreedaPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage } from './pages';
+import { AboutShlomiPage, AICompliancePage, AspectArchDiagramPage, ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage } from './pages';
 import { useTaskBoard, useQuickBug } from './hooks';
 import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
 import { QuickBugModal } from './components/tasks/QuickBugModal/QuickBugModal';
@@ -75,6 +75,8 @@ function AppContent() {
         <Route path="/banking-v2/conversations/:conversationId" element={<BankingOnboarderV2Page />} />
         <Route path="/byline" element={<BylinePage />} />
         <Route path="/byline/conversations/:conversationId" element={<BylinePage />} />
+        <Route path="/foreman" element={<ForemanPage />} />
+        <Route path="/foreman/conversations/:conversationId" element={<ForemanPage />} />
         <Route path="/freeda" element={<FreedaPage />} />
         <Route path="/freeda/conversations/:conversationId" element={<FreedaPage />} />
         <Route path="/compass" element={<CompassPage />} />

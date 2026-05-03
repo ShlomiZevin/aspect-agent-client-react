@@ -1,0 +1,46 @@
+/* Foreman Theme — Construction Safety Orange + Engineering Slate
+ *
+ * Visual language: high-contrast safety orange against deep slate gray,
+ * evoking site PPE + engineering blueprints. Numerate, industrial, no-fluff.
+ */
+
+.theme-foreman {
+  --primary-color: #ea580c;          /* safety orange (Tailwind orange-600) */
+  --primary-hover: #c2410c;          /* orange-700 */
+  --primary-light: rgba(234, 88, 12, 0.10);
+  --secondary-color: #475569;        /* slate-600 */
+  --success-color: #16a34a;          /* green-600 — confirmed match */
+  --warning-color: #f59e0b;          /* amber-500 — medium confidence / needs review */
+  --error-color: #dc2626;            /* red-600 — flagged / blocked */
+  --background: #f8fafc;             /* slate-50 */
+  --surface: #ffffff;
+  --surface-light: #f1f5f9;          /* slate-100 */
+  --border: #e2e8f0;                 /* slate-200 */
+  --text-primary: #0f172a;           /* slate-900 */
+  --text-secondary: #475569;         /* slate-600 */
+  --text-muted: #94a3b8;             /* slate-400 */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 6px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 10px 15px rgba(15, 23, 42, 0.10);
+  --gradient: linear-gradient(135deg, #ea580c, #f59e0b);
+}
+
+.theme-foreman[data-theme="dark"] {
+  --primary-color: #fb923c;          /* orange-400 — softer in dark */
+  --primary-hover: #f97316;          /* orange-500 */
+  --primary-light: rgba(251, 146, 60, 0.15);
+  --secondary-color: #94a3b8;        /* slate-400 */
+  --success-color: #22c55e;
+  --warning-color: #fbbf24;
+  --error-color: #ef4444;
+  --background: #0f172a;             /* slate-900 — engineer's blueprint */
+  --surface: #1e293b;                /* slate-800 */
+  --surface-light: #334155;          /* slate-700 */
+  --border: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.40);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.50);
+}
