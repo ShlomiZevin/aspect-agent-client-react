@@ -26,7 +26,6 @@ const bankingProfileSchema: ProfileSchema = {
         { key: 'city', label: 'עיר מגורים', source: 'context:conv:advisor_state.city', badge: 'user' },
         { key: 'eligibility_status', label: 'סטטוס זכאות', source: 'context:conv:advisor_state.eligibilityStatus', badge: 'system', isInsight: true },
         { key: 'account_type', label: 'סוג החשבון', source: 'context:user:onboarding_profile.accountType', badge: 'user' },
-        { key: 'Eligibility', label: 'זכאות', source: 'context:conv:advisor_state.eligibility', badge: 'system', isInsight: true },
       ],
     },
 
@@ -40,6 +39,7 @@ const bankingProfileSchema: ProfileSchema = {
         { key: 'employment_status', label: 'סטטוס העסקה', source: 'context:conv:advisor_state.employment', badge: 'user' },
         { key: 'occupation', label: 'עיסוק', source: 'context:conv:advisor_state.occupation', badge: 'user' },
         { key: 'income_range', label: 'טווח הכנסה', source: 'context:conv:advisor_state.incomeRange', badge: 'user' },
+        { key: 'expense_amount', label: 'גובה הוצאות', source: 'context:conv:advisor_state.expenseAmount', badge: 'user' },
         { key: 'income_stability', label: 'יציבות הכנסה', source: 'context:conv:advisor_state.incomeStability', badge: 'system', isInsight: true },
         { key: 'income_frequency', label: 'תדירות הכנסה', source: 'context:conv:advisor_state.incomeFrequency', badge: 'system', isInsight: true },
         { key: 'income_sources_count', label: 'מספר מקורות הכנסה', source: 'context:conv:advisor_state.incomeSources', badge: 'user' },
@@ -49,6 +49,8 @@ const bankingProfileSchema: ProfileSchema = {
         { key: 'bank_accounts_count', label: 'מספר חשבונות בנק', source: 'context:conv:advisor_state.numBankAccounts', badge: 'user' },
         { key: 'primary_bank', label: 'חשבון בנק מרכזי', source: 'context:conv:advisor_state.mainBank', badge: 'user' },
         { key: 'user_group', label: 'קבוצה', source: 'context:conv:advisor_state.userType', badge: 'system', isInsight: true },
+        { key: 'credit_consumption_potential', label: 'פוטנציאל צריכת אשראי', source: 'context:conv:advisor_state.creditConsumptionPotential', badge: 'system', isInsight: true },
+        { key: 'investment_market_potential', label: 'פוטנציאל פעילות בשוק ההון', source: 'context:conv:advisor_state.investmentMarketPotential', badge: 'system', isInsight: true },
       ],
     },
 
