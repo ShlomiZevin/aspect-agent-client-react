@@ -71,7 +71,17 @@ function formatJobDuration(job: OptimizationJob): string {
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+  const d = new Date(iso);
+  const now = new Date();
+  const time = d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+  const sameDay = d.getFullYear() === now.getFullYear()
+    && d.getMonth() === now.getMonth()
+    && d.getDate() === now.getDate();
+  if (sameDay) return time;
+  const day   = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year  = d.getFullYear() !== now.getFullYear() ? `/${String(d.getFullYear()).slice(2)}` : '';
+  return `${day}/${month}${year} ${time}`;
 }
 
 const STATUS_LABELS = {
