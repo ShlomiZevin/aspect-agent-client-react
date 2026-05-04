@@ -20,7 +20,7 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   const [isLive, setIsLive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState<'import' | 'index' | 'cancel' | null>(null);
+  const [confirming, setConfirming] = useState<'import' | 'index' | 'index-full' | 'cancel' | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const currentRunRef = useRef<HTMLDivElement>(null);
 
@@ -204,12 +204,13 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
     }
   }
 
-  async function handleIndexConfirm() {
+  async function handleIndexConfirm(force = false) {
     setConfirming(null);
     try {
       const res = await fetch(`${apiBase}/index`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -260,7 +261,14 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
             onClick={() => setConfirming('index')}
             disabled={isBusy}
           >
-            {isBusy && currentRun?.phase === 'indexing' ? '● Indexing...' : '⚡ Create Indexes'}
+            {isBusy && currentRun?.phase === 'indexing' ? '● Indexing...' : 'Create Indexes'}
+          </button>
+          <button
+            className={`${styles.indexBtn} ${isBusy ? styles.reloadBtnDisabled : ''}`}
+            onClick={() => setConfirming('index-full')}
+            disabled={isBusy}
+          >
+            Full Rebuild
           </button>
           {(isBusy || runStatus === 'running') && (
             <button
@@ -303,9 +311,22 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
         <div className={styles.confirmOverlay}>
           <div className={styles.confirmDialog}>
             <p>Create indexes for <strong>{schemaName}</strong>?</p>
-            <p className={styles.confirmNote}>Creates all indexes and materialized views on the live schema. The system stays accessible during indexing.</p>
+            <p className={styles.confirmNote}>Creates indexes and materialized views — skips any that already exist. Use after a schema swap.</p>
             <div className={styles.confirmActions}>
-              <button className={styles.confirmBtn} onClick={handleIndexConfirm}>Create Indexes</button>
+              <button className={styles.confirmBtn} onClick={() => handleIndexConfirm(false)}>Create Indexes</button>
+              <button className={styles.cancelBtn} onClick={() => setConfirming(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirming === 'index-full' && (
+        <div className={styles.confirmOverlay}>
+          <div className={styles.confirmDialog}>
+            <p>Full Rebuild for <strong>{schemaName}</strong>?</p>
+            <p className={styles.confirmNote}>Creates all indexes, then drops and recreates all materialized views from scratch. Use after a fresh import.</p>
+            <div className={styles.confirmActions}>
+              <button className={styles.confirmBtn} onClick={() => handleIndexConfirm(true)}>Full Rebuild</button>
               <button className={styles.cancelBtn} onClick={() => setConfirming(null)}>Cancel</button>
             </div>
           </div>

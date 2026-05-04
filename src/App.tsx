@@ -1,5 +1,27 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { AboutShlomiPage, AICompliancePage, AspectArchDiagramPage, ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage } from './pages';
+
+const ZER4U_MAINTENANCE = false;
+
+function Zer4UMaintenancePage() {
+  return (
+    <div style={{
+      height: '100vh', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      background: '#fafafa', fontFamily: 'sans-serif', textAlign: 'center', gap: 16,
+    }}>
+      <img src="/img/zer4u-logo.png" alt="Zer4U" style={{ width: 72, opacity: 0.85 }} />
+      <h2 style={{ color: '#333', margin: 0, fontSize: 22 }}>המערכת בתחזוקה זמנית</h2>
+      <p style={{ color: '#888', margin: 0, fontSize: 15 }}>אנא חזרו מאוחר יותר</p>
+    </div>
+  );
+}
+
+function MaybeDashboard() {
+  const { agent } = useParams<{ agent: string }>();
+  if (ZER4U_MAINTENANCE && agent === 'zer4u') return <Zer4UMaintenancePage />;
+  return <DashboardPage />;
+}
 import { useTaskBoard, useQuickBug } from './hooks';
 import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
 import { QuickBugModal } from './components/tasks/QuickBugModal/QuickBugModal';
@@ -83,8 +105,8 @@ function AppContent() {
         <Route path="/compass/conversations/:conversationId" element={<CompassPage />} />
         <Route path="/tiktok" element={<TiktokPage />} />
         <Route path="/tiktok/conversations/:conversationId" element={<TiktokPage />} />
-        <Route path="/zer4u" element={<Zer4UPage />} />
-        <Route path="/zer4u/conversations/:conversationId" element={<Zer4UPage />} />
+        <Route path="/zer4u" element={ZER4U_MAINTENANCE ? <Zer4UMaintenancePage /> : <Zer4UPage />} />
+        <Route path="/zer4u/conversations/:conversationId" element={ZER4U_MAINTENANCE ? <Zer4UMaintenancePage /> : <Zer4UPage />} />
 
         {/* ONE ZERO - Aspect demo for digital bank churn */}
         <Route path="/aspect/onezero" element={<OneZeroLandingPage />} />
@@ -97,8 +119,8 @@ function AppContent() {
         <Route path="/tasks/:taskId" element={<TaskBoardPage />} />
 
         {/* Dashboard routes */}
-        <Route path="/:agent/dashboard/*" element={<DashboardPage />} />
-        <Route path="/:agent/admin/*" element={<DashboardPage />} />
+        <Route path="/:agent/dashboard/*" element={<MaybeDashboard />} />
+        <Route path="/:agent/admin/*" element={<MaybeDashboard />} />
 
         {/* Knowledge Base routes */}
         <Route path="/kb/:agent" element={<KBPage />} />
