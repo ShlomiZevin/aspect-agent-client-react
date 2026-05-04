@@ -87,8 +87,10 @@ function computeProfileFromProfiler(
 
     const fields: ProfileField[] = clusterDef.fields.map((fieldDef) => {
       // The LLM returns { value, confidence, source } directly under the cluster
-      const fieldData = clusterRaw?.[fieldDef.key] as { value?: string | null; confidence?: number; source?: string; _filtered?: boolean } | undefined;
-      const value = fieldData?.value ?? null;
+      const fieldData = clusterRaw?.[fieldDef.key] as { value?: string | string[] | null; confidence?: number; source?: string; _filtered?: boolean } | undefined;
+      const rawValue = fieldData?.value;
+      // Arrays stay as arrays (rendered as multiple tags); other primitives → string
+      const value = Array.isArray(rawValue) ? rawValue : (rawValue ?? null);
       const isFiltered = fieldData?._filtered === true;
       const prevValue = prevFields.get(fieldDef.key);
       const isNew = value !== null && prevValue !== value && prevValue !== undefined;
@@ -326,15 +328,32 @@ function ClusterSection({ cluster, debugMode, onBugClick }: { cluster: ProfileCl
             <div className={styles.noTags}>טרם זוהו תגיות</div>
           ) : cluster.displayMode === 'tags' ? (
             <div className={styles.tagsContainer}>
-              {visibleFields.map((field) => (
-                <span
-                  key={field.key}
-                  className={`${styles.tag} ${field.isNew ? styles.tagNew : ''}`}
-                  title={field.label}
-                >
-                  {field.value}
-                </span>
-              ))}
+              {visibleFields.flatMap((field) => {
+                const values = Array.isArray(field.value) ? field.value : [field.value];
+                return values.filter(v => v != null && v !== '').map((v, i) => {
+                  // Object value with `name` → use name as tag label, render rest as value
+                  const isRecObj = typeof v === 'object' && v !== null && 'name' in v;
+                  const label = isRecObj ? String((v as { name: string }).name) : field.label;
+                  let displayValue: string;
+                  if (isRecObj) {
+                    const obj = v as { reason?: string; timing?: string; channel?: string };
+                    const parts = [obj.reason, obj.timing && `⏱ ${obj.timing}`, obj.channel && `📞 ${obj.channel}`].filter(Boolean);
+                    displayValue = parts.join(' · ');
+                  } else {
+                    displayValue = String(v);
+                  }
+                  return (
+                    <span
+                      key={`${field.key}-${i}`}
+                      className={`${styles.tag} ${field.isNew ? styles.tagNew : ''}`}
+                      title={isRecObj ? `${field.label}: ${label}` : field.label}
+                    >
+                      <span className={styles.tagLabel}>{label}</span>
+                      <span className={styles.tagValue}>{displayValue}</span>
+                    </span>
+                  );
+                });
+              })}
             </div>
           ) : (
             visibleFields.map((field) => (
@@ -355,7 +374,7 @@ function ClusterSection({ cluster, debugMode, onBugClick }: { cluster: ProfileCl
                   <div className={styles.fieldValue}>
                     {field.value != null ? (
                       <>
-                        <span className={styles.fieldValueText}>{field.value}</span>
+                        <span className={styles.fieldValueText}>{Array.isArray(field.value) ? field.value.map(v => typeof v === 'object' && v !== null && 'name' in v ? (v as { name: string }).name : String(v)).join(', ') : field.value}</span>
                         {field.badge && <BadgeIcon badge={field.badge} />}
                       </>
                     ) : field.isFiltered && debugMode ? (
@@ -367,7 +386,7 @@ function ClusterSection({ cluster, debugMode, onBugClick }: { cluster: ProfileCl
                       <button
                         className={styles.fieldBugBtn}
                         title="Report a bug on this field"
-                        onClick={() => onBugClick?.({ key: field.key, label: field.label, value: field.value })}
+                        onClick={() => onBugClick?.({ key: field.key, label: field.label, value: Array.isArray(field.value) ? field.value.map(v => typeof v === 'object' && v !== null && 'name' in v ? (v as { name: string }).name : String(v)).join(', ') : field.value })}
                       >
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M9 9a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0V9z" />
@@ -834,7 +853,7 @@ export function ProfilePanel({
     const newPrev = new Map<string, string | null>();
     for (const cluster of profileData.clusters) {
       for (const field of cluster.fields) {
-        newPrev.set(field.key, field.value);
+        newPrev.set(field.key, Array.isArray(field.value) ? field.value.join('|') : field.value);
       }
     }
     prevFieldsRef.current = newPrev;

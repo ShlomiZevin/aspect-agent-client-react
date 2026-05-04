@@ -57,10 +57,17 @@ export interface ProfileCluster {
   depth: number; // 0–100
 }
 
+export interface RecommendationItem {
+  name: string;
+  reason?: string;
+  timing?: string;
+  channel?: string;
+}
+
 export interface ProfileField {
   key: string;
   label: string;
-  value: string | null;
+  value: string | string[] | RecommendationItem[] | null;
   badge?: 'user' | 'system' | 'external';
   confidence: number; // 0–100
   isInsight?: boolean;
