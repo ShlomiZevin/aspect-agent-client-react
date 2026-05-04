@@ -105,6 +105,13 @@ export const translations: LanguageConfig = {
     'agent.zer4u.welcomeMessage': 'Ask me anything about your sales, inventory, customers, and business performance.',
     'agent.zer4u.inputPlaceholder': 'Ask about your business...',
 
+    // Agent-specific: New Deli
+    'agent.newdeli.headerTitle': 'New Deli',
+    'agent.newdeli.headerSubtitle': 'AI-powered business intelligence',
+    'agent.newdeli.welcomeTitle': 'Welcome to New Deli BI',
+    'agent.newdeli.welcomeMessage': 'Ask me anything about orders, revenue, branches, and performance.',
+    'agent.newdeli.inputPlaceholder': 'Ask about your business...',
+
     // Quick Questions - Freeda
     'quick.freeda.commonSymptoms.text': 'Common Symptoms',
     'quick.freeda.commonSymptoms.question': 'What are the common symptoms of menopause?',
@@ -178,6 +185,24 @@ export const translations: LanguageConfig = {
     'quick.zer4u.targets.question': 'How are we doing against our targets?',
     'quick.zer4u.slowMovers.text': 'Slow Movers',
     'quick.zer4u.slowMovers.question': 'Show me slow-moving inventory',
+
+    // Quick Questions - New Deli
+    'quick.newdeli.revenue.text': 'Revenue Overview',
+    'quick.newdeli.revenue.question': 'What is the total revenue this month?',
+    'quick.newdeli.topBranches.text': 'Top Branches',
+    'quick.newdeli.topBranches.question': 'Which branches have the highest revenue?',
+    'quick.newdeli.monthlyTrend.text': 'Monthly Trend',
+    'quick.newdeli.monthlyTrend.question': 'Show me revenue trend by month for the last year',
+    'quick.newdeli.orderTypes.text': 'Order Types',
+    'quick.newdeli.orderTypes.question': 'What is the breakdown of order types (takeaway, delivery, dine-in)?',
+    'quick.newdeli.peakHours.text': 'Peak Hours',
+    'quick.newdeli.peakHours.question': 'What are the busiest hours of the day?',
+    'quick.newdeli.payments.text': 'Payment Methods',
+    'quick.newdeli.payments.question': 'What is the split between cash and credit card payments?',
+    'quick.newdeli.weekDays.text': 'Day of Week',
+    'quick.newdeli.weekDays.question': 'Which days of the week have the most orders?',
+    'quick.newdeli.topItems.text': 'Top Items',
+    'quick.newdeli.topItems.question': 'What are the most ordered dishes?',
 
     // Quick Questions - Banking
     'quick.banking.startOnboarding.text': 'Start Onboarding',
@@ -336,6 +361,13 @@ export const translations: LanguageConfig = {
     'agent.zer4u.welcomeMessage': 'שאל אותי כל שאלה על מכירות, מלאי, לקוחות וביצועים עסקיים.',
     'agent.zer4u.inputPlaceholder': 'שאל על העסק שלך...',
 
+    // Agent-specific: New Deli
+    'agent.newdeli.headerTitle': 'New Deli',
+    'agent.newdeli.headerSubtitle': 'מודיעין עסקי מבוסס בינה מלאכותית',
+    'agent.newdeli.welcomeTitle': 'ברוכים הבאים ל-New Deli BI',
+    'agent.newdeli.welcomeMessage': 'שאל אותי כל שאלה על הזמנות, הכנסות, סניפים וביצועים.',
+    'agent.newdeli.inputPlaceholder': 'שאל על העסק שלך...',
+
     // Quick Questions - Freeda
     'quick.freeda.commonSymptoms.text': 'תסמינים נפוצים',
     'quick.freeda.commonSymptoms.question': 'מהם התסמינים הנפוצים של גיל המעבר?',
@@ -409,6 +441,24 @@ export const translations: LanguageConfig = {
     'quick.zer4u.targets.question': 'איך אנחנו עומדים ביחס ליעדים?',
     'quick.zer4u.slowMovers.text': 'מוצרים איטיים',
     'quick.zer4u.slowMovers.question': 'הראה לי מלאי שנע לאט',
+
+    // Quick Questions - New Deli
+    'quick.newdeli.revenue.text': 'סקירת הכנסות',
+    'quick.newdeli.revenue.question': 'מה סך ההכנסות החודש?',
+    'quick.newdeli.topBranches.text': 'סניפים מובילים',
+    'quick.newdeli.topBranches.question': 'אילו סניפים הכניסו הכי הרבה?',
+    'quick.newdeli.monthlyTrend.text': 'מגמה חודשית',
+    'quick.newdeli.monthlyTrend.question': 'הראה לי את מגמת ההכנסות לפי חודש בשנה האחרונה',
+    'quick.newdeli.orderTypes.text': 'סוגי הזמנות',
+    'quick.newdeli.orderTypes.question': 'מה החלוקה בין טייק אווי, משלוח וישיבה?',
+    'quick.newdeli.peakHours.text': 'שעות שיא',
+    'quick.newdeli.peakHours.question': 'מה השעות העמוסות ביותר במהלך היום?',
+    'quick.newdeli.payments.text': 'אמצעי תשלום',
+    'quick.newdeli.payments.question': 'מה החלוקה בין מזומן לאשראי?',
+    'quick.newdeli.weekDays.text': 'ימים בשבוע',
+    'quick.newdeli.weekDays.question': 'אילו ימים בשבוע יש הכי הרבה הזמנות?',
+    'quick.newdeli.topItems.text': 'מנות פופולריות',
+    'quick.newdeli.topItems.question': 'מה המנות שהכי הרבה מזמינים?',
 
     // Quick Questions - Banking
     'quick.banking.startOnboarding.text': 'התחל תהליך',

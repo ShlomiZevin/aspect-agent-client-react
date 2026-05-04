@@ -1,0 +1,42 @@
+/* New Deli Theme — dark green (NEW) + golden yellow (DELI) */
+.theme-newdeli {
+  --primary-color: #2c5f2e;
+  --primary-hover: #1e4620;
+  --primary-light: rgba(44, 95, 46, 0.1);
+  --secondary-color: #e5b800;
+  --success-color: #2c5f2e;
+  --warning-color: #e5b800;
+  --error-color: #ef4444;
+
+  --background: #ffffff;
+  --surface: #f9fafb;
+  --surface-light: #f3f4f6;
+  --border: #e5e7eb;
+
+  --text-primary: #1a1a1a;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.09);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.12);
+
+  --gradient: linear-gradient(135deg, #2c5f2e, #1e4620);
+}
+
+.theme-newdeli[data-theme="dark"] {
+  --primary-color: #4a9e4c;
+  --primary-hover: #3d8a3f;
+  --primary-light: rgba(74, 158, 76, 0.15);
+  --secondary-color: #f5c518;
+  --background: #111827;
+  --surface: #1f2937;
+  --surface-light: #374151;
+  --border: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+}

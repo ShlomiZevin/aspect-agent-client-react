@@ -21,7 +21,7 @@ import { CloudRunLogsPage } from '../components/dashboard/CloudRunLogsPage';
 import { PineconeAdmin } from '../components/pinecone';
 import { TaskBoardContent } from '../components/tasks/TaskBoardModal/TaskBoardContent';
 import dashStyles from './DashboardPage.module.css';
-import { aspectConfig, bankingOnboarderConfig, bankingOnboarderV2Config, compassConfig, freedaConfig, zer4uConfig } from '../agents';
+import { aspectConfig, bankingOnboarderConfig, bankingOnboarderV2Config, compassConfig, freedaConfig, zer4uConfig, newdeliConfig } from '../agents';
 import type { AgentConfig } from '../types';
 
 const agentConfigs: Record<string, AgentConfig> = {
@@ -31,6 +31,7 @@ const agentConfigs: Record<string, AgentConfig> = {
   compass: compassConfig,
   freeda: freedaConfig,
   zer4u: zer4uConfig,
+  newdeli: newdeliConfig,
 };
 
 function TaskBoardPageWithId() {

@@ -8,3 +8,4 @@ export { oneZeroConfig } from './onezero.config';
 export { compassConfig } from './compass.config';
 export { tiktokConfig } from './tiktok.config';
 export { zer4uConfig } from './zer4u.config';
+export { newdeliConfig } from './newdeli.config';

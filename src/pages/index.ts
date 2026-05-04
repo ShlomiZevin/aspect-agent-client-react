@@ -22,6 +22,7 @@ export { DashboardPage } from './DashboardPage';
 export { NotFoundPage } from './NotFoundPage';
 export { CompassPage } from './CompassPage';
 export { Zer4UPage } from './Zer4UPage';
+export { NewDeliPage } from './NewDeliPage';
 export { CrewBuilderMockupPage } from './CrewBuilderMockupPage';
 export { HowWeBuildPage } from './HowWeBuildPage';
 export { ChainArchitecturePage } from './ChainArchitecturePage';
