@@ -1,0 +1,440 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+
+.modal {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  width: min(960px, 96vw);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.closeBtn:hover {
+  background: var(--background);
+  color: var(--text-primary);
+}
+
+.body {
+  display: flex;
+  gap: 16px;
+  padding: 16px 20px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.controls {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.controlLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.controlGroup select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.frameButtons {
+  display: flex;
+  gap: 6px;
+}
+
+.frameBtn {
+  flex: 1;
+  padding: 8px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--text-primary);
+}
+
+.frameBtn:hover {
+  border-color: var(--primary-color);
+}
+
+.frameBtnActive {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.zoomRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoomValue {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.zoomFitBtn {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.zoomFitBtn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.zoomHint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+
+.previewArea {
+  flex: 1;
+  min-width: 0;
+  background:
+    repeating-conic-gradient(#f0f0f0 0% 25%, #ffffff 25% 50%) 50% / 16px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 16px;
+  overflow: auto;
+  cursor: grab;
+  user-select: none;
+  overscroll-behavior: contain;
+}
+
+.previewArea.panning {
+  cursor: grabbing;
+}
+
+/* The wrapper is sized to the SCALED footprint so it slots into flex layout cleanly. */
+.previewWrap {
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  border-radius: 6px;
+  background: white;
+}
+
+/* The actual node captured by html2canvas — sits at TARGET resolution, scaled visually. */
+.exportNode {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: #f5f6f8;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+}
+
+/* The visual frame wrapping the chat. .frameInner is what sits inside. */
+.frameNone {
+  background: #f5f6f8;
+  padding: 60px;
+}
+.frameNone .frameInner {
+  background: #ffffff;
+  border-radius: 18px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 40px 50px;
+  box-sizing: border-box;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+}
+
+.frameDesktop {
+  background: linear-gradient(180deg, #e8eef5 0%, #c8d4e3 100%);
+  padding: 70px;
+}
+.frameDesktop .frameInner {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 48px 60px;
+  box-sizing: border-box;
+}
+
+.frameMobile {
+  background: linear-gradient(180deg, #ece7f4 0%, #cfc6e1 100%);
+  padding: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.frameMobile .frameInner {
+  background: #ffffff;
+  border-radius: 60px;
+  border: 14px solid #1a1a1a;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+  width: min(720px, 100%);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 64px 28px 36px;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Mobile notch */
+.frameMobile .frameInner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36%;
+  height: 28px;
+  background: #1a1a1a;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+  z-index: 1;
+}
+
+/* The measured chat content (header + bubbles). Always top-aligned inside the frame. */
+.exportContent {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Header (logo + name) — order is dictated by the parent's `dir` attribute:
+   in RTL, flex row naturally flows right-to-left so the logo sits on the right. */
+.exportHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e3e6ec;
+}
+
+.exportLogo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;       /* never stretched */
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.exportTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2330;
+  letter-spacing: -0.01em;
+}
+
+/* Message list */
+.exportMessages {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.row {
+  display: flex;
+  width: 100%;
+}
+
+.rowUser { justify-content: flex-end; }
+.rowBot  { justify-content: flex-start; }
+
+[dir="rtl"] .rowUser { justify-content: flex-start; }
+[dir="rtl"] .rowBot  { justify-content: flex-end; }
+
+.bubble {
+  max-width: 78%;
+  padding: 14px 18px;
+  border-radius: 18px;
+  font-size: 17px;
+  line-height: 1.55;
+  word-wrap: break-word;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.bubbleUser {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: #ffffff;
+  border-bottom-right-radius: 6px;
+}
+
+[dir="rtl"] .bubbleUser {
+  border-bottom-right-radius: 18px;
+  border-bottom-left-radius: 6px;
+}
+
+.bubbleBot {
+  background: #ffffff;
+  color: #1f2330;
+  border: 1px solid #e3e6ec;
+  border-bottom-left-radius: 6px;
+}
+
+[dir="rtl"] .bubbleBot {
+  border-bottom-left-radius: 18px;
+  border-bottom-right-radius: 6px;
+}
+
+.crewLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6366f1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.bubbleContent p { margin: 0.4em 0; }
+.bubbleContent p:first-child { margin-top: 0; }
+.bubbleContent p:last-child  { margin-bottom: 0; }
+
+.bubbleContent ul,
+.bubbleContent ol { margin: 0.4em 0; padding-left: 1.4em; }
+[dir="rtl"] .bubbleContent ul,
+[dir="rtl"] .bubbleContent ol { padding-left: 0; padding-right: 1.4em; }
+
+.bubbleContent strong { font-weight: 700; }
+
+.bubbleContent code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.bubbleUser .bubbleContent code {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.bubbleContent h1 { font-size: 1.4em; margin: 0.5em 0 0.3em; }
+.bubbleContent h2 { font-size: 1.25em; margin: 0.5em 0 0.3em; }
+.bubbleContent h3 { font-size: 1.1em; margin: 0.4em 0 0.25em; }
+
+/* Footer */
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.cancelBtn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.cancelBtn:hover {
+  background: var(--background);
+}
+
+.downloadBtn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  background: var(--primary-color);
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.downloadBtn:hover {
+  opacity: 0.92;
+}
+
+.downloadBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -13,6 +13,7 @@ import { PromptEditorPanel } from '../PromptEditorPanel';
 import { FieldsEditorPanel } from '../FieldsEditorPanel';
 import { ContextEditorPanel } from '../ContextEditorPanel';
 import { ProfilePanel } from '../ProfilePanel';
+import { ExportImageModal } from '../ExportImageModal';
 import { MOCK_CREW_MEMBERS } from '../../../mocks/promptMocks';
 import { CrewTabs } from '../CrewTabs';
 import { DataStatusBar } from '../DataStatusBar';
@@ -86,6 +87,9 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
 
   // Profile panel state (collapsible to the right)
   const [isProfilePanelOpen, setIsProfilePanelOpen] = useState(true);
+
+  // Export-to-image modal (debug mode, requires selected messages)
+  const [exportModalIds, setExportModalIds] = useState<string[] | null>(null);
 
   // Use real crew members if available, otherwise use mock data for debug mode
   const effectiveCrewMembers = useMemo(() => {
@@ -162,10 +166,20 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
             >
               Copy Selected
             </button>
+            <button onClick={() => setExportModalIds(Array.from(selectedMessageIds))}>
+              Export Image
+            </button>
             <button onClick={clearMessageSelection}>
               Clear
             </button>
           </div>
+        )}
+
+        {exportModalIds && (
+          <ExportImageModal
+            selectedIds={exportModalIds}
+            onClose={() => setExportModalIds(null)}
+          />
         )}
 
         {/* Header bar with crew stepper/tabs */}
