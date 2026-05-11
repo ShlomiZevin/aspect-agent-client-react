@@ -229,6 +229,24 @@
   text-align: center;
 }
 
+.convCountButton {
+  background: transparent;
+  border: none;
+  color: var(--accent-color, #680662);
+  font-weight: 600;
+  font-size: inherit;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+
+.convCountButton:hover {
+  background: rgba(104, 6, 98, 0.08);
+  text-decoration: underline;
+}
+
 .editableValue {
   cursor: pointer;
   padding: 4px 8px;

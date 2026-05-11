@@ -161,7 +161,7 @@
 }
 
 .submitButton:hover:not(:disabled) {
-  background-color: var(--primary-dark);
+  filter: brightness(0.9);
 }
 
 .cancelButton:disabled,

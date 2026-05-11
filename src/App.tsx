@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
-import { AboutShlomiPage, AICompliancePage, AspectArchDiagramPage, ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage } from './pages';
+import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage } from './pages';
 
 const ZER4U_MAINTENANCE = false;
 
@@ -29,11 +29,19 @@ import { createTask } from './services/taskService';
 import type { CreateTaskData } from './types/task';
 import './styles/global.css';
 
+// Routes restricted to authenticated end users — admin/dev tooling
+// (task board, quick bug, debug shortcut) must not be accessible.
+function isRestrictedRoute(pathname: string): boolean {
+  const parts = pathname.split('/').filter(Boolean);
+  return parts.length >= 2 && (parts[1] === 'login' || parts[1] === 'chat');
+}
+
 // Inner component that has access to router context
 function AppContent() {
   const location = useLocation();
-  const { isOpen: isTaskBoardOpen, closeModal: closeTaskBoard, openInDraftsMode, clearDraftsMode } = useTaskBoard();
-  const { isOpen: isQuickBugOpen, closeModal: closeQuickBug } = useQuickBug();
+  const restricted = isRestrictedRoute(location.pathname);
+  const { isOpen: isTaskBoardOpen, closeModal: closeTaskBoard, openInDraftsMode, clearDraftsMode } = useTaskBoard({ disabled: restricted });
+  const { isOpen: isQuickBugOpen, closeModal: closeQuickBug } = useQuickBug({ disabled: restricted });
 
   // Extract domain from URL path (e.g., /freeda -> freeda, /aspect -> aspect)
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -48,17 +56,21 @@ function AppContent() {
 
   return (
     <>
-      {/* Global Task Board Modal - Ctrl+Shift+Space to toggle */}
-      <TaskBoardModal isOpen={isTaskBoardOpen} onClose={closeTaskBoard} openInDraftsMode={openInDraftsMode} onDraftsModeAcknowledged={clearDraftsMode} />
+      {/* Global Task Board Modal - hidden on restricted (logged-in user) routes */}
+      {!restricted && (
+        <TaskBoardModal isOpen={isTaskBoardOpen} onClose={closeTaskBoard} openInDraftsMode={openInDraftsMode} onDraftsModeAcknowledged={clearDraftsMode} />
+      )}
 
-      {/* Quick Bug Modal - Ctrl+Shift+Q to open */}
-      <QuickBugModal
-        isOpen={isQuickBugOpen}
-        onClose={closeQuickBug}
-        onSubmit={handleQuickBugSubmit}
-        currentDomain={currentDomain}
-        conversationUrl={conversationUrl}
-      />
+      {/* Quick Bug Modal - hidden on restricted routes */}
+      {!restricted && (
+        <QuickBugModal
+          isOpen={isQuickBugOpen}
+          onClose={closeQuickBug}
+          onSubmit={handleQuickBugSubmit}
+          currentDomain={currentDomain}
+          conversationUrl={conversationUrl}
+        />
+      )}
 
       <Routes>
         {/* Home page - redirect to /lybi on lybi.ai domain, otherwise show agent selection */}
@@ -86,6 +98,11 @@ function AppContent() {
         <Route path="/lybi/backlog" element={<TechBacklogPage />} />
         <Route path="/lybi/about/shlomi" element={<AboutShlomiPage />} />
         <Route path="/lybi/freeda-legacy" element={<FreedaLegacyFlowPage />} />
+        {/* Generic agent-aware authenticated chat (e.g. /lybi/login, /lybi/chat).
+            Supported agents are defined in src/agents/agentRegistry.ts. */}
+        <Route path="/:agent/login" element={<AgentLoginPage />} />
+        <Route path="/:agent/chat" element={<AgentChatPage />} />
+        <Route path="/:agent/chat/conversations/:conversationId" element={<AgentChatPage />} />
         <Route path="/lybi/*" element={<LybiLandingPage />} />
 
         {/* Main agent routes with optional conversation ID */}
@@ -119,6 +136,9 @@ function AppContent() {
         {/* Task Board - standalone full page */}
         <Route path="/tasks" element={<TaskBoardPage />} />
         <Route path="/tasks/:taskId" element={<TaskBoardPage />} />
+
+        {/* Hidden super-admin users page (code-gated; sees all tenants) */}
+        <Route path="/users" element={<SuperAdminUsersPage />} />
 
         {/* Dashboard routes */}
         <Route path="/:agent/dashboard/*" element={<MaybeDashboard />} />

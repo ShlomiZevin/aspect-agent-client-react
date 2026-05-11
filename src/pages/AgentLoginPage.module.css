@@ -1,0 +1,141 @@
+.page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg-color, #fafafa);
+  color: var(--text-color, #1a1a1a);
+  direction: rtl;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Heebo, Arial, sans-serif;
+}
+
+:global(html[data-theme='dark']) .page {
+  background: #0f0f12;
+  color: #f1f1f1;
+}
+
+.themeToggleWrap {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+}
+
+.card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  padding: 40px 32px 32px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+:global(html[data-theme='dark']) .card {
+  background: #1a1a1f;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: inherit;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #888;
+  margin: 0 0 28px;
+}
+
+.form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+}
+
+:global(html[data-theme='dark']) .label {
+  color: #bbb;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 15px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+:global(html[data-theme='dark']) .input {
+  background: #25252b;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.input:focus {
+  border-color: #680662;
+  box-shadow: 0 0 0 3px rgba(104, 6, 98, 0.15);
+}
+
+.error {
+  font-size: 13px;
+  color: #c0364c;
+  background: rgba(192, 54, 76, 0.08);
+  border-radius: 8px;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.submit {
+  margin-top: 8px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  background: #680662;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  font-family: inherit;
+}
+
+.submit:hover:not(:disabled) {
+  background: #7d0775;
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

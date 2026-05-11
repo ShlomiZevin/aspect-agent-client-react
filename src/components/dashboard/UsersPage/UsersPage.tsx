@@ -1,23 +1,36 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getUsers, getStats, getTenants, updateUser } from '../../../services/adminService';
+import { getUsers, getStats, updateUser } from '../../../services/adminService';
 import type { AdminUser, AdminUserFilters, AdminStats, UserSource, UserSubscription } from '../../../types/admin';
 import { AddUserModal } from '../AddUserModal';
 import { LinkWhatsAppModal } from '../LinkWhatsAppModal';
 import { DeleteUserModal } from '../DeleteUserModal';
+import { UserConversationsModal } from '../UserConversationsModal';
 import styles from './UsersPage.module.css';
 
 interface UsersPageProps {
   baseURL: string;
+  /**
+   * Tenant slug derived from the URL (e.g. "banking-v2" from
+   * /banking-v2/admin/users). When provided, the tenant filter and the
+   * "Add user" tenant default are pre-set to this value so each tenant's
+   * admin lands on a scoped view.
+   */
+  defaultTenant?: string;
+  /**
+   * Super-admin mode (rendered from the hidden /users page). Shows tenants,
+   * exposes the tenant column/filter, and disables the per-tenant scoping
+   * so all users — including null-tenant — are visible.
+   */
+  superAdmin?: boolean;
 }
 
-export function UsersPage({ baseURL }: UsersPageProps) {
+export function UsersPage({ baseURL, defaultTenant, superAdmin = false }: UsersPageProps) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
-  const [tenants, setTenants] = useState<string[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Filter state
+  // Filter state. Tenant comes from the URL context only — no UI for it.
   const [filters, setFilters] = useState<AdminUserFilters>({});
   const [searchText, setSearchText] = useState('');
 
@@ -25,30 +38,36 @@ export function UsersPage({ baseURL }: UsersPageProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [linkModalUser, setLinkModalUser] = useState<AdminUser | null>(null);
   const [deleteModalUser, setDeleteModalUser] = useState<AdminUser | null>(null);
+  const [conversationsModalUser, setConversationsModalUser] = useState<AdminUser | null>(null);
 
   // Editing state
   const [editingCell, setEditingCell] = useState<{ id: number; field: string } | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  // Load data
+  // In tenant mode the URL pins tenant; in super mode the user picks via the filter.
+  const effectiveTenantFilter = superAdmin ? filters.tenant : defaultTenant;
+
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [usersResponse, statsResponse, tenantsResponse] = await Promise.all([
-        getUsers({ ...filters, search: searchText || undefined }, baseURL),
-        getStats(baseURL),
-        getTenants(baseURL),
+      const scopedFilters: AdminUserFilters = {
+        ...filters,
+        search: searchText || undefined,
+        tenant: effectiveTenantFilter || undefined,
+      };
+      const [usersResponse, statsResponse] = await Promise.all([
+        getUsers(scopedFilters, baseURL),
+        getStats(baseURL, undefined, effectiveTenantFilter || undefined),
       ]);
       setUsers(usersResponse.users);
       setTotal(usersResponse.total);
       setStats(statsResponse);
-      setTenants(tenantsResponse);
     } catch (err) {
       console.error('Error loading users:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [baseURL, filters, searchText]);
+  }, [baseURL, filters, searchText, effectiveTenantFilter]);
 
   useEffect(() => {
     loadData();
@@ -256,16 +275,15 @@ export function UsersPage({ baseURL }: UsersPageProps) {
           <option value="pro">Pro</option>
         </select>
 
-        <select
-          className={styles.filterSelect}
-          value={filters.tenant || ''}
-          onChange={e => handleFilterChange('tenant', e.target.value)}
-        >
-          <option value="">All Tenants</option>
-          {tenants.map(t => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
+        {superAdmin && (
+          <input
+            type="text"
+            className={styles.filterSelect}
+            placeholder="Filter by tenant..."
+            value={filters.tenant || ''}
+            onChange={e => handleFilterChange('tenant', e.target.value)}
+          />
+        )}
 
         {(searchText || filters.source || filters.subscription || filters.tenant) && (
           <button
@@ -290,7 +308,7 @@ export function UsersPage({ baseURL }: UsersPageProps) {
               <th>Name</th>
               <th>Role</th>
               <th>Subscription</th>
-              <th>Tenant</th>
+              {superAdmin && <th>Tenant</th>}
               <th>Conversations</th>
               <th>Created</th>
               <th>Last Active</th>
@@ -314,8 +332,20 @@ export function UsersPage({ baseURL }: UsersPageProps) {
                 <td>{renderEditableCell(user, 'name', user.name)}</td>
                 <td>{renderEditableCell(user, 'role', user.role, ['user', 'admin'])}</td>
                 <td>{renderEditableCell(user, 'subscription', user.subscription, ['demo', 'pro'])}</td>
-                <td>{renderEditableCell(user, 'tenant', user.tenant)}</td>
-                <td className={styles.centered}>{user.conversationCount}</td>
+                {superAdmin && <td>{renderEditableCell(user, 'tenant', user.tenant)}</td>}
+                <td className={styles.centered}>
+                  {user.conversationCount > 0 ? (
+                    <button
+                      className={styles.convCountButton}
+                      onClick={() => setConversationsModalUser(user)}
+                      title="View conversations"
+                    >
+                      {user.conversationCount}
+                    </button>
+                  ) : (
+                    <span>{user.conversationCount}</span>
+                  )}
+                </td>
                 <td>{formatDate(user.createdAt)}</td>
                 <td>{formatDate(user.lastActiveAt)}</td>
                 <td>
@@ -382,6 +412,7 @@ export function UsersPage({ baseURL }: UsersPageProps) {
       {showAddModal && (
         <AddUserModal
           baseURL={baseURL}
+          tenant={defaultTenant}
           onClose={() => setShowAddModal(false)}
           onUserAdded={handleUserAdded}
         />
@@ -402,6 +433,14 @@ export function UsersPage({ baseURL }: UsersPageProps) {
           user={deleteModalUser}
           onClose={() => setDeleteModalUser(null)}
           onDeleted={handleUserDeleted}
+        />
+      )}
+
+      {conversationsModalUser && (
+        <UserConversationsModal
+          baseURL={baseURL}
+          user={conversationsModalUser}
+          onClose={() => setConversationsModalUser(null)}
         />
       )}
     </div>

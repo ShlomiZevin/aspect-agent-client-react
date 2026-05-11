@@ -5,16 +5,17 @@ import styles from './AddUserModal.module.css';
 
 interface AddUserModalProps {
   baseURL: string;
+  /** Tenant the new user is created under (always supplied from URL context). */
+  tenant?: string;
   onClose: () => void;
   onUserAdded: (user: AdminUser) => void;
 }
 
-export function AddUserModal({ baseURL, onClose, onUserAdded }: AddUserModalProps) {
+export function AddUserModal({ baseURL, tenant, onClose, onUserAdded }: AddUserModalProps) {
   const [formData, setFormData] = useState<CreateUserPayload>({
     phone: '',
     name: '',
     email: '',
-    tenant: '',
     subscription: 'demo',
     role: 'user',
   });
@@ -29,6 +30,10 @@ export function AddUserModal({ baseURL, onClose, onUserAdded }: AddUserModalProp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!formData.name?.trim()) {
+      setError('Name is required');
+      return;
+    }
     if (!formData.phone.trim()) {
       setError('Phone number is required');
       return;
@@ -40,9 +45,9 @@ export function AddUserModal({ baseURL, onClose, onUserAdded }: AddUserModalProp
     try {
       const payload: CreateUserPayload = {
         phone: formData.phone.trim(),
-        name: formData.name?.trim() || undefined,
+        name: formData.name.trim(),
         email: formData.email?.trim() || undefined,
-        tenant: formData.tenant?.trim() || undefined,
+        tenant: tenant || undefined,
         subscription: formData.subscription,
         role: formData.role,
       };
@@ -72,6 +77,20 @@ export function AddUserModal({ baseURL, onClose, onUserAdded }: AddUserModalProp
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>
             <label className={styles.label}>
+              Name <span className={styles.required}>*</span>
+            </label>
+            <input
+              type="text"
+              className={styles.input}
+              placeholder="User's name"
+              value={formData.name}
+              onChange={e => handleChange('name', e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label}>
               Phone Number <span className={styles.required}>*</span>
             </label>
             <input
@@ -81,18 +100,7 @@ export function AddUserModal({ baseURL, onClose, onUserAdded }: AddUserModalProp
               value={formData.phone}
               onChange={e => handleChange('phone', e.target.value)}
             />
-            <span className={styles.hint}>International format without + (digits only)</span>
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Name</label>
-            <input
-              type="text"
-              className={styles.input}
-              placeholder="User's name"
-              value={formData.name}
-              onChange={e => handleChange('name', e.target.value)}
-            />
+            <span className={styles.hint}>Used as the user's login password</span>
           </div>
 
           <div className={styles.field}>
@@ -103,17 +111,6 @@ export function AddUserModal({ baseURL, onClose, onUserAdded }: AddUserModalProp
               placeholder="user@example.com"
               value={formData.email}
               onChange={e => handleChange('email', e.target.value)}
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Tenant</label>
-            <input
-              type="text"
-              className={styles.input}
-              placeholder="Organization name"
-              value={formData.tenant}
-              onChange={e => handleChange('tenant', e.target.value)}
             />
           </div>
 

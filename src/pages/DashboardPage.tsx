@@ -21,18 +21,7 @@ import { CloudRunLogsPage } from '../components/dashboard/CloudRunLogsPage';
 import { PineconeAdmin } from '../components/pinecone';
 import { TaskBoardContent } from '../components/tasks/TaskBoardModal/TaskBoardContent';
 import dashStyles from './DashboardPage.module.css';
-import { aspectConfig, bankingOnboarderConfig, bankingOnboarderV2Config, compassConfig, freedaConfig, zer4uConfig, newdeliConfig } from '../agents';
-import type { AgentConfig } from '../types';
-
-const agentConfigs: Record<string, AgentConfig> = {
-  aspect: aspectConfig,
-  banking: bankingOnboarderConfig,
-  'banking-v2': bankingOnboarderV2Config,
-  compass: compassConfig,
-  freeda: freedaConfig,
-  zer4u: zer4uConfig,
-  newdeli: newdeliConfig,
-};
+import { getAgentConfig } from '../agents/agentRegistry';
 
 function TaskBoardPageWithId() {
   const { taskId } = useParams<{ taskId: string }>();
@@ -46,7 +35,7 @@ function TaskBoardPageWithId() {
 
 export function DashboardPage() {
   const { agent } = useParams<{ agent: string }>();
-  const config = agent ? agentConfigs[agent.toLowerCase()] : null;
+  const config = getAgentConfig(agent);
 
   if (!config) {
     // Browser may have cached old JS bundle that doesn't know this agent.
@@ -106,7 +95,7 @@ export function DashboardPage() {
             />
             <Route
               path="users"
-              element={<UsersPage baseURL={config.baseURL} />}
+              element={<UsersPage baseURL={config.baseURL} defaultTenant={agent} />}
             />
             <Route
               path="crew"

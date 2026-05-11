@@ -5,7 +5,8 @@ import { useState, useEffect, useCallback } from 'react';
  * - Ctrl+Shift+Space: Toggle task board
  * - Ctrl+Shift+L: Open task board in drafts view
  */
-export function useTaskBoard() {
+export function useTaskBoard(options: { disabled?: boolean } = {}) {
+  const { disabled = false } = options;
   const [isOpen, setIsOpen] = useState(false);
   const [openInDraftsMode, setOpenInDraftsMode] = useState(false);
 
@@ -28,6 +29,7 @@ export function useTaskBoard() {
   }, []);
 
   useEffect(() => {
+    if (disabled) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+Shift+Space (or Cmd+Shift+Space on Mac)
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === ' ') {
@@ -51,7 +53,7 @@ export function useTaskBoard() {
 
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [isOpen, toggleModal, closeModal, openDrafts]);
+  }, [isOpen, toggleModal, closeModal, openDrafts, disabled]);
 
   return {
     isOpen,

@@ -81,18 +81,30 @@ export const ChatContext = createContext<ChatContextValue | null>(null);
 
 interface ChatProviderProps {
   children: ReactNode;
+  /** When true, hides admin/dev surfaces (debug shortcut, debug mode entry). */
+  restrictedMode?: boolean;
+  /**
+   * Override the localStorage prefix used for chat state (conversation id,
+   * linked phone, etc.). Defaults to `config.storagePrefix`. Pass an
+   * isolated prefix from authenticated routes to keep their chat state
+   * separate from the anonymous public path.
+   */
+  storagePrefix?: string;
 }
 
-export function ChatProvider({ children }: ChatProviderProps) {
+export function ChatProvider({ children, restrictedMode = false, storagePrefix }: ChatProviderProps) {
   const { config, selectedTheme, setSelectedTheme } = useAgentContext();
   const { userId, switchUser } = useUserContext();
+  const effectivePrefix = storagePrefix ?? config.storagePrefix;
   // Phone linking state (persisted in localStorage)
-  const [linkedPhone, setLinkedPhone] = useLocalStorageString(`${config.storagePrefix}linked_phone`, null);
+  const [linkedPhone, setLinkedPhone] = useLocalStorageString(`${effectivePrefix}linked_phone`, null);
 
-  // Debug mode (Ctrl+Shift+D easter egg)
-  const [debugMode, setDebugMode] = useState(false);
+  // Debug mode (Ctrl+Shift+D easter egg) — disabled in restricted mode and
+  // forced off so leftover state can't surface admin UI for end users.
+  const [internalDebugMode, setDebugMode] = useState(false);
+  const debugMode = restrictedMode ? false : internalDebugMode;
   const toggleDebug = useCallback(() => setDebugMode(prev => !prev), []);
-  useDebugShortcut(toggleDebug);
+  useDebugShortcut(toggleDebug, restrictedMode);
 
   // Debug copy selection
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
@@ -236,7 +248,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
   }, []);
 
   const conversation = useConversation(
-    config.storagePrefix,
+    effectivePrefix,
     config.agentName,
     userId,
     config.baseURL
@@ -265,7 +277,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const [profileData, setProfileData] = useState<ProfileUpdateData | null>(null);
   const [profilerLastRaw, setProfilerLastRaw] = useState<unknown | null>(null);
   const [profilerFreshStart, setProfilerFreshStart] = useState(true);
-  const [profilerEnabled, setProfilerEnabled] = useState(false);
+  // Default profiler ON for end-user (restricted) mode; OFF in admin/dev mode.
+  const [profilerEnabled, setProfilerEnabled] = useState(restrictedMode);
 
   const rerunProfiler = useCallback(async () => {
     if (!conversation.conversationId || !config.agentName) return;
