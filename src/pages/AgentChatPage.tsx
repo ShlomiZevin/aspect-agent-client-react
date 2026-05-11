@@ -16,7 +16,7 @@ export function AgentChatPage() {
   const config = getAgentConfig(agent);
 
   useDocumentMeta({
-    title: config?.pageTitle,
+    title: config?.pageTitle ?? '',
     favicon: config?.favicon,
     description: config?.metaDescription,
   });

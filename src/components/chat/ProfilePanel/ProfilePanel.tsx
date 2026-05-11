@@ -12,7 +12,14 @@ import type {
 } from '../../../types/profile';
 import type { ProfileUpdateData } from '../../../services/chatService';
 import type { Assignee } from '../../../types/task';
+import type { RecommendationItem } from '../../../types/profile';
 import styles from './ProfilePanel.module.css';
+
+function fieldValueToString(value: string | string[] | RecommendationItem[] | null | undefined): string {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  return value.map(v => typeof v === 'object' && v !== null && 'name' in v ? (v as RecommendationItem).name : String(v)).join(', ');
+}
 
 interface ProfilePanelProps {
   conversationId: string;
@@ -224,14 +231,14 @@ function SummarySection({ cluster }: { cluster: ProfileCluster }) {
               {overview?.value && (
                 <div className={styles.summaryBlock}>
                   <div className={styles.summaryBlockLabel}>{overview.label}</div>
-                  <div className={styles.summaryBlockText}>{overview.value}</div>
+                  <div className={styles.summaryBlockText}>{fieldValueToString(overview.value)}</div>
                 </div>
               )}
               {traits?.value && (
                 <div className={styles.summaryBlock}>
                   <div className={styles.summaryBlockLabel}>{traits.label}</div>
                   <div className={styles.tagsContainer}>
-                    {traits.value.split(', ').map((trait, i) => (
+                    {fieldValueToString(traits.value).split(', ').map((trait, i) => (
                       <span key={i} className={styles.tag}>{trait}</span>
                     ))}
                   </div>
@@ -243,16 +250,16 @@ function SummarySection({ cluster }: { cluster: ProfileCluster }) {
                   <div className={styles.potentialBar}>
                     <div
                       className={styles.potentialFill}
-                      style={{ width: `${potential.value}%` }}
+                      style={{ width: `${fieldValueToString(potential.value)}%` }}
                     />
-                    <span className={styles.potentialValue}>{potential.value}%</span>
+                    <span className={styles.potentialValue}>{fieldValueToString(potential.value)}%</span>
                   </div>
                 </div>
               )}
               {action?.value && (
                 <div className={styles.summaryBlock}>
                   <div className={styles.summaryBlockLabel}>{action.label}</div>
-                  <div className={styles.summaryBlockText}>{action.value}</div>
+                  <div className={styles.summaryBlockText}>{fieldValueToString(action.value)}</div>
                 </div>
               )}
             </div>
