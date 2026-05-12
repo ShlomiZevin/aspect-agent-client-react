@@ -119,6 +119,13 @@ export const translations: LanguageConfig = {
     'agent.thestock.welcomeMessage': 'Ask me anything about customers, payments, products, and inventory.',
     'agent.thestock.inputPlaceholder': 'Ask about your business...',
 
+    // Agent-specific: Hyper Toy
+    'agent.hypertoy.headerTitle': 'Hyper Toy',
+    'agent.hypertoy.headerSubtitle': 'AI-powered business intelligence',
+    'agent.hypertoy.welcomeTitle': 'Welcome to Hyper Toy BI',
+    'agent.hypertoy.welcomeMessage': 'Ask me about sales, profit, products, stores, and inventory.',
+    'agent.hypertoy.inputPlaceholder': 'Ask about your business...',
+
     // DataStatusBar — shared across all data-driven agents
     'dataStatusBar.lastSync': 'Last sync',
     'dataStatusBar.dataThrough': 'Data through',
@@ -280,6 +287,24 @@ export const translations: LanguageConfig = {
     'quick.thestock.negativeStock.question': 'Show SKUs with negative inventory at the C100 warehouse',
     'quick.thestock.ages.text': 'Customer Ages',
     'quick.thestock.ages.question': 'What is the age distribution of our customers?',
+
+    // Quick Questions - Hyper Toy
+    'quick.hypertoy.revenue.text': 'Revenue This Month',
+    'quick.hypertoy.revenue.question': 'What is total revenue and profit this month (record_type=מכירות)?',
+    'quick.hypertoy.topProducts.text': 'Top Products',
+    'quick.hypertoy.topProducts.question': 'Top 10 best-selling products this year by quantity, with revenue and profit',
+    'quick.hypertoy.topStores.text': 'Top Stores',
+    'quick.hypertoy.topStores.question': 'Top 10 stores by total sales revenue',
+    'quick.hypertoy.margin.text': 'Profit Margin',
+    'quick.hypertoy.margin.question': 'Overall profit margin (profit / sales) for sales transactions',
+    'quick.hypertoy.targets.text': 'Targets vs Actual',
+    'quick.hypertoy.targets.question': 'Compare sales targets vs actual revenue by month and store',
+    'quick.hypertoy.cashiers.text': 'Top Cashiers',
+    'quick.hypertoy.cashiers.question': 'Top 10 cashiers by total sales',
+    'quick.hypertoy.inventory.text': 'Warehouse 500 Stock',
+    'quick.hypertoy.inventory.question': 'Top SKUs by inventory value at warehouse 500',
+    'quick.hypertoy.crossBrand.text': 'Cost vs Sister Brands',
+    'quick.hypertoy.crossBrand.question': 'Largest cost gaps between Hyper Toy and sister brands (The Stock, Pirat)',
 
     // Quick Questions - Banking
     'quick.banking.startOnboarding.text': 'Start Onboarding',
@@ -452,6 +477,13 @@ export const translations: LanguageConfig = {
     'agent.thestock.welcomeMessage': 'שאל אותי כל שאלה על לקוחות, תשלומים, מוצרים ומלאי.',
     'agent.thestock.inputPlaceholder': 'שאל על העסק שלך...',
 
+    // Agent-specific: Hyper Toy
+    'agent.hypertoy.headerTitle': 'היפר טוי',
+    'agent.hypertoy.headerSubtitle': 'מודיעין עסקי מבוסס בינה מלאכותית',
+    'agent.hypertoy.welcomeTitle': 'ברוכים הבאים ל-BI של היפר טוי',
+    'agent.hypertoy.welcomeMessage': 'שאל אותי על מכירות, רווח, מוצרים, סניפים ומלאי.',
+    'agent.hypertoy.inputPlaceholder': 'שאל על העסק שלך...',
+
     // DataStatusBar — shared across all data-driven agents
     'dataStatusBar.lastSync': 'סנכרון אחרון',
     'dataStatusBar.dataThrough': 'נתונים עד',
@@ -613,6 +645,24 @@ export const translations: LanguageConfig = {
     'quick.thestock.negativeStock.question': 'הצג מק"טים עם מלאי שלילי במחסן C100',
     'quick.thestock.ages.text': 'גיל לקוחות',
     'quick.thestock.ages.question': 'מה התפלגות הגילאים של הלקוחות?',
+
+    // Quick Questions - Hyper Toy
+    'quick.hypertoy.revenue.text': 'הכנסות החודש',
+    'quick.hypertoy.revenue.question': 'מה סך ההכנסות והרווח החודש (record_type=מכירות)?',
+    'quick.hypertoy.topProducts.text': 'מוצרים מובילים',
+    'quick.hypertoy.topProducts.question': 'טופ 10 מוצרים נמכרים השנה לפי כמות, עם הכנסה ורווח',
+    'quick.hypertoy.topStores.text': 'סניפים מובילים',
+    'quick.hypertoy.topStores.question': 'טופ 10 סניפים לפי הכנסות מכירה',
+    'quick.hypertoy.margin.text': 'שולי רווח',
+    'quick.hypertoy.margin.question': 'שולי הרווח הכוללים (רווח / מכירות) על עסקאות מכירה',
+    'quick.hypertoy.targets.text': 'יעדים מול בפועל',
+    'quick.hypertoy.targets.question': 'השווה יעדי מכירות מול בפועל לפי חודש וסניף',
+    'quick.hypertoy.cashiers.text': 'קופאים מובילים',
+    'quick.hypertoy.cashiers.question': 'טופ 10 קופאים לפי סך מכירות',
+    'quick.hypertoy.inventory.text': 'מלאי במחסן 500',
+    'quick.hypertoy.inventory.question': 'מוצרים מובילים לפי ערך מלאי במחסן 500',
+    'quick.hypertoy.crossBrand.text': 'עלות מול בריידים אחרים',
+    'quick.hypertoy.crossBrand.question': 'הפערים הגדולים בעלות בין היפר טוי לבין הסטוק ופיראט',
 
     // Quick Questions - Banking
     'quick.banking.startOnboarding.text': 'התחל תהליך',

@@ -27,6 +27,7 @@ export { CompassPage } from './CompassPage';
 export { Zer4UPage } from './Zer4UPage';
 export { NewDeliPage } from './NewDeliPage';
 export { TheStockPage } from './TheStockPage';
+export { HyperToyPage } from './HyperToyPage';
 export { CrewBuilderMockupPage } from './CrewBuilderMockupPage';
 export { HowWeBuildPage } from './HowWeBuildPage';
 export { ChainArchitecturePage } from './ChainArchitecturePage';
