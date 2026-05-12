@@ -28,7 +28,7 @@ export function CrewMemberSelector({
 }: CrewMemberSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const config = useAgentConfig();
 
   // Close dropdown when clicking outside
@@ -62,7 +62,7 @@ export function CrewMemberSelector({
         aria-expanded={isOpen}
         aria-haspopup="listbox"
       >
-        <span className={styles.label}>Crew:</span>
+        <span className={styles.label}>{t('crewSelector.crew')}:</span>
         <span className={styles.value}>{displayName}</span>
         <svg
           className={`${styles.arrow} ${isOpen ? styles.open : ''}`}
@@ -91,7 +91,7 @@ export function CrewMemberSelector({
           >
             <span className={styles.optionName}>{getTranslatedCrewName(config.agentName, 'auto', language, 'Auto')}</span>
             <span className={styles.optionDescription}>
-              {getTranslatedCrewDescription(config.agentName, 'auto', language, 'Automatic routing')} (currently: {currentCrew ? getTranslatedCrewName(config.agentName, currentCrew.name, language, currentCrew.displayName) : 'none'})
+              {getTranslatedCrewDescription(config.agentName, 'auto', language, 'Automatic routing')} ({t('crewSelector.currently')}: {currentCrew ? getTranslatedCrewName(config.agentName, currentCrew.name, language, currentCrew.displayName) : t('crewSelector.none')})
             </span>
           </button>
 
@@ -111,7 +111,7 @@ export function CrewMemberSelector({
             >
               <span className={styles.optionName}>
                 {getTranslatedCrewName(config.agentName, crew.name, language, crew.displayName)}
-                {crew.isDefault && <span className={styles.badge}>Default</span>}
+                {crew.isDefault && <span className={styles.badge}>{t('crewSelector.default')}</span>}
               </span>
               {crew.description && (
                 <span className={styles.optionDescription}>

@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { useChatContext } from '../../../context';
 import { useAgentContext } from '../../../context/AgentContext';
+import { useLanguage } from '../../../context/LanguageContext';
 import { Message } from '../Message';
 import { ThinkingIndicator } from '../ThinkingIndicator';
 import { WelcomeSection } from '../WelcomeSection';
@@ -79,6 +80,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     setProfilerEnabled,
   } = useChatContext();
   const { config } = useAgentContext();
+  const { t } = useLanguage();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -326,7 +328,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
         <button
           className={styles.profileToggle}
           onClick={() => setIsProfilePanelOpen(true)}
-          title="Open Profile Panel"
+          title={t('chat.openProfilePanel')}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />

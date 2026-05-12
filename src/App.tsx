@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
-import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage } from './pages';
+import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage } from './pages';
 
 const ZER4U_MAINTENANCE = false;
 
@@ -126,6 +126,8 @@ function AppContent() {
         <Route path="/zer4u/conversations/:conversationId" element={ZER4U_MAINTENANCE ? <Zer4UMaintenancePage /> : <Zer4UPage />} />
         <Route path="/newdeli" element={<NewDeliPage />} />
         <Route path="/newdeli/conversations/:conversationId" element={<NewDeliPage />} />
+        <Route path="/thestock" element={<TheStockPage />} />
+        <Route path="/thestock/conversations/:conversationId" element={<TheStockPage />} />
 
         {/* ONE ZERO - Aspect demo for digital bank churn */}
         <Route path="/aspect/onezero" element={<OneZeroLandingPage />} />

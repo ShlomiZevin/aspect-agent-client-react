@@ -116,7 +116,7 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
 
   const handleDuplicateClick = (e: React.MouseEvent, chatId: string, currentTitle: string) => {
     e.stopPropagation();
-    setDuplicateConfirm({ isOpen: true, chatId, title: `Copy of ${currentTitle || 'Conversation'}` });
+    setDuplicateConfirm({ isOpen: true, chatId, title: `${t('sidebar.copyOf')} ${currentTitle || t('sidebar.newConversation')}` });
   };
 
   const handleConfirmDuplicate = async () => {
@@ -174,9 +174,9 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
     }
     if (deleteConfirm.type === 'selected') {
       return {
-        title: `Delete ${selectedIds.size} conversation${selectedIds.size > 1 ? 's' : ''}`,
-        message: `Are you sure you want to delete ${selectedIds.size} selected conversation${selectedIds.size > 1 ? 's' : ''}?`,
-        confirmText: `Delete (${selectedIds.size})`,
+        title: `${t('sidebar.delete')} (${selectedIds.size})`,
+        message: t('sidebar.confirmDeleteSelected').replace('{count}', String(selectedIds.size)),
+        confirmText: `${t('sidebar.delete')} (${selectedIds.size})`,
       };
     }
     return {
@@ -215,14 +215,14 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
                       checked={allSelected}
                       onChange={toggleSelectAll}
                     />
-                    <span>Select all</span>
+                    <span>{t('sidebar.selectAll')}</span>
                   </label>
                   <button className={styles.deleteSelectedBtn} onClick={handleDeleteSelectedClick}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <polyline points="3 6 5 6 21 6" />
                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                     </svg>
-                    Delete ({selectedIds.size})
+                    {t('sidebar.delete')} ({selectedIds.size})
                   </button>
                 </>
               ) : (
@@ -273,8 +273,8 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
                         onClick={(e) => e.stopPropagation()}
                       />
                     ) : (
-                      <span className={styles.itemTitle} title={conv.title || 'New Conversation'}>
-                        {conv.title || 'New Conversation'}
+                      <span className={styles.itemTitle} title={conv.title || t('sidebar.newConversation')}>
+                        {conv.title || t('sidebar.newConversation')}
                       </span>
                     )}
                     <div className={styles.itemMeta}>
@@ -296,7 +296,7 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
                         <button
                           className={styles.editBtn}
                           onClick={(e) => handleEditClick(e, conv.id, conv.title)}
-                          aria-label="Edit conversation name"
+                          aria-label={t('sidebar.editName')}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -306,7 +306,7 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
                         <button
                           className={styles.editBtn}
                           onClick={(e) => handleDuplicateClick(e, conv.id, conv.title)}
-                          aria-label="Duplicate conversation"
+                          aria-label={t('sidebar.duplicate')}
                           disabled={duplicatingId === conv.id}
                         >
                           {duplicatingId === conv.id ? (
@@ -325,7 +325,7 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
                     <button
                       className={styles.deleteBtn}
                       onClick={(e) => handleDeleteClick(e, conv.id)}
-                      aria-label="Delete conversation"
+                      aria-label={t('sidebar.deleteConversation')}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polyline points="3 6 5 6 21 6" />
@@ -342,10 +342,10 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
 
       <ConfirmDialog
         isOpen={duplicateConfirm.isOpen}
-        title="Duplicate Conversation"
-        message="Enter a name for the duplicated conversation:"
-        confirmText="Duplicate"
-        cancelText="Cancel"
+        title={t('sidebar.duplicateTitle')}
+        message={t('sidebar.duplicateMessage')}
+        confirmText={t('sidebar.duplicate')}
+        cancelText={t('common.cancel')}
         variant="default"
         isLoading={duplicatingId === duplicateConfirm.chatId}
         onConfirm={handleConfirmDuplicate}

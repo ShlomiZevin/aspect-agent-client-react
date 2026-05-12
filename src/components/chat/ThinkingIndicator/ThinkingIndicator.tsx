@@ -1,6 +1,30 @@
 import { useState, useEffect } from 'react';
 import styles from './ThinkingIndicator.module.css';
 import type { ThinkingStep } from '../../../types';
+import { useLanguage } from '../../../context/LanguageContext';
+
+// Localize server-emitted thinking step descriptions.
+// The server sends English-only strings (Message received, Routing to: X,
+// Calling function: X, Fetching data: X, Accessing KB: X). We re-localize
+// them here so the UI stays consistent with the user's language.
+function localizeStepDescription(description: string, t: (key: string) => string): string {
+  if (!description) return description;
+  if (description === 'Message received') return t('thinking.messageReceived');
+  if (description === 'Accessing knowledge base') return t('thinking.accessingKB');
+
+  const prefixes: Array<[string, string]> = [
+    ['Routing to: ',       'thinking.routingTo'],
+    ['Calling function: ', 'thinking.callingFunction'],
+    ['Fetching data: ',    'thinking.fetchingData'],
+    ['Accessing KB: ',     'thinking.accessingKBNamed'],
+  ];
+  for (const [prefix, key] of prefixes) {
+    if (description.startsWith(prefix)) {
+      return `${t(key)}: ${description.slice(prefix.length)}`;
+    }
+  }
+  return description;
+}
 
 interface FileResult {
   name: string;
@@ -16,6 +40,7 @@ interface ThinkingIndicatorProps {
 export function ThinkingIndicator({ currentStep, steps = [], isComplete = false }: ThinkingIndicatorProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set());
+  const { t } = useLanguage();
 
   // Auto-collapse when complete
   useEffect(() => {
@@ -69,7 +94,7 @@ export function ThinkingIndicator({ currentStep, steps = [], isComplete = false 
           <path d="M12 6v6l4 2" />
         </svg>
         <span className={styles.label}>
-          {isComplete ? 'View thinking process' : 'Thinking...'}
+          {isComplete ? t('thinking.viewProcess') : `${t('thinking.thinking')}...`}
         </span>
         <svg
           className={`${styles.toggle} ${!isCollapsed ? styles.expanded : ''}`}
@@ -95,7 +120,7 @@ export function ThinkingIndicator({ currentStep, steps = [], isComplete = false 
                 >
                   {!isComplete && index === steps.length - 1 && <span className={styles.dot} />}
                   {isComplete && <span className={styles.checkmark}>✓</span>}
-                  <span>{step.description}</span>
+                  <span>{localizeStepDescription(step.description, t)}</span>
                   {isExpandable(step) && (
                     <svg
                       className={`${styles.stepToggle} ${expandedSteps.has(index) ? styles.expanded : ''}`}
@@ -123,16 +148,16 @@ export function ThinkingIndicator({ currentStep, steps = [], isComplete = false 
                 {hasDataQuery(step) && expandedSteps.has(index) && (
                   <div className={styles.dataQueryDetails}>
                     <div className={styles.querySection}>
-                      <div className={styles.queryLabel}>Business Question:</div>
+                      <div className={styles.queryLabel}>{t('thinking.businessQuestion')}:</div>
                       <div className={styles.queryValue}>{step.metadata.params.question}</div>
                     </div>
                     <div className={styles.querySection}>
-                      <div className={styles.queryLabel}>SQL Query:</div>
+                      <div className={styles.queryLabel}>{t('thinking.sqlQuery')}:</div>
                       <pre className={styles.sqlCode}>{step.metadata.params.sql}</pre>
                     </div>
                     {step.metadata.params.explanation && (
                       <div className={styles.querySection}>
-                        <div className={styles.queryLabel}>Explanation:</div>
+                        <div className={styles.queryLabel}>{t('thinking.explanation')}:</div>
                         <div className={styles.queryValue}>{step.metadata.params.explanation}</div>
                       </div>
                     )}
@@ -143,7 +168,7 @@ export function ThinkingIndicator({ currentStep, steps = [], isComplete = false 
           ) : (
             <div className={styles.step}>
               {!isComplete && <span className={styles.dot} />}
-              {currentStep || 'Processing...'}
+              {currentStep ? localizeStepDescription(currentStep, t) : t('thinking.processing')}
             </div>
           )}
         </div>

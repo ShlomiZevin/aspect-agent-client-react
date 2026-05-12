@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import styles from './DataStatusBar.module.css';
+import { useLanguage } from '../../../context/LanguageContext';
 
 interface DataInfo {
   lastRun: {
@@ -18,9 +19,9 @@ interface DataStatusBarProps {
   schema: string;
 }
 
-function formatDateTime(iso: string): string {
+function formatDateTime(iso: string, locale: string): string {
   const d = new Date(iso);
-  return d.toLocaleString('en-GB', {
+  return d.toLocaleString(locale, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -30,15 +31,17 @@ function formatDateTime(iso: string): string {
   });
 }
 
-function formatYearMonth(ym: string): string {
-  // "2025-12" → "Dec 2025"
+function formatYearMonth(ym: string, locale: string): string {
   const [year, month] = ym.split('-');
   const d = new Date(parseInt(year), parseInt(month) - 1, 1);
-  return d.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+  return d.toLocaleString(locale, { month: 'short', year: 'numeric' });
 }
 
 export function DataStatusBar({ baseURL, schema }: DataStatusBarProps) {
   const [info, setInfo] = useState<DataInfo | null>(null);
+  const { t, language } = useLanguage();
+  const locale = language === 'he' ? 'he-IL' : 'en-GB';
+  const naLabel = t('dataStatusBar.na');
 
   useEffect(() => {
     let cancelled = false;
@@ -54,16 +57,16 @@ export function DataStatusBar({ baseURL, schema }: DataStatusBarProps) {
   return (
     <div className={styles.bar}>
       <span className={styles.item}>
-        <span className={styles.label}>Last sync:</span>
+        <span className={styles.label}>{t('dataStatusBar.lastSync')}:</span>
         <span className={styles.value}>
-          {info.lastRun ? formatDateTime(info.lastRun.completed_at) : 'N/A'}
+          {info.lastRun ? formatDateTime(info.lastRun.completed_at, locale) : naLabel}
         </span>
       </span>
       <span className={styles.dot} aria-hidden="true">·</span>
       <span className={styles.item}>
-        <span className={styles.label}>Data through:</span>
+        <span className={styles.label}>{t('dataStatusBar.dataThrough')}:</span>
         <span className={styles.value}>
-          {info.lastDataDate ? formatYearMonth(info.lastDataDate) : 'N/A'}
+          {info.lastDataDate ? formatYearMonth(info.lastDataDate, locale) : naLabel}
         </span>
       </span>
     </div>

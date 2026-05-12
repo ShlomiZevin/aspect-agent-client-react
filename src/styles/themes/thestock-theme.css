@@ -1,0 +1,42 @@
+/* The Stock Theme — orange / red retail discount palette */
+.theme-thestock {
+  --primary-color: #c0392b;
+  --primary-hover: #962a1f;
+  --primary-light: rgba(192, 57, 43, 0.1);
+  --secondary-color: #f39c12;
+  --success-color: #16a34a;
+  --warning-color: #f39c12;
+  --error-color: #ef4444;
+
+  --background: #ffffff;
+  --surface: #f9fafb;
+  --surface-light: #f3f4f6;
+  --border: #e5e7eb;
+
+  --text-primary: #1a1a1a;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.09);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.12);
+
+  --gradient: linear-gradient(135deg, #c0392b, #962a1f);
+}
+
+.theme-thestock[data-theme="dark"] {
+  --primary-color: #e74c3c;
+  --primary-hover: #c0392b;
+  --primary-light: rgba(231, 76, 60, 0.15);
+  --secondary-color: #f5b041;
+  --background: #111827;
+  --surface: #1f2937;
+  --surface-light: #374151;
+  --border: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+}
