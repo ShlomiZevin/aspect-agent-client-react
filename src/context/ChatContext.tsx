@@ -311,6 +311,7 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix }
     topKOverrides: debugMode ? topKOverrides : undefined,
     profilerFreshStart: profilerFreshStart || undefined,
     profilerEnabled: profilerEnabled || undefined,
+    restrictedMode: restrictedMode || undefined,
     onCrewInfo: (crewInfo) => {
       crew.setCurrentCrew(crewInfo);
       // Refresh fields panel when crew is set (including initial crew)

@@ -318,6 +318,7 @@ export interface UseChatOptions {
   onProfilerRaw?: (data: unknown) => void;
   profilerFreshStart?: boolean;
   profilerEnabled?: boolean;
+  restrictedMode?: boolean;
 }
 
 export interface UseChatReturn {
@@ -342,7 +343,7 @@ export interface UseChatReturn {
  * Main chat hook - handles messaging, streaming, and thinking indicators
  */
 export function useChat(options: UseChatOptions): UseChatReturn {
-  const { config, conversationId, userId, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, onCrewInfo, onCrewTransition, onFieldExtracted, onProfileUpdate, onProfilerRaw, profilerFreshStart, profilerEnabled } = options;
+  const { config, conversationId, userId, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, onCrewInfo, onCrewTransition, onFieldExtracted, onProfileUpdate, onProfilerRaw, profilerFreshStart, profilerEnabled, restrictedMode } = options;
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
     conversationId,
@@ -391,6 +392,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             topKOverrides,
             profilerFreshStart,
             profilerEnabled,
+            restrictedMode,
           },
           {
             onThinkingStep: (step) => {

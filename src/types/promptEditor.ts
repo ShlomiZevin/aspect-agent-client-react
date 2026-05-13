@@ -23,6 +23,7 @@ export interface PromptVersion {
   temperature?: number;    // Saved LLM temperature override (0.0 - 2.0)
   topK?: number;           // Saved LLM top_k / top_p override
   isActive: boolean;
+  isPublished: boolean;
   createdAt: string;
   updatedAt: string;
 }

@@ -9,6 +9,7 @@ import {
   updatePromptVersion,
   activatePromptVersion,
   deletePromptVersion,
+  publishPromptVersion,
   revertToCode,
   type SaveVersionPayload,
 } from '../../../services/promptService';
@@ -69,6 +70,15 @@ const AVAILABLE_PROVIDERS = ['openai', 'anthropic', 'google'];
 
 // Feature flag: show fallback model/provider selectors in debug panel
 const SHOW_FALLBACK_MODEL_UI = false;
+
+// Compact label showing version state — "(Active, Published)", "(Active)", "(Published)", or "".
+function versionStateLabel(v: { isActive?: boolean; isPublished?: boolean }): string {
+  const tags = [
+    v.isActive ? 'Active' : null,
+    v.isPublished ? 'Published' : null,
+  ].filter(Boolean);
+  return tags.length > 0 ? ` (${tags.join(', ')})` : '';
+}
 
 function inferProvider(model: string): string {
   if (model.startsWith('claude-')) return 'anthropic';
@@ -608,6 +618,21 @@ export function PromptEditorPanel({
     }
   }, [selectedCrewId, selectedVersion, agentName, baseURL, onSessionOverride]);
 
+  // Publish selected version (what outside users see at /<agent>/chat).
+  // Independent of active — admins can keep tuning isActive without affecting end users.
+  const handlePublishVersion = useCallback(async () => {
+    if (!selectedCrewId || !selectedVersion || selectedVersion.isPublished) return;
+    if (selectedVersion.version === 0) return; // Can't publish code default
+    try {
+      await publishPromptVersion(agentName, selectedCrewId, selectedVersion.id, baseURL);
+      const data = await getAgentPrompts(agentName, baseURL);
+      setPrompts(data);
+      setStatus({ type: 'success', message: `v${selectedVersion.version} published to outside users` });
+    } catch {
+      setStatus({ type: 'error', message: 'Failed to publish version' });
+    }
+  }, [selectedCrewId, selectedVersion, agentName, baseURL]);
+
   // Delete selected version
   const handleDeleteVersion = useCallback(async () => {
     if (!selectedCrewId || !selectedVersion || selectedVersion.version === 0) return;
@@ -806,7 +831,7 @@ export function PromptEditorPanel({
                 {selectedVersion && (
                   <span className={styles.hasContentBadge}>
                     v{selectedVersion.version}
-                    {selectedVersion.isActive ? ' (Active)' : ''}
+                    {versionStateLabel(selectedVersion)}
                   </span>
                 )}
               </span>
@@ -830,7 +855,7 @@ export function PromptEditorPanel({
                       <div className={styles.versionDropdownTriggerMain}>
                         v{selectedVersion?.version ?? '?'}
                         {selectedVersion?.name ? ` - ${selectedVersion.name}` : ''}
-                        {selectedVersion?.isActive ? ' (Active)' : ''}
+                        {selectedVersion && versionStateLabel(selectedVersion)}
                       </div>
                       {selectedVersion?.description && (
                         <div className={styles.versionDropdownTriggerDesc}>{selectedVersion.description}</div>
@@ -857,7 +882,7 @@ export function PromptEditorPanel({
                             <div className={styles.versionDropdownOptionMain}>
                               v{version.version}
                               {version.name ? ` - ${version.name}` : ''}
-                              {version.isActive ? ' (Active)' : ''}
+                              {versionStateLabel(version)}
                             </div>
                             {version.description && (
                               <div className={styles.versionDropdownOptionDesc}>{version.description}</div>
@@ -869,7 +894,7 @@ export function PromptEditorPanel({
                   )}
                 </div>
                 {selectedVersion && (
-                  <div style={{ display: 'flex', gap: '6px' }}>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                     {!selectedVersion.isActive && (
                       <button
                         className={`${styles.actionButton} ${styles.saveVersionBtn}`}
@@ -879,10 +904,24 @@ export function PromptEditorPanel({
                         {selectedVersion.version === 0 ? 'Revert to Code' : 'Set as Active'}
                       </button>
                     )}
+                    {selectedVersion.version !== 0 && !selectedVersion.isPublished && (
+                      <button
+                        className={`${styles.actionButton} ${styles.saveVersionBtn}`}
+                        onClick={handlePublishVersion}
+                        type="button"
+                        title="Set this version as the one outside users see at /<agent>/chat"
+                      >
+                        Set as Published
+                      </button>
+                    )}
                     {selectedVersion.version !== 0 && (
-                      selectedVersion.isActive ? (
+                      selectedVersion.isActive || selectedVersion.isPublished ? (
                         <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic', alignSelf: 'center' }}>
-                          Can&apos;t delete active version
+                          {selectedVersion.isActive && selectedVersion.isPublished
+                            ? "Can't delete active+published version"
+                            : selectedVersion.isActive
+                              ? "Can't delete active version"
+                              : "Can't delete published version"}
                         </span>
                       ) : (
                         <button

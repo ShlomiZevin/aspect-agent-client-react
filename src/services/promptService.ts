@@ -132,6 +132,42 @@ export async function activatePromptVersion(
 }
 
 /**
+ * Publish a specific prompt version (the version outside users see at /<agent>/chat).
+ * Independent of activate — admins can keep iterating the active version while
+ * the published version stays stable.
+ */
+export async function publishPromptVersion(
+  agentName: string,
+  crewName: string,
+  versionId: string | number,
+  baseURL?: string
+): Promise<PromptVersion> {
+  const url = baseURL || getBaseURL();
+  const response = await apiRequest<{ success: boolean; version: PromptVersion }>(
+    `/api/agents/${encodeURIComponent(agentName)}/crew/${encodeURIComponent(crewName)}/prompts/${versionId}/publish`,
+    { method: 'POST' },
+    url
+  );
+  return response.version;
+}
+
+/**
+ * Unpublish all versions (outside users will fall back to the active version).
+ */
+export async function unpublishAll(
+  agentName: string,
+  crewName: string,
+  baseURL?: string
+): Promise<void> {
+  const url = baseURL || getBaseURL();
+  await apiRequest<{ success: boolean }>(
+    `/api/agents/${encodeURIComponent(agentName)}/crew/${encodeURIComponent(crewName)}/prompts/unpublish-all`,
+    { method: 'POST' },
+    url
+  );
+}
+
+/**
  * Revert to code default (deactivate all DB versions)
  */
 export async function revertToCode(
