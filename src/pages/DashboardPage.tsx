@@ -12,7 +12,7 @@ import { DataLoaderPage } from '../components/dashboard/DataLoaderPage';
 import { PodcastPage } from '../components/dashboard/PodcastPage';
 import { BillingPage } from '../components/dashboard/BillingPage';
 import { LLMUsagePage } from '../components/dashboard/LLMUsagePage';
-import { ApiKeysPage } from '../components/dashboard/ApiKeysPage';
+import { SettingsPage } from '../components/dashboard/SettingsPage';
 import { KBManager } from '../components/kb';
 import { TestRunnerPage } from '../components/dashboard/TestRunnerPage';
 import { DynamicKBPage } from '../components/dashboard/DynamicKBPage';
@@ -158,8 +158,8 @@ export function DashboardPage() {
               element={<LLMUsagePage baseURL={config.baseURL} />}
             />
             <Route
-              path="api-keys"
-              element={<ApiKeysPage baseURL={config.baseURL} />}
+              path="settings"
+              element={<SettingsPage baseURL={config.baseURL} agentName={config.agentName} />}
             />
             <Route
               path="cloud-run-logs"

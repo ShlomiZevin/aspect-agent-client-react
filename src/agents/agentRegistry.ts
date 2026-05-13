@@ -22,6 +22,8 @@ import {
   foremanConfig,
   freedaConfig,
   newdeliConfig,
+  thestockConfig,
+  hypertoyConfig,
   tiktokConfig,
   zer4uConfig,
 } from './index';
@@ -35,6 +37,8 @@ export const AGENT_REGISTRY: Record<string, AgentConfig> = {
   foreman: foremanConfig,
   freeda: freedaConfig,
   newdeli: newdeliConfig,
+  thestock: thestockConfig,
+  hypertoy: hypertoyConfig,
   tiktok: tiktokConfig,
   zer4u: zer4uConfig,
 };

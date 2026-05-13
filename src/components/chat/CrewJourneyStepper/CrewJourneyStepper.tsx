@@ -12,7 +12,7 @@ interface CrewJourneyStepperProps {
 }
 
 export function CrewJourneyStepper({ steps, onStepperClick, maxVisibleSteps = 5 }: CrewJourneyStepperProps) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const config = useAgentConfig();
 
   if (steps.length === 0) return null;
@@ -54,7 +54,7 @@ export function CrewJourneyStepper({ steps, onStepperClick, maxVisibleSteps = 5 
     <button
       className={styles.stepper}
       onClick={onStepperClick}
-      aria-label="View crew journey details"
+      aria-label={t('crewSelector.viewJourney')}
       type="button"
     >
       {/* Left indicator for hidden steps */}

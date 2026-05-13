@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAgentContext } from '../../../context';
+import { useLanguage } from '../../../context/LanguageContext';
 import { searchTags, createFeedback, deleteFeedback, getFeedbackForMessage } from '../../../services/feedbackService';
 import type { FeedbackTag } from '../../../types/feedback';
 import styles from './FeedbackPanel.module.css';
@@ -29,6 +30,7 @@ interface FeedbackPanelProps {
 
 export function FeedbackPanel({ messageDbId, onClose, onSaved }: FeedbackPanelProps) {
   const { config } = useAgentContext();
+  const { t } = useLanguage();
   const [feedbackText, setFeedbackText] = useState('');
   const [tags, setTags] = useState<FeedbackTag[]>([]);
   const [tagInput, setTagInput] = useState('');
@@ -178,7 +180,7 @@ export function FeedbackPanel({ messageDbId, onClose, onSaved }: FeedbackPanelPr
   if (isLoading) {
     return (
       <div className={styles.panel}>
-        <div className={styles.loading}>Loading...</div>
+        <div className={styles.loading}>{t('common.loading')}...</div>
       </div>
     );
   }
@@ -186,8 +188,8 @@ export function FeedbackPanel({ messageDbId, onClose, onSaved }: FeedbackPanelPr
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
-        <span className={styles.title}>Feedback</span>
-        <button className={styles.closeButton} onClick={onClose} type="button" aria-label="Close">
+        <span className={styles.title}>{t('feedback.title')}</span>
+        <button className={styles.closeButton} onClick={onClose} type="button" aria-label={t('common.close')}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
@@ -197,7 +199,7 @@ export function FeedbackPanel({ messageDbId, onClose, onSaved }: FeedbackPanelPr
 
       <textarea
         className={styles.textarea}
-        placeholder="Add feedback about this response..."
+        placeholder={t('feedback.placeholder')}
         value={feedbackText}
         onChange={(e) => setFeedbackText(e.target.value)}
         rows={3}
@@ -230,7 +232,7 @@ export function FeedbackPanel({ messageDbId, onClose, onSaved }: FeedbackPanelPr
               ref={tagInputRef}
               type="text"
               className={styles.tagInput}
-              placeholder={tags.length === 0 ? 'Add tags...' : ''}
+              placeholder={tags.length === 0 ? t('feedback.addTags') : ''}
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagInputKeyDown}
@@ -266,12 +268,12 @@ export function FeedbackPanel({ messageDbId, onClose, onSaved }: FeedbackPanelPr
             disabled={isDeleting}
             type="button"
           >
-            {isDeleting ? 'Deleting...' : 'Delete'}
+            {isDeleting ? `${t('feedback.deleting')}...` : t('common.delete')}
           </button>
         )}
         <div className={styles.footerSpacer} />
         <button className={styles.cancelButton} onClick={onClose} type="button">
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           className={styles.saveButton}
@@ -279,7 +281,7 @@ export function FeedbackPanel({ messageDbId, onClose, onSaved }: FeedbackPanelPr
           disabled={isSaving}
           type="button"
         >
-          {isSaving ? 'Saving...' : existingFeedbackId ? 'Update' : 'Save'}
+          {isSaving ? `${t('feedback.saving')}...` : existingFeedbackId ? t('feedback.update') : t('common.save')}
         </button>
       </div>
     </div>

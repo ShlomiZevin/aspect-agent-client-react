@@ -3,6 +3,7 @@ import styles from './ApiKeysPage.module.css';
 
 interface Props {
   baseURL?: string;
+  embedded?: boolean;
 }
 
 interface ConfigEntry {
@@ -37,7 +38,7 @@ const GROUP_COLOR: Record<string, string> = {
   Google: '#4285f4',
 };
 
-export function ApiKeysPage({ baseURL = '' }: Props) {
+export function ApiKeysPage({ baseURL = '', embedded = false }: Props) {
   const [configs, setConfigs] = useState<ConfigEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -111,16 +112,25 @@ export function ApiKeysPage({ baseURL = '' }: Props) {
   const configMap = Object.fromEntries(configs.map(c => [c.key, c]));
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>API Keys</h1>
-          <p className={styles.subtitle}>Override environment variables with database values. Changes take effect immediately.</p>
+    <div className={embedded ? undefined : styles.page}>
+      {!embedded && (
+        <div className={styles.header}>
+          <div>
+            <h1 className={styles.title}>API Keys</h1>
+            <p className={styles.subtitle}>Override environment variables with database values. Changes take effect immediately.</p>
+          </div>
+          <button className={styles.refreshBtn} onClick={load} disabled={loading}>
+            {loading ? 'Loading…' : 'Refresh'}
+          </button>
         </div>
-        <button className={styles.refreshBtn} onClick={load} disabled={loading}>
-          {loading ? 'Loading…' : 'Refresh'}
-        </button>
-      </div>
+      )}
+      {embedded && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+          <button className={styles.refreshBtn} onClick={load} disabled={loading}>
+            {loading ? 'Loading…' : 'Refresh'}
+          </button>
+        </div>
+      )}
 
       {error && <div className={styles.globalError}>{error}</div>}
 

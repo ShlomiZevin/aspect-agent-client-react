@@ -112,6 +112,72 @@ export const translations: LanguageConfig = {
     'agent.newdeli.welcomeMessage': 'Ask me anything about orders, revenue, branches, and performance.',
     'agent.newdeli.inputPlaceholder': 'Ask about your business...',
 
+    // Agent-specific: The Stock
+    'agent.thestock.headerTitle': 'The Stock',
+    'agent.thestock.headerSubtitle': 'AI-powered business intelligence',
+    'agent.thestock.welcomeTitle': 'Welcome to The Stock BI',
+    'agent.thestock.welcomeMessage': 'Ask me anything about customers, payments, products, and inventory.',
+    'agent.thestock.inputPlaceholder': 'Ask about your business...',
+
+    // Agent-specific: Hyper Toy
+    'agent.hypertoy.headerTitle': 'Hyper Toy',
+    'agent.hypertoy.headerSubtitle': 'AI-powered business intelligence',
+    'agent.hypertoy.welcomeTitle': 'Welcome to Hyper Toy BI',
+    'agent.hypertoy.welcomeMessage': 'Ask me about sales, profit, products, stores, and inventory.',
+    'agent.hypertoy.inputPlaceholder': 'Ask about your business...',
+
+    // DataStatusBar — shared across all data-driven agents
+    'dataStatusBar.lastSync': 'Last sync',
+    'dataStatusBar.dataThrough': 'Data through',
+    'dataStatusBar.na': 'N/A',
+
+    // Thinking step query labels
+    'thinking.businessQuestion': 'Business Question',
+    'thinking.sqlQuery': 'SQL Query',
+    'thinking.explanation': 'Explanation',
+
+    // Thinking step descriptions (server emits English; client re-localizes)
+    'thinking.thinking': 'Thinking',
+    'thinking.viewProcess': 'View thinking process',
+    'thinking.messageReceived': 'Message received',
+    'thinking.routingTo': 'Routing to',
+    'thinking.callingFunction': 'Calling function',
+    'thinking.fetchingData': 'Fetching data',
+    'thinking.accessingKB': 'Accessing knowledge base',
+    'thinking.accessingKBNamed': 'Accessing KB',
+
+    // Crew selector / journey
+    'crewSelector.crew': 'Crew',
+    'crewSelector.currently': 'currently',
+    'crewSelector.none': 'none',
+    'crewSelector.default': 'Default',
+    'crewSelector.viewJourney': 'View crew journey details',
+
+    // Sidebar — extra keys
+    'sidebar.selectAll': 'Select all',
+    'sidebar.newConversation': 'New Conversation',
+    'sidebar.editName': 'Edit conversation name',
+    'sidebar.duplicate': 'Duplicate',
+    'sidebar.deleteConversation': 'Delete conversation',
+    'sidebar.duplicateTitle': 'Duplicate Conversation',
+    'sidebar.duplicateMessage': 'Enter a name for the duplicated conversation:',
+    'sidebar.copyOf': 'Copy of',
+    'sidebar.confirmDeleteSelected': 'Are you sure you want to delete {count} selected conversation(s)?',
+
+    // Header — extra key
+    'header.toggleMenu': 'Toggle menu',
+
+    // Chat — extra key
+    'chat.openProfilePanel': 'Open Profile Panel',
+
+    // Feedback panel
+    'feedback.title': 'Feedback',
+    'feedback.placeholder': 'Add feedback about this response...',
+    'feedback.addTags': 'Add tags...',
+    'feedback.deleting': 'Deleting',
+    'feedback.saving': 'Saving',
+    'feedback.update': 'Update',
+
     // Quick Questions - Freeda
     'quick.freeda.commonSymptoms.text': 'Common Symptoms',
     'quick.freeda.commonSymptoms.question': 'What are the common symptoms of menopause?',
@@ -203,6 +269,42 @@ export const translations: LanguageConfig = {
     'quick.newdeli.weekDays.question': 'Which days of the week have the most orders?',
     'quick.newdeli.topItems.text': 'Top Items',
     'quick.newdeli.topItems.question': 'What are the most ordered dishes?',
+
+    // Quick Questions - The Stock
+    'quick.thestock.customers.text': 'Customer Count',
+    'quick.thestock.customers.question': 'How many customers do we have in total?',
+    'quick.thestock.payments.text': 'Payment Methods',
+    'quick.thestock.payments.question': 'Show payment totals grouped by payment_type',
+    'quick.thestock.cities.text': 'Top Cities',
+    'quick.thestock.cities.question': 'Which cities have the most customers?',
+    'quick.thestock.refunds.text': 'Refunds & Discounts',
+    'quick.thestock.refunds.question': 'What is the total of credits, refunds, and discounts?',
+    'quick.thestock.suppliers.text': 'Top Suppliers',
+    'quick.thestock.suppliers.question': 'Which suppliers have the most products in our catalog?',
+    'quick.thestock.families.text': 'Product Families',
+    'quick.thestock.families.question': 'Show the number of products per family',
+    'quick.thestock.negativeStock.text': 'Negative C100 Stock',
+    'quick.thestock.negativeStock.question': 'Show SKUs with negative inventory at the C100 warehouse',
+    'quick.thestock.ages.text': 'Customer Ages',
+    'quick.thestock.ages.question': 'What is the age distribution of our customers?',
+
+    // Quick Questions - Hyper Toy
+    'quick.hypertoy.revenue.text': 'Revenue This Month',
+    'quick.hypertoy.revenue.question': 'What is total revenue and profit this month (record_type=מכירות)?',
+    'quick.hypertoy.topProducts.text': 'Top Products',
+    'quick.hypertoy.topProducts.question': 'Top 10 best-selling products this year by quantity, with revenue and profit',
+    'quick.hypertoy.topStores.text': 'Top Stores',
+    'quick.hypertoy.topStores.question': 'Top 10 stores by total sales revenue',
+    'quick.hypertoy.margin.text': 'Profit Margin',
+    'quick.hypertoy.margin.question': 'Overall profit margin (profit / sales) for sales transactions',
+    'quick.hypertoy.targets.text': 'Targets vs Actual',
+    'quick.hypertoy.targets.question': 'Compare sales targets vs actual revenue by month and store',
+    'quick.hypertoy.cashiers.text': 'Top Cashiers',
+    'quick.hypertoy.cashiers.question': 'Top 10 cashiers by total sales',
+    'quick.hypertoy.inventory.text': 'Warehouse 500 Stock',
+    'quick.hypertoy.inventory.question': 'Top SKUs by inventory value at warehouse 500',
+    'quick.hypertoy.crossBrand.text': 'Cost vs Sister Brands',
+    'quick.hypertoy.crossBrand.question': 'Largest cost gaps between Hyper Toy and sister brands (The Stock, Pirat)',
 
     // Quick Questions - Banking
     'quick.banking.startOnboarding.text': 'Start Onboarding',
@@ -368,6 +470,72 @@ export const translations: LanguageConfig = {
     'agent.newdeli.welcomeMessage': 'שאל אותי כל שאלה על הזמנות, הכנסות, סניפים וביצועים.',
     'agent.newdeli.inputPlaceholder': 'שאל על העסק שלך...',
 
+    // Agent-specific: The Stock
+    'agent.thestock.headerTitle': 'הסטוק',
+    'agent.thestock.headerSubtitle': 'מודיעין עסקי מבוסס בינה מלאכותית',
+    'agent.thestock.welcomeTitle': 'ברוכים הבאים ל-BI של הסטוק',
+    'agent.thestock.welcomeMessage': 'שאל אותי כל שאלה על לקוחות, תשלומים, מוצרים ומלאי.',
+    'agent.thestock.inputPlaceholder': 'שאל על העסק שלך...',
+
+    // Agent-specific: Hyper Toy
+    'agent.hypertoy.headerTitle': 'היפר טוי',
+    'agent.hypertoy.headerSubtitle': 'מודיעין עסקי מבוסס בינה מלאכותית',
+    'agent.hypertoy.welcomeTitle': 'ברוכים הבאים ל-BI של היפר טוי',
+    'agent.hypertoy.welcomeMessage': 'שאל אותי על מכירות, רווח, מוצרים, סניפים ומלאי.',
+    'agent.hypertoy.inputPlaceholder': 'שאל על העסק שלך...',
+
+    // DataStatusBar — shared across all data-driven agents
+    'dataStatusBar.lastSync': 'סנכרון אחרון',
+    'dataStatusBar.dataThrough': 'נתונים עד',
+    'dataStatusBar.na': 'לא זמין',
+
+    // Thinking step query labels
+    'thinking.businessQuestion': 'שאלה עסקית',
+    'thinking.sqlQuery': 'שאילתת SQL',
+    'thinking.explanation': 'הסבר',
+
+    // Thinking step descriptions (server emits English; client re-localizes)
+    'thinking.thinking': 'חושב',
+    'thinking.viewProcess': 'הצג תהליך חשיבה',
+    'thinking.messageReceived': 'התקבלה הודעה',
+    'thinking.routingTo': 'ניתוב אל',
+    'thinking.callingFunction': 'קריאת פונקציה',
+    'thinking.fetchingData': 'טוען נתונים',
+    'thinking.accessingKB': 'גישה למאגר ידע',
+    'thinking.accessingKBNamed': 'גישה למאגר ידע',
+
+    // Crew selector / journey
+    'crewSelector.crew': 'צוות',
+    'crewSelector.currently': 'נוכחי',
+    'crewSelector.none': 'אין',
+    'crewSelector.default': 'ברירת מחדל',
+    'crewSelector.viewJourney': 'הצג פרטי מסע הצוות',
+
+    // Sidebar — extra keys
+    'sidebar.selectAll': 'בחר הכל',
+    'sidebar.newConversation': 'שיחה חדשה',
+    'sidebar.editName': 'ערוך שם שיחה',
+    'sidebar.duplicate': 'שכפל',
+    'sidebar.deleteConversation': 'מחק שיחה',
+    'sidebar.duplicateTitle': 'שכפול שיחה',
+    'sidebar.duplicateMessage': 'הזן שם לשיחה המשוכפלת:',
+    'sidebar.copyOf': 'עותק של',
+    'sidebar.confirmDeleteSelected': 'האם אתה בטוח שברצונך למחוק {count} שיחות שנבחרו?',
+
+    // Header — extra key
+    'header.toggleMenu': 'הצג/הסתר תפריט',
+
+    // Chat — extra key
+    'chat.openProfilePanel': 'פתח לוח פרופיל',
+
+    // Feedback panel
+    'feedback.title': 'משוב',
+    'feedback.placeholder': 'הוסף משוב על תשובה זו...',
+    'feedback.addTags': 'הוסף תגיות...',
+    'feedback.deleting': 'מוחק',
+    'feedback.saving': 'שומר',
+    'feedback.update': 'עדכן',
+
     // Quick Questions - Freeda
     'quick.freeda.commonSymptoms.text': 'תסמינים נפוצים',
     'quick.freeda.commonSymptoms.question': 'מהם התסמינים הנפוצים של גיל המעבר?',
@@ -459,6 +627,42 @@ export const translations: LanguageConfig = {
     'quick.newdeli.weekDays.question': 'אילו ימים בשבוע יש הכי הרבה הזמנות?',
     'quick.newdeli.topItems.text': 'מנות פופולריות',
     'quick.newdeli.topItems.question': 'מה המנות שהכי הרבה מזמינים?',
+
+    // Quick Questions - The Stock
+    'quick.thestock.customers.text': 'כמות לקוחות',
+    'quick.thestock.customers.question': 'כמה לקוחות יש לנו בסך הכל?',
+    'quick.thestock.payments.text': 'אמצעי תשלום',
+    'quick.thestock.payments.question': 'הצג סכומי תשלום לפי סוג תשלום',
+    'quick.thestock.cities.text': 'ערים מובילות',
+    'quick.thestock.cities.question': 'באילו ערים יש הכי הרבה לקוחות?',
+    'quick.thestock.refunds.text': 'זיכויים והנחות',
+    'quick.thestock.refunds.question': 'מה סך הזיכויים, ההחזרים וההנחות?',
+    'quick.thestock.suppliers.text': 'ספקים מובילים',
+    'quick.thestock.suppliers.question': 'אילו ספקים הכי הרבה פריטים בקטלוג?',
+    'quick.thestock.families.text': 'משפחות מוצר',
+    'quick.thestock.families.question': 'הצג את מספר המוצרים לפי משפחה',
+    'quick.thestock.negativeStock.text': 'מלאי שלילי C100',
+    'quick.thestock.negativeStock.question': 'הצג מק"טים עם מלאי שלילי במחסן C100',
+    'quick.thestock.ages.text': 'גיל לקוחות',
+    'quick.thestock.ages.question': 'מה התפלגות הגילאים של הלקוחות?',
+
+    // Quick Questions - Hyper Toy
+    'quick.hypertoy.revenue.text': 'הכנסות החודש',
+    'quick.hypertoy.revenue.question': 'מה סך ההכנסות והרווח החודש (record_type=מכירות)?',
+    'quick.hypertoy.topProducts.text': 'מוצרים מובילים',
+    'quick.hypertoy.topProducts.question': 'טופ 10 מוצרים נמכרים השנה לפי כמות, עם הכנסה ורווח',
+    'quick.hypertoy.topStores.text': 'סניפים מובילים',
+    'quick.hypertoy.topStores.question': 'טופ 10 סניפים לפי הכנסות מכירה',
+    'quick.hypertoy.margin.text': 'שולי רווח',
+    'quick.hypertoy.margin.question': 'שולי הרווח הכוללים (רווח / מכירות) על עסקאות מכירה',
+    'quick.hypertoy.targets.text': 'יעדים מול בפועל',
+    'quick.hypertoy.targets.question': 'השווה יעדי מכירות מול בפועל לפי חודש וסניף',
+    'quick.hypertoy.cashiers.text': 'קופאים מובילים',
+    'quick.hypertoy.cashiers.question': 'טופ 10 קופאים לפי סך מכירות',
+    'quick.hypertoy.inventory.text': 'מלאי במחסן 500',
+    'quick.hypertoy.inventory.question': 'מוצרים מובילים לפי ערך מלאי במחסן 500',
+    'quick.hypertoy.crossBrand.text': 'עלות מול בריידים אחרים',
+    'quick.hypertoy.crossBrand.question': 'הפערים הגדולים בעלות בין היפר טוי לבין הסטוק ופיראט',
 
     // Quick Questions - Banking
     'quick.banking.startOnboarding.text': 'התחל תהליך',

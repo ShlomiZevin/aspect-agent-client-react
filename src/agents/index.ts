@@ -9,3 +9,5 @@ export { compassConfig } from './compass.config';
 export { tiktokConfig } from './tiktok.config';
 export { zer4uConfig } from './zer4u.config';
 export { newdeliConfig } from './newdeli.config';
+export { thestockConfig } from './thestock.config';
+export { hypertoyConfig } from './hypertoy.config';
