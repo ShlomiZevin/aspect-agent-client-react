@@ -3,6 +3,7 @@ import styles from './LLMUsagePage.module.css';
 
 interface Props {
   baseURL?: string;
+  agentName: string;
 }
 
 interface UsageRow {
@@ -76,7 +77,7 @@ function getProcessClass(process: string): string {
   }
 }
 
-export function LLMUsagePage({ baseURL }: Props) {
+export function LLMUsagePage({ baseURL, agentName }: Props) {
   const apiBase = baseURL || import.meta.env.VITE_API_URL || '';
   const [rows, setRows] = useState<UsageRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -88,22 +89,13 @@ export function LLMUsagePage({ baseURL }: Props) {
   const today = new Date().toISOString().slice(0, 10);
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
-  const [agentFilter, setAgentFilter] = useState('Banking Onboarder V2');
-
-  const ALLOWED_AGENTS = ['Banking Onboarder V2', 'Freeda'];
-  const AGENT_OPTIONS = [
-    { value: '_all', label: 'All Agents' },
-    { value: 'Banking Onboarder V2', label: 'Banking V2' },
-    { value: 'Freeda', label: 'Freeda' },
-  ];
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const from = `${fromDate}T00:00:00`;
       const to = `${toDate}T23:59:59`;
-      const agents = agentFilter === '_all' ? ALLOWED_AGENTS : [agentFilter];
-      const agentParam = agents.map(a => `&agent=${encodeURIComponent(a)}`).join('');
+      const agentParam = `&agent=${encodeURIComponent(agentName)}`;
 
       const [rowsRes, summaryRes] = await Promise.all([
         fetch(`${apiBase}/api/admin/usage?from=${from}&to=${to}&limit=200${agentParam}`),
@@ -122,7 +114,7 @@ export function LLMUsagePage({ baseURL }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [apiBase, fromDate, toDate, agentFilter]);
+  }, [apiBase, fromDate, toDate, agentName]);
 
   useEffect(() => {
     fetchData();
@@ -145,9 +137,6 @@ export function LLMUsagePage({ baseURL }: Props) {
       <div className={styles.header}>
         <h1 className={styles.title}>LLM Usage</h1>
         <div className={styles.dateRange}>
-          <select value={agentFilter} onChange={e => setAgentFilter(e.target.value)}>
-            {AGENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
           <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
           <span>-</span>
           <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} />

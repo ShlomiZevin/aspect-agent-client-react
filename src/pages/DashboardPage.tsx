@@ -155,7 +155,7 @@ export function DashboardPage() {
             />
             <Route
               path="llm-usage"
-              element={<LLMUsagePage baseURL={config.baseURL} />}
+              element={<LLMUsagePage baseURL={config.baseURL} agentName={config.agentName} />}
             />
             <Route
               path="settings"
