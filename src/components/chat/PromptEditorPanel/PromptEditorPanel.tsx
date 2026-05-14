@@ -894,10 +894,10 @@ export function PromptEditorPanel({
                   )}
                 </div>
                 {selectedVersion && (
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                     {!selectedVersion.isActive && (
                       <button
-                        className={`${styles.actionButton} ${styles.saveVersionBtn}`}
+                        className={styles.versionStateBtn}
                         onClick={handleActivateVersion}
                         type="button"
                       >
@@ -906,7 +906,7 @@ export function PromptEditorPanel({
                     )}
                     {selectedVersion.version !== 0 && !selectedVersion.isPublished && (
                       <button
-                        className={`${styles.actionButton} ${styles.saveVersionBtn}`}
+                        className={styles.versionStateBtn}
                         onClick={handlePublishVersion}
                         type="button"
                         title="Set this version as the one outside users see at /<agent>/chat"
