@@ -24,6 +24,7 @@ interface ConversationHistoryResponse {
     }>;
   }>;
   currentCrewMember?: string | null; // Current crew member name from conversation state
+  metadata?: Record<string, unknown> | null; // Conversation-level metadata (synthetic flag, testRunId, etc.)
 }
 
 interface UserConversationsResponse {
@@ -42,7 +43,7 @@ interface UserConversationsResponse {
 export async function getConversationHistory(
   conversationId: string,
   baseURL?: string
-): Promise<{ conversationId: string; messages: Message[]; currentCrewMember?: string | null }> {
+): Promise<{ conversationId: string; messages: Message[]; currentCrewMember?: string | null; metadata?: Record<string, unknown> | null }> {
   const data = await apiRequest<ConversationHistoryResponse>(
     `/api/conversation/${conversationId}/history`,
     { method: 'GET' },
@@ -52,6 +53,7 @@ export async function getConversationHistory(
   return {
     conversationId: data.conversationId,
     currentCrewMember: data.currentCrewMember,
+    metadata: data.metadata,
     messages: data.messages.map(msg => ({
       id: String(msg.id),
       dbId: typeof msg.id === 'number' ? msg.id : undefined,

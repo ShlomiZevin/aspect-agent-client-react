@@ -6,6 +6,7 @@ import { Message } from '../Message';
 import { ThinkingIndicator } from '../ThinkingIndicator';
 import { WelcomeSection } from '../WelcomeSection';
 import { ChatInput } from '../ChatInput';
+import { SyntheticControlPanel } from '../SyntheticControlPanel';
 import { CrewMemberIndicator } from '../CrewMemberIndicator';
 import { CrewMemberSelector } from '../CrewMemberSelector';
 import { CrewJourneyStepper } from '../CrewJourneyStepper';
@@ -78,6 +79,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     setProfilerFreshStart,
     profilerEnabled,
     setProfilerEnabled,
+    conversationMetadata,
   } = useChatContext();
   const { config } = useAgentContext();
   const { t } = useLanguage();
@@ -253,7 +255,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           )}
         </div>
 
-        <ChatInput />
+        {conversationMetadata?.synthetic === true ? <SyntheticControlPanel /> : <ChatInput />}
       </div>
 
       {/* Prompt Editor Panel - Debug Mode Only */}

@@ -10,6 +10,8 @@ import { runProfiler } from '../services/profilerService';
 
 interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 'switchToChat'> {
   switchToChat: (chatId: string) => Promise<void>;
+  /** Conversation-level metadata from the server (synthetic flag, testRunId, etc.) */
+  conversationMetadata: Record<string, unknown> | null;
   // Crew state
   crewMembers: CrewMember[];
   currentCrew: CrewMember | null;
@@ -105,6 +107,9 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix }
   const debugMode = restrictedMode ? false : internalDebugMode;
   const toggleDebug = useCallback(() => setDebugMode(prev => !prev), []);
   useDebugShortcut(toggleDebug, restrictedMode);
+
+  // Conversation-level metadata loaded from the server (synthetic flag, testRunId, etc.)
+  const [conversationMetadata, setConversationMetadata] = useState<Record<string, unknown> | null>(null);
 
   // Debug copy selection
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
@@ -373,7 +378,8 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix }
     if (!initialLoadDone.current && conversation.conversationId) {
       initialLoadDone.current = true;
       // Try to load history for the stored conversation and restore crew state
-      chat.loadHistory(conversation.conversationId).then(({ currentCrewMember }) => {
+      chat.loadHistory(conversation.conversationId).then(({ currentCrewMember, metadata }) => {
+        setConversationMetadata(metadata || null);
         if (currentCrewMember && crew.crewMembers.length > 0) {
           const match = crew.crewMembers.find(c => c.name === currentCrewMember);
           if (match) {
@@ -430,9 +436,11 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix }
   const switchToChat = useCallback(async (chatId: string) => {
     crew.resetJourney();
     hasRestoredCrew.current = false;
+    setConversationMetadata(null);
     const messages = await conversation.switchToChat(chatId);
     if (messages.length > 0) {
-      const { currentCrewMember } = await chat.loadHistory(chatId);
+      const { currentCrewMember, metadata } = await chat.loadHistory(chatId);
+      setConversationMetadata(metadata || null);
       // Restore crew state from conversation's currentCrewMember
       if (currentCrewMember) {
         const match = crew.crewMembers.find(c => c.name === currentCrewMember);
@@ -464,7 +472,8 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix }
       const chatId = latest.id;
       const messages = await conversation.switchToChat(String(chatId));
       if (messages.length > 0) {
-        const { currentCrewMember } = await chat.loadHistory(String(chatId));
+        const { currentCrewMember, metadata } = await chat.loadHistory(String(chatId));
+        setConversationMetadata(metadata || null);
         if (currentCrewMember) {
           const match = crew.crewMembers.find(c => c.name === currentCrewMember);
           if (match) {
@@ -500,7 +509,8 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix }
     // Switch to the newly linked conversation
     const messages = await conversation.switchToChat(result.conversationId);
     if (messages.length > 0) {
-      const { currentCrewMember } = await chat.loadHistory(result.conversationId);
+      const { currentCrewMember, metadata } = await chat.loadHistory(result.conversationId);
+      setConversationMetadata(metadata || null);
       if (currentCrewMember) {
         const match = crew.crewMembers.find(c => c.name === currentCrewMember);
         if (match) {
@@ -543,6 +553,7 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix }
     // Conversation state
     conversationId: conversation.conversationId,
     conversations: conversation.conversations,
+    conversationMetadata,
     createNewChat: handleCreateNewChat,
     switchToChat,
     deleteChat: conversation.deleteChat,

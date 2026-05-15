@@ -52,6 +52,8 @@ export interface AdminUserFilters {
   subscription?: UserSubscription;
   search?: string;
   agentName?: string;
+  /** Include synthetic users (test-runner personas) in the result. Default false. */
+  includeSynthetic?: boolean;
   limit?: number;
   offset?: number;
 }

@@ -1,0 +1,1 @@
+export { SyntheticControlPanel } from './SyntheticControlPanel';

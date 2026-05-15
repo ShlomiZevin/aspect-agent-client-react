@@ -367,7 +367,7 @@ function IndividualsTab({ agentName, baseURL }: Props) {
               >
                 &times;
               </button>
-              <IndividualDetail individual={selectedIndividual} />
+              <IndividualDetail individual={selectedIndividual} agentName={agentName} baseURL={baseURL} />
             </div>
           )}
         </div>
@@ -770,7 +770,7 @@ function PopulationsTab({ agentName, baseURL }: Props) {
                 <button className={styles.detailClose} onClick={() => setSelectedIndividual(null)}>
                   &times;
                 </button>
-                <IndividualDetail individual={selectedIndividual} />
+                <IndividualDetail individual={selectedIndividual} agentName={agentName} baseURL={baseURL} />
               </div>
             )}
           </div>
@@ -1003,10 +1003,31 @@ function SettingsModal({ agentName, baseURL, onClose }: Props & { onClose: () =>
 // Individual Detail Panel
 // ─────────────────────────────────────────────────────────────────
 
-function IndividualDetail({ individual: ind }: { individual: IndividualProfile }) {
+function IndividualDetail({ individual: ind, agentName, baseURL }: { individual: IndividualProfile; agentName?: string; baseURL?: string }) {
   const difficultyClass = ind.difficulty === 'קשה'
     ? styles.badgeDifficultyHard
     : styles.badgeDifficulty;
+
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+
+  const handleStartConversation = async () => {
+    if (!agentName || starting) return;
+    setStarting(true);
+    setStartError(null);
+    try {
+      const result = await testRunnerService.startSyntheticConversation(
+        { agentName, persona: ind },
+        baseURL
+      );
+      // Open the chat URL in a new tab so the admin can drive it with the cockpit
+      window.open(result.conversationUrl, '_blank');
+    } catch (err: unknown) {
+      setStartError(err instanceof Error ? err.message : 'Failed to start conversation');
+    } finally {
+      setStarting(false);
+    }
+  };
 
   return (
     <div className={styles.detailContent}>
@@ -1018,6 +1039,20 @@ function IndividualDetail({ individual: ind }: { individual: IndividualProfile }
       <div className={styles.detailSummary}>
         {ind.age}, {ind.gender} &middot; {ind.location} &middot; {ind.occupation}
       </div>
+
+      {agentName && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '12px 0' }}>
+          <button
+            className={styles.generateBtn}
+            onClick={handleStartConversation}
+            disabled={starting}
+            style={{ width: 'fit-content' }}
+          >
+            {starting ? '⏳ Starting…' : '▶ Start synthetic conversation'}
+          </button>
+          {startError && <div className={styles.error} style={{ marginTop: 4 }}>{startError}</div>}
+        </div>
+      )}
 
       <div className={styles.cardMeta} style={{ marginBottom: 16 }}>
         <span className={`${styles.badge} ${styles.badgeMotivation}`}>{ind.motivation_primary}</span>

@@ -31,6 +31,7 @@ export async function getUsers(
   if (filters.subscription) params.append('subscription', filters.subscription);
   if (filters.search) params.append('search', filters.search);
   if (filters.agentName) params.append('agentName', filters.agentName);
+  if (filters.includeSynthetic) params.append('includeSynthetic', 'true');
   if (filters.limit) params.append('limit', filters.limit.toString());
   if (filters.offset) params.append('offset', filters.offset.toString());
 

@@ -88,3 +88,63 @@ export interface UpdateTestConfigData {
   defaultModel?: string;
   defaultCount?: number;
 }
+
+// ============================================================
+// Step 3: Conversation simulator
+// ============================================================
+
+export interface ConversationTurn {
+  role: 'user' | 'assistant';
+  content: string;
+  crewMember?: string | null;
+  crewTransitions?: Array<{ from: string; to: string; reason: string; stage: 'pre' | 'post' }>;
+}
+
+export interface ConversationOutput {
+  transcript: ConversationTurn[];
+  turnCount: number;
+  terminationReason: 'end_signal' | 'max_turns' | 'failed' | 'cancelled' | null;
+  endReason?: string | null;
+  lastSyntheticUserMessage?: string | null;
+}
+
+/** Server response shape for POST /api/admin/test-runner/conversations/start */
+export interface StartConversationResponse {
+  testRunId: number;
+  conversationId: number;
+  conversationExternalId: string;
+  conversationUrl: string;
+  userId: number;
+  userExternalId: string;
+  maxTurns: number;
+  model: string;
+  run: TestRun;
+}
+
+/** Server response shape for POST /api/admin/test-runs/:id/turn */
+export interface AdvanceTurnResponse {
+  run: TestRun;
+  terminated: boolean;
+  lastUserMessage?: string;
+  lastAssistantReply?: string;
+  crewMember?: string | null;
+  crewTransitions?: Array<{ from: string; to: string; reason: string; stage: 'pre' | 'post' }>;
+  error?: string;
+}
+
+/** Synthetic-user upsert response */
+export interface SyntheticUserUpsertResponse {
+  userId: number;
+  externalId: string;
+  name: string | null;
+  created: boolean;
+}
+
+/** Conversation metadata stored on conversations.metadata */
+export interface ConversationMetadata {
+  synthetic?: boolean;
+  testRunId?: number;
+  populationRunId?: number | null;
+  individualId?: string;
+  [key: string]: unknown;
+}

@@ -5,7 +5,17 @@
  */
 
 import { apiRequest, getBaseURL } from './api';
-import type { TestRun, CreateTestRunData, TestRunFilters, TestRunConfig, UpdateTestConfigData } from '../types/testRunner';
+import type {
+  TestRun,
+  CreateTestRunData,
+  TestRunFilters,
+  TestRunConfig,
+  UpdateTestConfigData,
+  IndividualProfile,
+  StartConversationResponse,
+  AdvanceTurnResponse,
+  SyntheticUserUpsertResponse,
+} from '../types/testRunner';
 
 export async function getTestRuns(
   filters: TestRunFilters = {},
@@ -80,6 +90,77 @@ export async function updateTestRunConfig(
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
+    },
+    baseURL || getBaseURL()
+  );
+}
+
+// ============================================================
+// Step 3: Conversation simulator (Phase 0)
+// ============================================================
+
+/** Upsert a synthetic user from a persona. Idempotent. */
+export async function upsertSyntheticUser(
+  persona: IndividualProfile,
+  populationRunId?: number | null,
+  baseURL?: string
+): Promise<SyntheticUserUpsertResponse> {
+  return apiRequest<SyntheticUserUpsertResponse>(
+    `/api/admin/test-runner/synthetic-users/upsert`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ persona, populationRunId: populationRunId || null }),
+    },
+    baseURL || getBaseURL()
+  );
+}
+
+/** Start a fresh synthetic conversation. Returns a URL to open in the chat UI. */
+export async function startSyntheticConversation(
+  opts: {
+    agentName: string;
+    persona: IndividualProfile;
+    populationRunId?: number | null;
+    maxTurns?: number;
+    model?: string;
+  },
+  baseURL?: string
+): Promise<StartConversationResponse> {
+  return apiRequest<StartConversationResponse>(
+    `/api/admin/test-runner/conversations/start`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(opts),
+    },
+    baseURL || getBaseURL()
+  );
+}
+
+/** Advance ONE turn of a synthetic conversation (the cockpit's Next-turn button). */
+export async function advanceConversationTurn(
+  testRunId: number,
+  baseURL?: string
+): Promise<AdvanceTurnResponse> {
+  return apiRequest<AdvanceTurnResponse>(
+    `/api/admin/test-runs/${testRunId}/turn`,
+    { method: 'POST' },
+    baseURL || getBaseURL()
+  );
+}
+
+/** Generate next synthetic user message in isolation (for debugging persona prompt). */
+export async function previewSyntheticUserMessage(
+  opts: { persona: IndividualProfile; transcript: Array<{ role: string; content: string }>; agentName: string },
+  baseURL?: string
+): Promise<{ message: string; end: boolean; reason?: string }> {
+  return apiRequest(
+    `/api/admin/test-runner/synthetic-user/next-message`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(opts),
     },
     baseURL || getBaseURL()
   );
