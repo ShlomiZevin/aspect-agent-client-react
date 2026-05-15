@@ -129,11 +129,13 @@ function AnalysisPanel({
   baseURL,
   onAnalyzed,
   onExecute,
+  onClose,
 }: {
   query: SlowQuery;
   baseURL: string;
   onAnalyzed: (id: number, rec: Recommendation) => void;
   onExecute: (q: SlowQuery) => void;
+  onClose: () => void;
 }) {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -170,6 +172,9 @@ function AnalysisPanel({
           Duration: <strong>{formatDuration(query.duration_ms)}</strong> &nbsp;|&nbsp;
           Schema: <strong>{query.schema_name}</strong>
         </div>
+        <button className={styles.analysisPanelClose} onClick={onClose} aria-label="Close analysis">
+          ×
+        </button>
       </div>
 
       <div className={styles.analysisPanelQuestion}>
@@ -374,6 +379,7 @@ export function QueryOptimizerPage({ agentName: _agentName, baseURL }: QueryOpti
                 const status = getQueryStatus(q, jobs);
                 const typeInfo = QUERY_TYPE_LABELS[q.query_type ?? 'slow'];
                 const isErrorEntry = q.query_type === 'error' || q.query_type === 'timeout';
+                const canAnalyze = q.query_type !== 'error';
                 return (
                   <>
                     <tr
@@ -412,12 +418,20 @@ export function QueryOptimizerPage({ agentName: _agentName, baseURL }: QueryOpti
                       </td>
                       <td onClick={e => e.stopPropagation()}>
                         <div className={styles.actionBtns}>
-                          {!isErrorEntry && (
+                          {canAnalyze && (
                             <button
                               className={styles.actionBtn}
                               onClick={() => setSelectedQuery(prev => prev?.id === q.id ? null : q)}
                             >
                               {selectedQuery?.id === q.id ? 'Close' : 'Analyze'}
+                            </button>
+                          )}
+                          {!canAnalyze && selectedQuery?.id === q.id && (
+                            <button
+                              className={styles.actionBtn}
+                              onClick={() => setSelectedQuery(null)}
+                            >
+                              Close
                             </button>
                           )}
                           <button
@@ -465,6 +479,7 @@ export function QueryOptimizerPage({ agentName: _agentName, baseURL }: QueryOpti
             baseURL={baseURL}
             onAnalyzed={handleAnalyzed}
             onExecute={executing === selectedQuery.id ? () => {} : handleExecute}
+            onClose={() => setSelectedQuery(null)}
           />
           {executing === selectedQuery.id && (
             <div className={styles.executingMsg}>⚙️ Creating optimization job...</div>
