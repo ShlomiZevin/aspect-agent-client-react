@@ -3,6 +3,18 @@
   max-width: 1200px;
 }
 
+.containerWithSidebar {
+  display: flex;
+  gap: 20px;
+  max-width: 1500px;
+  align-items: flex-start;
+}
+
+.mainColumn {
+  flex: 1;
+  min-width: 0;
+}
+
 .header {
   display: flex;
   align-items: center;

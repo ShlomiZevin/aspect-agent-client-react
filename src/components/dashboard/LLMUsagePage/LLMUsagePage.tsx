@@ -1,10 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import styles from './LLMUsagePage.module.css';
+import { CostCalculatorPanel } from './CostCalculatorPanel';
 
 interface Props {
   baseURL?: string;
   agentName: string;
 }
+
+// Agents that have a customer data schema (zer4u/SQL flow). Cost calculator
+// only makes sense for these — Freeda/Lybi/Banking etc. don't run SQL queries.
+const DATA_INCLUDED_AGENTS = new Set(['zer4u', 'aspect', 'newdeli', 'thestock', 'hypertoy', 'onezero']);
 
 interface UsageRow {
   id: number;
@@ -132,8 +137,11 @@ export function LLMUsagePage({ baseURL, agentName }: Props) {
     costByProcess[r.process] = (costByProcess[r.process] || 0) + estimateCost(r.model, r.inputTokens, r.outputTokens);
   }
 
+  const showCalculator = DATA_INCLUDED_AGENTS.has((agentName || '').toLowerCase());
+
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${showCalculator ? styles.containerWithSidebar : ''}`}>
+      <div className={styles.mainColumn}>
       <div className={styles.header}>
         <h1 className={styles.title}>LLM Usage</h1>
         <div className={styles.dateRange}>
@@ -273,6 +281,10 @@ export function LLMUsagePage({ baseURL, agentName }: Props) {
             )}
           </div>
         </>
+      )}
+      </div>
+      {showCalculator && (
+        <CostCalculatorPanel byProcess={byProcess} byModel={byModel} />
       )}
     </div>
   );
