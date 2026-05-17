@@ -150,6 +150,30 @@ export async function advanceConversationTurn(
   );
 }
 
+/** Kick off a server-side loop driving the conversation to termination. Returns immediately (202). */
+export async function runConversationToCompletion(
+  testRunId: number,
+  baseURL?: string
+): Promise<{ runId: number; status: string; message: string; alreadyTerminal?: boolean }> {
+  return apiRequest(
+    `/api/admin/test-runs/${testRunId}/run-to-completion`,
+    { method: 'POST' },
+    baseURL || getBaseURL()
+  );
+}
+
+/** Cooperative cancellation — the loop checks the flag between turns. */
+export async function cancelConversationRun(
+  testRunId: number,
+  baseURL?: string
+): Promise<TestRun> {
+  return apiRequest<TestRun>(
+    `/api/admin/test-runs/${testRunId}/cancel`,
+    { method: 'POST' },
+    baseURL || getBaseURL()
+  );
+}
+
 /** Generate next synthetic user message in isolation (for debugging persona prompt). */
 export async function previewSyntheticUserMessage(
   opts: { persona: IndividualProfile; transcript: Array<{ role: string; content: string }>; agentName: string },
