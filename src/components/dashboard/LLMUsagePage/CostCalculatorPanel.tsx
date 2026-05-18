@@ -57,10 +57,15 @@ function fmtUsd(v: number): string {
   return `$${v.toFixed(2)}`;
 }
 
+// Default working days per month: (52 weeks × 5 workdays) / 12 ≈ 21.67, rounded to 22.
+// Standard HR/payroll convention; user can override per-customer.
+const DEFAULT_WORKING_DAYS_PER_MONTH = 22;
+
 export function CostCalculatorPanel({ byProcess, byModel }: Props) {
   const [users, setUsers] = useState(5);
   const [questionsPerUser, setQuestionsPerUser] = useState(5);
   const [queriesPerUser, setQueriesPerUser] = useState(15);
+  const [daysPerMonth, setDaysPerMonth] = useState(DEFAULT_WORKING_DAYS_PER_MONTH);
   const [includeAudio, setIncludeAudio] = useState(false);
   const [audioMinPerUser, setAudioMinPerUser] = useState(0);
 
@@ -100,14 +105,14 @@ export function CostCalculatorPanel({ byProcess, byModel }: Props) {
   const effSql = avgCost.sql.perCall || FALLBACK_PER_CALL.sqlGeneration;
   const usingFallback = avgCost.conversation.perCall === 0 && avgCost.sql.perCall === 0;
 
-  const monthlyQuestionsCost = users * questionsPerUser * effConversation * 30;
-  const monthlySqlCost = users * queriesPerUser * (effSql + effConversation) * 30;
+  const monthlyQuestionsCost = users * questionsPerUser * effConversation * daysPerMonth;
+  const monthlySqlCost = users * queriesPerUser * (effSql + effConversation) * daysPerMonth;
   // ↑ each SQL query consumes one sql_generation call AND one conversation call
-  const monthlyAudioCost = includeAudio ? users * audioMinPerUser * 30 * WHISPER_USD_PER_MIN : 0;
+  const monthlyAudioCost = includeAudio ? users * audioMinPerUser * daysPerMonth * WHISPER_USD_PER_MIN : 0;
 
   const totalMonthly = monthlyQuestionsCost + monthlySqlCost + monthlyAudioCost;
   const perUserMonthly = users > 0 ? totalMonthly / users : 0;
-  const totalCallsPerMonth = users * (questionsPerUser + queriesPerUser) * 30;
+  const totalCallsPerMonth = users * (questionsPerUser + queriesPerUser) * daysPerMonth;
   const perQuestion = totalCallsPerMonth > 0 ? (monthlyQuestionsCost + monthlySqlCost) / totalCallsPerMonth : 0;
 
   const hasUsageData = !usingFallback;
@@ -132,6 +137,10 @@ export function CostCalculatorPanel({ byProcess, byModel }: Props) {
         <label>
           <span>Queries / day / user (with SQL)</span>
           <input type="number" min={0} value={queriesPerUser} onChange={e => setQueriesPerUser(Number(e.target.value) || 0)} />
+        </label>
+        <label>
+          <span>Working days / month</span>
+          <input type="number" min={1} max={31} value={daysPerMonth} onChange={e => setDaysPerMonth(Number(e.target.value) || 0)} />
         </label>
         <label className={styles.checkboxRow}>
           <input
@@ -170,11 +179,11 @@ export function CostCalculatorPanel({ byProcess, byModel }: Props) {
         <div className={styles.breakdownTitle}>Breakdown</div>
         <div className={styles.breakdownRow}>
           <span>OpenAI answers</span>
-          <span>{fmtUsd(monthlyQuestionsCost + users * queriesPerUser * effConversation * 30)}</span>
+          <span>{fmtUsd(monthlyQuestionsCost + users * queriesPerUser * effConversation * daysPerMonth)}</span>
         </div>
         <div className={styles.breakdownRow}>
           <span>Claude SQL gen</span>
-          <span>{fmtUsd(users * queriesPerUser * effSql * 30)}</span>
+          <span>{fmtUsd(users * queriesPerUser * effSql * daysPerMonth)}</span>
         </div>
         {includeAudio && (
           <div className={styles.breakdownRow}>
