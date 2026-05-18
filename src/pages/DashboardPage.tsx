@@ -4,6 +4,7 @@ import { ThemeProvider, AgentProvider } from '../context';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { FeedbackPage } from '../components/dashboard/FeedbackPage';
 import { UsersPage } from '../components/dashboard/UsersPage';
+import { UserConversationsPage } from '../components/dashboard/UserConversationsPage';
 import { CrewPage } from '../components/dashboard/CrewPage';
 import { CrewEditorAI } from '../components/dashboard/CrewEditorAI';
 import { CrewPlayground } from '../components/dashboard/CrewPlayground';
@@ -95,7 +96,15 @@ export function DashboardPage() {
             />
             <Route
               path="users"
-              element={<UsersPage baseURL={config.baseURL} defaultTenant={agent} />}
+              element={<UsersPage baseURL={config.baseURL} defaultTenant={agent} basePath={basePath} />}
+            />
+            <Route
+              path="users/:userId"
+              element={<UserConversationsPage baseURL={config.baseURL} basePath={basePath} />}
+            />
+            <Route
+              path="users/:userId/conversations/:conversationId"
+              element={<UserConversationsPage baseURL={config.baseURL} basePath={basePath} />}
             />
             <Route
               path="crew"

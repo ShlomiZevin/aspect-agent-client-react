@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getUsers, getStats, updateUser } from '../../../services/adminService';
 import type { AdminUser, AdminUserFilters, AdminStats, UserSource, UserSubscription } from '../../../types/admin';
 import { AddUserModal } from '../AddUserModal';
@@ -22,9 +23,16 @@ interface UsersPageProps {
    * so all users — including null-tenant — are visible.
    */
   superAdmin?: boolean;
+  /**
+   * Base path for navigation (e.g. /banking-v2/admin or /banking-v2/dashboard).
+   * Used to navigate to the user-conversations sub-page when clicking the
+   * conversations count. Required when not in superAdmin mode.
+   */
+  basePath?: string;
 }
 
-export function UsersPage({ baseURL, defaultTenant, superAdmin = false }: UsersPageProps) {
+export function UsersPage({ baseURL, defaultTenant, superAdmin = false, basePath }: UsersPageProps) {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [total, setTotal] = useState(0);
@@ -33,12 +41,25 @@ export function UsersPage({ baseURL, defaultTenant, superAdmin = false }: UsersP
   // Filter state. Tenant comes from the URL context only — no UI for it.
   const [filters, setFilters] = useState<AdminUserFilters>({});
   const [searchText, setSearchText] = useState('');
+  // Debounced version that drives the actual fetch — updates 400ms after the
+  // user stops typing so we don't hit the server on every keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
   const [linkModalUser, setLinkModalUser] = useState<AdminUser | null>(null);
   const [deleteModalUser, setDeleteModalUser] = useState<AdminUser | null>(null);
+  // Conversation drill-down is a sub-page in tenant mode (basePath provided);
+  // super-admin mode still uses the modal because it doesn't have a basePath.
   const [conversationsModalUser, setConversationsModalUser] = useState<AdminUser | null>(null);
+
+  const handleViewConversations = (user: AdminUser) => {
+    if (basePath !== undefined) {
+      navigate(`${basePath}/users/${user.id}`);
+    } else {
+      setConversationsModalUser(user);
+    }
+  };
 
   // Editing state
   const [editingCell, setEditingCell] = useState<{ id: number; field: string } | null>(null);
@@ -52,7 +73,7 @@ export function UsersPage({ baseURL, defaultTenant, superAdmin = false }: UsersP
     try {
       const scopedFilters: AdminUserFilters = {
         ...filters,
-        search: searchText || undefined,
+        search: debouncedSearch || undefined,
         tenant: effectiveTenantFilter || undefined,
       };
       const [usersResponse, statsResponse] = await Promise.all([
@@ -67,17 +88,16 @@ export function UsersPage({ baseURL, defaultTenant, superAdmin = false }: UsersP
     } finally {
       setIsLoading(false);
     }
-  }, [baseURL, filters, searchText, effectiveTenantFilter]);
+  }, [baseURL, filters, debouncedSearch, effectiveTenantFilter]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Debounced search
+  // Debounce the search input: only commit to `debouncedSearch` after the
+  // user has paused typing for 400ms. That value is what triggers loadData.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      loadData();
-    }, 300);
+    const timer = setTimeout(() => setDebouncedSearch(searchText), 400);
     return () => clearTimeout(timer);
   }, [searchText]);
 
@@ -368,7 +388,7 @@ export function UsersPage({ baseURL, defaultTenant, superAdmin = false }: UsersP
                   {user.conversationCount > 0 ? (
                     <button
                       className={styles.convCountButton}
-                      onClick={() => setConversationsModalUser(user)}
+                      onClick={() => handleViewConversations(user)}
                       title="View conversations"
                     >
                       {user.conversationCount}

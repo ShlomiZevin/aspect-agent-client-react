@@ -80,6 +80,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     profilerEnabled,
     setProfilerEnabled,
     conversationMetadata,
+    restrictedMode,
   } = useChatContext();
   const { config } = useAgentContext();
   const { t } = useLanguage();
@@ -138,8 +139,8 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     };
   }, [messages, isThinking, currentThinkingStep, thinkingSteps.length]);
 
-  // Determine if any right panel is open
-  const hasProfilePanel = !!config.profileSchema;
+  // Determine if any right panel is open. Outside users don't see the profile panel.
+  const hasProfilePanel = !!config.profileSchema && !restrictedMode;
   const hasOpenPanel = isPromptPanelOpen || isFieldsEditorOpen || isContextEditorOpen || (hasProfilePanel && isProfilePanelOpen);
 
   return (
@@ -186,8 +187,8 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           />
         )}
 
-        {/* Header bar with crew stepper/tabs */}
-        <div className={`${styles.crewHeader} ${crewPosition === 'right' ? styles.crewHeaderRight : ''}`}>
+        {/* Header bar with crew stepper/tabs — hidden for outside users. */}
+        {!restrictedMode && <div className={`${styles.crewHeader} ${crewPosition === 'right' ? styles.crewHeaderRight : ''}`}>
           {hasCrew && crewMode === 'tabs' ? (
             <CrewTabs
               crewMembers={crewMembers}
@@ -211,7 +212,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
               disabled={isLoading}
             />
           )}
-        </div>
+        </div>}
 
         <CrewJourneyModal
           steps={journeySteps}
@@ -232,7 +233,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
                 <Message key={msg.id} message={msg} />
               ))}
 
-              {isThinking && (
+              {isThinking && !restrictedMode && (
                 <ThinkingIndicator
                   currentStep={currentThinkingStep}
                   steps={thinkingSteps}

@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '../context/ThemeContext';
 import { UsersPage } from '../components/dashboard/UsersPage';
+import { UserConversationsPage } from '../components/dashboard/UserConversationsPage';
 import {
   isSuperAdminUnlocked,
   unlockSuperAdmin,
@@ -9,6 +11,12 @@ import {
 import { getBaseURL } from '../services/api';
 import { useDocumentMeta } from '../hooks';
 import styles from './SuperAdminUsersPage.module.css';
+
+// basePath is the parent that the inner pages append `/users/...` to.
+// For super admin we're already at the root `/users` route, so the parent
+// is the site root (empty string). Navigation becomes:
+//   list → "/users"      conv → "/users/<id>"      msg → "/users/<id>/conversations/<convId>"
+const SUPER_ADMIN_BASE_PATH = '';
 
 function CodeGate({ onUnlocked }: { onUnlocked: () => void }) {
   const [code, setCode] = useState('');
@@ -65,7 +73,22 @@ function SuperAdminContent() {
           Lock
         </button>
       </div>
-      <UsersPage baseURL={getBaseURL()} superAdmin />
+      <div className={styles.content}>
+        <Routes>
+          <Route
+            index
+            element={<UsersPage baseURL={getBaseURL()} superAdmin basePath={SUPER_ADMIN_BASE_PATH} />}
+          />
+          <Route
+            path=":userId"
+            element={<UserConversationsPage baseURL={getBaseURL()} basePath={SUPER_ADMIN_BASE_PATH} />}
+          />
+          <Route
+            path=":userId/conversations/:conversationId"
+            element={<UserConversationsPage baseURL={getBaseURL()} basePath={SUPER_ADMIN_BASE_PATH} />}
+          />
+        </Routes>
+      </div>
     </div>
   );
 }

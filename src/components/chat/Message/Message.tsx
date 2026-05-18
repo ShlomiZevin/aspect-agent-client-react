@@ -57,7 +57,7 @@ function getDomainFromUrl(): string {
 }
 
 export function Message({ message }: MessageProps) {
-  const { debugMode, deleteMessagesFrom, crewMembers, conversationId, selectedMessageIds, toggleMessageSelect, copyMessages, copyFromMessage, messages, sendMessage } = useChatContext();
+  const { debugMode, deleteMessagesFrom, crewMembers, conversationId, selectedMessageIds, toggleMessageSelect, copyMessages, copyFromMessage, messages, sendMessage, restrictedMode } = useChatContext();
   const { t, language } = useLanguage();
   const config = useAgentConfig();
   const [showFeedback, setShowFeedback] = useState(false);
@@ -72,9 +72,10 @@ export function Message({ message }: MessageProps) {
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const isUser = message.role === 'user';
   const isDeveloper = message.role === 'developer';
-  const hasThinkingSteps = !isUser && !isDeveloper && message.thinkingSteps && message.thinkingSteps.length > 0;
+  // Outside users never see thinking steps inside the bubble, never get the feedback button.
+  const hasThinkingSteps = !restrictedMode && !isUser && !isDeveloper && message.thinkingSteps && message.thinkingSteps.length > 0;
   const rtl = isRTL(message.content);
-  const canFeedback = !isUser && !isDeveloper && message.dbId;
+  const canFeedback = !restrictedMode && !isUser && !isDeveloper && message.dbId;
   const canReportBug = debugMode && !isUser && !isDeveloper;
 
   // Parse UI elements from bot messages

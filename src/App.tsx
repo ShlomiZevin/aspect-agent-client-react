@@ -142,7 +142,7 @@ function AppContent() {
         <Route path="/tasks/:taskId" element={<TaskBoardPage />} />
 
         {/* Hidden super-admin users page (code-gated; sees all tenants) */}
-        <Route path="/users" element={<SuperAdminUsersPage />} />
+        <Route path="/users/*" element={<SuperAdminUsersPage />} />
 
         {/* Dashboard routes */}
         <Route path="/:agent/dashboard/*" element={<MaybeDashboard />} />

@@ -77,6 +77,8 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   // Theme selection (brand themes)
   selectedTheme: AgentTheme | null;
   setSelectedTheme: (themeId: string | null) => void;
+  // Restricted mode (outside-user chat) — children use this to hide admin/dev UI.
+  restrictedMode: boolean;
 }
 
 export const ChatContext = createContext<ChatContextValue | null>(null);
@@ -629,6 +631,8 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix }
     // Theme selection (brand themes)
     selectedTheme,
     setSelectedTheme,
+    // Restricted mode (outside-user chat) — children use this to hide admin/dev UI.
+    restrictedMode,
   };
 
   return (
