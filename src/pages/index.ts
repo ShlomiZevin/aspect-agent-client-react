@@ -29,6 +29,7 @@ export { NewDeliPage } from './NewDeliPage';
 export { TheStockPage } from './TheStockPage';
 export { HyperToyPage } from './HyperToyPage';
 export { CrewBuilderMockupPage } from './CrewBuilderMockupPage';
+export { BuilderPage } from './BuilderPage';
 export { HowWeBuildPage } from './HowWeBuildPage';
 export { ChainArchitecturePage } from './ChainArchitecturePage';
 export { InfrastructurePage } from './InfrastructurePage';

@@ -1,0 +1,90 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.crumbs {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  row-gap: 8px;
+  min-width: 0;
+}
+
+.nameInput {
+  /* Width is driven by the `size` attribute (in characters); CSS just
+     normalises padding, font, and visual treatment. */
+  width: auto;
+  flex: 0 0 auto;
+  max-width: 100%;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  font-family: inherit;
+}
+
+.nameInput:hover {
+  border-color: var(--border-color, #e5e7eb);
+}
+
+.nameInput:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  background: var(--bg-surface, #fff);
+}
+
+.specBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--bg-surface, #fff);
+  color: var(--text-secondary, #4b5563);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  flex: 0 0 auto;
+}
+
+.specBtn:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+}
+
+.specBtnFilled {
+  border-color: rgba(99, 102, 241, 0.4);
+  color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.specBtnLabel {
+  font-size: 12px;
+}
+
+.specDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary-color, #6366f1);
+  margin-left: 2px;
+}

@@ -1,0 +1,313 @@
+.wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 28px 80px;
+}
+
+.empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-tertiary, #9ca3af);
+  font-size: 14px;
+}
+
+.spacer {
+  height: 16px;
+}
+
+/* ── Crew two-column layout: main (prompt + cortex) | side (fields) ── */
+.crewGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 16px;
+  align-items: start;
+}
+
+.crewMain {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.crewSide {
+  position: sticky;
+  top: 0;
+}
+
+@media (max-width: 1100px) {
+  .crewGrid {
+    grid-template-columns: 1fr;
+  }
+  .crewSide {
+    position: static;
+  }
+}
+
+.viewHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.crumbs {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.viewTitle {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  margin: 0;
+}
+
+.viewTitleInput {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  width: 100%;
+  font-family: inherit;
+}
+
+.viewTitleInput:hover {
+  border-color: var(--border-color, #e5e7eb);
+}
+
+.viewTitleInput:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  background: #fff;
+}
+
+.card {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.cardTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.cardHint {
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+  margin: 0 0 12px 0;
+  line-height: 1.5;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 110px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary, #111827);
+  background: var(--bg-input, #fafafa);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  padding: 12px;
+  resize: vertical;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  background: #fff;
+}
+
+/* ── Addons section (inside CrewView) ── */
+.addonsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.addonsTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+}
+
+.addAddonBtn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #d1d5db);
+  background: var(--bg-surface, #fff);
+  color: var(--text-primary, #111827);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.addAddonBtn:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+}
+
+.addonsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.addonCard {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  overflow: hidden;
+}
+
+.addonHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg-input, #fafafa);
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.addonIcon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 16px;
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.addonTitle {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.addonRemove {
+  background: transparent;
+  border: 0;
+  color: var(--text-tertiary, #9ca3af);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.addonRemove:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.addonBody {
+  padding: 16px;
+}
+
+.addonEmpty {
+  padding: 24px;
+  text-align: center;
+  border: 1px dashed var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  color: var(--text-tertiary, #9ca3af);
+  font-size: 13px;
+  background: var(--bg-surface, #fff);
+}
+
+/* ── Add-addon picker (inline dropdown menu) ── */
+.pickerWrap {
+  position: relative;
+}
+
+.pickerMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 260px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  padding: 6px;
+  z-index: 10;
+}
+
+.pickerItem {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.pickerItem:hover {
+  background: var(--bg-input, #f3f4f6);
+}
+
+.pickerItemIcon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 16px;
+  background: rgba(245, 158, 11, 0.15);
+  flex: 0 0 auto;
+}
+
+.pickerItemText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pickerItemName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.pickerItemDesc {
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+  line-height: 1.4;
+}

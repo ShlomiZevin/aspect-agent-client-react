@@ -1,0 +1,8 @@
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--bg-input, #fafafa);
+}

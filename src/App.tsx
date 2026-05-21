@@ -1,5 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, ArchitecturePage, AspectPage, AspectLandingPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage } from './pages';
+
+// Builder lives in its own subtree — lazy so end-user routes don't pay for it.
+const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ default: m.BuilderPage })));
 
 const ZER4U_MAINTENANCE = false;
 
@@ -103,6 +107,14 @@ function AppContent() {
         <Route path="/:agent/login" element={<AgentLoginPage />} />
         <Route path="/:agent/chat" element={<AgentChatPage />} />
         <Route path="/:agent/chat/conversations/:conversationId" element={<AgentChatPage />} />
+        <Route
+          path="/:agent/builder"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading builder…</div>}>
+              <BuilderPage />
+            </Suspense>
+          }
+        />
         <Route path="/lybi/*" element={<LybiLandingPage />} />
 
         {/* Main agent routes with optional conversation ID */}

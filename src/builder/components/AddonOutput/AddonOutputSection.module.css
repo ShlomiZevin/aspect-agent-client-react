@@ -1,0 +1,122 @@
+.section {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-input, #fafafa);
+  border: 0;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.caret {
+  font-size: 10px;
+  color: var(--text-tertiary, #9ca3af);
+  width: 12px;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+}
+
+.summary {
+  flex: 1;
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-tertiary, #9ca3af);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.knobLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.select {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-primary, #111827);
+  background: var(--bg-input, #fafafa);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  padding: 7px 10px;
+}
+
+.select:disabled {
+  background: var(--bg-input, #f3f4f6);
+  color: var(--text-secondary, #6b7280);
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.select:focus:not(:disabled) {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  background: #fff;
+}
+
+.writes {
+  font-size: 12px;
+  color: var(--text-primary, #111827);
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.writeGroup {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.domainTag {
+  font-weight: 600;
+  color: var(--text-secondary, #4b5563);
+}
+
+.fieldNames {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 11px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.sep {
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.ungroupedTag {
+  font-style: italic;
+  color: var(--text-tertiary, #9ca3af);
+}

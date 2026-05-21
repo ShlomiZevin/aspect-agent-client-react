@@ -1,0 +1,224 @@
+.panel {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 12px;
+  padding: 14px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 280px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+}
+
+.count {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--bg-input, #f3f4f6);
+  color: var(--text-secondary, #6b7280);
+  font-weight: 600;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.addBtn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #d1d5db);
+  background: var(--bg-surface, #fff);
+  color: var(--text-primary, #111827);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.addBtn:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+}
+
+.empty {
+  padding: 18px;
+  border: 1px dashed var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: var(--bg-input, #fafafa);
+  color: var(--text-secondary, #6b7280);
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ungrouped {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-color, #e5e7eb);
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 6px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.groupHeader:hover {
+  background: var(--bg-input, #f3f4f6);
+}
+
+.groupCaret {
+  font-size: 10px;
+  color: var(--text-tertiary, #9ca3af);
+  width: 12px;
+  flex: 0 0 auto;
+}
+
+.groupName {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary, #4b5563);
+}
+
+.groupCount {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-input, #f3f4f6);
+  color: var(--text-tertiary, #9ca3af);
+  font-weight: 600;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--bg-surface, #fff);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 120ms, background 120ms;
+}
+
+.row:hover {
+  border-color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.03);
+}
+
+.rowMain {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fieldName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.liveValue {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 11px;
+  color: #047857;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.typePill,
+.sourcePill,
+.extractorChip {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.typePill {
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+  text-transform: lowercase;
+}
+
+.sourcePill {
+  background: var(--bg-input, #f3f4f6);
+  color: var(--text-secondary, #4b5563);
+}
+
+.extractorChip {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+.desc {
+  font-size: 11px;
+  color: var(--text-tertiary, #9ca3af);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

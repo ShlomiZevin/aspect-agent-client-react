@@ -1,0 +1,126 @@
+.wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary, #4b5563);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.pill:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+}
+
+.pillDirty {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.08);
+  color: #b45309;
+}
+
+.pillDirty:hover {
+  border-color: #f59e0b;
+  color: #b45309;
+}
+
+.label {
+  font-weight: 700;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+
+.caret {
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 280px;
+  z-index: 50;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  padding: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.menuHeader {
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.menuItem:hover {
+  background: var(--bg-input, #f3f4f6);
+}
+
+.menuItemActive {
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.menuItemNum {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  width: 32px;
+  flex: 0 0 auto;
+}
+
+.menuItemDesc {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-secondary, #4b5563);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menuItemActiveTag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.1);
+  padding: 2px 6px;
+  border-radius: 999px;
+}

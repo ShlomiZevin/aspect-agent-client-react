@@ -1,0 +1,40 @@
+.message {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary, #4b5563);
+}
+
+.cancel,
+.confirm {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.cancel {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  color: var(--text-primary, #111827);
+}
+
+.cancel:hover {
+  border-color: var(--text-tertiary, #9ca3af);
+}
+
+.confirm {
+  background: var(--primary-color, #6366f1);
+  border: 1px solid var(--primary-color, #6366f1);
+  color: #fff;
+}
+
+.confirm:hover {
+  filter: brightness(1.05);
+}
+
+.confirmDanger {
+  background: #dc2626;
+  border-color: #dc2626;
+}

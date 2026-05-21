@@ -1,0 +1,47 @@
+.titleIcon {
+  margin-right: 8px;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dangerBtn {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #fff;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.dangerBtn:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.secondaryBtn {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #fff;
+  color: var(--text-primary, #111827);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.secondaryBtn:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+}
+
+.spacer {
+  flex: 1;
+}

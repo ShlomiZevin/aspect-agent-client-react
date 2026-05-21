@@ -5,6 +5,13 @@ import { CostCalculatorPanel } from './CostCalculatorPanel';
 interface Props {
   baseURL?: string;
   agentName: string;
+  /**
+   * URL slug of the agent (e.g. 'banking-v2'). Sent alongside
+   * `agentName` so the server can match V2 builder rows (whose
+   * `agent_name` column holds the slug) AND legacy rows (whose
+   * `agent_name` holds the display name) in the same view.
+   */
+  agentSlug?: string;
 }
 
 // Agents that have a customer data schema (zer4u/SQL flow). Cost calculator
@@ -72,17 +79,35 @@ function formatTokens(n: number): string {
   return String(n);
 }
 
-function getProcessClass(process: string): string {
-  switch (process) {
-    case 'thinker': return styles.processThinker;
-    case 'profiler': return styles.processProfiler;
-    case 'field_extractor': return styles.processFieldExtractor;
-    case 'conversation': return styles.processConversation;
-    default: return styles.processDefault;
+/**
+ * Stable per-process color. Hash the name → pick a palette entry.
+ * Means new processes (e.g. addon plugin ids from V2 builder) get a
+ * distinct color automatically, no CSS update needed. Same name
+ * always picks the same color across renders & reloads.
+ */
+const PROCESS_PALETTE: Array<{ bg: string; fg: string }> = [
+  { bg: '#e0e7ff', fg: '#4338ca' }, // indigo (matches legacy 'thinker')
+  { bg: '#fce7f3', fg: '#be185d' }, // pink (legacy 'profiler')
+  { bg: '#d1fae5', fg: '#065f46' }, // green (legacy 'field_extractor')
+  { bg: '#fef3c7', fg: '#92400e' }, // amber (legacy 'conversation')
+  { bg: '#dbeafe', fg: '#1d4ed8' }, // blue
+  { bg: '#ede9fe', fg: '#6d28d9' }, // violet
+  { bg: '#fee2e2', fg: '#b91c1c' }, // rose
+  { bg: '#ccfbf1', fg: '#0f766e' }, // teal
+  { bg: '#fed7aa', fg: '#9a3412' }, // orange
+];
+
+function getProcessStyle(process: string): { background: string; color: string } {
+  let hash = 0;
+  for (let i = 0; i < process.length; i++) {
+    hash = (hash * 31 + process.charCodeAt(i)) | 0;
   }
+  const idx = Math.abs(hash) % PROCESS_PALETTE.length;
+  const c = PROCESS_PALETTE[idx];
+  return { background: c.bg, color: c.fg };
 }
 
-export function LLMUsagePage({ baseURL, agentName }: Props) {
+export function LLMUsagePage({ baseURL, agentName, agentSlug }: Props) {
   const apiBase = baseURL || import.meta.env.VITE_API_URL || '';
   const [rows, setRows] = useState<UsageRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -101,10 +126,14 @@ export function LLMUsagePage({ baseURL, agentName }: Props) {
       const from = `${fromDate}T00:00:00`;
       const to = `${toDate}T23:59:59`;
       const agentParam = `&agent=${encodeURIComponent(agentName)}`;
+      // Send the slug too — server ORs both so V2 builder rows
+      // (stored with agent_name=slug) surface alongside legacy rows
+      // (stored with agent_name=display name).
+      const slugParam = agentSlug ? `&slug=${encodeURIComponent(agentSlug)}` : '';
 
       const [rowsRes, summaryRes] = await Promise.all([
-        fetch(`${apiBase}/api/admin/usage?from=${from}&to=${to}&limit=200${agentParam}`),
-        fetch(`${apiBase}/api/admin/usage/summary?from=${from}&to=${to}${agentParam}`),
+        fetch(`${apiBase}/api/admin/usage?from=${from}&to=${to}&limit=200${agentParam}${slugParam}`),
+        fetch(`${apiBase}/api/admin/usage/summary?from=${from}&to=${to}${agentParam}${slugParam}`),
       ]);
 
       const rowsData = await rowsRes.json();
@@ -119,7 +148,7 @@ export function LLMUsagePage({ baseURL, agentName }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [apiBase, fromDate, toDate, agentName]);
+  }, [apiBase, fromDate, toDate, agentName, agentSlug]);
 
   useEffect(() => {
     fetchData();
@@ -195,7 +224,7 @@ export function LLMUsagePage({ baseURL, agentName }: Props) {
               <tbody>
                 {byProcess.map(p => (
                   <tr key={p.process}>
-                    <td><span className={`${styles.processBadge} ${getProcessClass(p.process)}`}>{p.process}</span></td>
+                    <td><span className={styles.processBadge} style={getProcessStyle(p.process)}>{p.process}</span></td>
                     <td>{p.count}</td>
                     <td>{formatTokens(p.totalInput)}</td>
                     <td>{formatTokens(p.totalOutput)}</td>
@@ -267,7 +296,7 @@ export function LLMUsagePage({ baseURL, agentName }: Props) {
                   {rows.map(r => (
                     <tr key={r.id}>
                       <td>{new Date(r.createdAt).toLocaleTimeString()}</td>
-                      <td><span className={`${styles.processBadge} ${getProcessClass(r.process)}`}>{r.process}</span></td>
+                      <td><span className={styles.processBadge} style={getProcessStyle(r.process)}>{r.process}</span></td>
                       <td>{r.model}</td>
                       <td>{r.crewMember || '-'}</td>
                       <td>{formatTokens(r.inputTokens)}</td>

@@ -1,0 +1,134 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.promptCol,
+.historyCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.colHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.colTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary, #4b5563);
+}
+
+
+.pre {
+  margin: 0;
+  padding: 14px 16px;
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 8px;
+  max-height: 440px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.note {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-tertiary, #9ca3af);
+  line-height: 1.5;
+}
+
+.historyBadge {
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+}
+
+.historyPlaceholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px;
+  border: 1px dashed var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--bg-input, #fafafa);
+  min-height: 160px;
+}
+
+.placeholderEmoji {
+  font-size: 28px;
+  opacity: 0.6;
+}
+
+.placeholderText {
+  font-size: 11px;
+  color: var(--text-tertiary, #9ca3af);
+  text-align: center;
+}
+
+.historyList {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--bg-input, #fafafa);
+  max-height: 440px;
+  overflow: auto;
+  min-height: 160px;
+}
+
+.historyMsg {
+  max-width: 92%;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.historyMsgUser {
+  align-self: flex-end;
+  background: var(--primary-color, #6366f1);
+  color: #fff;
+}
+
+.historyMsgBot {
+  align-self: flex-start;
+  background: #fff;
+  color: var(--text-primary, #111827);
+  border: 1px solid var(--border-color, #e5e7eb);
+}
+
+.historyCount {
+  font-size: 10px;
+  color: var(--text-tertiary, #9ca3af);
+  margin-left: auto;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
