@@ -84,8 +84,6 @@ export function useProjectSync(args: {
       try {
         const existing = await api.fetchProject({ agentSlug, ownerUserId });
         if (existing) {
-          const a0 = existing.agents[0];
-          console.log(`[builder] loaded from server: agent="${a0?.name}" persona.len=${a0?.persona?.length ?? 0} viewing=${a0?.viewingVersionId} active=${a0?.activeVersionId} crews=${a0?.crews.map(c => `${c.name}(viewing=${c.viewingVersionId})`).join(', ')}`);
           onLoaded(existing);
           return;
         }
@@ -96,7 +94,6 @@ export function useProjectSync(args: {
           console.warn('[builder] fallback doc has no agent/crew; cannot bootstrap');
           return;
         }
-        console.log(`[builder] no server doc, bootstrapping with local fallback for slug="${agentSlug}"`);
         const bootstrapped = await api.bootstrapProject({
           ownerUserId,
           projectId:      fallbackDoc.id,
@@ -119,14 +116,11 @@ export function useProjectSync(args: {
   return {
     pushSaveAgentVersion: async agent => {
       try {
-        const body = bodyOfAgent(agent);
-        console.log(`[builder] PUT agent version ${agent.id}/${agent.viewingVersionId} body.persona.len=${body.persona?.length ?? 0} body=`, body);
         await api.saveAgentVersionApi({
           agentId: agent.id,
           versionId: agent.viewingVersionId,
-          body,
+          body: bodyOfAgent(agent),
         });
-        console.log(`[builder] PUT agent version ok`);
       } catch (err) {
         console.error('[builder] saveAgentVersion failed:', err);
       }

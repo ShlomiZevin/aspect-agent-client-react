@@ -1,9 +1,13 @@
 /**
  * Plugin barrel — importing this file registers every built-in plugin
  * with the registry. The builder imports this once at startup.
+ *
+ * Each plugin lives in its own folder under `plugins/<id>/` with an
+ * entry file named `addon.<id>.ts` (descriptor + side-effect register).
+ * Folder coexists with the plugin's UI components (e.g. `TalkerConfig.tsx`).
  */
 
-import './fieldExtractor';
-import './talker';
+import './fieldExtractor/addon.fieldExtractor';
+import './talker/addon.talker';
 
 export {};

@@ -35,7 +35,7 @@ import type {
   TalkerConfig,
 } from '../types';
 import { loadDraft, saveDraft } from './draftStorage';
-import { talkerPlugin, TALKER_PLUGIN_ID } from '../plugins/talker';
+import { talkerPlugin, TALKER_PLUGIN_ID } from '../plugins/talker/addon.talker';
 import { defaultContextFor, defaultOutputTypeFor } from '../registry/plugins';
 
 // ─── Factories ─────────────────────────────────────────────────────
@@ -617,24 +617,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       const crew = doc.agents.find(a => a.id === agentId)?.crews.find(c => c.id === crewId);
       if (!crew) return false;
       const viewing = crew.versions.find(v => v.id === crew.viewingVersionId);
-      if (!viewing) {
-        console.warn(`[builder] isCrewDirty: viewing version "${crew.viewingVersionId}" not in versions; dirty. versions=`, crew.versions.map(v => v.id));
-        return true;
-      }
-      const dirty = !bodiesEqual(bodyOf(crew), viewing.body);
-      if (dirty) {
-        const wc = bodyOf(crew);
-        const vw = viewing.body;
-        const diff: Record<string, [unknown, unknown]> = {};
-        const keys = new Set([...Object.keys(wc), ...Object.keys(vw || {})]);
-        for (const k of keys) {
-          const a = (wc as Record<string, unknown>)[k];
-          const b = (vw as Record<string, unknown>)[k];
-          if (stableStringify(a) !== stableStringify(b)) diff[k] = [a, b];
-        }
-        console.log(`[builder] isCrewDirty=true for crew "${crew.name}" diff (workingCopy, viewing):`, diff);
-      }
-      return dirty;
+      if (!viewing) return true;
+      return !bodiesEqual(bodyOf(crew), viewing.body);
     },
     [doc],
   );
@@ -643,7 +627,6 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
   // Same pattern as crew. Crews live outside the version body so
   // promoting an agent version doesn't disrupt crew membership.
   const saveAgentVersion = useCallback((agentId: ID) => {
-    console.log(`[builder] saveAgentVersion called for agentId=${agentId}`);
     const d = docRef.current;
     let updatedAgent: AgentDoc | undefined;
     const next: ProjectDoc = {
@@ -664,7 +647,6 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       }),
     };
     setDoc(next);
-    console.log(`[builder] saveAgentVersion computed updatedAgent=${updatedAgent ? `persona.len=${updatedAgent.persona?.length}` : 'UNDEFINED'}`);
     if (updatedAgent) syncRef.current?.pushSaveAgentVersion(updatedAgent);
   }, []);
 
@@ -744,24 +726,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       const agent = doc.agents.find(a => a.id === agentId);
       if (!agent) return false;
       const viewing = agent.versions.find(v => v.id === agent.viewingVersionId);
-      if (!viewing) {
-        console.warn(`[builder] isAgentDirty: viewing version "${agent.viewingVersionId}" not found in versions; treating as dirty. versions=`, agent.versions.map(v => v.id));
-        return true;
-      }
-      const dirty = !agentBodiesEqual(bodyOfAgent(agent), viewing.body);
-      if (dirty) {
-        const wc = bodyOfAgent(agent);
-        const vw = viewing.body;
-        const diff: Record<string, [unknown, unknown]> = {};
-        const keys = new Set([...Object.keys(wc), ...Object.keys(vw || {})]);
-        for (const k of keys) {
-          const a = (wc as Record<string, unknown>)[k];
-          const b = (vw as Record<string, unknown>)[k];
-          if (stableStringify(a) !== stableStringify(b)) diff[k] = [a, b];
-        }
-        console.log(`[builder] isAgentDirty=true for "${agent.name}" diff (workingCopy, viewing):`, diff);
-      }
-      return dirty;
+      if (!viewing) return true;
+      return !agentBodiesEqual(bodyOfAgent(agent), viewing.body);
     },
     [doc],
   );

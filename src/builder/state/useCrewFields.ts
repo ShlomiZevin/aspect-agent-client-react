@@ -12,7 +12,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { useBuilder, newAddonInstanceId } from './BuilderContext';
-import { FIELD_EXTRACTOR_PLUGIN_ID, fieldExtractorPlugin } from '../plugins/fieldExtractor';
+import { FIELD_EXTRACTOR_PLUGIN_ID, fieldExtractorPlugin } from '../plugins/fieldExtractor/addon.fieldExtractor';
 import { defaultContextFor, defaultOutputTypeFor } from '../registry/plugins';
 import type {
   AddonInstance,
