@@ -6,11 +6,53 @@
  */
 
 import { useBuilder } from '../../state/BuilderContext';
+import { useConfirm } from '../Confirm/Confirm';
 import styles from './Sidebar.module.css';
 
 export function Sidebar() {
-  const { doc, selection, setSelection, addCrew, isCrewDirty, isAgentDirty } = useBuilder();
+  const { doc, selection, setSelection, addCrew, removeCrew, isCrewDirty, isAgentDirty } = useBuilder();
+  const confirm = useConfirm();
   const agent = doc.agents.find(a => a.id === selection.agentId) ?? doc.agents[0];
+
+  /**
+   * Delete a crew with confirmation. Blocks deletion of the agent's
+   * `defaultCrewId` since that would leave the agent rudderless at
+   * runtime (resolveRunnable would have nothing to fall back to).
+   * If the deleted crew was currently selected, jump to whichever
+   * crew remains.
+   */
+  const handleDeleteCrew = async (crewId: string, crewName: string) => {
+    if (!agent) return;
+    if (agent.defaultCrewId === crewId) {
+      await confirm({
+        title: "Can't delete the default crew",
+        message:
+          `"${crewName}" is the agent's default crew — it runs the first turn of every new conversation. ` +
+          'Set a different crew as default before deleting this one.',
+        confirmLabel: 'OK',
+      });
+      return;
+    }
+    const ok = await confirm({
+      title: `Delete crew "${crewName}"?`,
+      message:
+        'The crew, its versions, and its addon config will be removed. ' +
+        'Memory captured into shared domains is kept; this only deletes the crew itself.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+    removeCrew(agent.id, crewId);
+    // If we just deleted the active selection, fall through to another crew.
+    if (selection.level === 'crew' && selection.crewId === crewId) {
+      const remaining = agent.crews.find(c => c.id !== crewId);
+      if (remaining) {
+        setSelection({ level: 'crew', agentId: agent.id, crewId: remaining.id });
+      } else {
+        setSelection({ level: 'agent', agentId: agent.id });
+      }
+    }
+  };
 
   const isProjectSel = selection.level === 'project';
   const isAgentSel = selection.level === 'agent';
@@ -78,27 +120,45 @@ export function Sidebar() {
             <div className={styles.crewList}>
               {agent.crews.map(c => {
                 const isActive = selection.level === 'crew' && selection.crewId === c.id;
+                const isDefault = agent.defaultCrewId === c.id;
                 const activeVersion = c.versions.find(v => v.id === c.activeVersionId);
                 const dirty = isCrewDirty(agent.id, c.id);
                 return (
-                  <button
+                  <div
                     key={c.id}
-                    type="button"
                     className={`${styles.crewRow} ${isActive ? styles.crewRowActive : ''}`}
-                    onClick={() =>
-                      setSelection({ level: 'crew', agentId: agent.id, crewId: c.id })
-                    }
                   >
-                    <span className={styles.crewDot} />
-                    <span className={styles.crewName}>{c.name}</span>
-                    <span
-                      className={`${styles.versionPill} ${dirty ? styles.versionPillDirty : ''}`}
-                      title={dirty ? 'Unsaved changes' : activeVersion?.description}
+                    <button
+                      type="button"
+                      className={styles.crewRowMain}
+                      onClick={() =>
+                        setSelection({ level: 'crew', agentId: agent.id, crewId: c.id })
+                      }
                     >
-                      v{activeVersion?.number ?? '?'}
-                      {dirty && <span className={styles.versionDot} />}
-                    </span>
-                  </button>
+                      <span className={styles.crewDot} />
+                      <span className={styles.crewName}>{c.name}</span>
+                      <span
+                        className={`${styles.versionPill} ${dirty ? styles.versionPillDirty : ''}`}
+                        title={dirty ? 'Unsaved changes' : activeVersion?.description}
+                      >
+                        v{activeVersion?.number ?? '?'}
+                        {dirty && <span className={styles.versionDot} />}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.crewDeleteBtn} ${isDefault ? styles.crewDeleteBtnDisabled : ''}`}
+                      onClick={() => handleDeleteCrew(c.id, c.name)}
+                      title={
+                        isDefault
+                          ? "Can't delete the default crew"
+                          : 'Delete crew'
+                      }
+                      aria-label={`Delete crew ${c.name}`}
+                    >
+                      🗑
+                    </button>
+                  </div>
                 );
               })}
               {agent.crews.length === 0 && (

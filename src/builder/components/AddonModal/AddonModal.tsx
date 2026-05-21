@@ -73,22 +73,26 @@ export function AddonModal({ open, onClose, agentId, crewId, instance }: Props) 
               Remove
             </button>
             <span className={styles.spacer} />
-            <button
-              type="button"
-              className={styles.secondaryBtn}
-              onClick={() => setTemplateOpen(true)}
-              title="View the prompt template the runtime uses for this addon"
-            >
-              📄 Prompt template
-            </button>
-            <button
-              type="button"
-              className={styles.secondaryBtn}
-              onClick={() => setExportOpen(true)}
-              title="Save this config to the shared Addon Repository"
-            >
-              ⬆️ Export to repository
-            </button>
+            {!desc.hideStandardSections?.promptTemplate && (
+              <button
+                type="button"
+                className={styles.secondaryBtn}
+                onClick={() => setTemplateOpen(true)}
+                title="View the prompt template the runtime uses for this addon"
+              >
+                📄 Prompt template
+              </button>
+            )}
+            {!desc.hideStandardSections?.repository && (
+              <button
+                type="button"
+                className={styles.secondaryBtn}
+                onClick={() => setExportOpen(true)}
+                title="Save this config to the shared Addon Repository"
+              >
+                ⬆️ Export to repository
+              </button>
+            )}
             <button type="button" className={styles.secondaryBtn} onClick={onClose}>
               Done
             </button>
@@ -104,17 +108,21 @@ export function AddonModal({ open, onClose, agentId, crewId, instance }: Props) 
             onChange={next => updateAddonConfig(agentId, crewId, instance.instanceId, next)}
           />
 
-          <AddonContextSection
-            agentId={agentId}
-            crewId={crewId}
-            instance={instance}
-          />
+          {!desc.hideStandardSections?.context && (
+            <AddonContextSection
+              agentId={agentId}
+              crewId={crewId}
+              instance={instance}
+            />
+          )}
 
-          <AddonOutputSection
-            agentId={agentId}
-            crewId={crewId}
-            instance={instance}
-          />
+          {!desc.hideStandardSections?.output && (
+            <AddonOutputSection
+              agentId={agentId}
+              crewId={crewId}
+              instance={instance}
+            />
+          )}
         </div>
       </Modal>
 

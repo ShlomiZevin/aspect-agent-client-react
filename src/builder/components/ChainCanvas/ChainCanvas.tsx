@@ -60,13 +60,18 @@ function configModel(config: unknown): ModelRef | null {
 }
 
 export function ChainCanvas({ agent, crew }: Props) {
-  const { addAddon } = useBuilder();
+  const { addAddon, reorderAddonInLane } = useBuilder();
   // Subscribe to the model registry so formatModelRef calls below
   // re-render with proper labels (instead of `provider/id` fallback)
   // once the server registry has loaded.
   useModels();
   const [editingInstanceId, setEditingInstanceId] = useState<ID | null>(null);
   const [addingForLane, setAddingForLane] = useState<AddonLane | null>(null);
+  // Drag-and-drop state for main-lane addon reordering. `draggingIdx`
+  // is the lane-local index of the card being dragged; `overIdx` is
+  // the card currently hovered (drop target). Both reset on dragend.
+  const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
 
   const editingInstance = useMemo(
     () => crew.addons.find(a => a.instanceId === editingInstanceId) ?? null,
@@ -139,21 +144,66 @@ export function ChainCanvas({ agent, crew }: Props) {
                   const desc = getPlugin(instance.pluginId);
                   if (!desc) return null;
                   const model = configModel(instance.config);
+                  const isMainLane = lane.id === 'main';
+                  const isDragging = isMainLane && draggingIdx === i;
+                  const isDropTarget = isMainLane && overIdx === i && draggingIdx !== null && draggingIdx !== i;
                   return (
                     <div key={instance.instanceId} className={styles.nodeWrap}>
-                      {i > 0 && lane.id === 'main' && (
+                      {i > 0 && isMainLane && (
                         <span className={styles.arrow}>→</span>
                       )}
                       <button
                         type="button"
-                        className={styles.card}
+                        className={`${styles.card} ${isDragging ? styles.cardDragging : ''} ${isDropTarget ? styles.cardDropTarget : ''}`}
                         style={{ ['--card-color' as string]: desc.color }}
                         onClick={() => setEditingInstanceId(instance.instanceId)}
+                        // Drag-and-drop is main-lane only. Background +
+                        // offline lanes are reserved; once they ship
+                        // we can decide whether to allow cross-lane drag.
+                        draggable={isMainLane}
+                        onDragStart={(e) => {
+                          if (!isMainLane) return;
+                          setDraggingIdx(i);
+                          e.dataTransfer.effectAllowed = 'move';
+                          // Required for Firefox to start a drag.
+                          e.dataTransfer.setData('text/plain', String(i));
+                        }}
+                        onDragOver={(e) => {
+                          if (!isMainLane || draggingIdx === null) return;
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                          if (overIdx !== i) setOverIdx(i);
+                        }}
+                        onDragLeave={() => {
+                          if (overIdx === i) setOverIdx(null);
+                        }}
+                        onDrop={(e) => {
+                          if (!isMainLane || draggingIdx === null) return;
+                          e.preventDefault();
+                          if (draggingIdx !== i) {
+                            reorderAddonInLane(agent.id, crew.id, 'main', draggingIdx, i);
+                          }
+                          setDraggingIdx(null);
+                          setOverIdx(null);
+                        }}
+                        onDragEnd={() => {
+                          setDraggingIdx(null);
+                          setOverIdx(null);
+                        }}
                       >
+                        {isMainLane && <span className={styles.dragHandle} aria-hidden="true">⋮⋮</span>}
                         <span className={styles.cardIcon}>{desc.icon}</span>
                         <span className={styles.cardName}>{desc.name}</span>
-                        <span className={styles.cardModel}>
-                          {model ? formatModelRef(model) : '—'}
+                        {/* Always render the model line so cards stay
+                          * the same height across the row. Hidden via
+                          * visibility (not display) when there's no
+                          * model so layout space is preserved. */}
+                        <span
+                          className={styles.cardModel}
+                          style={model ? undefined : { visibility: 'hidden' }}
+                          aria-hidden={!model || undefined}
+                        >
+                          {model ? formatModelRef(model) : ' '}
                         </span>
                       </button>
                     </div>

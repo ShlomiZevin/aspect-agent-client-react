@@ -96,7 +96,10 @@ function messagesToTurns(messages: ConversationMessage[]): Turn[] {
 }
 
 function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
-  const d = r.runData || {};
+  const d = (r.runData || {}) as PersistedAddonRun['runData'] & {
+    transition?: { to: string; reason?: string };
+    broke?: boolean;
+  };
   return {
     instanceId:   r.instanceId,
     pluginId:     r.pluginId,
@@ -107,12 +110,21 @@ function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
     parsedOutput: d.parsedOutput,
     memoryWrites: d.memoryWrites,
     parseError:   d.parseError,
+    transition:   d.transition,
+    broke:        d.broke,
     durationMs:   r.durationMs ?? d.durationMs,
   };
 }
 
 export function UserChat() {
-  const { doc, isCrewDirty, isAgentDirty, setPreviewConversationId, refreshConversationMemory } = useBuilder();
+  const {
+    doc,
+    isCrewDirty,
+    isAgentDirty,
+    setPreviewConversationId,
+    refreshConversationMemory,
+    applyLocalMemoryWrites,
+  } = useBuilder();
   const agent = useCurrentAgent();
   const crew = useCurrentCrew();
   const confirm = useConfirm();
@@ -128,6 +140,14 @@ export function UserChat() {
   const [conversationId, setConversationIdLocal] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [convList, setConvList] = useState<ConversationListItem[]>([]);
+
+  // The crew the runtime would route to right now. Updated on:
+  //   - 'conversation' SSE event (carries the saved currentCrewId)
+  //   - 'addon.output' with a transition (router fired this turn)
+  //   - loadConversation (reads metadata.currentCrewId from convList)
+  //   - new chat / slug change (cleared → falls back to default crew)
+  // Null = use agent.defaultCrewId for display.
+  const [currentCrewId, setCurrentCrewId] = useState<string | null>(null);
 
   const turnsRef = useRef<Turn[]>(turns);
   turnsRef.current = turns;
@@ -180,6 +200,18 @@ export function UserChat() {
 
   const slug = doc.agents[0]?.slug ?? '';
   const ownerUserId = findOwnerUserId();
+
+  // Resolve the crew name to show in the header chip. Priority:
+  //   1. currentCrewId (live runtime pointer — survives transitions)
+  //   2. agent's defaultCrewId (what new conversations start on)
+  //   3. the viewing crew (sidebar context — for an empty session)
+  const headerAgent = doc.agents[0];
+  const effectiveCrewId = currentCrewId
+    || headerAgent?.defaultCrewId
+    || crew?.id
+    || null;
+  const effectiveCrew = headerAgent?.crews.find(c => c.id === effectiveCrewId) || crew;
+  const headerCrewName = effectiveCrew?.name || 'No crew selected';
   const crewDirty = agent && crew ? isCrewDirty(agent.id, crew.id) : false;
   const agentDirty = agent ? isAgentDirty(agent.id) : false;
   const dirty = crewDirty || agentDirty;
@@ -208,6 +240,7 @@ export function UserChat() {
     setConversationId(null);
     setTurns([]);
     setConvList([]);
+    setCurrentCrewId(null);
     reloadConvList();
   }, [slug, setConversationId, reloadConvList]);
 
@@ -219,12 +252,18 @@ export function UserChat() {
       const built = messagesToTurns(msgs);
       setTurns(built);
       setConversationId(convId);
+      // Pull metadata.currentCrewId out of the cached conversation list
+      // entry so the header chip reflects where the conversation left
+      // off. Cheap; the list is already fetched.
+      const cached = convList.find(c => c.id === convId);
+      const meta = cached?.metadata as { currentCrewId?: string } | undefined;
+      setCurrentCrewId(meta?.currentCrewId ?? null);
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Failed to load conversation');
     } finally {
       setBusy(false);
     }
-  }, [slug, setConversationId]);
+  }, [slug, setConversationId, convList]);
 
   const loadRunsForTurn = useCallback(async (turn: Turn) => {
     if (turn.runsLoaded || turn.assistantMessageId === null) return;
@@ -263,6 +302,7 @@ export function UserChat() {
       case 'conversation':
         setConversationId(e.conversationId);
         updateLastTurn(t => ({ ...t, userMessageId: e.messageId }));
+        if (e.currentCrewId !== undefined) setCurrentCrewId(e.currentCrewId);
         return;
       case 'addon.start':
         updateLastTurn(t => upsertRun(t, {
@@ -289,8 +329,21 @@ export function UserChat() {
           parsedOutput: e.parsedOutput,
           memoryWrites: e.memoryWrites,
           parseError:   e.parseError,
+          transition:   e.transition,
+          broke:        e.broke,
           durationMs:   e.durationMs,
         }));
+        // Live-merge any memory writes from this addon into the local
+        // cache so the FieldsPanel updates the green value chip the
+        // moment the extractor finishes — long before the talker
+        // streams a response. Reconciled by refreshConversationMemory
+        // at 'done'.
+        if (e.memoryWrites && e.memoryWrites.length > 0) {
+          applyLocalMemoryWrites(e.memoryWrites);
+        }
+        // A transition fired — surface the new crew in the header
+        // immediately so the user sees the handoff land.
+        if (e.transition?.to) setCurrentCrewId(e.transition.to);
         return;
       case 'addon.error':
         if (e.instanceId) {
@@ -365,6 +418,7 @@ export function UserChat() {
     setConversationId(null);
     setTurns([]);
     setErrorMsg(null);
+    setCurrentCrewId(null);
     setHistoryOpen(false);
   };
 
@@ -475,7 +529,9 @@ export function UserChat() {
           </div>
         </div>
         <div className={styles.headerRowBottom}>
-          <div className={styles.crewBadge}>{crew ? crew.name : 'No crew selected'}</div>
+          <div className={styles.crewBadge} title="Current crew (changes when a Transition Router fires)">
+            {headerCrewName}
+          </div>
         </div>
       </div>
 

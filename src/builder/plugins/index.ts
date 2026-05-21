@@ -9,5 +9,6 @@
 
 import './fieldExtractor/addon.fieldExtractor';
 import './talker/addon.talker';
+import './transitionRouter/addon.transitionRouter';
 
 export {};

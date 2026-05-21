@@ -106,17 +106,17 @@
   gap: 4px;
 }
 
+/* Crew row is now a flex container holding a click-to-select button
+ * (.crewRowMain) and a hover-revealed delete button. Was previously
+ * a single <button>; split so the delete affordance doesn't break
+ * the nested-button rule. */
 .crewRow {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  align-items: stretch;
+  gap: 2px;
   border-radius: 6px;
   background: transparent;
   border: 1px solid transparent;
-  cursor: pointer;
-  font-family: inherit;
-  text-align: left;
 }
 
 .crewRow:hover {
@@ -126,6 +126,50 @@
 .crewRowActive {
   background: rgba(99, 102, 241, 0.08);
   border-color: rgba(99, 102, 241, 0.3);
+}
+
+.crewRowMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.crewDeleteBtn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  background: transparent;
+  border: 0;
+  color: var(--text-tertiary, #9ca3af);
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 4px;
+  opacity: 0;
+  transition: opacity 100ms;
+}
+
+.crewRow:hover .crewDeleteBtn {
+  opacity: 1;
+}
+
+.crewDeleteBtn:hover:not(.crewDeleteBtnDisabled) {
+  color: #b91c1c;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.crewDeleteBtnDisabled {
+  cursor: not-allowed;
+  opacity: 0.3 !important;
 }
 
 .crewDot {

@@ -100,6 +100,23 @@ export interface PluginDescriptor<TConfig = unknown> {
   ConfigComponent: ComponentType<PluginConfigProps<TConfig>>;
   /** Optional live-activity view rendered next to the user chat. */
   DebugComponent?: ComponentType<PluginDebugProps<TConfig>>;
+  /**
+   * Which "standard" sections the AddonModal renders for this plugin.
+   * Default is to show all three (context + output + prompt template
+   * footer button). A plugin that doesn't need them (e.g. Transition
+   * Router — no LLM call, no prompt, no history reads) sets one or
+   * more to `true` to hide them.
+   */
+  hideStandardSections?: {
+    context?: boolean;
+    output?: boolean;
+    promptTemplate?: boolean;
+    /** Hides "Export to repository" — for plugins whose config is
+     *  inherently bound to a specific agent/crew (e.g. Transition
+     *  Router references this agent's other crews by id; an export
+     *  would be meaningless in another project). */
+    repository?: boolean;
+  };
 }
 
 /** Sensible defaults for any new addon instance. */

@@ -131,6 +131,30 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
+/* Drag-and-drop reorder (main lane only). The source card fades
+ * while it's being dragged; the hovered drop-target gets a primary
+ * outline so it's clear where the card will land. */
+.cardDragging {
+  opacity: 0.4;
+}
+
+.cardDropTarget {
+  border-color: var(--primary-color, #6366f1) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+.dragHandle {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  font-size: 10px;
+  color: var(--text-tertiary, #d1d5db);
+  letter-spacing: -2px;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
 .cardIcon {
   font-size: 22px;
   margin-bottom: 2px;

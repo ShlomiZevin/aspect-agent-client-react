@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { getPlugin } from '../../registry/plugins';
+import { useBuilder } from '../../state/BuilderContext';
 import styles from './AddonRunCard.module.css';
 
 export interface AddonRunSnapshot {
@@ -21,6 +22,10 @@ export interface AddonRunSnapshot {
   parsedOutput?: unknown;
   memoryWrites?: Array<{ domain: string | null; field: string; value: unknown }>;
   parseError?: string;
+  /** Set by the Transition Router when conditions matched and the engine wrote a new currentCrewId. */
+  transition?: { to: string; reason?: string };
+  /** Set by the Transition Router with onMatch:'break' — engine skipped the rest of the chain. */
+  broke?: boolean;
   durationMs?: number;
   error?: { code: string; message: string };
 }
@@ -54,10 +59,27 @@ export function AddonRunCard({ run }: Props) {
   const desc = getPlugin(run.pluginId);
   const accent = desc?.color || '#6366f1';
 
+  // Look up the target crew's display name from the in-memory project
+  // doc. Used by the Transition section so users see "Profiler" not
+  // "crew_ztrpglm". Falls back to the raw id when the crew isn't in
+  // the doc (e.g. it was deleted).
+  const { doc } = useBuilder();
+  const crewNameById = (crewId: string): string => {
+    for (const a of doc.agents) {
+      const c = a.crews.find(cr => cr.id === crewId);
+      if (c) return c.name;
+    }
+    return crewId;
+  };
+
   const writes = run.memoryWrites ?? [];
   const hasWrites = writes.length > 0;
   const hasParseError = !!run.parseError;
   const showMemorySection = hasWrites || hasParseError;
+  const hasTransition = !!run.transition;
+  // Plugins that don't have a prompt template (Transition Router) still
+  // emit an empty prompt via the engine — drop the section when empty.
+  const hasPrompt = typeof run.prompt === 'string' && run.prompt.trim() !== '';
 
   const onCopyPrompt = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -91,7 +113,7 @@ export function AddonRunCard({ run }: Props) {
 
       {open && (
         <div className={styles.body}>
-          {run.prompt !== undefined && (
+          {hasPrompt && (
             <Section
               title="Prompt"
               actions={
@@ -112,6 +134,20 @@ export function AddonRunCard({ run }: Props) {
           {run.rawOutput !== undefined && run.rawOutput !== '' && (
             <Section title="Output">
               <pre className={styles.pre}>{run.rawOutput}</pre>
+            </Section>
+          )}
+
+          {hasTransition && (
+            <Section title="Transition">
+              <div className={styles.transitionBlock}>
+                <div className={styles.transitionLine}>
+                  → switching to <code>{crewNameById(run.transition!.to)}</code>
+                  {run.broke && <span className={styles.transitionTag}>chain broken</span>}
+                </div>
+                {run.transition!.reason && (
+                  <div className={styles.transitionReason}>{run.transition!.reason}</div>
+                )}
+              </div>
             </Section>
           )}
 

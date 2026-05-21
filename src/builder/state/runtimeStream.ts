@@ -9,7 +9,7 @@
 import { runtimeMessageStream } from './builderApi';
 
 export type RuntimeEvent =
-  | { type: 'conversation'; conversationId: number; messageId: number }
+  | { type: 'conversation'; conversationId: number; messageId: number; currentCrewId?: string | null }
   | { type: 'addon.start'; instanceId: string; pluginId: string; lane: string; label?: string; model?: unknown }
   | { type: 'addon.prompt'; instanceId: string; prompt: string; historyCount: number }
   | { type: 'addon.token'; instanceId: string; token: string }
@@ -21,6 +21,8 @@ export type RuntimeEvent =
       tokens: { input: number; output: number; total: number };
       durationMs: number;
       parseError?: string;
+      transition?: { to: string; reason?: string };
+      broke?: boolean;
     }
   | { type: 'addon.error'; instanceId: string | null; error: { code: string; message: string } }
   | { type: 'assistant.message'; messageId: number; text: string }

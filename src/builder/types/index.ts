@@ -92,7 +92,8 @@ export interface AddonContext {
  */
 export type OutputType =
   | 'text-to-user'      // Talker — text response sent to the chat
-  | 'json-to-memory';   // Field Extractor, future Strategic / Vibe — structured fields written to memory
+  | 'json-to-memory'    // Field Extractor, future Strategic / Vibe — structured fields written to memory
+  | 'transition';       // Transition Router — emits a next-crew handoff signal
 
 export interface AddonInstance<TConfig = unknown> {
   /** Unique within the crew. */
@@ -164,6 +165,70 @@ export interface TalkerConfig {
   /** The voice prompt — what the crew is supposed to say and how. */
   prompt: string;
   model: ModelRef;
+}
+
+// ─── Transition Router plugin ─────────────────────────────────────
+
+/**
+ * Conditions an instance of the Transition Router can check against
+ * the conversation memory. ALL conditions on an instance must match
+ * for the router to fire (AND). For OR semantics, drop a second
+ * Transition Router with the other condition.
+ *
+ * Earlier draft had `llm-decide`; cut from v1 — compose an upstream
+ * Field Extractor (with an intent-like field) + a `field-equals`
+ * rule on the extracted value. Composable, inspectable in the
+ * timeline, and the LLM call gets logged in llm_usage like everything else.
+ */
+/**
+ * Operators a `field` condition can use. The UI filters the dropdown
+ * based on the selected field's declared `type`:
+ *   - enum    → equals | not-equals | in | not-in
+ *   - string  → equals | not-equals | contains | starts-with | ends-with | in | not-in
+ *   - int     → equals | not-equals | gt | gte | lt | lte
+ *   - boolean → equals | not-equals
+ * If no field is picked yet (or the field doesn't exist in the
+ * registry) the dropdown shows the safe-default set.
+ *
+ * `in` / `not-in` use the `values` array; everything else uses
+ * `value` (scalar). Keeping them on the same condition variant lets
+ * the user flip between operators without losing the field choice.
+ */
+export type FieldOp =
+  | 'equals' | 'not-equals'
+  | 'contains' | 'starts-with' | 'ends-with'
+  | 'gt' | 'gte' | 'lt' | 'lte'
+  | 'in' | 'not-in';
+
+export type TransitionCondition =
+  | { type: 'fields-collected'; fields: string[] }
+  | {
+      type: 'field';
+      field: string;
+      op: FieldOp;
+      /** Scalar value for binary ops; ignored for `in` / `not-in`. */
+      value?: unknown;
+      /** Multi-value for `in` / `not-in`; ignored for binary ops. */
+      values?: unknown[];
+    };
+// `always` was dropped — composing with an upstream extractor +
+// field op covers the unconditional pipeline case more inspectably.
+
+export interface TransitionRouterConfig {
+  conditions: TransitionCondition[];
+  /** Crew to transition to when conditions match. */
+  target: ID;
+  /** Optional human-readable note shown in the AddonRunCard. */
+  reason?: string;
+  /**
+   * What to do with the rest of THIS turn's chain after a match:
+   * - 'continue' (default) — remaining addons run normally. Talker
+   *   (if downstream) speaks once more from the current crew. Next
+   *   user turn lands on `target`.
+   * - 'break' — remaining addons are skipped. No talker response
+   *   this turn. Next user turn lands on `target`.
+   */
+  onMatch: 'continue' | 'break';
 }
 
 // ─── The three-level documents ─────────────────────────────────────

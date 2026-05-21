@@ -221,6 +221,13 @@ interface BuilderState {
     enabled: boolean,
   ) => void;
   removeAddon: (agentId: ID, crewId: ID, instanceId: ID) => void;
+  reorderAddonInLane: (
+    agentId: ID,
+    crewId: ID,
+    lane: 'main' | 'background' | 'offline',
+    fromIdx: number,
+    toIdx: number,
+  ) => void;
 
   // Crew versioning
   /** Overwrite the *viewing* version's snapshot with the current working state. */
@@ -265,6 +272,16 @@ interface BuilderState {
     domain?: string | null;
     clear?: boolean;
   }) => Promise<boolean>;
+  /**
+   * Optimistic, local-only merge of memory writes (the same shape
+   * the server emits on `addon.output`). No network. Used by the
+   * UserChat to surface freshly-extracted values in the FieldsPanel
+   * BEFORE the rest of the chain (talker) finishes. Reconciled by
+   * the post-turn `refreshConversationMemory()` call.
+   */
+  applyLocalMemoryWrites: (
+    writes: Array<{ domain: string | null; field: string; value: unknown }>,
+  ) => void;
 }
 
 const BuilderCtx = createContext<BuilderState | null>(null);
@@ -348,6 +365,34 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
         .catch(err => console.warn('[builder] fetchConversationMemory failed:', err));
     });
   }, [agentSlug, ownerUserId, previewConversationId]);
+
+  /**
+   * Merge a batch of memory writes into the local cache without
+   * hitting the server. Used by UserChat to surface live extractor
+   * output the moment the extractor finishes — long before the
+   * talker streams back. The server has already persisted these
+   * writes (BuilderRunner does it before emitting addon.output);
+   * the post-turn `refreshConversationMemory()` reconciles in case
+   * anything raced.
+   *
+   * `_general` bucket holds fields whose domain is null/empty —
+   * matches the server's `builderMemory.applyWrites` semantics.
+   */
+  const applyLocalMemoryWrites = useCallback(
+    (writes: Array<{ domain: string | null; field: string; value: unknown }>) => {
+      if (!Array.isArray(writes) || writes.length === 0) return;
+      setConversationMemory(prev => {
+        const next: Record<string, Record<string, unknown>> = { ...prev };
+        for (const w of writes) {
+          if (w.value === null || w.value === undefined) continue;
+          const key = (w.domain && String(w.domain).trim()) ? String(w.domain) : '_general';
+          next[key] = { ...(next[key] || {}), [w.field]: w.value };
+        }
+        return next;
+      });
+    },
+    [],
+  );
 
   const updateConversationMemoryField = useCallback(
     async (args: { field: string; value?: unknown; domain?: string | null; clear?: boolean }) => {
@@ -512,6 +557,38 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       addons: c.addons.filter(a => a.instanceId !== instanceId),
     }));
   }, []);
+
+  /**
+   * Reorder a lane's addons. `fromIdx` and `toIdx` are indexes
+   * *within the lane* (as the user sees them in the canvas). The
+   * function maps them back into positions in the global
+   * `crew.addons` array, preserving the relative position of
+   * addons in other lanes.
+   *
+   * Used by the Cortex drag-and-drop. Order is meaningful for
+   * transitions — running a Transition Router after the Field
+   * Extractor vs. after the Talker is a different agent.
+   */
+  const reorderAddonInLane = useCallback(
+    (agentId: ID, crewId: ID, lane: 'main' | 'background' | 'offline', fromIdx: number, toIdx: number) => {
+      mapCrew(agentId, crewId, c => {
+        const positions: number[] = [];
+        c.addons.forEach((a, i) => { if (a.lane === lane) positions.push(i); });
+        if (fromIdx < 0 || fromIdx >= positions.length) return c;
+        if (toIdx   < 0 || toIdx   >= positions.length) return c;
+        if (fromIdx === toIdx) return c;
+        const reorderedPositions = [...positions];
+        const [movedPos] = reorderedPositions.splice(fromIdx, 1);
+        reorderedPositions.splice(toIdx, 0, movedPos);
+        const next = [...c.addons];
+        positions.forEach((globalIdx, k) => {
+          next[globalIdx] = c.addons[reorderedPositions[k]];
+        });
+        return { ...c, addons: next };
+      });
+    },
+    [],
+  );
 
   // ── Crew versioning ──
   // Save overwrites the version currently being VIEWED, not the
@@ -784,6 +861,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       setAddonOutputType,
       setAddonEnabled,
       removeAddon,
+      reorderAddonInLane,
       saveCrewVersion,
       saveCrewVersionAs,
       setViewingCrewVersion,
@@ -800,6 +878,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       conversationMemory,
       refreshConversationMemory,
       updateConversationMemoryField,
+      applyLocalMemoryWrites,
     }),
     [
       doc,
@@ -815,6 +894,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       setAddonOutputType,
       setAddonEnabled,
       removeAddon,
+      reorderAddonInLane,
       saveCrewVersion,
       saveCrewVersionAs,
       setViewingCrewVersion,
@@ -830,6 +910,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       conversationMemory,
       refreshConversationMemory,
       updateConversationMemoryField,
+      applyLocalMemoryWrites,
     ],
   );
 
