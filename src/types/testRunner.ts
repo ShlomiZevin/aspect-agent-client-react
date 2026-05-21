@@ -1,5 +1,5 @@
 export type TestRunType = 'individuals' | 'population' | 'conversation' | 'review';
-export type TestRunStatus = 'pending' | 'running' | 'completed' | 'failed';
+export type TestRunStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 export interface TestRun {
   id: number;
