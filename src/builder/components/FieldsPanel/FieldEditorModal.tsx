@@ -11,12 +11,33 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '../Modal/Modal';
 import { useCrewFields } from '../../state/useCrewFields';
+import { useBuilder } from '../../state/BuilderContext';
 import { useConfirm } from '../Confirm/Confirm';
 import { getPlugin } from '../../registry/plugins';
 import { DomainInput } from './DomainInput';
 import type { CrewField } from '../../state/useCrewFields';
 import type { FieldSource, FieldType, ID } from '../../types';
 import styles from './AddFieldModal.module.css';
+
+/** Pluck a field's live value out of the conversation memory blob. */
+function findLiveValue(
+  memory: Record<string, Record<string, unknown>>,
+  fieldName: string,
+): unknown | undefined {
+  for (const bucket of Object.values(memory)) {
+    if (bucket && Object.prototype.hasOwnProperty.call(bucket, fieldName)) {
+      const v = bucket[fieldName];
+      if (v !== null && v !== undefined) return v;
+    }
+  }
+  return undefined;
+}
+
+function liveValueToString(v: unknown): string {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'string') return v;
+  return JSON.stringify(v);
+}
 
 interface Props {
   crewField: CrewField | null;
@@ -40,6 +61,7 @@ const SOURCE_LABEL: Record<FieldSource, { label: string }> = {
 export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props) {
   const { extractors, extractorOptions, domainNames, updateField, moveField, removeField } =
     useCrewFields(agentId, crewId);
+  const { conversationMemory, previewConversationId, updateConversationMemoryField } = useBuilder();
   const confirm = useConfirm();
 
   const [name, setName] = useState('');
@@ -50,6 +72,11 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
   const [domain, setDomain] = useState('');
   const [targetId, setTargetId] = useState<ID>('');
   const [coercedNote, setCoercedNote] = useState<string | null>(null);
+
+  // Live-value editing state. `editingLive=true` swaps the read-only
+  // chip for an input; saving writes to conversation memory.
+  const [editingLive, setEditingLive] = useState(false);
+  const [liveDraft, setLiveDraft] = useState('');
 
   useEffect(() => {
     if (!crewField) return;
@@ -62,6 +89,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
     setDomain(f.domain ?? '');
     setTargetId(crewField.extractorInstanceId);
     setCoercedNote(null);
+    setEditingLive(false);
   }, [crewField]);
 
   // Sources allowed by the currently-targeted extractor.
@@ -90,6 +118,40 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
 
   const original = crewField.field;
   const originalExtractorId = crewField.extractorInstanceId;
+  const liveValue = findLiveValue(conversationMemory, original.name);
+  const hasLive = liveValue !== undefined;
+  const canEditLive = previewConversationId !== null;
+
+  const startEditLive = () => {
+    setLiveDraft(liveValueToString(liveValue));
+    setEditingLive(true);
+  };
+
+  const saveLive = async () => {
+    // Coerce to the declared field type for non-strings; on parse
+    // failure fall through as a raw string so the user isn't blocked.
+    const raw = liveDraft.trim();
+    let v: unknown = raw;
+    if (type === 'int') {
+      const n = Number(raw);
+      v = Number.isFinite(n) ? n : raw;
+    } else if (type === 'boolean') {
+      v = /^(true|1|yes)$/i.test(raw);
+    } else if (type === 'enum' || type === 'string') {
+      v = raw;
+    }
+    await updateConversationMemoryField({
+      field: original.name,
+      value: v,
+      domain: original.domain ?? null,
+    });
+    setEditingLive(false);
+  };
+
+  const clearLive = async () => {
+    await updateConversationMemoryField({ field: original.name, clear: true });
+    setEditingLive(false);
+  };
 
   const save = () => {
     if (targetId !== originalExtractorId) {
@@ -155,6 +217,50 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
       }
     >
       <div className={styles.form}>
+        {canEditLive && (
+          <div className={styles.liveBlock}>
+            <div className={styles.liveHeader}>
+              <span className={styles.liveLabel}>Current value (this chat)</span>
+              {hasLive && !editingLive && (
+                <div className={styles.liveActions}>
+                  <button type="button" className={styles.liveBtn} onClick={startEditLive}>
+                    Edit
+                  </button>
+                  <button type="button" className={`${styles.liveBtn} ${styles.liveBtnDanger}`} onClick={clearLive}>
+                    Clear
+                  </button>
+                </div>
+              )}
+              {!hasLive && !editingLive && (
+                <button type="button" className={styles.liveBtn} onClick={startEditLive}>
+                  Set value
+                </button>
+              )}
+            </div>
+            {editingLive ? (
+              <div className={styles.liveEditRow}>
+                <input
+                  className={styles.input}
+                  value={liveDraft}
+                  onChange={e => setLiveDraft(e.target.value)}
+                  placeholder={`Enter ${type} value`}
+                  autoFocus
+                />
+                <button type="button" className={styles.liveSave} onClick={saveLive}>
+                  Save value
+                </button>
+                <button type="button" className={styles.liveBtn} onClick={() => setEditingLive(false)}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className={styles.liveValueChip}>
+                {hasLive ? liveValueToString(liveValue) : <em className={styles.liveEmpty}>—</em>}
+              </div>
+            )}
+          </div>
+        )}
+
         <label className={styles.field}>
           <span className={styles.label}>Name</span>
           <input

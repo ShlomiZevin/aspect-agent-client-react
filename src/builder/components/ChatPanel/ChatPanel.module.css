@@ -55,6 +55,8 @@
   flex-direction: column;
 }
 
+/* Shared one-row header — used by BuilderChat (helper badge +
+ * context button). Don't add UserChat-only structure here. */
 .chatHeader {
   flex: 0 0 auto;
   display: flex;
@@ -66,8 +68,39 @@
   gap: 8px;
 }
 
-.helperBadge,
-.crewBadge {
+/* UserChat-only two-row header. Replaces .chatHeader when used. */
+.userChatHeader {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface, #fff);
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+/* Compact actions row: icon-style buttons, no labels. Keeps the
+ * chrome out of the way; primary attention belongs to the crew row
+ * below and the messages. */
+.headerRowTop {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-color, #f3f4f6);
+}
+
+/* Crew row: tab-strip-style. Today it's a single chip; when multiple
+ * crews land later they line up here horizontally with the active one
+ * highlighted, like browser tabs. */
+.headerRowBottom {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  align-items: center;
+  padding: 6px 10px;
+  overflow-x: auto;
+}
+
+.helperBadge {
   font-size: 11px;
   font-weight: 600;
   color: var(--text-secondary, #4b5563);
@@ -75,6 +108,131 @@
   border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 999px;
   padding: 4px 10px;
+}
+
+.headerSpacer {
+  flex: 1;
+}
+
+.settingsWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Icon-style header button. Borderless, color-on-hover. The active
+ * state uses a soft primary tint so the open popover / panel is
+ * visually linked to its trigger. */
+.headerBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--text-tertiary, #9ca3af);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.headerBtn:hover:not(:disabled) {
+  color: var(--text-primary, #111827);
+  background: var(--bg-input, #f3f4f6);
+}
+
+.headerBtnActive,
+.headerBtnActive:hover {
+  color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.headerBtnLabel {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Crew chip — feels like an active tab. When more crews appear it
+ * lines up next to siblings horizontally; the active one keeps the
+ * primary tint while others render in the neutral state. */
+.crewBadge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 6px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.chatBody {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* RTL text inside the bubble. Class-driven (not dir attribute) so
+ * the toggle is visible even on Hebrew text — the browser would
+ * otherwise auto-detect Hebrew as RTL regardless of the toggle. */
+.msgRtl {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Bubble group — wraps a single bubble + its delete row. Hover
+ * scope is per-group so user-bubble hover doesn't reveal the bot
+ * bubble's delete buttons (or vice versa). Full chat-list width so
+ * the delete row's buttons sit at a stable x-position regardless of
+ * the bubble's content length. The bubble inside uses align-self to
+ * pick its side; the delete row uses justify-content. */
+.bubbleGroup {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.deleteRow {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: max-height 140ms ease, opacity 100ms ease;
+}
+
+.deleteRowUser { justify-content: flex-end; }
+.deleteRowBot  { justify-content: flex-start; }
+
+.bubbleGroup:hover .deleteRow,
+.bubbleGroup:focus-within .deleteRow {
+  max-height: 28px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.deleteIcon {
+  font-size: 10px;
+  line-height: 1;
+  color: #b91c1c;
+  background: transparent;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  border-radius: 6px;
+  padding: 3px 7px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.deleteIcon:hover {
+  color: #fff;
+  background: #dc2626;
+  border-color: #dc2626;
 }
 
 .contextBtn {

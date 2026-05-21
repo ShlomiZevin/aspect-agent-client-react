@@ -212,16 +212,36 @@ interface FieldRowProps {
 }
 
 function FieldRow({ cf, onPick, liveValue }: FieldRowProps) {
+  const { updateConversationMemoryField, previewConversationId } = useBuilder();
   const src = SOURCE_LABEL[cf.field.source];
   const hasValue = liveValue !== undefined;
+  const canClear = hasValue && previewConversationId !== null;
+
+  const onClear = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    await updateConversationMemoryField({ field: cf.field.name, clear: true });
+  };
+
+  // Outer is a div now (not a <button>) so the inner clear button
+  // doesn't violate the no-nested-buttons rule.
   return (
-    <button type="button" className={styles.row} onClick={() => onPick(cf)}>
+    <div className={styles.row} role="button" tabIndex={0} onClick={() => onPick(cf)}>
       <div className={styles.rowMain}>
         <span className={styles.fieldName}>{cf.field.name || '(unnamed)'}</span>
         {hasValue && (
           <span className={styles.liveValue} title="Current value in this conversation">
             = {formatLiveValue(liveValue)}
           </span>
+        )}
+        {canClear && (
+          <button
+            type="button"
+            className={styles.clearBtn}
+            onClick={onClear}
+            title="Clear current value"
+          >
+            ✕
+          </button>
         )}
       </div>
       <div className={styles.pills}>
@@ -236,6 +256,6 @@ function FieldRow({ cf, onPick, liveValue }: FieldRowProps) {
       {cf.field.howToExtract && (
         <span className={styles.desc}>{cf.field.howToExtract}</span>
       )}
-    </button>
+    </div>
   );
 }

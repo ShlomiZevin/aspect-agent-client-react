@@ -254,6 +254,17 @@ interface BuilderState {
   // after every chat turn so the FieldsPanel can show current values.
   conversationMemory: Record<string, Record<string, unknown>>;
   refreshConversationMemory: () => void;
+  /**
+   * Edit / clear a single field value in the live conversation memory.
+   * No-op when there's no active preview conversation. Returns true on
+   * success.
+   */
+  updateConversationMemoryField: (args: {
+    field: string;
+    value?: unknown;
+    domain?: string | null;
+    clear?: boolean;
+  }) => Promise<boolean>;
 }
 
 const BuilderCtx = createContext<BuilderState | null>(null);
@@ -337,6 +348,27 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
         .catch(err => console.warn('[builder] fetchConversationMemory failed:', err));
     });
   }, [agentSlug, ownerUserId, previewConversationId]);
+
+  const updateConversationMemoryField = useCallback(
+    async (args: { field: string; value?: unknown; domain?: string | null; clear?: boolean }) => {
+      if (previewConversationId === null) return false;
+      try {
+        const { patchConversationMemory } = await import('./builderApi');
+        const next = await patchConversationMemory({
+          agentSlug,
+          conversationId: previewConversationId,
+          ownerUserId,
+          ...args,
+        });
+        setConversationMemory(next);
+        return true;
+      } catch (err) {
+        console.warn('[builder] patchConversationMemory failed:', err);
+        return false;
+      }
+    },
+    [agentSlug, ownerUserId, previewConversationId],
+  );
 
   // Reset / refetch memory whenever the conversation changes.
   useEffect(() => {
@@ -767,6 +799,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       setPreviewConversationId,
       conversationMemory,
       refreshConversationMemory,
+      updateConversationMemoryField,
     }),
     [
       doc,
@@ -796,6 +829,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       previewConversationId,
       conversationMemory,
       refreshConversationMemory,
+      updateConversationMemoryField,
     ],
   );
 

@@ -144,6 +144,24 @@
   text-align: left;
   font-family: inherit;
   transition: border-color 120ms, background 120ms;
+  box-sizing: border-box;
+}
+
+.clearBtn {
+  background: transparent;
+  border: 0;
+  color: var(--text-tertiary, #9ca3af);
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+.clearBtn:hover {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
 }
 
 .row:hover {

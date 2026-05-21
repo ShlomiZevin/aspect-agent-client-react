@@ -190,9 +190,22 @@ export async function createConversation(args: {
 
 export interface ConversationListItem {
   id: number;
+  /** Custom or auto-derived (first user message). Null until first send. */
+  name: string | null;
   createdAt: string;
   updatedAt: string;
   metadata?: Record<string, unknown>;
+}
+
+export async function renameConversation(args: {
+  agentSlug: string;
+  conversationId: number;
+  name: string;
+}): Promise<void> {
+  await http(`/api/agents/${args.agentSlug}/conversations/${args.conversationId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name: args.name }),
+  });
 }
 
 export interface ConversationMessage {
@@ -213,6 +226,65 @@ export async function fetchConversationMessages(args: {
 }
 
 /**
+ * Addon-run snapshot persisted in `addon_runs.run_data`. Mirrors the
+ * live SSE `addon.output` payload so the historical view can rehydrate
+ * AddonRunCards identically.
+ */
+export interface PersistedAddonRun {
+  id: string;
+  instanceId: string;
+  pluginId: string;
+  status: 'running' | 'success' | 'error';
+  durationMs: number | null;
+  startedAt: string;
+  endedAt: string | null;
+  runData: {
+    rawOutput?: string;
+    parsedOutput?: unknown;
+    memoryWrites?: Array<{ domain: string | null; field: string; value: unknown }>;
+    parseError?: string;
+    prompt?: string;
+    label?: string;
+    tokens?: { input: number; output: number; total: number };
+    durationMs?: number;
+  };
+}
+
+export async function fetchRunsForMessage(args: {
+  agentSlug: string;
+  messageId: number;
+}): Promise<PersistedAddonRun[]> {
+  const res = await http<{ runs: PersistedAddonRun[] }>(
+    `/api/agents/${args.agentSlug}/messages/${args.messageId}/runs`,
+  );
+  return res.runs;
+}
+
+export async function deleteConversation(args: {
+  agentSlug: string;
+  conversationId: number;
+}): Promise<void> {
+  await http(`/api/agents/${args.agentSlug}/conversations/${args.conversationId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function deleteMessage(args: {
+  agentSlug: string;
+  conversationId: number;
+  messageId: number;
+  fromHereDown?: boolean;
+}): Promise<void> {
+  await http(
+    `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/messages/${args.messageId}`,
+    {
+      method: 'DELETE',
+      body: JSON.stringify({ fromHereDown: !!args.fromHereDown }),
+    },
+  );
+}
+
+/**
  * Builder memory blob for a conversation. Shape:
  *   { [domain: '_general' | string]: { [fieldName]: value } }
  */
@@ -226,6 +298,37 @@ export async function fetchConversationMemory(args: {
   const params = new URLSearchParams({ ownerUserId: args.ownerUserId });
   const res = await http<{ memory: ConversationMemory }>(
     `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/memory?${params}`,
+  );
+  return res.memory || {};
+}
+
+/**
+ * Update one field in the conversation memory.
+ *   - clear=true → removes the field from every domain bucket.
+ *   - otherwise → sets `field` to `value` in `domain` (or `_general`).
+ * Returns the updated blob so callers can refresh local cache.
+ */
+export async function patchConversationMemory(args: {
+  agentSlug: string;
+  conversationId: number;
+  ownerUserId: string;
+  field: string;
+  value?: unknown;
+  domain?: string | null;
+  clear?: boolean;
+}): Promise<ConversationMemory> {
+  const res = await http<{ memory: ConversationMemory }>(
+    `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/memory`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        ownerUserId: args.ownerUserId,
+        field: args.field,
+        value: args.value,
+        domain: args.domain ?? null,
+        clear: !!args.clear,
+      }),
+    },
   );
   return res.memory || {};
 }
