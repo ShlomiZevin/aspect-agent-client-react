@@ -27,6 +27,19 @@ export type FieldSource =
   | 'explicit'   // only when the user literally says it
   | 'inferred';  // can be concluded from conversation patterns
 
+/**
+ * Where the field lives in the JSON.
+ *  - 'agent': stored on `AgentBody.fields[]` — visible from any crew.
+ *  - 'crew':  stored on `CrewBody.fields[]` — visible only in its
+ *             owning crew.
+ *
+ * Scope is determined by *location* (which array the FieldDef lives
+ * in), not by a tag on the field itself. So `FieldDef` doesn't carry
+ * `scope` — that would let it drift from reality. Hooks compute it
+ * by asking "where did I find this field?".
+ */
+export type FieldScope = 'agent' | 'crew';
+
 export interface FieldDef {
   id: ID;
   name: string;                 // canonical key, snake_case
@@ -158,7 +171,19 @@ export const KNOWN_PROMPT_PLACEHOLDERS = {
 export interface FieldExtractorConfig {
   prompt: string;
   model: ModelRef;
-  fields: FieldDef[];
+  /**
+   * User-editable name for this extractor instance. Lets users
+   * distinguish "Date Extractor" from "Intent Extractor" in the
+   * chain canvas. Empty → falls back to "Field Extractor [#N]".
+   */
+  name?: string;
+  /**
+   * IDs of FieldDefs (from `agent.fields` or owning `crew.fields`)
+   * that this extractor pulls out of the conversation. The same
+   * field id can appear in multiple extractors' lists; memory writes
+   * are keyed by name and the last write wins per turn.
+   */
+  extractsFields: ID[];
 }
 
 export interface TalkerConfig {
@@ -240,7 +265,7 @@ export interface TransitionRouterConfig {
  */
 export type CrewBody = Pick<
   CrewDoc,
-  'name' | 'description' | 'spec' | 'persona' | 'addons'
+  'name' | 'description' | 'spec' | 'persona' | 'addons' | 'fields'
 >;
 
 export interface CrewVersion {
@@ -268,6 +293,15 @@ export interface CrewDoc {
    * the response prompt. The crew itself has no prompt of its own.
    */
   addons: AddonInstance[];
+  /**
+   * Field DEFINITIONS scoped to this crew. Visible only when viewing
+   * this crew. Extractors in this crew (or in any crew of the agent
+   * — though typically the same one) can reference these by id via
+   * their `extractsFields` list.
+   *
+   * Agent-wide fields live on `AgentDoc.fields` instead.
+   */
+  fields: FieldDef[];
   // ── Versioning ──
   versions: CrewVersion[];
   /**
@@ -294,7 +328,7 @@ export interface CrewDoc {
  */
 export type AgentBody = Pick<
   AgentDoc,
-  'name' | 'slug' | 'spec' | 'persona' | 'defaultCrewId'
+  'name' | 'slug' | 'spec' | 'persona' | 'defaultCrewId' | 'fields'
 >;
 
 export interface AgentVersion {
@@ -316,6 +350,14 @@ export interface AgentDoc {
   /** Persona shared across all crews. */
   persona: string;
   defaultCrewId?: ID;
+  /**
+   * Agent-wide field DEFINITIONS. Visible from every crew of this
+   * agent. Extractors anywhere in the agent reference these by id
+   * via their `extractsFields` list.
+   *
+   * Crew-private fields live on `CrewDoc.fields` instead.
+   */
+  fields: FieldDef[];
   /**
    * The crews that belong to this agent. NOT part of the agent
    * version body — crews are their own versioned entities and live

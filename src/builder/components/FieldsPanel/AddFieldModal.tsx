@@ -1,24 +1,25 @@
 /**
- * AddFieldModal — quick add for a new field.
+ * AddFieldModal — define a new field.
  *
- * Always shows the "Extracted by" picker (so the relationship is
- * explicit even with one option). When no extractor exists, the
- * picker offers "Create new Field Extractor" as its single option.
+ * Field definitions live on `agent.fields` (scope='agent') or
+ * `crew.fields` (scope='crew'). At creation time the user picks
+ * one or more Field Extractors anywhere in the agent that should
+ * extract this field — each extractor's `extractsFields[]` gets
+ * the new id appended.
  *
- * `lockedExtractorId` hides the picker and forces the target. Used
- * when invoking from inside a specific extractor's config.
- *
- * Source dropdown is filtered by the target extractor's
- * `allowedFieldSources`. Domain input is autocomplete + create-new
- * via the shared DomainInput.
+ * The "extracted by" multi-select lists every Field Extractor
+ * across the agent (Crew → Extractor format). At least one must
+ * be ticked; we default the current crew's first extractor when
+ * opened from a CrewView. If there are no extractors at all, the
+ * "auto-create one in this crew" option ticks itself and we mint
+ * a Field Extractor on submit.
  */
 
 import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '../Modal/Modal';
 import { useCrewFields } from '../../state/useCrewFields';
-import { getPlugin } from '../../registry/plugins';
 import { DomainInput } from './DomainInput';
-import type { FieldDef, FieldSource, FieldType, ID } from '../../types';
+import type { FieldDef, FieldScope, FieldSource, FieldType, ID } from '../../types';
 import styles from './AddFieldModal.module.css';
 
 interface Props {
@@ -26,11 +27,7 @@ interface Props {
   onClose: () => void;
   agentId: ID;
   crewId: ID;
-  /** If set, the extractor picker is hidden and this id is the target. */
-  lockedExtractorId?: ID;
 }
-
-const CREATE_NEW = '__create_new__';
 
 const TYPES: { value: FieldType; label: string }[] = [
   { value: 'string',  label: 'String' },
@@ -48,69 +45,66 @@ interface Draft {
   name: string;
   type: FieldType;
   source: FieldSource;
+  scope: FieldScope;
   domain: string;
   howToExtract: string;
   enumValues: string;
 }
 
-const emptyDraft = (defaultSource: FieldSource): Draft => ({
+const emptyDraft = (): Draft => ({
   name: '',
   type: 'string',
-  source: defaultSource,
+  source: 'explicit',
+  // Default to agent scope — most fields are agent-wide.
+  scope: 'agent',
   domain: '',
   howToExtract: '',
   enumValues: '',
 });
 
-export function AddFieldModal({ open, onClose, agentId, crewId, lockedExtractorId }: Props) {
-  const { extractors, extractorOptions, domainNames, addFieldToCrew } =
+export function AddFieldModal({ open, onClose, agentId, crewId }: Props) {
+  const { agentExtractors, extractorOptions, domainNames, addFieldToScope } =
     useCrewFields(agentId, crewId);
-  const [targetId, setTargetId] = useState<string>('');
 
-  // Sources allowed by the currently-targeted extractor (or, if creating
-  // a fresh extractor, by the Field Extractor plugin).
-  const allowedSources: FieldSource[] = useMemo(() => {
-    if (!targetId || targetId === CREATE_NEW) {
-      const fe = getPlugin('field-extractor');
-      return fe?.allowedFieldSources ?? ['explicit', 'inferred'];
-    }
-    const inst = extractors.find(e => e.instanceId === targetId);
-    if (!inst) return ['explicit', 'inferred'];
-    const desc = getPlugin(inst.pluginId);
-    return desc?.allowedFieldSources ?? ['explicit', 'inferred'];
-  }, [targetId, extractors]);
+  const [draft, setDraft] = useState<Draft>(emptyDraft());
+  // Which Field Extractor instances should extract this field. At
+  // least one required to submit. Defaults to the first extractor in
+  // the current crew (if any), else empty (will auto-create).
+  const [selectedExtractors, setSelectedExtractors] = useState<Set<ID>>(new Set());
 
-  const [draft, setDraft] = useState<Draft>(() => emptyDraft(allowedSources[0]));
-
+  // Reset on open. Pick a sensible default extractor for the crew.
   useEffect(() => {
     if (!open) return;
-    if (lockedExtractorId) {
-      setTargetId(lockedExtractorId);
-    } else if (extractorOptions.length > 0) {
-      setTargetId(extractorOptions[0].instanceId);
-    } else {
-      setTargetId(CREATE_NEW);
-    }
-  }, [open, extractorOptions, lockedExtractorId]);
+    setDraft(emptyDraft());
+    const firstInThisCrew = extractorOptions[0]?.instanceId;
+    setSelectedExtractors(firstInThisCrew ? new Set([firstInThisCrew]) : new Set());
+  }, [open, extractorOptions]);
 
-  // Reset draft when the modal opens, picking the first allowed source.
-  useEffect(() => {
-    if (!open) return;
-    setDraft(emptyDraft(allowedSources[0]));
-    // We intentionally don't depend on allowedSources here so the user's
-    // selection isn't clobbered every time they tweak the target.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  const noExtractorsAnywhere = agentExtractors.length === 0;
+  const canSubmit = draft.name.trim().length > 0 && (
+    noExtractorsAnywhere || selectedExtractors.size > 0
+  );
 
-  // If the user switches target to one with stricter sources, coerce.
-  useEffect(() => {
-    if (!allowedSources.includes(draft.source)) {
-      setDraft(d => ({ ...d, source: allowedSources[0] }));
+  const toggleExtractor = (id: ID) => {
+    setSelectedExtractors(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  // Group extractors by crew for clearer multi-select display.
+  const byCrew = useMemo(() => {
+    const groups = new Map<string, { crewName: string; items: typeof agentExtractors }>();
+    for (const e of agentExtractors) {
+      if (!groups.has(e.crewId)) groups.set(e.crewId, { crewName: e.crewName, items: [] });
+      groups.get(e.crewId)!.items.push(e);
     }
-  }, [allowedSources, draft.source]);
+    return Array.from(groups.values());
+  }, [agentExtractors]);
 
   const submit = () => {
-    if (!draft.name.trim()) return;
+    if (!canSubmit) return;
     const draftField: Omit<FieldDef, 'id'> = {
       name: draft.name.trim(),
       type: draft.type,
@@ -124,8 +118,14 @@ export function AddFieldModal({ open, onClose, agentId, crewId, lockedExtractorI
           .filter(Boolean),
       }),
     };
-    const extractorTarget = targetId === CREATE_NEW ? undefined : targetId;
-    addFieldToCrew(draftField, extractorTarget);
+    addFieldToScope(
+      draft.scope,
+      draftField,
+      Array.from(selectedExtractors),
+      // If the agent has zero extractors anywhere, bootstrap one in
+      // this crew automatically so the field has something to do.
+      { createDefaultExtractor: noExtractorsAnywhere },
+    );
     onClose();
   };
 
@@ -133,7 +133,7 @@ export function AddFieldModal({ open, onClose, agentId, crewId, lockedExtractorI
     <Modal
       open={open}
       onClose={onClose}
-      width={520}
+      width={560}
       title="Add field"
       footer={
         <>
@@ -144,7 +144,7 @@ export function AddFieldModal({ open, onClose, agentId, crewId, lockedExtractorI
             type="button"
             className={styles.save}
             onClick={submit}
-            disabled={!draft.name.trim()}
+            disabled={!canSubmit}
           >
             Add field
           </button>
@@ -161,7 +161,7 @@ export function AddFieldModal({ open, onClose, agentId, crewId, lockedExtractorI
             onChange={e => setDraft(d => ({ ...d, name: e.target.value }))}
             placeholder="e.g. employment_status"
             onKeyDown={e => {
-              if (e.key === 'Enter' && draft.name.trim()) submit();
+              if (e.key === 'Enter' && canSubmit) submit();
             }}
           />
         </label>
@@ -187,7 +187,7 @@ export function AddFieldModal({ open, onClose, agentId, crewId, lockedExtractorI
               value={draft.source}
               onChange={e => setDraft(d => ({ ...d, source: e.target.value as FieldSource }))}
             >
-              {allowedSources.map(s => (
+              {(['explicit', 'inferred'] as FieldSource[]).map(s => (
                 <option key={s} value={s} title={SOURCE_LABEL[s].hint}>
                   {SOURCE_LABEL[s].label}
                 </option>
@@ -195,21 +195,18 @@ export function AddFieldModal({ open, onClose, agentId, crewId, lockedExtractorI
             </select>
           </label>
 
-          {!lockedExtractorId && (
-            <label className={styles.field}>
-              <span className={styles.label}>Extracted by</span>
-              <select
-                className={styles.input}
-                value={targetId}
-                onChange={e => setTargetId(e.target.value)}
-              >
-                {extractorOptions.map(o => (
-                  <option key={o.instanceId} value={o.instanceId}>{o.label}</option>
-                ))}
-                <option value={CREATE_NEW}>+ Create new Field Extractor</option>
-              </select>
-            </label>
-          )}
+          <label className={styles.field}>
+            <span className={styles.label}>Scope</span>
+            <select
+              className={styles.input}
+              value={draft.scope}
+              onChange={e => setDraft(d => ({ ...d, scope: e.target.value as FieldScope }))}
+              title="Where this field lives: agent (everywhere) or crew (this crew only)"
+            >
+              <option value="agent">Agent — visible everywhere</option>
+              <option value="crew">Crew — only in this crew</option>
+            </select>
+          </label>
         </div>
 
         <label className={styles.field}>
@@ -219,7 +216,7 @@ export function AddFieldModal({ open, onClose, agentId, crewId, lockedExtractorI
             onChange={domain => setDraft(d => ({ ...d, domain }))}
             options={domainNames}
             onSubmit={() => {
-              if (draft.name.trim()) submit();
+              if (canSubmit) submit();
             }}
           />
         </label>
@@ -245,6 +242,40 @@ export function AddFieldModal({ open, onClose, agentId, crewId, lockedExtractorI
             />
           </label>
         )}
+
+        {/* ── Extracted-by multi-select ─────────────────────────── */}
+        <div className={styles.field}>
+          <span className={styles.label}>Extracted by</span>
+          {noExtractorsAnywhere ? (
+            <div className={styles.hintBlock}>
+              No Field Extractors anywhere yet. A new one will be created
+              in this crew when you add the field.
+            </div>
+          ) : (
+            <div className={styles.extractorPickGroups}>
+              {byCrew.map(group => (
+                <div key={group.crewName} className={styles.extractorPickGroup}>
+                  <div className={styles.extractorPickCrew}>{group.crewName}</div>
+                  <div className={styles.extractorPickChips}>
+                    {group.items.map(e => {
+                      const active = selectedExtractors.has(e.instanceId);
+                      return (
+                        <button
+                          key={e.instanceId}
+                          type="button"
+                          className={`${styles.extractorPickChip} ${active ? styles.extractorPickChipActive : ''}`}
+                          onClick={() => toggleExtractor(e.instanceId)}
+                        >
+                          {e.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </Modal>
   );

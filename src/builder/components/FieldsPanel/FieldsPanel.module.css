@@ -206,7 +206,9 @@
 
 .typePill,
 .sourcePill,
-.extractorChip {
+.extractorChip,
+.crewChip,
+.locationChip {
   font-size: 10px;
   font-weight: 600;
   padding: 2px 7px;
@@ -228,6 +230,49 @@
 .extractorChip {
   background: rgba(245, 158, 11, 0.12);
   color: #b45309;
+}
+
+/* Owning-crew chip — legacy (kept for back-compat if anything still
+ * references it). The row now uses `.locationChip` which renders
+ * "Crew → Extractor" in one chip. */
+.crewChip {
+  background: rgba(14, 165, 233, 0.12);
+  color: #0369a1;
+}
+
+/* "Crew → Extractor" location chip on each field row. Same pill
+ * footprint as the type/source pills above. */
+.locationChip {
+  background: rgba(14, 165, 233, 0.1);
+  color: #0369a1;
+  font-weight: 600;
+}
+
+/* No extractor is wired up to this field — definition exists but
+ * nothing extracts it. Amber warning chip so the user notices. */
+.unwired {
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(245, 158, 11, 0.15);
+  color: #92400e;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 999px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+/* Small "crew-scoped" indicator next to the field name. Only shown
+ * for scope='crew' fields — agent-scoped fields aren't badged so
+ * the default case stays uncluttered. */
+.scopeBadge {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-tertiary, #6b7280);
+  background: var(--bg-input, #f3f4f6);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 4px;
+  padding: 1px 5px;
+  white-space: nowrap;
 }
 
 .desc {

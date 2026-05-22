@@ -67,6 +67,15 @@
   color: #fff;
 }
 
+/* "+ agent" / "+ 2 crews" suffix on the Save button when one click
+ * will persist a sibling entity. Slightly transparent so the primary
+ * "Save" label stays dominant. */
+.saveCross {
+  margin-left: 4px;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
 .activeBadge {
   display: inline-flex;
   align-items: center;

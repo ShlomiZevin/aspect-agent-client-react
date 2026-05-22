@@ -42,6 +42,8 @@ export function ModelPicker({ value, onChange, label }: Props) {
     );
   }
 
+  const selectedModel = provider?.models.find(m => m.id === value.modelId);
+
   return (
     <div className={styles.wrap}>
       {label && <span className={styles.label}>{label}</span>}
@@ -62,16 +64,20 @@ export function ModelPicker({ value, onChange, label }: Props) {
           className={styles.select}
           value={value.modelId}
           onChange={e => handleModel(e.target.value)}
-          title={provider?.models.find(m => m.id === value.modelId)?.notes ?? ''}
         >
           {(provider?.models ?? []).map(m => (
+            // Option label is just the model name — clean, never
+            // truncates. Notes render as a small caption below the
+            // row when this model is selected.
             <option key={m.id} value={m.id} title={m.notes ?? ''}>
               {m.name}
-              {m.notes ? ` — ${m.notes}` : ''}
             </option>
           ))}
         </select>
       </div>
+      {selectedModel?.notes && (
+        <span className={styles.notes}>{selectedModel.notes}</span>
+      )}
     </div>
   );
 }

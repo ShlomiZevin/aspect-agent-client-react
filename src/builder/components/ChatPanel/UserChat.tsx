@@ -99,6 +99,7 @@ function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
   const d = (r.runData || {}) as PersistedAddonRun['runData'] & {
     transition?: { to: string; reason?: string };
     broke?: boolean;
+    firstTokenMs?: number;
   };
   return {
     instanceId:   r.instanceId,
@@ -113,6 +114,7 @@ function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
     transition:   d.transition,
     broke:        d.broke,
     durationMs:   r.durationMs ?? d.durationMs,
+    firstTokenMs: d.firstTokenMs,
   };
 }
 
@@ -332,6 +334,7 @@ export function UserChat() {
           transition:   e.transition,
           broke:        e.broke,
           durationMs:   e.durationMs,
+          firstTokenMs: e.firstTokenMs,
         }));
         // Live-merge any memory writes from this addon into the local
         // cache so the FieldsPanel updates the green value chip the

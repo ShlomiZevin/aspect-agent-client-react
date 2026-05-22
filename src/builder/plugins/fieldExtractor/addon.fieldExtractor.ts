@@ -58,7 +58,8 @@ export const fieldExtractorPlugin: PluginDescriptor<FieldExtractorConfig> = {
       "For 'explicit' fields, capture only what the user literally said.\n" +
       "For 'inferred' fields, you may conclude based on patterns.",
     model: DEFAULT_FAST_MODEL,
-    fields: [],
+    name: '',
+    extractsFields: [],
   }),
   ConfigComponent: FieldExtractorConfigComponent,
 };

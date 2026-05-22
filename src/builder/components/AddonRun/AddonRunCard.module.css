@@ -77,6 +77,12 @@
   color: var(--text-tertiary, #9ca3af);
 }
 
+/* Secondary number (TTLT) shown beside TTFT for streaming plugins.
+ * Muted so the perceived-latency number reads as primary. */
+.durationFull {
+  opacity: 0.6;
+}
+
 .body {
   border-top: 1px solid var(--border-color, #e5e7eb);
   padding: 10px;

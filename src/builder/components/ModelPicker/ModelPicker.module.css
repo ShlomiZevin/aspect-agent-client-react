@@ -46,3 +46,14 @@
   color: var(--text-tertiary, #9ca3af);
   font-style: italic;
 }
+
+/* Small caption below the row showing the selected model's notes.
+ * Kept out of the <select> option labels so wide notes don't get
+ * truncated mid-sentence with an ellipsis. */
+.notes {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-tertiary, #9ca3af);
+}

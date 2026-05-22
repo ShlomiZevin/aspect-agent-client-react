@@ -21,6 +21,14 @@ import { getPlugin } from '../../registry/plugins';
 interface BuildArgs {
   instance: AddonInstance;
   agentPersona: string;
+  /**
+   * The field definitions this extractor instance extracts —
+   * resolved from `instance.config.extractsFields[]` against
+   * `agent.fields ∪ owning crew.fields`. Empty for non-extractor
+   * plugins. The caller (the modal) does the lookup; this helper
+   * just renders the schema/current blocks.
+   */
+  extractorFields?: FieldDef[];
 }
 
 /**
@@ -91,20 +99,23 @@ function buildFieldsCurrentBlock(_fields: FieldDef[]): string {
   return '{}';
 }
 
-export function buildPromptPreview({ instance, agentPersona }: BuildArgs): string {
+export function buildPromptPreview({ instance, agentPersona, extractorFields }: BuildArgs): string {
   const plugin = getPlugin(instance.pluginId);
   const template = instance.promptTemplate ?? '';
-  const cfg = instance.config as { prompt?: string; fields?: FieldDef[] } | undefined;
+  const cfg = instance.config as { prompt?: string } | undefined;
 
   const isExtractor = plugin?.fieldMode === 'extractor';
-  const extractorFields: FieldDef[] = isExtractor ? cfg?.fields ?? [] : [];
+  // Field defs come from the caller now — they live on agent/crew
+  // bodies, not inside the extractor's config. Resolving them
+  // requires knowing the agent + crew so the modal does that lookup.
+  const fields: FieldDef[] = isExtractor ? (extractorFields ?? []) : [];
 
   return substitute(template, {
     prompt: cfg?.prompt ?? '',
     persona: buildPersonaBlock(agentPersona, instance.context.persona),
     memory: buildMemoryBlock(instance.context.memoryReads),
-    fields_schema: isExtractor ? buildFieldsSchemaBlock(extractorFields) : '',
-    fields_current: isExtractor ? buildFieldsCurrentBlock(extractorFields) : '',
+    fields_schema: isExtractor ? buildFieldsSchemaBlock(fields) : '',
+    fields_current: isExtractor ? buildFieldsCurrentBlock(fields) : '',
   });
 }
 

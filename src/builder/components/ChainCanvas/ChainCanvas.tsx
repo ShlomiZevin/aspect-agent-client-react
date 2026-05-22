@@ -145,6 +145,12 @@ export function ChainCanvas({ agent, crew }: Props) {
                   if (!desc) return null;
                   const model = configModel(instance.config);
                   const isMainLane = lane.id === 'main';
+                  // Prefer the user-set instance name (e.g. "Date Extractor")
+                  // over the plugin's generic display name (e.g. "Field Extractor").
+                  const instanceName =
+                    (instance.config && typeof (instance.config as { name?: unknown }).name === 'string'
+                      ? ((instance.config as { name?: string }).name || '').trim()
+                      : '') || desc.name;
                   const isDragging = isMainLane && draggingIdx === i;
                   const isDropTarget = isMainLane && overIdx === i && draggingIdx !== null && draggingIdx !== i;
                   return (
@@ -193,7 +199,7 @@ export function ChainCanvas({ agent, crew }: Props) {
                       >
                         {isMainLane && <span className={styles.dragHandle} aria-hidden="true">⋮⋮</span>}
                         <span className={styles.cardIcon}>{desc.icon}</span>
-                        <span className={styles.cardName}>{desc.name}</span>
+                        <span className={styles.cardName}>{instanceName}</span>
                         {/* Always render the model line so cards stay
                           * the same height across the row. Hidden via
                           * visibility (not display) when there's no

@@ -20,6 +20,8 @@ export type RuntimeEvent =
       memoryWrites?: Array<{ domain: string | null; field: string; value: unknown }>;
       tokens: { input: number; output: number; total: number };
       durationMs: number;
+      /** Time-to-first-token (Talker only). Perceived latency. */
+      firstTokenMs?: number;
       parseError?: string;
       transition?: { to: string; reason?: string };
       broke?: boolean;

@@ -1,11 +1,14 @@
 /**
  * FieldEditorModal — edit a single field.
  *
- * Lets the user change name, type, source, how-to-extract, domain
- * (autocomplete + create), enum values, and **re-parent** the field
- * to a different extractor. When re-parenting and the current source
- * isn't allowed by the new owner, we coerce to the new owner's
- * default and show a small note.
+ * Lets the user change name, type, source, scope, domain (autocomplete
+ * + create), enum values, and the set of Field Extractors that
+ * extract this field (multi-select across every crew of the agent).
+ *
+ * Scope change is a *move*: the FieldDef shifts between
+ * `agent.fields` and `crew.fields`. The "Extracted by" set is just
+ * a toggle into each extractor's `extractsFields[]` — same field id
+ * can be ticked in multiple extractors at once.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -13,13 +16,11 @@ import { Modal } from '../Modal/Modal';
 import { useCrewFields } from '../../state/useCrewFields';
 import { useBuilder } from '../../state/BuilderContext';
 import { useConfirm } from '../Confirm/Confirm';
-import { getPlugin } from '../../registry/plugins';
 import { DomainInput } from './DomainInput';
 import type { CrewField } from '../../state/useCrewFields';
-import type { FieldSource, FieldType, ID } from '../../types';
+import type { FieldScope, FieldSource, FieldType, ID } from '../../types';
 import styles from './AddFieldModal.module.css';
 
-/** Pluck a field's live value out of the conversation memory blob. */
 function findLiveValue(
   memory: Record<string, Record<string, unknown>>,
   fieldName: string,
@@ -43,6 +44,9 @@ interface Props {
   crewField: CrewField | null;
   onClose: () => void;
   agentId: ID;
+  /** Crew the panel is mounted in (used as the destination crew
+   *  if the user changes scope from 'agent' to 'crew'). Empty when
+   *  the editor is opened from the AgentView panel. */
   crewId: ID;
 }
 
@@ -59,7 +63,7 @@ const SOURCE_LABEL: Record<FieldSource, { label: string }> = {
 };
 
 export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props) {
-  const { extractors, extractorOptions, domainNames, updateField, moveField, removeField } =
+  const { agentExtractors, domainNames, updateField, removeField, setFieldExtractors } =
     useCrewFields(agentId, crewId);
   const { conversationMemory, previewConversationId, updateConversationMemoryField } = useBuilder();
   const confirm = useConfirm();
@@ -67,14 +71,11 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
   const [name, setName] = useState('');
   const [type, setType] = useState<FieldType>('string');
   const [source, setSource] = useState<FieldSource>('explicit');
+  const [scope, setScope] = useState<FieldScope>('agent');
   const [howToExtract, setHowToExtract] = useState('');
   const [enumValues, setEnumValues] = useState('');
   const [domain, setDomain] = useState('');
-  const [targetId, setTargetId] = useState<ID>('');
-  const [coercedNote, setCoercedNote] = useState<string | null>(null);
-
-  // Live-value editing state. `editingLive=true` swaps the read-only
-  // chip for an input; saving writes to conversation memory.
+  const [selectedExtractors, setSelectedExtractors] = useState<Set<ID>>(new Set());
   const [editingLive, setEditingLive] = useState(false);
   const [liveDraft, setLiveDraft] = useState('');
 
@@ -84,40 +85,27 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
     setName(f.name);
     setType(f.type);
     setSource(f.source);
+    setScope(crewField.scope);
     setHowToExtract(f.howToExtract);
     setEnumValues((f.enumValues ?? []).join(', '));
     setDomain(f.domain ?? '');
-    setTargetId(crewField.extractorInstanceId);
-    setCoercedNote(null);
+    setSelectedExtractors(new Set(crewField.extractors.map(e => e.instanceId)));
     setEditingLive(false);
   }, [crewField]);
 
-  // Sources allowed by the currently-targeted extractor.
-  const allowedSources: FieldSource[] = useMemo(() => {
-    const inst = extractors.find(e => e.instanceId === targetId);
-    if (!inst) return ['explicit', 'inferred'];
-    const desc = getPlugin(inst.pluginId);
-    return desc?.allowedFieldSources ?? ['explicit', 'inferred'];
-  }, [targetId, extractors]);
-
-  // Coerce source if the new owner doesn't allow it. Note the change.
-  useEffect(() => {
-    if (!crewField) return;
-    if (!allowedSources.includes(source)) {
-      const next = allowedSources[0];
-      setSource(next);
-      setCoercedNote(
-        `Source coerced to "${SOURCE_LABEL[next].label}" — this extractor doesn't allow others.`,
-      );
-    } else {
-      setCoercedNote(null);
+  // Group extractors by crew for the multi-select layout.
+  const byCrew = useMemo(() => {
+    const groups = new Map<string, { crewName: string; items: typeof agentExtractors }>();
+    for (const e of agentExtractors) {
+      if (!groups.has(e.crewId)) groups.set(e.crewId, { crewName: e.crewName, items: [] });
+      groups.get(e.crewId)!.items.push(e);
     }
-  }, [allowedSources, source, crewField]);
+    return Array.from(groups.values());
+  }, [agentExtractors]);
 
   if (!crewField) return null;
 
   const original = crewField.field;
-  const originalExtractorId = crewField.extractorInstanceId;
   const liveValue = findLiveValue(conversationMemory, original.name);
   const hasLive = liveValue !== undefined;
   const canEditLive = previewConversationId !== null;
@@ -126,10 +114,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
     setLiveDraft(liveValueToString(liveValue));
     setEditingLive(true);
   };
-
   const saveLive = async () => {
-    // Coerce to the declared field type for non-strings; on parse
-    // failure fall through as a raw string so the user isn't blocked.
     const raw = liveDraft.trim();
     let v: unknown = raw;
     if (type === 'int') {
@@ -147,40 +132,52 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
     });
     setEditingLive(false);
   };
-
   const clearLive = async () => {
     await updateConversationMemoryField({ field: original.name, clear: true });
     setEditingLive(false);
   };
 
-  const save = () => {
-    if (targetId !== originalExtractorId) {
-      moveField(original.id, originalExtractorId, targetId);
-    }
-    const ownerId = targetId || originalExtractorId;
-    updateField(ownerId, original.id, {
-      name: name.trim(),
-      type,
-      source,
-      howToExtract: howToExtract.trim(),
-      domain: domain.trim() || undefined,
-      enumValues:
-        type === 'enum'
-          ? enumValues.split(',').map(v => v.trim()).filter(Boolean)
-          : undefined,
+  const toggleExtractor = (id: ID) => {
+    setSelectedExtractors(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
     });
+  };
+
+  const save = () => {
+    // 1. Patch + (optionally) move the FieldDef.
+    updateField(
+      crewField.scope,
+      crewField.ownerCrewId,
+      original.id,
+      {
+        name: name.trim(),
+        type,
+        source,
+        howToExtract: howToExtract.trim(),
+        domain: domain.trim() || undefined,
+        enumValues:
+          type === 'enum'
+            ? enumValues.split(',').map(v => v.trim()).filter(Boolean)
+            : undefined,
+      },
+      scope !== crewField.scope ? scope : undefined,
+    );
+    // 2. Sync the "extracted by" set.
+    setFieldExtractors(original.id, Array.from(selectedExtractors));
     onClose();
   };
 
   const remove = async () => {
     const ok = await confirm({
       title: `Delete field "${original.name || '(unnamed)'}"?`,
-      message: 'This removes the field from its Field Extractor.',
+      message: 'Removes the field definition and unhooks it from every extractor that references it.',
       confirmLabel: 'Delete',
       danger: true,
     });
     if (ok) {
-      removeField(originalExtractorId, original.id);
+      removeField(crewField.scope, crewField.ownerCrewId, original.id);
       onClose();
     }
   };
@@ -189,7 +186,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
     <Modal
       open={crewField !== null}
       onClose={onClose}
-      width={560}
+      width={620}
       title={<>📝 {original.name || 'Field'}</>}
       badge={type}
       footer={
@@ -209,7 +206,8 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
             type="button"
             className={styles.save}
             onClick={save}
-            disabled={!name.trim()}
+            disabled={!name.trim() || selectedExtractors.size === 0}
+            title={selectedExtractors.size === 0 ? 'Pick at least one extractor' : undefined}
           >
             Save
           </button>
@@ -223,18 +221,12 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
               <span className={styles.liveLabel}>Current value (this chat)</span>
               {hasLive && !editingLive && (
                 <div className={styles.liveActions}>
-                  <button type="button" className={styles.liveBtn} onClick={startEditLive}>
-                    Edit
-                  </button>
-                  <button type="button" className={`${styles.liveBtn} ${styles.liveBtnDanger}`} onClick={clearLive}>
-                    Clear
-                  </button>
+                  <button type="button" className={styles.liveBtn} onClick={startEditLive}>Edit</button>
+                  <button type="button" className={`${styles.liveBtn} ${styles.liveBtnDanger}`} onClick={clearLive}>Clear</button>
                 </div>
               )}
               {!hasLive && !editingLive && (
-                <button type="button" className={styles.liveBtn} onClick={startEditLive}>
-                  Set value
-                </button>
+                <button type="button" className={styles.liveBtn} onClick={startEditLive}>Set value</button>
               )}
             </div>
             {editingLive ? (
@@ -246,12 +238,8 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
                   placeholder={`Enter ${type} value`}
                   autoFocus
                 />
-                <button type="button" className={styles.liveSave} onClick={saveLive}>
-                  Save value
-                </button>
-                <button type="button" className={styles.liveBtn} onClick={() => setEditingLive(false)}>
-                  Cancel
-                </button>
+                <button type="button" className={styles.liveSave} onClick={saveLive}>Save value</button>
+                <button type="button" className={styles.liveBtn} onClick={() => setEditingLive(false)}>Cancel</button>
               </div>
             ) : (
               <div className={styles.liveValueChip}>
@@ -279,9 +267,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
               value={type}
               onChange={e => setType(e.target.value as FieldType)}
             >
-              {TYPES.map(t => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
+              {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </label>
 
@@ -292,29 +278,26 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
               value={source}
               onChange={e => setSource(e.target.value as FieldSource)}
             >
-              {allowedSources.map(s => (
+              {(['explicit', 'inferred'] as FieldSource[]).map(s => (
                 <option key={s} value={s}>{SOURCE_LABEL[s].label}</option>
               ))}
             </select>
           </label>
 
-          {extractorOptions.length > 1 && (
-            <label className={styles.field}>
-              <span className={styles.label}>Extracted by</span>
-              <select
-                className={styles.input}
-                value={targetId}
-                onChange={e => setTargetId(e.target.value)}
-              >
-                {extractorOptions.map(o => (
-                  <option key={o.instanceId} value={o.instanceId}>{o.label}</option>
-                ))}
-              </select>
-            </label>
-          )}
+          <label className={styles.field}>
+            <span className={styles.label}>Scope</span>
+            <select
+              className={styles.input}
+              value={scope}
+              onChange={e => setScope(e.target.value as FieldScope)}
+              title="Where this field lives in JSON"
+              disabled={scope === 'crew' && !crewId}
+            >
+              <option value="agent">Agent — visible everywhere</option>
+              <option value="crew">Crew — only in this crew</option>
+            </select>
+          </label>
         </div>
-
-        {coercedNote && <p className={styles.note}>{coercedNote}</p>}
 
         <label className={styles.field}>
           <span className={styles.label}>Domain</span>
@@ -323,7 +306,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
             onChange={setDomain}
             options={domainNames}
             onSubmit={() => {
-              if (name.trim()) save();
+              if (name.trim() && selectedExtractors.size > 0) save();
             }}
           />
         </label>
@@ -349,6 +332,45 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
             />
           </label>
         )}
+
+        {/* ── Extracted-by multi-select ─────────────────────────── */}
+        <div className={styles.field}>
+          <span className={styles.label}>Extracted by</span>
+          {agentExtractors.length === 0 ? (
+            <div className={styles.hintBlock}>
+              No Field Extractors anywhere in this agent yet. Add one
+              to a crew's chain before this field can be extracted.
+            </div>
+          ) : (
+            <div className={styles.extractorPickGroups}>
+              {byCrew.map(group => (
+                <div key={group.crewName} className={styles.extractorPickGroup}>
+                  <div className={styles.extractorPickCrew}>{group.crewName}</div>
+                  <div className={styles.extractorPickChips}>
+                    {group.items.map(e => {
+                      const active = selectedExtractors.has(e.instanceId);
+                      return (
+                        <button
+                          key={e.instanceId}
+                          type="button"
+                          className={`${styles.extractorPickChip} ${active ? styles.extractorPickChipActive : ''}`}
+                          onClick={() => toggleExtractor(e.instanceId)}
+                        >
+                          {e.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {selectedExtractors.size > 1 && (
+            <span className={styles.note}>
+              Multiple extractors will write to the same memory slot for "{name}". Last one to fire per turn wins.
+            </span>
+          )}
+        </div>
       </div>
     </Modal>
   );

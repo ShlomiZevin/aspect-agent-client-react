@@ -35,6 +35,7 @@ function bodyOfAgent(agent: AgentDoc): AgentBody {
     spec: agent.spec,
     persona: agent.persona,
     defaultCrewId: agent.defaultCrewId,
+    fields: agent.fields,
   };
 }
 
@@ -45,6 +46,7 @@ function bodyOfCrew(crew: CrewDoc): CrewBody {
     spec: crew.spec,
     persona: crew.persona,
     addons: crew.addons,
+    fields: crew.fields,
   };
 }
 

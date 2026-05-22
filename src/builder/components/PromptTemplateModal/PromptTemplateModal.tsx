@@ -48,13 +48,32 @@ export function PromptTemplateModal({ open, onClose, agentId, instance }: Props)
     [doc, agentId],
   );
 
+  // Resolve `extractsFields[]` against agent.fields + the owning
+  // crew's crew-scoped fields. The owning crew is whichever crew
+  // hosts this addon instance.
+  const extractorFields = useMemo(() => {
+    if (!instance || !agent) return [];
+    const cfg = instance.config as { extractsFields?: string[] } | undefined;
+    const ids = new Set(cfg?.extractsFields ?? []);
+    if (ids.size === 0) return [];
+    const owningCrew = agent.crews.find(c =>
+      c.addons.some(a => a.instanceId === instance.instanceId),
+    );
+    const pool = [
+      ...(agent.fields ?? []),
+      ...((owningCrew?.fields) ?? []),
+    ];
+    return pool.filter(f => ids.has(f.id));
+  }, [instance, agent]);
+
   const preview = useMemo(() => {
     if (!instance) return '';
     return buildPromptPreview({
       instance,
       agentPersona: agent?.persona ?? '',
+      extractorFields,
     });
-  }, [instance, agent]);
+  }, [instance, agent, extractorFields]);
 
   // Fetch the live conversation transcript so the history sidebar
   // shows what the LLM would actually receive. Refetch on each open

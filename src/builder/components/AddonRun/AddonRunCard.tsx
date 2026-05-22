@@ -27,6 +27,8 @@ export interface AddonRunSnapshot {
   /** Set by the Transition Router with onMatch:'break' — engine skipped the rest of the chain. */
   broke?: boolean;
   durationMs?: number;
+  /** Time-to-first-token for streaming plugins (Talker). Perceived latency. */
+  firstTokenMs?: number;
   error?: { code: string; message: string };
 }
 
@@ -107,7 +109,20 @@ export function AddonRunCard({ run }: Props) {
           {run.status === 'running' ? '… running' : run.status === 'error' ? 'error' : 'done'}
         </span>
         {typeof run.durationMs === 'number' && run.status !== 'running' && (
-          <span className={styles.duration}>{run.durationMs}ms</span>
+          // Streaming plugins (Talker) get a two-number display:
+          // "starts in Xms · full Yms" — TTFT is what the user actually
+          // perceives; TTLT is the full compute cost. Non-streaming
+          // plugins (Field Extractor, Transition Router) just show one.
+          typeof run.firstTokenMs === 'number' ? (
+            <span
+              className={styles.duration}
+              title={`First token at ${run.firstTokenMs}ms · stream ended at ${run.durationMs}ms`}
+            >
+              {run.firstTokenMs}ms <span className={styles.durationFull}>· {run.durationMs}ms</span>
+            </span>
+          ) : (
+            <span className={styles.duration}>{run.durationMs}ms</span>
+          )
         )}
       </button>
 

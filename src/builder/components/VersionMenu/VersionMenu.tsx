@@ -39,6 +39,7 @@ export function VersionMenu({ state }: Props) {
     viewingVersionId,
     activeVersionId,
     isDirty,
+    crossDirtyLabel,
     nextNumber,
     save,
     saveAs,
@@ -47,6 +48,11 @@ export function VersionMenu({ state }: Props) {
 
   const viewing = versions.find(v => v.id === viewingVersionId);
   const viewingIsActive = viewingVersionId === activeVersionId;
+  const saveTooltip = !isDirty
+    ? 'No changes to save'
+    : crossDirtyLabel
+      ? `Saves the ${entityLabel} and the ${crossDirtyLabel} — this edit touched both.`
+      : 'Save changes into the viewing version';
 
   return (
     <div className={styles.wrap}>
@@ -83,9 +89,16 @@ export function VersionMenu({ state }: Props) {
         className={`${styles.btn} ${isDirty ? styles.btnPrimary : ''}`}
         onClick={save}
         disabled={!isDirty}
-        title={isDirty ? 'Save changes into the viewing version' : 'No changes to save'}
+        title={saveTooltip}
       >
         Save
+        {crossDirtyLabel && (
+          // Small suffix when this Save will also persist a sibling
+          // entity (e.g. crew save also saving agent). Visual signal
+          // that one click does both — keeps the user from wondering
+          // "but did the agent save too?".
+          <span className={styles.saveCross}> + {crossDirtyLabel}</span>
+        )}
       </button>
 
       <button

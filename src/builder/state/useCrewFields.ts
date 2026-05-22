@@ -1,13 +1,27 @@
 /**
- * useCrewFields — selector + mutation hook for crew-level fields.
+ * useCrewFields — fields *visible* in a single crew's view.
  *
- * Fields are physically owned by Field Extractor addon instances
- * (lives inside `addon.config.fields`). This hook aggregates them
- * to a flat list for the crew dashboard, tagging each with the
- * extractor instance that produces it.
+ * In the new field model, definitions live on `agent.fields[]` (when
+ * scope='agent') and `crew.fields[]` (when scope='crew'). Extractors
+ * hold an `extractsFields: ID[]` list — which definitions they pull.
  *
- * Mutations write back through `updateAddonConfig` so the data
- * model stays normalized (extractor produces fields).
+ * The crew view should show every field a user editing this crew
+ * cares about — that's every agent field PLUS this crew's own
+ * crew-scoped fields. Each `CrewField` carries `scope` (derived from
+ * its storage location), `extractors` (every Field Extractor across
+ * the agent that has this field in its `extractsFields`), and a
+ * primary extractor label for legacy "single owner" code paths.
+ *
+ * Mutations:
+ *   - addField:       create a FieldDef in agent.fields or crew.fields
+ *                     AND register it in each selected extractor's
+ *                     `extractsFields` list.
+ *   - updateField:    patch a FieldDef in its storage location.
+ *                     Setting scope moves the def between agent/crew.
+ *   - removeField:    delete the FieldDef AND scrub its id from every
+ *                     extractor's `extractsFields` (no orphan refs).
+ *   - setFieldExtractors: replace the set of extractors that extract
+ *                     a given field id (multi-toggle from the editor).
  */
 
 import { useCallback, useMemo } from 'react';
@@ -16,16 +30,54 @@ import { FIELD_EXTRACTOR_PLUGIN_ID, fieldExtractorPlugin } from '../plugins/fiel
 import { defaultContextFor, defaultOutputTypeFor } from '../registry/plugins';
 import type {
   AddonInstance,
+  AgentDoc,
+  CrewDoc,
   FieldDef,
   FieldExtractorConfig,
+  FieldScope,
   ID,
 } from '../types';
 
+export interface ExtractorRef {
+  /** Field Extractor instance id. */
+  instanceId: ID;
+  /** User-set name (extractor's config.name) or the default "Field Extractor [#N]". */
+  label: string;
+  /** Crew the extractor lives in. */
+  crewId: ID;
+  /** Crew's display name (for "Crew → Extractor" labels). */
+  crewName: string;
+}
+
 export interface CrewField {
   field: FieldDef;
+  /** Where the field lives (which array it was found in). */
+  scope: FieldScope;
+  /**
+   * The crew this field belongs to when scope='crew'. Empty string
+   * when scope='agent' (the field has no owning crew).
+   */
+  ownerCrewId: ID;
+  /**
+   * Every Field Extractor across the agent that lists this field's
+   * id in its `extractsFields`. Empty means the field is defined
+   * but nothing extracts it (the UI flags this as a configuration
+   * issue).
+   */
+  extractors: ExtractorRef[];
+  // ── Legacy single-extractor fields kept for compat with existing
+  // ── modal code. These point at the first entry in `extractors`,
+  // ── or empty when there are none.
   extractorInstanceId: ID;
-  /** Human-readable label for the source extractor instance. */
   extractorLabel: string;
+  /**
+   * Crew the field is being VIEWED from. Matches `ownerCrewId` for
+   * crew-scoped fields; for agent-scoped fields, it's the crew the
+   * panel is rendered inside (used by the editor to know which
+   * crew's extractors to show in the "Extracted by" multi-select).
+   */
+  crewId: ID;
+  crewName: string;
 }
 
 export interface ExtractorOption {
@@ -33,11 +85,10 @@ export interface ExtractorOption {
   label: string;
 }
 
-/** A domain present in the crew (i.e. tagged on at least one field). */
+/** A domain present in the field set. */
 export interface CrewDomain {
   /** Domain name. `null` denotes "(no domain)". */
   name: string | null;
-  /** Fields tagged with this domain. */
   fields: CrewField[];
 }
 
@@ -49,47 +100,121 @@ function newFieldId(): ID {
   return `field_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/**
+ * Build a labeled list of all Field Extractor instances in an agent
+ * (across every crew). Each gets a user-friendly label that prefers
+ * the user-set `config.name`, falling back to "Field Extractor [#N]"
+ * disambiguated per crew.
+ */
+function listAllExtractors(agent: AgentDoc | undefined): ExtractorRef[] {
+  if (!agent) return [];
+  const out: ExtractorRef[] = [];
+  for (const crew of agent.crews) {
+    const extractors = crew.addons.filter(isFieldExtractor);
+    extractors.forEach((e, i) => {
+      const userName = (e.config?.name || '').trim();
+      const fallback = extractors.length === 1 ? 'Field Extractor' : `Field Extractor #${i + 1}`;
+      out.push({
+        instanceId: e.instanceId,
+        label: userName || fallback,
+        crewId: crew.id,
+        crewName: crew.name,
+      });
+    });
+  }
+  return out;
+}
+
+/**
+ * Build a CrewField for a given FieldDef, populating `extractors`
+ * by scanning every Field Extractor in the agent for the field id.
+ */
+function buildCrewField(
+  def: FieldDef,
+  scope: FieldScope,
+  ownerCrewId: ID,
+  viewedCrewId: ID,
+  viewedCrewName: string,
+  agentExtractors: ExtractorRef[],
+  agent: AgentDoc | undefined,
+): CrewField {
+  if (!agent) {
+    return {
+      field: def,
+      scope,
+      ownerCrewId,
+      extractors: [],
+      extractorInstanceId: '',
+      extractorLabel: '',
+      crewId: viewedCrewId,
+      crewName: viewedCrewName,
+    };
+  }
+  // Resolve which extractors mention this id.
+  const extractors: ExtractorRef[] = [];
+  for (const crew of agent.crews) {
+    for (const a of crew.addons) {
+      if (!isFieldExtractor(a)) continue;
+      const list = Array.isArray(a.config.extractsFields) ? a.config.extractsFields : [];
+      if (list.includes(def.id)) {
+        const ref = agentExtractors.find(x => x.instanceId === a.instanceId);
+        if (ref) extractors.push(ref);
+      }
+    }
+  }
+  return {
+    field: def,
+    scope,
+    ownerCrewId,
+    extractors,
+    extractorInstanceId: extractors[0]?.instanceId ?? '',
+    extractorLabel:      extractors[0]?.label      ?? '',
+    crewId: viewedCrewId,
+    crewName: viewedCrewName,
+  };
+}
+
 export function useCrewFields(agentId: ID, crewId: ID) {
-  const { doc, updateAddonConfig, addAddon } = useBuilder();
+  const { doc, updateAgent, updateCrew, updateAddonConfig, addAddon } = useBuilder();
 
   const agent = doc.agents.find(a => a.id === agentId);
   const crew = agent?.crews.find(c => c.id === crewId);
 
+  const agentExtractors = useMemo(() => listAllExtractors(agent), [agent]);
+
+  /** Just this crew's extractors (used by the "this extractor" picker). */
   const extractors = useMemo<AddonInstance<FieldExtractorConfig>[]>(
     () => (crew?.addons ?? []).filter(isFieldExtractor),
     [crew?.addons],
   );
 
   const extractorOptions = useMemo<ExtractorOption[]>(
-    () =>
-      extractors.map((e, i) => ({
-        instanceId: e.instanceId,
-        label: extractors.length === 1 ? 'Field Extractor' : `Field Extractor #${i + 1}`,
-      })),
+    () => extractors.map((e, i) => {
+      const userName = (e.config?.name || '').trim();
+      const fallback = extractors.length === 1 ? 'Field Extractor' : `Field Extractor #${i + 1}`;
+      return { instanceId: e.instanceId, label: userName || fallback };
+    }),
     [extractors],
   );
 
+  /**
+   * Every field visible in this crew view: every agent field + this
+   * crew's crew-scoped fields. The order is agent-first (stable),
+   * then crew-scoped.
+   */
   const allFields = useMemo<CrewField[]>(() => {
-    const labelFor = (id: ID) =>
-      extractorOptions.find(o => o.instanceId === id)?.label ?? 'Field Extractor';
+    if (!agent || !crew) return [];
+    const crewName = crew.name;
     const out: CrewField[] = [];
-    for (const e of extractors) {
-      for (const f of e.config.fields) {
-        out.push({
-          field: f,
-          extractorInstanceId: e.instanceId,
-          extractorLabel: labelFor(e.instanceId),
-        });
-      }
+    for (const def of agent.fields || []) {
+      out.push(buildCrewField(def, 'agent', '', crewId, crewName, agentExtractors, agent));
+    }
+    for (const def of crew.fields || []) {
+      out.push(buildCrewField(def, 'crew', crew.id, crewId, crewName, agentExtractors, agent));
     }
     return out;
-  }, [extractors, extractorOptions]);
+  }, [agent, crew, crewId, agentExtractors]);
 
-  /**
-   * Distinct domains present in this crew. Named domains come first
-   * in field-add order; "(no domain)" appears last as `name: null`
-   * if any field is domainless.
-   */
   const domains = useMemo<CrewDomain[]>(() => {
     const named = new Map<string, CrewField[]>();
     const orphan: CrewField[] = [];
@@ -107,126 +232,182 @@ export function useCrewFields(agentId: ID, crewId: ID) {
     return out;
   }, [allFields]);
 
-  /** Bare list of named domains in this crew (no `(no domain)`). */
   const domainNames = useMemo<string[]>(
     () => domains.filter(d => d.name !== null).map(d => d.name as string),
     [domains],
   );
 
-  const addField = useCallback(
-    (extractorInstanceId: ID, draft: Omit<FieldDef, 'id'>): FieldDef => {
-      const target = extractors.find(e => e.instanceId === extractorInstanceId);
-      if (!target) throw new Error('Target extractor not found');
-      const field: FieldDef = { ...draft, id: newFieldId() };
-      const nextConfig: FieldExtractorConfig = {
-        ...target.config,
-        fields: [...target.config.fields, field],
-      };
-      updateAddonConfig(agentId, crewId, extractorInstanceId, nextConfig);
-      return field;
+  /**
+   * Register a field id in the `extractsFields` lists of the named
+   * extractor instances (and remove from any not in `extractorIds`).
+   * Used by add + edit flows.
+   */
+  const setFieldExtractors = useCallback(
+    (fieldId: ID, extractorIds: ID[]) => {
+      if (!agent) return;
+      const wanted = new Set(extractorIds);
+      // For each Field Extractor across the agent, decide if it
+      // should contain the id and patch its config when changed.
+      for (const c of agent.crews) {
+        for (const a of c.addons) {
+          if (!isFieldExtractor(a)) continue;
+          const list = Array.isArray(a.config.extractsFields) ? a.config.extractsFields : [];
+          const has = list.includes(fieldId);
+          const should = wanted.has(a.instanceId);
+          if (has === should) continue;
+          const next = should
+            ? [...list, fieldId]
+            : list.filter(id => id !== fieldId);
+          const nextConfig: FieldExtractorConfig = { ...a.config, extractsFields: next };
+          updateAddonConfig(agentId, c.id, a.instanceId, nextConfig);
+        }
+      }
     },
-    [agentId, crewId, extractors, updateAddonConfig],
+    [agent, agentId, updateAddonConfig],
   );
 
   /**
-   * Add a field to the crew, creating a Field Extractor if none exists.
-   * If `extractorInstanceId` is supplied it targets that one; otherwise
-   * the first extractor (or a newly-created one) receives the field.
-   * Combined into a single mutation so the create-then-add race
-   * around batched setState can't lose the field.
+   * Add a field to the agent or crew (per `scope`), then register
+   * it in each of the supplied extractor instance ids.
+   * Creates a Field Extractor automatically if `extractorIds` is
+   * empty AND `createDefaultExtractor` is true — preserves the old
+   * "just add a field" UX.
    */
-  const addFieldToCrew = useCallback(
-    (draft: Omit<FieldDef, 'id'>, extractorInstanceId?: ID): FieldDef => {
+  const addFieldToScope = useCallback(
+    (
+      scope: FieldScope,
+      draft: Omit<FieldDef, 'id'>,
+      extractorIds: ID[],
+      opts?: { createDefaultExtractor?: boolean },
+    ): FieldDef => {
       const field: FieldDef = { ...draft, id: newFieldId() };
-      const target = extractorInstanceId
-        ? extractors.find(e => e.instanceId === extractorInstanceId)
-        : extractors[0];
-
-      if (target) {
-        const nextConfig: FieldExtractorConfig = {
-          ...target.config,
-          fields: [...target.config.fields, field],
-        };
-        updateAddonConfig(agentId, crewId, target.instanceId, nextConfig);
-        return field;
+      // Write the def into the right body.
+      if (scope === 'agent') {
+        const next = [...(agent?.fields || []), field];
+        updateAgent(agentId, { fields: next } as Partial<AgentDoc>);
+      } else {
+        const next = [...(crew?.fields || []), field];
+        updateCrew(agentId, crewId, { fields: next } as Partial<CrewDoc>);
       }
-
-      // No extractor — create one with the field already inside.
-      const instance: AddonInstance<FieldExtractorConfig> = {
-        instanceId: newAddonInstanceId(),
-        pluginId: FIELD_EXTRACTOR_PLUGIN_ID,
-        lane: fieldExtractorPlugin.defaultLane,
-        enabled: true,
-        config: { ...fieldExtractorPlugin.defaultConfig(), fields: [field] },
-        context: defaultContextFor(fieldExtractorPlugin),
-        outputType: defaultOutputTypeFor(fieldExtractorPlugin),
-        promptTemplate: fieldExtractorPlugin.defaultPromptTemplate,
-      };
-      addAddon(agentId, crewId, instance as AddonInstance);
+      // If the user picked no extractors AND we're invited to bootstrap
+      // one, mint a Field Extractor in this crew and use it.
+      let ids = extractorIds;
+      if (ids.length === 0 && opts?.createDefaultExtractor) {
+        const instance: AddonInstance<FieldExtractorConfig> = {
+          instanceId: newAddonInstanceId(),
+          pluginId: FIELD_EXTRACTOR_PLUGIN_ID,
+          lane: fieldExtractorPlugin.defaultLane,
+          enabled: true,
+          config: { ...fieldExtractorPlugin.defaultConfig(), extractsFields: [field.id] },
+          context: defaultContextFor(fieldExtractorPlugin),
+          outputType: defaultOutputTypeFor(fieldExtractorPlugin),
+          promptTemplate: fieldExtractorPlugin.defaultPromptTemplate,
+        };
+        addAddon(agentId, crewId, instance as AddonInstance);
+        ids = [instance.instanceId];
+      } else if (ids.length > 0) {
+        setFieldExtractors(field.id, ids);
+      }
       return field;
     },
-    [agentId, crewId, extractors, updateAddonConfig, addAddon],
+    [agent, crew, agentId, crewId, updateAgent, updateCrew, addAddon, setFieldExtractors],
   );
 
+  /**
+   * Patch a FieldDef. If `nextScope` differs from the current scope,
+   * the def is moved between agent.fields and crew.fields.
+   */
   const updateField = useCallback(
-    (extractorInstanceId: ID, fieldId: ID, patch: Partial<FieldDef>) => {
-      const target = extractors.find(e => e.instanceId === extractorInstanceId);
-      if (!target) return;
-      const nextConfig: FieldExtractorConfig = {
-        ...target.config,
-        fields: target.config.fields.map(f => (f.id === fieldId ? { ...f, ...patch } : f)),
-      };
-      updateAddonConfig(agentId, crewId, extractorInstanceId, nextConfig);
+    (currentScope: FieldScope, currentOwnerCrewId: ID, fieldId: ID,
+     patch: Partial<FieldDef>, nextScope?: FieldScope) => {
+      if (!agent) return;
+      const targetScope = nextScope ?? currentScope;
+      const moving = targetScope !== currentScope;
+
+      // Find + remove from current location.
+      let original: FieldDef | undefined;
+      if (currentScope === 'agent') {
+        original = (agent.fields || []).find(f => f.id === fieldId);
+        if (!original) return;
+        if (moving) {
+          const remaining = (agent.fields || []).filter(f => f.id !== fieldId);
+          updateAgent(agentId, { fields: remaining } as Partial<AgentDoc>);
+        } else {
+          const next = (agent.fields || []).map(f => f.id === fieldId ? { ...f, ...patch } : f);
+          updateAgent(agentId, { fields: next } as Partial<AgentDoc>);
+        }
+      } else {
+        const c = agent.crews.find(x => x.id === currentOwnerCrewId);
+        original = (c?.fields || []).find(f => f.id === fieldId);
+        if (!original || !c) return;
+        if (moving) {
+          const remaining = (c.fields || []).filter(f => f.id !== fieldId);
+          updateCrew(agentId, c.id, { fields: remaining } as Partial<CrewDoc>);
+        } else {
+          const next = (c.fields || []).map(f => f.id === fieldId ? { ...f, ...patch } : f);
+          updateCrew(agentId, c.id, { fields: next } as Partial<CrewDoc>);
+        }
+      }
+
+      // If moving, insert at the destination with the patch applied.
+      if (moving) {
+        const patched: FieldDef = { ...original, ...patch };
+        if (targetScope === 'agent') {
+          const next = [...(agent.fields || []), patched];
+          updateAgent(agentId, { fields: next } as Partial<AgentDoc>);
+        } else {
+          // Moving to crew → use the *viewing* crew as the new owner.
+          const next = [...((crew?.fields) || []), patched];
+          updateCrew(agentId, crewId, { fields: next } as Partial<CrewDoc>);
+        }
+      }
     },
-    [agentId, crewId, extractors, updateAddonConfig],
+    [agent, crew, agentId, crewId, updateAgent, updateCrew],
   );
 
+  /**
+   * Delete a field definition AND scrub its id from every extractor
+   * that referenced it (no orphan ids left over).
+   */
   const removeField = useCallback(
-    (extractorInstanceId: ID, fieldId: ID) => {
-      const target = extractors.find(e => e.instanceId === extractorInstanceId);
-      if (!target) return;
-      const nextConfig: FieldExtractorConfig = {
-        ...target.config,
-        fields: target.config.fields.filter(f => f.id !== fieldId),
-      };
-      updateAddonConfig(agentId, crewId, extractorInstanceId, nextConfig);
+    (scope: FieldScope, ownerCrewId: ID, fieldId: ID) => {
+      if (!agent) return;
+      if (scope === 'agent') {
+        const next = (agent.fields || []).filter(f => f.id !== fieldId);
+        updateAgent(agentId, { fields: next } as Partial<AgentDoc>);
+      } else {
+        const c = agent.crews.find(x => x.id === ownerCrewId);
+        if (!c) return;
+        const next = (c.fields || []).filter(f => f.id !== fieldId);
+        updateCrew(agentId, c.id, { fields: next } as Partial<CrewDoc>);
+      }
+      // Scrub.
+      for (const c of agent.crews) {
+        for (const a of c.addons) {
+          if (!isFieldExtractor(a)) continue;
+          const list = Array.isArray(a.config.extractsFields) ? a.config.extractsFields : [];
+          if (!list.includes(fieldId)) continue;
+          const nextConfig: FieldExtractorConfig = {
+            ...a.config,
+            extractsFields: list.filter(id => id !== fieldId),
+          };
+          updateAddonConfig(agentId, c.id, a.instanceId, nextConfig);
+        }
+      }
     },
-    [agentId, crewId, extractors, updateAddonConfig],
-  );
-
-  /** Move a field between extractor instances (re-parent). */
-  const moveField = useCallback(
-    (fieldId: ID, fromInstanceId: ID, toInstanceId: ID) => {
-      if (fromInstanceId === toInstanceId) return;
-      const from = extractors.find(e => e.instanceId === fromInstanceId);
-      const to = extractors.find(e => e.instanceId === toInstanceId);
-      if (!from || !to) return;
-      const field = from.config.fields.find(f => f.id === fieldId);
-      if (!field) return;
-      const fromConfig: FieldExtractorConfig = {
-        ...from.config,
-        fields: from.config.fields.filter(f => f.id !== fieldId),
-      };
-      const toConfig: FieldExtractorConfig = {
-        ...to.config,
-        fields: [...to.config.fields, field],
-      };
-      updateAddonConfig(agentId, crewId, fromInstanceId, fromConfig);
-      updateAddonConfig(agentId, crewId, toInstanceId, toConfig);
-    },
-    [agentId, crewId, extractors, updateAddonConfig],
+    [agent, agentId, updateAgent, updateCrew, updateAddonConfig],
   );
 
   return {
     extractors,
     extractorOptions,
+    agentExtractors,
     allFields,
     domains,
     domainNames,
-    addField,
-    addFieldToCrew,
+    addFieldToScope,
+    setFieldExtractors,
     updateField,
     removeField,
-    moveField,
   };
 }

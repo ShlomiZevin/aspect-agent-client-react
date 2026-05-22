@@ -64,6 +64,7 @@ function bodyOf(crew: CrewDoc): CrewBody {
     spec: crew.spec,
     persona: crew.persona,
     addons: crew.addons,
+    fields: crew.fields,
   };
 }
 
@@ -73,6 +74,7 @@ function emptyCrew(name = 'Welcome'): CrewDoc {
     description: '',
     spec: '',
     addons: [defaultTalker() as AddonInstance],
+    fields: [],
   };
   const versionId = uid('ver');
   const v1: CrewVersion = {
@@ -124,6 +126,7 @@ function bodyOfAgent(agent: AgentDoc): AgentBody {
     spec: agent.spec,
     persona: agent.persona,
     defaultCrewId: agent.defaultCrewId,
+    fields: agent.fields,
   };
 }
 
@@ -139,6 +142,7 @@ function emptyAgent(slug: string): AgentDoc {
     spec: '',
     persona: '',
     defaultCrewId: crew.id,
+    fields: [],
   };
   const versionId = uid('ver');
   const v1: AgentVersion = {
@@ -346,25 +350,40 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
   const [previewConversationId, setPreviewConversationId] = useState<number | null>(null);
   useEffect(() => { setPreviewConversationId(null); }, [agentSlug]);
 
+  // Mirror in a ref so `refreshConversationMemory` always sees the
+  // current id, not the one that was current at the render that
+  // baked its closure. Subtle but load-bearing: on the FIRST message
+  // of a new conversation, send() calls setPreviewConversationId(id)
+  // and immediately starts the SSE stream with a handleEvent captured
+  // BEFORE the re-render happened. Without this ref, the `done`-event
+  // refresh sees previewConversationId === null and clears the just-
+  // surfaced extractor values.
+  const previewConvIdRef = useRef<number | null>(previewConversationId);
+  previewConvIdRef.current = previewConversationId;
+
   // Live builder memory for the preview conversation. The chat panel
   // calls refreshConversationMemory after each turn, and the
   // FieldsPanel renders values inline next to fields.
   const [conversationMemory, setConversationMemory] = useState<Record<string, Record<string, unknown>>>({});
   const refreshConversationMemory = useCallback(() => {
-    if (previewConversationId === null) {
-      setConversationMemory({});
-      return;
-    }
+    // No conv yet → nothing to fetch. Deliberately DO NOT reset the
+    // local cache here. The dedicated effect below handles explicit
+    // reset when previewConversationId transitions to null (e.g. "New
+    // chat" was clicked). A stale-closure call from an in-flight SSE
+    // stream must NOT clobber the optimistic writes already applied
+    // for the live conversation.
+    const cid = previewConvIdRef.current;
+    if (cid === null) return;
     import('./builderApi').then(({ fetchConversationMemory }) => {
       fetchConversationMemory({
         agentSlug,
-        conversationId: previewConversationId,
+        conversationId: cid,
         ownerUserId,
       })
         .then(setConversationMemory)
         .catch(err => console.warn('[builder] fetchConversationMemory failed:', err));
     });
-  }, [agentSlug, ownerUserId, previewConversationId]);
+  }, [agentSlug, ownerUserId]);
 
   /**
    * Merge a batch of memory writes into the local cache without
@@ -622,6 +641,11 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       }),
     };
     setDoc(next);
+    // Keep docRef in sync immediately so a follow-up save in the
+    // same tick (e.g. the cross-entity save via VersionMenu when
+    // both crew + agent are dirty) reads the just-committed state
+    // instead of overwriting it.
+    docRef.current = next;
     if (updatedCrew) syncRef.current?.pushSaveCrewVersion(updatedCrew);
   }, []);
 
@@ -663,6 +687,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
         }),
       };
       setDoc(next);
+      docRef.current = next;
       if (updatedCrew) syncRef.current?.pushSaveCrewVersionAs(updatedCrew, description);
       return created!;
     },
@@ -756,6 +781,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       }),
     };
     setDoc(next);
+    docRef.current = next;
     if (updatedAgent) syncRef.current?.pushSaveAgentVersion(updatedAgent);
   }, []);
 
@@ -789,6 +815,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
         }),
       };
       setDoc(next);
+      docRef.current = next;
       if (updatedAgent) syncRef.current?.pushSaveAgentVersionAs(updatedAgent, description);
       return created!;
     },

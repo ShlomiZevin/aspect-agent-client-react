@@ -45,7 +45,10 @@
 
 .row3 {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  /* Give the Scope column extra room — its longest label
+   * ("Agent — visible everywhere") was getting clipped with three
+   * equal columns. Type/Source labels are short and fit fine. */
+  grid-template-columns: 1fr 1fr 1.6fr;
   gap: 10px;
 }
 
@@ -185,4 +188,98 @@
 
 .liveEditRow .input {
   flex: 1;
+}
+
+/* "Extracted by" — list of every crew→extractor producing this field
+ * name. Items render as chips; the one we're currently editing gets
+ * a stronger primary tint. */
+.extractedByList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.extractedByItem {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary, #4b5563);
+  background: var(--bg-input, #f3f4f6);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+.extractedByCurrent {
+  color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.35);
+  font-weight: 600;
+}
+
+/* "Extracted by" picker in the Add/Edit modal. Grouped by crew so
+ * the user sees `Crew → Extractor` structure. Each chip toggles
+ * membership in the field's extractor list. */
+.extractorPickGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  background: var(--bg-input, #fafafa);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+}
+
+.extractorPickGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.extractorPickCrew {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary, #9ca3af);
+  padding: 2px 4px;
+}
+
+.extractorPickChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.extractorPickChip {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary, #6b7280);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.extractorPickChip:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+}
+
+.extractorPickChipActive,
+.extractorPickChipActive:hover {
+  color: #fff;
+  background: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
+}
+
+.hintBlock {
+  font-size: 12px;
+  color: var(--text-tertiary, #6b7280);
+  background: var(--bg-input, #fafafa);
+  border: 1px dashed var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  padding: 8px 10px;
+  line-height: 1.4;
 }

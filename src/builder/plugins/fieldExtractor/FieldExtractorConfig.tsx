@@ -1,14 +1,13 @@
 /**
  * Field Extractor — config screen.
  *
- *   1. Model + extractor prompt
- *   2. Fields owned by this extractor instance: each row is clickable
- *      to edit, with a hover × for quick remove. + button opens
- *      AddFieldModal locked to this instance.
- *
- * Fields are first-class crew data; the crew-level Fields panel is
- * the canonical home for them, but this modal is convenient when
- * the user is already focused on a specific extractor.
+ *   1. Name (user-editable label, e.g. "Date Extractor" / "Intent Extractor")
+ *   2. Model + extractor prompt
+ *   3. Fields this extractor EXTRACTS (lookup of `extractsFields[]`
+ *      against `agent.fields` ∪ this crew's `crew.fields`). Clicking
+ *      a row opens the field editor; × removes the field id from
+ *      THIS extractor's list (doesn't delete the field definition).
+ *      "+ Add field" opens AddFieldModal pre-ticking this extractor.
  */
 
 import { useMemo, useState } from 'react';
@@ -17,26 +16,25 @@ import { AddFieldModal } from '../../components/FieldsPanel/AddFieldModal';
 import { FieldEditorModal } from '../../components/FieldsPanel/FieldEditorModal';
 import { useCrewFields } from '../../state/useCrewFields';
 import type { CrewField } from '../../state/useCrewFields';
-import { useConfirm } from '../../components/Confirm/Confirm';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { FieldDef, FieldExtractorConfig } from '../../types';
 import styles from './FieldExtractorConfig.module.css';
 
 interface FieldGroup {
-  domain: string | null;  // null = ungrouped
-  fields: FieldDef[];
+  domain: string | null;
+  fields: CrewField[];
 }
 
-function groupFieldsByDomain(fields: FieldDef[]): FieldGroup[] {
-  const named = new Map<string, FieldDef[]>();
-  const orphan: FieldDef[] = [];
-  for (const f of fields) {
-    const d = f.domain?.trim();
+function groupByDomain(fields: CrewField[]): FieldGroup[] {
+  const named = new Map<string, CrewField[]>();
+  const orphan: CrewField[] = [];
+  for (const cf of fields) {
+    const d = cf.field.domain?.trim();
     if (d) {
       if (!named.has(d)) named.set(d, []);
-      named.get(d)!.push(f);
+      named.get(d)!.push(cf);
     } else {
-      orphan.push(f);
+      orphan.push(cf);
     }
   }
   const out: FieldGroup[] = [...named.entries()].map(([domain, fields]) => ({ domain, fields }));
@@ -64,35 +62,57 @@ export function FieldExtractorConfigComponent({
   crewId,
 }: PluginConfigProps<FieldExtractorConfig>) {
   const patch = (next: Partial<FieldExtractorConfig>) => onChange({ ...config, ...next });
-  const { removeField } = useCrewFields(agentId, crewId);
-  const confirm = useConfirm();
+  const { allFields, setFieldExtractors } = useCrewFields(agentId, crewId);
   const [addOpen, setAddOpen] = useState(false);
   const [editingField, setEditingField] = useState<CrewField | null>(null);
   const [fieldsOpen, setFieldsOpen] = useState(true);
 
-  const groups = useMemo(() => groupFieldsByDomain(config.fields), [config.fields]);
+  // The CrewField objects this extractor extracts. Resolved by
+  // intersecting `config.extractsFields[]` with the crew-visible
+  // field set (agent fields + this crew's crew-scoped fields).
+  const extractedFields = useMemo<CrewField[]>(() => {
+    const ids = new Set(config.extractsFields || []);
+    return allFields.filter(cf => ids.has(cf.field.id));
+  }, [allFields, config.extractsFields]);
 
-  const openEdit = (f: FieldDef) => {
-    setEditingField({
-      field: f,
-      extractorInstanceId: instance.instanceId,
-      extractorLabel: 'Field Extractor',
-    });
-  };
+  const groups = useMemo(() => groupByDomain(extractedFields), [extractedFields]);
 
-  const handleRemove = async (f: FieldDef, e: React.MouseEvent) => {
+  /**
+   * Remove a field from THIS extractor's `extractsFields` (does not
+   * delete the field definition itself — the def lives on
+   * agent/crew and may be used by other extractors).
+   */
+  const removeFromExtractor = (fieldId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const ok = await confirm({
-      title: `Delete field "${f.name || '(unnamed)'}"?`,
-      message: 'This removes the field from this extractor.',
-      confirmLabel: 'Delete',
-      danger: true,
-    });
-    if (ok) removeField(instance.instanceId, f.id);
+    // Find current set across the agent, then drop this extractor
+    // from it for that field id.
+    const cf = allFields.find(x => x.field.id === fieldId);
+    if (!cf) return;
+    const next = cf.extractors
+      .map(x => x.instanceId)
+      .filter(id => id !== instance.instanceId);
+    setFieldExtractors(fieldId, next);
   };
 
   return (
     <div className={styles.wrap}>
+      <section className={styles.section}>
+        <label className={styles.sectionLabel} htmlFor="fe-name">
+          Name
+        </label>
+        <p className={styles.sectionHint}>
+          Shown on the chain card. Leave blank for the default ("Field Extractor #N").
+        </p>
+        <input
+          id="fe-name"
+          className={styles.input}
+          value={config.name ?? ''}
+          onChange={e => patch({ name: e.target.value })}
+          placeholder="e.g. Date Extractor"
+          spellCheck={false}
+        />
+      </section>
+
       <section className={styles.section}>
         <ModelPicker
           value={config.model}
@@ -127,7 +147,7 @@ export function FieldExtractorConfigComponent({
           >
             <span className={styles.caret}>{fieldsOpen ? '▾' : '▸'}</span>
             <span className={styles.sectionLabel}>
-              Fields ({config.fields.length})
+              Fields this extractor extracts ({extractedFields.length})
             </span>
           </button>
           <button
@@ -139,9 +159,11 @@ export function FieldExtractorConfigComponent({
           </button>
         </div>
 
-        {fieldsOpen && (config.fields.length === 0 ? (
+        {fieldsOpen && (extractedFields.length === 0 ? (
           <div className={styles.summaryEmpty}>
-            No fields yet. Click <strong>+ Add field</strong> to create one.
+            This extractor doesn't extract anything yet. Click <strong>+ Add field</strong> to
+            define a new one (and tick this extractor) — or open an existing field from the
+            Memory panel and add this extractor to its "Extracted by" list.
           </div>
         ) : (
           <div className={styles.groups}>
@@ -158,7 +180,8 @@ export function FieldExtractorConfigComponent({
                 )}
                 {g.domain === null && idx > 0 && <div className={styles.dashed} />}
                 <ul className={styles.summaryList}>
-                  {g.fields.map(f => {
+                  {g.fields.map(cf => {
+                    const f: FieldDef = cf.field;
                     const src = SOURCE_LABEL[f.source];
                     return (
                       <li
@@ -169,7 +192,7 @@ export function FieldExtractorConfigComponent({
                         <button
                           type="button"
                           className={styles.summaryRowBtn}
-                          onClick={() => openEdit(f)}
+                          onClick={() => setEditingField(cf)}
                         >
                           <span className={styles.summaryName}>
                             {f.name || '(unnamed)'}
@@ -181,14 +204,19 @@ export function FieldExtractorConfigComponent({
                             <span className={styles.summarySource} title={src?.label}>
                               {src?.icon ?? ''} {src?.label ?? f.source}
                             </span>
+                            {cf.scope === 'crew' && (
+                              <span className={styles.summarySource} title="Crew-scoped">
+                                🔒 crew
+                              </span>
+                            )}
                           </span>
                         </button>
                         <button
                           type="button"
                           className={styles.removeBtn}
-                          onClick={e => handleRemove(f, e)}
-                          aria-label={`Remove ${f.name || 'field'}`}
-                          title="Remove field"
+                          onClick={e => removeFromExtractor(f.id, e)}
+                          aria-label={`Stop ${instance.instanceId} from extracting ${f.name || 'field'}`}
+                          title="Remove from this extractor (field definition stays)"
                         >
                           ×
                         </button>
@@ -207,7 +235,6 @@ export function FieldExtractorConfigComponent({
         onClose={() => setAddOpen(false)}
         agentId={agentId}
         crewId={crewId}
-        lockedExtractorId={instance.instanceId}
       />
 
       <FieldEditorModal

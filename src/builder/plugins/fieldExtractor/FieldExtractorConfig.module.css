@@ -39,6 +39,25 @@
   resize: vertical;
 }
 
+/* Plain text input used by the extractor "name" field. Matches the
+ * textarea look so the section feels cohesive. */
+.input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-primary, #111827);
+  background: var(--bg-input, #fafafa);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  background: #fff;
+}
+
 .textarea:focus {
   outline: none;
   border-color: var(--primary-color, #6366f1);

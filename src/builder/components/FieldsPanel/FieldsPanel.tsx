@@ -1,13 +1,26 @@
 /**
- * FieldsPanel — crew dashboard view of all fields, grouped by domain.
+ * FieldsPanel — memory view for the agent's fields.
  *
- * Each named domain is its own collapsible group. Domainless fields
- * appear under "(no domain)" at the bottom. Clicking any row opens
- * the field editor modal. + opens the add modal.
+ * Memory is conceptually agent-wide: one conversation memory blob
+ * shared by every crew. So the panel ALWAYS shows fields from every
+ * crew of the agent. After a Transition Router fires and swaps the
+ * active crew, the values captured by the previous crew still appear
+ * here — nothing visually "disappears".
+ *
+ * Behaviour differences between crew view and agent view:
+ *   - crewId prop set   → "+ Add field" creates a field in THIS crew
+ *                         (falls back to creating an extractor if none
+ *                         exists). Used by CrewView.
+ *   - crewId prop unset → no "+ Add" button (user picks a crew first).
+ *                         Used by AgentView.
+ *
+ * Editing an existing field always routes to its OWNING crew (from
+ * `crewField.crewId`), regardless of which view we were rendered in.
  */
 
 import { useMemo, useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
+import { useAgentFields } from '../../state/useAgentFields';
 import { useCrewFields } from '../../state/useCrewFields';
 import { AddFieldModal } from './AddFieldModal';
 import { FieldEditorModal } from './FieldEditorModal';
@@ -40,7 +53,9 @@ function formatLiveValue(v: unknown): string {
 
 interface Props {
   agentId: ID;
-  crewId: ID;
+  /** Owning crew when this panel is rendered inside CrewView.
+   *  Absent in AgentView; the "+ Add field" affordance is hidden then. */
+  crewId?: ID;
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -56,15 +71,18 @@ const SOURCE_LABEL: Record<string, { label: string; icon: string }> = {
 };
 
 export function FieldsPanel({ agentId, crewId }: Props) {
-  const { allFields, domains } = useCrewFields(agentId, crewId);
-  const { conversationMemory, previewConversationId } = useBuilder();
+  // Pick the right source: crew view sees agent + this-crew's
+  // fields; agent view sees only agent-scoped fields. The hooks
+  // own scope filtering — this component doesn't.
+  const crewSource = useCrewFields(agentId, crewId ?? '');
+  const agentSource = useAgentFields(agentId);
+  const { allFields, domains } = crewId ? crewSource : agentSource;
+
+  const { conversationMemory, previewConversationId, doc } = useBuilder();
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<CrewField | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
-  // Map field name → live value (or undefined). Recomputed when
-  // memory or fields change. Empty when there's no active preview
-  // conversation; the row simply omits the value chip in that case.
   const liveValueByField = useMemo(() => {
     const map: Record<string, unknown> = {};
     if (previewConversationId === null) return map;
@@ -74,6 +92,13 @@ export function FieldsPanel({ agentId, crewId }: Props) {
     }
     return map;
   }, [conversationMemory, previewConversationId, allFields]);
+
+  // Whether to render a crew chip per field row. Only useful when the
+  // agent has more than one crew — otherwise it's noise.
+  const showCrewChip = useMemo(() => {
+    const agent = doc.agents.find(a => a.id === agentId);
+    return (agent?.crews.length ?? 0) > 1;
+  }, [doc, agentId]);
 
   const toggleCollapse = (key: string) => {
     setCollapsed(prev => {
@@ -91,15 +116,19 @@ export function FieldsPanel({ agentId, crewId }: Props) {
           <span className={styles.title}>💾 Memory</span>
           <span className={styles.count}>{allFields.length}</span>
           <span className={styles.spacer} />
-          <button type="button" className={styles.addBtn} onClick={() => setAddOpen(true)}>
-            + Add field
-          </button>
+          {crewId && (
+            <button type="button" className={styles.addBtn} onClick={() => setAddOpen(true)}>
+              + Add field
+            </button>
+          )}
         </div>
 
         {allFields.length === 0 ? (
           <div className={styles.empty}>
-            No fields yet. Click <strong>+ Add field</strong> — if you don't have a
-            Field Extractor yet, one will be created automatically.
+            {crewId
+              ? <>No fields yet. Click <strong>+ Add field</strong> — if you don't have a Field Extractor yet, one will be created automatically.</>
+              : 'No fields yet. Add one from a crew view.'
+            }
           </div>
         ) : (
           <div className={styles.groups}>
@@ -113,6 +142,7 @@ export function FieldsPanel({ agentId, crewId }: Props) {
                   onToggle={() => toggleCollapse(group.name as string)}
                   onPick={setEditing}
                   liveValueByField={liveValueByField}
+                  showCrewChip={showCrewChip}
                 />
               ))}
             {domains
@@ -123,24 +153,31 @@ export function FieldsPanel({ agentId, crewId }: Props) {
                   group={group}
                   onPick={setEditing}
                   liveValueByField={liveValueByField}
+                  showCrewChip={showCrewChip}
                 />
               ))}
           </div>
         )}
       </div>
 
-      <AddFieldModal
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        agentId={agentId}
-        crewId={crewId}
-      />
+      {crewId && (
+        <AddFieldModal
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          agentId={agentId}
+          crewId={crewId}
+        />
+      )}
 
       <FieldEditorModal
         crewField={editing}
         onClose={() => setEditing(null)}
         agentId={agentId}
-        crewId={crewId}
+        // The crewId here is the "destination crew" if the user
+        // switches scope from agent → crew. CrewView passes its own
+        // crew id; AgentView passes '' (Scope dropdown disables the
+        // crew option in that case).
+        crewId={crewId ?? ''}
       />
     </>
   );
@@ -152,9 +189,12 @@ interface DomainGroupProps {
   onToggle: () => void;
   onPick: (cf: CrewField) => void;
   liveValueByField: Record<string, unknown>;
+  showCrewChip: boolean;
 }
 
-function DomainGroup({ group, collapsed, onToggle, onPick, liveValueByField }: DomainGroupProps) {
+function DomainGroup({
+  group, collapsed, onToggle, onPick, liveValueByField, showCrewChip,
+}: DomainGroupProps) {
   return (
     <div className={styles.group}>
       <button
@@ -170,10 +210,11 @@ function DomainGroup({ group, collapsed, onToggle, onPick, liveValueByField }: D
         <div className={styles.list}>
           {group.fields.map(cf => (
             <FieldRow
-              key={cf.field.id}
+              key={`${cf.crewId}/${cf.field.id}`}
               cf={cf}
               onPick={onPick}
               liveValue={liveValueByField[cf.field.name]}
+              showCrewChip={showCrewChip}
             />
           ))}
         </div>
@@ -186,18 +227,20 @@ interface UngroupedProps {
   group: CrewDomain;
   onPick: (cf: CrewField) => void;
   liveValueByField: Record<string, unknown>;
+  showCrewChip: boolean;
 }
 
-function UngroupedFields({ group, onPick, liveValueByField }: UngroupedProps) {
+function UngroupedFields({ group, onPick, liveValueByField, showCrewChip }: UngroupedProps) {
   return (
     <div className={styles.ungrouped}>
       <div className={styles.list}>
         {group.fields.map(cf => (
           <FieldRow
-            key={cf.field.id}
+            key={`${cf.crewId}/${cf.field.id}`}
             cf={cf}
             onPick={onPick}
             liveValue={liveValueByField[cf.field.name]}
+            showCrewChip={showCrewChip}
           />
         ))}
       </div>
@@ -209,25 +252,31 @@ interface FieldRowProps {
   cf: CrewField;
   onPick: (cf: CrewField) => void;
   liveValue?: unknown;
+  showCrewChip: boolean;
 }
 
-function FieldRow({ cf, onPick, liveValue }: FieldRowProps) {
+function FieldRow({ cf, onPick, liveValue, showCrewChip }: FieldRowProps) {
   const { updateConversationMemoryField, previewConversationId } = useBuilder();
   const src = SOURCE_LABEL[cf.field.source];
   const hasValue = liveValue !== undefined;
   const canClear = hasValue && previewConversationId !== null;
+  const isCrewScoped = cf.scope === 'crew';
+  const extractorCount = cf.extractors.length;
 
   const onClear = async (e: React.MouseEvent) => {
     e.stopPropagation();
     await updateConversationMemoryField({ field: cf.field.name, clear: true });
   };
 
-  // Outer is a div now (not a <button>) so the inner clear button
-  // doesn't violate the no-nested-buttons rule.
   return (
     <div className={styles.row} role="button" tabIndex={0} onClick={() => onPick(cf)}>
       <div className={styles.rowMain}>
         <span className={styles.fieldName}>{cf.field.name || '(unnamed)'}</span>
+        {isCrewScoped && (
+          <span className={styles.scopeBadge} title="Crew-scoped — visible only in this crew">
+            🔒 crew
+          </span>
+        )}
         {hasValue && (
           <span className={styles.liveValue} title="Current value in this conversation">
             = {formatLiveValue(liveValue)}
@@ -251,7 +300,27 @@ function FieldRow({ cf, onPick, liveValue }: FieldRowProps) {
         <span className={styles.sourcePill} title={src?.label}>
           {src?.icon ?? ''} {src?.label ?? cf.field.source}
         </span>
-        <span className={styles.extractorChip}>{cf.extractorLabel}</span>
+        {extractorCount === 0 ? (
+          <span
+            className={styles.unwired}
+            title="No Field Extractor references this field — open the editor to wire one"
+          >
+            ⚠ no extractor
+          </span>
+        ) : (
+          // List every "Crew → Extractor" pair that extracts this
+          // field. Skip the crew prefix when there's only one crew
+          // in the agent (the prefix is just noise then).
+          cf.extractors.map(e => (
+            <span
+              key={e.instanceId}
+              className={styles.locationChip}
+              title={`Extracted by ${e.crewName} → ${e.label}`}
+            >
+              {showCrewChip ? `${e.crewName} → ${e.label}` : e.label}
+            </span>
+          ))
+        )}
       </div>
       {cf.field.howToExtract && (
         <span className={styles.desc}>{cf.field.howToExtract}</span>
