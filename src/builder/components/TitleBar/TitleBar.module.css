@@ -16,10 +16,27 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  /* Tighter than before so action chips visibly cluster. Group break
+   * is created with margin-inline-start: auto on .metaActions, not
+   * with a bigger gap — that way the empty space scales with screen
+   * width instead of fragmenting the row at small widths. */
+  gap: 8px;
   flex-wrap: wrap;
   row-gap: 8px;
   min-width: 0;
+}
+
+/* Metadata-view action group — sits on the right, tight cluster. */
+.metaActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* Pushes this group flush to the row's end. The version pill /
+   * version menu / save buttons stay anchored to the name on the
+   * left; this group anchors to the right. The "empty middle" is
+   * the visual separator between the two groups. */
+  margin-inline-start: auto;
+  flex: 0 0 auto;
 }
 
 .nameInput {
@@ -49,14 +66,19 @@
   background: var(--bg-surface, #fff);
 }
 
+/* Matches the title-bar action chip baseline in VersionMenu .btn —
+ * keep these dimensions in lockstep so Save / Save as / { } / 📖 Spec
+ * sit at the same height in a clean horizontal row. */
 .specBtn {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: 5px 12px;
+  height: 28px;
+  font-size: 12px;
   font-weight: 600;
+  line-height: 1;
   background: var(--bg-surface, #fff);
   color: var(--text-secondary, #4b5563);
   border: 1px solid var(--border-color, #e5e7eb);
@@ -82,9 +104,9 @@
 }
 
 .specDot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: var(--primary-color, #6366f1);
-  margin-left: 2px;
+  margin-left: 1px;
 }

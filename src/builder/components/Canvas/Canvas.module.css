@@ -311,3 +311,31 @@
   color: var(--text-tertiary, #9ca3af);
   line-height: 1.4;
 }
+
+/* `{ }` button in AgentView / CrewView. Matches the title-bar action
+ * chip baseline (Save / Save as / 📖 Spec). Monospace stays because
+ * the braces are the icon — but weight drops to 600 so it doesn't
+ * shout louder than its neighbours. */
+.jsonBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  height: 28px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  color: var(--text-secondary, #4b5563);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.jsonBtn:hover {
+  color: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
+}

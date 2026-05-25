@@ -25,6 +25,7 @@ import {
 import { sendAlfredMessage, type AlfredEvent } from '../../state/alfredStream';
 import { HistoryPanel } from './HistoryPanel';
 import { ChatSettingsPopover, useChatSettings } from './ChatSettings';
+import { MarkdownBody } from './MarkdownBody';
 import styles from './ChatPanel.module.css';
 
 interface Msg {
@@ -296,14 +297,17 @@ export function BuilderChat() {
             </div>
           )}
 
-          {messages.map((m, i) => (
-            <div
-              key={m.id ?? `local_${i}`}
-              className={`${styles.msg} ${m.role === 'user' ? styles.msgUser : styles.msgBot} ${settings.rtl ? styles.msgRtl : ''}`}
-            >
-              {m.text || (m.role === 'assistant' && busy ? '…' : '')}
-            </div>
-          ))}
+          {messages.map((m, i) => {
+            const cls = `${styles.msg} ${m.role === 'user' ? styles.msgUser : styles.msgBot} ${settings.rtl ? styles.msgRtl : ''}`;
+            const placeholder = m.role === 'assistant' && busy ? '…' : '';
+            return (
+              <div key={m.id ?? `local_${i}`} className={cls}>
+                {m.role === 'assistant'
+                  ? (m.text ? <MarkdownBody text={m.text} /> : placeholder)
+                  : (m.text || placeholder)}
+              </div>
+            );
+          })}
         </div>
       </div>
 

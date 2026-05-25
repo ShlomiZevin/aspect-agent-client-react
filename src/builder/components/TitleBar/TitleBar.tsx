@@ -3,12 +3,14 @@
  *
  * Layout:
  *   [crumbs]
- *   [name (auto-width)] {children}                          [📖 Spec]
+ *   [name (auto-width)] {children} ········ [metaActions] [📖 Spec]
  *
- * The name input shrinks to its content via the HTML `size` attribute,
- * so everything passed as `children` (version pill, description,
- * Save buttons, etc.) sits immediately to the right of the name. The
- * Spec button is anchored to the far right of the row.
+ * The name input shrinks to its content via the HTML `size` attribute.
+ * `children` host the version pill / version menu / Save buttons —
+ * the "edit the current version" group. The metadata-actions group
+ * ({ }, Spec, future Validate & Log) sits tight against the right edge
+ * with its own small gap. The visual gap between the two groups is
+ * created by `margin-inline-start: auto` on the metaActions wrap.
  */
 
 import { useState, type ReactNode } from 'react';
@@ -22,8 +24,14 @@ interface Props {
   onNameChange: (next: string) => void;
   spec: string;
   onSpecChange: (next: string) => void;
-  /** Rendered between the name and the Spec button. */
+  /** Edit-the-version group: version pill, version menu, etc. */
   children?: ReactNode;
+  /**
+   * Metadata-view group rendered tightly grouped with the Spec
+   * button on the right edge. Used by AgentView/CrewView for the
+   * `{ }` JSON button; slice 4 will add Validate & Log here too.
+   */
+  metaActions?: ReactNode;
 }
 
 const NAME_PLACEHOLDER: Record<Props['level'], string> = {
@@ -40,6 +48,7 @@ export function TitleBar({
   spec,
   onSpecChange,
   children,
+  metaActions,
 }: Props) {
   const [specOpen, setSpecOpen] = useState(false);
   const specHasContent = spec.trim().length > 0;
@@ -61,16 +70,19 @@ export function TitleBar({
           size={inputSize}
         />
         {children}
-        <button
-          type="button"
-          className={`${styles.specBtn} ${specHasContent ? styles.specBtnFilled : ''}`}
-          onClick={() => setSpecOpen(true)}
-          title={specHasContent ? 'Open spec' : 'Add spec'}
-        >
-          📖
-          <span className={styles.specBtnLabel}>Spec</span>
-          {specHasContent && <span className={styles.specDot} />}
-        </button>
+        <div className={styles.metaActions}>
+          {metaActions}
+          <button
+            type="button"
+            className={`${styles.specBtn} ${specHasContent ? styles.specBtnFilled : ''}`}
+            onClick={() => setSpecOpen(true)}
+            title={specHasContent ? 'Open spec' : 'Add spec'}
+          >
+            📖
+            <span className={styles.specBtnLabel}>Spec</span>
+            {specHasContent && <span className={styles.specDot} />}
+          </button>
+        </div>
       </div>
 
       <SpecModal

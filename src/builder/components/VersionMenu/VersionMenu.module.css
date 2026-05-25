@@ -34,16 +34,26 @@
   flex: 1;
 }
 
+/* Title-bar action chip — shared baseline with .specBtn (TitleBar)
+ * and .jsonBtn (Canvas) so Save / Save as / { } / 📖 Spec all sit at
+ * the same height with the same pill silhouette. Tweak here if you
+ * want them lighter or denser — they'll move together. */
 .btn {
-  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  height: 28px;
   font-size: 12px;
   font-weight: 600;
+  line-height: 1;
   background: var(--bg-surface, #fff);
   border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 6px;
+  border-radius: 999px;
   color: var(--text-secondary, #4b5563);
   cursor: pointer;
   font-family: inherit;
+  flex: 0 0 auto;
 }
 
 .btn:hover:not(:disabled) {
@@ -52,7 +62,7 @@
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
