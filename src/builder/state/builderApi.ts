@@ -33,6 +33,32 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// ─── Project list (BuilderHomePage) ───────────────────────────────
+
+/**
+ * One row per agent owned by the user. The UI shows names, not ids —
+ * `agentName` comes from the active version body; `agentSlug` is the
+ * URL identifier used by `/<slug>/builder`.
+ */
+export interface ProjectListItem {
+  projectId: string;
+  projectName: string;
+  agentSlug: string;
+  agentName: string;
+  /** ISO timestamp of the most recent agent-level mutation. */
+  updatedAt: string;
+}
+
+export async function listProjects(args: {
+  ownerUserId: string;
+}): Promise<ProjectListItem[]> {
+  const params = new URLSearchParams({ ownerUserId: args.ownerUserId });
+  const res = await http<{ projects: ProjectListItem[] }>(
+    `/api/builder/projects/list?${params}`,
+  );
+  return res.projects;
+}
+
 // ─── Project load + bootstrap ─────────────────────────────────────
 
 export async function fetchProject(args: {
@@ -245,6 +271,10 @@ export interface PersistedAddonRun {
     parseError?: string;
     prompt?: string;
     label?: string;
+    /** Human-readable provider + model display names. Resolved server-
+     *  side from the addon's config against services/models.service.js
+     *  so the UI doesn't have to look anything up. */
+    modelLabel?: { providerName: string; modelName: string } | null;
     tokens?: { input: number; output: number; total: number };
     durationMs?: number;
   };
@@ -364,6 +394,91 @@ export function runtimeMessageStream(args: {
         ownerUserId: args.ownerUserId,
         userMessage: args.userMessage,
         version: args.version || 'viewing',
+      }),
+    },
+  );
+}
+
+// ─── Alfred (in-builder AI helper) ────────────────────────────────
+
+export interface AlfredChatListItem {
+  id: number;
+  name: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AlfredMessage {
+  id: number;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  createdAt: string;
+}
+
+export async function createAlfredChat(args: {
+  agentSlug: string;
+  ownerUserId: string;
+}): Promise<{ chatId: number }> {
+  return http<{ chatId: number }>(`/api/builder/alfred/chats`, {
+    method: 'POST',
+    body: JSON.stringify({ agentSlug: args.agentSlug, ownerUserId: args.ownerUserId }),
+  });
+}
+
+export async function listAlfredChats(args: {
+  agentSlug: string;
+  ownerUserId: string;
+}): Promise<AlfredChatListItem[]> {
+  const params = new URLSearchParams({
+    agentSlug:   args.agentSlug,
+    ownerUserId: args.ownerUserId,
+  });
+  const res = await http<{ chats: AlfredChatListItem[] }>(
+    `/api/builder/alfred/chats?${params}`,
+  );
+  return res.chats;
+}
+
+export async function renameAlfredChat(args: {
+  chatId: number;
+  name:   string;
+}): Promise<void> {
+  await http(`/api/builder/alfred/chats/${args.chatId}`, {
+    method: 'PATCH',
+    body:   JSON.stringify({ name: args.name }),
+  });
+}
+
+export async function deleteAlfredChat(chatId: number): Promise<void> {
+  await http(`/api/builder/alfred/chats/${chatId}`, { method: 'DELETE' });
+}
+
+export async function fetchAlfredMessages(chatId: number): Promise<AlfredMessage[]> {
+  const res = await http<{ messages: AlfredMessage[] }>(
+    `/api/builder/alfred/chats/${chatId}/messages`,
+  );
+  return res.messages;
+}
+
+/**
+ * Post a user message and return the raw `Response`; the SSE consumer
+ * in `alfredStream.ts` reads the body stream.
+ */
+export function alfredMessageStream(args: {
+  chatId:      number;
+  agentSlug:   string;
+  ownerUserId: string;
+  userMessage: string;
+}): Promise<Response> {
+  return fetch(
+    `${BASE_URL}/api/builder/alfred/chats/${args.chatId}/messages`,
+    {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+      body:    JSON.stringify({
+        agentSlug:   args.agentSlug,
+        ownerUserId: args.ownerUserId,
+        userMessage: args.userMessage,
       }),
     },
   );

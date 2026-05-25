@@ -10,11 +10,15 @@ import { runtimeMessageStream } from './builderApi';
 
 export type RuntimeEvent =
   | { type: 'conversation'; conversationId: number; messageId: number; currentCrewId?: string | null }
-  | { type: 'addon.start'; instanceId: string; pluginId: string; lane: string; label?: string; model?: unknown }
+  | { type: 'addon.start'; instanceId: string; pluginId: string; lane: string; label?: string;
+      model?: unknown;
+      modelLabel?: { providerName: string; modelName: string } | null }
   | { type: 'addon.prompt'; instanceId: string; prompt: string; historyCount: number }
   | { type: 'addon.token'; instanceId: string; token: string }
   | { type: 'addon.output';
       instanceId: string;
+      label?: string;
+      modelLabel?: { providerName: string; modelName: string } | null;
       rawOutput: string;
       parsedOutput?: unknown;
       memoryWrites?: Array<{ domain: string | null; field: string; value: unknown }>;

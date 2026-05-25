@@ -4,6 +4,7 @@ import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, Aspec
 
 // Builder lives in its own subtree — lazy so end-user routes don't pay for it.
 const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ default: m.BuilderPage })));
+const BuilderHomePage = lazy(() => import('./pages/BuilderHomePage').then(m => ({ default: m.BuilderHomePage })));
 
 const ZER4U_MAINTENANCE = false;
 
@@ -107,6 +108,14 @@ function AppContent() {
         <Route path="/:agent/login" element={<AgentLoginPage />} />
         <Route path="/:agent/chat" element={<AgentChatPage />} />
         <Route path="/:agent/chat/conversations/:conversationId" element={<AgentChatPage />} />
+        <Route
+          path="/builder"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading builder…</div>}>
+              <BuilderHomePage />
+            </Suspense>
+          }
+        />
         <Route
           path="/:agent/builder"
           element={

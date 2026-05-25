@@ -20,13 +20,15 @@ export interface ChatSettingsState {
 const STORAGE_KEY = 'builder:chatSettings';
 
 function loadSettings(): ChatSettingsState {
+  // Default RTL on — most agents in this builder are Hebrew, and a
+  // left-aligned LTR bubble of Hebrew text is hard to read.
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { rtl: false };
+    if (!raw) return { rtl: true };
     const parsed = JSON.parse(raw);
-    return { rtl: !!parsed.rtl };
+    return { rtl: parsed.rtl !== false };
   } catch {
-    return { rtl: false };
+    return { rtl: true };
   }
 }
 

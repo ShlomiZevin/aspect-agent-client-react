@@ -1,0 +1,83 @@
+/**
+ * Gate-screen styling — the lightweight "Looking up agent …" /
+ * "Create this agent?" surface shown BEFORE BuilderProvider mounts.
+ * Inline styles in BuilderApp.tsx cover everything else; this file
+ * exists only for the bits that need pseudo-elements + @keyframes
+ * (the spinner) and for the typography polish on the loading screen.
+ */
+
+.gateScreen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Soft vertical wash — keeps the surface from feeling like a hard
+   * gray rectangle. The card sits on top of it cleanly. */
+  background:
+    radial-gradient(at 50% 30%, #eef2ff 0%, transparent 55%),
+    #f9fafb;
+  font-family: inherit;
+  padding: 24px;
+}
+
+.gateCard {
+  position: relative;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 36px 40px 32px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04),
+              0 10px 30px -8px rgba(99, 102, 241, 0.08);
+  text-align: center;
+  width: min(360px, 92vw);
+}
+
+/* Compact "loading" variant — narrower & a touch more vertical
+ * breathing room around the spinner. */
+.gateCardLoading {
+  padding: 28px 32px 26px;
+  width: min(280px, 92vw);
+}
+
+.gateLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin: 12px 0 6px;
+}
+
+.gateSlug {
+  display: inline-block;
+  padding: 5px 12px;
+  background: #f3f4f6;
+  border-radius: 999px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-size: 13px;
+  color: #111827;
+  font-weight: 600;
+}
+
+/* Subtle accent on the slug while we're working on it. */
+.gateSlugAccent {
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+}
+
+/* Spinner — indigo arc that rotates. Sized to read as "small piece
+ * of UI feedback", not a heavyweight loading screen. */
+.spinner {
+  width: 28px;
+  height: 28px;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 2.5px solid rgba(99, 102, 241, 0.15);
+  border-top-color: #6366f1;
+  animation: gateSpin 0.9s linear infinite;
+}
+
+@keyframes gateSpin {
+  to { transform: rotate(360deg); }
+}

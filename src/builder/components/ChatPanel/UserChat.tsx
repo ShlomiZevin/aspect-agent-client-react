@@ -105,6 +105,7 @@ function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
     instanceId:   r.instanceId,
     pluginId:     r.pluginId,
     label:        d.label,
+    modelLabel:   d.modelLabel ?? null,
     status:       r.status,
     prompt:       d.prompt,
     rawOutput:    d.rawOutput,
@@ -311,6 +312,7 @@ export function UserChat() {
           instanceId: e.instanceId,
           pluginId:   e.pluginId,
           label:      e.label,
+          modelLabel: e.modelLabel ?? null,
           status:     'running',
         }));
         return;
@@ -326,6 +328,8 @@ export function UserChat() {
       case 'addon.output':
         updateLastTurn(t => upsertRun(t, {
           instanceId:   e.instanceId,
+          label:        e.label,
+          modelLabel:   e.modelLabel ?? null,
           status:       'success',
           rawOutput:    e.rawOutput,
           parsedOutput: e.parsedOutput,
@@ -510,6 +514,15 @@ export function UserChat() {
             title="History"
           >
             📂 <span className={styles.headerBtnLabel}>History</span>
+          </button>
+          <button
+            type="button"
+            className={styles.headerBtn}
+            onClick={onNewChat}
+            title="New chat"
+            disabled={turns.length === 0 && conversationId === null}
+          >
+            ＋ <span className={styles.headerBtnLabel}>New</span>
           </button>
           <div className={styles.headerSpacer} />
           <div className={styles.settingsWrap}>

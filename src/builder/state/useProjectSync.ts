@@ -4,8 +4,12 @@
  *
  * Responsibilities:
  *   1. On mount: fetch the project from the server for
- *      (agentSlug, ownerUserId). If 404, bootstrap a new one using
- *      the local empty doc shape.
+ *      (agentSlug, ownerUserId) and pass it back via `onLoaded`.
+ *      If the project doesn't exist (404), this hook does NOTHING —
+ *      the BuilderApp guards the URL with a "create this agent?"
+ *      gate BEFORE mounting BuilderProvider, so reaching the
+ *      provider implies the project already exists. This avoids
+ *      typo'd URLs silently creating phantom projects.
  *   2. Provide imperative `pushXxx` helpers that the
  *      BuilderContext mutations call after they update local state.
  *      Each helper maps to one surgical endpoint.
@@ -72,11 +76,9 @@ export interface ProjectSyncApi {
 export function useProjectSync(args: {
   agentSlug: string;
   ownerUserId: string;
-  /** Local fallback used to bootstrap if the server has no doc yet. */
-  fallbackDoc: ProjectDoc;
   onLoaded: (doc: ProjectDoc) => void;
 }): ProjectSyncApi {
-  const { agentSlug, ownerUserId, fallbackDoc, onLoaded } = args;
+  const { agentSlug, ownerUserId, onLoaded } = args;
   const didLoadRef = useRef(false);
 
   useEffect(() => {
@@ -89,31 +91,18 @@ export function useProjectSync(args: {
           onLoaded(existing);
           return;
         }
-        // Bootstrap from the local fallback doc.
-        const agent = fallbackDoc.agents[0];
-        const crew = agent?.crews[0];
-        if (!agent || !crew) {
-          console.warn('[builder] fallback doc has no agent/crew; cannot bootstrap');
-          return;
-        }
-        const bootstrapped = await api.bootstrapProject({
-          ownerUserId,
-          projectId:      fallbackDoc.id,
-          projectName:    fallbackDoc.name,
-          agentId:        agent.id,
-          agentSlug:      agent.slug,
-          agentVersionId: agent.versions[0]?.id || agent.activeVersionId,
-          agentBody:      bodyOfAgent(agent),
-          crewId:         crew.id,
-          crewVersionId:  crew.versions[0]?.id || crew.activeVersionId,
-          crewBody:       bodyOfCrew(crew),
-        });
-        onLoaded(bootstrapped);
+        // 404 here would mean the BuilderApp gate didn't do its job.
+        // Don't silently bootstrap — that's how typo'd URLs end up as
+        // phantom projects. Log loudly so the misuse is visible.
+        console.error(
+          '[builder] useProjectSync: project not found on server. ' +
+          'BuilderApp should have gated this.',
+        );
       } catch (err) {
         console.error('[builder] useProjectSync load failed:', err);
       }
     })();
-  }, [agentSlug, ownerUserId, fallbackDoc, onLoaded]);
+  }, [agentSlug, ownerUserId, onLoaded]);
 
   return {
     pushSaveAgentVersion: async agent => {

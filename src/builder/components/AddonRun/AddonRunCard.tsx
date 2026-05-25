@@ -16,6 +16,12 @@ export interface AddonRunSnapshot {
   instanceId: string;
   pluginId: string;
   label?: string;
+  /** Human-readable provider + model name pair. Resolved server-side
+   *  from the addon's config against services/models.service.js so
+   *  the card can render them directly. Null when the addon has no
+   *  model (Transition Router) or the configured modelId isn't in
+   *  the registry. */
+  modelLabel?: { providerName: string; modelName: string } | null;
   status: 'running' | 'success' | 'error';
   prompt?: string;
   rawOutput?: string;
@@ -128,6 +134,14 @@ export function AddonRunCard({ run }: Props) {
 
       {open && (
         <div className={styles.body}>
+          {run.modelLabel && (
+            <div className={styles.modelLine}>
+              <span className={styles.modelProvider}>{run.modelLabel.providerName}</span>
+              <span className={styles.modelDot}>·</span>
+              <span>{run.modelLabel.modelName}</span>
+            </div>
+          )}
+
           {hasPrompt && (
             <Section
               title="Prompt"

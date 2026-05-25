@@ -162,7 +162,14 @@ function emptyAgent(slug: string): AgentDoc {
   };
 }
 
-function emptyProject(slug: string): ProjectDoc {
+/**
+ * Factory for a brand-new ProjectDoc with one agent + one "Welcome" crew
+ * (the crew gets a default Talker via `emptyCrew`). Exported so the
+ * BuilderApp's "Create this agent?" gate can construct the same shape
+ * the server expects to bootstrap into the DB. Keeping a single factory
+ * here avoids two slightly-different "empty" definitions drifting.
+ */
+export function emptyProject(slug: string): ProjectDoc {
   return {
     id: uid('project'),
     name: slug,
@@ -323,7 +330,6 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
   const sync: ProjectSyncApi = useProjectSync({
     agentSlug,
     ownerUserId,
-    fallbackDoc: doc,
     onLoaded: setDoc,
   });
   const syncRef = useRef<ProjectSyncApi>(sync);
