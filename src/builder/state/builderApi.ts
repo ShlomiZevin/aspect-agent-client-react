@@ -484,6 +484,217 @@ export function alfredMessageStream(args: {
   );
 }
 
+// ─── Apply flow (Alfred slice 3) ─────────────────────────────────
+
+export interface ApplyTarget {
+  entity:     'agent' | 'crew';
+  entityId:   string;
+  entityName: string;
+  what_to_do: string;
+}
+
+export interface ApplyPreviewResponse {
+  summary:     string;
+  description: string;
+  targets:     ApplyTarget[];
+}
+
+export async function applyPreview(args: {
+  chatId:      number;
+  agentSlug:   string;
+  ownerUserId: string;
+}): Promise<ApplyPreviewResponse> {
+  return http<ApplyPreviewResponse>(
+    `/api/builder/alfred/chats/${args.chatId}/apply/preview`,
+    {
+      method: 'POST',
+      body:   JSON.stringify({
+        agentSlug:   args.agentSlug,
+        ownerUserId: args.ownerUserId,
+      }),
+    },
+  );
+}
+
+export interface GeneratedBody {
+  entity:     'agent' | 'crew';
+  entityId:   string;
+  entityName: string;
+  what_to_do: string;
+  /** Pre-apply body — kept around so the log row's body_before is accurate. */
+  bodyBefore: unknown;
+  /** Patch-generator output — what the client puts into the working copy. */
+  newBody:    Record<string, unknown>;
+}
+
+export interface ApplyGenerateResponse {
+  ok:           true;
+  applyGroupId: string;
+  generated:    GeneratedBody[];
+}
+
+/**
+ * Runs the patch generator for each target and returns the new bodies.
+ * Does NOT save and does NOT write log rows — that's the client's job
+ * via `writeApplyLog` after each Save.
+ */
+export async function applyGenerate(args: {
+  chatId:      number;
+  agentSlug:   string;
+  ownerUserId: string;
+  targets:     ApplyTarget[];
+}): Promise<ApplyGenerateResponse> {
+  return http<ApplyGenerateResponse>(
+    `/api/builder/alfred/chats/${args.chatId}/apply/generate`,
+    {
+      method: 'POST',
+      body:   JSON.stringify({
+        agentSlug:   args.agentSlug,
+        ownerUserId: args.ownerUserId,
+        targets:     args.targets,
+      }),
+    },
+  );
+}
+
+/**
+ * Write one Alfred-attributed log row. Called after Save commits a
+ * generated body. Rows from one multi-target Apply share applyGroupId.
+ */
+export async function writeApplyLog(args: {
+  agentId:      string;
+  entity:       'agent' | 'crew';
+  entityId:     string;
+  entityName:   string;
+  applyGroupId: string;
+  description:  string;
+  reason:       string;
+  whatChanged:  string;
+  bodyBefore:   unknown;
+  bodyAfter:    unknown;
+  sourceChatId?: number;
+  /**
+   * 'alfred' — credit Alfred for the change (default).
+   * 'manual' — user edited Alfred's apply substantially and wants it
+   *            attributed to themselves.
+   */
+  actor?:       'alfred' | 'manual';
+  ownerUserId:  string;
+}): Promise<{ ok: true; logId: number }> {
+  return http<{ ok: true; logId: number }>(
+    `/api/builder/alfred/agents/${args.agentId}/log/apply`,
+    {
+      method: 'POST',
+      body:   JSON.stringify({
+        entity:       args.entity,
+        entityId:     args.entityId,
+        entityName:   args.entityName,
+        applyGroupId: args.applyGroupId,
+        description:  args.description,
+        reason:       args.reason,
+        whatChanged:  args.whatChanged,
+        bodyBefore:   args.bodyBefore,
+        bodyAfter:    args.bodyAfter,
+        sourceChatId: args.sourceChatId,
+        actor:        args.actor ?? 'alfred',
+        ownerUserId:  args.ownerUserId,
+      }),
+    },
+  );
+}
+
+// ─── Validate & Log (manual change logging) ──────────────────────
+
+export interface ValidateClaimResponse {
+  matches:     'yes' | 'partial' | 'no';
+  note:        string;
+  entityName:  string;
+  bodyBefore:  unknown;
+  bodyAfter:   unknown;
+  priorSource: 'last-log' | 'v1' | 'empty';
+}
+
+export async function validateClaim(args: {
+  agentId:     string;
+  entity:      'agent' | 'crew';
+  entityId:    string;
+  claim:       string;
+  agentSlug:   string;
+  ownerUserId: string;
+}): Promise<ValidateClaimResponse> {
+  return http<ValidateClaimResponse>(
+    `/api/builder/alfred/agents/${args.agentId}/log/validate`,
+    {
+      method: 'POST',
+      body:   JSON.stringify({
+        entity:      args.entity,
+        entityId:    args.entityId,
+        claim:       args.claim,
+        agentSlug:   args.agentSlug,
+        ownerUserId: args.ownerUserId,
+      }),
+    },
+  );
+}
+
+/**
+ * One row in the agent change log. Stored as we wrote it server-side:
+ * the human-readable fields are what the UI shows; the JSON snapshots
+ * stay around for audit/future use but aren't surfaced.
+ */
+export interface AgentLogEntry {
+  id:           number;
+  agentId:      string;
+  agentName:    string;
+  actor:        'alfred' | 'manual';
+  reason:       string;
+  whatChanged:  string;
+  entity:       'agent' | 'crew';
+  entityId:     string;
+  entityName:   string;
+  sourceChatId: number | null;
+  sourceMsgId:  number | null;
+  applyGroupId: string | null;
+  appliedAt:    string;
+  appliedBy:    string;
+}
+
+export async function listAgentLog(agentId: string): Promise<AgentLogEntry[]> {
+  const res = await http<{ entries: AgentLogEntry[] }>(
+    `/api/builder/alfred/agents/${agentId}/log`,
+  );
+  return res.entries;
+}
+
+export async function writeManualLog(args: {
+  agentId:     string;
+  entity:      'agent' | 'crew';
+  entityId:    string;
+  entityName:  string;
+  reason:      string;
+  whatChanged: string;
+  bodyBefore:  unknown;
+  bodyAfter:   unknown;
+  ownerUserId: string;
+}): Promise<{ ok: true; logId: number }> {
+  return http<{ ok: true; logId: number }>(
+    `/api/builder/alfred/agents/${args.agentId}/log`,
+    {
+      method: 'POST',
+      body:   JSON.stringify({
+        entity:      args.entity,
+        entityId:    args.entityId,
+        entityName:  args.entityName,
+        reason:      args.reason,
+        whatChanged: args.whatChanged,
+        bodyBefore:  args.bodyBefore,
+        bodyAfter:   args.bodyAfter,
+        ownerUserId: args.ownerUserId,
+      }),
+    },
+  );
+}
+
 // Unused-import sentinel so the AgentDoc / CrewDoc types stay in
 // the build graph for editor go-to-def even when nothing imports
 // them transitively here. Tree-shaken at build time.

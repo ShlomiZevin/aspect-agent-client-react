@@ -9,6 +9,9 @@
 
 import { useState } from 'react';
 import { SaveAsModal } from '../SaveAsModal/SaveAsModal';
+import { SaveAttributionModal } from '../SaveAttributionModal/SaveAttributionModal';
+import { useConfirm } from '../Confirm/Confirm';
+import { useBuilder } from '../../state/BuilderContext';
 import type { EntityVersionState } from '../../state/useEntityVersion';
 import styles from './VersionMenu.module.css';
 
@@ -31,7 +34,12 @@ function relativeTime(iso: string): string {
 }
 
 export function VersionMenu({ state }: Props) {
-  const [saveAsOpen, setSaveAsOpen] = useState(false);
+  const [saveAsOpen, setSaveAsOpen]                   = useState(false);
+  const [attributionOpen, setAttributionOpen]         = useState(false);
+  const [attributionVariant, setAttributionVariant]   = useState<'save' | 'save-as'>('save');
+  const [pendingDescription, setPendingDescription]   = useState<string | undefined>(undefined);
+  const confirm = useConfirm();
+  const { pendingAlfredApply } = useBuilder();
 
   const {
     entityLabel,
@@ -41,9 +49,11 @@ export function VersionMenu({ state }: Props) {
     isDirty,
     crossDirtyLabel,
     nextNumber,
+    hasPendingAlfred,
     save,
     saveAs,
     setActive,
+    discard,
   } = state;
 
   const viewing = versions.find(v => v.id === viewingVersionId);
@@ -87,7 +97,16 @@ export function VersionMenu({ state }: Props) {
       <button
         type="button"
         className={`${styles.btn} ${isDirty ? styles.btnPrimary : ''}`}
-        onClick={save}
+        onClick={() => {
+          // If a pending Alfred apply target matches this entity, ask
+          // the user how to log this save before firing it.
+          if (hasPendingAlfred) {
+            setAttributionVariant('save');
+            setAttributionOpen(true);
+          } else {
+            save();
+          }
+        }}
         disabled={!isDirty}
         title={saveTooltip}
       >
@@ -109,12 +128,61 @@ export function VersionMenu({ state }: Props) {
         Save as…
       </button>
 
+      {isDirty && (
+        <button
+          type="button"
+          className={`${styles.btn} ${styles.btnDanger}`}
+          onClick={async () => {
+            const ok = await confirm({
+              title:    'Discard your changes?',
+              message:  hasPendingAlfred
+                ? 'This reverts the working copy to the saved version and drops the pending Alfred apply (no log entry).'
+                : 'This reverts the working copy to the saved version. Unsaved edits are lost.',
+              confirmLabel: 'Discard',
+              danger:   true,
+            });
+            if (ok) discard();
+          }}
+          title="Revert working copy to the saved version"
+        >
+          ↶ Discard
+        </button>
+      )}
+
       <SaveAsModal
         open={saveAsOpen}
         onClose={() => setSaveAsOpen(false)}
         entityLabel={entityLabel}
         nextNumber={nextNumber}
-        onSubmit={saveAs}
+        onSubmit={(description) => {
+          // If pending Alfred, ask for attribution AFTER the description
+          // step. Otherwise commit directly with default behaviour.
+          if (hasPendingAlfred) {
+            setPendingDescription(description);
+            setAttributionVariant('save-as');
+            setAttributionOpen(true);
+          } else {
+            saveAs(description);
+          }
+        }}
+      />
+
+      <SaveAttributionModal
+        open={attributionOpen}
+        onClose={() => {
+          setAttributionOpen(false);
+          setPendingDescription(undefined);
+        }}
+        variant={attributionVariant}
+        applyHeadline={pendingAlfredApply?.description}
+        onChoose={(attribution) => {
+          if (attributionVariant === 'save') {
+            save({ attribution });
+          } else {
+            saveAs(pendingDescription, { attribution });
+            setPendingDescription(undefined);
+          }
+        }}
       />
     </div>
   );

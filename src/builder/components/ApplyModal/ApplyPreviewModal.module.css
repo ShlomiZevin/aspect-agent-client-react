@@ -1,0 +1,225 @@
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 0;
+  color: var(--text-secondary, #4b5563);
+  font-size: 13px;
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgba(99, 102, 241, 0.18);
+  border-top-color: var(--primary-color, #6366f1);
+  border-radius: 50%;
+  animation: applySpin 0.7s linear infinite;
+}
+
+@keyframes applySpin {
+  to { transform: rotate(360deg); }
+}
+
+.summary {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+
+.section {
+  margin-top: 14px;
+}
+
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary, #9ca3af);
+  margin-bottom: 6px;
+}
+
+.targetList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.target {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--bg-surface, #fff);
+}
+
+.targetBadge {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+  margin-top: 2px;
+}
+
+.targetBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.targetName {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.targetDesc {
+  font-size: 12px;
+  color: var(--text-secondary, #4b5563);
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 90px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 9px 11px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--bg-input, #fafafa);
+  color: var(--text-primary, #111827);
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  background: #fff;
+}
+
+.textareaShort {
+  min-height: 50px;
+}
+
+.empty {
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px dashed var(--border-color, #e5e7eb);
+  background: var(--bg-input, #f9fafb);
+  font-size: 13px;
+  color: var(--text-secondary, #4b5563);
+  line-height: 1.5;
+}
+
+.errorChip {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  line-height: 1.5;
+}
+
+.errorList {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.successWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.successHeadline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #047857;
+}
+
+.appliedList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+  color: var(--text-primary, #111827);
+}
+
+.appliedRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footerLeft {
+  font-size: 11.5px;
+  color: var(--text-tertiary, #9ca3af);
+  margin-right: auto;
+}
+
+/* Mirrors the title-bar action chip baseline so the modal footer
+ * feels like part of the same UI family. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  height: 30px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn:hover:not(:disabled) {
+  color: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnPrimary {
+  background: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
+  color: #fff;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  filter: brightness(1.05);
+  color: #fff;
+}

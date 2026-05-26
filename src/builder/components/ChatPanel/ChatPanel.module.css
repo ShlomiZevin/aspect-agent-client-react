@@ -77,14 +77,14 @@
   border-bottom: 1px solid var(--border-color, #e5e7eb);
 }
 
-/* Compact actions row: icon-style buttons, no labels. Keeps the
- * chrome out of the way; primary attention belongs to the crew row
- * below and the messages. */
+/* Compact actions row: tight cluster of secondary chips on the left,
+ * primary Apply + settings on the right. Gap kept small so the row
+ * doesn't sprawl; the headerSpacer pushes the two groups apart. */
 .headerRowTop {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 4px 8px;
+  gap: 6px;
+  padding: 6px 10px;
   border-bottom: 1px solid var(--border-color, #f3f4f6);
 }
 
@@ -110,6 +110,34 @@
   padding: 4px 10px;
 }
 
+/* Apply button — the headline action in BuilderChat. Primary fill so
+ * it reads as the "commit" affordance, distinct from the secondary
+ * History / New / ⚙ icon chips next to it. */
+.applyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  background: var(--primary-color, #6366f1);
+  border: 1px solid var(--primary-color, #6366f1);
+  border-radius: 999px;
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.applyBtn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.applyBtn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
 .headerSpacer {
   flex: 1;
 }
@@ -120,20 +148,22 @@
   align-items: center;
 }
 
-/* Icon-style header button. Borderless, color-on-hover. The active
- * state uses a soft primary tint so the open popover / panel is
- * visually linked to its trigger. */
+/* Secondary header chip. Borderless until hover so a row of three
+ * (History · New · ⚙) reads as quiet utility, not as competing
+ * buttons. The active state uses a soft primary tint so an open
+ * popover stays visually linked to its trigger. */
 .headerBtn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 500;
   line-height: 1;
-  color: var(--text-tertiary, #9ca3af);
+  color: var(--text-secondary, #6b7280);
   background: transparent;
   border: 0;
   border-radius: 6px;
-  padding: 6px 8px;
+  padding: 5px 9px;
   cursor: pointer;
   font-family: inherit;
 }
@@ -152,6 +182,7 @@
 .headerBtnLabel {
   font-size: 12px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 /* Crew chip — feels like an active tab. When more crews appear it

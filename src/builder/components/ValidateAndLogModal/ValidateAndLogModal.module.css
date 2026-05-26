@@ -1,0 +1,157 @@
+.intro {
+  font-size: 12.5px;
+  color: var(--text-secondary, #4b5563);
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 78px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 9px 11px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--bg-input, #fafafa);
+  color: var(--text-primary, #111827);
+}
+
+.textareaShort { min-height: 44px; }
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  background: #fff;
+}
+
+.fieldGap { margin-top: 12px; }
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 0;
+  color: var(--text-secondary, #4b5563);
+  font-size: 13px;
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgba(99, 102, 241, 0.18);
+  border-top-color: var(--primary-color, #6366f1);
+  border-radius: 50%;
+  animation: vlSpin 0.7s linear infinite;
+}
+
+@keyframes vlSpin {
+  to { transform: rotate(360deg); }
+}
+
+.result {
+  padding: 11px 13px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.resultYes {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(5, 150, 105, 0.4);
+  color: #047857;
+}
+
+.resultPartial {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(217, 119, 6, 0.4);
+  color: #b45309;
+}
+
+.resultNo {
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
+.resultHeadline {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.resultNote {
+  white-space: pre-wrap;
+}
+
+.errorChip {
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.priorTag {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+/* Button styles — mirror ApplyPreviewModal so the modal family is
+ * visually consistent. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  height: 30px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn:hover:not(:disabled) {
+  color: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnPrimary {
+  background: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
+  color: #fff;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  filter: brightness(1.05);
+  color: #fff;
+}

@@ -77,6 +77,19 @@
   color: #fff;
 }
 
+/* Quiet ghost style with a danger hover — for Discard. The button
+ * blends into the row when idle; on hover it goes red to signal
+ * "this destroys your edits". */
+.btnDanger {
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.btnDanger:hover:not(:disabled) {
+  color: #b91c1c;
+  border-color: rgba(220, 38, 38, 0.4);
+  background: rgba(220, 38, 38, 0.04);
+}
+
 /* "+ agent" / "+ 2 crews" suffix on the Save button when one click
  * will persist a sibling entity. Slightly transparent so the primary
  * "Save" label stays dominant. */

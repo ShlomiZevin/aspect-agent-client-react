@@ -12,7 +12,7 @@
  */
 
 import { useMemo } from 'react';
-import { useBuilder } from './BuilderContext';
+import { useBuilder, type SaveOpts } from './BuilderContext';
 import type { ID, VersionMeta } from '../types';
 
 export interface EntityVersionState {
@@ -39,10 +39,20 @@ export interface EntityVersionState {
   /** Next version number for Save As ("Save as v4"). */
   nextNumber: number;
 
-  save: () => void;
-  saveAs: (description?: string) => void;
+  /**
+   * True iff this entity (or one of the cross-entities `save()` would
+   * touch) has a pending Alfred apply target. The VersionMenu uses
+   * this to gate the Save-attribution chooser.
+   */
+  hasPendingAlfred: boolean;
+
+  save: (opts?: SaveOpts) => void;
+  saveAs: (description?: string, opts?: SaveOpts) => void;
   setViewing: (versionId: ID) => void;
   setActive: (versionId: ID) => void;
+  /** Revert the working copy to the viewing version's body. Also
+   *  drops any pending Alfred apply target for this entity. */
+  discard: () => void;
 }
 
 export function useCrewVersion(agentId: ID, crewId: ID): EntityVersionState | null {
@@ -52,9 +62,12 @@ export function useCrewVersion(agentId: ID, crewId: ID): EntityVersionState | nu
     saveCrewVersionAs,
     setViewingCrewVersion,
     setActiveCrewVersion,
+    discardCrewChanges,
+    discardAgentChanges,
     saveAgentVersion,
     isCrewDirty,
     isAgentDirty,
+    pendingAlfredApply,
   } = useBuilder();
 
   const crew = useMemo(
@@ -70,6 +83,13 @@ export function useCrewVersion(agentId: ID, crewId: ID): EntityVersionState | nu
   const nextNumber =
     crew.versions.reduce((max, v) => Math.max(max, v.number), 0) + 1;
 
+  const hasPendingAlfred = !!pendingAlfredApply?.targets.some(
+    t => !t.applied && (
+      (t.entity === 'crew' && t.entityId === crewId) ||
+      (t.entity === 'agent' && t.entityId === agentId && agentDirty)
+    ),
+  );
+
   return {
     entityLabel: 'crew',
     versions: crew.versions,
@@ -79,15 +99,26 @@ export function useCrewVersion(agentId: ID, crewId: ID): EntityVersionState | nu
     ownDirty:  crewDirty,
     crossDirtyLabel: agentDirty ? 'agent' : '',
     nextNumber,
-    save: () => {
+    hasPendingAlfred,
+    save: (opts) => {
       // Order doesn't matter — both saves are idempotent. Saving
       // both in one click is the point of the cross-dirty handling.
-      if (crewDirty)  saveCrewVersion(agentId, crewId);
-      if (agentDirty) saveAgentVersion(agentId);
+      // Same attribution applies to both because it's one logical
+      // commit; the user picked it once.
+      if (crewDirty)  saveCrewVersion(agentId, crewId, opts);
+      if (agentDirty) saveAgentVersion(agentId, opts);
     },
-    saveAs:      d  => { saveCrewVersionAs(agentId, crewId, d); },
+    saveAs:      (d, opts)  => { saveCrewVersionAs(agentId, crewId, d, opts); },
     setViewing:  id => setViewingCrewVersion(agentId, crewId, id),
     setActive:   id => setActiveCrewVersion(agentId, crewId, id),
+    // Match save's cross-entity scope — discarding only one side
+    // when an action touched both would leave the user stranded
+    // (e.g. agent has a new field def but the crew that wired it is
+    // reverted, or vice versa).
+    discard:     () => {
+      if (crewDirty)  discardCrewChanges(agentId, crewId);
+      if (agentDirty) discardAgentChanges(agentId);
+    },
   };
 }
 
@@ -98,9 +129,12 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
     saveAgentVersionAs,
     setViewingAgentVersion,
     setActiveAgentVersion,
+    discardAgentChanges,
+    discardCrewChanges,
     saveCrewVersion,
     isAgentDirty,
     isCrewDirty,
+    pendingAlfredApply,
   } = useBuilder();
 
   const agent = useMemo(
@@ -124,6 +158,13 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
     dirtyCrewIds.length === 1 ? '1 crew'  :
     `${dirtyCrewIds.length} crews`;
 
+  const hasPendingAlfred = !!pendingAlfredApply?.targets.some(
+    t => !t.applied && (
+      (t.entity === 'agent' && t.entityId === agentId) ||
+      (t.entity === 'crew' && dirtyCrewIds.includes(t.entityId))
+    ),
+  );
+
   return {
     entityLabel: 'agent',
     versions: agent.versions,
@@ -133,13 +174,18 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
     ownDirty:  agentDirty,
     crossDirtyLabel: crewLabel,
     nextNumber,
-    save: () => {
-      if (agentDirty) saveAgentVersion(agentId);
-      for (const id of dirtyCrewIds) saveCrewVersion(agentId, id);
+    hasPendingAlfred,
+    save: (opts) => {
+      if (agentDirty) saveAgentVersion(agentId, opts);
+      for (const id of dirtyCrewIds) saveCrewVersion(agentId, id, opts);
     },
-    saveAs:      d  => { saveAgentVersionAs(agentId, d); },
+    saveAs:      (d, opts)  => { saveAgentVersionAs(agentId, d, opts); },
     setViewing:  id => setViewingAgentVersion(agentId, id),
     setActive:   id => setActiveAgentVersion(agentId, id),
+    discard:     () => {
+      if (agentDirty) discardAgentChanges(agentId);
+      for (const id of dirtyCrewIds) discardCrewChanges(agentId, id);
+    },
   };
 }
 

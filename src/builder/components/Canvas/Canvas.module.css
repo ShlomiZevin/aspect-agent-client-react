@@ -339,3 +339,66 @@
   color: var(--primary-color, #6366f1);
   border-color: var(--primary-color, #6366f1);
 }
+
+/* "Log" button (Validate & Log). Same pill silhouette as the JSON
+ * button so the metadata-actions cluster reads as one group. */
+.logBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  height: 28px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-secondary, #4b5563);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  flex: 0 0 auto;
+}
+
+.logBtn:hover {
+  color: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
+}
+
+/* Pending-Alfred banner. Sits between the TitleBar and the canvas
+ * content while an Apply target hasn't been Saved yet. Tinted primary
+ * so it reads as "something is staged for you to act on", not as a
+ * warning. Stays a single line on wide screens; wraps on narrow. */
+.alfredBanner {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-primary, #111827);
+}
+
+.alfredBannerIcon {
+  flex: 0 0 auto;
+  font-size: 13px;
+}
+
+.alfredBannerText {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-secondary, #4b5563);
+}
+
+.alfredBannerText strong {
+  color: var(--primary-color, #6366f1);
+}
+
+.alfredBannerDot {
+  margin: 0 6px;
+  color: var(--text-tertiary, #9ca3af);
+}

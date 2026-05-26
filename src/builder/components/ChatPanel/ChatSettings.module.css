@@ -14,6 +14,36 @@
   z-index: 20;
 }
 
+/* Quiet "Model" row at the top of the popover — read-only info,
+ * separated from the toggle rows by a thin border so it doesn't read
+ * as an actionable option. */
+.modelLine {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 6px 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border-color, #f3f4f6);
+}
+
+.modelLineLabel {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.modelLineValue {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .row {
   display: flex;
   align-items: center;

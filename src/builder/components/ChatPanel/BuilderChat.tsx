@@ -26,6 +26,7 @@ import { sendAlfredMessage, type AlfredEvent } from '../../state/alfredStream';
 import { HistoryPanel } from './HistoryPanel';
 import { ChatSettingsPopover, useChatSettings } from './ChatSettings';
 import { MarkdownBody } from './MarkdownBody';
+import { ApplyPreviewModal } from '../ApplyModal/ApplyPreviewModal';
 import styles from './ChatPanel.module.css';
 
 interface Msg {
@@ -62,6 +63,7 @@ export function BuilderChat() {
   const [busy, setBusy] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [applyOpen, setApplyOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [settings, setSetting] = useChatSettings();
 
@@ -234,7 +236,7 @@ export function BuilderChat() {
             type="button"
             className={`${styles.headerBtn} ${historyOpen ? styles.headerBtnActive : ''}`}
             onClick={() => setHistoryOpen(o => !o)}
-            title="History"
+            title="Chat history"
           >
             📂 <span className={styles.headerBtnLabel}>History</span>
           </button>
@@ -248,19 +250,26 @@ export function BuilderChat() {
             ＋ <span className={styles.headerBtnLabel}>New</span>
           </button>
           <div className={styles.headerSpacer} />
-          <div
-            className={styles.helperBadge}
-            title="Alfred uses this model. Fixed for now."
+          <button
+            type="button"
+            className={styles.applyBtn}
+            onClick={() => setApplyOpen(true)}
+            disabled={!chatId || messages.length === 0 || busy}
+            title={
+              !chatId || messages.length === 0
+                ? 'Send Alfred a message first'
+                : 'Apply the changes you and Alfred have agreed on'
+            }
           >
-            🤵 {formatModelRef(BUILDER_HELPER_MODEL)}
-          </div>
+            ✨ Apply
+          </button>
           <div className={styles.settingsWrap}>
             <button
               type="button"
               ref={settingsBtnRef}
               className={`${styles.headerBtn} ${settingsOpen ? styles.headerBtnActive : ''}`}
               onClick={() => setSettingsOpen(o => !o)}
-              title="Settings"
+              title={`Settings · model: ${formatModelRef(BUILDER_HELPER_MODEL)}`}
             >
               ⚙
             </button>
@@ -270,6 +279,7 @@ export function BuilderChat() {
               triggerRef={settingsBtnRef}
               settings={settings}
               onChange={setSetting}
+              modelLabel={formatModelRef(BUILDER_HELPER_MODEL)}
             />
           </div>
         </div>
@@ -312,6 +322,16 @@ export function BuilderChat() {
       </div>
 
       {errorMsg && <div className={styles.errorChip}>{errorMsg}</div>}
+
+      {chatId !== null && (
+        <ApplyPreviewModal
+          open={applyOpen}
+          onClose={() => setApplyOpen(false)}
+          chatId={chatId}
+          agentSlug={slug}
+          ownerUserId={ownerUserId}
+        />
+      )}
 
       <div className={styles.composer}>
         <textarea

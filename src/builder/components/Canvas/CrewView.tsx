@@ -25,6 +25,8 @@ import { FieldsPanel } from '../FieldsPanel/FieldsPanel';
 import { VersionMenu } from '../VersionMenu/VersionMenu';
 import { VersionPill } from '../VersionMenu/VersionPill';
 import { BodyJsonModal } from '../BodyJsonModal/BodyJsonModal';
+import { ValidateAndLogModal } from '../ValidateAndLogModal/ValidateAndLogModal';
+import { HistoryModal } from '../HistoryModal/HistoryModal';
 import type { AgentDoc, CrewDoc } from '../../types';
 import styles from './Canvas.module.css';
 
@@ -33,10 +35,21 @@ interface Props {
   crew: CrewDoc;
 }
 
+function findOwnerUserId(): string {
+  try { return localStorage.getItem('builder:ownerUserId') || 'anon'; } catch { return 'anon'; }
+}
+
 export function CrewView({ agent, crew }: Props) {
-  const { updateCrew } = useBuilder();
+  const { updateCrew, pendingAlfredApply } = useBuilder();
   const versionState = useCrewVersion(agent.id, crew.id);
-  const [jsonOpen, setJsonOpen] = useState(false);
+  const [jsonOpen,    setJsonOpen]    = useState(false);
+  const [logOpen,     setLogOpen]     = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const ownerUserId = findOwnerUserId();
+
+  const hasPendingApplyForCrew = !!pendingAlfredApply?.targets.some(
+    t => !t.applied && t.entity === 'crew' && t.entityId === crew.id,
+  );
 
   // Working-copy CrewBody view — same shape the patch generator will
   // consume in P5.2.
@@ -59,14 +72,32 @@ export function CrewView({ agent, crew }: Props) {
         spec={crew.spec}
         onSpecChange={spec => updateCrew(agent.id, crew.id, { spec })}
         metaActions={
-          <button
-            type="button"
-            className={styles.jsonBtn}
-            onClick={() => setJsonOpen(true)}
-            title="View this crew's JSON"
-          >
-            {'{ }'}
-          </button>
+          <>
+            <button
+              type="button"
+              className={styles.logBtn}
+              onClick={() => setHistoryOpen(true)}
+              title="View the agent's change history"
+            >
+              📜 History
+            </button>
+            <button
+              type="button"
+              className={styles.logBtn}
+              onClick={() => setLogOpen(true)}
+              title="Validate a manual change and add it to the agent log"
+            >
+              ✓ Log
+            </button>
+            <button
+              type="button"
+              className={styles.jsonBtn}
+              onClick={() => setJsonOpen(true)}
+              title="View this crew's JSON"
+            >
+              {'{ }'}
+            </button>
+          </>
         }
       >
         {versionState && (
@@ -77,12 +108,44 @@ export function CrewView({ agent, crew }: Props) {
         )}
       </TitleBar>
 
+      {hasPendingApplyForCrew && pendingAlfredApply && (
+        <div className={styles.alfredBanner}>
+          <span className={styles.alfredBannerIcon}>✨</span>
+          <span className={styles.alfredBannerText}>
+            <strong>Alfred draft</strong>
+            <span className={styles.alfredBannerDot}>·</span>
+            {pendingAlfredApply.description || 'Pending changes from Alfred'}
+            <span className={styles.alfredBannerDot}>·</span>
+            Save to commit (you'll pick how to log it), or Discard to revert.
+          </span>
+        </div>
+      )}
+
       <BodyJsonModal
         open={jsonOpen}
         onClose={() => setJsonOpen(false)}
         level="crew"
         ownerName={crew.name}
         body={crewBody}
+      />
+
+      <ValidateAndLogModal
+        open={logOpen}
+        onClose={() => setLogOpen(false)}
+        agentId={agent.id}
+        agentSlug={agent.slug}
+        ownerUserId={ownerUserId}
+        entity="crew"
+        entityId={crew.id}
+        entityName={crew.name}
+      />
+
+      <HistoryModal
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        agentId={agent.id}
+        agentName={agent.name}
+        currentOwnerUserId={ownerUserId}
       />
 
       <div className={styles.crewGrid}>

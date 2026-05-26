@@ -66,9 +66,15 @@ interface PopoverProps {
   triggerRef?: React.RefObject<HTMLElement | null>;
   settings: ChatSettingsState;
   onChange: <K extends keyof ChatSettingsState>(k: K, v: ChatSettingsState[K]) => void;
+  /**
+   * Optional model label shown as a quiet header inside the popover.
+   * Used by BuilderChat to surface "Alfred is on Sonnet 4.6" without
+   * a dedicated badge cluttering the chat header row.
+   */
+  modelLabel?: string;
 }
 
-export function ChatSettingsPopover({ open, onClose, triggerRef, settings, onChange }: PopoverProps) {
+export function ChatSettingsPopover({ open, onClose, triggerRef, settings, onChange, modelLabel }: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   // Close on click-outside / Escape.
@@ -94,6 +100,12 @@ export function ChatSettingsPopover({ open, onClose, triggerRef, settings, onCha
   if (!open) return null;
   return (
     <div className={styles.popover} ref={ref}>
+      {modelLabel && (
+        <div className={styles.modelLine} title="Model is fixed for now">
+          <span className={styles.modelLineLabel}>Model</span>
+          <span className={styles.modelLineValue}>{modelLabel}</span>
+        </div>
+      )}
       <ToggleRow
         label="RTL text"
         hint="Right-to-left for Hebrew/Arabic"

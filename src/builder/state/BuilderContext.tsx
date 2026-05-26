@@ -19,6 +19,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useProjectSync, type ProjectSyncApi } from './useProjectSync';
+import { fetchProject, writeApplyLog } from './builderApi';
 import type {
   AddonContext,
   AddonInstance,
@@ -180,6 +181,65 @@ export function emptyProject(slug: string): ProjectDoc {
 
 // ─── Context shape ────────────────────────────────────────────────
 
+/**
+ * One target inside a pending Alfred Apply. Stays in pendingAlfredApply
+ * until the user explicitly Saves this entity — that's when its log row
+ * gets written. If the user discards (switches version, hits the Apply
+ * modal again with new content, refreshes), the target is dropped
+ * without a log entry.
+ */
+export interface PendingApplyTarget {
+  entity:     'agent' | 'crew';
+  entityId:   ID;
+  entityName: string;
+  what_to_do: string;
+  bodyBefore: unknown;
+  /** Flips to true after the Save fires writeApplyLog for this target. */
+  applied:    boolean;
+}
+
+export interface PendingAlfredApply {
+  applyGroupId: string;
+  chatId:       number;
+  description:  string;
+  reason:       string;
+  targets:      PendingApplyTarget[];
+}
+
+/**
+ * Optional knobs for save callbacks. `attribution` decides how a save
+ * interacts with a pending Alfred apply for the same entity:
+ *   - 'alfred'  → fire log/apply with actor='alfred' (default when a
+ *                  pending Alfred target matches this entity)
+ *   - 'manual'  → fire log/apply with actor='manual' (user took the
+ *                  Alfred draft and reshaped it; credit themselves)
+ *   - 'none'    → no log row; pending target is cleared anyway since
+ *                  the body is committed
+ *   - undefined → if a pending Alfred target matches this entity,
+ *                  treat as 'alfred'; otherwise treat as a plain save
+ *                  (no Alfred log row written either way)
+ */
+export type SaveAttribution = 'alfred' | 'manual' | 'none';
+
+export interface SaveOpts {
+  attribution?: SaveAttribution;
+}
+
+export interface ApplyAlfredBodiesArgs {
+  applyGroupId: string;
+  chatId:       number;
+  description:  string;
+  reason:       string;
+  bodies: Array<{
+    entity:     'agent' | 'crew';
+    entityId:   ID;
+    entityName: string;
+    what_to_do: string;
+    bodyBefore: unknown;
+    newBody:    Record<string, unknown>;
+  }>;
+}
+
 interface BuilderState {
   doc: ProjectDoc;
   selection: BuilderSelection;
@@ -242,25 +302,52 @@ interface BuilderState {
 
   // Crew versioning
   /** Overwrite the *viewing* version's snapshot with the current working state. */
-  saveCrewVersion: (agentId: ID, crewId: ID) => void;
+  saveCrewVersion: (agentId: ID, crewId: ID, opts?: SaveOpts) => void;
   /** Create a new version from the current working state and start viewing it. Active stays where it was. */
-  saveCrewVersionAs: (agentId: ID, crewId: ID, description?: string) => CrewVersion;
+  saveCrewVersionAs: (agentId: ID, crewId: ID, description?: string, opts?: SaveOpts) => CrewVersion;
   /** Load a version's snapshot into the working state. Active stays where it was. */
   setViewingCrewVersion: (agentId: ID, crewId: ID, versionId: ID) => void;
   /** Flip the active-version pointer. Doesn't touch the working state. */
   setActiveCrewVersion: (agentId: ID, crewId: ID, versionId: ID) => void;
+  /** Revert the working copy to the viewing version's body. Also clears
+   *  any pending Alfred apply target for this crew (without logging). */
+  discardCrewChanges: (agentId: ID, crewId: ID) => void;
   /** True when the working state differs from the *viewing* version's snapshot. */
   isCrewDirty: (agentId: ID, crewId: ID) => boolean;
 
   // Agent versioning — same shape as crew.
-  saveAgentVersion: (agentId: ID) => void;
-  saveAgentVersionAs: (agentId: ID, description?: string) => AgentVersion;
+  saveAgentVersion: (agentId: ID, opts?: SaveOpts) => void;
+  saveAgentVersionAs: (agentId: ID, description?: string, opts?: SaveOpts) => AgentVersion;
   setViewingAgentVersion: (agentId: ID, versionId: ID) => void;
   setActiveAgentVersion: (agentId: ID, versionId: ID) => void;
+  discardAgentChanges: (agentId: ID) => void;
   isAgentDirty: (agentId: ID) => boolean;
 
   // Reset (debug helper)
   resetDraft: () => void;
+
+  /**
+   * Refetch the ProjectDoc from the server and replace the local
+   * working copy. Used after destructive server-side state changes
+   * that bypass the normal save flow.
+   */
+  reloadProject: () => Promise<void>;
+
+  /**
+   * Currently-pending Alfred Apply. Set when the user accepts the
+   * preview modal's plan; cleared once every target has been Saved
+   * (or when a new Apply replaces it). The presence of this state is
+   * what causes Save actions to fire `writeApplyLog`.
+   */
+  pendingAlfredApply: PendingAlfredApply | null;
+
+  /**
+   * Drop generated bodies into the working copy AND stash the Apply
+   * metadata so the eventual Save(s) can write the log row(s). Does
+   * NOT save — the user does that themselves via the normal Save /
+   * Save as buttons.
+   */
+  applyAlfredBodies: (args: ApplyAlfredBodiesArgs) => void;
 
   // Preview conversation — the conversationId for the in-builder
   // "User Chat" panel. Exposed so prompt-preview views can fetch
@@ -615,12 +702,173 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
     [],
   );
 
+  // ─── Pending Alfred Apply ─────────────────────────────────────────
+  // Must be defined BEFORE the save callbacks below because they
+  // reference `fireApplyLogIfPending` in their useCallback deps array
+  // — those deps are read at callback creation time, which would
+  // otherwise hit the temporal dead zone on first render.
+  //
+  // Held in component state (and a mirroring ref for synchronous reads
+  // inside save callbacks). NOT persisted — if the user refreshes mid-
+  // apply, the working copy reverts to the saved state anyway, so the
+  // pending Apply context naturally disappears with it.
+  const [pendingAlfredApply, setPendingAlfredApply] = useState<PendingAlfredApply | null>(null);
+  const pendingApplyRef = useRef<PendingAlfredApply | null>(null);
+  pendingApplyRef.current = pendingAlfredApply;
+
+  const applyAlfredBodies = useCallback((args: ApplyAlfredBodiesArgs) => {
+    // Merge the generated bodies into the working copy in one pass.
+    // Each AgentBody / CrewBody is shallow-merged into its host doc;
+    // version metadata (versions[], active/viewing pointers) is left
+    // alone — Apply produces a working-copy diff, not a new version.
+    setDoc(d => {
+      const next: ProjectDoc = {
+        ...d,
+        agents: d.agents.map(a => {
+          const agentTarget = args.bodies.find(
+            b => b.entity === 'agent' && b.entityId === a.id,
+          );
+          let agent = a;
+          if (agentTarget) {
+            const ab = agentTarget.newBody as Partial<AgentDoc>;
+            agent = {
+              ...a,
+              ...(ab.name          !== undefined && { name: ab.name as string }),
+              ...(ab.slug          !== undefined && { slug: ab.slug as string }),
+              ...(ab.spec          !== undefined && { spec: ab.spec as string }),
+              ...(ab.persona       !== undefined && { persona: ab.persona as string }),
+              ...(ab.defaultCrewId !== undefined && { defaultCrewId: ab.defaultCrewId as ID | undefined }),
+              ...(Array.isArray(ab.fields) && { fields: ab.fields as AgentDoc['fields'] }),
+            };
+          }
+          agent = {
+            ...agent,
+            crews: agent.crews.map(c => {
+              const crewTarget = args.bodies.find(
+                b => b.entity === 'crew' && b.entityId === c.id,
+              );
+              if (!crewTarget) return c;
+              const cb = crewTarget.newBody as Partial<CrewDoc>;
+              return {
+                ...c,
+                ...(cb.name        !== undefined && { name: cb.name as string }),
+                ...(cb.description !== undefined && { description: cb.description as string | undefined }),
+                ...(cb.spec        !== undefined && { spec: cb.spec as string }),
+                ...(cb.persona     !== undefined && { persona: cb.persona as string | undefined }),
+                ...(Array.isArray(cb.addons) && { addons: cb.addons as CrewDoc['addons'] }),
+                ...(Array.isArray(cb.fields) && { fields: cb.fields as CrewDoc['fields'] }),
+              };
+            }),
+          };
+          return agent;
+        }),
+      };
+      docRef.current = next;
+      return next;
+    });
+
+    setPendingAlfredApply({
+      applyGroupId: args.applyGroupId,
+      chatId:       args.chatId,
+      description:  args.description,
+      reason:       args.reason,
+      targets:      args.bodies.map(b => ({
+        entity:     b.entity,
+        entityId:   b.entityId,
+        entityName: b.entityName,
+        what_to_do: b.what_to_do,
+        bodyBefore: b.bodyBefore,
+        applied:    false,
+      })),
+    });
+  }, []);
+
+  /**
+   * Called from inside each save action right after the server push
+   * has been fired. If the entity matches a pending Alfred target,
+   * we either fire the log endpoint (actor = alfred | manual) or skip
+   * logging entirely (attribution='none'). Either way the target is
+   * marked applied and pendingAlfredApply clears when fully drained.
+   *
+   * No-op when there's no matching pending target — a plain save with
+   * no Alfred context behind it does nothing here.
+   */
+  const fireApplyLogIfPending = useCallback((args: {
+    parentAgentId: ID;
+    entity: 'agent' | 'crew';
+    entityId: ID;
+    savedBody: unknown;
+    /** Defaults to 'alfred' when a matching pending target exists. */
+    attribution?: SaveAttribution;
+  }) => {
+    const pending = pendingApplyRef.current;
+    if (!pending) return;
+    const idx = pending.targets.findIndex(
+      t => t.entity === args.entity && t.entityId === args.entityId && !t.applied,
+    );
+    if (idx === -1) return;
+    const target = pending.targets[idx];
+
+    const attribution: SaveAttribution = args.attribution || 'alfred';
+
+    if (attribution !== 'none') {
+      // Fire-and-forget — matches the rest of the sync layer's contract.
+      // Tiny risk: if the save itself failed server-side, we get an
+      // orphan log row. Save endpoints are simple JSONB writes — this
+      // is rare; treating it as the cost of keeping the save layer
+      // synchronous-looking for callers.
+      writeApplyLog({
+        agentId:      args.parentAgentId,
+        entity:       target.entity,
+        entityId:     target.entityId,
+        entityName:   target.entityName,
+        applyGroupId: pending.applyGroupId,
+        description:  pending.description,
+        reason:       pending.reason,
+        whatChanged:  target.what_to_do,
+        bodyBefore:   target.bodyBefore,
+        bodyAfter:    args.savedBody,
+        sourceChatId: pending.chatId,
+        actor:        attribution,
+        ownerUserId,
+      }).catch(err => console.error('[builder] writeApplyLog failed:', err));
+    }
+
+    const nextTargets = pending.targets.map((t, i) =>
+      i === idx ? { ...t, applied: true } : t,
+    );
+    const allApplied = nextTargets.every(t => t.applied);
+    const nextState = allApplied
+      ? null
+      : { ...pending, targets: nextTargets };
+    setPendingAlfredApply(nextState);
+    pendingApplyRef.current = nextState;
+  }, [ownerUserId]);
+
+  /**
+   * Drop any pending Alfred apply target for this entity (without
+   * logging). Used when the user discards their working copy — the
+   * Alfred draft is being thrown away, so no log row is appropriate.
+   */
+  const dropPendingAlfredTarget = useCallback((entity: 'agent' | 'crew', entityId: ID) => {
+    const pending = pendingApplyRef.current;
+    if (!pending) return;
+    const nextTargets = pending.targets.filter(
+      t => !(t.entity === entity && t.entityId === entityId),
+    );
+    const nextState = nextTargets.length === 0
+      ? null
+      : { ...pending, targets: nextTargets };
+    setPendingAlfredApply(nextState);
+    pendingApplyRef.current = nextState;
+  }, []);
+
   // ── Crew versioning ──
   // Save overwrites the version currently being VIEWED, not the
   // active one. Active is a separate pointer set explicitly via
   // `setActiveCrewVersion`. After updating local state, the matching
   // push helper syncs to the server.
-  const saveCrewVersion = useCallback((agentId: ID, crewId: ID) => {
+  const saveCrewVersion = useCallback((agentId: ID, crewId: ID, opts?: SaveOpts) => {
     const d = docRef.current;
     let updatedCrew: CrewDoc | undefined;
     const next: ProjectDoc = {
@@ -652,13 +900,22 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
     // both crew + agent are dirty) reads the just-committed state
     // instead of overwriting it.
     docRef.current = next;
-    if (updatedCrew) syncRef.current?.pushSaveCrewVersion(updatedCrew);
-  }, []);
+    if (updatedCrew) {
+      syncRef.current?.pushSaveCrewVersion(updatedCrew);
+      fireApplyLogIfPending({
+        parentAgentId: agentId,
+        entity:        'crew',
+        entityId:      crewId,
+        savedBody:     bodyOf(updatedCrew),
+        attribution:   opts?.attribution,
+      });
+    }
+  }, [fireApplyLogIfPending]);
 
   // Save As creates a new version from the working copy and starts
   // VIEWING it. Active is unchanged — the user has to opt in.
   const saveCrewVersionAs = useCallback(
-    (agentId: ID, crewId: ID, description?: string): CrewVersion => {
+    (agentId: ID, crewId: ID, description?: string, opts?: SaveOpts): CrewVersion => {
       const newId = uid('ver');
       const d = docRef.current;
       let created: CrewVersion | null = null;
@@ -694,10 +951,19 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       };
       setDoc(next);
       docRef.current = next;
-      if (updatedCrew) syncRef.current?.pushSaveCrewVersionAs(updatedCrew, description);
+      if (updatedCrew) {
+        syncRef.current?.pushSaveCrewVersionAs(updatedCrew, description);
+        fireApplyLogIfPending({
+          parentAgentId: agentId,
+          entity:        'crew',
+          entityId:      crewId,
+          savedBody:     bodyOf(updatedCrew),
+          attribution:   opts?.attribution,
+        });
+      }
       return created!;
     },
-    [],
+    [fireApplyLogIfPending],
   );
 
   // Load a version's body into the working copy and update the
@@ -763,10 +1029,49 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
     [doc],
   );
 
+  /**
+   * Revert the crew's working copy to whatever is currently in the
+   * viewing version's body. Also drops any pending Alfred apply
+   * target for this crew — the Alfred draft is being thrown away, so
+   * no log row gets written. Use this when the user dislikes their
+   * edits (or Alfred's) and wants to start over from the saved state.
+   */
+  const discardCrewChanges = useCallback((agentId: ID, crewId: ID) => {
+    setDoc(d => {
+      const next: ProjectDoc = {
+        ...d,
+        agents: d.agents.map(a => {
+          if (a.id !== agentId) return a;
+          return {
+            ...a,
+            crews: a.crews.map(c => {
+              if (c.id !== crewId) return c;
+              const viewing = c.versions.find(v => v.id === c.viewingVersionId);
+              if (!viewing) return c;
+              const body = viewing.body;
+              return {
+                ...c,
+                name:        body.name,
+                description: body.description,
+                spec:        body.spec,
+                persona:     body.persona,
+                addons:      Array.isArray(body.addons) ? body.addons : [],
+                fields:      Array.isArray(body.fields) ? body.fields : [],
+              };
+            }),
+          };
+        }),
+      };
+      docRef.current = next;
+      return next;
+    });
+    dropPendingAlfredTarget('crew', crewId);
+  }, [dropPendingAlfredTarget]);
+
   // ── Agent versioning ──
   // Same pattern as crew. Crews live outside the version body so
   // promoting an agent version doesn't disrupt crew membership.
-  const saveAgentVersion = useCallback((agentId: ID) => {
+  const saveAgentVersion = useCallback((agentId: ID, opts?: SaveOpts) => {
     const d = docRef.current;
     let updatedAgent: AgentDoc | undefined;
     const next: ProjectDoc = {
@@ -788,11 +1093,20 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
     };
     setDoc(next);
     docRef.current = next;
-    if (updatedAgent) syncRef.current?.pushSaveAgentVersion(updatedAgent);
-  }, []);
+    if (updatedAgent) {
+      syncRef.current?.pushSaveAgentVersion(updatedAgent);
+      fireApplyLogIfPending({
+        parentAgentId: agentId,
+        entity:        'agent',
+        entityId:      agentId,
+        savedBody:     bodyOfAgent(updatedAgent),
+        attribution:   opts?.attribution,
+      });
+    }
+  }, [fireApplyLogIfPending]);
 
   const saveAgentVersionAs = useCallback(
-    (agentId: ID, description?: string): AgentVersion => {
+    (agentId: ID, description?: string, opts?: SaveOpts): AgentVersion => {
       const newId = uid('ver');
       const d = docRef.current;
       let created: AgentVersion | null = null;
@@ -822,10 +1136,19 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       };
       setDoc(next);
       docRef.current = next;
-      if (updatedAgent) syncRef.current?.pushSaveAgentVersionAs(updatedAgent, description);
+      if (updatedAgent) {
+        syncRef.current?.pushSaveAgentVersionAs(updatedAgent, description);
+        fireApplyLogIfPending({
+          parentAgentId: agentId,
+          entity:        'agent',
+          entityId:      agentId,
+          savedBody:     bodyOfAgent(updatedAgent),
+          attribution:   opts?.attribution,
+        });
+      }
       return created!;
     },
-    [],
+    [fireApplyLogIfPending],
   );
 
   const setViewingAgentVersion = useCallback(
@@ -874,9 +1197,54 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
     [doc],
   );
 
+  /**
+   * Revert the agent's working copy (shell fields only — crews live
+   * elsewhere) to the viewing version's body. Also drops any pending
+   * Alfred apply target for this agent.
+   */
+  const discardAgentChanges = useCallback((agentId: ID) => {
+    setDoc(d => {
+      const next: ProjectDoc = {
+        ...d,
+        agents: d.agents.map(a => {
+          if (a.id !== agentId) return a;
+          const viewing = a.versions.find(v => v.id === a.viewingVersionId);
+          if (!viewing) return a;
+          const body = viewing.body;
+          return {
+            ...a,
+            name:          body.name,
+            slug:          body.slug,
+            spec:          body.spec,
+            persona:       body.persona,
+            defaultCrewId: body.defaultCrewId,
+            fields:        Array.isArray(body.fields) ? body.fields : [],
+          };
+        }),
+      };
+      docRef.current = next;
+      return next;
+    });
+    dropPendingAlfredTarget('agent', agentId);
+  }, [dropPendingAlfredTarget]);
+
   const resetDraft = useCallback(() => {
     setDoc(emptyProject(agentSlug));
   }, [agentSlug]);
+
+  /**
+   * Refetch from the server and replace the working copy. Used after
+   * the Alfred Apply flow saves new bodies — the canvas needs to show
+   * the new state without a page reload.
+   */
+  const reloadProject = useCallback(async () => {
+    try {
+      const fresh = await fetchProject({ agentSlug, ownerUserId });
+      if (fresh) setDoc(fresh);
+    } catch (err) {
+      console.error('[builder] reloadProject failed:', err);
+    }
+  }, [agentSlug, ownerUserId]);
 
   const value = useMemo<BuilderState>(
     () => ({
@@ -899,13 +1267,18 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       saveCrewVersionAs,
       setViewingCrewVersion,
       setActiveCrewVersion,
+      discardCrewChanges,
       isCrewDirty,
       saveAgentVersion,
       saveAgentVersionAs,
       setViewingAgentVersion,
       setActiveAgentVersion,
+      discardAgentChanges,
       isAgentDirty,
       resetDraft,
+      reloadProject,
+      pendingAlfredApply,
+      applyAlfredBodies,
       previewConversationId,
       setPreviewConversationId,
       conversationMemory,
@@ -932,13 +1305,18 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       saveCrewVersionAs,
       setViewingCrewVersion,
       setActiveCrewVersion,
+      discardCrewChanges,
       isCrewDirty,
       saveAgentVersion,
       saveAgentVersionAs,
       setViewingAgentVersion,
       setActiveAgentVersion,
+      discardAgentChanges,
       isAgentDirty,
       resetDraft,
+      reloadProject,
+      pendingAlfredApply,
+      applyAlfredBodies,
       previewConversationId,
       conversationMemory,
       refreshConversationMemory,

@@ -1,0 +1,94 @@
+.intro {
+  font-size: 13px;
+  color: var(--text-secondary, #4b5563);
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.applyHeadline {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  margin: 0 0 12px;
+  padding: 8px 11px;
+  border-left: 3px solid var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.06);
+  border-radius: 0 6px 6px 0;
+}
+
+.choiceList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Each option is a full-width button card — label on top, hint below.
+ * Hover lights the border. Recommended option carries a primary tint
+ * around its left edge so a glance still finds it. */
+.choice {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 10px 12px;
+  text-align: left;
+  font-family: inherit;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.choice:hover {
+  border-color: var(--primary-color, #6366f1);
+}
+
+.choiceRecommended {
+  border-left: 3px solid var(--primary-color, #6366f1);
+}
+
+.choiceLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+}
+
+.choiceHint {
+  font-size: 11.5px;
+  color: var(--text-tertiary, #6b7280);
+  line-height: 1.4;
+}
+
+.recommendedTag {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--primary-color, #6366f1);
+}
+
+/* Footer cancel button. Same baseline as other modal cancels. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  height: 30px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn:hover {
+  color: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
+}
