@@ -53,6 +53,10 @@ export interface EntityVersionState {
   /** Revert the working copy to the viewing version's body. Also
    *  drops any pending Alfred apply target for this entity. */
   discard: () => void;
+  /** Permanently delete a snapshot version. Server rejects last /
+   *  active / viewing; the thrown Error carries `code` so the UI
+   *  can surface the reason. */
+  deleteVersion: (versionId: ID) => Promise<void>;
 }
 
 export function useCrewVersion(agentId: ID, crewId: ID): EntityVersionState | null {
@@ -64,6 +68,7 @@ export function useCrewVersion(agentId: ID, crewId: ID): EntityVersionState | nu
     setActiveCrewVersion,
     discardCrewChanges,
     discardAgentChanges,
+    deleteCrewVersion,
     saveAgentVersion,
     isCrewDirty,
     isAgentDirty,
@@ -119,6 +124,7 @@ export function useCrewVersion(agentId: ID, crewId: ID): EntityVersionState | nu
       if (crewDirty)  discardCrewChanges(agentId, crewId);
       if (agentDirty) discardAgentChanges(agentId);
     },
+    deleteVersion: vId => deleteCrewVersion(agentId, crewId, vId),
   };
 }
 
@@ -131,6 +137,7 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
     setActiveAgentVersion,
     discardAgentChanges,
     discardCrewChanges,
+    deleteAgentVersion,
     saveCrewVersion,
     isAgentDirty,
     isCrewDirty,
@@ -186,6 +193,7 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
       if (agentDirty) discardAgentChanges(agentId);
       for (const id of dirtyCrewIds) discardCrewChanges(agentId, id);
     },
+    deleteVersion: vId => deleteAgentVersion(agentId, vId),
   };
 }
 

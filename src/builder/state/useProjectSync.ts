@@ -59,6 +59,9 @@ export interface ProjectSyncApi {
   pushSaveAgentVersionAs: (agent: AgentDoc, description?: string) => Promise<void>;
   pushSetAgentActive: (agentId: ID, versionId: ID) => Promise<void>;
   pushSetAgentViewing: (agentId: ID, versionId: ID) => Promise<void>;
+  /** Throws when the server refuses (last/active/viewing) — caller
+   *  should NOT mutate local state until this resolves. */
+  pushDeleteAgentVersion: (agentId: ID, versionId: ID) => Promise<void>;
 
   pushCreateCrew: (agentId: ID, crew: CrewDoc) => Promise<void>;
   pushDeleteCrew: (crewId: ID) => Promise<void>;
@@ -66,6 +69,8 @@ export interface ProjectSyncApi {
   pushSaveCrewVersionAs: (crew: CrewDoc, description?: string) => Promise<void>;
   pushSetCrewActive: (crewId: ID, versionId: ID) => Promise<void>;
   pushSetCrewViewing: (crewId: ID, versionId: ID) => Promise<void>;
+  /** Same throw-on-refuse contract as the agent variant. */
+  pushDeleteCrewVersion: (crewId: ID, versionId: ID) => Promise<void>;
 }
 
 /**
@@ -130,6 +135,7 @@ export function useProjectSync(args: {
     },
     pushSetAgentActive:  (id, vId) => api.setAgentActiveApi(id, vId).catch(console.error),
     pushSetAgentViewing: (id, vId) => api.setAgentViewingApi(id, vId).catch(console.error),
+    pushDeleteAgentVersion: (id, vId) => api.deleteAgentVersionApi(id, vId),
 
     pushCreateCrew: async (agentId, crew) => {
       try {
@@ -169,5 +175,6 @@ export function useProjectSync(args: {
     },
     pushSetCrewActive:  (id, vId) => api.setCrewActiveApi(id, vId).catch(console.error),
     pushSetCrewViewing: (id, vId) => api.setCrewViewingApi(id, vId).catch(console.error),
+    pushDeleteCrewVersion: (id, vId) => api.deleteCrewVersionApi(id, vId),
   };
 }

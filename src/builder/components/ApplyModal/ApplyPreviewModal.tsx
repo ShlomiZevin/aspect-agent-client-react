@@ -103,6 +103,7 @@ export function ApplyPreviewModal({
       applyAlfredBodies({
         applyGroupId: out.applyGroupId,
         chatId,
+        summary,
         description,
         reason: reason.trim(),
         bodies: out.generated.map(g => ({

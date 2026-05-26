@@ -136,6 +136,25 @@ export async function setAgentViewingApi(agentId: ID, versionId: ID) {
   });
 }
 
+/**
+ * Delete an agent version. The server refuses to delete the last,
+ * active, or currently-viewed version → 409 with a `code` of
+ * 'is_active' | 'is_viewing' | 'last_version'. Caller is expected
+ * to surface the message to the user.
+ */
+export async function deleteAgentVersionApi(agentId: ID, versionId: ID): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/builder/agents/${agentId}/versions/${versionId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText, code: 'unknown' }));
+    const err = new Error(body.error || `delete failed: ${res.status}`) as Error & { code?: string };
+    err.code = body.code;
+    throw err;
+  }
+}
+
 // ─── Crew lifecycle + version actions ─────────────────────────────
 
 export async function createCrewApi(args: {
@@ -197,6 +216,22 @@ export async function setCrewViewingApi(crewId: ID, versionId: ID) {
     method: 'PUT',
     body: JSON.stringify({ versionId }),
   });
+}
+
+/**
+ * Delete a crew version. Same 409+code semantics as the agent variant.
+ */
+export async function deleteCrewVersionApi(crewId: ID, versionId: ID): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/builder/crews/${crewId}/versions/${versionId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText, code: 'unknown' }));
+    const err = new Error(body.error || `delete failed: ${res.status}`) as Error & { code?: string };
+    err.code = body.code;
+    throw err;
+  }
 }
 
 // ─── Runtime conversations ────────────────────────────────────────

@@ -23,8 +23,17 @@ export function VersionPill({ state }: Props) {
   const confirm = useConfirm();
   const [open, setOpen] = useState(false);
 
-  const { versions, viewingVersionId, activeVersionId, isDirty, setViewing } = state;
+  const {
+    versions,
+    viewingVersionId,
+    activeVersionId,
+    isDirty,
+    setViewing,
+    deleteVersion,
+    entityLabel,
+  } = state;
   const viewing = versions.find(v => v.id === viewingVersionId);
+  const canDeleteAny = versions.length > 1;
 
   const handleSwitch = async (target: VersionMeta) => {
     setOpen(false);
@@ -45,6 +54,39 @@ export function VersionPill({ state }: Props) {
       if (!ok) return;
     }
     setViewing(target.id);
+  };
+
+  const handleDelete = async (target: VersionMeta) => {
+    // Confirm. The server enforces the same guards (last/active/viewing
+    // refused with a coded 409), but we double-check client-side so the
+    // user gets feedback immediately and the round-trip is skipped.
+    const ok = await confirm({
+      title: `Delete v${target.number}?`,
+      message: (
+        <>
+          Permanently delete <strong>v{target.number}</strong>
+          {target.description ? <> — “{target.description}”</> : null} of
+          this {entityLabel}. This can’t be undone.
+        </>
+      ),
+      confirmLabel: 'Delete version',
+      cancelLabel: 'Cancel',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await deleteVersion(target.id);
+    } catch (err) {
+      // Server-side guard fired (race with viewing/active flips) or a
+      // genuine failure. Surface the message via the confirm modal —
+      // both buttons just dismiss; we don't care about the return value.
+      const msg = err instanceof Error ? err.message : 'Delete failed';
+      await confirm({
+        title: 'Couldn’t delete this version',
+        message: msg,
+        confirmLabel: 'OK',
+      });
+    }
   };
 
   return (
@@ -69,19 +111,45 @@ export function VersionPill({ state }: Props) {
             .map(v => {
               const isViewing = v.id === viewingVersionId;
               const isActive = v.id === activeVersionId;
+              // Mirror the server-side guards exactly. We show the ×
+              // even when it's not actionable so the affordance is
+              // discoverable — but disable it and explain *why* via a
+              // tooltip. Otherwise the user sees no delete and can't
+              // tell whether the feature exists or which row blocks it.
+              const blockReason = !canDeleteAny
+                ? 'Can’t delete the only version'
+                : isViewing
+                  ? 'Switch to a different version to delete this one'
+                  : isActive
+                    ? 'Set another version as active to delete this one'
+                    : null;
               return (
-                <button
+                <div
                   key={v.id}
-                  type="button"
-                  className={`${styles.menuItem} ${isViewing ? styles.menuItemActive : ''}`}
-                  onClick={() => handleSwitch(v)}
+                  className={`${styles.menuRow} ${isViewing ? styles.menuRowActive : ''}`}
                 >
-                  <span className={styles.menuItemNum}>v{v.number}</span>
-                  <span className={styles.menuItemDesc}>
-                    {v.description || (isViewing ? 'Viewing' : 'Untitled')}
-                  </span>
-                  {isActive && <span className={styles.menuItemActiveTag}>active</span>}
-                </button>
+                  <button
+                    type="button"
+                    className={styles.menuItem}
+                    onClick={() => handleSwitch(v)}
+                  >
+                    <span className={styles.menuItemNum}>v{v.number}</span>
+                    <span className={styles.menuItemDesc}>
+                      {v.description || (isViewing ? 'Viewing' : 'Untitled')}
+                    </span>
+                    {isActive && <span className={styles.menuItemActiveTag}>active</span>}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.menuDelete}
+                    onClick={e => { e.stopPropagation(); if (!blockReason) handleDelete(v); }}
+                    disabled={!!blockReason}
+                    title={blockReason || `Delete v${v.number}`}
+                    aria-label={blockReason || `Delete v${v.number}`}
+                  >
+                    ×
+                  </button>
+                </div>
               );
             })}
         </div>

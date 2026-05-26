@@ -201,6 +201,13 @@ export interface PendingApplyTarget {
 export interface PendingAlfredApply {
   applyGroupId: string;
   chatId:       number;
+  /**
+   * One-line headline from the consolidator ("Add intent field on agent +
+   * wire into Welcome crew"). Used to keep the in-canvas banner compact —
+   * the long English plan stays in `description` and the per-target
+   * `what_to_do` lines are in `targets`. Surfaced in a Details modal.
+   */
+  summary?:     string;
   description:  string;
   reason:       string;
   targets:      PendingApplyTarget[];
@@ -228,6 +235,9 @@ export interface SaveOpts {
 export interface ApplyAlfredBodiesArgs {
   applyGroupId: string;
   chatId:       number;
+  /** Short headline from the consolidator. Optional — falls back to a
+   *  generic banner label when absent. */
+  summary?:     string;
   description:  string;
   reason:       string;
   bodies: Array<{
@@ -312,6 +322,9 @@ interface BuilderState {
   /** Revert the working copy to the viewing version's body. Also clears
    *  any pending Alfred apply target for this crew (without logging). */
   discardCrewChanges: (agentId: ID, crewId: ID) => void;
+  /** Permanently delete a crew version. Server refuses last / active /
+   *  viewing — the thrown Error carries `code` so the UI can react. */
+  deleteCrewVersion: (agentId: ID, crewId: ID, versionId: ID) => Promise<void>;
   /** True when the working state differs from the *viewing* version's snapshot. */
   isCrewDirty: (agentId: ID, crewId: ID) => boolean;
 
@@ -321,6 +334,8 @@ interface BuilderState {
   setViewingAgentVersion: (agentId: ID, versionId: ID) => void;
   setActiveAgentVersion: (agentId: ID, versionId: ID) => void;
   discardAgentChanges: (agentId: ID) => void;
+  /** Permanently delete an agent version. Same refusal semantics as crew. */
+  deleteAgentVersion: (agentId: ID, versionId: ID) => Promise<void>;
   isAgentDirty: (agentId: ID) => boolean;
 
   // Reset (debug helper)
@@ -770,6 +785,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
     setPendingAlfredApply({
       applyGroupId: args.applyGroupId,
       chatId:       args.chatId,
+      summary:      args.summary,
       description:  args.description,
       reason:       args.reason,
       targets:      args.bodies.map(b => ({
@@ -1016,6 +1032,35 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
     [],
   );
 
+  /**
+   * Permanently delete a crew version. Server is the authority on
+   * what's deletable (last / active / viewing are refused with a
+   * coded 409); we push first and only mutate local state on success.
+   * Throws on refusal so the UI can surface the reason.
+   */
+  const deleteCrewVersion = useCallback(
+    async (agentId: ID, crewId: ID, versionId: ID): Promise<void> => {
+      await syncRef.current?.pushDeleteCrewVersion(crewId, versionId);
+      const d = docRef.current;
+      const next: ProjectDoc = {
+        ...d,
+        agents: d.agents.map(a => {
+          if (a.id !== agentId) return a;
+          return {
+            ...a,
+            crews: a.crews.map(c => {
+              if (c.id !== crewId) return c;
+              return { ...c, versions: c.versions.filter(v => v.id !== versionId) };
+            }),
+          };
+        }),
+      };
+      setDoc(next);
+      docRef.current = next;
+    },
+    [],
+  );
+
   // Dirty compares the working copy against the VIEWING snapshot —
   // that's what Save writes to.
   const isCrewDirty = useCallback(
@@ -1186,6 +1231,23 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
     [],
   );
 
+  const deleteAgentVersion = useCallback(
+    async (agentId: ID, versionId: ID): Promise<void> => {
+      await syncRef.current?.pushDeleteAgentVersion(agentId, versionId);
+      const d = docRef.current;
+      const next: ProjectDoc = {
+        ...d,
+        agents: d.agents.map(a => {
+          if (a.id !== agentId) return a;
+          return { ...a, versions: a.versions.filter(v => v.id !== versionId) };
+        }),
+      };
+      setDoc(next);
+      docRef.current = next;
+    },
+    [],
+  );
+
   const isAgentDirty = useCallback(
     (agentId: ID): boolean => {
       const agent = doc.agents.find(a => a.id === agentId);
@@ -1268,12 +1330,14 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       setViewingCrewVersion,
       setActiveCrewVersion,
       discardCrewChanges,
+      deleteCrewVersion,
       isCrewDirty,
       saveAgentVersion,
       saveAgentVersionAs,
       setViewingAgentVersion,
       setActiveAgentVersion,
       discardAgentChanges,
+      deleteAgentVersion,
       isAgentDirty,
       resetDraft,
       reloadProject,
@@ -1306,12 +1370,14 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       setViewingCrewVersion,
       setActiveCrewVersion,
       discardCrewChanges,
+      deleteCrewVersion,
       isCrewDirty,
       saveAgentVersion,
       saveAgentVersionAs,
       setViewingAgentVersion,
       setActiveAgentVersion,
       discardAgentChanges,
+      deleteAgentVersion,
       isAgentDirty,
       resetDraft,
       reloadProject,
