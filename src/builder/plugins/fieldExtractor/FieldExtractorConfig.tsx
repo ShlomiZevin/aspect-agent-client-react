@@ -17,7 +17,8 @@ import { FieldEditorModal } from '../../components/FieldsPanel/FieldEditorModal'
 import { useCrewFields } from '../../state/useCrewFields';
 import type { CrewField } from '../../state/useCrewFields';
 import type { PluginConfigProps } from '../../registry/plugins';
-import type { FieldDef, FieldExtractorConfig } from '../../types';
+import { getPlugin } from '../../registry/plugins';
+import type { FieldDef, FieldExtractorConfig, FieldSource } from '../../types';
 import styles from './FieldExtractorConfig.module.css';
 
 interface FieldGroup {
@@ -235,6 +236,19 @@ export function FieldExtractorConfigComponent({
         onClose={() => setAddOpen(false)}
         agentId={agentId}
         crewId={crewId}
+        // Anchor the new field to THIS extractor instance with the
+        // plugin-preferred default source (first entry in the plugin
+        // descriptor's `allowedFieldSources`). So adding a field from
+        // a Vibe Extractor starts ticked + 'inferred', from a Field
+        // Extractor starts ticked + 'explicit'. Future extractor
+        // plugins inherit this behavior just by ordering their
+        // `allowedFieldSources` array.
+        fromExtractor={{
+          instanceId: instance.instanceId,
+          defaultSource:
+            (getPlugin(instance.pluginId)?.allowedFieldSources?.[0] as FieldSource | undefined)
+            ?? 'explicit',
+        }}
       />
 
       <FieldEditorModal

@@ -27,7 +27,7 @@
 import { useCallback, useMemo } from 'react';
 import { useBuilder, newAddonInstanceId } from './BuilderContext';
 import { FIELD_EXTRACTOR_PLUGIN_ID, fieldExtractorPlugin } from '../plugins/fieldExtractor/addon.fieldExtractor';
-import { defaultContextFor, defaultOutputTypeFor } from '../registry/plugins';
+import { defaultContextFor, defaultOutputTypeFor, getPlugin } from '../registry/plugins';
 import type {
   AddonInstance,
   AgentDoc,
@@ -39,9 +39,15 @@ import type {
 } from '../types';
 
 export interface ExtractorRef {
-  /** Field Extractor instance id. */
+  /** Extractor-class addon instance id. */
   instanceId: ID;
-  /** User-set name (extractor's config.name) or the default "Field Extractor [#N]". */
+  /** Plugin id of the extractor (e.g. 'field-extractor', 'vibe-extractor').
+   *  Lets the UI tell extractor *flavors* apart without a name parse. */
+  pluginId: string;
+  /** Plugin's display icon — used as a leading glyph in row chips. */
+  icon: string;
+  /** User-set name (extractor's `config.name`) or a plugin-specific
+   *  fallback like "Vibe Extractor #2". */
   label: string;
   /** Crew the extractor lives in. */
   crewId: ID;
@@ -92,8 +98,20 @@ export interface CrewDomain {
   fields: CrewField[];
 }
 
-function isFieldExtractor(a: AddonInstance): a is AddonInstance<FieldExtractorConfig> {
-  return a.pluginId === FIELD_EXTRACTOR_PLUGIN_ID;
+/**
+ * Is this addon an extractor-class plugin? Any plugin whose descriptor
+ * sets `fieldMode: 'extractor'` counts (Field Extractor, Vibe Extractor,
+ * and any future siblings). Generalized via the plugin registry so new
+ * extractor flavors are picked up automatically — no per-call-site
+ * pluginId list to maintain.
+ *
+ * The `FieldExtractorConfig` type cast is sound because every extractor-
+ * mode plugin shares the same config shape (`extractsFields[]`, prompt,
+ * model, optional name). Future extractor plugins must stick to that
+ * shape for memory writes to flow through the engine uniformly.
+ */
+function isExtractor(a: AddonInstance): a is AddonInstance<FieldExtractorConfig> {
+  return getPlugin(a.pluginId)?.fieldMode === 'extractor';
 }
 
 function newFieldId(): ID {
@@ -101,26 +119,42 @@ function newFieldId(): ID {
 }
 
 /**
- * Build a labeled list of all Field Extractor instances in an agent
- * (across every crew). Each gets a user-friendly label that prefers
- * the user-set `config.name`, falling back to "Field Extractor [#N]"
- * disambiguated per crew.
+ * Build a labeled list of all extractor-class addon instances in an
+ * agent (across every crew). Labels prefer the user-set `config.name`,
+ * falling back to "<Plugin name> [#N]" disambiguated per crew so the
+ * Vibe Extractors and Field Extractors don't collide visually.
  */
 function listAllExtractors(agent: AgentDoc | undefined): ExtractorRef[] {
   if (!agent) return [];
   const out: ExtractorRef[] = [];
   for (const crew of agent.crews) {
-    const extractors = crew.addons.filter(isFieldExtractor);
-    extractors.forEach((e, i) => {
-      const userName = (e.config?.name || '').trim();
-      const fallback = extractors.length === 1 ? 'Field Extractor' : `Field Extractor #${i + 1}`;
+    // Group same-plugin extractors per crew so the "#N" suffix only
+    // numbers among siblings of the same flavor — "Vibe Extractor #1"
+    // counts independently from "Field Extractor #1" in the same crew.
+    const byPluginCount = new Map<string, number>();
+    const byPluginTotal = new Map<string, number>();
+    for (const a of crew.addons) {
+      if (!isExtractor(a)) continue;
+      byPluginTotal.set(a.pluginId, (byPluginTotal.get(a.pluginId) || 0) + 1);
+    }
+    for (const a of crew.addons) {
+      if (!isExtractor(a)) continue;
+      const pluginDesc = getPlugin(a.pluginId);
+      const userName = (a.config?.name || '').trim();
+      const pluginName = pluginDesc?.name || 'Extractor';
+      const totalOfKind = byPluginTotal.get(a.pluginId) || 1;
+      const idx = (byPluginCount.get(a.pluginId) || 0) + 1;
+      byPluginCount.set(a.pluginId, idx);
+      const fallback = totalOfKind === 1 ? pluginName : `${pluginName} #${idx}`;
       out.push({
-        instanceId: e.instanceId,
-        label: userName || fallback,
-        crewId: crew.id,
-        crewName: crew.name,
+        instanceId: a.instanceId,
+        pluginId:   a.pluginId,
+        icon:       pluginDesc?.icon || '🛠',
+        label:      userName || fallback,
+        crewId:     crew.id,
+        crewName:   crew.name,
       });
-    });
+    }
   }
   return out;
 }
@@ -154,7 +188,7 @@ function buildCrewField(
   const extractors: ExtractorRef[] = [];
   for (const crew of agent.crews) {
     for (const a of crew.addons) {
-      if (!isFieldExtractor(a)) continue;
+      if (!isExtractor(a)) continue;
       const list = Array.isArray(a.config.extractsFields) ? a.config.extractsFields : [];
       if (list.includes(def.id)) {
         const ref = agentExtractors.find(x => x.instanceId === a.instanceId);
@@ -184,7 +218,7 @@ export function useCrewFields(agentId: ID, crewId: ID) {
 
   /** Just this crew's extractors (used by the "this extractor" picker). */
   const extractors = useMemo<AddonInstance<FieldExtractorConfig>[]>(
-    () => (crew?.addons ?? []).filter(isFieldExtractor),
+    () => (crew?.addons ?? []).filter(isExtractor),
     [crew?.addons],
   );
 
@@ -250,7 +284,7 @@ export function useCrewFields(agentId: ID, crewId: ID) {
       // should contain the id and patch its config when changed.
       for (const c of agent.crews) {
         for (const a of c.addons) {
-          if (!isFieldExtractor(a)) continue;
+          if (!isExtractor(a)) continue;
           const list = Array.isArray(a.config.extractsFields) ? a.config.extractsFields : [];
           const has = list.includes(fieldId);
           const should = wanted.has(a.instanceId);
@@ -384,7 +418,7 @@ export function useCrewFields(agentId: ID, crewId: ID) {
       // Scrub.
       for (const c of agent.crews) {
         for (const a of c.addons) {
-          if (!isFieldExtractor(a)) continue;
+          if (!isExtractor(a)) continue;
           const list = Array.isArray(a.config.extractsFields) ? a.config.extractsFields : [];
           if (!list.includes(fieldId)) continue;
           const nextConfig: FieldExtractorConfig = {

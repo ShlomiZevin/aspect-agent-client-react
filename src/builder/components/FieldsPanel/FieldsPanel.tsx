@@ -309,14 +309,17 @@ function FieldRow({ cf, onPick, liveValue, showCrewChip }: FieldRowProps) {
           </span>
         ) : (
           // List every "Crew → Extractor" pair that extracts this
-          // field. Skip the crew prefix when there's only one crew
-          // in the agent (the prefix is just noise then).
+          // field. The plugin icon prefixes the chip so Vibe vs Field
+          // extractors are visually distinguishable at-a-glance.
+          // Crew prefix dropped when there's only one crew in the
+          // agent (it's just noise then).
           cf.extractors.map(e => (
             <span
               key={e.instanceId}
               className={styles.locationChip}
               title={`Extracted by ${e.crewName} → ${e.label}`}
             >
+              <span className={styles.locationChipIcon} aria-hidden>{e.icon}</span>
               {showCrewChip ? `${e.crewName} → ${e.label}` : e.label}
             </span>
           ))

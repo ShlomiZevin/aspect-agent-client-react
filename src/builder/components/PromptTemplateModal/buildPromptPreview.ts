@@ -64,8 +64,10 @@ function buildMemoryBlock(selectedDomains: Array<string | null>): string {
   if (selectedDomains.length === 0) return '';
   // Runtime contract: each `### <domain>` block holds only the
   // fields that have values. Preview = empty `{}` per domain.
+  // The no-domain bucket renders as `### general` to match the
+  // server storage key (`_general`) and the server prompt assembler.
   const sections: string[] = selectedDomains.map(d => {
-    const label = d ?? '(ungrouped)';
+    const label = d ?? 'general';
     return `### ${label}\n{}`;
   });
   return `## Memory\n${sections.join('\n\n')}`;

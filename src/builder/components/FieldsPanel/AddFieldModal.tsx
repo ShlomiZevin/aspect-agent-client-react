@@ -27,6 +27,17 @@ interface Props {
   onClose: () => void;
   agentId: ID;
   crewId: ID;
+  /**
+   * When the modal is opened from a specific extractor's config
+   * (the "+ Add field" inside an extractor card), the caller passes
+   * this so the new field starts wired to THAT extractor and inherits
+   * its plugin's preferred default source. Without it, the modal
+   * falls back to the first extractor in the crew + 'explicit'.
+   */
+  fromExtractor?: {
+    instanceId: ID;
+    defaultSource: FieldSource;
+  };
 }
 
 const TYPES: { value: FieldType; label: string }[] = [
@@ -51,10 +62,10 @@ interface Draft {
   enumValues: string;
 }
 
-const emptyDraft = (): Draft => ({
+const emptyDraft = (source: FieldSource = 'explicit'): Draft => ({
   name: '',
   type: 'string',
-  source: 'explicit',
+  source,
   // Default to agent scope — most fields are agent-wide.
   scope: 'agent',
   domain: '',
@@ -62,23 +73,29 @@ const emptyDraft = (): Draft => ({
   enumValues: '',
 });
 
-export function AddFieldModal({ open, onClose, agentId, crewId }: Props) {
+export function AddFieldModal({ open, onClose, agentId, crewId, fromExtractor }: Props) {
   const { agentExtractors, extractorOptions, domainNames, addFieldToScope } =
     useCrewFields(agentId, crewId);
 
-  const [draft, setDraft] = useState<Draft>(emptyDraft());
-  // Which Field Extractor instances should extract this field. At
-  // least one required to submit. Defaults to the first extractor in
-  // the current crew (if any), else empty (will auto-create).
+  const [draft, setDraft] = useState<Draft>(() => emptyDraft(fromExtractor?.defaultSource));
+  // Which extractor instances should extract this field. At least one
+  // required to submit. When opened from a specific extractor's "+ Add
+  // field", that one is pre-ticked. Otherwise we fall back to the
+  // first extractor in the current crew (or empty → auto-create).
   const [selectedExtractors, setSelectedExtractors] = useState<Set<ID>>(new Set());
 
-  // Reset on open. Pick a sensible default extractor for the crew.
+  // Reset on open. Pick a sensible default extractor for the crew
+  // (or the calling extractor when opened from an extractor's config).
   useEffect(() => {
     if (!open) return;
-    setDraft(emptyDraft());
-    const firstInThisCrew = extractorOptions[0]?.instanceId;
-    setSelectedExtractors(firstInThisCrew ? new Set([firstInThisCrew]) : new Set());
-  }, [open, extractorOptions]);
+    setDraft(emptyDraft(fromExtractor?.defaultSource));
+    if (fromExtractor) {
+      setSelectedExtractors(new Set([fromExtractor.instanceId]));
+    } else {
+      const firstInThisCrew = extractorOptions[0]?.instanceId;
+      setSelectedExtractors(firstInThisCrew ? new Set([firstInThisCrew]) : new Set());
+    }
+  }, [open, extractorOptions, fromExtractor]);
 
   const noExtractorsAnywhere = agentExtractors.length === 0;
   const canSubmit = draft.name.trim().length > 0 && (

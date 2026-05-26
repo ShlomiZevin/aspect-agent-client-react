@@ -241,11 +241,20 @@
 }
 
 /* "Crew → Extractor" location chip on each field row. Same pill
- * footprint as the type/source pills above. */
+ * footprint as the type/source pills above. The leading icon tells
+ * Vibe and Field Extractors apart at-a-glance. */
 .locationChip {
   background: rgba(14, 165, 233, 0.1);
   color: #0369a1;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.locationChipIcon {
+  font-size: 11px;
+  line-height: 1;
 }
 
 /* No extractor is wired up to this field — definition exists but

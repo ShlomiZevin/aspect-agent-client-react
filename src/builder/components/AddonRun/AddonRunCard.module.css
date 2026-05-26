@@ -170,6 +170,20 @@
   white-space: pre-wrap;
 }
 
+/* Selection on the dark prompt/output blocks. Without this rule the
+ * browser's default selection (dark blue on dark slate) makes the
+ * highlighted text unreadable. Use a translucent indigo so the bg
+ * stays clearly contrasting and the text stays the same color it
+ * was — no need to repaint glyphs on highlight. */
+.pre::selection {
+  background: rgba(99, 102, 241, 0.55);
+  color: #fff;
+}
+.pre::-moz-selection {
+  background: rgba(99, 102, 241, 0.55);
+  color: #fff;
+}
+
 .preError {
   background: #fee2e2;
   color: #991b1b;

@@ -8,6 +8,7 @@
  */
 
 import './fieldExtractor/addon.fieldExtractor';
+import './vibeExtractor/addon.vibeExtractor';
 import './talker/addon.talker';
 import './transitionRouter/addon.transitionRouter';
 

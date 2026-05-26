@@ -11,35 +11,54 @@
 
 import { useMemo } from 'react';
 import { useBuilder } from './BuilderContext';
-import { FIELD_EXTRACTOR_PLUGIN_ID } from '../plugins/fieldExtractor/addon.fieldExtractor';
+import { getPlugin } from '../registry/plugins';
 import type { AddonInstance, FieldExtractorConfig, ID } from '../types';
 import type { CrewDomain, CrewField, ExtractorRef } from './useCrewFields';
 
-function isFieldExtractor(a: AddonInstance): a is AddonInstance<FieldExtractorConfig> {
-  return a.pluginId === FIELD_EXTRACTOR_PLUGIN_ID;
+/**
+ * Any plugin with `fieldMode: 'extractor'` counts — Field Extractor,
+ * Vibe Extractor, and future siblings. Generalized via the registry
+ * so new extractor flavors are picked up automatically.
+ */
+function isExtractor(a: AddonInstance): a is AddonInstance<FieldExtractorConfig> {
+  return getPlugin(a.pluginId)?.fieldMode === 'extractor';
 }
 
 export function useAgentFields(agentId: ID) {
   const { doc } = useBuilder();
   const agent = doc.agents.find(a => a.id === agentId);
 
-  // Every Field Extractor across the agent, with display labels that
-  // prefer the user-set `config.name`.
+  // Every extractor-class addon across the agent, with display labels
+  // that prefer the user-set `config.name`. The "#N" suffix is scoped
+  // per-plugin-per-crew so Vibe and Field number independently.
   const agentExtractors = useMemo<ExtractorRef[]>(() => {
     if (!agent) return [];
     const out: ExtractorRef[] = [];
     for (const crew of agent.crews) {
-      const fxs = crew.addons.filter(isFieldExtractor);
-      fxs.forEach((e, i) => {
-        const userName = (e.config?.name || '').trim();
-        const fallback = fxs.length === 1 ? 'Field Extractor' : `Field Extractor #${i + 1}`;
+      const byPluginTotal = new Map<string, number>();
+      const byPluginCount = new Map<string, number>();
+      for (const a of crew.addons) {
+        if (!isExtractor(a)) continue;
+        byPluginTotal.set(a.pluginId, (byPluginTotal.get(a.pluginId) || 0) + 1);
+      }
+      for (const a of crew.addons) {
+        if (!isExtractor(a)) continue;
+        const pluginDesc = getPlugin(a.pluginId);
+        const userName = (a.config?.name || '').trim();
+        const pluginName = pluginDesc?.name || 'Extractor';
+        const totalOfKind = byPluginTotal.get(a.pluginId) || 1;
+        const idx = (byPluginCount.get(a.pluginId) || 0) + 1;
+        byPluginCount.set(a.pluginId, idx);
+        const fallback = totalOfKind === 1 ? pluginName : `${pluginName} #${idx}`;
         out.push({
-          instanceId: e.instanceId,
-          label: userName || fallback,
-          crewId: crew.id,
-          crewName: crew.name,
+          instanceId: a.instanceId,
+          pluginId:   a.pluginId,
+          icon:       pluginDesc?.icon || '🛠',
+          label:      userName || fallback,
+          crewId:     crew.id,
+          crewName:   crew.name,
         });
-      });
+      }
     }
     return out;
   }, [agent]);
@@ -51,7 +70,7 @@ export function useAgentFields(agentId: ID) {
       const extractors: ExtractorRef[] = [];
       for (const crew of agent.crews) {
         for (const a of crew.addons) {
-          if (!isFieldExtractor(a)) continue;
+          if (!isExtractor(a)) continue;
           const list = Array.isArray(a.config.extractsFields) ? a.config.extractsFields : [];
           if (list.includes(def.id)) {
             const ref = agentExtractors.find(x => x.instanceId === a.instanceId);
