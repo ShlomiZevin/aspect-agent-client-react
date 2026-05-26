@@ -4,52 +4,37 @@
  *
  * Every crew has at least one Talker by default; the user can add
  * more (e.g. for multi-voice setups) or remove them.
+ *
+ * Defaults come from the SHARED descriptor at
+ * `aspect-agent-server/builder/addons/talker.addon.json`. The same
+ * file is read by the server runtime, the client, and Alfred's
+ * patch generator — one source of truth.
  */
 
 import type { PluginDescriptor } from '../../registry/plugins';
 import { registerPlugin } from '../../registry/plugins';
-import { DEFAULT_BALANCED_MODEL } from '../../registry/providerModels';
 import type { TalkerConfig } from '../../types';
 import { TalkerConfigComponent } from './TalkerConfig';
+import descriptor from '@addons/talker.addon.json';
 
-export const TALKER_PLUGIN_ID = 'talker';
-
-/**
- * Template used to assemble the Talker's *prompt* parameter at
- * runtime. Source of truth — the server reads this same string from
- * the AddonInstance and substitutes placeholders identically.
- *
- * Note: conversation history (including the latest user message) is
- * NOT in this template. It is sent to the LLM as a separate
- * message-history parameter (varies per provider).
- */
-const TALKER_PROMPT_TEMPLATE = `{{persona}}
-
-{{prompt}}
-
-{{memory}}`;
+export const TALKER_PLUGIN_ID = descriptor.pluginId;
 
 export const talkerPlugin: PluginDescriptor<TalkerConfig> = {
-  id: TALKER_PLUGIN_ID,
-  name: 'Talker',
-  description: "Speaks to the user. Owns the response prompt.",
-  icon: '💬',
-  color: '#8b5cf6',
-  defaultLane: 'main',
-  fieldMode: 'none',
-  speaks: true,
-  allowedOutputTypes: ['text-to-user'],
-  defaultOutputType: 'text-to-user',
-  defaultContext: {
-    history: { mode: 'last_n', n: 5 },
-    persona: false,   // user opts in
-    memoryReads: [],  // user opts in
-  },
-  defaultPromptTemplate: TALKER_PROMPT_TEMPLATE,
-  defaultConfig: (): TalkerConfig => ({
-    prompt: '',
-    model: DEFAULT_BALANCED_MODEL,
-  }),
+  id:                   descriptor.pluginId,
+  name:                 descriptor.displayName,
+  description:          descriptor.description,
+  icon:                 descriptor.icon,
+  color:                descriptor.color,
+  defaultLane:          descriptor.defaultLane as PluginDescriptor<TalkerConfig>['defaultLane'],
+  fieldMode:            descriptor.fieldMode as PluginDescriptor<TalkerConfig>['fieldMode'],
+  speaks:               descriptor.speaks,
+  allowedOutputTypes:   descriptor.allowedOutputTypes as PluginDescriptor<TalkerConfig>['allowedOutputTypes'],
+  defaultOutputType:    descriptor.defaultOutputType as PluginDescriptor<TalkerConfig>['defaultOutputType'],
+  defaultContext:       descriptor.defaultContext as PluginDescriptor<TalkerConfig>['defaultContext'],
+  defaultPromptTemplate: descriptor.defaultPromptTemplate,
+  // Factory wraps the literal so every new instance gets its own
+  // object — preserves the existing PluginDescriptor contract.
+  defaultConfig: (): TalkerConfig => structuredClone(descriptor.defaultConfig) as TalkerConfig,
   ConfigComponent: TalkerConfigComponent,
 };
 

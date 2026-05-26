@@ -17,6 +17,13 @@ export default defineConfig({
       '@types': path.resolve(__dirname, './src/types'),
       '@utils': path.resolve(__dirname, './src/utils'),
       '@pages': path.resolve(__dirname, './src/pages'),
+      // Shared addon descriptors — the JSON files in
+      // aspect-agent-server/builder/addons/ are imported by both the
+      // server (via require) and the client (via this alias). Single
+      // source of truth for default lane / context / outputType /
+      // promptTemplate / config across the React UI, the runtime,
+      // and Alfred's patch generator.
+      '@addons': path.resolve(__dirname, '../aspect-agent-server/builder/addons'),
     },
   },
   build: {
@@ -32,6 +39,12 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Allow imports from the workspace parent so `@addons/...` resolves
+    // into the sibling `aspect-agent-server/` package. Vite's default
+    // is restricted to the project root.
+    fs: {
+      allow: ['..'],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3000',

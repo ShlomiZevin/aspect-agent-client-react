@@ -11,10 +11,20 @@
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+
+    /* Shared addon descriptors — JSON files live in the server package
+     * (aspect-agent-server/builder/addons/) and are imported by both
+     * sides through this alias. Mirrors the vite.config.ts alias for
+     * runtime resolution. */
+    "baseUrl": ".",
+    "paths": {
+      "@addons/*": ["../aspect-agent-server/builder/addons/*"]
+    },
 
     /* Linting */
     "strict": true,

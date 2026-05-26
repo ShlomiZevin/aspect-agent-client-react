@@ -11,49 +11,37 @@
  * the conversation memory blob. No prompt template needed — the
  * runtime ignores it. We still snapshot a placeholder so the
  * AddonInstance contract holds.
+ *
+ * Defaults come from the SHARED descriptor at
+ * `aspect-agent-server/builder/addons/transitionRouter.addon.json`.
  */
 
 import type { PluginDescriptor } from '../../registry/plugins';
 import { registerPlugin } from '../../registry/plugins';
 import type { TransitionRouterConfig } from '../../types';
 import { TransitionRouterConfigComponent } from './TransitionRouterConfig';
+import descriptor from '@addons/transitionRouter.addon.json';
 
-export const TRANSITION_ROUTER_PLUGIN_ID = 'transition-router';
-
-const TRANSITION_PROMPT_TEMPLATE = '';
+export const TRANSITION_ROUTER_PLUGIN_ID = descriptor.pluginId;
 
 export const transitionRouterPlugin: PluginDescriptor<TransitionRouterConfig> = {
-  id: TRANSITION_ROUTER_PLUGIN_ID,
-  name: 'Transition Router',
-  description: 'Sends the next turn to a different crew when conditions match.',
-  icon: '🔀',
-  color: '#0ea5e9',
-  defaultLane: 'main',
-  fieldMode: 'none',
-  speaks: false,
-  allowedOutputTypes: ['transition'],
-  defaultOutputType: 'transition',
-  defaultContext: {
-    history: { mode: 'none' },
-    persona: false,
-    memoryReads: [],
-  },
-  defaultPromptTemplate: TRANSITION_PROMPT_TEMPLATE,
-  defaultConfig: (): TransitionRouterConfig => ({
-    conditions: [],
-    target: '',
-    reason: '',
-    onMatch: 'continue',
-  }),
+  id:                   descriptor.pluginId,
+  name:                 descriptor.displayName,
+  description:          descriptor.description,
+  icon:                 descriptor.icon,
+  color:                descriptor.color,
+  defaultLane:          descriptor.defaultLane as PluginDescriptor<TransitionRouterConfig>['defaultLane'],
+  fieldMode:            descriptor.fieldMode as PluginDescriptor<TransitionRouterConfig>['fieldMode'],
+  speaks:               descriptor.speaks,
+  allowedOutputTypes:   descriptor.allowedOutputTypes as PluginDescriptor<TransitionRouterConfig>['allowedOutputTypes'],
+  defaultOutputType:    descriptor.defaultOutputType as PluginDescriptor<TransitionRouterConfig>['defaultOutputType'],
+  defaultContext:       descriptor.defaultContext as PluginDescriptor<TransitionRouterConfig>['defaultContext'],
+  defaultPromptTemplate: descriptor.defaultPromptTemplate,
+  defaultConfig: (): TransitionRouterConfig => structuredClone(descriptor.defaultConfig) as TransitionRouterConfig,
   ConfigComponent: TransitionRouterConfigComponent,
   // No LLM call, no prompt, no reads — and the target crew is a
   // per-agent reference so cross-project export wouldn't make sense.
-  hideStandardSections: {
-    context: true,
-    output: true,
-    promptTemplate: true,
-    repository: true,
-  },
+  hideStandardSections: descriptor.hideStandardSections as PluginDescriptor<TransitionRouterConfig>['hideStandardSections'],
 };
 
 registerPlugin(transitionRouterPlugin);
