@@ -69,6 +69,7 @@ export function BuilderChat() {
 
   const messagesRef = useRef<HTMLDivElement>(null);
   const settingsBtnRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const wasAtBottomRef = useRef(true);
 
   // Auto-scroll: keep glued to bottom unless user scrolls up.
@@ -194,6 +195,11 @@ export function BuilderChat() {
       setErrorMsg(err instanceof Error ? err.message : 'Send failed');
     } finally {
       setBusy(false);
+      // Return focus to the composer so the user can keep typing
+      // without reaching for the mouse. Defer one frame because the
+      // textarea is `disabled` while `busy` is true — focus() on a
+      // disabled element is a no-op, so we wait for the re-render.
+      requestAnimationFrame(() => inputRef.current?.focus());
     }
   };
 
@@ -335,6 +341,7 @@ export function BuilderChat() {
 
       <div className={styles.composer}>
         <textarea
+          ref={inputRef}
           className={styles.input}
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -347,6 +354,7 @@ export function BuilderChat() {
           placeholder="Brainstorm with Alfred…"
           rows={2}
           disabled={busy}
+          autoFocus
         />
         <button
           type="button"
