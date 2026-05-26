@@ -28,6 +28,7 @@ import { FieldsPanel } from '../FieldsPanel/FieldsPanel';
 import { BodyJsonModal } from '../BodyJsonModal/BodyJsonModal';
 import { ValidateAndLogModal } from '../ValidateAndLogModal/ValidateAndLogModal';
 import { HistoryModal } from '../HistoryModal/HistoryModal';
+import { PendingApplyDetailsModal } from '../PendingApplyDetailsModal/PendingApplyDetailsModal';
 import type { AgentDoc } from '../../types';
 import styles from './Canvas.module.css';
 
@@ -45,6 +46,7 @@ export function AgentView({ agent }: Props) {
   const [jsonOpen,    setJsonOpen]    = useState(false);
   const [logOpen,     setLogOpen]     = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [pendingDetailsOpen, setPendingDetailsOpen] = useState(false);
   const ownerUserId = findOwnerUserId();
 
   // True when this agent has an un-saved Alfred apply target. The
@@ -117,11 +119,27 @@ export function AgentView({ agent }: Props) {
           <span className={styles.alfredBannerText}>
             <strong>Alfred draft</strong>
             <span className={styles.alfredBannerDot}>·</span>
-            {pendingAlfredApply.description || 'Pending changes from Alfred'}
+            {pendingAlfredApply.summary || 'Pending changes from Alfred'}
             <span className={styles.alfredBannerDot}>·</span>
-            Save to commit (you'll pick how to log it), or Discard to revert.
+            Save to commit, or Discard to revert.
           </span>
+          <button
+            type="button"
+            className={styles.alfredBannerBtn}
+            onClick={() => setPendingDetailsOpen(true)}
+            title="See the full plan and per-target changes"
+          >
+            Details
+          </button>
         </div>
+      )}
+
+      {pendingAlfredApply && (
+        <PendingApplyDetailsModal
+          open={pendingDetailsOpen}
+          onClose={() => setPendingDetailsOpen(false)}
+          pending={pendingAlfredApply}
+        />
       )}
 
       <BodyJsonModal
