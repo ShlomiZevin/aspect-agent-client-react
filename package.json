@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "deploy": "npm run build && firebase deploy --only hosting",
     "deploy:aspect": "vite build --mode aspect && firebase use default && firebase deploy --only hosting",
-    "deploy:lybi-prod": "vite build --mode lybi-prod && firebase use lybi-prod && firebase deploy --only hosting"
+    "deploy:lybi-prod": "vite build --mode lybi-prod && firebase use lybi-prod && firebase deploy --only hosting",
+    "deploy:freeda": "vite build --mode freeda && firebase use freeda && firebase deploy --only hosting"
   },
   "dependencies": {
     "html2canvas": "^1.4.1",

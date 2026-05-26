@@ -1,6 +1,7 @@
 {
   "projects": {
     "default": "aspect-agents",
-    "lybi-prod": "lybi-prod"
+    "lybi-prod": "lybi-prod",
+    "freeda": "freeda-2b4af"
   }
 }
