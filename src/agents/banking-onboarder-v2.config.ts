@@ -225,6 +225,12 @@ export const bankingOnboarderV2Config: AgentConfig = {
       logo: '/banking/images/international-bank-logo.png',
       colors: { primary: '#00529B', secondary: '#FDB726' },
     },
+    {
+      id: 'jerusalem',
+      name: 'בנק ירושלים',
+      logo: '/banking/images/jerusalem-bank-logo.png',
+      colors: { primary: '#F6A21A', secondary: '#5E5E5E' },
+    },
   ],
   defaultTheme: 'lybi',
 
