@@ -110,6 +110,8 @@ export interface Message {
     crewMemberName?: string;
     injectedAt: string;
   };
+  /** UI-only: when true, message is not rendered (e.g. quick-question shortcuts). Server still stores it; on history reload the flag is gone, so it becomes visible again. */
+  hidden?: boolean;
 }
 
 export interface ThinkingStep {
@@ -148,7 +150,7 @@ export type ChatState = {
 };
 
 export type ChatAction =
-  | { type: 'ADD_USER_MESSAGE'; payload: { id: string; content: string } }
+  | { type: 'ADD_USER_MESSAGE'; payload: { id: string; content: string; hidden?: boolean } }
   | { type: 'START_THINKING' }
   | { type: 'ADD_THINKING_STEP'; payload: ThinkingStep }
   | { type: 'COMPLETE_THINKING' }

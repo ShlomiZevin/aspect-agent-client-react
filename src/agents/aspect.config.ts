@@ -70,6 +70,7 @@ export const aspectConfig: AgentConfig = {
     hasLogoUpload: true,
     hasFileUpload: false,
     hasChatHistory: true,
+    hideQuickQuestionsInUI: true,
   },
 
   themeClass: 'theme-aspect',

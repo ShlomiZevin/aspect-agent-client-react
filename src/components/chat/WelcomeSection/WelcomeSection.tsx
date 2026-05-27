@@ -8,8 +8,10 @@ export function WelcomeSection() {
   const { sendMessage, selectedTheme } = useChatContext();
   const { t } = useLanguage();
 
+  const hideQuickQuestionsInUI = config.features.hideQuickQuestionsInUI === true;
+
   const handleQuickQuestion = (question: string) => {
-    sendMessage(question);
+    sendMessage(question, { hidden: hideQuickQuestionsInUI });
   };
 
   // Use theme logo if a brand theme is selected, otherwise fall back to config

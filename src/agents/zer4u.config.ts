@@ -69,6 +69,7 @@ export const zer4uConfig: AgentConfig = {
     hasFileUpload: false,
     hasChatHistory: true,
     showDataStatus: true,
+    hideQuickQuestionsInUI: true,
   },
 
   themeClass: 'theme-zer4u',

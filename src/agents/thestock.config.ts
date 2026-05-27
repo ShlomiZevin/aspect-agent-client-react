@@ -60,6 +60,7 @@ export const thestockConfig: AgentConfig = {
     hasFileUpload: false,
     hasChatHistory: true,
     showDataStatus: true,
+    hideQuickQuestionsInUI: true,
   },
 
   themeClass: 'theme-thestock',

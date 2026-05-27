@@ -229,7 +229,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
             <WelcomeSection />
           ) : (
             <>
-              {messages.map((msg) => (
+              {messages.filter((msg) => !msg.hidden).map((msg) => (
                 <Message key={msg.id} message={msg} />
               ))}
 

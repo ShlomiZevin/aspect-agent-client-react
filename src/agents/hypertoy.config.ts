@@ -60,6 +60,7 @@ export const hypertoyConfig: AgentConfig = {
     hasFileUpload: false,
     hasChatHistory: true,
     showDataStatus: true,
+    hideQuickQuestionsInUI: true,
   },
 
   themeClass: 'theme-hypertoy',

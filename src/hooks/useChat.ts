@@ -28,6 +28,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
             role: 'user',
             content: action.payload.content,
             timestamp: new Date(),
+            hidden: action.payload.hidden,
           },
         ],
         hasStartedChat: true,
@@ -329,7 +330,7 @@ export interface UseChatReturn {
   thinkingSteps: ThinkingStep[];
   hasStartedChat: boolean;
   error: string | null;
-  sendMessage: (text: string) => Promise<void>;
+  sendMessage: (text: string, options?: { hidden?: boolean }) => Promise<void>;
   loadHistory: (conversationId: string) => Promise<{ currentCrewMember?: string | null; metadata?: Record<string, unknown> | null }>;
   newChat: (conversationId: string) => void;
   clearError: () => void;
@@ -357,9 +358,9 @@ export function useChat(options: UseChatOptions): UseChatReturn {
   }, [conversationId, state.conversationId]);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, options?: { hidden?: boolean }) => {
       const messageId = crypto.randomUUID();
-      dispatch({ type: 'ADD_USER_MESSAGE', payload: { id: messageId, content: text } });
+      dispatch({ type: 'ADD_USER_MESSAGE', payload: { id: messageId, content: text, hidden: options?.hidden } });
 
       // Start thinking - steps will come from server
       dispatch({ type: 'START_THINKING' });

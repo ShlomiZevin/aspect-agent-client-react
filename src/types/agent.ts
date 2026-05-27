@@ -55,6 +55,8 @@ export interface AgentConfig {
     showFullJourney?: boolean;
     /** Show data freshness bar (last sync run + last data date) — requires database.schema */
     showDataStatus?: boolean;
+    /** Hide quick-question clicks from the chat UI (still sent to server). For BI agents where the question buttons act as shortcuts rather than user utterances. */
+    hideQuickQuestionsInUI?: boolean;
   };
 
   // Theming

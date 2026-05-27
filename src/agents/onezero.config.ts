@@ -50,6 +50,7 @@ export const oneZeroConfig: AgentConfig = {
     hasLogoUpload: false,
     hasFileUpload: false,
     hasChatHistory: true,
+    hideQuickQuestionsInUI: true,
   },
 
   themeClass: 'theme-aspect',
