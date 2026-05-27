@@ -34,24 +34,25 @@
 }
 
 /* Empty-state hint when a Thinker exists but hasn't produced output
- * yet. Same lavender accent as the cards so the panel still reads as
+ * yet. Same teal accent as the cards so the panel still reads as
  * "the thinking surface", just without content. */
 .empty {
-  background: rgba(124, 58, 237, 0.04);
-  border: 1px dashed rgba(124, 58, 237, 0.25);
+  background: rgba(20, 184, 166, 0.05);
+  border: 1px dashed rgba(20, 184, 166, 0.3);
   border-radius: 8px;
   padding: 14px 16px;
   text-align: center;
   font-size: 12px;
-  color: #6d28d9;
+  color: #0f766e;
 }
 
-/* Each thinking domain renders as its own card. Lavender/indigo tint
- * sets the "this is a plan, not a fact" mood — distinct from the
- * neutral Memory panel on the right. */
+/* Each thinking domain renders as its own card. Teal tint sets the
+ * "this is a plan, not a fact" mood and matches the Thinker addon's
+ * card-accent color in the chain canvas — distinct from the neutral
+ * Memory panel on the right and from the violet Talker. */
 .card {
-  background: rgba(124, 58, 237, 0.04);
-  border: 1px solid rgba(124, 58, 237, 0.18);
+  background: rgba(20, 184, 166, 0.05);
+  border: 1px solid rgba(20, 184, 166, 0.22);
   border-radius: 8px;
   padding: 10px 12px;
 }
@@ -61,7 +62,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6d28d9;
+  color: #0f766e;
   margin-bottom: 8px;
 }
 
