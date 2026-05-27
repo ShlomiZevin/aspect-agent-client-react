@@ -303,11 +303,11 @@ export interface PersistedAddonRun {
     rawOutput?: string;
     parsedOutput?: unknown;
     /** Memory writes the addon produced this turn. `kind` routes the
-     *  write between the brain's `memory` and `thinking` sections;
-     *  omitted = defaults to `'memory'` (for backward compat with
-     *  pre-Thinker runs and any addon that doesn't bother to set it). */
+     *  write between the brain's `memory`, `thinking`, and `triggered`
+     *  sections; omitted = defaults to `'memory'` (for backward compat
+     *  with pre-Thinker runs and any addon that doesn't bother to set it). */
     memoryWrites?: Array<{
-      kind?: 'memory' | 'thinking';
+      kind?: 'memory' | 'thinking' | 'triggered';
       domain: string | null;
       field: string;
       value: unknown;
@@ -365,20 +365,27 @@ export async function deleteMessage(args: {
 export type BrainSection = Record<string, Record<string, unknown>>;
 
 /**
- * The conversation's full brain state, returned by the server. Two
- * parallel sections — facts the brain remembers vs the current plan.
+ * The conversation's full brain state, returned by the server. Three
+ * parallel sections — facts the brain remembers, the current strategic
+ * plan, and pre-scripted guidance loaded by Triggered Context rules.
  */
 export interface ConversationMemory {
-  memory:   BrainSection;
-  thinking: BrainSection;
+  memory:    BrainSection;
+  thinking:  BrainSection;
+  triggered: BrainSection;
 }
 
-const EMPTY_BRAIN: ConversationMemory = { memory: {}, thinking: {} };
+const EMPTY_BRAIN: ConversationMemory = { memory: {}, thinking: {}, triggered: {} };
 
-function normalizeBrainResponse(res: { memory?: BrainSection; thinking?: BrainSection }): ConversationMemory {
+function normalizeBrainResponse(res: {
+  memory?: BrainSection;
+  thinking?: BrainSection;
+  triggered?: BrainSection;
+}): ConversationMemory {
   return {
-    memory:   res.memory   || {},
-    thinking: res.thinking || {},
+    memory:    res.memory    || {},
+    thinking:  res.thinking  || {},
+    triggered: res.triggered || {},
   };
 }
 
@@ -388,7 +395,11 @@ export async function fetchConversationMemory(args: {
   ownerUserId: string;
 }): Promise<ConversationMemory> {
   const params = new URLSearchParams({ ownerUserId: args.ownerUserId });
-  const res = await http<{ memory: BrainSection; thinking: BrainSection }>(
+  const res = await http<{
+    memory: BrainSection;
+    thinking: BrainSection;
+    triggered: BrainSection;
+  }>(
     `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/memory?${params}`,
   );
   return normalizeBrainResponse(res) || EMPTY_BRAIN;
@@ -409,10 +420,14 @@ export async function patchConversationMemory(args: {
   value?: unknown;
   domain?: string | null;
   /** Which brain section to write to. Default `'memory'`. */
-  kind?: 'memory' | 'thinking';
+  kind?: 'memory' | 'thinking' | 'triggered';
   clear?: boolean;
 }): Promise<ConversationMemory> {
-  const res = await http<{ memory: BrainSection; thinking: BrainSection }>(
+  const res = await http<{
+    memory: BrainSection;
+    thinking: BrainSection;
+    triggered: BrainSection;
+  }>(
     `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/memory`,
     {
       method: 'PATCH',

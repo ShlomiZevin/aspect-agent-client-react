@@ -1,0 +1,110 @@
+/* ComboPicker — extracted from ConditionsEditor so the same picker
+ * can be used by the Triggered Context Switch rule's "pick a field"
+ * input. Same radius / background system: 6px for the form control,
+ * 4px for the caret micro-button. */
+
+.combo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 120px;
+  max-width: 100%;
+}
+
+.comboInput {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-primary, #111827);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+/* Reserve room for the chevron only when it's actually rendered. */
+.combo:has(.comboCaret) .comboInput {
+  padding-right: 22px;
+}
+
+.comboInput:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+}
+
+.comboInput::placeholder {
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.comboCaret {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 9px;
+  color: var(--text-tertiary, #9ca3af);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 120ms;
+}
+
+.comboCaret:hover {
+  color: var(--text-primary, #111827);
+  background: var(--bg-input, #f3f4f6);
+}
+
+.comboCaretOpen {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.comboMenu {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  min-width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  z-index: 30;
+}
+
+.comboItem {
+  text-align: left;
+  font-size: 12px;
+  color: var(--text-primary, #111827);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  padding: 5px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.comboItem:hover {
+  background: var(--bg-input, #f3f4f6);
+}
+
+.comboItemActive {
+  color: var(--primary-color, #6366f1);
+  font-weight: 600;
+  background: rgba(99, 102, 241, 0.08);
+}

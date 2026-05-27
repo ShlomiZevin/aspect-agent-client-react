@@ -1,0 +1,200 @@
+/* Shared CSS for ConditionsEditor — used by both Transition Router
+ * and Triggered Context.
+ *
+ * Radius system (same as TriggeredContextConfig — keep consistent):
+ *   8px  → cards / outer containers (.condCard)
+ *   6px  → form controls (inputs, selects, textareas, buttons, empty states)
+ *   4px  → micro-buttons (× remove, caret toggles, hover-only items)
+ *   999px → pill badges / round chips (.miniChip)
+ *
+ * Form-control backgrounds are all white (var(--bg-surface, #fff))
+ * so selects and inputs read as the same family of control — not
+ * "selects are gray, inputs are white".
+ */
+
+/* ── Conditions section ─────────────────────────────────────────── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.sectionSub {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-tertiary, #9ca3af);
+  font-style: italic;
+}
+
+.addBtn {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 6px;
+  padding: 3px 9px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.addBtn:hover {
+  background: rgba(99, 102, 241, 0.16);
+}
+
+.condEmpty {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+  background: var(--bg-input, #fafafa);
+  border: 1px dashed var(--border-color, #e5e7eb);
+  border-radius: 6px;
+}
+
+.condList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Condition card: compact horizontal row ─────────────────────── */
+.condCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+}
+
+.condTypePill {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.condBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.inlineInput {
+  flex: 0 1 auto;
+  min-width: 80px;
+  max-width: 100%;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-primary, #111827);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.inlineInput:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+}
+
+.opSelect {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  padding: 4px 6px;
+  cursor: pointer;
+  font-family: inherit;
+  min-width: 64px;
+}
+
+.opSelect:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+}
+
+.condRemove {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+  color: var(--text-tertiary, #9ca3af);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.condRemove:hover {
+  color: #b91c1c;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+/* ── Mini-chips for enum value / fields-collected pickers ───────── */
+.miniChipGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.miniChip {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary, #6b7280);
+  background: var(--bg-input, #f3f4f6);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  padding: 2px 9px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.miniChip:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+}
+
+.miniChipActive,
+.miniChipActive:hover {
+  color: #fff;
+  background: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
+}
+
+/* ComboPicker styles moved to ./ComboPicker.module.css (the picker
+ * is now a shared component used by Switch rules in Triggered
+ * Context as well). */

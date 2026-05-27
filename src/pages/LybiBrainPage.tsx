@@ -237,6 +237,18 @@ export function LybiBrainPage() {
 
               <div className={styles.mappingRow}>
                 <div className={styles.mappingBrain}>
+                  <span className={styles.mappingIcon}>🎯</span>
+                  <span className={styles.mappingLabel}>Basal ganglia</span>
+                </div>
+                <span className={styles.mappingArrow}>→</span>
+                <div className={styles.mappingAddon}>
+                  <span className={styles.mappingAddonName}>Triggered Context</span>
+                  <span className={styles.mappingAddonNote}>fires pre-scripted responses when conditions match</span>
+                </div>
+              </div>
+
+              <div className={styles.mappingRow}>
+                <div className={styles.mappingBrain}>
                   <span className={styles.mappingIcon}>🔀</span>
                   <span className={styles.mappingLabel}>Executive attention</span>
                 </div>

@@ -86,6 +86,19 @@ function buildThinkingBlock(selectedDomains: Array<string | null>): string {
   return `## Thinking\n${sections.join('\n\n')}`;
 }
 
+/**
+ * `## Triggered` block — Triggered Context writes go here. Same shape
+ * as Memory / Thinking. Byte-equal to the server's buildTriggeredBlock.
+ */
+function buildTriggeredBlock(selectedDomains: Array<string | null>): string {
+  if (selectedDomains.length === 0) return '';
+  const sections: string[] = selectedDomains.map(d => {
+    const label = d ?? 'general';
+    return `### ${label}\n{}`;
+  });
+  return `## Triggered\n${sections.join('\n\n')}`;
+}
+
 function buildFieldsSchemaBlock(fields: FieldDef[]): string {
   if (fields.length === 0) return '';
   // Format: `- <name> (type=..., [values=[...],] source=...): <how>`
@@ -130,6 +143,7 @@ export function buildPromptPreview({ instance, agentPersona, extractorFields }: 
     persona: buildPersonaBlock(agentPersona, instance.context.persona),
     memory: buildMemoryBlock(instance.context.memoryReads),
     thinking: buildThinkingBlock(instance.context.thinkingReads ?? []),
+    triggered: buildTriggeredBlock(instance.context.triggeredReads ?? []),
     fields_schema: isExtractor ? buildFieldsSchemaBlock(fields) : '',
     fields_current: isExtractor ? buildFieldsCurrentBlock(fields) : '',
   });

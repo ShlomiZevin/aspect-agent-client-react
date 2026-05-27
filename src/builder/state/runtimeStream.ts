@@ -22,11 +22,12 @@ export type RuntimeEvent =
       rawOutput: string;
       parsedOutput?: unknown;
       memoryWrites?: Array<{
-        /** Brain section the write goes into. `'memory'` (default) or
-         *  `'thinking'`. Set by the plugin (Thinker emits 'thinking',
+        /** Brain section the write goes into. `'memory'` (default),
+         *  `'thinking'`, or `'triggered'`. Set by the plugin (Thinker
+         *  emits 'thinking', Triggered Context emits 'triggered',
          *  Field/Vibe Extractor leave undefined which is treated as
          *  'memory'). */
-        kind?: 'memory' | 'thinking';
+        kind?: 'memory' | 'thinking' | 'triggered';
         domain: string | null;
         field: string;
         value: unknown;

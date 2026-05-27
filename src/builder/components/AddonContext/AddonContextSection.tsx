@@ -16,7 +16,8 @@ import { useBuilder } from '../../state/BuilderContext';
 import { useCrewFields } from '../../state/useCrewFields';
 import { getPlugin } from '../../registry/plugins';
 import { THINKER_PLUGIN_ID } from '../../plugins/thinker/addon.thinker';
-import type { AddonContext, AddonInstance, HistoryMode, ID, ThinkerConfig } from '../../types';
+import { TRIGGERED_CONTEXT_PLUGIN_ID } from '../../plugins/triggeredContext/addon.triggeredContext';
+import type { AddonContext, AddonInstance, HistoryMode, ID, ThinkerConfig, TriggeredContextConfig } from '../../types';
 import styles from './AddonContextSection.module.css';
 
 interface Props {
@@ -77,6 +78,20 @@ export function AddonContextSection({ agentId, crewId, instance }: Props) {
     return [...set].sort();
   }, [doc, agentId, crewId]);
 
+  // Triggered domains available in this crew — sourced from every
+  // Triggered Context loader's `config.domain`. Same pattern as
+  // thinkingDomains.
+  const triggeredDomains = useMemo<string[]>(() => {
+    const set = new Set<string>();
+    const crew = doc.agents.find(a => a.id === agentId)?.crews.find(c => c.id === crewId);
+    for (const a of crew?.addons ?? []) {
+      if (a.pluginId !== TRIGGERED_CONTEXT_PLUGIN_ID) continue;
+      const dom = (a.config as TriggeredContextConfig | undefined)?.domain?.trim();
+      if (dom) set.add(dom);
+    }
+    return [...set].sort();
+  }, [doc, agentId, crewId]);
+
   const plugin = getPlugin(instance.pluginId);
   const isExtractor = plugin?.fieldMode === 'extractor';
 
@@ -123,6 +138,23 @@ export function AddonContextSection({ agentId, crewId, instance }: Props) {
     const next = new Set(thinkingSelected);
     if (next.has(d)) next.delete(d); else next.add(d);
     patch({ thinkingReads: [...next] });
+  };
+
+  // Triggered reads — third parallel reads picker. Same pattern.
+  const triggeredReads = ctx.triggeredReads ?? [];
+  const triggeredSelected = useMemo(() => new Set<string>(
+    triggeredReads.filter((v): v is string => typeof v === 'string'),
+  ), [triggeredReads]);
+  const triggeredDomainList = useMemo<string[]>(() => {
+    const set = new Set<string>(triggeredDomains);
+    for (const v of triggeredReads) if (typeof v === 'string') set.add(v);
+    return [...set].sort();
+  }, [triggeredDomains, triggeredReads]);
+
+  const toggleTriggeredDomain = (d: string) => {
+    const next = new Set(triggeredSelected);
+    if (next.has(d)) next.delete(d); else next.add(d);
+    patch({ triggeredReads: [...next] });
   };
 
   const historyChoice = choiceFromMode(ctx.history);
@@ -230,6 +262,29 @@ export function AddonContextSection({ agentId, crewId, instance }: Props) {
                       onChange={() => toggleThinkingDomain(d)}
                     />
                     <span className={styles.domainName}>💭 {d}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className={styles.memoryBlock}>
+            <label className={styles.knobLabel}>Triggered</label>
+            {triggeredDomainList.length === 0 ? (
+              <p className={styles.hint}>
+                No Triggered Context loaders in this crew yet. Add one
+                upstream to fire pre-scripted guidance from rule matches.
+              </p>
+            ) : (
+              <div className={styles.memoryList}>
+                {triggeredDomainList.map(d => (
+                  <label key={d} className={styles.checkRow}>
+                    <input
+                      type="checkbox"
+                      checked={triggeredSelected.has(d)}
+                      onChange={() => toggleTriggeredDomain(d)}
+                    />
+                    <span className={styles.domainName}>🎯 {d}</span>
                   </label>
                 ))}
               </div>

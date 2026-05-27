@@ -105,6 +105,15 @@ export interface AddonContext {
    * instances stored before this feature; treated as `[]` when missing.
    */
   thinkingReads?: Array<string | null>;
+  /**
+   * List of *triggered* domains to inject — pre-scripted guidance the
+   * Triggered Context addon loaded this turn (basal ganglia / procedural
+   * memory in the brain metaphor). Parallel to memoryReads/thinkingReads
+   * but reads from the `triggered` section of the brain blob.
+   * `null` denotes "(no domain)". Empty = no `## Triggered` block.
+   * Optional — treated as `[]` when missing.
+   */
+  triggeredReads?: Array<string | null>;
 }
 
 /**
@@ -170,6 +179,13 @@ export const KNOWN_PROMPT_PLACEHOLDERS = {
    */
   thinking: '{{thinking}}',
   /**
+   * `## Triggered` block built from `context.triggeredReads`. Same
+   * shape as `## Memory` but pulls from the brain's triggered section
+   * — where the Triggered Context addon's matched-rule texts land.
+   * Empty if no reads selected.
+   */
+  triggered: '{{triggered}}',
+  /**
    * `## Field schema` block — fields with name, type, allowed enum
    * values, source, and description. Extractor plugins only.
    */
@@ -230,6 +246,82 @@ export interface ThinkerConfig {
    * write to different domains (e.g. `'strategy'`, `'tone'`).
    */
   domain: string;
+}
+
+/**
+ * Triggered Context — the hard-rule alternative to KB.
+ *
+ * Two rule shapes covering the two use cases:
+ *
+ *  - `switch`: "switch on field X — text A for value A, text B for B,
+ *    text C for C". The dominant pattern. The user picks the field
+ *    ONCE; each case carries its own contextText.
+ *
+ *  - `match`: full AND-of-conditions over memory (same vocabulary as
+ *    Transition Router). For combinations like `intent=complaint
+ *    AND mood=stubborn`. One condition list, one contextText.
+ *
+ * Each rule has ONE identifier that doubles as the memory key inside
+ * `triggered.<domain>`:
+ *  - Switch → `field` (the source field name). Writes to
+ *    `triggered.<domain>.<field>`.
+ *  - Match  → `name` (free-form short identifier the user types).
+ *    Writes to `triggered.<domain>.<name>`. Empty falls back to
+ *    `rule_<short-id>` so the rule still fires.
+ *
+ * No separate "label" field — the identifier IS the name. Multiple
+ * matching rules writing to the same key concatenate with `\n\n`.
+ * Domain is set once per addon instance (default `'triggered'`).
+ *
+ * Discriminator: `kind: 'switch' | 'match'`. No legacy fallback —
+ * build-phase, no data to migrate.
+ */
+export interface TriggeredSwitchCase {
+  /** The value `field` must equal for this case's text to fire.
+   *  Stored as the same scalar shape the field can hold (string for
+   *  enum/string, number-as-string for int, boolean for boolean). */
+  value: string;
+  /** Text injected when this case matches. */
+  contextText: string;
+}
+
+export interface TriggeredSwitchRule {
+  id: ID;
+  kind: 'switch';
+  /** The field this switch reads from. Doubles as the memory key:
+   *  matched case texts land at `triggered.<domain>.<field>`. */
+  field: string;
+  /** Per-value cases. First match wins (a value should appear only
+   *  once per switch — the editor enforces this). */
+  cases: TriggeredSwitchCase[];
+}
+
+export interface TriggeredMatchRule {
+  id: ID;
+  kind: 'match';
+  /** Short, free-form identifier the user types. Doubles as the
+   *  memory key this rule writes to (`triggered.<domain>.<name>`).
+   *  No slugification — what's typed is what lands. Empty falls
+   *  back to `rule_<short-id>` server-side. */
+  name: string;
+  /** AND-of-conditions. ALL must match for the rule to fire. */
+  conditions: TransitionCondition[];
+  /** Text injected when the conditions all match. */
+  contextText: string;
+}
+
+export type TriggeredRule = TriggeredSwitchRule | TriggeredMatchRule;
+
+export interface TriggeredContextConfig {
+  /** User-editable instance name shown on the chain card. */
+  name?: string;
+  /**
+   * Where this loader writes its output in the brain's `triggered`
+   * section. Defaults to `'triggered'`. Multiple Triggered Context
+   * loaders in the same crew can write to different domains.
+   */
+  domain: string;
+  rules: TriggeredRule[];
 }
 
 // ─── Transition Router plugin ─────────────────────────────────────
