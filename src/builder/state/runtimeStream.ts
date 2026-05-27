@@ -21,7 +21,16 @@ export type RuntimeEvent =
       modelLabel?: { providerName: string; modelName: string } | null;
       rawOutput: string;
       parsedOutput?: unknown;
-      memoryWrites?: Array<{ domain: string | null; field: string; value: unknown }>;
+      memoryWrites?: Array<{
+        /** Brain section the write goes into. `'memory'` (default) or
+         *  `'thinking'`. Set by the plugin (Thinker emits 'thinking',
+         *  Field/Vibe Extractor leave undefined which is treated as
+         *  'memory'). */
+        kind?: 'memory' | 'thinking';
+        domain: string | null;
+        field: string;
+        value: unknown;
+      }>;
       tokens: { input: number; output: number; total: number };
       durationMs: number;
       /** Time-to-first-token (Talker only). Perceived latency. */

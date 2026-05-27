@@ -36,6 +36,7 @@ export { ChainArchitecturePage } from './ChainArchitecturePage';
 export { InfrastructurePage } from './InfrastructurePage';
 export { KBvsTriggeredPage } from './KBvsTriggeredPage';
 export { LybiKnowledgePage } from './LybiKnowledgePage';
+export { LybiBrainPage } from './LybiBrainPage';
 export { LLMGuidePage } from './LLMGuidePage';
 export { PitchDeckPage } from './PitchDeckPage';
 export { TaskBoardPage } from './TaskBoardPage';

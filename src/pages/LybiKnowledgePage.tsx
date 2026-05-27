@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const PAGES = [
-  { path: '/lybi/llm-guide', icon: '🧠', title: 'How AI Actually Works', desc: 'What is an LLM, why it doesn\'t "follow" instructions, and what to expect', slides: 14 },
+  { path: '/lybi/brain', icon: '🧠', title: 'We Build Brains, Not Chatbots', desc: 'Our edge: each addon maps to a real human brain region — memory, planning, voice', slides: 7 },
+  { path: '/lybi/llm-guide', icon: '🤖', title: 'How AI Actually Works', desc: 'What is an LLM, why it doesn\'t "follow" instructions, and what to expect', slides: 14 },
   { path: '/lybi/kb-vs-triggered', icon: '📁', title: 'KB vs Triggered Context', desc: 'When to use Knowledge Base and when to use Triggered Context', slides: 3 },
   { path: '/lybi/how-we-build', icon: '🔧', title: 'How We Build Agents', desc: 'Crews, chain steps, personas, and how it all fits together', slides: 9 },
   { path: '/lybi/chain', icon: '⛓️', title: 'Chain Architecture', desc: 'The full message pipeline — every step, timing, and where issues happen' },

@@ -370,30 +370,44 @@ interface BuilderState {
   previewConversationId: number | null;
   setPreviewConversationId: (id: number | null) => void;
 
-  // Live builder memory for the preview conversation. Refetched
-  // after every chat turn so the FieldsPanel can show current values.
-  conversationMemory: Record<string, Record<string, unknown>>;
+  // Live brain state for the preview conversation. Two parallel
+  // sections: `memory` (facts the brain remembers) and `thinking`
+  // (the current plan). The FieldsPanel renders memory values inline
+  // next to fields; the Thinking panel (below the Cortex) renders
+  // the thinking section as cards. Refetched after every chat turn.
+  conversationMemory: {
+    memory:   Record<string, Record<string, unknown>>;
+    thinking: Record<string, Record<string, unknown>>;
+  };
   refreshConversationMemory: () => void;
   /**
-   * Edit / clear a single field value in the live conversation memory.
-   * No-op when there's no active preview conversation. Returns true on
-   * success.
+   * Edit / clear a single field value in the live conversation brain.
+   * Defaults to `kind: 'memory'`. No-op when there's no active preview
+   * conversation. Returns true on success.
    */
   updateConversationMemoryField: (args: {
     field: string;
     value?: unknown;
     domain?: string | null;
+    /** Which brain section to write to. Default `'memory'`. */
+    kind?: 'memory' | 'thinking';
     clear?: boolean;
   }) => Promise<boolean>;
   /**
    * Optimistic, local-only merge of memory writes (the same shape
-   * the server emits on `addon.output`). No network. Used by the
-   * UserChat to surface freshly-extracted values in the FieldsPanel
-   * BEFORE the rest of the chain (talker) finishes. Reconciled by
-   * the post-turn `refreshConversationMemory()` call.
+   * the server emits on `addon.output`). No network. Each write's
+   * `kind` routes it to the memory or thinking section; omitted =
+   * 'memory'. Used by UserChat to surface freshly-extracted values
+   * (and freshly-thought plans) before the rest of the chain finishes.
+   * Reconciled by the post-turn `refreshConversationMemory()` call.
    */
   applyLocalMemoryWrites: (
-    writes: Array<{ domain: string | null; field: string; value: unknown }>,
+    writes: Array<{
+      kind?: 'memory' | 'thinking';
+      domain: string | null;
+      field: string;
+      value: unknown;
+    }>,
   ) => void;
 }
 
@@ -469,10 +483,13 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
   const previewConvIdRef = useRef<number | null>(previewConversationId);
   previewConvIdRef.current = previewConversationId;
 
-  // Live builder memory for the preview conversation. The chat panel
+  // Live brain state for the preview conversation. The chat panel
   // calls refreshConversationMemory after each turn, and the
-  // FieldsPanel renders values inline next to fields.
-  const [conversationMemory, setConversationMemory] = useState<Record<string, Record<string, unknown>>>({});
+  // FieldsPanel + Thinking panel render values inline.
+  const [conversationMemory, setConversationMemory] = useState<{
+    memory:   Record<string, Record<string, unknown>>;
+    thinking: Record<string, Record<string, unknown>>;
+  }>({ memory: {}, thinking: {} });
   const refreshConversationMemory = useCallback(() => {
     // No conv yet → nothing to fetch. Deliberately DO NOT reset the
     // local cache here. The dedicated effect below handles explicit
@@ -506,14 +523,23 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
    * matches the server's `builderMemory.applyWrites` semantics.
    */
   const applyLocalMemoryWrites = useCallback(
-    (writes: Array<{ domain: string | null; field: string; value: unknown }>) => {
+    (writes: Array<{
+      kind?: 'memory' | 'thinking';
+      domain: string | null;
+      field: string;
+      value: unknown;
+    }>) => {
       if (!Array.isArray(writes) || writes.length === 0) return;
       setConversationMemory(prev => {
-        const next: Record<string, Record<string, unknown>> = { ...prev };
+        const next = {
+          memory:   { ...prev.memory },
+          thinking: { ...prev.thinking },
+        };
         for (const w of writes) {
           if (w.value === null || w.value === undefined) continue;
+          const section = w.kind === 'thinking' ? 'thinking' : 'memory';
           const key = (w.domain && String(w.domain).trim()) ? String(w.domain) : '_general';
-          next[key] = { ...(next[key] || {}), [w.field]: w.value };
+          next[section][key] = { ...(next[section][key] || {}), [w.field]: w.value };
         }
         return next;
       });
@@ -522,7 +548,13 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
   );
 
   const updateConversationMemoryField = useCallback(
-    async (args: { field: string; value?: unknown; domain?: string | null; clear?: boolean }) => {
+    async (args: {
+      field: string;
+      value?: unknown;
+      domain?: string | null;
+      kind?: 'memory' | 'thinking';
+      clear?: boolean;
+    }) => {
       if (previewConversationId === null) return false;
       try {
         const { patchConversationMemory } = await import('./builderApi');
@@ -545,7 +577,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
   // Reset / refetch memory whenever the conversation changes.
   useEffect(() => {
     if (previewConversationId === null) {
-      setConversationMemory({});
+      setConversationMemory({ memory: {}, thinking: {} });
     } else {
       refreshConversationMemory();
     }

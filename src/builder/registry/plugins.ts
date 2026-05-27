@@ -124,6 +124,7 @@ export const DEFAULT_ADDON_CONTEXT: AddonContext = {
   history: { mode: 'last_n', n: 5 },
   persona: false,
   memoryReads: [],
+  thinkingReads: [],
 };
 
 /**
@@ -140,6 +141,7 @@ export function defaultContextFor<TConfig>(plugin: PluginDescriptor<TConfig>): A
     ...(plugin.defaultContext ?? {}),
     history: plugin.defaultContext?.history ?? DEFAULT_ADDON_CONTEXT.history,
     memoryReads: plugin.defaultContext?.memoryReads ?? DEFAULT_ADDON_CONTEXT.memoryReads,
+    thinkingReads: plugin.defaultContext?.thinkingReads ?? DEFAULT_ADDON_CONTEXT.thinkingReads,
   };
 }
 

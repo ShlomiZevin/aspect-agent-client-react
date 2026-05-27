@@ -302,7 +302,16 @@ export interface PersistedAddonRun {
   runData: {
     rawOutput?: string;
     parsedOutput?: unknown;
-    memoryWrites?: Array<{ domain: string | null; field: string; value: unknown }>;
+    /** Memory writes the addon produced this turn. `kind` routes the
+     *  write between the brain's `memory` and `thinking` sections;
+     *  omitted = defaults to `'memory'` (for backward compat with
+     *  pre-Thinker runs and any addon that doesn't bother to set it). */
+    memoryWrites?: Array<{
+      kind?: 'memory' | 'thinking';
+      domain: string | null;
+      field: string;
+      value: unknown;
+    }>;
     parseError?: string;
     prompt?: string;
     label?: string;
@@ -350,10 +359,28 @@ export async function deleteMessage(args: {
 }
 
 /**
- * Builder memory blob for a conversation. Shape:
- *   { [domain: '_general' | string]: { [fieldName]: value } }
+ * One section of the brain blob — same shape for memory and thinking.
+ * Keys are domain names (or `_general` for the no-domain bucket).
  */
-export type ConversationMemory = Record<string, Record<string, unknown>>;
+export type BrainSection = Record<string, Record<string, unknown>>;
+
+/**
+ * The conversation's full brain state, returned by the server. Two
+ * parallel sections — facts the brain remembers vs the current plan.
+ */
+export interface ConversationMemory {
+  memory:   BrainSection;
+  thinking: BrainSection;
+}
+
+const EMPTY_BRAIN: ConversationMemory = { memory: {}, thinking: {} };
+
+function normalizeBrainResponse(res: { memory?: BrainSection; thinking?: BrainSection }): ConversationMemory {
+  return {
+    memory:   res.memory   || {},
+    thinking: res.thinking || {},
+  };
+}
 
 export async function fetchConversationMemory(args: {
   agentSlug: string;
@@ -361,17 +388,18 @@ export async function fetchConversationMemory(args: {
   ownerUserId: string;
 }): Promise<ConversationMemory> {
   const params = new URLSearchParams({ ownerUserId: args.ownerUserId });
-  const res = await http<{ memory: ConversationMemory }>(
+  const res = await http<{ memory: BrainSection; thinking: BrainSection }>(
     `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/memory?${params}`,
   );
-  return res.memory || {};
+  return normalizeBrainResponse(res) || EMPTY_BRAIN;
 }
 
 /**
- * Update one field in the conversation memory.
- *   - clear=true → removes the field from every domain bucket.
- *   - otherwise → sets `field` to `value` in `domain` (or `_general`).
- * Returns the updated blob so callers can refresh local cache.
+ * Update one field in the conversation brain.
+ *   - clear=true → removes the field from every domain bucket of the section.
+ *   - otherwise → sets `field` to `value` in `domain` (or `_general`)
+ *     inside the requested section. Defaults to `kind: 'memory'`.
+ * Returns the full brain blob so callers can refresh local cache.
  */
 export async function patchConversationMemory(args: {
   agentSlug: string;
@@ -380,9 +408,11 @@ export async function patchConversationMemory(args: {
   field: string;
   value?: unknown;
   domain?: string | null;
+  /** Which brain section to write to. Default `'memory'`. */
+  kind?: 'memory' | 'thinking';
   clear?: boolean;
 }): Promise<ConversationMemory> {
-  const res = await http<{ memory: ConversationMemory }>(
+  const res = await http<{ memory: BrainSection; thinking: BrainSection }>(
     `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/memory`,
     {
       method: 'PATCH',
@@ -391,11 +421,12 @@ export async function patchConversationMemory(args: {
         field: args.field,
         value: args.value,
         domain: args.domain ?? null,
+        kind: args.kind ?? 'memory',
         clear: !!args.clear,
       }),
     },
   );
-  return res.memory || {};
+  return normalizeBrainResponse(res);
 }
 
 export async function listConversations(args: {

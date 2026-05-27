@@ -73,6 +73,19 @@ function buildMemoryBlock(selectedDomains: Array<string | null>): string {
   return `## Memory\n${sections.join('\n\n')}`;
 }
 
+/**
+ * `## Thinking` block — Thinker writes go here, structurally identical
+ * to the Memory block. Byte-equal to the server's buildThinkingBlock.
+ */
+function buildThinkingBlock(selectedDomains: Array<string | null>): string {
+  if (selectedDomains.length === 0) return '';
+  const sections: string[] = selectedDomains.map(d => {
+    const label = d ?? 'general';
+    return `### ${label}\n{}`;
+  });
+  return `## Thinking\n${sections.join('\n\n')}`;
+}
+
 function buildFieldsSchemaBlock(fields: FieldDef[]): string {
   if (fields.length === 0) return '';
   // Format: `- <name> (type=..., [values=[...],] source=...): <how>`
@@ -116,6 +129,7 @@ export function buildPromptPreview({ instance, agentPersona, extractorFields }: 
     prompt: cfg?.prompt ?? '',
     persona: buildPersonaBlock(agentPersona, instance.context.persona),
     memory: buildMemoryBlock(instance.context.memoryReads),
+    thinking: buildThinkingBlock(instance.context.thinkingReads ?? []),
     fields_schema: isExtractor ? buildFieldsSchemaBlock(fields) : '',
     fields_current: isExtractor ? buildFieldsCurrentBlock(fields) : '',
   });

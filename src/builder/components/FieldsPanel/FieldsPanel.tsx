@@ -86,8 +86,11 @@ export function FieldsPanel({ agentId, crewId }: Props) {
   const liveValueByField = useMemo(() => {
     const map: Record<string, unknown> = {};
     if (previewConversationId === null) return map;
+    // FieldsPanel only renders facts, so read from the memory section.
+    // Thinker output lives in conversationMemory.thinking and is
+    // rendered by the Thinking panel below the Cortex instead.
     for (const cf of allFields) {
-      const v = findLiveValue(conversationMemory, cf.field.name);
+      const v = findLiveValue(conversationMemory.memory, cf.field.name);
       if (v !== undefined) map[cf.field.name] = v;
     }
     return map;

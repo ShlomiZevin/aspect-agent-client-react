@@ -96,6 +96,15 @@ export interface AddonContext {
    * Empty list = no `## Memory` section in the prompt.
    */
   memoryReads: Array<string | null>;
+  /**
+   * List of *thinking* domains to inject — the brain's current plan
+   * (Thinker writes). Parallel to `memoryReads` but reads from the
+   * thinking section of the brain blob instead of the memory section.
+   * `null` denotes "(no domain)". Empty list = no `## Thinking` block
+   * in the prompt. Optional for backward compat with existing
+   * instances stored before this feature; treated as `[]` when missing.
+   */
+  thinkingReads?: Array<string | null>;
 }
 
 /**
@@ -155,6 +164,12 @@ export const KNOWN_PROMPT_PLACEHOLDERS = {
   /** `## Memory` block built from `context.memoryReads`. Empty if none. */
   memory: '{{memory}}',
   /**
+   * `## Thinking` block built from `context.thinkingReads`. Same shape
+   * as `## Memory` but pulls from the brain's thinking section — where
+   * the Thinker addon's writes land. Empty if no reads selected.
+   */
+  thinking: '{{thinking}}',
+  /**
    * `## Field schema` block — fields with name, type, allowed enum
    * values, source, and description. Extractor plugins only.
    */
@@ -190,6 +205,31 @@ export interface TalkerConfig {
   /** The voice prompt — what the crew is supposed to say and how. */
   prompt: string;
   model: ModelRef;
+}
+
+/**
+ * Thinker — produces strategic guidance for the Talker. The output is
+ * a free-form JSON object (keys defined by the prompt, NOT a declared
+ * field list) written to the brain's `thinking` section under a
+ * configurable domain. Talker reads via `context.thinkingReads`.
+ *
+ * Why no declared fields: thinking output is freeform advice consumed
+ * only by the Talker. Forcing a field schema would constrain what the
+ * Thinker can say and clutter the FieldsPanel with strings that
+ * nothing else reads. The prompt is the contract — the LLM emits keys
+ * the user asked for; the server writes whatever lands.
+ */
+export interface ThinkerConfig {
+  prompt: string;
+  model: ModelRef;
+  /** User-editable instance name shown on the chain card. */
+  name?: string;
+  /**
+   * Where Thinker writes its output in the brain's `thinking` section.
+   * Defaults to `'strategy'`. Multiple Thinkers in the same crew can
+   * write to different domains (e.g. `'strategy'`, `'tone'`).
+   */
+  domain: string;
 }
 
 // ─── Transition Router plugin ─────────────────────────────────────

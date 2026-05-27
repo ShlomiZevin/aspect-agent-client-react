@@ -15,7 +15,8 @@ import { useMemo, useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
 import { useCrewFields } from '../../state/useCrewFields';
 import { getPlugin } from '../../registry/plugins';
-import type { AddonContext, AddonInstance, HistoryMode, ID } from '../../types';
+import { THINKER_PLUGIN_ID } from '../../plugins/thinker/addon.thinker';
+import type { AddonContext, AddonInstance, HistoryMode, ID, ThinkerConfig } from '../../types';
 import styles from './AddonContextSection.module.css';
 
 interface Props {
@@ -55,9 +56,26 @@ const HISTORY_OPTIONS: { value: HistoryChoice; label: string }[] = [
 ];
 
 export function AddonContextSection({ agentId, crewId, instance }: Props) {
-  const { updateAddonContext } = useBuilder();
+  const { doc, updateAddonContext } = useBuilder();
   const { domains } = useCrewFields(agentId, crewId);
   const [open, setOpen] = useState(false);
+
+  // Thinking domains available in this crew — sourced from every
+  // Thinker instance's `config.domain` (Thinkers declare where they
+  // write). Picker shows these so the Talker (or downstream addons)
+  // can tick which strategic streams to inject. If past runs put
+  // values under a domain that no longer has a Thinker configured,
+  // we surface that too (so the user can toggle it off cleanly).
+  const thinkingDomains = useMemo<string[]>(() => {
+    const set = new Set<string>();
+    const crew = doc.agents.find(a => a.id === agentId)?.crews.find(c => c.id === crewId);
+    for (const a of crew?.addons ?? []) {
+      if (a.pluginId !== THINKER_PLUGIN_ID) continue;
+      const dom = (a.config as ThinkerConfig | undefined)?.domain?.trim();
+      if (dom) set.add(dom);
+    }
+    return [...set].sort();
+  }, [doc, agentId, crewId]);
 
   const plugin = getPlugin(instance.pluginId);
   const isExtractor = plugin?.fieldMode === 'extractor';
@@ -85,6 +103,26 @@ export function AddonContextSection({ agentId, crewId, instance }: Props) {
       nextReads.push(v === NO_DOMAIN ? null : v);
     }
     patch({ memoryReads: nextReads });
+  };
+
+  // Thinking reads — parallel to memory reads but a different
+  // section of the brain blob. Surface any thinking domain that
+  // EITHER a Thinker in this crew writes to OR was previously
+  // selected (so a renamed domain doesn't strand its read).
+  const thinkingReads = ctx.thinkingReads ?? [];
+  const thinkingSelected = useMemo(() => new Set<string>(
+    thinkingReads.filter((v): v is string => typeof v === 'string'),
+  ), [thinkingReads]);
+  const thinkingDomainList = useMemo<string[]>(() => {
+    const set = new Set<string>(thinkingDomains);
+    for (const v of thinkingReads) if (typeof v === 'string') set.add(v);
+    return [...set].sort();
+  }, [thinkingDomains, thinkingReads]);
+
+  const toggleThinkingDomain = (d: string) => {
+    const next = new Set(thinkingSelected);
+    if (next.has(d)) next.delete(d); else next.add(d);
+    patch({ thinkingReads: [...next] });
   };
 
   const historyChoice = choiceFromMode(ctx.history);
@@ -173,6 +211,29 @@ export function AddonContextSection({ agentId, crewId, instance }: Props) {
                 </label>
               )}
             </div>
+          </div>
+
+          <div className={styles.memoryBlock}>
+            <label className={styles.knobLabel}>Thinking</label>
+            {thinkingDomainList.length === 0 ? (
+              <p className={styles.hint}>
+                No Thinkers in this crew yet. Add a Thinker upstream of the
+                Talker to give it strategic guidance.
+              </p>
+            ) : (
+              <div className={styles.memoryList}>
+                {thinkingDomainList.map(d => (
+                  <label key={d} className={styles.checkRow}>
+                    <input
+                      type="checkbox"
+                      checked={thinkingSelected.has(d)}
+                      onChange={() => toggleThinkingDomain(d)}
+                    />
+                    <span className={styles.domainName}>💭 {d}</span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
 
           {isExtractor && (

@@ -106,7 +106,9 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
   if (!crewField) return null;
 
   const original = crewField.field;
-  const liveValue = findLiveValue(conversationMemory, original.name);
+  // FieldEditorModal edits memory-side fields. Thinker output lives in
+  // conversationMemory.thinking and isn't edited from this modal.
+  const liveValue = findLiveValue(conversationMemory.memory, original.name);
   const hasLive = liveValue !== undefined;
   const canEditLive = previewConversationId !== null;
 
