@@ -1,9 +1,21 @@
 /**
- * Builder JSON document types.
+ * Builder JSON document types — CANONICAL source of truth.
+ *
+ * Edit THIS file. The client gets a synced copy at
+ * `aspect-react-client/src/builder/types/index.ts` via the client's
+ * `sync-types` script (runs on postinstall / predev / prebuild). The
+ * client copy is gitignored — don't edit it; your changes will be
+ * overwritten on the next sync.
+ *
+ * Why server-owned: Alfred's `patchGenerator.js` and the runtime
+ * `BUILDER_V2_SCHEMA.md` doc both reference these types; making the
+ * server the canonical home means the file ships inside the Docker
+ * build context (no cross-folder reads). The client mirrors at build
+ * time — it's the consumer, not the owner.
  *
  * Storage model: each ProjectDoc / AgentDoc / CrewDoc is a single JSON
- * document persisted as one row in its own table (later). During the
- * builder session they live in memory and localStorage as drafts.
+ * document persisted as one row in its own table. During the builder
+ * session they live in memory and localStorage as drafts.
  *
  * Plugin configs live INSIDE the crew doc as opaque `config` blobs keyed
  * by `pluginId`. The plugin registry knows how to render/validate each.
