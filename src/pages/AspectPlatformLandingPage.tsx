@@ -137,53 +137,6 @@ const icons = {
   ),
 };
 
-function HeroVisual() {
-  const bars = [34, 46, 41, 58, 52, 71, 63, 88];
-  return (
-    <div className={styles.heroVisual} aria-hidden="true">
-      <div className={styles.answerCard}>
-        <div className={styles.answerHead}>
-          <span className={styles.answerHeadDot} />
-          Aspect
-          <span className={styles.answerBadge}>Answer</span>
-        </div>
-        <p className={styles.answerQ}>"Show me income for the last two months"</p>
-        <div className={styles.answerKpiRow}>
-          <span className={styles.answerKpi}>$2.41M</span>
-          <span className={styles.answerDelta}>&#9650; 18.2% MoM</span>
-        </div>
-        <svg className={styles.answerChart} viewBox="0 0 320 96" role="img">
-          {bars.map((v, i) => {
-            const bw = 30;
-            const gap = 11;
-            const x = i * (bw + gap) + 3;
-            const h = (v / 100) * 82;
-            const last = i === bars.length - 1;
-            return (
-              <rect
-                key={i}
-                x={x}
-                y={88 - h}
-                width={bw}
-                height={h}
-                rx="5"
-                fill={last ? '#EA580C' : 'rgba(234,88,12,0.22)'}
-              />
-            );
-          })}
-        </svg>
-        <p className={styles.answerNote}>
-          Growth led by the North region — up 31% vs. the prior period.
-        </p>
-        <div className={styles.miniCard}>
-          <span className={styles.miniCardLabel}>Churn risk<br />flagged</span>
-          <span className={styles.miniCardValue}>3 accounts</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function Nav({ onOpenContact }: { onOpenContact: () => void }) {
   return (
     <nav className={styles.nav}>
@@ -416,21 +369,21 @@ export function AspectPlatformLandingPage() {
       <Nav onOpenContact={openContact} />
 
       <div className={styles.v3PageContent}>
-        {/* Section 1 — Hero */}
-        <section className={styles.heroSection}>
-          <div className={styles.heroContent}>
-            <p className={styles.eyebrow}>ASPECT — AI DATA ANALYST</p>
-            <h1 className={styles.h1}>Your data already has the answers. We make it talk.</h1>
-            <p className={styles.subtitle}>
-              Aspect turns plain-language questions into reliable, analyst-grade answers
-              from your real database — in seconds. The hard part was never the model. It's
-              the system around it. That's what we built.
+        {/* Intro — frames the brief; no marketing hero */}
+        <section className={styles.sectionPrimary} style={{ paddingTop: '150px' }}>
+          <div
+            className={`${styles.sectionContentWide} ${styles.reveal}`}
+            style={{ textAlign: 'center', maxWidth: '820px' }}
+          >
+            <p className={styles.eyebrow} style={{ justifyContent: 'center' }}>ASPECT — INVESTOR BRIEF</p>
+            <h1 className={styles.h1} style={{ maxWidth: '780px', margin: '0 auto' }}>
+              Two questions. Two straight answers.
+            </h1>
+            <p className={styles.subtitle} style={{ margin: '0 auto', maxWidth: '600px' }}>
+              The two an investor actually asks about a product like ours — and exactly how
+              we answer them.
             </p>
-            <button className={styles.primaryButton} onClick={openContact}>
-              Book a demo <span aria-hidden="true">&rarr;</span>
-            </button>
           </div>
-          <HeroVisual />
         </section>
 
         {/* Section — Q1: the Claude question (card section) */}
