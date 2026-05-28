@@ -26,6 +26,7 @@ interface Props {
 const OUTPUT_TYPE_LABEL: Record<OutputType, string> = {
   'text-to-user':    '💬 Text — spoken to the user',
   'json-to-memory':  '{ } JSON — written to memory',
+  'transition':      '⇥ Transition — handoff to next crew',
 };
 
 export function AddonOutputSection({ agentId, crewId, instance }: Props) {

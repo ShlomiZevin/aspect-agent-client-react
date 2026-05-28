@@ -12,7 +12,7 @@
  * comparison ops, booleans only get equality.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useCrewFields } from '../../state/useCrewFields';
 import { ComboPicker } from './ComboPicker';
 import type { FieldDef, FieldOp, ID, TransitionCondition } from '../../types';
