@@ -1207,3 +1207,99 @@
     gap: 4px;
   }
 }
+
+/* ===== Lang toggle ===== */
+.langToggle {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 5px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.langToggle:hover {
+  background: rgba(94,234,212,0.1);
+  border-color: rgba(94,234,212,0.3);
+  color: var(--accent);
+}
+
+/* ===== RTL overrides ===== */
+.rtl {
+  direction: rtl;
+  text-align: right;
+}
+.rtl .navLinks {
+  flex-direction: row-reverse;
+}
+.rtl .sectionLabel {
+  flex-direction: row-reverse;
+}
+.rtl .sectionLine {
+  background: linear-gradient(to left, var(--accent), transparent);
+}
+.rtl .objHeader {
+  flex-direction: row-reverse;
+}
+.rtl .objHeadlineAnswer {
+  border-left: none;
+  border-right: 3px solid var(--accent);
+  padding-left: 0;
+  padding-right: 20px;
+}
+.rtl .tpList li {
+  padding-left: 0;
+  padding-right: 16px;
+}
+.rtl .tpList li::before {
+  left: auto;
+  right: 0;
+}
+.rtl .proofGrid {
+  direction: rtl;
+}
+.rtl .objFooter {
+  flex-direction: column;
+}
+.rtl .scenarioColHead {
+  flex-direction: row-reverse;
+}
+.rtl .scenarioSteps li {
+  direction: rtl;
+}
+.rtl .stepText {
+  text-align: right;
+}
+.rtl .scenarioCost {
+  flex-direction: row-reverse;
+}
+.rtl .scenarioPunchline {
+  border-left: none;
+  border-right: 3px solid var(--accent);
+  padding-left: 0;
+  padding-right: 20px;
+}
+.rtl .moduleTag {
+  text-align: right;
+}
+.rtl .cheatItem {
+  border-left: none;
+  border-right: 3px solid transparent;
+}
+.rtl .cheatItem:hover {
+  border-right-color: var(--accent);
+}
+.rtl .closingActions {
+  flex-direction: row-reverse;
+}
+.rtl .footerInner {
+  flex-direction: row-reverse;
+}
+.rtl .brand {
+  flex-direction: row-reverse;
+}
