@@ -191,10 +191,8 @@ function Nav({ onOpenContact }: { onOpenContact: () => void }) {
         <Wordmark className={styles.navLogo} />
         <div className={styles.navRight}>
           <div className={styles.navLinks}>
-            <a href="#analysis" className={styles.navLink}>What it does</a>
-            <a href="#why-aspect" className={styles.navLink}>Why Aspect</a>
-            <a href="#roi" className={styles.navLink}>The value</a>
-            <a href="#how" className={styles.navLink}>How it works</a>
+            <a href="#claude" className={styles.navLink}>The Claude question</a>
+            <a href="#value" className={styles.navLink}>The value</a>
           </div>
           <button className={styles.navCta} onClick={onOpenContact}>
             Let's talk
@@ -216,9 +214,8 @@ function Footer({ onOpenContact }: { onOpenContact: () => void }) {
           </p>
         </div>
         <div className={styles.footerCenter}>
-          <a href="#analysis" className={styles.footerLink}>What it does</a>
-          <a href="#why-aspect" className={styles.footerLink}>Why Aspect</a>
-          <a href="#how" className={styles.footerLink}>How it works</a>
+          <a href="#claude" className={styles.footerLink}>The Claude question</a>
+          <a href="#value" className={styles.footerLink}>The value</a>
         </div>
         <div className={styles.footerRight}>
           <button
@@ -422,13 +419,12 @@ export function AspectPlatformLandingPage() {
         {/* Section 1 — Hero */}
         <section className={styles.heroSection}>
           <div className={styles.heroContent}>
-            <p className={styles.eyebrow}>THE AI ANALYTICS PLATFORM</p>
+            <p className={styles.eyebrow}>ASPECT — AI DATA ANALYST</p>
             <h1 className={styles.h1}>Your data already has the answers. We make it talk.</h1>
             <p className={styles.subtitle}>
-              Every company collects more data than ever — and still waits days for a
-              straight answer. Aspect is the AI analyst layer that turns any database into
-              plain-language insight: instant, explained, and reliable enough to bet a
-              decision on.
+              Aspect turns plain-language questions into reliable, analyst-grade answers
+              from your real database — in seconds. The hard part was never the model. It's
+              the system around it. That's what we built.
             </p>
             <button className={styles.primaryButton} onClick={openContact}>
               Book a demo <span aria-hidden="true">&rarr;</span>
@@ -437,254 +433,133 @@ export function AspectPlatformLandingPage() {
           <HeroVisual />
         </section>
 
-        {/* Section — Why now / the opportunity */}
-        <section className={styles.sectionSecondary}>
-          <div className={`${styles.sectionContent} ${styles.reveal}`}>
-            <h2 className={styles.h2}>Why now</h2>
-            <div>
-              <p className={styles.bodyText}>
-                Two forces are colliding. Companies are drowning in data and starving for
-                answers — every real question still routes through an analyst, a dashboard
-                that's already stale, and a queue measured in days.
-              </p>
-              <p className={styles.bodyText}>
-                And for the first time, AI can read a business question and answer it from
-                the raw data. The capability threshold just moved — what needed a team and
-                a quarter now takes a sentence and a few seconds.
-              </p>
-              <p className={styles.bodyTextBold}>
-                The question was never whether AI touches analytics. It's who makes it
-                trustworthy. Raw models hallucinate numbers; whoever turns them into an
-                analyst you can rely on owns the category — and every organization with a
-                database is a customer.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 2 — It's analysis, not search */}
-        <section id="analysis" className={styles.sectionPrimary} style={anchorOffset}>
-          <div className={`${styles.sectionContent} ${styles.reveal}`}>
-            <h2 className={styles.h2}>It's not search. It's analysis.</h2>
-            <div>
-              <p className={styles.bodyText}>
-                Most "AI for your data" tools retrieve — they find the document, quote the
-                row, summarize the page. That's a smarter search box.
-              </p>
-              <p className={styles.bodyText}>
-                Aspect <em>reasons</em>. Ask it <em>"show me income for the last two months"</em> or
-                <em> "analyze where we're losing potential profit,"</em> and it breaks the
-                question into steps, pulls the right data, runs the math, checks its own
-                result, and explains what it means — like a senior analyst who never sleeps
-                and never waits for the next sprint.
-              </p>
-              <div className={styles.inlineMock} aria-hidden="true">
-                <p className={styles.answerQ} style={{ marginBottom: '14px' }}>
-                  "Where are we losing potential profit?"
-                </p>
-                <svg viewBox="0 0 300 72" style={{ display: 'block', width: '100%' }} role="img">
-                  <defs>
-                    <linearGradient id="aspArea" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="rgba(234,88,12,0.22)" />
-                      <stop offset="100%" stopColor="rgba(234,88,12,0)" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M0 50 L40 44 L80 52 L120 30 L160 36 L200 18 L240 26 L300 10 L300 72 L0 72 Z" fill="url(#aspArea)" />
-                  <path d="M0 50 L40 44 L80 52 L120 30 L160 36 L200 18 L240 26 L300 10" fill="none" stroke="#EA580C" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-                  <circle cx="120" cy="30" r="3.5" fill="#fff" stroke="#EA580C" strokeWidth="2" />
-                  <circle cx="300" cy="10" r="3.5" fill="#EA580C" />
-                </svg>
-                <p className={styles.answerNote} style={{ marginTop: '12px' }}>
-                  Margin leak isolated to 2 SKUs in Wholesale — flagged automatically.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 3 — Objection 1: why not just use Claude (card section) */}
-        <section id="why-aspect" className={styles.sectionSecondary} style={anchorOffset}>
+        {/* Section — Q1: the Claude question (card section) */}
+        <section id="claude" className={styles.sectionSecondary} style={anchorOffset}>
           <div className={`${styles.sectionContentWide} ${styles.reveal}`}>
-            <div style={{ maxWidth: '720px', margin: '0 auto 48px', textAlign: 'center' }}>
-              <p className={styles.eyebrow} style={{ justifyContent: 'center' }}>WHY ASPECT</p>
+            <div style={{ maxWidth: '760px', margin: '0 auto 48px', textAlign: 'center' }}>
+              <p className={styles.eyebrow} style={{ justifyContent: 'center' }}>THE CLAUDE QUESTION</p>
               <h2 className={styles.h2centered}>
-                "Why do I need you? I can just point Claude at my data."
+                "Can't I just connect Claude to my data?"
               </h2>
               <p className={styles.bodyText} style={{ marginTop: '20px' }}>
-                You can. And you'll learn — the expensive way — that the model was never
-                the hard part. Claude is a brilliant engine. But an engine is not a car.
-                Between the raw model and a system you can trust with a business question
-                sits the work nobody sees:
+                There's no such thing. "Connect Claude to your data" isn't a product — it's a
+                sentence. Neither is "build a platform from a prompt."
+              </p>
+              <p className={styles.bodyText}>
+                Claude is a tool, and tools were never the hard part — you could build
+                anything before Claude too; it just took skill and time. What Claude changed
+                is <em>speed, not capability</em>. It's an amplifier: know how to build systems and
+                you ship 10x faster. Don't, and you ship garbage faster.
               </p>
             </div>
 
             <div className={styles.cardsGrid} style={{ gridTemplateColumns: '1fr 1fr' }}>
               <div className={styles.card} style={{ gridColumn: 'auto' }}>
-                <IconBadge>{icons.sql}</IconBadge>
-                <h3 className={styles.h3}>Reliable SQL, every time</h3>
+                <IconBadge>{icons.code}</IconBadge>
+                <h3 className={styles.h3}>Language &rarr; correct SQL</h3>
                 <p className={styles.bodyText}>
-                  One wrong join and the model hands you a confident, false number.
-                  Trustworthy question-to-SQL is months of engineering — not a clever
-                  prompt.
+                  We use Claude where it's genuinely strong: turning a human question into
+                  SQL. Making it correct every time — joins, types, edge cases — is
+                  engineering, not a prompt.
                 </p>
               </div>
               <div className={styles.card}>
                 <IconBadge>{icons.layers}</IconBadge>
-                <h3 className={styles.h3}>A structure built for answers</h3>
+                <h3 className={styles.h3}>A schema built to be asked</h3>
                 <p className={styles.bodyText}>
-                  Raw schemas are built for storage, not analysis. Without a data model
-                  shaped for real questions, the AI guesses — and guesses wrong.
+                  Raw databases store; they don't answer. We model the data so questions map
+                  cleanly — the difference between a right answer and a confident wrong one.
                 </p>
               </div>
               <div className={styles.card}>
-                <IconBadge>{icons.bolt}</IconBadge>
-                <h3 className={styles.h3}>Speed on heavy questions</h3>
+                <IconBadge>{icons.gauge}</IconBadge>
+                <h3 className={styles.h3}>Heavy questions, instant</h3>
                 <p className={styles.bodyText}>
-                  "Profit loss by segment across two months" can crush a naïve query.
-                  Knowing when to pre-compute and warehouse is the gap between a 2-second
-                  answer and a timeout.
+                  Deep analysis can crush a naïve query. We decide what to pre-compute and
+                  warehouse, so the hard questions still return in seconds.
                 </p>
               </div>
               <div className={styles.card}>
                 <IconBadge>{icons.crew}</IconBadge>
-                <h3 className={styles.h3}>A crew, not one brain</h3>
+                <h3 className={styles.h3}>A system of agents</h3>
                 <p className={styles.bodyText}>
-                  One model doing everything is a mediocre generalist. Specialized agents
-                  — each owning analytics, data, its own domain — are what make the
-                  answers genuinely good.
+                  Specialized agents own analytics, data, and orchestration. One model doing
+                  everything is a generalist. A system of experts is a product.
                 </p>
               </div>
             </div>
 
             <p
               className={styles.bodyTextBold}
-              style={{ maxWidth: '720px', margin: '48px auto 0', textAlign: 'center' }}
+              style={{ maxWidth: '760px', margin: '48px auto 0', textAlign: 'center' }}
             >
-              Point a raw model at your warehouse and you'll spend six months and real
-              budget arriving at a worse version of what we already ship. We didn't sell
-              you a model — we solved the part that takes a year.
+              The model is a component we command. The system around it is the moat — a year
+              of engineering a prompt will never replace.
             </p>
           </div>
         </section>
 
-        {/* Section 4 — Objection 2: measuring ROI */}
-        <section id="roi" className={styles.sectionPrimary} style={anchorOffset}>
-          <div className={`${styles.sectionContent} ${styles.reveal}`}>
-            <h2 className={styles.h2}>"How do I measure the profit this gives me?"</h2>
-            <div>
-            <p className={styles.bodyText}>
-              Honestly? No one can hand you a number that says <em>"+$240,000 in
-              revenue."</em> Distrust anyone who claims they can. Here's what actually
-              moves the needle:
-            </p>
-            <ul className={styles.bulletList}>
-              <li className={styles.bulletItem}>
-                <span className={styles.bulletDot} />
-                <span>
-                  <strong>Reports on the fly, at zero build cost.</strong> Today every
-                  report is a ticket, a queue, a wait. With Aspect the report <em>is</em> the
-                  question — the cost of "I wonder if…" drops to nothing, so people finally
-                  ask.
-                </span>
-              </li>
-              <li className={styles.bulletItem}>
-                <span className={styles.bulletDot} />
-                <span>
-                  <strong>Key indicators, surfaced — not buried.</strong> The metrics that
-                  decide your quarter are in your data right now. Aspect makes them visible
-                  on demand, not once a month in a slide nobody reads.
-                </span>
-              </li>
-              <li className={styles.bulletItem}>
-                <span className={styles.bulletDot} />
-                <span>
-                  <strong>Insights you didn't know to look for.</strong> The segment
-                  quietly bleeding margin, the pattern that predicts churn — Aspect flags
-                  what isn't obvious.
-                </span>
-              </li>
-              <li className={styles.bulletItem}>
-                <span className={styles.bulletDot} />
-                <span>
-                  <strong>Decisions, sooner.</strong> Value lives in the decision you make
-                  a week earlier because the answer took seconds, not a sprint.
-                </span>
-              </li>
-            </ul>
-            <p className={styles.bodyTextBold}>
-              The ROI isn't a line item. It's the analyst hours you stop burning and the
-              blind spots you stop missing — compounding, every single day.
-            </p>
+        {/* Section — Q2: the value question (card section) */}
+        <section id="value" className={styles.sectionPrimary} style={anchorOffset}>
+          <div className={`${styles.sectionContentWide} ${styles.reveal}`}>
+            <div style={{ maxWidth: '760px', margin: '0 auto 48px', textAlign: 'center' }}>
+              <p className={styles.eyebrow} style={{ justifyContent: 'center' }}>THE VALUE QUESTION</p>
+              <h2 className={styles.h2centered}>
+                "How do we measure the benefit to the customer?"
+              </h2>
+              <p className={styles.bodyText} style={{ marginTop: '20px' }}>
+                Precisely — on three axes, measurable from day one.
+              </p>
             </div>
-          </div>
-        </section>
 
-        {/* Section 5 — Under the hood */}
-        <section id="how" className={styles.sectionSecondary} style={anchorOffset}>
-          <div className={`${styles.sectionContent} ${styles.reveal}`}>
-            <h2 className={styles.h2}>Under the hood</h2>
-            <div>
-              <div style={{ marginBottom: '32px' }}>
-                <IconBadge>{icons.crew}</IconBadge>
-                <h3 className={styles.h3}>Multi-agent crew</h3>
-                <p className={styles.bodyText}>
-                  Specialized AI agents, each an expert in its domain — analytics, data,
-                  and more. The right specialist handles each part of every question.
-                </p>
-              </div>
-              <div style={{ marginBottom: '32px' }}>
-                <IconBadge>{icons.code}</IconBadge>
-                <h3 className={styles.h3}>Question &rarr; SQL engine</h3>
-                <p className={styles.bodyText}>
-                  Turns plain-language questions into precise, correct queries against your
-                  real database. The numbers come back right, not lucky.
-                </p>
-              </div>
-              <div style={{ marginBottom: '32px' }}>
-                <IconBadge>{icons.grid}</IconBadge>
-                <h3 className={styles.h3}>Schema Builder</h3>
-                <p className={styles.bodyText}>
-                  Designs a data structure optimized for analysis, so answers come back
-                  fast and accurate instead of approximate.
-                </p>
-              </div>
-              <div>
+            <div className={styles.cardsGrid}>
+              <div className={styles.card}>
                 <IconBadge>{icons.gauge}</IconBadge>
-                <h3 className={styles.h3}>Heavy-query optimizer</h3>
+                <h3 className={styles.h3}>Cycle time &rarr; near zero</h3>
                 <p className={styles.bodyText}>
-                  Detects expensive analyses and builds the data warehouse behind them, so
-                  even your deepest questions stay instant.
+                  A question that took an analyst three days takes three seconds. That
+                  before/after is the cleanest number a customer has — and we measure it
+                  directly.
+                </p>
+              </div>
+              <div className={styles.card}>
+                <IconBadge>{icons.code}</IconBadge>
+                <h3 className={styles.h3}>Questions actually asked</h3>
+                <p className={styles.bodyText}>
+                  Most questions never get asked — too expensive to answer. Drop that cost
+                  to zero and decisions move from gut to data. We don't serve demand; we
+                  unlock it.
+                </p>
+              </div>
+              <div className={styles.card}>
+                <IconBadge>{icons.crew}</IconBadge>
+                <h3 className={styles.h3}>Analyst leverage</h3>
+                <p className={styles.bodyText}>
+                  One person now does what a team did. Capacity freed, reports retired,
+                  dashboards nobody has to maintain.
                 </p>
               </div>
             </div>
-          </div>
-        </section>
 
-        {/* Section 6 — Banner */}
-        <section className={styles.bannerSection}>
-          <div className={styles.reveal}>
-            <p className={styles.bannerText}>
-              Aspect turns your database into something you can simply ask — and trust
-              the answer.
-            </p>
-            <button
-              className={styles.textLink}
-              onClick={openContact}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}
+            <p
+              className={styles.bodyTextBold}
+              style={{ maxWidth: '760px', margin: '48px auto 0', textAlign: 'center' }}
             >
-              See it on your data <span aria-hidden="true">&rarr;</span>
-            </button>
+              We don't pitch a soft "insights" story. We collapse the cost and latency of
+              every data question to near zero — and that compounds with every question
+              asked.
+            </p>
           </div>
         </section>
 
-        {/* Section 7 — Final CTA */}
+        {/* Section — Final CTA */}
         <section className={styles.ctaSection}>
           <div className={styles.reveal}>
             <p className={styles.ctaHeadline}>
-              Your competitors are still waiting on next week's report.
+              The model is the commodity. The system is the company.
             </p>
             <p className={styles.ctaSubheadline}>
-              Stop querying your data. Start asking it.
+              That's Aspect.
             </p>
             <button className={styles.primaryButton} onClick={openContact}>
               Let's talk <span aria-hidden="true">&rarr;</span>
