@@ -376,10 +376,10 @@ export function AspectPlatformLandingPage() {
             style={{ textAlign: 'center', maxWidth: '820px' }}
           >
             <p className={styles.eyebrow} style={{ justifyContent: 'center' }}>ASPECT — INVESTOR BRIEF</p>
-            <h1 className={styles.h1} style={{ maxWidth: '780px', margin: '0 auto' }}>
+            <h1 className={styles.h1} style={{ maxWidth: '780px', margin: '0 auto 28px' }}>
               Two questions. Two straight answers.
             </h1>
-            <p className={styles.subtitle} style={{ margin: '0 auto', maxWidth: '600px' }}>
+            <p className={styles.subtitle} style={{ margin: '0 auto', maxWidth: '600px', fontSize: '18px' }}>
               The two an investor actually asks about a product like ours — and exactly how
               we answer them.
             </p>
