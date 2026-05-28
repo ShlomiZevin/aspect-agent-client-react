@@ -7,6 +7,8 @@ export { ArchitecturePage } from './ArchitecturePage';
 export { AspectLandingPage } from './AspectLandingPage';
 export { AspectPlatformLandingPage } from './AspectPlatformLandingPage';
 export { AspectPlatformSalesPage } from './AspectPlatformSalesPage';
+export { AspectBattleCardPage } from './AspectBattleCardPage';
+export { AspectMarketingSalesPage } from './AspectMarketingSalesPage';
 export { BankingOnboarderPage } from './BankingOnboarderPage';
 export { BankingOnboarderV2Page } from './BankingOnboarderV2Page';
 export { BylinePage } from './BylinePage';
