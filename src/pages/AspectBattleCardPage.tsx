@@ -429,8 +429,8 @@ export function AspectBattleCardPage() {
             <a href="#scenario" className={styles.navLink}>{t.nav.scenario}</a>
             <a href="#platform" className={styles.navLink}>{t.nav.platform}</a>
             <a href="#cheat" className={styles.navLink}>{t.nav.cheat}</a>
-            <LangToggle lang={lang} onChange={setLang} />
           </div>
+          <LangToggle lang={lang} onChange={setLang} />
         </div>
       </nav>
 
