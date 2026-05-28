@@ -2110,3 +2110,314 @@
 @media (max-width: 1024px) {
   .heroVisual { display: none; }
 }
+
+/* ============================================================
+   Investor Q&A — Cheat Sheet (minimal, editorial)
+   Calm, typography-driven, single sparse orange accent.
+   No card chrome, no gradient boxes, no dark hero blocks.
+   Hierarchy lives in size/weight, not decoration.
+   ============================================================ */
+
+/* Own section wrapper — bypasses V3 .sectionPrimary/.sectionSecondary
+   so we don't inherit warm bg, dot grid, big padding. */
+.csSection {
+  background: #ffffff;
+  padding: 64px 48px;
+}
+
+.csSection:first-of-type { padding-top: 120px; }
+
+.csInner {
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+.csDivider {
+  border: none;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+/* ---- Intro ---- */
+.csIntroEyebrow {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #94A3B8;
+  margin: 0 0 18px;
+}
+
+.csH1 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 400;
+  font-size: 44px;
+  line-height: 1.12;
+  letter-spacing: -0.6px;
+  color: #0F172A;
+  margin: 0 0 18px;
+}
+
+.csIntroLead {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  color: #475569;
+  margin: 0;
+  max-width: 600px;
+}
+
+/* ---- Product anchor — quiet, no border-box ---- */
+.anchorStrip {
+  margin-top: 36px;
+  padding: 18px 0 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.anchorLabel {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #94A3B8;
+  margin: 0 0 6px;
+}
+
+.anchorText {
+  margin: 0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14.5px;
+  color: #475569;
+  line-height: 1.65;
+}
+
+.anchorText strong { color: #0F172A; font-weight: 600; }
+
+/* ---- Question header — plain text, no number circle ---- */
+.qHead { margin-bottom: 18px; }
+
+.qLabel {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #EA580C;
+  margin: 0 0 8px;
+}
+
+.qHead h2 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+  margin: 0;
+  color: #0F172A;
+}
+
+/* ---- Lead line — thin orange rule, no gradient box ---- */
+.sayThis {
+  margin: 22px 0 32px;
+  padding: 2px 0 2px 18px;
+  border-left: 2px solid #EA580C;
+}
+
+.sayThisQuote {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 21px;
+  line-height: 1.4;
+  color: #0F172A;
+  margin: 0;
+}
+
+/* ---- Small sub-label — no trailing rule ---- */
+.subLabel {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #94A3B8;
+  margin: 32px 0 12px;
+}
+
+/* ---- Talking points — clean rows, no bullets ---- */
+.pointsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pointItem {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: #475569;
+  line-height: 1.6;
+  padding: 12px 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.pointItem:last-child { border-bottom: 1px solid rgba(15, 23, 42, 0.06); }
+
+.pointItem strong { color: #0F172A; font-weight: 600; }
+
+/* ---- Card grid — minimal tiles, no left accent, no hover lift ---- */
+.csGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  border-left: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.csGrid3 { grid-template-columns: repeat(3, 1fr); }
+
+.csCard {
+  padding: 16px 20px;
+  border-right: 1px solid rgba(15, 23, 42, 0.08);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+}
+
+.csCard h3 {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  margin: 0 0 6px;
+  color: #0F172A;
+  letter-spacing: -0.01em;
+}
+
+.csCard p {
+  margin: 0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: #64748B;
+  line-height: 1.55;
+}
+
+.csAxis {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #EA580C;
+  margin: 0 0 4px;
+}
+
+/* ---- Worked example — inline emphasis, not a dark box ---- */
+.exampleBox { margin: 24px 0 0; }
+
+.exampleTag {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #94A3B8;
+  margin: 0 0 8px;
+}
+
+.exampleText {
+  margin: 0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #475569;
+}
+
+.exNum { color: #0F172A; font-weight: 600; }
+.exPop { color: #EA580C; font-weight: 700; }
+
+/* ---- Pushback — italic question, plain answer ---- */
+.pushQa {
+  padding: 14px 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.pushQa:last-child { border-bottom: 1px solid rgba(15, 23, 42, 0.06); }
+
+.pushQ {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 16px;
+  color: #0F172A;
+  margin: 0 0 6px;
+}
+
+.pushA {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: #475569;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.pushA strong { color: #0F172A; }
+
+/* ---- Closing line — quiet, no dark CTA box ---- */
+.csClosing {
+  padding: 60px 48px 96px;
+  text-align: center;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.csClosingText {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  line-height: 1.45;
+  margin: 0;
+  color: #0F172A;
+}
+
+.csClosingDim { color: #94A3B8; }
+
+/* ---- Print button — outline, not filled ---- */
+.printBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: #EA580C;
+  padding: 7px 14px;
+  border-radius: 100px;
+  border: 1px solid rgba(234, 88, 12, 0.3);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+
+.printBtn:hover {
+  background: #EA580C;
+  color: #ffffff;
+  border-color: #EA580C;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 860px) {
+  .csSection { padding: 48px 24px; }
+  .csSection:first-of-type { padding-top: 100px; }
+  .csClosing { padding: 48px 24px 72px; }
+  .csGrid, .csGrid3 { grid-template-columns: 1fr; }
+  .csH1 { font-size: 32px; }
+  .qHead h2 { font-size: 24px; }
+  .sayThisQuote { font-size: 18px; }
+}
+
+/* ---- Print ---- */
+@media print {
+  .nav, .printBtn { display: none !important; }
+  .csSection { padding: 16px 0; }
+  .csClosing { padding: 24px 0; border-top: 1px solid rgba(15, 23, 42, 0.12); }
+  .qHead, .sayThis, .csGrid, .exampleBox, .pushQa { page-break-inside: avoid; }
+}
