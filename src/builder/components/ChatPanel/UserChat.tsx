@@ -144,12 +144,13 @@ export function UserChat() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [convList, setConvList] = useState<ConversationListItem[]>([]);
 
-  // The crew the runtime would route to right now. Updated on:
-  //   - 'conversation' SSE event (carries the saved currentCrewId)
-  //   - 'addon.output' with a transition (router fired this turn)
-  //   - loadConversation (reads metadata.currentCrewId from convList)
+  // `currentCrewId` = the crew the next turn will route to. Bound to
+  // the dropdown. Updated by:
+  //   - user picking from the dropdown (sticky override)
+  //   - 'conversation' SSE event (saved DB pointer at turn start)
+  //   - 'addon.output' transition (router moved the conversation)
+  //   - loadConversation (reads metadata.currentCrewId)
   //   - new chat / slug change (cleared → falls back to default crew)
-  // Null = use agent.defaultCrewId for display.
   const [currentCrewId, setCurrentCrewId] = useState<string | null>(null);
 
   const turnsRef = useRef<Turn[]>(turns);
@@ -204,17 +205,17 @@ export function UserChat() {
   const slug = doc.agents[0]?.slug ?? '';
   const ownerUserId = findOwnerUserId();
 
-  // Resolve the crew name to show in the header chip. Priority:
-  //   1. currentCrewId (live runtime pointer — survives transitions)
+  // Resolve the crew the next turn will be routed to. Priority:
+  //   1. currentCrewId (live runtime pointer — survives transitions,
+  //      also set by the dropdown below)
   //   2. agent's defaultCrewId (what new conversations start on)
   //   3. the viewing crew (sidebar context — for an empty session)
   const headerAgent = doc.agents[0];
+  const headerCrews = headerAgent?.crews ?? [];
   const effectiveCrewId = currentCrewId
     || headerAgent?.defaultCrewId
     || crew?.id
     || null;
-  const effectiveCrew = headerAgent?.crews.find(c => c.id === effectiveCrewId) || crew;
-  const headerCrewName = effectiveCrew?.name || 'No crew selected';
   const crewDirty = agent && crew ? isCrewDirty(agent.id, crew.id) : false;
   const agentDirty = agent ? isAgentDirty(agent.id) : false;
   const dirty = crewDirty || agentDirty;
@@ -348,8 +349,9 @@ export function UserChat() {
         if (e.memoryWrites && e.memoryWrites.length > 0) {
           applyLocalMemoryWrites(e.memoryWrites);
         }
-        // A transition fired — surface the new crew in the header
-        // immediately so the user sees the handoff land.
+        // A transition fired — the server already wrote it to
+        // metadata. Surface the new crew in the header dropdown so
+        // the user sees the handoff land in real time.
         if (e.transition?.to) setCurrentCrewId(e.transition.to);
         return;
       case 'addon.error':
@@ -410,6 +412,7 @@ export function UserChat() {
         ownerUserId,
         userMessage:    text,
         version:        'viewing',
+        overrideCrewId: currentCrewId,
         onEvent:        handleEvent,
       });
     } catch (err) {
@@ -545,9 +548,21 @@ export function UserChat() {
           </div>
         </div>
         <div className={styles.headerRowBottom}>
-          <div className={styles.crewBadge} title="Current crew (changes when a Transition Router fires)">
-            {headerCrewName}
-          </div>
+          {headerCrews.length > 0 ? (
+            <select
+              className={styles.crewSelect}
+              value={effectiveCrewId ?? ''}
+              onChange={e => setCurrentCrewId(e.target.value || null)}
+              title="Route the next message to this crew. Transition Routers can move it mid-conversation."
+              disabled={busy}
+            >
+              {headerCrews.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          ) : (
+            <div className={styles.crewBadge}>No crew selected</div>
+          )}
         </div>
       </div>
 

@@ -50,6 +50,10 @@ export interface SendArgs {
   ownerUserId: string;
   userMessage: string;
   version?: 'viewing' | 'active';
+  /** Optional crew override (e.g. picked by the user in the chat header
+   *  dropdown). When set, the server routes this turn to that crew and
+   *  persists it as the new conversation pointer. */
+  overrideCrewId?: string | null;
   onEvent: (event: RuntimeEvent) => void;
   signal?: AbortSignal;
 }

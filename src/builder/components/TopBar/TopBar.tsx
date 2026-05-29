@@ -6,7 +6,6 @@ import styles from './TopBar.module.css';
 export function TopBar() {
   const { doc, resetDraft } = useBuilder();
   const confirm = useConfirm();
-  const agent = doc.agents[0];
 
   const handleReset = async () => {
     const ok = await confirm({
@@ -20,7 +19,7 @@ export function TopBar() {
 
   return (
     <>
-      <Link to={agent ? `/${agent.slug}/chat` : '/'} className={styles.back} title="Back to chat">
+      <Link to="/builder" className={styles.back} title="Back to projects">
         ←
       </Link>
       <span className={styles.title}>Builder</span>

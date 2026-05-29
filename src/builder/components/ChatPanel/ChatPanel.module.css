@@ -199,6 +199,35 @@
   white-space: nowrap;
 }
 
+/* Crew selector — chip-shaped <select>, same colour tokens as the
+ * static crewBadge so a single-crew agent and a multi-crew agent
+ * look related. Picking a crew routes the next turn there; the
+ * selection follows the conversation as Transition Routers fire. */
+.crewSelect {
+  height: 26px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-color, #6366f1);
+  background-color: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 6px;
+  padding: 0 24px 0 10px;
+  white-space: nowrap;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%236366f1' d='M0 0l5 6 5-6z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+.crewSelect:hover:not(:disabled) {
+  background-color: rgba(99, 102, 241, 0.14);
+}
+.crewSelect:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .chatBody {
   flex: 1;
   min-height: 0;

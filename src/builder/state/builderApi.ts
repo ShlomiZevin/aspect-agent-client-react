@@ -465,6 +465,10 @@ export function runtimeMessageStream(args: {
   ownerUserId: string;
   userMessage: string;
   version?: 'viewing' | 'active';
+  /** Optional explicit crew to route this turn to. When set, takes
+   *  precedence over the conversation's saved currentCrewId and is
+   *  persisted as the new pointer for subsequent turns. */
+  overrideCrewId?: string | null;
 }): Promise<Response> {
   return fetch(
     `${BASE_URL}/api/agents/${args.agentSlug}/conversations/${args.conversationId}/messages`,
@@ -475,6 +479,7 @@ export function runtimeMessageStream(args: {
         ownerUserId: args.ownerUserId,
         userMessage: args.userMessage,
         version: args.version || 'viewing',
+        ...(args.overrideCrewId ? { overrideCrewId: args.overrideCrewId } : {}),
       }),
     },
   );
