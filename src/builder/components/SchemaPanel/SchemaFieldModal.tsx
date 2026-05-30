@@ -25,6 +25,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '../Modal/Modal';
 import { useBuilder } from '../../state/BuilderContext';
 import { useAgentFields } from '../../state/useAgentFields';
+import { useCrewFields } from '../../state/useCrewFields';
+import { useConfirm } from '../Confirm/Confirm';
 import { DomainInput } from '../FieldsPanel/DomainInput';
 import type { FieldDef, FieldSource, FieldType, ID } from '../../types';
 import styles from './SchemaPanel.module.css';
@@ -57,6 +59,10 @@ function newFieldId(): ID {
 export function SchemaFieldModal({ open, onClose, agentId, initial }: Props) {
   const { doc, updateAgent } = useBuilder();
   const { domainNames } = useAgentFields(agentId);
+  // `removeField` lives on useCrewFields but only needs agent context —
+  // safe to call with crewId='' for agent-scoped deletion.
+  const { removeField } = useCrewFields(agentId, '');
+  const confirm = useConfirm();
   const agent = doc.agents.find(a => a.id === agentId);
 
   const [name,         setName]         = useState('');
@@ -84,6 +90,35 @@ export function SchemaFieldModal({ open, onClose, agentId, initial }: Props) {
   }, [agent, initial]);
   const collides = trimmedName !== '' && siblings.some(f => f.name === trimmedName);
   const canSave = trimmedName.length > 0 && !collides;
+
+  // Count extractors currently wired to this field so the confirm
+  // message can warn the user before deletion scrubs them.
+  const wiredCount = useMemo(() => {
+    if (!initial || !agent) return 0;
+    let n = 0;
+    for (const c of agent.crews) {
+      for (const a of c.addons) {
+        const list = (a.config as { extractsFields?: ID[] })?.extractsFields;
+        if (Array.isArray(list) && list.includes(initial.id)) n += 1;
+      }
+    }
+    return n;
+  }, [initial, agent]);
+
+  const handleDelete = async () => {
+    if (!initial) return;
+    const ok = await confirm({
+      title: `Delete field "${initial.name}"?`,
+      message: wiredCount > 0
+        ? `Removes the declaration and scrubs it from ${wiredCount} extractor${wiredCount === 1 ? '' : 's'} that currently collect it.`
+        : 'Removes the declaration. No extractors collect this field today, so nothing else is affected.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+    removeField('agent', '', initial.id);
+    onClose();
+  };
 
   const handleSave = () => {
     if (!canSave || !agent) return;
@@ -117,6 +152,11 @@ export function SchemaFieldModal({ open, onClose, agentId, initial }: Props) {
       width={560}
       footer={
         <div className={styles.actions}>
+          {initial && (
+            <button type="button" className={styles.btnDanger} onClick={handleDelete}>
+              Delete
+            </button>
+          )}
           <span className={styles.spacerInline} />
           <button type="button" className={styles.btnGhost} onClick={onClose}>
             Cancel

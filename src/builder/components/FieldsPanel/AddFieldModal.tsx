@@ -17,9 +17,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '../Modal/Modal';
+import { useBuilder } from '../../state/BuilderContext';
 import { useCrewFields } from '../../state/useCrewFields';
 import { DomainInput } from './DomainInput';
-import type { FieldDef, FieldScope, FieldSource, FieldType, ID } from '../../types';
+import type { FieldDef, FieldSource, FieldType, ID } from '../../types';
 import styles from './AddFieldModal.module.css';
 
 interface Props {
@@ -38,6 +39,13 @@ interface Props {
     instanceId: ID;
     defaultSource: FieldSource;
   };
+  /**
+   * Optional callback for the "Wire it here" affordance shown when
+   * the typed name collides with an existing agent field. The parent
+   * (FieldsPanel) opens its WireToCrewModal with the colliding field
+   * pre-selected so the user lands in the right next step.
+   */
+  onWireExisting?: (fieldId: ID) => void;
 }
 
 const TYPES: { value: FieldType; label: string }[] = [
@@ -56,26 +64,42 @@ interface Draft {
   name: string;
   type: FieldType;
   source: FieldSource;
-  scope: FieldScope;
   domain: string;
   howToExtract: string;
   enumValues: string;
 }
 
+// New fields are always agent-scoped now — the "schema declares,
+// crews collect" model makes crew-private fields equivalent to
+// "declared at agent level, wired only to that crew." Legacy crew-
+// scoped fields (CrewBody.fields) keep working; users can migrate
+// one via FieldEditorModal's Scope picker. No new ones from here.
 const emptyDraft = (source: FieldSource = 'explicit'): Draft => ({
   name: '',
   type: 'string',
   source,
-  // Default to agent scope — most fields are agent-wide.
-  scope: 'agent',
   domain: '',
   howToExtract: '',
   enumValues: '',
 });
 
-export function AddFieldModal({ open, onClose, agentId, crewId, fromExtractor }: Props) {
+export function AddFieldModal({
+  open, onClose, agentId, crewId, fromExtractor, onWireExisting,
+}: Props) {
   const { agentExtractors, extractorOptions, domainNames, addFieldToScope } =
     useCrewFields(agentId, crewId);
+  const { doc } = useBuilder();
+  const agent = doc.agents.find(a => a.id === agentId);
+
+  // Existing agent-field-name lookup for collision detection. Memory
+  // writes are keyed by NAME (not id), so a second declaration with the
+  // same name would silently overwrite the first at runtime — a real
+  // footgun. We block submit and offer to wire the existing one instead.
+  const agentFieldByName = useMemo(() => {
+    const map = new Map<string, FieldDef>();
+    for (const f of agent?.fields ?? []) map.set(f.name, f);
+    return map;
+  }, [agent?.fields]);
 
   const [draft, setDraft] = useState<Draft>(() => emptyDraft(fromExtractor?.defaultSource));
   // Which extractor instances should extract this field. At least one
@@ -98,9 +122,16 @@ export function AddFieldModal({ open, onClose, agentId, crewId, fromExtractor }:
   }, [open, extractorOptions, fromExtractor]);
 
   const noExtractorsAnywhere = agentExtractors.length === 0;
-  const canSubmit = draft.name.trim().length > 0 && (
-    noExtractorsAnywhere || selectedExtractors.size > 0
-  );
+
+  // Collision check — does the typed name match an already-declared
+  // agent field? If so, surface the wire-instead path and block submit
+  // so the user can't accidentally create a duplicate.
+  const trimmedName = draft.name.trim();
+  const collidesWith = trimmedName ? agentFieldByName.get(trimmedName) ?? null : null;
+
+  const canSubmit = trimmedName.length > 0
+    && !collidesWith
+    && (noExtractorsAnywhere || selectedExtractors.size > 0);
 
   const toggleExtractor = (id: ID) => {
     setSelectedExtractors(prev => {
@@ -136,7 +167,7 @@ export function AddFieldModal({ open, onClose, agentId, crewId, fromExtractor }:
       }),
     };
     addFieldToScope(
-      draft.scope,
+      'agent',
       draftField,
       Array.from(selectedExtractors),
       // If the agent has zero extractors anywhere, bootstrap one in
@@ -181,6 +212,34 @@ export function AddFieldModal({ open, onClose, agentId, crewId, fromExtractor }:
               if (e.key === 'Enter' && canSubmit) submit();
             }}
           />
+          {collidesWith && (
+            <div className={styles.collisionNote}>
+              A field <strong>"{collidesWith.name}"</strong> is already declared at the agent level.
+              <div className={styles.collisionActions}>
+                <button
+                  type="button"
+                  className={styles.collisionPrimary}
+                  onClick={() => {
+                    onWireExisting?.(collidesWith.id);
+                    onClose();
+                  }}
+                  disabled={!onWireExisting}
+                  title={onWireExisting
+                    ? 'Wire this declared field to this crew'
+                    : 'Wiring from this context is not available — close and use + Wire field'}
+                >
+                  Wire it here
+                </button>
+                <button
+                  type="button"
+                  className={styles.collisionGhost}
+                  onClick={() => setDraft(d => ({ ...d, name: '' }))}
+                >
+                  Use a different name
+                </button>
+              </div>
+            </div>
+          )}
         </label>
 
         <div className={styles.row3}>
@@ -212,18 +271,6 @@ export function AddFieldModal({ open, onClose, agentId, crewId, fromExtractor }:
             </select>
           </label>
 
-          <label className={styles.field}>
-            <span className={styles.label}>Scope</span>
-            <select
-              className={styles.input}
-              value={draft.scope}
-              onChange={e => setDraft(d => ({ ...d, scope: e.target.value as FieldScope }))}
-              title="Where this field lives: agent (everywhere) or crew (this crew only)"
-            >
-              <option value="agent">Agent — visible everywhere</option>
-              <option value="crew">Crew — only in this crew</option>
-            </select>
-          </label>
         </div>
 
         <label className={styles.field}>

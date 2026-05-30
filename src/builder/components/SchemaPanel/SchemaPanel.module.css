@@ -105,6 +105,67 @@
   color: rgba(99, 102, 241, 0.7);
 }
 
+/* Two-line extractor card used in WireFieldModal: top row is the
+ * instance label, bottom is the plugin flavour ("Field Extractor" vs
+ * "Vibe Extractor") so the user can tell which is which when a crew
+ * has both. Reuses the chip border/colour family for cohesion. */
+.extractorCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 8px;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  color: var(--text-primary, #111827);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.extractorCard:hover {
+  background: rgba(99, 102, 241, 0.12);
+}
+.extractorCardActive {
+  background: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
+  color: #fff;
+}
+.extractorCardActive:hover {
+  background: var(--primary-color, #6366f1);
+  filter: brightness(0.95);
+}
+.extractorCardInactive {
+  opacity: 0.5;
+}
+.extractorIcon {
+  font-size: 14px;
+  flex: 0 0 auto;
+}
+.extractorText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+.extractorLabel {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.extractorPluginLabel {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.75;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.extractorState {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 /* ── Parameters — list of rows ── */
 
 .paramList {
@@ -167,6 +228,38 @@
   font-size: 11px;
   color: var(--text-tertiary, #9ca3af);
   line-height: 1.4;
+}
+
+/* Live conversation value chip — only shown when a preview chat is
+ * active and the field has been extracted at least once. Same colour
+ * family as the FieldsPanel live chip so users recognise it. */
+.liveChip {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 11px;
+  color: #047857;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.clearBtn {
+  background: transparent;
+  border: 0;
+  color: var(--text-tertiary, #9ca3af);
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-family: inherit;
+}
+.clearBtn:hover {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
 }
 
 /* ── Modal form ── */

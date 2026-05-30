@@ -45,11 +45,64 @@
 
 .row3 {
   display: grid;
-  /* Give the Scope column extra room — its longest label
-   * ("Agent — visible everywhere") was getting clipped with three
-   * equal columns. Type/Source labels are short and fit fine. */
-  grid-template-columns: 1fr 1fr 1.6fr;
+  /* Two equal columns since Scope was dropped — type + source only. */
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+/* Inline notice shown under the Name input when the typed name
+ * collides with an already-declared agent field. Uses an amber palette
+ * (warning, not error) because the situation is recoverable — the user
+ * can wire the existing field or just type a different name. */
+.collisionNote {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #78350f;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.collisionActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.collisionPrimary {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid #b45309;
+  background: #b45309;
+  color: #fff;
+  cursor: pointer;
+}
+.collisionPrimary:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+.collisionPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.collisionGhost {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid #fde68a;
+  background: transparent;
+  color: #78350f;
+  cursor: pointer;
+}
+.collisionGhost:hover {
+  background: rgba(245, 158, 11, 0.1);
 }
 
 .note {

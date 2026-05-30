@@ -24,6 +24,7 @@ import { useAgentFields } from '../../state/useAgentFields';
 import { useCrewFields } from '../../state/useCrewFields';
 import { AddFieldModal } from './AddFieldModal';
 import { FieldEditorModal } from './FieldEditorModal';
+import { WireToCrewModal } from './WireToCrewModal';
 import type { CrewField, CrewDomain } from '../../state/useCrewFields';
 import type { ID } from '../../types';
 import styles from './FieldsPanel.module.css';
@@ -80,8 +81,30 @@ export function FieldsPanel({ agentId, crewId }: Props) {
 
   const { conversationMemory, previewConversationId, doc } = useBuilder();
   const [addOpen, setAddOpen] = useState(false);
+  const [wireOpen, setWireOpen] = useState(false);
+  // When the AddFieldModal's "Wire it here" path fires, it carries the
+  // colliding field's id up so we open the WireToCrewModal with that
+  // field pre-checked — the user lands in the right next step.
+  const [wirePreselectId, setWirePreselectId] = useState<ID | null>(null);
   const [editing, setEditing] = useState<CrewField | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  // Are there any declared agent fields not yet wired to this crew?
+  // Drives whether the "+ Wire field" button is offered or hidden —
+  // when nothing's left to wire, the button is just noise.
+  const hasUnwiredCandidates = useMemo(() => {
+    if (!crewId) return false;
+    const agent = doc.agents.find(a => a.id === agentId);
+    const crew = agent?.crews.find(c => c.id === crewId);
+    if (!agent || !crew) return false;
+    const wiredHere = new Set<string>();
+    for (const a of crew.addons) {
+      const cfg = (a.config as { extractsFields?: string[] } | undefined);
+      const list = Array.isArray(cfg?.extractsFields) ? cfg!.extractsFields : [];
+      for (const id of list) wiredHere.add(id);
+    }
+    return (agent.fields ?? []).some(f => !wiredHere.has(f.id));
+  }, [doc, agentId, crewId]);
 
   const liveValueByField = useMemo(() => {
     const map: Record<string, unknown> = {};
@@ -119,9 +142,24 @@ export function FieldsPanel({ agentId, crewId }: Props) {
           <span className={styles.title}>💾 Memory</span>
           <span className={styles.count}>{allFields.length}</span>
           <span className={styles.spacer} />
+          {crewId && hasUnwiredCandidates && (
+            <button
+              type="button"
+              className={styles.addBtn}
+              onClick={() => setWireOpen(true)}
+              title="Pick an already-declared agent field to collect in this crew"
+            >
+              + Wire
+            </button>
+          )}
           {crewId && (
-            <button type="button" className={styles.addBtn} onClick={() => setAddOpen(true)}>
-              + Add field
+            <button
+              type="button"
+              className={styles.addBtn}
+              onClick={() => setAddOpen(true)}
+              title="Declare a new field and wire it to this crew"
+            >
+              + Add
             </button>
           )}
         </div>
@@ -164,12 +202,28 @@ export function FieldsPanel({ agentId, crewId }: Props) {
       </div>
 
       {crewId && (
-        <AddFieldModal
-          open={addOpen}
-          onClose={() => setAddOpen(false)}
-          agentId={agentId}
-          crewId={crewId}
-        />
+        <>
+          <AddFieldModal
+            open={addOpen}
+            onClose={() => setAddOpen(false)}
+            agentId={agentId}
+            crewId={crewId}
+            onWireExisting={(fieldId) => {
+              setWirePreselectId(fieldId);
+              setWireOpen(true);
+            }}
+          />
+          <WireToCrewModal
+            open={wireOpen}
+            onClose={() => {
+              setWireOpen(false);
+              setWirePreselectId(null);
+            }}
+            agentId={agentId}
+            crewId={crewId}
+            initiallySelectedFieldId={wirePreselectId}
+          />
+        </>
       )}
 
       <FieldEditorModal

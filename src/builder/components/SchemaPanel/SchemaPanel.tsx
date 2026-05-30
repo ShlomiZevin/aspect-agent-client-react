@@ -1,15 +1,13 @@
 /**
  * SchemaPanel — agent-level schema editor.
  *
- * Stacks four sections in the AgentView sidebar:
+ * Stacks three sections in the AgentView sidebar:
  *   1. Parameters — static agent-wide values (`agent.parameters`)
  *   2. Domains    — declared memory groupings (`agent.domains`)
- *   3. Fields     — agent-level field declarations (`agent.fields`)
- *                   added in "schema mode" — no extractor wiring required.
- *                   Fields stay inert until a crew's extractor references
- *                   them. The wiring step happens in the CrewView.
- *   4. Memory     — existing FieldsPanel, kept so the live-value view
- *                   stays available alongside the schema editor.
+ *   3. Fields     — agent-level field declarations (`agent.fields`).
+ *                   Each row shows the live conversation value (when a
+ *                   preview chat is active) plus a Wire affordance to
+ *                   collect the field into a crew's extractor.
  *
  * Runtime impact: zero. Declared domains, parameters, and bare field
  * declarations are inert until referenced. Nothing ships them into
@@ -18,7 +16,6 @@
 
 import { useMemo, useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
-import { FieldsPanel } from '../FieldsPanel/FieldsPanel';
 import { useAgentFields } from '../../state/useAgentFields';
 import { DomainModal } from './DomainModal';
 import { ParameterModal } from './ParameterModal';
@@ -37,7 +34,6 @@ export function SchemaPanel({ agentId }: Props) {
       <ParametersSection agentId={agentId} />
       <DomainsSection agentId={agentId} />
       <FieldsSection agentId={agentId} />
-      <FieldsPanel agentId={agentId} />
     </div>
   );
 }
@@ -235,6 +231,11 @@ function ParametersSection({ agentId }: { agentId: ID }) {
 
 function FieldsSection({ agentId }: { agentId: ID }) {
   const { allFields } = useAgentFields(agentId);
+  const {
+    conversationMemory,
+    previewConversationId,
+    updateConversationMemoryField,
+  } = useBuilder();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<FieldDef | null>(null);
   const [wiringField, setWiringField] = useState<FieldDef | null>(null);
@@ -242,6 +243,25 @@ function FieldsSection({ agentId }: { agentId: ID }) {
   const openAdd = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (f: FieldDef) => { setEditing(f); setModalOpen(true); };
   const openWire = (f: FieldDef) => setWiringField(f);
+
+  // Live value lookup — only meaningful when a preview conversation
+  // exists. The same brain section logic FieldsPanel uses: search
+  // every domain bucket for a non-null/undefined entry under the name.
+  const liveValueByField = useMemo(() => {
+    const map: Record<string, unknown> = {};
+    if (previewConversationId === null) return map;
+    for (const bucket of Object.values(conversationMemory.memory)) {
+      if (!bucket) continue;
+      for (const [name, v] of Object.entries(bucket)) {
+        if (v !== null && v !== undefined && !(name in map)) map[name] = v;
+      }
+    }
+    return map;
+  }, [conversationMemory, previewConversationId]);
+
+  const onClearLive = async (name: string) => {
+    await updateConversationMemoryField({ field: name, clear: true });
+  };
 
   // Group by domain for at-a-glance scanning. Undeclared / domain-less
   // fields land in an "ungrouped" bucket at the bottom.
@@ -294,6 +314,9 @@ function FieldsSection({ agentId }: { agentId: ID }) {
               onPick={openEdit}
               onWire={openWire}
               extractorCountFor={extractorCountFor}
+              liveValueByField={liveValueByField}
+              canClearLive={previewConversationId !== null}
+              onClearLive={onClearLive}
             />
           ))}
           {grouped.orphan.length > 0 && (
@@ -303,6 +326,9 @@ function FieldsSection({ agentId }: { agentId: ID }) {
               onPick={openEdit}
               onWire={openWire}
               extractorCountFor={extractorCountFor}
+              liveValueByField={liveValueByField}
+              canClearLive={previewConversationId !== null}
+              onClearLive={onClearLive}
             />
           )}
         </div>
@@ -324,14 +350,23 @@ function FieldsSection({ agentId }: { agentId: ID }) {
   );
 }
 
+function formatLiveValue(v: unknown): string {
+  if (typeof v === 'string') return v;
+  return JSON.stringify(v);
+}
+
 function FieldsGroup({
   label, fields, onPick, onWire, extractorCountFor,
+  liveValueByField, canClearLive, onClearLive,
 }: {
   label: string;
   fields: FieldDef[];
   onPick: (f: FieldDef) => void;
   onWire: (f: FieldDef) => void;
   extractorCountFor: (id: ID) => number;
+  liveValueByField: Record<string, unknown>;
+  canClearLive: boolean;
+  onClearLive: (name: string) => Promise<void> | void;
 }) {
   return (
     <div>
@@ -339,6 +374,8 @@ function FieldsGroup({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {fields.map(f => {
           const n = extractorCountFor(f.id);
+          const live = liveValueByField[f.name];
+          const hasValue = live !== undefined;
           return (
             <div
               key={f.id}
@@ -363,6 +400,21 @@ function FieldsGroup({
                   {f.name}
                 </button>
                 <span className={styles.paramSigil}>· {f.type}</span>
+                {hasValue && (
+                  <span className={styles.liveChip} title="Current value in this preview conversation">
+                    = {formatLiveValue(live)}
+                  </span>
+                )}
+                {hasValue && canClearLive && (
+                  <button
+                    type="button"
+                    onClick={() => onClearLive(f.name)}
+                    className={styles.clearBtn}
+                    title="Clear this field's current value"
+                  >
+                    ✕
+                  </button>
+                )}
                 <span className={styles.spacerInline} />
                 {n === 0 ? (
                   <span

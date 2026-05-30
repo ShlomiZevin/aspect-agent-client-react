@@ -42,6 +42,11 @@ interface ExtractorRow {
   crewName: string;
   instanceId: ID;
   pluginId: string;
+  /** Plugin display name (e.g. "Field Extractor" / "Vibe Extractor")
+   *  shown as a tiny subtitle so the user can tell the flavour apart
+   *  when a crew has more than one kind. */
+  pluginLabel: string;
+  /** The instance's user-set name or auto-numbered fallback. */
   label: string;
   icon: string;
   currentlyExtracts: boolean;
@@ -80,6 +85,7 @@ export function WireFieldModal({ open, onClose, agentId, field }: Props) {
           crewName: crew.name,
           instanceId: a.instanceId,
           pluginId:   a.pluginId,
+          pluginLabel: plugin.name || a.pluginId,
           label:      defaultLabelFor(a, idx),
           icon:       plugin.icon || '🛠',
           currentlyExtracts: list.includes(field.id),
@@ -215,14 +221,16 @@ export function WireFieldModal({ open, onClose, agentId, field }: Props) {
                     <button
                       key={r.instanceId}
                       type="button"
-                      className={styles.chip}
+                      className={`${styles.extractorCard} ${active ? styles.extractorCardActive : styles.extractorCardInactive}`}
                       onClick={() => toggleExtractor(r.instanceId)}
-                      style={active ? undefined : { opacity: 0.5 }}
                       title={active ? 'Will extract this field' : 'Not extracting this field'}
                     >
-                      <span aria-hidden>{r.icon}</span>
-                      {r.label}
-                      <span className={styles.chipCount}>
+                      <span className={styles.extractorIcon} aria-hidden>{r.icon}</span>
+                      <span className={styles.extractorText}>
+                        <span className={styles.extractorLabel}>{r.label}</span>
+                        <span className={styles.extractorPluginLabel}>{r.pluginLabel}</span>
+                      </span>
+                      <span className={styles.extractorState}>
                         {active ? '✓' : '○'}
                       </span>
                     </button>
