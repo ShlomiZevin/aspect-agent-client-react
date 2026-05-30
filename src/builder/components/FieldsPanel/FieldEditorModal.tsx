@@ -1,14 +1,19 @@
 /**
  * FieldEditorModal — edit a single field.
  *
- * Lets the user change name, type, source, scope, domain (autocomplete
- * + create), enum values, and the set of Field Extractors that
- * extract this field (multi-select across every crew of the agent).
+ * Lets the user change name, type, source, domain (autocomplete +
+ * create), enum values, and the set of Field Extractors that extract
+ * this field (multi-select across every crew of the agent).
  *
- * Scope change is a *move*: the FieldDef shifts between
- * `agent.fields` and `crew.fields`. The "Extracted by" set is just
- * a toggle into each extractor's `extractsFields[]` — same field id
- * can be ticked in multiple extractors at once.
+ * Scope is intentionally NOT editable here: the "declare at agent
+ * level + wire to crews" model made crew-scoped fields equivalent
+ * to "declared once, wired only to one crew", so the choice became
+ * redundant. Legacy crew-scoped fields keep working and stay where
+ * they live; the editor just stops offering the move.
+ *
+ * The "Extracted by" set is a toggle into each extractor's
+ * `extractsFields[]` — same field id can be ticked in multiple
+ * extractors at once.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -18,7 +23,7 @@ import { useBuilder } from '../../state/BuilderContext';
 import { useConfirm } from '../Confirm/Confirm';
 import { DomainInput } from './DomainInput';
 import type { CrewField } from '../../state/useCrewFields';
-import type { FieldScope, FieldSource, FieldType, ID } from '../../types';
+import type { FieldSource, FieldType, ID } from '../../types';
 import styles from './AddFieldModal.module.css';
 
 function findLiveValue(
@@ -44,9 +49,9 @@ interface Props {
   crewField: CrewField | null;
   onClose: () => void;
   agentId: ID;
-  /** Crew the panel is mounted in (used as the destination crew
-   *  if the user changes scope from 'agent' to 'crew'). Empty when
-   *  the editor is opened from the AgentView panel. */
+  /** Crew the panel is mounted in. Passed to `useCrewFields` so the
+   *  extractor multi-select sees the right pool of available extractors.
+   *  Empty when the editor is opened from a non-crew context. */
   crewId: ID;
 }
 
@@ -71,7 +76,6 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
   const [name, setName] = useState('');
   const [type, setType] = useState<FieldType>('string');
   const [source, setSource] = useState<FieldSource>('explicit');
-  const [scope, setScope] = useState<FieldScope>('agent');
   const [howToExtract, setHowToExtract] = useState('');
   const [enumValues, setEnumValues] = useState('');
   const [domain, setDomain] = useState('');
@@ -85,7 +89,6 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
     setName(f.name);
     setType(f.type);
     setSource(f.source);
-    setScope(crewField.scope);
     setHowToExtract(f.howToExtract);
     setEnumValues((f.enumValues ?? []).join(', '));
     setDomain(f.domain ?? '');
@@ -148,7 +151,10 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
   };
 
   const save = () => {
-    // 1. Patch + (optionally) move the FieldDef.
+    // 1. Patch the FieldDef in place. Scope moves are no longer
+    //    user-controllable from this modal — the "declare at agent
+    //    level + wire to crews" model removed the choice. Legacy
+    //    crew-scoped fields stay where they are.
     updateField(
       crewField.scope,
       crewField.ownerCrewId,
@@ -164,7 +170,6 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
             ? enumValues.split(',').map(v => v.trim()).filter(Boolean)
             : undefined,
       },
-      scope !== crewField.scope ? scope : undefined,
     );
     // 2. Sync the "extracted by" set.
     setFieldExtractors(original.id, Array.from(selectedExtractors));
@@ -286,19 +291,6 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
             </select>
           </label>
 
-          <label className={styles.field}>
-            <span className={styles.label}>Scope</span>
-            <select
-              className={styles.input}
-              value={scope}
-              onChange={e => setScope(e.target.value as FieldScope)}
-              title="Where this field lives in JSON"
-              disabled={scope === 'crew' && !crewId}
-            >
-              <option value="agent">Agent — visible everywhere</option>
-              <option value="crew">Crew — only in this crew</option>
-            </select>
-          </label>
         </div>
 
         <label className={styles.field}>
