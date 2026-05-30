@@ -24,7 +24,7 @@ import { useAgentVersion } from '../../state/useEntityVersion';
 import { TitleBar } from '../TitleBar/TitleBar';
 import { VersionPill } from '../VersionMenu/VersionPill';
 import { VersionMenu } from '../VersionMenu/VersionMenu';
-import { FieldsPanel } from '../FieldsPanel/FieldsPanel';
+import { SchemaPanel } from '../SchemaPanel/SchemaPanel';
 import { BodyJsonModal } from '../BodyJsonModal/BodyJsonModal';
 import { ValidateAndLogModal } from '../ValidateAndLogModal/ValidateAndLogModal';
 import { HistoryModal } from '../HistoryModal/HistoryModal';
@@ -230,7 +230,7 @@ export function AgentView({ agent }: Props) {
         </div>
 
         <aside className={styles.crewSide}>
-          <FieldsPanel agentId={agent.id} />
+          <SchemaPanel agentId={agent.id} />
         </aside>
       </div>
     </>

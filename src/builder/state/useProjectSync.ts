@@ -40,6 +40,8 @@ function bodyOfAgent(agent: AgentDoc): AgentBody {
     persona: agent.persona,
     defaultCrewId: agent.defaultCrewId,
     fields: agent.fields,
+    domains: agent.domains ?? [],
+    parameters: agent.parameters ?? [],
   };
 }
 

@@ -128,6 +128,8 @@ function bodyOfAgent(agent: AgentDoc): AgentBody {
     persona: agent.persona,
     defaultCrewId: agent.defaultCrewId,
     fields: agent.fields,
+    domains: agent.domains ?? [],
+    parameters: agent.parameters ?? [],
   };
 }
 
@@ -144,6 +146,8 @@ function emptyAgent(slug: string): AgentDoc {
     persona: '',
     defaultCrewId: crew.id,
     fields: [],
+    domains: [],
+    parameters: [],
   };
   const versionId = uid('ver');
   const v1: AgentVersion = {
@@ -263,8 +267,15 @@ interface BuilderState {
   // Agent-level
   updateAgent: (
     agentId: ID,
-    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'defaultCrewId'>>,
+    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters'>>,
   ) => void;
+  /**
+   * Rename a declared domain. Cascades through `agent.domains`,
+   * `agent.fields[].domain`, and every crew's `fields[].domain`. Single
+   * atomic state update so the cascade doesn't tear across React renders
+   * or trip the project-sync queue mid-update.
+   */
+  renameAgentDomain: (agentId: ID, oldName: string, newName: string) => void;
 
   // Crew CRUD + edit
   addCrew: (agentId: ID) => CrewDoc;
@@ -601,10 +612,41 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
 
   // ── Agent ──
   const updateAgent = useCallback(
-    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'defaultCrewId'>>) => {
+    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters'>>) => {
       setDoc(d => ({
         ...d,
         agents: d.agents.map(a => (a.id === agentId ? { ...a, ...patch } : a)),
+      }));
+    },
+    [],
+  );
+
+  const renameAgentDomain = useCallback(
+    (agentId: ID, oldName: string, newName: string) => {
+      if (oldName === newName) return;
+      setDoc(d => ({
+        ...d,
+        agents: d.agents.map(a => {
+          if (a.id !== agentId) return a;
+          // Re-declare the domain under its new name (dedup-preserving order).
+          const declared = a.domains ?? [];
+          const renamedDeclared = declared
+            .map(x => (x === oldName ? newName : x))
+            .filter((x, i, arr) => arr.indexOf(x) === i);
+          return {
+            ...a,
+            domains: renamedDeclared,
+            fields: a.fields.map(f =>
+              f.domain === oldName ? { ...f, domain: newName } : f,
+            ),
+            crews: a.crews.map(c => ({
+              ...c,
+              fields: c.fields.map(f =>
+                f.domain === oldName ? { ...f, domain: newName } : f,
+              ),
+            })),
+          };
+        }),
       }));
     },
     [],
@@ -1355,6 +1397,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       setSelection,
       updateProject,
       updateAgent,
+      renameAgentDomain,
       addCrew,
       removeCrew,
       updateCrew,
@@ -1395,6 +1438,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       selection,
       updateProject,
       updateAgent,
+      renameAgentDomain,
       addCrew,
       removeCrew,
       updateCrew,

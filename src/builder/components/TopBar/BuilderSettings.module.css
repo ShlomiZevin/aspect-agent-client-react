@@ -1,0 +1,83 @@
+/* Mirrors ChatSettings.module.css — same popover shell so both
+ * settings surfaces feel identical. Anchored to its trigger via the
+ * .settingsWrap relative-positioned container in TopBar.module.css. */
+
+.popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  width: 260px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  z-index: 20;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 6px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.row:hover { background: var(--bg-input, #f3f4f6); }
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.hint {
+  font-size: 10px;
+  color: var(--text-tertiary, #9ca3af);
+  line-height: 1.35;
+}
+
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 16px;
+  background: var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  flex: 0 0 auto;
+  transition: background 120ms;
+}
+
+.toggleOn { background: var(--primary-color, #6366f1); }
+
+.toggleInput {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.toggleKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  transition: transform 120ms;
+}
+.toggleOn .toggleKnob { transform: translateX(14px); }

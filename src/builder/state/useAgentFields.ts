@@ -109,10 +109,14 @@ export function useAgentFields(agentId: ID) {
     return out;
   }, [allFields]);
 
-  const domainNames = useMemo<string[]>(
-    () => domains.filter(d => d.name !== null).map(d => d.name as string),
-    [domains],
-  );
+  // Union of in-use domains + declared-but-empty ones on the agent
+  // (parallel to useCrewFields).
+  const domainNames = useMemo<string[]>(() => {
+    const inUse = domains.filter(d => d.name !== null).map(d => d.name as string);
+    const declared = agent?.domains ?? [];
+    const set = new Set<string>([...inUse, ...declared]);
+    return Array.from(set).sort();
+  }, [domains, agent?.domains]);
 
   return {
     agentExtractors,

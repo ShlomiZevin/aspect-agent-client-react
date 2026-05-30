@@ -18,6 +18,7 @@ import { Sidebar } from './components/Sidebar/Sidebar';
 import { Canvas } from './components/Canvas/Canvas';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
 import { ConfirmProvider } from './components/Confirm/Confirm';
+import { useAutoSave } from './hooks/useAutoSave';
 import { loadModelsFromServer } from './registry/providerModels';
 import { bootstrapProject, fetchProject } from './state/builderApi';
 import gateStyles from './BuilderApp.module.css';
@@ -101,6 +102,8 @@ export function BuilderApp({ agentSlug }: Props) {
           persona:       agent.persona,
           defaultCrewId: agent.defaultCrewId,
           fields:        agent.fields,
+          domains:       agent.domains ?? [],
+          parameters:    agent.parameters ?? [],
         },
         crewId:        crew.id,
         crewVersionId: crew.versions[0].id,
@@ -160,14 +163,26 @@ export function BuilderApp({ agentSlug }: Props) {
   return (
     <BuilderProvider agentSlug={agentSlug} ownerUserId={ownerUserId}>
       <ConfirmProvider>
-        <BuilderLayout
-          topBar={<TopBar />}
-          sidebar={<Sidebar />}
-          center={<Canvas />}
-          chat={<ChatPanel />}
-        />
+        <BuilderShell />
       </ConfirmProvider>
     </BuilderProvider>
+  );
+}
+
+/**
+ * Inner shell — exists so hooks that depend on BuilderContext (and
+ * ConfirmProvider) can mount alongside the layout. Auto-save lives
+ * here because it reads dirty state from the builder doc.
+ */
+function BuilderShell() {
+  useAutoSave();
+  return (
+    <BuilderLayout
+      topBar={<TopBar />}
+      sidebar={<Sidebar />}
+      center={<Canvas />}
+      chat={<ChatPanel />}
+    />
   );
 }
 

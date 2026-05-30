@@ -61,3 +61,45 @@
   padding: 4px 10px;
   border-radius: 999px;
 }
+
+/* Save-status chip — quiet "Saved · HH:MM" / "Saving…" feedback shown
+ * while auto-save is on. Sits just before the gear so the user can read
+ * the auto-save state at a glance without opening the popover. */
+.saveStatus {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary, #9ca3af);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: transparent;
+  white-space: nowrap;
+}
+.saveStatusActive { color: var(--text-secondary, #6b7280); }
+
+/* Settings ⚙ trigger — anchored container so the popover can
+ * absolute-position relative to it. */
+.settingsWrap {
+  position: relative;
+  display: inline-flex;
+}
+.settingsBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary, #4b5563);
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.settingsBtn:hover {
+  background: var(--bg-input, #f3f4f6);
+}
+.settingsBtnActive {
+  border-color: var(--border-color, #e5e7eb);
+  background: var(--bg-input, #f3f4f6);
+}
