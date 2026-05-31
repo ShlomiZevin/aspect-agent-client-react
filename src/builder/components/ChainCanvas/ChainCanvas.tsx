@@ -110,7 +110,7 @@ export function ChainCanvas({ agent, crew }: Props) {
       enabled: true,
       // Deep clone so later edits don't mutate the library entry.
       config: JSON.parse(JSON.stringify(entry.config)),
-      context: entryPlugin ? defaultContextFor(entryPlugin) : { history: { mode: 'last_n', n: 5 }, persona: false, memoryReads: [] },
+      context: entryPlugin ? defaultContextFor(entryPlugin) : { history: { mode: 'last_n', n: 5 } },
       outputType: entryPlugin ? defaultOutputTypeFor(entryPlugin) : 'json-to-memory',
       promptTemplate: entryPlugin?.defaultPromptTemplate ?? '',
     };

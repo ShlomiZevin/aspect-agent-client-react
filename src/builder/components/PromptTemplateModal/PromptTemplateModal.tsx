@@ -72,6 +72,7 @@ export function PromptTemplateModal({ open, onClose, agentId, instance }: Props)
       instance,
       agentPersona: agent?.persona ?? '',
       extractorFields,
+      parameters: agent?.parameters ?? [],
     });
   }, [instance, agent, extractorFields]);
 
@@ -95,8 +96,6 @@ export function PromptTemplateModal({ open, onClose, agentId, instance }: Props)
   if (!instance) return null;
   const plugin = getPlugin(instance.pluginId);
   const historyLabel = describeHistory(instance);
-  const personaOn = instance.context.persona;
-  const personaText = agent?.persona?.trim() ?? '';
 
   const sliced = sliceForHistory(allMessages, instance.context.history);
   const noConversation = previewConversationId === null;
@@ -116,11 +115,6 @@ export function PromptTemplateModal({ open, onClose, agentId, instance }: Props)
             <span className={styles.colTitle}>Prompt</span>
           </div>
           <pre className={styles.pre}>{preview || '(template is empty)'}</pre>
-          {!personaOn && personaText && (
-            <p className={styles.note}>
-              ⓘ Persona is OFF in Context — not injected.
-            </p>
-          )}
         </div>
 
         <aside className={styles.historyCol}>

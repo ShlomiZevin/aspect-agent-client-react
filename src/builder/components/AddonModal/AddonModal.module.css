@@ -42,6 +42,23 @@
   color: var(--primary-color, #6366f1);
 }
 
+/* Primary "Done" — solid fill, anchors the commit action visually so
+ * it doesn't blur into the row of ghost-style secondary buttons. */
+.primaryBtn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--primary-color, #6366f1);
+  color: #fff;
+  border: 1px solid var(--primary-color, #6366f1);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.primaryBtn:hover {
+  filter: brightness(0.95);
+}
+
 .spacer {
   flex: 1;
 }

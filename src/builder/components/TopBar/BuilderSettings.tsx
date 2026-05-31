@@ -14,7 +14,7 @@
  * Persisted in localStorage so the choice survives reloads.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import styles from './BuilderSettings.module.css';
 
 export interface BuilderSettingsState {
@@ -39,21 +39,39 @@ function saveSettings(s: BuilderSettingsState) {
 }
 
 /**
- * Hook over the persisted state. Multiple call sites share a snapshot
- * via the localStorage round-trip — fine for now; a context can be
- * added if more components start consuming it.
+ * Module-scoped current value + listener set so every `useBuilderSettings`
+ * caller sees the same state. Without this, each call had its own local
+ * React state and toggling in one component (e.g. the TopBar popover) was
+ * invisible to other consumers (e.g. AddonModal) — the cached initial
+ * snapshot stayed put.
+ */
+let currentSettings: BuilderSettingsState = loadSettings();
+const listeners = new Set<() => void>();
+function subscribe(fn: () => void) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+function snapshot(): BuilderSettingsState {
+  return currentSettings;
+}
+function publish(next: BuilderSettingsState) {
+  currentSettings = next;
+  saveSettings(next);
+  for (const fn of listeners) fn();
+}
+
+/**
+ * Hook over the persisted state. Backed by a tiny pub/sub so every
+ * caller stays in sync — toggling in one component instantly updates
+ * every other consumer.
  */
 export function useBuilderSettings(): [
   BuilderSettingsState,
   <K extends keyof BuilderSettingsState>(k: K, v: BuilderSettingsState[K]) => void,
 ] {
-  const [state, setState] = useState<BuilderSettingsState>(() => loadSettings());
+  const state = useSyncExternalStore(subscribe, snapshot, snapshot);
   const set = <K extends keyof BuilderSettingsState>(k: K, v: BuilderSettingsState[K]) => {
-    setState(prev => {
-      const next = { ...prev, [k]: v };
-      saveSettings(next);
-      return next;
-    });
+    publish({ ...currentSettings, [k]: v });
   };
   return [state, set];
 }
@@ -95,7 +113,7 @@ export function BuilderSettingsPopover({
     <div className={styles.popover} ref={ref}>
       <ToggleRow
         label="Auto-save"
-        hint="Save dirty changes silently after a short pause. Pauses while an Alfred apply is pending."
+        hint="Saves on commit signals only — Done buttons, switching crew/agent, leaving the tab. No keystroke saves. Paused while an Alfred apply is pending."
         value={settings.autoSave}
         onChange={v => onChange('autoSave', v)}
       />

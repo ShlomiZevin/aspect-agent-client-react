@@ -119,12 +119,10 @@ export interface PluginDescriptor<TConfig = unknown> {
   };
 }
 
-/** Sensible defaults for any new addon instance. */
+/** Sensible defaults for any new addon instance. Phase B: only the
+ *  knobs that don't fold into the promptTemplate live here. */
 export const DEFAULT_ADDON_CONTEXT: AddonContext = {
   history: { mode: 'last_n', n: 5 },
-  persona: false,
-  memoryReads: [],
-  thinkingReads: [],
   triggeredReads: [],
 };
 
@@ -141,8 +139,6 @@ export function defaultContextFor<TConfig>(plugin: PluginDescriptor<TConfig>): A
     ...DEFAULT_ADDON_CONTEXT,
     ...(plugin.defaultContext ?? {}),
     history: plugin.defaultContext?.history ?? DEFAULT_ADDON_CONTEXT.history,
-    memoryReads: plugin.defaultContext?.memoryReads ?? DEFAULT_ADDON_CONTEXT.memoryReads,
-    thinkingReads: plugin.defaultContext?.thinkingReads ?? DEFAULT_ADDON_CONTEXT.thinkingReads,
     triggeredReads: plugin.defaultContext?.triggeredReads ?? DEFAULT_ADDON_CONTEXT.triggeredReads,
   };
 }

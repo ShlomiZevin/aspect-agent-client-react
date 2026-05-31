@@ -13,6 +13,8 @@
  */
 
 import { ModelPicker } from '../../components/ModelPicker/ModelPicker';
+import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
+import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { ThinkerConfig } from '../../types';
 import styles from './ThinkerConfig.module.css';
@@ -20,8 +22,10 @@ import styles from './ThinkerConfig.module.css';
 export function ThinkerConfigComponent({
   config,
   onChange,
+  agentId,
 }: PluginConfigProps<ThinkerConfig>) {
   const patch = (next: Partial<ThinkerConfig>) => onChange({ ...config, ...next });
+  const mentionOptions = useMentionOptions(agentId);
 
   return (
     <div className={styles.wrap}>
@@ -49,9 +53,9 @@ export function ThinkerConfigComponent({
           placeholder="strategy"
         />
         <span className={styles.hint}>
-          The brain section this Thinker writes into. The Talker reads
-          via <code>thinkingReads</code> — tick this same domain on
-          the Talker so its prompt sees the guidance.
+          The brain section this Thinker writes into. Read its output
+          downstream with <code>{`{{thinking:${config.domain || 'strategy'}}}`}</code>
+          (or <code>{'{{thinking}}'}</code> for every domain at once).
         </span>
       </label>
 
@@ -63,21 +67,22 @@ export function ThinkerConfigComponent({
         />
       </div>
 
-      <label className={styles.field}>
+      <div className={styles.field}>
         <span className={styles.label}>Strategic prompt</span>
-        <textarea
-          className={styles.textarea}
+        <MentionTextarea
           value={config.prompt}
-          onChange={e => patch({ prompt: e.target.value })}
+          onChange={prompt => patch({ prompt })}
+          options={mentionOptions}
           rows={14}
-          placeholder="Tell the LLM what strategy to produce and which JSON keys to emit."
+          placeholder="Tell the LLM what strategy to produce and which JSON keys to emit. Type @ memory · # parameters · ^ persona · {{ for all."
         />
         <span className={styles.hint}>
-          The prompt is the schema. Whatever keys you ask the LLM to
-          emit get written to the configured thinking domain, where
-          the Talker reads them.
+          The prompt is the schema. Whatever keys the LLM emits land
+          under the configured thinking domain; downstream addons read
+          them via <code>{'{{thinking}}'}</code> or
+          <code>{`{{thinking:${config.domain || 'strategy'}}}`}</code>.
         </span>
-      </label>
+      </div>
     </div>
   );
 }

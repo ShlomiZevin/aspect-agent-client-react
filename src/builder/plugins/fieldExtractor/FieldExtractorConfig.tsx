@@ -14,6 +14,8 @@ import { useMemo, useState } from 'react';
 import { ModelPicker } from '../../components/ModelPicker/ModelPicker';
 import { AddFieldModal } from '../../components/FieldsPanel/AddFieldModal';
 import { FieldEditorModal } from '../../components/FieldsPanel/FieldEditorModal';
+import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
+import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
 import { useCrewFields } from '../../state/useCrewFields';
 import type { CrewField } from '../../state/useCrewFields';
 import type { PluginConfigProps } from '../../registry/plugins';
@@ -64,6 +66,7 @@ export function FieldExtractorConfigComponent({
 }: PluginConfigProps<FieldExtractorConfig>) {
   const patch = (next: Partial<FieldExtractorConfig>) => onChange({ ...config, ...next });
   const { allFields, setFieldExtractors } = useCrewFields(agentId, crewId);
+  const mentionOptions = useMentionOptions(agentId);
   const [addOpen, setAddOpen] = useState(false);
   const [editingField, setEditingField] = useState<CrewField | null>(null);
   const [fieldsOpen, setFieldsOpen] = useState(true);
@@ -130,12 +133,12 @@ export function FieldExtractorConfigComponent({
           How the model should extract fields — rules like "stay literal", "don't
           guess", "only the latest message".
         </p>
-        <textarea
-          id="fe-prompt"
-          className={styles.textarea}
+        <MentionTextarea
           value={config.prompt}
-          onChange={e => patch({ prompt: e.target.value })}
-          placeholder="Extract only what the user explicitly said. Don't guess."
+          onChange={prompt => patch({ prompt })}
+          options={mentionOptions}
+          placeholder="Extract only what the user explicitly said. Don't guess. Type @ memory · # parameters · ^ persona · {{ for all."
+          rows={10}
         />
       </section>
 

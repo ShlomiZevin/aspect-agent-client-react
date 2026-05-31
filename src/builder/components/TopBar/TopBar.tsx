@@ -66,8 +66,9 @@ export function TopBar() {
 
 /**
  * Save-status chip — quietly reports auto-save state without
- * stealing focus. Reads dirty state via the shared hook so it stays
- * in sync with the actual debounced save loop.
+ * stealing focus. Phase B v3: auto-save only fires on commit signals
+ * (Done buttons, selection change, window blur), so a dirty doc just
+ * means "edits are pending a commit" — not "save will fire any second".
  */
 function SaveStatusChip({ autoSaveBlocked }: { autoSaveBlocked: boolean }) {
   const { dirty } = useAnyDirty();
@@ -81,7 +82,7 @@ function SaveStatusChip({ autoSaveBlocked }: { autoSaveBlocked: boolean }) {
   if (dirty) {
     return (
       <span className={`${styles.saveStatus} ${styles.saveStatusActive}`}>
-        Saving…
+        Unsaved
       </span>
     );
   }

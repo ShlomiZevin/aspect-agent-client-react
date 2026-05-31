@@ -15,6 +15,7 @@
 import type {
   AddonInstance,
   FieldDef,
+  ParameterDef,
 } from '../../types';
 import { getPlugin } from '../../registry/plugins';
 
@@ -29,12 +30,19 @@ interface BuildArgs {
    * just renders the schema/current blocks.
    */
   extractorFields?: FieldDef[];
+  /**
+   * Agent.parameters — used to resolve `{{param:NAME}}` tokens at
+   * preview time. Parameters are static so the preview can reproduce
+   * the server's substitution byte-for-byte. Defaults to empty.
+   */
+  parameters?: ParameterDef[];
 }
 
 /**
- * Substitute placeholders. Empty values collapse the placeholder AND
- * any blank lines it was wrapped in so the prompt doesn't end up
- * with awkward gaps.
+ * Substitute flat `{{name}}` placeholders. Empty values collapse the
+ * placeholder AND surrounding blank lines so the prompt doesn't end up
+ * with awkward gaps. Parameterised tokens like `{{memory:domain}}` are
+ * handled separately by `substituteParameterised`.
  */
 function substitute(template: string, values: Record<string, string>): string {
   let result = template;
@@ -42,48 +50,56 @@ function substitute(template: string, values: Record<string, string>): string {
     const placeholder = `{{${key}}}`;
     if (!result.includes(placeholder)) continue;
     if (value === '') {
-      // Eat blank lines around the placeholder so empty sections vanish cleanly.
       const re = new RegExp(`\\n*${placeholder.replace(/[{}]/g, '\\$&')}\\n*`, 'g');
       result = result.replace(re, '\n\n');
     } else {
       result = result.split(placeholder).join(value);
     }
   }
-  // Collapse 3+ newlines into 2.
-  return result.replace(/\n{3,}/g, '\n\n').trim();
+  return result;
 }
 
-function buildPersonaBlock(persona: string, enabled: boolean): string {
-  if (!enabled) return '';
+/**
+ * Substitute parameterised tokens of the form `{{prefix:NAME}}`. The
+ * `resolve(name)` callback returns the substitution string (empty
+ * string for "value exists but is blank") or null/undefined to leave
+ * the token in place.
+ *
+ * Mirrors the server's substituteParameterised in promptAssembler.js.
+ */
+function substituteParameterised(
+  template: string,
+  prefix: string,
+  resolve: (name: string) => string | null | undefined,
+  inline: boolean,
+): string {
+  const re = new RegExp(`\\{\\{${prefix}:([^}\\s]+)\\}\\}`, 'g');
+  return template.replace(re, (match, name: string) => {
+    const v = resolve(name);
+    if (v === null || v === undefined) return match;
+    if (v === '' && !inline) return '\n\n';
+    return v;
+  });
+}
+
+function buildPersonaBlock(persona: string): string {
   const text = persona.trim();
   if (!text) return '';
   return `## Persona\n${text}`;
 }
 
-function buildMemoryBlock(selectedDomains: Array<string | null>): string {
-  if (selectedDomains.length === 0) return '';
-  // Runtime contract: each `### <domain>` block holds only the
-  // fields that have values. Preview = empty `{}` per domain.
-  // The no-domain bucket renders as `### general` to match the
-  // server storage key (`_general`) and the server prompt assembler.
-  const sections: string[] = selectedDomains.map(d => {
-    const label = d ?? 'general';
-    return `### ${label}\n{}`;
-  });
-  return `## Memory\n${sections.join('\n\n')}`;
+/**
+ * Phase B: `{{memory}}` enumerates all populated domains at runtime.
+ * Preview has no live values, so the section renders as empty `## Memory`
+ * — same as server when no memory has been written. Matches server's
+ * buildMemoryBlock when domainList returns [].
+ */
+function buildMemoryBlock(): string {
+  return '';
 }
 
-/**
- * `## Thinking` block — Thinker writes go here, structurally identical
- * to the Memory block. Byte-equal to the server's buildThinkingBlock.
- */
-function buildThinkingBlock(selectedDomains: Array<string | null>): string {
-  if (selectedDomains.length === 0) return '';
-  const sections: string[] = selectedDomains.map(d => {
-    const label = d ?? 'general';
-    return `### ${label}\n{}`;
-  });
-  return `## Thinking\n${sections.join('\n\n')}`;
+function buildThinkingBlock(): string {
+  return '';
 }
 
 /**
@@ -127,9 +143,22 @@ function buildFieldsCurrentBlock(_fields: FieldDef[]): string {
   return '{}';
 }
 
-export function buildPromptPreview({ instance, agentPersona, extractorFields }: BuildArgs): string {
+/**
+ * Single-domain block for `{{memory:NAME}}` / `{{thinking:NAME}}`.
+ * Preview has no live values, so the block is `### NAME\n{}` — mirrors
+ * the empty-domain shape in the whole-section preview helpers above.
+ * Mirrors the server's buildSingleDomainBlock byte-for-byte for the
+ * empty case.
+ */
+function buildSingleDomainPreviewBlock(name: string): string {
+  return `### ${name}\n{}`;
+}
+
+export function buildPromptPreview({
+  instance, agentPersona, extractorFields, parameters,
+}: BuildArgs): string {
   const plugin = getPlugin(instance.pluginId);
-  const template = instance.promptTemplate ?? '';
+  let template = instance.promptTemplate ?? '';
   const cfg = instance.config as { prompt?: string } | undefined;
 
   const isExtractor = plugin?.fieldMode === 'extractor';
@@ -138,15 +167,31 @@ export function buildPromptPreview({ instance, agentPersona, extractorFields }: 
   // requires knowing the agent + crew so the modal does that lookup.
   const fields: FieldDef[] = isExtractor ? (extractorFields ?? []) : [];
 
-  return substitute(template, {
-    prompt: cfg?.prompt ?? '',
-    persona: buildPersonaBlock(agentPersona, instance.context.persona),
-    memory: buildMemoryBlock(instance.context.memoryReads),
-    thinking: buildThinkingBlock(instance.context.thinkingReads ?? []),
+  // {{prompt}} first — config.prompt may itself contain placeholders
+  // that the resolvers below need to see. Same order as server.
+  template = template.split('{{prompt}}').join(cfg?.prompt ?? '');
+
+  // Flat whole-section tokens.
+  template = substitute(template, {
+    persona: buildPersonaBlock(agentPersona),
+    memory: buildMemoryBlock(),
+    thinking: buildThinkingBlock(),
     triggered: buildTriggeredBlock(instance.context.triggeredReads ?? []),
     fields_schema: isExtractor ? buildFieldsSchemaBlock(fields) : '',
     fields_current: isExtractor ? buildFieldsCurrentBlock(fields) : '',
   });
+
+  // Parameterised tokens last.
+  template = substituteParameterised(template, 'memory',   name => buildSingleDomainPreviewBlock(name), false);
+  template = substituteParameterised(template, 'thinking', name => buildSingleDomainPreviewBlock(name), false);
+  template = substituteParameterised(template, 'field',    () => '', true);
+  template = substituteParameterised(template, 'param',    name => {
+    const found = (parameters ?? []).find(p => p.name === name);
+    if (!found) return '';
+    return typeof found.value === 'string' ? found.value : JSON.stringify(found.value);
+  }, true);
+
+  return template.replace(/\n{3,}/g, '\n\n').trim();
 }
 
 export function describeHistory(instance: AddonInstance): string {

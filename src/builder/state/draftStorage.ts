@@ -81,8 +81,6 @@ function migrateDraft(raw: unknown): ProjectDoc {
         if (!adAny.context || typeof adAny.context !== 'object') {
           adAny.context = {
             history: { mode: 'last_n', n: 5 },
-            persona: false,
-            memoryReads: [],
           };
         }
       }
@@ -130,8 +128,6 @@ function migrateDraft(raw: unknown): ProjectDoc {
             },
             context: {
               history: { mode: 'last_n', n: 5 },
-              persona: false,
-              memoryReads: [],
             },
             outputType: 'text-to-user',
             promptTemplate: CURRENT_TALKER_TEMPLATE,

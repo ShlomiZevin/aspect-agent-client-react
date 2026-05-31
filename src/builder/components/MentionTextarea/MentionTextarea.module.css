@@ -1,0 +1,130 @@
+.wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.textarea {
+  width: 100%;
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-primary, #111827);
+  background: var(--bg-input, #fafafa);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  padding: 10px 12px;
+  resize: vertical;
+  box-sizing: border-box;
+  min-height: 110px;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  background: #fff;
+}
+
+.textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Floating picker — absolutely positioned by JS so it tracks the
+ * caret. Soft elevation lifts it above the form. */
+.picker {
+  position: fixed;
+  z-index: 200;
+  min-width: 240px;
+  max-width: 320px;
+  max-height: 280px;
+  overflow: auto;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  padding: 4px;
+  font-family: inherit;
+}
+
+.pickerHint {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px 4px;
+  border-bottom: 1px solid var(--border-color, #f3f4f6);
+  margin-bottom: 4px;
+}
+
+.pickerHintLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  letter-spacing: 0;
+}
+
+.pickerHintTrigger {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 10px;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.pickerList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pickerGroup {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary, #4b5563);
+  padding: 6px 8px 2px;
+}
+
+.pickerItem {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-primary, #111827);
+  cursor: pointer;
+  text-align: left;
+}
+
+.pickerItem:hover {
+  background: var(--bg-input, #f3f4f6);
+}
+
+.pickerItemActive {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary-color, #6366f1);
+  font-weight: 600;
+}
+
+.pickerLabel {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pickerInsertion {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 10.5px;
+  color: var(--text-tertiary, #9ca3af);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 50%;
+}

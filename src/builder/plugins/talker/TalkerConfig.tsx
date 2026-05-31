@@ -5,12 +5,16 @@
  * prompt is the crew's voice — what the agent should say, how it
  * should say it, and any rules about phrasing.
  *
- * Two fields for now: model and prompt. Later we'll add things like
- * history-length, which context domains it reads, structured output,
- * etc.
+ * Phase B: the prompt is one mention-aware textarea. Type `@` to
+ * insert a memory field / domain / the whole memory section / the
+ * persona; `!` for thinking; `#` for parameters. The picker reads its
+ * vocabulary from the agent's actual schema so each agent's tokens
+ * reflect its declared fields and parameters.
  */
 
 import { ModelPicker } from '../../components/ModelPicker/ModelPicker';
+import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
+import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { TalkerConfig } from '../../types';
 import styles from './TalkerConfig.module.css';
@@ -18,8 +22,10 @@ import styles from './TalkerConfig.module.css';
 export function TalkerConfigComponent({
   config,
   onChange,
+  agentId,
 }: PluginConfigProps<TalkerConfig>) {
   const patch = (next: Partial<TalkerConfig>) => onChange({ ...config, ...next });
+  const mentionOptions = useMentionOptions(agentId);
 
   return (
     <div className={styles.wrap}>
@@ -36,15 +42,19 @@ export function TalkerConfigComponent({
           Voice prompt
         </label>
         <p className={styles.sectionHint}>
-          What this crew is supposed to say, in this phase, with this user.
-          Plain language. The agent persona is layered automatically.
+          What this crew is supposed to say. Type
+          {' '}<kbd>@</kbd> memory ·
+          {' '}<kbd>!</kbd> thinking ·
+          {' '}<kbd>#</kbd> parameters ·
+          {' '}<kbd>^</kbd> persona ·
+          {' '}<kbd>{'{{'}</kbd> all of the above.
         </p>
-        <textarea
-          id="talker-prompt"
-          className={styles.textarea}
+        <MentionTextarea
           value={config.prompt}
-          onChange={e => patch({ prompt: e.target.value })}
-          placeholder="In this phase you are…"
+          onChange={prompt => patch({ prompt })}
+          options={mentionOptions}
+          placeholder="You are… {{persona}}. Here is what you know: {{memory}}."
+          rows={10}
         />
       </section>
     </div>
