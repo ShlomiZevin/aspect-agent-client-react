@@ -58,13 +58,13 @@ export interface MentionOptions {
 }
 
 /**
- * Single-char triggers. The `{{` meta-trigger is detected separately
- * (see detectTrigger) and surfaces every option from every category in
- * one combined picker — useful when the user doesn't remember which
- * sigil opens what.
+ * Single-char triggers. `{{` and `/` are meta-triggers detected
+ * separately (see detectTrigger); both surface every option from every
+ * category in one combined picker — useful when the user doesn't
+ * remember which sigil opens what.
  */
 type SingleTrigger = '@' | '!' | '#' | '^';
-type Trigger = SingleTrigger | '{{';
+type Trigger = SingleTrigger | '{{' | '/';
 const SINGLE_TRIGGERS: SingleTrigger[] = ['@', '!', '#', '^'];
 
 /**
@@ -79,6 +79,7 @@ const TRIGGER_LABELS: Record<Trigger, string> = {
   '#': 'Parameters',
   '^': 'Persona',
   '{{': 'All placeholders',
+  '/':  'All placeholders',
 };
 
 interface PickerState {
@@ -138,11 +139,25 @@ function detectTrigger(value: string, caret: number): {
 
   // `{{` meta-trigger comes first so e.g. `{{` doesn't get misread as
   // a single `{` (which isn't a trigger anyway, but keeps the logic clean).
-  if (word.startsWith('{{')) {
+  if (word.startsWith('{{') || word.startsWith('/')) {
+    // Suppress the picker when the caret is sitting inside an
+    // already-completed `{{...}}` token. Two checks: a `}}` BEFORE
+    // the caret (within the word) means the token closed already; a
+    // `}}` AFTER the caret (before the next whitespace) means the
+    // closer is just ahead. Either way the user is editing a token
+    // that already shipped — they don't want a new one inserted.
+    if (word.startsWith('{{') && word.indexOf('}}', 2) !== -1) return null;
+    if (word.startsWith('{{')) {
+      let j = caret;
+      while (j < value.length && !/\s/.test(value[j])) {
+        if (value[j] === '}' && value[j + 1] === '}') return null;
+        j++;
+      }
+    }
     return {
-      trigger: '{{',
+      trigger: word[0] === '/' ? '/' : '{{',
       startIdx: wordStart,
-      filter: word.slice(2),
+      filter: word.startsWith('{{') ? word.slice(2) : word.slice(1),
     };
   }
   const first = word[0] as SingleTrigger;
@@ -223,10 +238,11 @@ export function MentionTextarea({
 
   const visibleOptions = useMemo<MentionOption[]>(() => {
     if (!picker) return [];
-    // `{{` shows the union of every category in a single picker so the
-    // user doesn't need to remember which sigil opens what. The
-    // single-char triggers stay scoped.
-    const pool = picker.trigger === '{{'
+    // `{{` and `/` both show the union of every category in a single
+    // picker — they're aliases for the "show me everything" flow.
+    // Single-char triggers stay scoped.
+    const isMeta = picker.trigger === '{{' || picker.trigger === '/';
+    const pool = isMeta
       ? SINGLE_TRIGGERS.flatMap(t => options[t] ?? [])
       : (options[picker.trigger as SingleTrigger] ?? []);
     const f = picker.filter.toLowerCase();

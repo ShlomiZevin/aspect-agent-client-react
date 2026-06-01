@@ -54,6 +54,11 @@ export interface SendArgs {
    *  dropdown). When set, the server routes this turn to that crew and
    *  persists it as the new conversation pointer. */
   overrideCrewId?: string | null;
+  /** Working-copy agent body. Sent so the runtime can execute against
+   *  unsaved edits — the in-builder chat reflects dirty state. */
+  overrideAgentBody?: unknown;
+  /** Working-copy crew body (matched with overrideAgentBody). */
+  overrideCrewBody?: unknown;
   onEvent: (event: RuntimeEvent) => void;
   signal?: AbortSignal;
 }

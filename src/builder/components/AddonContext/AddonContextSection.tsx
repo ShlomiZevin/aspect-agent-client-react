@@ -1,20 +1,21 @@
 /**
- * AddonContextSection — the universal "Context" block in every
- * addon's config modal.
+ * AddonContextSection — runtime conversation settings for the addon.
  *
- * Phase B: the persona / memory / thinking toggles are gone. Placement
- * of those blocks lives inside the addon's promptTemplate (via the
- * MentionTextarea), not as structured knobs. What remains here:
+ * Phase B / v3 layout: flat inline rows. The whole "collapsible Context
+ * box" wrapper is gone — when a section holds a single dropdown it
+ * doesn't deserve its own accordion. Today this surface carries:
  *
- *   1. History — none / last N / full. History is conversation data
- *      passed to the LLM as a separate parameter, not template text,
- *      so it can't be folded into the template.
- *   2. Triggered reads — only when at least one Triggered Context
- *      loader exists in this crew. Triggered context still uses the
- *      structured reads list until the Triggered Context redesign.
+ *   - History    — how much past conversation to send. Always shown.
+ *   - Triggered  — which triggered-context domains to inject. Only
+ *                  rendered when a Triggered Context loader exists in
+ *                  the crew (otherwise the row is noise).
+ *
+ * The component name still ends in `Context` because the data lives
+ * on `AddonInstance.context`; the user-facing labels are History +
+ * Triggered.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
 import { TRIGGERED_CONTEXT_PLUGIN_ID } from '../../plugins/triggeredContext/addon.triggeredContext';
 import type { AddonContext, AddonInstance, HistoryMode, ID, TriggeredContextConfig } from '../../types';
@@ -58,10 +59,9 @@ const HISTORY_OPTIONS: { value: HistoryChoice; label: string }[] = [
 
 export function AddonContextSection({ agentId, crewId, instance }: Props) {
   const { doc, updateAddonContext } = useBuilder();
-  const [open, setOpen] = useState(false);
 
-  // Triggered domains available in this crew — sourced from every
-  // Triggered Context loader's `config.domain`.
+  // Triggered domains exposed by Triggered Context loaders in this crew.
+  // No loaders → the Triggered row isn't shown at all (it'd be empty).
   const triggeredDomains = useMemo<string[]>(() => {
     const set = new Set<string>();
     const crew = doc.agents.find(a => a.id === agentId)?.crews.find(c => c.id === crewId);
@@ -96,61 +96,37 @@ export function AddonContextSection({ agentId, crewId, instance }: Props) {
   const historyChoice = choiceFromMode(ctx.history);
 
   return (
-    <section className={styles.section}>
-      <button
-        type="button"
-        className={styles.header}
-        onClick={() => setOpen(o => !o)}
-      >
-        <span className={styles.caret}>{open ? '▾' : '▸'}</span>
-        <span className={styles.title}>Context</span>
-        <span className={styles.summary}>{summarise(ctx)}</span>
-      </button>
+    <div className={styles.runtimeRows}>
+      <div className={styles.row}>
+        <span className={styles.label}>History</span>
+        <select
+          className={styles.select}
+          value={historyChoice}
+          onChange={e => patch({ history: modeFromChoice(e.target.value as HistoryChoice) })}
+        >
+          {HISTORY_OPTIONS.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
 
-      {open && (
-        <div className={styles.body}>
-          <div className={styles.row}>
-            <label className={styles.knobLabel}>History</label>
-            <select
-              className={styles.select}
-              value={historyChoice}
-              onChange={e => patch({ history: modeFromChoice(e.target.value as HistoryChoice) })}
-            >
-              {HISTORY_OPTIONS.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+      {triggeredDomainList.length > 0 && (
+        <div className={styles.row}>
+          <span className={styles.label}>Triggered</span>
+          <div className={styles.chips}>
+            {triggeredDomainList.map(d => (
+              <label key={d} className={styles.checkRow}>
+                <input
+                  type="checkbox"
+                  checked={triggeredSelected.has(d)}
+                  onChange={() => toggleTriggeredDomain(d)}
+                />
+                <span>🎯 {d}</span>
+              </label>
+            ))}
           </div>
-
-          {triggeredDomainList.length > 0 && (
-            <div className={styles.memoryBlock}>
-              <label className={styles.knobLabel}>Triggered</label>
-              <div className={styles.memoryList}>
-                {triggeredDomainList.map(d => (
-                  <label key={d} className={styles.checkRow}>
-                    <input
-                      type="checkbox"
-                      checked={triggeredSelected.has(d)}
-                      onChange={() => toggleTriggeredDomain(d)}
-                    />
-                    <span className={styles.domainName}>🎯 {d}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
-    </section>
+    </div>
   );
-}
-
-function summarise(ctx: AddonContext): string {
-  const parts: string[] = [];
-  if (ctx.history.mode === 'none') parts.push('no history');
-  else if (ctx.history.mode === 'full') parts.push('full history');
-  else parts.push(`last ${ctx.history.n ?? 5} msgs`);
-  const triggered = (ctx.triggeredReads ?? []).length;
-  if (triggered > 0) parts.push(`triggered: ${triggered}`);
-  return parts.join(' · ');
 }

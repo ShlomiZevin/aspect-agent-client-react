@@ -32,7 +32,14 @@ import type {
   ProjectDoc,
 } from '../types';
 
-function bodyOfAgent(agent: AgentDoc): AgentBody {
+/**
+ * Build the version-body slice of an AgentDoc. Exported so the
+ * runtime-preview path can ship the *working copy* of the body
+ * alongside a chat request — the server then runs the dirty version
+ * instead of the saved one. Kept in lockstep with the snapshot the
+ * save path produces (same shape, same field order).
+ */
+export function bodyOfAgent(agent: AgentDoc): AgentBody {
   return {
     name: agent.name,
     slug: agent.slug,
@@ -45,7 +52,8 @@ function bodyOfAgent(agent: AgentDoc): AgentBody {
   };
 }
 
-function bodyOfCrew(crew: CrewDoc): CrewBody {
+/** Mirror of `bodyOfAgent` for crews. Same exported-for-runtime-preview reason. */
+export function bodyOfCrew(crew: CrewDoc): CrewBody {
   return {
     name: crew.name,
     description: crew.description,

@@ -47,7 +47,7 @@ export function TalkerConfigComponent({
           {' '}<kbd>!</kbd> thinking ·
           {' '}<kbd>#</kbd> parameters ·
           {' '}<kbd>^</kbd> persona ·
-          {' '}<kbd>{'{{'}</kbd> all of the above.
+          {' '}<kbd>/</kbd> or <kbd>{'{{'}</kbd> for all.
         </p>
         <MentionTextarea
           value={config.prompt}

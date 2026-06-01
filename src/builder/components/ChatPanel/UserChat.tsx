@@ -26,6 +26,7 @@ import {
   type ConversationMessage,
   type PersistedAddonRun,
 } from '../../state/builderApi';
+import { bodyOfAgent, bodyOfCrew } from '../../state/useProjectSync';
 import { sendRuntimeMessage, type RuntimeEvent } from '../../state/runtimeStream';
 import { AddonRunTimeline } from '../AddonRun/AddonRunTimeline';
 import type { AddonRunSnapshot } from '../AddonRun/AddonRunCard';
@@ -406,6 +407,21 @@ export function UserChat() {
       };
       setTurns(prev => [...prev, turn]);
 
+      // Ship the working-copy bodies along with the request so the
+      // server runs the unsaved state. Resolve "which crew" the same
+      // way the server resolveRunnable would: explicit override → the
+      // agent's defaultCrewId → fall back to the first crew so the
+      // runtime always has something to run.
+      const liveAgent = doc.agents.find(a => a.slug === slug);
+      const targetCrewId =
+        currentCrewId
+        || liveAgent?.defaultCrewId
+        || liveAgent?.crews[0]?.id
+        || null;
+      const liveCrew = targetCrewId
+        ? liveAgent?.crews.find(c => c.id === targetCrewId) ?? null
+        : null;
+
       await sendRuntimeMessage({
         agentSlug:      slug,
         conversationId: convId,
@@ -413,6 +429,8 @@ export function UserChat() {
         userMessage:    text,
         version:        'viewing',
         overrideCrewId: currentCrewId,
+        ...(liveAgent ? { overrideAgentBody: bodyOfAgent(liveAgent) } : {}),
+        ...(liveCrew  ? { overrideCrewBody:  bodyOfCrew(liveCrew)   } : {}),
         onEvent:        handleEvent,
       });
     } catch (err) {
@@ -600,7 +618,7 @@ export function UserChat() {
 
       {dirty && (
         <div className={styles.dirtyChip}>
-          ⚠️ {dirtyLabel} — Save first to include them in the next run.
+          ⚠️ {dirtyLabel} — running against the unsaved working copy. Changes apply to this session only and may be lost if not saved.
         </div>
       )}
 

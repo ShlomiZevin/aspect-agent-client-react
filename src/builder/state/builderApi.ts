@@ -469,6 +469,18 @@ export function runtimeMessageStream(args: {
    *  precedence over the conversation's saved currentCrewId and is
    *  persisted as the new pointer for subsequent turns. */
   overrideCrewId?: string | null;
+  /**
+   * Optional working-copy agent body. When sent, the server runs the
+   * turn against this body instead of the saved viewing version —
+   * lets the builder preview chat reflect unsaved edits.
+   */
+  overrideAgentBody?: unknown;
+  /**
+   * Optional working-copy crew body. Paired with overrideAgentBody so
+   * the in-builder chat can run dirty addon configs / prompts without
+   * the user having to save first.
+   */
+  overrideCrewBody?: unknown;
 }): Promise<Response> {
   return fetch(
     `${BASE_URL}/api/agents/${args.agentSlug}/conversations/${args.conversationId}/messages`,
@@ -479,7 +491,9 @@ export function runtimeMessageStream(args: {
         ownerUserId: args.ownerUserId,
         userMessage: args.userMessage,
         version: args.version || 'viewing',
-        ...(args.overrideCrewId ? { overrideCrewId: args.overrideCrewId } : {}),
+        ...(args.overrideCrewId   ? { overrideCrewId:   args.overrideCrewId   } : {}),
+        ...(args.overrideAgentBody ? { overrideAgentBody: args.overrideAgentBody } : {}),
+        ...(args.overrideCrewBody  ? { overrideCrewBody:  args.overrideCrewBody  } : {}),
       }),
     },
   );
