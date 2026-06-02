@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   bootstrapProject,
+  deleteProject,
   fetchProject,
   listProjects,
   type ProjectListItem,
@@ -60,6 +61,12 @@ export function BuilderHomePage() {
   const [newName, setNewName] = useState('');
   const [newSlug, setNewSlug] = useState('');
   const [slugDirty, setSlugDirty] = useState(false);
+  // Per-row state. `deleting` holds the projectId currently mid-delete;
+  // `confirmId` holds the row pending the second-click confirmation.
+  // Confirmation is inline (click Delete → button morphs to "Confirm?")
+  // rather than a modal — list-page actions feel lighter that way.
+  const [deleting,  setDeleting]  = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,6 +129,23 @@ export function BuilderHomePage() {
       setError(err instanceof Error ? err.message : String(err));
     }
   }, [navigate, newName, newSlug, slugDirty, ownerUserId]);
+
+  const onDelete = useCallback(async (projectId: string) => {
+    setDeleting(projectId);
+    setError(null);
+    try {
+      await deleteProject({ projectId });
+      // Optimistic update — drop the row from the list. The list is
+      // sourced from a single fetch so we don't need to refetch unless
+      // it fails (which surfaces an error and keeps the row).
+      setItems(prev => prev ? prev.filter(p => p.projectId !== projectId) : prev);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDeleting(null);
+      setConfirmId(null);
+    }
+  }, []);
 
   return (
     <div style={page}>
@@ -189,17 +213,54 @@ export function BuilderHomePage() {
 
         {items && items.length > 0 && (
           <ul style={list}>
-            {items.map(p => (
-              <li key={p.projectId} style={listItem}>
-                <Link to={`/${p.agentSlug}/builder`} style={listLink}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                    <span style={listName}>{p.agentName}</span>
-                    <span style={listSlug}>/{p.agentSlug}/builder</span>
+            {items.map(p => {
+              const isConfirming = confirmId === p.projectId;
+              const isDeleting   = deleting  === p.projectId;
+              return (
+                <li key={p.projectId} style={listItem}>
+                  <div style={listRow}>
+                    <Link to={`/${p.agentSlug}/builder`} style={listLink}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                        <span style={listName}>{p.agentName}</span>
+                        <span style={listSlug}>/{p.agentSlug}/builder</span>
+                      </div>
+                      <span style={listMeta}>{timeAgo(p.updatedAt)}</span>
+                    </Link>
+                    {isConfirming ? (
+                      <div style={confirmGroup}>
+                        <button
+                          type="button"
+                          onClick={() => onDelete(p.projectId)}
+                          disabled={isDeleting}
+                          style={dangerBtn}
+                          title="Permanently delete this agent and every crew under it"
+                        >
+                          {isDeleting ? 'Deleting…' : 'Yes, delete'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmId(null)}
+                          disabled={isDeleting}
+                          style={ghostBtn}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmId(p.projectId)}
+                        style={deleteIconBtn}
+                        title="Delete this agent"
+                        aria-label={`Delete ${p.agentName}`}
+                      >
+                        🗑
+                      </button>
+                    )}
                   </div>
-                  <span style={listMeta}>{timeAgo(p.updatedAt)}</span>
-                </Link>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -277,7 +338,15 @@ const listItem: React.CSSProperties = {
   borderBottom: '1px solid #f3f4f6',
 };
 
+const listRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  paddingRight: 12,
+};
+
 const listLink: React.CSSProperties = {
+  flex: 1,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
@@ -285,6 +354,52 @@ const listLink: React.CSSProperties = {
   padding: '14px 18px',
   textDecoration: 'none',
   color: '#111827',
+  minWidth: 0,
+};
+
+const deleteIconBtn: React.CSSProperties = {
+  width: 32,
+  height: 32,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: 14,
+  color: '#9ca3af',
+  background: 'transparent',
+  border: '1px solid transparent',
+  borderRadius: 6,
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+};
+
+const confirmGroup: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+};
+
+const dangerBtn: React.CSSProperties = {
+  padding: '6px 10px',
+  fontSize: 12,
+  fontWeight: 600,
+  background: '#dc2626',
+  color: '#fff',
+  border: '1px solid #dc2626',
+  borderRadius: 6,
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+};
+
+const ghostBtn: React.CSSProperties = {
+  padding: '6px 10px',
+  fontSize: 12,
+  fontWeight: 600,
+  background: '#fff',
+  color: '#4b5563',
+  border: '1px solid #e5e7eb',
+  borderRadius: 6,
+  cursor: 'pointer',
+  fontFamily: 'inherit',
 };
 
 const listName: React.CSSProperties = {

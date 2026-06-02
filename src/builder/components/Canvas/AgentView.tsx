@@ -18,8 +18,10 @@
  * want to keep things tidy).
  */
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
+import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
+import { useMentionOptions } from '../MentionTextarea/useMentionOptions';
 import { useAgentVersion } from '../../state/useEntityVersion';
 import { TitleBar } from '../TitleBar/TitleBar';
 import { VersionPill } from '../VersionMenu/VersionPill';
@@ -40,46 +42,6 @@ function findOwnerUserId(): string {
   try { return localStorage.getItem('builder:ownerUserId') || 'anon'; } catch { return 'anon'; }
 }
 
-/**
- * Remember the user's resized height of a textarea between sessions.
- * Local-only (per browser) — persona content is the same across users
- * but the comfortable editing height is a personal preference.
- */
-function usePersistedTextareaHeight(storageKey: string) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  // Restore on mount.
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) el.style.height = saved;
-    } catch { /* ignore */ }
-  }, [storageKey]);
-
-  // Persist on resize. ResizeObserver fires on every dimension change
-  // (including programmatic), so we debounce to avoid a write per pixel.
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const obs = new ResizeObserver(() => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        try { localStorage.setItem(storageKey, `${el.offsetHeight}px`); } catch { /* ignore */ }
-      }, 200);
-    });
-    obs.observe(el);
-    return () => {
-      if (timer) clearTimeout(timer);
-      obs.disconnect();
-    };
-  }, [storageKey]);
-
-  return ref;
-}
-
 export function AgentView({ agent }: Props) {
   const { updateAgent, pendingAlfredApply } = useBuilder();
   const versionState = useAgentVersion(agent.id);
@@ -88,7 +50,11 @@ export function AgentView({ agent }: Props) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [pendingDetailsOpen, setPendingDetailsOpen] = useState(false);
   const ownerUserId = findOwnerUserId();
-  const personaRef = usePersistedTextareaHeight('builder:personaHeight');
+  // Persona supports the same mention vocabulary as crew prompts so
+  // static config (`#param:bankName`) and memory references can be
+  // baked into the agent's voice. {{persona}} resolves once at runtime
+  // — nested {{persona}} won't recurse; the assembler short-circuits.
+  const mentionOptions = useMentionOptions(agent.id);
 
   // True when this agent has an un-saved Alfred apply target. The
   // banner below cues the user that Save will commit Alfred's draft.
@@ -218,13 +184,16 @@ export function AgentView({ agent }: Props) {
             </div>
             <p className={styles.cardHint}>
               Shared character / voice across every crew of this agent.
+              Type <kbd>#</kbd> to drop in agent parameters (e.g. <code>{`{{param:bankName}}`}</code>),
+              {' '}<kbd>@</kbd> for memory references,
+              {' '}<kbd>/</kbd> for the full picker.
             </p>
-            <textarea
-              ref={personaRef}
-              className={styles.textarea}
+            <MentionTextarea
               value={agent.persona}
-              onChange={e => updateAgent(agent.id, { persona: e.target.value })}
+              onChange={persona => updateAgent(agent.id, { persona })}
+              options={mentionOptions}
               placeholder="Describe how the agent sounds, the tone, and what it never does…"
+              rows={8}
             />
           </div>
         </div>

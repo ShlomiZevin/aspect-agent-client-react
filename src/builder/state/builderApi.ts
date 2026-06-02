@@ -59,6 +59,20 @@ export async function listProjects(args: {
   return res.projects;
 }
 
+/**
+ * Delete an entire project tree (project + agents + crews + every
+ * version under them). Used by the BuilderHomePage row-level delete.
+ * Server is shared-workspace so no ownerUserId guard — anyone with the
+ * id can delete. That matches read access today.
+ */
+export async function deleteProject(args: {
+  projectId: string;
+}): Promise<void> {
+  await http<{ ok: true }>(`/api/builder/projects/${args.projectId}`, {
+    method: 'DELETE',
+  });
+}
+
 // ─── Project load + bootstrap ─────────────────────────────────────
 
 export async function fetchProject(args: {
