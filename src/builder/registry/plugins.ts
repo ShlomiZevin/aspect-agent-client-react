@@ -123,7 +123,6 @@ export interface PluginDescriptor<TConfig = unknown> {
  *  knobs that don't fold into the promptTemplate live here. */
 export const DEFAULT_ADDON_CONTEXT: AddonContext = {
   history: { mode: 'last_n', n: 5 },
-  triggeredReads: [],
 };
 
 /**
@@ -139,7 +138,6 @@ export function defaultContextFor<TConfig>(plugin: PluginDescriptor<TConfig>): A
     ...DEFAULT_ADDON_CONTEXT,
     ...(plugin.defaultContext ?? {}),
     history: plugin.defaultContext?.history ?? DEFAULT_ADDON_CONTEXT.history,
-    triggeredReads: plugin.defaultContext?.triggeredReads ?? DEFAULT_ADDON_CONTEXT.triggeredReads,
   };
 }
 

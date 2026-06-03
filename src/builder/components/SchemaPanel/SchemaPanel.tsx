@@ -1,17 +1,15 @@
 /**
  * SchemaPanel — agent-level schema editor.
  *
- * Stacks three sections in the AgentView sidebar:
- *   1. Parameters — static agent-wide values (`agent.parameters`)
- *   2. Domains    — declared memory groupings (`agent.domains`)
- *   3. Fields     — agent-level field declarations (`agent.fields`).
- *                   Each row shows the live conversation value (when a
- *                   preview chat is active) plus a Wire affordance to
- *                   collect the field into a crew's extractor.
+ * Stacks four sections in the AgentView sidebar:
+ *   1. Parameters       — static agent-wide values (`agent.parameters`)
+ *   2. Dynamic context  — value-switched prompts (`agent.dynamicContexts`)
+ *   3. Domains          — declared memory groupings (`agent.domains`)
+ *   4. Fields           — agent-level field declarations (`agent.fields`)
  *
- * Runtime impact: zero. Declared domains, parameters, and bare field
- * declarations are inert until referenced. Nothing ships them into
- * prompts on its own.
+ * Runtime impact: zero from raw schema. Dynamic Context is the only
+ * section with runtime effects — but only when its tokens are referenced
+ * inside an addon's prompt. Inert otherwise.
  */
 
 import { useMemo, useState } from 'react';
@@ -21,7 +19,8 @@ import { DomainModal } from './DomainModal';
 import { ParameterModal } from './ParameterModal';
 import { SchemaFieldModal } from './SchemaFieldModal';
 import { WireFieldModal } from './WireFieldModal';
-import type { FieldDef, ID, ParameterDef } from '../../types';
+import { DynamicContextModal } from './DynamicContextModal';
+import type { DynamicContextDef, FieldDef, ID, ParameterDef } from '../../types';
 import styles from './SchemaPanel.module.css';
 
 interface Props {
@@ -29,11 +28,103 @@ interface Props {
 }
 
 export function SchemaPanel({ agentId }: Props) {
+  // DC editor is owned here so both DynamicContextsSection AND
+  // FieldsSection can open it. From the DCs section the user opens
+  // an existing DC; from a Field row, the cross-link 🎯 chip opens
+  // the DC attached to that field.
+  const [dcModalOpen, setDcModalOpen] = useState(false);
+  const [dcInitial,    setDcInitial]    = useState<DynamicContextDef | null>(null);
+  const openDcAdd  = () => { setDcInitial(null); setDcModalOpen(true); };
+  const openDcEdit = (dc: DynamicContextDef) => { setDcInitial(dc); setDcModalOpen(true); };
+
   return (
     <div className={styles.stack}>
       <ParametersSection agentId={agentId} />
+      <DynamicContextsSection
+        agentId={agentId}
+        openAdd={openDcAdd}
+        openEdit={openDcEdit}
+      />
       <DomainsSection agentId={agentId} />
-      <FieldsSection agentId={agentId} />
+      <FieldsSection agentId={agentId} openDcEdit={openDcEdit} />
+      <DynamicContextModal
+        open={dcModalOpen}
+        onClose={() => setDcModalOpen(false)}
+        agentId={agentId}
+        initial={dcInitial}
+      />
+    </div>
+  );
+}
+
+/* ─── Dynamic Context ─────────────────────────────────────────── */
+
+function DynamicContextsSection({
+  agentId, openAdd, openEdit,
+}: {
+  agentId: ID;
+  openAdd: () => void;
+  openEdit: (dc: DynamicContextDef) => void;
+}) {
+  const { doc } = useBuilder();
+  const agent = doc.agents.find(a => a.id === agentId);
+  const dcs = useMemo(() => agent?.dynamicContexts ?? [], [agent?.dynamicContexts]);
+
+  const fieldNameById = useMemo(() => {
+    const map = new Map<string, { name: string; type: string }>();
+    for (const f of agent?.fields ?? []) map.set(f.id, { name: f.name, type: f.type });
+    return map;
+  }, [agent?.fields]);
+
+  return (
+    <div className={styles.panel}>
+      <div className={styles.header}>
+        <span className={styles.title}>🎯 Dynamic context</span>
+        <span className={styles.count}>{dcs.length}</span>
+        <span className={styles.spacer} />
+        <button type="button" className={styles.addBtn} onClick={openAdd}>
+          + Add
+        </button>
+      </div>
+
+      {dcs.length === 0 ? (
+        <div className={styles.empty}>
+          Switch a chunk of prompt text based on a memory field's current value.
+          Authored once at agent level, dropped into any prompt via
+          <code> {'{{dynamic:fieldname}}'}</code>.
+        </div>
+      ) : (
+        <div className={styles.paramList}>
+          {dcs.map(dc => {
+            const field = fieldNameById.get(dc.fieldId);
+            const caseCount = Array.isArray(dc.cases) ? dc.cases.length : 0;
+            return (
+              <button
+                key={dc.id}
+                type="button"
+                className={styles.paramRow}
+                onClick={() => openEdit(dc)}
+              >
+                <div className={styles.paramHead}>
+                  <span className={styles.paramName}>
+                    {field?.name ?? '(field deleted)'}
+                  </span>
+                  <span className={styles.paramSigil}>· {field?.type ?? '?'}</span>
+                  <span className={styles.spacerInline} />
+                  <span className={styles.paramSigil}>
+                    {caseCount} case{caseCount === 1 ? '' : 's'}
+                  </span>
+                </div>
+                {field && (
+                  <span className={styles.paramDesc}>
+                    Reference as <code>{`{{dynamic:${field.name}}}`}</code>
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -229,13 +320,26 @@ function ParametersSection({ agentId }: { agentId: ID }) {
 
 /* ─── Fields (agent-level declarations) ──────────────────────── */
 
-function FieldsSection({ agentId }: { agentId: ID }) {
+function FieldsSection({
+  agentId, openDcEdit,
+}: {
+  agentId: ID;
+  openDcEdit: (dc: DynamicContextDef) => void;
+}) {
   const { allFields } = useAgentFields(agentId);
   const {
+    doc,
     conversationMemory,
     previewConversationId,
     updateConversationMemoryField,
   } = useBuilder();
+  const agent = doc.agents.find(a => a.id === agentId);
+  const dcByFieldId = useMemo(() => {
+    const map = new Map<string, DynamicContextDef>();
+    for (const dc of agent?.dynamicContexts ?? []) map.set(dc.fieldId, dc);
+    return map;
+  }, [agent?.dynamicContexts]);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<FieldDef | null>(null);
   const [wiringField, setWiringField] = useState<FieldDef | null>(null);
@@ -317,6 +421,8 @@ function FieldsSection({ agentId }: { agentId: ID }) {
               liveValueByField={liveValueByField}
               canClearLive={previewConversationId !== null}
               onClearLive={onClearLive}
+              dcByFieldId={dcByFieldId}
+              onOpenDc={openDcEdit}
             />
           ))}
           {grouped.orphan.length > 0 && (
@@ -328,6 +434,8 @@ function FieldsSection({ agentId }: { agentId: ID }) {
               extractorCountFor={extractorCountFor}
               liveValueByField={liveValueByField}
               canClearLive={previewConversationId !== null}
+              dcByFieldId={dcByFieldId}
+              onOpenDc={openDcEdit}
               onClearLive={onClearLive}
             />
           )}
@@ -358,6 +466,7 @@ function formatLiveValue(v: unknown): string {
 function FieldsGroup({
   label, fields, onPick, onWire, extractorCountFor,
   liveValueByField, canClearLive, onClearLive,
+  dcByFieldId, onOpenDc,
 }: {
   label: string;
   fields: FieldDef[];
@@ -367,6 +476,8 @@ function FieldsGroup({
   liveValueByField: Record<string, unknown>;
   canClearLive: boolean;
   onClearLive: (name: string) => Promise<void> | void;
+  dcByFieldId: Map<string, DynamicContextDef>;
+  onOpenDc: (dc: DynamicContextDef) => void;
 }) {
   return (
     <div>
@@ -376,30 +487,24 @@ function FieldsGroup({
           const n = extractorCountFor(f.id);
           const live = liveValueByField[f.name];
           const hasValue = live !== undefined;
+          const hasDc = dcByFieldId.has(f.id);
           return (
             <div
               key={f.id}
-              className={styles.paramRow}
-              style={{ cursor: 'default' }}
+              className={styles.fieldRow}
             >
-              <div className={styles.paramHead}>
+              {/* Top row: name + action — name leads, Wire stays anchored
+                * to the right. Live value / clear / DC chip live on the
+                * name line because they relate to the field's identity. */}
+              <div className={styles.fieldRowTop}>
                 <button
                   type="button"
                   onClick={() => onPick(f)}
-                  className={styles.paramName}
-                  style={{
-                    background: 'transparent',
-                    border: 0,
-                    padding: 0,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    textAlign: 'left',
-                  }}
+                  className={styles.fieldRowName}
                   title="Edit this field's shape"
                 >
                   {f.name}
                 </button>
-                <span className={styles.paramSigil}>· {f.type}</span>
                 {hasValue && (
                   <span className={styles.liveChip} title="Current value in this preview conversation">
                     = {formatLiveValue(live)}
@@ -416,32 +521,48 @@ function FieldsGroup({
                   </button>
                 )}
                 <span className={styles.spacerInline} />
+                <button
+                  type="button"
+                  onClick={() => onWire(f)}
+                  className={styles.fieldRowWire}
+                  title="Pick which crew(s) should collect this field"
+                >
+                  Wire
+                </button>
+              </div>
+
+              {/* Bottom row: small badges (type · status · dc-link). Smaller
+                * font, muted colour — secondary information that doesn't
+                * compete with the field name for attention. */}
+              <div className={styles.fieldRowMeta}>
+                <span className={styles.fieldTypePill}>{f.type}</span>
                 {n === 0 ? (
                   <span
-                    className={styles.paramSigil}
-                    style={{ color: '#b45309' }}
+                    className={styles.fieldStatusUnwired}
                     title="Declared but not collected by any crew yet"
                   >
                     ⚠ unwired
                   </span>
                 ) : (
                   <span
-                    className={styles.paramSigil}
+                    className={styles.fieldStatusWired}
                     title={`Collected by ${n} extractor${n === 1 ? '' : 's'}`}
                   >
-                    ✓ {n}
+                    ✓ wired · {n}
                   </span>
                 )}
-                <button
-                  type="button"
-                  onClick={() => onWire(f)}
-                  className={styles.addBtn}
-                  style={{ padding: '2px 8px', fontSize: 11 }}
-                  title="Pick which crew(s) should collect this field"
-                >
-                  Wire
-                </button>
+                {hasDc && (
+                  <button
+                    type="button"
+                    className={styles.dcChip}
+                    onClick={() => onOpenDc(dcByFieldId.get(f.id)!)}
+                    title={`Open the Dynamic Context attached to ${f.name}`}
+                  >
+                    🎯 dynamic
+                  </button>
+                )}
               </div>
+
               {f.howToExtract && (
                 <span className={styles.paramDesc}>{f.howToExtract}</span>
               )}

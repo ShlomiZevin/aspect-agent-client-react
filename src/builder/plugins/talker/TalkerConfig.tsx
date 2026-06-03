@@ -47,6 +47,7 @@ export function TalkerConfigComponent({
           {' '}<kbd>!</kbd> thinking ·
           {' '}<kbd>#</kbd> parameters ·
           {' '}<kbd>^</kbd> persona ·
+          {' '}<kbd>*</kbd> dynamic ·
           {' '}<kbd>/</kbd> or <kbd>{'{{'}</kbd> for all.
         </p>
         <MentionTextarea

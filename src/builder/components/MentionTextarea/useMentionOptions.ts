@@ -12,8 +12,8 @@
  *   - `#` → Parameters
  *   - `^` → Persona (single option)
  *
- * Triggered is intentionally not surfaced. We'll wire it in a later
- * pass alongside the Triggered Context redesign.
+ * Dynamic Context entries are surfaced under the `*` trigger so the
+ * user can drop `{{dynamic:fieldname}}` switches into any prompt.
  */
 
 import { useMemo } from 'react';
@@ -143,6 +143,28 @@ export function useMentionOptions(agentId: ID): MentionOptions {
       description: 'The agent persona text — voice and tone shared across crews.',
     }];
 
-    return { '@': at, '!': bang, '#': hash, '^': caret };
+    // ── *  Dynamic context ───────────────────────────────────────
+    // One entry per declared DC. Each switches on a single field's
+    // current value at runtime; selecting one inserts
+    // `{{dynamic:<fieldname>}}`. We resolve fieldId → field.name from
+    // agent.fields (the only scope where DCs can be authored today).
+    const star: MentionOption[] = [];
+    const fieldsById = new Map<string, { name: string; enumValues?: string[] }>();
+    for (const f of agent.fields ?? []) {
+      fieldsById.set(f.id, { name: f.name, enumValues: f.enumValues });
+    }
+    for (const dc of agent.dynamicContexts ?? []) {
+      const field = fieldsById.get(dc.fieldId);
+      if (!field) continue; // orphan DC (field deleted) — skip silently
+      const caseCount = Array.isArray(dc.cases) ? dc.cases.length : 0;
+      star.push({
+        label:     field.name,
+        insertion: `{{dynamic:${field.name}}}`,
+        group:     'Dynamic context',
+        description: `Switches on "${field.name}" — ${caseCount} case${caseCount === 1 ? '' : 's'}.`,
+      });
+    }
+
+    return { '@': at, '!': bang, '#': hash, '^': caret, '*': star };
   }, [doc, agentId]);
 }

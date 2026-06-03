@@ -55,6 +55,8 @@ export interface MentionOptions {
   '#'?: MentionOption[];
   /** Persona block (single option). */
   '^'?: MentionOption[];
+  /** Dynamic Context switches (one entry per field with a DC attached). */
+  '*'?: MentionOption[];
 }
 
 /**
@@ -63,9 +65,9 @@ export interface MentionOptions {
  * category in one combined picker — useful when the user doesn't
  * remember which sigil opens what.
  */
-type SingleTrigger = '@' | '!' | '#' | '^';
+type SingleTrigger = '@' | '!' | '#' | '^' | '*';
 type Trigger = SingleTrigger | '{{' | '/';
-const SINGLE_TRIGGERS: SingleTrigger[] = ['@', '!', '#', '^'];
+const SINGLE_TRIGGERS: SingleTrigger[] = ['@', '!', '#', '^', '*'];
 
 /**
  * Human label for each trigger. Shown as the picker's header so the
@@ -74,10 +76,11 @@ const SINGLE_TRIGGERS: SingleTrigger[] = ['@', '!', '#', '^'];
  * under the textarea uses.
  */
 const TRIGGER_LABELS: Record<Trigger, string> = {
-  '@': 'Memory',
-  '!': 'Thinking',
-  '#': 'Parameters',
-  '^': 'Persona',
+  '@':  'Memory',
+  '!':  'Thinking',
+  '#':  'Parameters',
+  '^':  'Persona',
+  '*':  'Dynamic context',
   '{{': 'All placeholders',
   '/':  'All placeholders',
 };

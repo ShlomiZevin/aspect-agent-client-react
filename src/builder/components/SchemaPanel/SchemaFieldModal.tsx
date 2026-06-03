@@ -37,6 +37,10 @@ interface Props {
   agentId: ID;
   /** Existing field being edited; when null, the modal adds a new one. */
   initial: FieldDef | null;
+  /** Seed the type dropdown when adding a new field. Used by the
+   *  Dynamic Context flow to land on `enum` directly. Ignored when
+   *  editing an existing field. Default `'string'`. */
+  initialType?: FieldType;
 }
 
 const TYPES: { value: FieldType; label: string }[] = [
@@ -56,7 +60,7 @@ function newFieldId(): ID {
   return `field_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function SchemaFieldModal({ open, onClose, agentId, initial }: Props) {
+export function SchemaFieldModal({ open, onClose, agentId, initial, initialType }: Props) {
   const { doc, updateAgent } = useBuilder();
   const { domainNames } = useAgentFields(agentId);
   // `removeField` lives on useCrewFields but only needs agent context —
@@ -75,12 +79,12 @@ export function SchemaFieldModal({ open, onClose, agentId, initial }: Props) {
   useEffect(() => {
     if (!open) return;
     setName(initial?.name ?? '');
-    setType(initial?.type ?? 'string');
+    setType(initial?.type ?? initialType ?? 'string');
     setSource(initial?.source ?? 'explicit');
     setDomain(initial?.domain ?? '');
     setHowToExtract(initial?.howToExtract ?? '');
     setEnumValues((initial?.enumValues ?? []).join(', '));
-  }, [open, initial]);
+  }, [open, initial, initialType]);
 
   const trimmedName = name.trim();
   const siblings = useMemo(() => {

@@ -22,12 +22,10 @@ export type RuntimeEvent =
       rawOutput: string;
       parsedOutput?: unknown;
       memoryWrites?: Array<{
-        /** Brain section the write goes into. `'memory'` (default),
-         *  `'thinking'`, or `'triggered'`. Set by the plugin (Thinker
-         *  emits 'thinking', Triggered Context emits 'triggered',
-         *  Field/Vibe Extractor leave undefined which is treated as
-         *  'memory'). */
-        kind?: 'memory' | 'thinking' | 'triggered';
+        /** Brain section the write goes into. `'memory'` (default) or
+         *  `'thinking'`. Thinker emits `'thinking'`; Field/Vibe
+         *  Extractor leave undefined which is treated as `'memory'`. */
+        kind?: 'memory' | 'thinking';
         domain: string | null;
         field: string;
         value: unknown;
@@ -42,6 +40,18 @@ export type RuntimeEvent =
     }
   | { type: 'addon.error'; instanceId: string | null; error: { code: string; message: string } }
   | { type: 'assistant.message'; messageId: number; text: string }
+  /**
+   * Dynamic Context resolution surfaced for the live chat trail.
+   * Emitted once per `{{dynamic:NAME}}` token that the assembler
+   * actually resolved this turn — including the no-match case (where
+   * `matched` is null and `text` is the fallback or '').
+   */
+  | { type: 'dynamic.resolved';
+      instanceId: string;
+      fieldName: string;
+      matched: string | null;
+      text: string;
+    }
   | { type: 'done'; totalMs: number };
 
 export interface SendArgs {

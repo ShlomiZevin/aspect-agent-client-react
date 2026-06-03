@@ -10,7 +10,6 @@
 import './fieldExtractor/addon.fieldExtractor';
 import './vibeExtractor/addon.vibeExtractor';
 import './thinker/addon.thinker';
-import './triggeredContext/addon.triggeredContext';
 import './talker/addon.talker';
 import './transitionRouter/addon.transitionRouter';
 

@@ -1,24 +1,16 @@
 /**
  * AddonContextSection — runtime conversation settings for the addon.
  *
- * Phase B / v3 layout: flat inline rows. The whole "collapsible Context
- * box" wrapper is gone — when a section holds a single dropdown it
- * doesn't deserve its own accordion. Today this surface carries:
- *
- *   - History    — how much past conversation to send. Always shown.
- *   - Triggered  — which triggered-context domains to inject. Only
- *                  rendered when a Triggered Context loader exists in
- *                  the crew (otherwise the row is noise).
- *
- * The component name still ends in `Context` because the data lives
- * on `AddonInstance.context`; the user-facing labels are History +
- * Triggered.
+ * After Dynamic Context replaced Triggered Context, the only universal
+ * runtime knob left is `history` — how much past conversation gets
+ * sent to the LLM. The component renders as a single inline row with
+ * no accordion. Component name still ends in `Context` because the
+ * data lives on `AddonInstance.context`; the user-facing label is
+ * "History".
  */
 
-import { useMemo } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
-import { TRIGGERED_CONTEXT_PLUGIN_ID } from '../../plugins/triggeredContext/addon.triggeredContext';
-import type { AddonContext, AddonInstance, HistoryMode, ID, TriggeredContextConfig } from '../../types';
+import type { AddonContext, AddonInstance, HistoryMode, ID } from '../../types';
 import styles from './AddonContextSection.module.css';
 
 interface Props {
@@ -58,40 +50,10 @@ const HISTORY_OPTIONS: { value: HistoryChoice; label: string }[] = [
 ];
 
 export function AddonContextSection({ agentId, crewId, instance }: Props) {
-  const { doc, updateAddonContext } = useBuilder();
-
-  // Triggered domains exposed by Triggered Context loaders in this crew.
-  // No loaders → the Triggered row isn't shown at all (it'd be empty).
-  const triggeredDomains = useMemo<string[]>(() => {
-    const set = new Set<string>();
-    const crew = doc.agents.find(a => a.id === agentId)?.crews.find(c => c.id === crewId);
-    for (const a of crew?.addons ?? []) {
-      if (a.pluginId !== TRIGGERED_CONTEXT_PLUGIN_ID) continue;
-      const dom = (a.config as TriggeredContextConfig | undefined)?.domain?.trim();
-      if (dom) set.add(dom);
-    }
-    return [...set].sort();
-  }, [doc, agentId, crewId]);
-
+  const { updateAddonContext } = useBuilder();
   const ctx = instance.context;
   const patch = (next: Partial<AddonContext>) =>
     updateAddonContext(agentId, crewId, instance.instanceId, { ...ctx, ...next });
-
-  const triggeredReads = ctx.triggeredReads ?? [];
-  const triggeredSelected = useMemo(() => new Set<string>(
-    triggeredReads.filter((v): v is string => typeof v === 'string'),
-  ), [triggeredReads]);
-  const triggeredDomainList = useMemo<string[]>(() => {
-    const set = new Set<string>(triggeredDomains);
-    for (const v of triggeredReads) if (typeof v === 'string') set.add(v);
-    return [...set].sort();
-  }, [triggeredDomains, triggeredReads]);
-
-  const toggleTriggeredDomain = (d: string) => {
-    const next = new Set(triggeredSelected);
-    if (next.has(d)) next.delete(d); else next.add(d);
-    patch({ triggeredReads: [...next] });
-  };
 
   const historyChoice = choiceFromMode(ctx.history);
 
@@ -109,24 +71,6 @@ export function AddonContextSection({ agentId, crewId, instance }: Props) {
           ))}
         </select>
       </div>
-
-      {triggeredDomainList.length > 0 && (
-        <div className={styles.row}>
-          <span className={styles.label}>Triggered</span>
-          <div className={styles.chips}>
-            {triggeredDomainList.map(d => (
-              <label key={d} className={styles.checkRow}>
-                <input
-                  type="checkbox"
-                  checked={triggeredSelected.has(d)}
-                  onChange={() => toggleTriggeredDomain(d)}
-                />
-                <span>🎯 {d}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -74,7 +74,7 @@ export function ThinkerConfigComponent({
           onChange={prompt => patch({ prompt })}
           options={mentionOptions}
           rows={14}
-          placeholder="Tell the LLM what strategy to produce and which JSON keys to emit. Type @ memory · # parameters · ^ persona · / or {{ for all."
+          placeholder="Tell the LLM what strategy to produce and which JSON keys to emit. Type @ memory · # parameters · ^ persona · * dynamic · / or {{ for all."
         />
         <span className={styles.hint}>
           The prompt is the schema. Whatever keys the LLM emits land

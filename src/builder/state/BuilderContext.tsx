@@ -130,6 +130,7 @@ function bodyOfAgent(agent: AgentDoc): AgentBody {
     fields: agent.fields,
     domains: agent.domains ?? [],
     parameters: agent.parameters ?? [],
+    dynamicContexts: agent.dynamicContexts ?? [],
   };
 }
 
@@ -267,7 +268,7 @@ interface BuilderState {
   // Agent-level
   updateAgent: (
     agentId: ID,
-    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters'>>,
+    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters' | 'dynamicContexts'>>,
   ) => void;
   /**
    * Rename a declared domain. Cascades through `agent.domains`,
@@ -381,17 +382,14 @@ interface BuilderState {
   previewConversationId: number | null;
   setPreviewConversationId: (id: number | null) => void;
 
-  // Live brain state for the preview conversation. Three parallel
-  // sections: `memory` (facts the brain remembers), `thinking` (the
-  // current strategic plan), and `triggered` (pre-scripted guidance
-  // loaded this turn by the Triggered Context addon). FieldsPanel
-  // renders memory values inline next to fields; the Thinking and
-  // Triggered panels (below the Cortex) render their sections as
-  // cards. Refetched after every chat turn.
+  // Live brain state for the preview conversation. Two parallel
+  // sections: `memory` (facts the brain remembers) and `thinking`
+  // (the current strategic plan). FieldsPanel renders memory values
+  // inline next to fields; the Thinking panel below the Cortex renders
+  // its section as a card. Refetched after every chat turn.
   conversationMemory: {
-    memory:    Record<string, Record<string, unknown>>;
-    thinking:  Record<string, Record<string, unknown>>;
-    triggered: Record<string, Record<string, unknown>>;
+    memory:   Record<string, Record<string, unknown>>;
+    thinking: Record<string, Record<string, unknown>>;
   };
   refreshConversationMemory: () => void;
   /**
@@ -404,20 +402,20 @@ interface BuilderState {
     value?: unknown;
     domain?: string | null;
     /** Which brain section to write to. Default `'memory'`. */
-    kind?: 'memory' | 'thinking' | 'triggered';
+    kind?: 'memory' | 'thinking';
     clear?: boolean;
   }) => Promise<boolean>;
   /**
    * Optimistic, local-only merge of memory writes (the same shape
    * the server emits on `addon.output`). No network. Each write's
-   * `kind` routes it to the memory / thinking / triggered section;
-   * omitted = 'memory'. Used by UserChat to surface fresh writes in
-   * the panels before the chain finishes. Reconciled by the post-turn
+   * `kind` routes it to the memory / thinking section; omitted =
+   * 'memory'. Used by UserChat to surface fresh writes in the panels
+   * before the chain finishes. Reconciled by the post-turn
    * `refreshConversationMemory()` call.
    */
   applyLocalMemoryWrites: (
     writes: Array<{
-      kind?: 'memory' | 'thinking' | 'triggered';
+      kind?: 'memory' | 'thinking';
       domain: string | null;
       field: string;
       value: unknown;
@@ -499,12 +497,11 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
 
   // Live brain state for the preview conversation. The chat panel
   // calls refreshConversationMemory after each turn, and the
-  // FieldsPanel + Thinking + Triggered panels render values inline.
+  // FieldsPanel + Thinking panels render values inline.
   const [conversationMemory, setConversationMemory] = useState<{
-    memory:    Record<string, Record<string, unknown>>;
-    thinking:  Record<string, Record<string, unknown>>;
-    triggered: Record<string, Record<string, unknown>>;
-  }>({ memory: {}, thinking: {}, triggered: {} });
+    memory:   Record<string, Record<string, unknown>>;
+    thinking: Record<string, Record<string, unknown>>;
+  }>({ memory: {}, thinking: {} });
   const refreshConversationMemory = useCallback(() => {
     // No conv yet → nothing to fetch. Deliberately DO NOT reset the
     // local cache here. The dedicated effect below handles explicit
@@ -539,7 +536,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
    */
   const applyLocalMemoryWrites = useCallback(
     (writes: Array<{
-      kind?: 'memory' | 'thinking' | 'triggered';
+      kind?: 'memory' | 'thinking';
       domain: string | null;
       field: string;
       value: unknown;
@@ -547,16 +544,12 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       if (!Array.isArray(writes) || writes.length === 0) return;
       setConversationMemory(prev => {
         const next = {
-          memory:    { ...prev.memory },
-          thinking:  { ...prev.thinking },
-          triggered: { ...prev.triggered },
+          memory:   { ...prev.memory },
+          thinking: { ...prev.thinking },
         };
         for (const w of writes) {
           if (w.value === null || w.value === undefined) continue;
-          const section =
-            w.kind === 'thinking'  ? 'thinking'  :
-            w.kind === 'triggered' ? 'triggered' :
-            'memory';
+          const section = w.kind === 'thinking' ? 'thinking' : 'memory';
           const key = (w.domain && String(w.domain).trim()) ? String(w.domain) : '_general';
           next[section][key] = { ...(next[section][key] || {}), [w.field]: w.value };
         }
@@ -571,7 +564,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
       field: string;
       value?: unknown;
       domain?: string | null;
-      kind?: 'memory' | 'thinking' | 'triggered';
+      kind?: 'memory' | 'thinking';
       clear?: boolean;
     }) => {
       if (previewConversationId === null) return false;
@@ -596,7 +589,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
   // Reset / refetch memory whenever the conversation changes.
   useEffect(() => {
     if (previewConversationId === null) {
-      setConversationMemory({ memory: {}, thinking: {}, triggered: {} });
+      setConversationMemory({ memory: {}, thinking: {} });
     } else {
       refreshConversationMemory();
     }
@@ -612,7 +605,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
 
   // ── Agent ──
   const updateAgent = useCallback(
-    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters'>>) => {
+    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters' | 'dynamicContexts'>>) => {
       setDoc(d => ({
         ...d,
         agents: d.agents.map(a => (a.id === agentId ? { ...a, ...patch } : a)),

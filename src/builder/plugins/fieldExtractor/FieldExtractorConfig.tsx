@@ -137,7 +137,7 @@ export function FieldExtractorConfigComponent({
           value={config.prompt}
           onChange={prompt => patch({ prompt })}
           options={mentionOptions}
-          placeholder="Extract only what the user explicitly said. Don't guess. Type @ memory · # parameters · ^ persona · / or {{ for all."
+          placeholder="Extract only what the user explicitly said. Don't guess. Type @ memory · # parameters · ^ persona · * dynamic · / or {{ for all."
           rows={10}
         />
       </section>

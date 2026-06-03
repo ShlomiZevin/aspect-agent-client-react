@@ -376,6 +376,44 @@
   margin-bottom: 4px;
 }
 
+/* Dynamic Context resolution trail — one quiet line per fired switch
+ * between the addon-run timeline and the assistant bubble. Visible
+ * enough for the user to see what loaded, calm enough to stay out of
+ * the way. Tooltip on each row shows the actual text. */
+.dynamicTrail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 14px;
+  font-size: 11px;
+  color: var(--text-secondary, #4b5563);
+  line-height: 1.4;
+}
+.dynamicTrailRow {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+  cursor: help;
+}
+.dynamicTrailField {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+.dynamicTrailValue {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-weight: 700;
+  color: #0e7490;
+  background: rgba(6, 182, 212, 0.1);
+  border-radius: 4px;
+  padding: 0 6px;
+}
+.dynamicTrailFallback {
+  font-style: italic;
+  color: var(--text-tertiary, #9ca3af);
+}
+
 .dirtyChip {
   margin: 0 12px;
   padding: 6px 10px;

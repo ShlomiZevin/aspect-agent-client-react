@@ -41,6 +41,17 @@ import styles from './ChatPanel.module.css';
  * `assistantMessageId` are server-side ids — set once the SSE
  * round-trip is done (live) or at load time (historical).
  */
+/**
+ * One dynamic-context resolution surfaced for this turn. Populated
+ * from the server's `dynamic.resolved` SSE events so the user can see
+ * which switch fired and which case matched live in the chat.
+ */
+interface DynamicResolution {
+  fieldName: string;
+  matched: string | null; // null = fell through to fallback / empty
+  text: string;
+}
+
 interface Turn {
   id: string;
   userText: string;
@@ -49,6 +60,7 @@ interface Turn {
   assistantMessageId: number | null;
   runs: AddonRunSnapshot[];
   runsLoaded: boolean;
+  dynamicResolutions: DynamicResolution[];
 }
 
 function findOwnerUserId(): string {
@@ -76,6 +88,7 @@ function messagesToTurns(messages: ConversationMessage[]): Turn[] {
         assistantMessageId: paired ? paired.id : null,
         runs: [],
         runsLoaded: false,
+        dynamicResolutions: [],
       });
       i += paired ? 2 : 1;
     } else if (m.role === 'assistant') {
@@ -87,6 +100,7 @@ function messagesToTurns(messages: ConversationMessage[]): Turn[] {
         assistantMessageId: m.id,
         runs: [],
         runsLoaded: false,
+        dynamicResolutions: [],
       });
       i += 1;
     } else {
@@ -374,6 +388,24 @@ export function UserChat() {
           runsLoaded:          true,
         }));
         return;
+      case 'dynamic.resolved':
+        // Append one resolution per server event. We de-dup by
+        // fieldName + matched so the same DC resolving twice in one
+        // turn (e.g. referenced in both Talker and Thinker prompts)
+        // shows once rather than twice.
+        updateLastTurn(t => {
+          const existing = t.dynamicResolutions ?? [];
+          const dedupKey = `${e.fieldName}::${e.matched ?? ''}`;
+          if (existing.some(r => `${r.fieldName}::${r.matched ?? ''}` === dedupKey)) return t;
+          return {
+            ...t,
+            dynamicResolutions: [
+              ...existing,
+              { fieldName: e.fieldName, matched: e.matched, text: e.text },
+            ],
+          };
+        });
+        return;
       case 'done':
         refreshConversationMemory();
         reloadConvList();
@@ -404,6 +436,7 @@ export function UserChat() {
         assistantMessageId: null,
         runs: [],
         runsLoaded: false,
+        dynamicResolutions: [],
       };
       setTurns(prev => [...prev, turn]);
 
@@ -671,6 +704,9 @@ function Turn({ turn, rtl, onExpand, onDeleteSelf, onDeleteFromHere }: TurnProps
         />
       )}
       {showRuns && <TurnTimeline turn={turn} onExpand={onExpand} />}
+      {turn.dynamicResolutions && turn.dynamicResolutions.length > 0 && (
+        <DynamicTrail resolutions={turn.dynamicResolutions} />
+      )}
       {turn.assistantText && (
         <Bubble
           text={turn.assistantText}
@@ -737,4 +773,32 @@ function TurnTimeline({ turn, onExpand }: { turn: Turn; onExpand: () => void }) 
 
   if (turn.runs.length === 0) return null;
   return <AddonRunTimeline runs={turn.runs} />;
+}
+
+/**
+ * Live trail of `{{dynamic:NAME}}` resolutions for this turn — one
+ * quiet line per switch that the assembler fired, so the user can
+ * see which case loaded and (on hover) the actual text that landed
+ * in the prompt. Renders between the addon-run timeline and the
+ * assistant bubble.
+ */
+function DynamicTrail({ resolutions }: { resolutions: DynamicResolution[] }) {
+  return (
+    <div className={styles.dynamicTrail}>
+      {resolutions.map((r, i) => (
+        <div
+          key={`${r.fieldName}-${r.matched ?? '_none'}-${i}`}
+          className={styles.dynamicTrailRow}
+          title={r.text || 'No text — fallback was empty.'}
+        >
+          🎯 <span className={styles.dynamicTrailField}>{r.fieldName}</span>
+          {r.matched !== null ? (
+            <> = <span className={styles.dynamicTrailValue}>{r.matched}</span></>
+          ) : (
+            <> · <span className={styles.dynamicTrailFallback}>fallback</span></>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }

@@ -1,7 +1,8 @@
 /**
  * ConditionsEditor — shared compact UI for a list of TransitionCondition.
  *
- * Used by both the Transition Router and the Triggered Context addons.
+ * Used by the Transition Router. (Was previously shared with
+ * Triggered Context before Dynamic Context replaced it.)
  * One condition vocabulary, one editor. The host plugin keeps its own
  * outer layout (target / reason / writes-to / etc.) and embeds this
  * component for the condition rows.

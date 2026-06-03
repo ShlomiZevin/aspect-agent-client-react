@@ -1,0 +1,365 @@
+/* Dynamic Context — single-panel layout (v3).
+ *
+ * Left rail = the always-on enum-field navigator. Each field collapses
+ * to a header row; expand to reveal cases + fallback (when a DC is
+ * attached) or an "Attach" CTA (when not). Right pane = active case
+ * editor. The whole modal is the agent's Dynamic Context setup panel —
+ * one entry point for browse, attach, edit. */
+
+.layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 16px;
+  min-height: 540px;
+}
+
+/* ── Rail ── */
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 10px;
+  border-right: 1px solid var(--border-color, #e5e7eb);
+  overflow-y: auto;
+}
+
+.railHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 10px;
+  border-bottom: 1px dashed var(--border-color, #e5e7eb);
+  margin-bottom: 6px;
+}
+
+.railHeaderTitle {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #4b5563);
+}
+
+.railHeaderCreate {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.railHeaderCreate:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.railEmpty {
+  padding: 18px;
+  border: 1px dashed var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--bg-input, #fafafa);
+  color: var(--text-tertiary, #9ca3af);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* Field group (one per enum field) — clickable header row + optional
+ * expanded body. */
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+}
+.fieldGroupOpen .fieldRow {
+  /* Open group keeps the row visually anchored to its body. */
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.fieldRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  min-width: 0;
+}
+.fieldRow:hover {
+  background: var(--bg-input, #f3f4f6);
+}
+.fieldRowActive {
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.caret {
+  width: 10px;
+  font-size: 10px;
+  color: var(--text-tertiary, #9ca3af);
+  flex: 0 0 auto;
+}
+
+.fieldName {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fieldType {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: lowercase;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+}
+
+.fieldSpacer {
+  flex: 1;
+}
+
+/* Plain-text "N cases" — clearer than a dot+number badge and reads
+ * cleanly at any font size. Muted by default; the field row's hover
+ * background handles the affordance. */
+.fieldBadge {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #6b7280);
+  white-space: nowrap;
+}
+
+.fieldNoDc {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-tertiary, #9ca3af);
+  font-style: italic;
+}
+
+/* Expanded children — case rows with a small tree connector glyph.
+ * Indentation comes from padding-left so the connector lines up. */
+
+/* Expanded children — indented stack of case rows. The left border on
+ * the children container acts as the tree spine; per-row connectors
+ * are dropped (they were rendering as stray dashes in some fonts).
+ * Pure indentation reads as the tree without any glyph noise. */
+.fieldChildren {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 4px 8px 22px;
+  margin-left: 12px;
+  border-left: 1px solid var(--border-color, #e5e7eb);
+}
+
+.caseRow {
+  display: flex;
+  align-items: stretch;
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.caseRow:hover {
+  background: var(--bg-input, #f3f4f6);
+}
+.caseRowActive {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+.caseBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.caseValue {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.caseSnippet {
+  font-size: 10.5px;
+  color: var(--text-tertiary, #9ca3af);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.caseEmpty {
+  font-style: italic;
+  color: var(--text-tertiary, #d1d5db);
+}
+
+/* Fallback row — visually separated from the case rows with a thin
+ * divider above; icon makes "this is the catch-all, not another case"
+ * scannable at a glance. */
+.fallbackRow {
+  margin-top: 5px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-color, #e5e7eb);
+}
+
+.fallbackValue {
+  color: var(--text-secondary, #4b5563);
+  font-family: inherit;
+  font-weight: 600;
+  font-style: italic;
+}
+
+/* Quiet ghost-style detach link at the bottom of the expanded body.
+ * Tucked away because it's destructive and rarely needed; still
+ * accessible without resorting to a context menu. */
+.detachLink {
+  margin-top: 6px;
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-tertiary, #9ca3af);
+  cursor: pointer;
+}
+.detachLink:hover {
+  color: #b91c1c;
+  text-decoration: underline;
+}
+
+/* "No DC attached" expanded body. */
+.attachPrompt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg-input, #f3f4f6);
+  font-size: 12px;
+  color: var(--text-secondary, #4b5563);
+}
+
+.attachBtn {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--primary-color, #6366f1);
+  background: var(--primary-color, #6366f1);
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.attachBtn:hover {
+  filter: brightness(0.95);
+}
+
+/* ── Right pane: case editor ── */
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.editorHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+/* "Case" / "Fallback" kind label — small uppercase chip-style. */
+.editorHeaderKind {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary, #9ca3af);
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--bg-input, #f3f4f6);
+}
+
+.editorHeaderSep {
+  color: var(--text-tertiary, #9ca3af);
+}
+
+/* The field name reads as code — same as the rail. */
+.editorHeaderField {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.editorHeaderOp {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 13.5px;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+/* The matched value is the focal piece — primary tint pulls the eye. */
+.editorHeaderValue {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary-color, #6366f1);
+}
+
+.editorHint {
+  font-size: 11px;
+  color: var(--text-tertiary, #9ca3af);
+  line-height: 1.5;
+}
+
+.editorBody {
+  flex: 1;
+  min-height: 400px;
+}
+
+.empty {
+  padding: 36px 28px;
+  border: 1px dashed var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  text-align: center;
+  color: var(--text-tertiary, #9ca3af);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* Footer. */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.spacer { flex: 1; }

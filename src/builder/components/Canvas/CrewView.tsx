@@ -23,7 +23,6 @@ import { TitleBar } from '../TitleBar/TitleBar';
 import { ChainCanvas } from '../ChainCanvas/ChainCanvas';
 import { FieldsPanel } from '../FieldsPanel/FieldsPanel';
 import { ThinkingPanel } from '../ThinkingPanel/ThinkingPanel';
-import { TriggeredPanel } from '../TriggeredPanel/TriggeredPanel';
 import { VersionMenu } from '../VersionMenu/VersionMenu';
 import { VersionPill } from '../VersionMenu/VersionPill';
 import { BodyJsonModal } from '../BodyJsonModal/BodyJsonModal';
@@ -172,7 +171,6 @@ export function CrewView({ agent, crew }: Props) {
         <div className={styles.crewMain}>
           <ChainCanvas agent={agent} crew={crew} />
           <ThinkingPanel agentId={agent.id} crewId={crew.id} />
-          <TriggeredPanel agentId={agent.id} crewId={crew.id} />
         </div>
 
         <aside className={styles.crewSide}>

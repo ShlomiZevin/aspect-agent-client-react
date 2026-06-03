@@ -49,6 +49,7 @@ export function bodyOfAgent(agent: AgentDoc): AgentBody {
     fields: agent.fields,
     domains: agent.domains ?? [],
     parameters: agent.parameters ?? [],
+    dynamicContexts: agent.dynamicContexts ?? [],
   };
 }
 

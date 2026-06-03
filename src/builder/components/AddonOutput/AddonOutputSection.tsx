@@ -6,7 +6,7 @@
  * common case — Talker only speaks, extractors only write memory),
  * the row degrades to a small static badge so it doesn't pretend to
  * be interactive. Either way it sits at the same vertical rhythm as
- * the History/Triggered rows next to it.
+ * the History row next to it.
  */
 
 import { useBuilder } from '../../state/BuilderContext';

@@ -268,6 +268,119 @@
   background: rgba(220, 38, 38, 0.08);
 }
 
+/* Cross-link chip on a field row when a Dynamic Context is attached to
+ * that field. Click jumps straight to the DC editor with the field
+ * preselected — saves the user from hunting down the DC in the section
+ * above. Visual: small pill, cyan tint to match the 🎯 DC convention
+ * (different from the green liveValue and the indigo Wire button). */
+.dcChip {
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  background: rgba(6, 182, 212, 0.1);
+  color: #0e7490;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dcChip:hover {
+  background: rgba(6, 182, 212, 0.18);
+}
+
+/* ── Schema field row (declared agent field) ──
+ * Two-row layout: name + Wire on top, small metadata pills below.
+ * Replaces the older mishmash where everything tried to fit on one
+ * baseline-aligned line and wrapped awkwardly when space ran out. */
+
+.fieldRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--bg-surface, #fff);
+}
+
+.fieldRowTop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fieldRowName {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fieldRowName:hover {
+  color: var(--primary-color, #6366f1);
+}
+
+.fieldRowWire {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #d1d5db);
+  background: var(--bg-surface, #fff);
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fieldRowWire:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+}
+
+.fieldRowMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.fieldTypePill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+  text-transform: lowercase;
+}
+
+.fieldStatusWired {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #6b7280);
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--bg-input, #f3f4f6);
+}
+
+.fieldStatusUnwired {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #b45309;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.12);
+}
+
 /* ── Modal form ── */
 
 .form {
