@@ -92,11 +92,19 @@ export function DynamicContextModal({ open, onClose, agentId, initial }: Props) 
   const [activeFieldId, setActiveFieldId] = useState<ID>('');
   const [activeCaseKey, setActiveCaseKey] = useState<string>('');
   const [fieldModalOpen, setFieldModalOpen] = useState(false);
+  // Per-field input buffer for the inline "+ Add value" affordance.
+  // Keyed by fieldId so multiple expanded groups can each have their
+  // own in-progress entry without stomping each other.
+  const [newValueByField, setNewValueByField] = useState<Record<ID, string>>({});
 
+  // Seed the draft + selection only on modal-open transitions. We
+  // intentionally do NOT depend on `agent.fields` / `agent.dynamicContexts`
+  // here — when the user adds a value, removes one, or attaches a DC,
+  // those handlers update local state directly. Including those deps
+  // would re-run this effect on every field write and wipe the user's
+  // expanded set + active selection (the "page refreshed" bug).
   useEffect(() => {
     if (!open) return;
-    // Re-sync existing DC cases against their field's current enum
-    // values so a field rename / value add/remove shows up correctly.
     const synced = (agent?.dynamicContexts ?? []).map(dc => {
       const field = agent?.fields.find(f => f.id === dc.fieldId);
       return field ? syncCases(dc, field) : dc;
@@ -113,7 +121,8 @@ export function DynamicContextModal({ open, onClose, agentId, initial }: Props) 
       setActiveFieldId('');
       setActiveCaseKey('');
     }
-  }, [open, initial, agent?.dynamicContexts, agent?.fields]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initial?.id]);
 
   const dcByFieldId = useMemo(() => {
     const m = new Map<ID, DynamicContextDef>();
@@ -144,20 +153,105 @@ export function DynamicContextModal({ open, onClose, agentId, initial }: Props) 
     setActiveCaseKey(field.enumValues?.[0] ?? '');
   };
 
-  const handleDetach = async (fieldId: ID) => {
-    const field = agent?.fields.find(f => f.id === fieldId);
+  /**
+   * Append a new enum value to the field itself AND seed an empty
+   * case for it in the local DC draft.
+   *
+   * The field write commits to the doc immediately (it's a field-
+   * schema change — independent of whether the user later Saves or
+   * Cancels their DC text edits). The new case is added to the
+   * draft so when the user does Save, it lands with whatever text
+   * they typed in the right pane.
+   */
+  const handleAddValue = (fieldId: ID) => {
+    if (!agent) return;
+    const raw = newValueByField[fieldId] ?? '';
+    const value = raw.trim();
+    if (!value) return;
+    const field = agent.fields.find(f => f.id === fieldId);
+    if (!field) return;
+    const existing = field.enumValues ?? [];
+    if (existing.includes(value)) return; // silently ignore duplicates
+    // 1. Push the value onto the field's enumValues (immediate doc commit).
+    const nextFields = agent.fields.map(f =>
+      f.id === fieldId
+        ? { ...f, enumValues: [...existing, value] }
+        : f,
+    );
+    updateAgent(agentId, { fields: nextFields });
+    // 2. Mirror it in the local DC draft as an empty case.
+    setDraft(prev => prev.map(d =>
+      d.fieldId === fieldId
+        ? { ...d, cases: [...d.cases, { value, text: '' }] }
+        : d,
+    ));
+    // 3. Clear the input and focus the new case.
+    setNewValueByField(prev => ({ ...prev, [fieldId]: '' }));
+    setActiveFieldId(fieldId);
+    setActiveCaseKey(value);
+  };
+
+  /**
+   * Remove a value from the field's enumValues AND drop the matching
+   * case from the local DC draft. Field change commits immediately
+   * (schema-level); DC case removal lives in the draft until Save.
+   */
+  const handleRemoveValue = async (fieldId: ID, value: string) => {
+    if (!agent) return;
+    const field = agent.fields.find(f => f.id === fieldId);
+    if (!field) return;
     const ok = await confirm({
-      title:        `Detach Dynamic Context from ${field?.name ?? 'this field'}?`,
-      message:      'All authored cases for this field will be discarded. The field itself stays.',
-      confirmLabel: 'Detach',
+      title:        `Remove "${value}" from ${field.name}?`,
+      message:      'This deletes the enum value from the field and discards the text authored for that case. Other places that reference this value will see it disappear.',
+      confirmLabel: 'Remove',
       danger:       true,
     });
     if (!ok) return;
-    setDraft(prev => prev.filter(d => d.fieldId !== fieldId));
-    if (activeFieldId === fieldId) {
-      setActiveFieldId('');
+    const nextFields = agent.fields.map(f =>
+      f.id === fieldId
+        ? { ...f, enumValues: (f.enumValues ?? []).filter(v => v !== value) }
+        : f,
+    );
+    updateAgent(agentId, { fields: nextFields });
+    setDraft(prev => prev.map(d =>
+      d.fieldId === fieldId
+        ? { ...d, cases: d.cases.filter(c => c.value !== value) }
+        : d,
+    ));
+    if (activeFieldId === fieldId && activeCaseKey === value) {
       setActiveCaseKey('');
     }
+  };
+
+  /**
+   * Rename a case value — mirrors changes into the field's enumValues
+   * AND the DC draft's case array (preserving the text written for
+   * that case). No-op when blank, unchanged, or a duplicate of another
+   * value already on the field.
+   */
+  const handleRenameValue = (fieldId: ID, oldValue: string, raw: string) => {
+    if (!agent) return false;
+    const next = raw.trim();
+    if (!next || next === oldValue) return false;
+    const field = agent.fields.find(f => f.id === fieldId);
+    if (!field) return false;
+    const existing = field.enumValues ?? [];
+    if (existing.includes(next)) return false; // duplicate — silently refuse
+    const nextFields = agent.fields.map(f =>
+      f.id === fieldId
+        ? { ...f, enumValues: existing.map(v => (v === oldValue ? next : v)) }
+        : f,
+    );
+    updateAgent(agentId, { fields: nextFields });
+    setDraft(prev => prev.map(d =>
+      d.fieldId === fieldId
+        ? { ...d, cases: d.cases.map(c => (c.value === oldValue ? { ...c, value: next } : c)) }
+        : d,
+    ));
+    if (activeFieldId === fieldId && activeCaseKey === oldValue) {
+      setActiveCaseKey(next);
+    }
+    return true;
   };
 
   const handleCaseChange = (fieldId: ID, value: string, text: string) => {
@@ -280,52 +374,97 @@ export function DynamicContextModal({ open, onClose, agentId, initial }: Props) 
                     {isOpen && (
                       hasDc ? (
                         <div className={styles.fieldChildren}>
-                          {dc.cases.map(c => {
-                            const active = activeFieldId === field.id && activeCaseKey === c.value;
-                            return (
-                              <button
-                                key={c.value}
-                                type="button"
-                                className={`${styles.caseRow} ${active ? styles.caseRowActive : ''}`}
-                                onClick={() => {
-                                  setActiveFieldId(field.id);
-                                  setActiveCaseKey(c.value);
-                                }}
-                              >
-                                <div className={styles.caseBody}>
-                                  <span className={styles.caseValue}>{c.value}</span>
-                                  <span className={`${styles.caseSnippet} ${c.text ? '' : styles.caseEmpty}`}>
-                                    {c.text ? snippetOf(c.text) : '(empty)'}
-                                  </span>
+                          <div className={styles.subLabel}>
+                            When <code className={styles.subLabelField}>{field.name}</code> is…
+                          </div>
+                          <div className={styles.caseList}>
+                            {dc.cases.map(c => {
+                              const active = activeFieldId === field.id && activeCaseKey === c.value;
+                              return (
+                                <div
+                                  key={c.value}
+                                  className={`${styles.caseRow} ${active ? styles.caseRowActive : ''}`}
+                                  onClick={() => {
+                                    setActiveFieldId(field.id);
+                                    setActiveCaseKey(c.value);
+                                  }}
+                                  role="button"
+                                  tabIndex={0}
+                                >
+                                  <span className={styles.caseOp} aria-hidden>=</span>
+                                  <div className={styles.caseBody}>
+                                    <span className={styles.caseValue}>{c.value}</span>
+                                    {c.text ? (
+                                      <span className={styles.caseSnippet}>{snippetOf(c.text)}</span>
+                                    ) : (
+                                      <span className={styles.caseSnippetEmpty}>not yet written</span>
+                                    )}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className={styles.caseRemove}
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      handleRemoveValue(field.id, c.value);
+                                    }}
+                                    title={`Remove "${c.value}" from ${field.name}`}
+                                    aria-label={`Remove ${c.value}`}
+                                  >
+                                    ×
+                                  </button>
                                 </div>
+                              );
+                            })}
+                            <div className={styles.addValueRow}>
+                              <span className={styles.caseOp} aria-hidden>+</span>
+                              <input
+                                className={styles.addValueInput}
+                                value={newValueByField[field.id] ?? ''}
+                                onChange={e => setNewValueByField(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleAddValue(field.id);
+                                  }
+                                }}
+                                placeholder="add a value…"
+                                spellCheck={false}
+                              />
+                              <button
+                                type="button"
+                                className={styles.addValueBtn}
+                                onClick={() => handleAddValue(field.id)}
+                                disabled={!(newValueByField[field.id] ?? '').trim()}
+                              >
+                                Add
                               </button>
-                            );
-                          })}
-                          <button
-                            type="button"
-                            className={`${styles.caseRow} ${styles.fallbackRow} ${activeFieldId === field.id && activeCaseKey === FALLBACK_KEY ? styles.caseRowActive : ''}`}
-                            onClick={() => {
-                              setActiveFieldId(field.id);
-                              setActiveCaseKey(FALLBACK_KEY);
-                            }}
-                          >
-                            <div className={styles.caseBody}>
-                              <span className={`${styles.caseValue} ${styles.fallbackValue}`}>
-                                Fallback
-                              </span>
-                              <span className={`${styles.caseSnippet} ${dc.fallback ? '' : styles.caseEmpty}`}>
-                                {dc.fallback ? snippetOf(dc.fallback) : '(empty)'}
-                              </span>
                             </div>
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.detachLink}
-                            onClick={() => handleDetach(field.id)}
-                            title="Remove this Dynamic Context (the field stays)"
-                          >
-                            Detach from {field.name}
-                          </button>
+                          </div>
+
+                          <div className={`${styles.subLabel} ${styles.subLabelOtherwise}`}>
+                            Otherwise…
+                          </div>
+                          <div className={styles.caseList}>
+                            <div
+                              className={`${styles.caseRow} ${activeFieldId === field.id && activeCaseKey === FALLBACK_KEY ? styles.caseRowActive : ''}`}
+                              onClick={() => {
+                                setActiveFieldId(field.id);
+                                setActiveCaseKey(FALLBACK_KEY);
+                              }}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <span className={styles.caseOp} aria-hidden>↳</span>
+                              <div className={styles.caseBody}>
+                                <span className={`${styles.caseValue} ${styles.fallbackValue}`}>Fallback</span>
+                                {dc.fallback ? (
+                                  <span className={styles.caseSnippet}>{snippetOf(dc.fallback)}</span>
+                                ) : (
+                                  <span className={styles.caseSnippetEmpty}>not yet written</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       ) : (
                         <div className={styles.fieldChildren}>
@@ -388,7 +527,30 @@ export function DynamicContextModal({ open, onClose, agentId, initial }: Props) 
                   <span className={styles.editorHeaderSep}>·</span>
                   <span className={styles.editorHeaderField}>{activeField.name}</span>
                   <span className={styles.editorHeaderOp}>=</span>
-                  <span className={styles.editorHeaderValue}>{activeCase.value}</span>
+                  <input
+                    /* key forces remount when switching cases so the
+                     * uncontrolled defaultValue picks up the new value */
+                    key={`${activeField.id}/${activeCase.value}`}
+                    className={styles.editorHeaderValueInput}
+                    defaultValue={activeCase.value}
+                    onBlur={e => {
+                      const ok = handleRenameValue(activeField.id, activeCase.value, e.target.value);
+                      if (!ok) e.target.value = activeCase.value;
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        (e.currentTarget as HTMLInputElement).blur();
+                      }
+                      if (e.key === 'Escape') {
+                        e.preventDefault();
+                        (e.currentTarget as HTMLInputElement).value = activeCase.value;
+                        (e.currentTarget as HTMLInputElement).blur();
+                      }
+                    }}
+                    spellCheck={false}
+                    title="Click to rename this enum value"
+                  />
                 </div>
                 <p className={styles.editorHint}>
                   Rendered inline at <code>{`{{dynamic:${activeField.name}}}`}</code>
