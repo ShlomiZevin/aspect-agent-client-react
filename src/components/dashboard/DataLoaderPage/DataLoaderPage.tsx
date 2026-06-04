@@ -21,6 +21,11 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<'import' | 'index' | 'index-full' | 'cancel' | null>(null);
+  const [importMonths, setImportMonths] = useState<string>('');
+  const [importMonthsSource, setImportMonthsSource] = useState<'db' | 'env' | 'default'>('default');
+  const [importMonthsSupported, setImportMonthsSupported] = useState(false);
+  const [savingMonths, setSavingMonths] = useState(false);
+  const [monthsSaved, setMonthsSaved] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const currentRunRef = useRef<HTMLDivElement>(null);
 
@@ -139,9 +144,48 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
     };
   }
 
+  const loadSettings = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiBase}/settings`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setImportMonthsSupported(!!data.supported);
+      setImportMonthsSource(data.source ?? 'default');
+      setImportMonths(data.importMonths != null ? String(data.importMonths) : '0');
+    } catch {
+      // settings are optional — ignore failures
+    }
+  }, [apiBase]);
+
+  async function saveImportMonths() {
+    setSavingMonths(true);
+    setMonthsSaved(false);
+    try {
+      const res = await fetch(`${apiBase}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ importMonths: importMonths === '' ? null : Number(importMonths) }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      setImportMonthsSource(data.source ?? 'default');
+      setImportMonths(data.importMonths != null ? String(data.importMonths) : '0');
+      setMonthsSaved(true);
+      setTimeout(() => setMonthsSaved(false), 3000);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Failed to save import window');
+    } finally {
+      setSavingMonths(false);
+    }
+  }
+
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    loadSettings();
+  }, [loadData, loadSettings]);
 
   // Auto-connect SSE if already live on mount
   useEffect(() => {
@@ -335,6 +379,49 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
 
       <div className={styles.twoCol}>
         <div className={styles.leftCol}>
+          {importMonthsSupported && (
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Import Window</h2>
+                <span className={`${styles.sourceBadge} ${
+                  importMonthsSource === 'db' ? styles.sourceDb
+                  : importMonthsSource === 'env' ? styles.sourceEnv
+                  : styles.sourceDefault
+                }`}>
+                  {importMonthsSource === 'db' ? 'DB override' : importMonthsSource === 'env' ? 'env default' : 'default'}
+                </span>
+              </div>
+              <div className={styles.settingsBody}>
+                <p className={styles.settingsDesc}>
+                  Limit how much history is imported. Only the last N months of sales
+                  (relative to the latest sale date in the data) are loaded; <code>0</code> loads everything.
+                </p>
+                <div className={styles.settingsRow}>
+                  <input
+                    className={styles.settingsInput}
+                    type="number"
+                    min={0}
+                    value={importMonths}
+                    onChange={e => setImportMonths(e.target.value)}
+                    disabled={savingMonths}
+                  />
+                  <span className={styles.settingsUnit}>months</span>
+                  <button
+                    className={styles.confirmBtn}
+                    onClick={saveImportMonths}
+                    disabled={savingMonths}
+                  >
+                    {savingMonths ? 'Saving…' : 'Save'}
+                  </button>
+                  {monthsSaved && <span className={styles.savedMsg}>Saved</span>}
+                </div>
+                <p className={styles.settingsHint}>
+                  Applies on the next import. Clear the field and save to fall back to the env default.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Source Files</h2>
