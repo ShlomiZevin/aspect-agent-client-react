@@ -14,7 +14,7 @@
  * Persisted in localStorage so the choice survives reloads.
  */
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import styles from './BuilderSettings.module.css';
 
 export interface BuilderSettingsState {
