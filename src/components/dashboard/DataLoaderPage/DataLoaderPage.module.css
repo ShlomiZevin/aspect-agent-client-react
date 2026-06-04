@@ -505,6 +505,59 @@
   color: #fff;
 }
 
+/* ── Import Window settings ─────────────────────────────── */
+
+.settingsBody {
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.settingsDesc {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-md);
+}
+
+.settingsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.settingsInput {
+  width: 80px;
+  padding: 6px 10px;
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.settingsUnit {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.settingsHint {
+  margin: var(--spacing-sm) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.sourceBadge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+}
+
+.sourceDb      { background: #2e1a5e; color: #a78bfa; }
+.sourceEnv     { background: var(--surface-light); color: var(--text-secondary); }
+.sourceDefault { background: var(--surface-light); color: var(--text-muted); }
+
+.savedMsg { color: #22c55e; font-size: var(--font-size-sm); }
+
 /* ── Misc ───────────────────────────────────────────────── */
 
 .loading {
