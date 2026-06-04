@@ -122,7 +122,7 @@ function AppContent() {
           }
         />
         <Route
-          path="/:agent/builder"
+          path="/:agent/builder/*"
           element={
             <Suspense fallback={<div style={{ padding: 40 }}>Loading builder…</div>}>
               <BuilderPage />

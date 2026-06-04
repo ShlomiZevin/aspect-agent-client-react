@@ -207,8 +207,76 @@ function migrateDraft(raw: unknown): ProjectDoc {
     if (!agentAny.viewingVersionId && agentAny.activeVersionId) {
       agentAny.viewingVersionId = agentAny.activeVersionId;
     }
+
+    // Step 7 — DC sections: lift per-case `sections: [{name,text}]` up
+    // to `dc.sections: [{name}]` (shared across cases) and convert each
+    // case's section list to `sectionTexts: {name: text}`. Idempotent.
+    const dcAny = a as unknown as { dynamicContexts?: unknown[] };
+    if (Array.isArray(dcAny.dynamicContexts)) {
+      for (const dc of dcAny.dynamicContexts) migrateDynamicContext(dc);
+    }
+    // Also migrate any DCs sitting on saved agent versions — those get
+    // surfaced as the working copy whenever the user switches viewing.
+    for (const v of (agentAny.versions ?? []) as Array<{ body?: { dynamicContexts?: unknown[] } }>) {
+      if (v?.body && Array.isArray(v.body.dynamicContexts)) {
+        for (const dc of v.body.dynamicContexts) migrateDynamicContext(dc);
+      }
+    }
   }
   return doc;
+}
+
+/**
+ * Lift legacy `case.sections: [{name,text}]` to the new shape:
+ *   - declared section NAMES live on `dc.sections: [{name}]`
+ *   - per-case bodies live on `case.sectionTexts: {name: text}`
+ *
+ * Pure mutation on the supplied DC. Idempotent — re-running on an
+ * already-migrated DC is a no-op (no `case.sections` left to copy).
+ *
+ * Why mutate in place: this is a draft-storage migration, called once
+ * on each load; doing a deep clone here would just double the work
+ * the JSON parse already did.
+ */
+function migrateDynamicContext(rawDc: unknown): void {
+  const dc = rawDc as {
+    sections?: Array<{ name: string }>;
+    cases?: Array<{
+      value: string;
+      sections?: Array<{ name: string; text: string }>;
+      sectionTexts?: Record<string, string>;
+    }>;
+  };
+  if (!dc || !Array.isArray(dc.cases)) return;
+
+  // Collect every distinct section name found on any case, preserving
+  // the first-seen order so saved orderings stay stable.
+  const declared = new Set<string>((dc.sections ?? []).map(s => s.name));
+  const inOrder: string[] = (dc.sections ?? []).map(s => s.name);
+
+  for (const c of dc.cases) {
+    if (!Array.isArray(c.sections)) continue;
+    const texts: Record<string, string> = { ...(c.sectionTexts ?? {}) };
+    for (const s of c.sections) {
+      if (!s || typeof s.name !== 'string') continue;
+      if (!declared.has(s.name)) {
+        declared.add(s.name);
+        inOrder.push(s.name);
+      }
+      // First-seen text wins to keep migration deterministic. Authors
+      // rarely have collisions; if they do, the body editor is one
+      // click away.
+      if (!(s.name in texts) && typeof s.text === 'string') {
+        texts[s.name] = s.text;
+      }
+    }
+    c.sectionTexts = texts;
+    delete c.sections;
+  }
+
+  if (inOrder.length > 0) {
+    dc.sections = inOrder.map(name => ({ name }));
+  }
 }
 
 export function loadDraft(agentSlug: string): ProjectDoc | null {

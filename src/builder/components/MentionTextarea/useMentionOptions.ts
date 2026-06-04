@@ -144,10 +144,17 @@ export function useMentionOptions(agentId: ID): MentionOptions {
     }];
 
     // ── *  Dynamic context ───────────────────────────────────────
-    // One entry per declared DC. Each switches on a single field's
-    // current value at runtime; selecting one inserts
-    // `{{dynamic:<fieldname>}}`. We resolve fieldId → field.name from
-    // agent.fields (the only scope where DCs can be authored today).
+    // One entry per declared DC field switches on the field's current
+    // value at runtime; selecting it inserts `{{dynamic:<fieldname>}}`.
+    // Per the v2 sections design (sections are declared on the DC and
+    // shared across every case), we also emit:
+    //   • one entry per section name declared on the DC —
+    //     `{{dynamic:<fieldname>:<section>}}`. Same address space for
+    //     every case; the runtime resolves the body from the matched
+    //     case's `sectionTexts`.
+    //   • an "all sections" entry — `{{dynamic:<fieldname>:*}}` — the
+    //     convenience "give me every section under the matching case
+    //     as headed blocks" form.
     const star: MentionOption[] = [];
     const fieldsById = new Map<string, { name: string; enumValues?: string[] }>();
     for (const f of agent.fields ?? []) {
@@ -157,12 +164,32 @@ export function useMentionOptions(agentId: ID): MentionOptions {
       const field = fieldsById.get(dc.fieldId);
       if (!field) continue; // orphan DC (field deleted) — skip silently
       const caseCount = Array.isArray(dc.cases) ? dc.cases.length : 0;
+      const groupLabel = `Dynamic context · ${field.name}`;
       star.push({
         label:     field.name,
         insertion: `{{dynamic:${field.name}}}`,
-        group:     'Dynamic context',
-        description: `Switches on "${field.name}" — ${caseCount} case${caseCount === 1 ? '' : 's'}.`,
+        group:     groupLabel,
+        description: `Switches on "${field.name}" — ${caseCount} case${caseCount === 1 ? '' : 's'}. Inserts the matching case's umbrella prompt.`,
       });
+      const declaredSections = (dc.sections ?? [])
+        .map(s => s?.name)
+        .filter((n): n is string => typeof n === 'string' && n.length > 0);
+      if (declaredSections.length > 0) {
+        star.push({
+          label:     `${field.name}: *  (all sections)`,
+          insertion: `{{dynamic:${field.name}:*}}`,
+          group:     groupLabel,
+          description: `Joins every section declared on "${field.name}" as headed blocks (only sections with a body under the matched case render).`,
+        });
+        for (const sec of declaredSections) {
+          star.push({
+            label:     `${field.name}: ${sec}`,
+            insertion: `{{dynamic:${field.name}:${sec}}}`,
+            group:     groupLabel,
+            description: `The "${sec}" section under whichever case "${field.name}" matches.`,
+          });
+        }
+      }
     }
 
     return { '@': at, '!': bang, '#': hash, '^': caret, '*': star };

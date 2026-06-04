@@ -48,6 +48,9 @@ import styles from './ChatPanel.module.css';
  */
 interface DynamicResolution {
   fieldName: string;
+  /** `null` for the umbrella `{{dynamic:F}}`, the section name for
+   *  `{{dynamic:F:S}}`, or `'*'` for the all-sections join. */
+  section: string | null;
   matched: string | null; // null = fell through to fallback / empty
   text: string;
 }
@@ -390,18 +393,21 @@ export function UserChat() {
         return;
       case 'dynamic.resolved':
         // Append one resolution per server event. We de-dup by
-        // fieldName + matched so the same DC resolving twice in one
-        // turn (e.g. referenced in both Talker and Thinker prompts)
-        // shows once rather than twice.
+        // fieldName + section + matched so the same DC resolving twice
+        // in one turn (e.g. referenced in both Talker and Thinker
+        // prompts) shows once rather than twice — but distinct token
+        // forms ({{dynamic:F}}, {{dynamic:F:S}}, {{dynamic:F:*}}) all
+        // surface separately because the user authored them for a
+        // reason.
         updateLastTurn(t => {
           const existing = t.dynamicResolutions ?? [];
-          const dedupKey = `${e.fieldName}::${e.matched ?? ''}`;
-          if (existing.some(r => `${r.fieldName}::${r.matched ?? ''}` === dedupKey)) return t;
+          const dedupKey = `${e.fieldName}::${e.section ?? ''}::${e.matched ?? ''}`;
+          if (existing.some(r => `${r.fieldName}::${r.section ?? ''}::${r.matched ?? ''}` === dedupKey)) return t;
           return {
             ...t,
             dynamicResolutions: [
               ...existing,
-              { fieldName: e.fieldName, matched: e.matched, text: e.text },
+              { fieldName: e.fieldName, section: e.section, matched: e.matched, text: e.text },
             ],
           };
         });
@@ -787,11 +793,14 @@ function DynamicTrail({ resolutions }: { resolutions: DynamicResolution[] }) {
     <div className={styles.dynamicTrail}>
       {resolutions.map((r, i) => (
         <div
-          key={`${r.fieldName}-${r.matched ?? '_none'}-${i}`}
+          key={`${r.fieldName}-${r.section ?? '_u'}-${r.matched ?? '_none'}-${i}`}
           className={styles.dynamicTrailRow}
           title={r.text || 'No text — fallback was empty.'}
         >
           🎯 <span className={styles.dynamicTrailField}>{r.fieldName}</span>
+          {r.section !== null && (
+            <> : <span className={styles.dynamicTrailField}>{r.section}</span></>
+          )}
           {r.matched !== null ? (
             <> = <span className={styles.dynamicTrailValue}>{r.matched}</span></>
           ) : (

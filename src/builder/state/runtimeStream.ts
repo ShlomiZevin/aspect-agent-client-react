@@ -42,13 +42,19 @@ export type RuntimeEvent =
   | { type: 'assistant.message'; messageId: number; text: string }
   /**
    * Dynamic Context resolution surfaced for the live chat trail.
-   * Emitted once per `{{dynamic:NAME}}` token that the assembler
-   * actually resolved this turn — including the no-match case (where
-   * `matched` is null and `text` is the fallback or '').
+   * Emitted once per dynamic-context token that the assembler actually
+   * resolved this turn — including the no-match case (where `matched`
+   * is null and `text` is the umbrella fallback or '').
+   *
+   * `section` distinguishes the three token forms:
+   *   - `null`   for `{{dynamic:FIELD}}`        (umbrella)
+   *   - section  for `{{dynamic:FIELD:SECTION}}` (single section)
+   *   - `'*'`    for `{{dynamic:FIELD:*}}`      (all sections joined)
    */
   | { type: 'dynamic.resolved';
       instanceId: string;
       fieldName: string;
+      section: string | null;
       matched: string | null;
       text: string;
     }

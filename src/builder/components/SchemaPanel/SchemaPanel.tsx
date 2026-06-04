@@ -13,13 +13,13 @@
  */
 
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { useAgentFields } from '../../state/useAgentFields';
 import { DomainModal } from './DomainModal';
 import { ParameterModal } from './ParameterModal';
 import { SchemaFieldModal } from './SchemaFieldModal';
 import { WireFieldModal } from './WireFieldModal';
-import { DynamicContextModal } from './DynamicContextModal';
 import type { DynamicContextDef, FieldDef, ID, ParameterDef } from '../../types';
 import styles from './SchemaPanel.module.css';
 
@@ -28,44 +28,19 @@ interface Props {
 }
 
 export function SchemaPanel({ agentId }: Props) {
-  // DC editor is owned here so both DynamicContextsSection AND
-  // FieldsSection can open it. From the DCs section the user opens
-  // an existing DC; from a Field row, the cross-link 🎯 chip opens
-  // the DC attached to that field.
-  const [dcModalOpen, setDcModalOpen] = useState(false);
-  const [dcInitial,    setDcInitial]    = useState<DynamicContextDef | null>(null);
-  const openDcAdd  = () => { setDcInitial(null); setDcModalOpen(true); };
-  const openDcEdit = (dc: DynamicContextDef) => { setDcInitial(dc); setDcModalOpen(true); };
-
   return (
     <div className={styles.stack}>
       <ParametersSection agentId={agentId} />
-      <DynamicContextsSection
-        agentId={agentId}
-        openAdd={openDcAdd}
-        openEdit={openDcEdit}
-      />
+      <DynamicContextsSection agentId={agentId} />
       <DomainsSection agentId={agentId} />
-      <FieldsSection agentId={agentId} openDcEdit={openDcEdit} />
-      <DynamicContextModal
-        open={dcModalOpen}
-        onClose={() => setDcModalOpen(false)}
-        agentId={agentId}
-        initial={dcInitial}
-      />
+      <FieldsSection agentId={agentId} />
     </div>
   );
 }
 
 /* ─── Dynamic Context ─────────────────────────────────────────── */
 
-function DynamicContextsSection({
-  agentId, openAdd, openEdit,
-}: {
-  agentId: ID;
-  openAdd: () => void;
-  openEdit: (dc: DynamicContextDef) => void;
-}) {
+function DynamicContextsSection({ agentId }: { agentId: ID }) {
   const { doc } = useBuilder();
   const agent = doc.agents.find(a => a.id === agentId);
   const dcs = useMemo(() => agent?.dynamicContexts ?? [], [agent?.dynamicContexts]);
@@ -76,15 +51,20 @@ function DynamicContextsSection({
     return map;
   }, [agent?.fields]);
 
+  const slug = agent?.slug ?? '';
+
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
         <span className={styles.title}>🎯 Dynamic context</span>
         <span className={styles.count}>{dcs.length}</span>
         <span className={styles.spacer} />
-        <button type="button" className={styles.addBtn} onClick={openAdd}>
+        <Link
+          to={`/${slug}/builder/dynamic-context`}
+          className={styles.addBtn}
+        >
           + Add
-        </button>
+        </Link>
       </div>
 
       {dcs.length === 0 ? (
@@ -99,11 +79,12 @@ function DynamicContextsSection({
             const field = fieldNameById.get(dc.fieldId);
             const caseCount = Array.isArray(dc.cases) ? dc.cases.length : 0;
             return (
-              <button
+              <Link
                 key={dc.id}
-                type="button"
+                to={field
+                  ? `/${slug}/builder/dynamic-context/${encodeURIComponent(field.name)}`
+                  : `/${slug}/builder/dynamic-context`}
                 className={styles.paramRow}
-                onClick={() => openEdit(dc)}
               >
                 <div className={styles.paramHead}>
                   <span className={styles.paramName}>
@@ -120,7 +101,7 @@ function DynamicContextsSection({
                     Reference as <code>{`{{dynamic:${field.name}}}`}</code>
                   </span>
                 )}
-              </button>
+              </Link>
             );
           })}
         </div>
@@ -320,12 +301,7 @@ function ParametersSection({ agentId }: { agentId: ID }) {
 
 /* ─── Fields (agent-level declarations) ──────────────────────── */
 
-function FieldsSection({
-  agentId, openDcEdit,
-}: {
-  agentId: ID;
-  openDcEdit: (dc: DynamicContextDef) => void;
-}) {
+function FieldsSection({ agentId }: { agentId: ID }) {
   const { allFields } = useAgentFields(agentId);
   const {
     doc,
@@ -422,7 +398,7 @@ function FieldsSection({
               canClearLive={previewConversationId !== null}
               onClearLive={onClearLive}
               dcByFieldId={dcByFieldId}
-              onOpenDc={openDcEdit}
+              agentSlug={agent?.slug ?? ''}
             />
           ))}
           {grouped.orphan.length > 0 && (
@@ -435,7 +411,7 @@ function FieldsSection({
               liveValueByField={liveValueByField}
               canClearLive={previewConversationId !== null}
               dcByFieldId={dcByFieldId}
-              onOpenDc={openDcEdit}
+              agentSlug={agent?.slug ?? ''}
               onClearLive={onClearLive}
             />
           )}
@@ -466,7 +442,7 @@ function formatLiveValue(v: unknown): string {
 function FieldsGroup({
   label, fields, onPick, onWire, extractorCountFor,
   liveValueByField, canClearLive, onClearLive,
-  dcByFieldId, onOpenDc,
+  dcByFieldId, agentSlug,
 }: {
   label: string;
   fields: FieldDef[];
@@ -477,7 +453,7 @@ function FieldsGroup({
   canClearLive: boolean;
   onClearLive: (name: string) => Promise<void> | void;
   dcByFieldId: Map<string, DynamicContextDef>;
-  onOpenDc: (dc: DynamicContextDef) => void;
+  agentSlug: string;
 }) {
   return (
     <div>
@@ -552,14 +528,13 @@ function FieldsGroup({
                   </span>
                 )}
                 {hasDc && (
-                  <button
-                    type="button"
+                  <Link
+                    to={`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(f.name)}`}
                     className={styles.dcChip}
-                    onClick={() => onOpenDc(dcByFieldId.get(f.id)!)}
                     title={`Open the Dynamic Context attached to ${f.name}`}
                   >
                     🎯 dynamic
-                  </button>
+                  </Link>
                 )}
               </div>
 

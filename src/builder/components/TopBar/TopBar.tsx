@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useMatch } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
+import { useAgentVersion, useCrewVersion } from '../../state/useEntityVersion';
 import { useConfirm } from '../Confirm/Confirm';
 import { useAnyDirty } from '../../hooks/useAutoSave';
+import { VersionMenu } from '../VersionMenu/VersionMenu';
 import { BuilderSettingsPopover, useBuilderSettings } from './BuilderSettings';
 import styles from './TopBar.module.css';
 
@@ -32,6 +34,7 @@ export function TopBar() {
       <span className={styles.divider}>·</span>
       <span className={styles.subject}>{doc.name}</span>
       <span className={styles.spacer} />
+      <TopBarVersionMenu />
       {settings.autoSave && (
         <SaveStatusChip
           autoSaveBlocked={!!pendingAlfredApply}
@@ -62,6 +65,39 @@ export function TopBar() {
       </div>
     </>
   );
+}
+
+/**
+ * Context-aware VersionMenu hosted in the TopBar — global Save / Save
+ * as / Discard / ⭐ Set as active for whichever entity the user is
+ * editing. Picks the right entity based on selection + URL:
+ *
+ *   - `selection.level === 'crew'` AND the URL is the default builder
+ *     route → crew controls (with cross-dirty agent save folded in).
+ *   - Otherwise (agent view, project view, or any of the
+ *     `/dynamic-context/*` routes) → agent controls.
+ *
+ * Both `useAgentVersion` and `useCrewVersion` are called every render
+ * to satisfy the rules of hooks; whichever doesn't apply returns null
+ * and is ignored.
+ */
+function TopBarVersionMenu() {
+  const { selection } = useBuilder();
+  const agentId = selection.agentId ?? '';
+  const crewId  = selection.crewId  ?? '';
+  // The DC route lives on the agent body even when selection.level
+  // still says 'crew' (the user can navigate via the schema panel's
+  // 🎯 chip without changing crew selection). Match the URL to force
+  // agent-mode in that case.
+  const onDcRoute = useMatch('/:agent/builder/dynamic-context/*');
+
+  const agentVersion = useAgentVersion(agentId);
+  const crewVersion  = useCrewVersion(agentId, crewId);
+
+  const useCrew = selection.level === 'crew' && !onDcRoute && crewVersion;
+  const state   = useCrew ? crewVersion! : agentVersion;
+  if (!state) return null;
+  return <VersionMenu state={state} />;
 }
 
 /**

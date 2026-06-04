@@ -25,7 +25,6 @@ import { useMentionOptions } from '../MentionTextarea/useMentionOptions';
 import { useAgentVersion } from '../../state/useEntityVersion';
 import { TitleBar } from '../TitleBar/TitleBar';
 import { VersionPill } from '../VersionMenu/VersionPill';
-import { VersionMenu } from '../VersionMenu/VersionMenu';
 import { SchemaPanel } from '../SchemaPanel/SchemaPanel';
 import { BodyJsonModal } from '../BodyJsonModal/BodyJsonModal';
 import { ValidateAndLogModal } from '../ValidateAndLogModal/ValidateAndLogModal';
@@ -62,17 +61,11 @@ export function AgentView({ agent }: Props) {
     t => !t.applied && t.entity === 'agent' && t.entityId === agent.id,
   );
 
-  // Working-copy AgentBody view. Crews live outside the agent body
-  // (each has its own version history) so we don't include them here —
-  // matches what the patch generator will see in P5.2.
-  const agentBody = {
-    name:          agent.name,
-    slug:          agent.slug,
-    spec:          agent.spec,
-    persona:       agent.persona,
-    defaultCrewId: agent.defaultCrewId,
-    fields:        agent.fields,
-  };
+  // Debug viewer — show the working-copy AgentDoc as-is, minus the
+  // two heavy nested collections (crews each have their own viewer;
+  // versions are history, not current state). Anything else added to
+  // AgentDoc later shows up automatically.
+  const agentBody = { ...agent, versions: undefined, crews: undefined };
 
   return (
     <>
@@ -113,10 +106,11 @@ export function AgentView({ agent }: Props) {
         }
       >
         {versionState && (
-          <>
-            <VersionPill state={versionState} />
-            <VersionMenu state={versionState} />
-          </>
+          /* Save / Save as / Discard / ⭐ Set as active live in the
+             TopBar globally. Keep the pill here for at-a-glance
+             "what version am I editing" without bouncing your eye to
+             the top of the page. */
+          <VersionPill state={versionState} />
         )}
       </TitleBar>
 

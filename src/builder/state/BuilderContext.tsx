@@ -465,11 +465,14 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
 
 
   // First agent is the implicit "current" agent during this session.
+  // We land on the agent view by default — the crew view is one click
+  // away in the sidebar, and the agent surface (persona, schema,
+  // dynamic context, parameters) is what most refreshes are about.
   const initialAgentId = doc.agents[0]?.id;
   const initialCrewId = doc.agents[0]?.defaultCrewId ?? doc.agents[0]?.crews[0]?.id;
 
   const [selection, setSelection] = useState<BuilderSelection>({
-    level: 'crew',
+    level: 'agent',
     agentId: initialAgentId,
     crewId: initialCrewId,
   });

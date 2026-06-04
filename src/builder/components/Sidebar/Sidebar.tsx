@@ -5,6 +5,7 @@
  * what the center canvas renders.
  */
 
+import { useNavigate, useParams } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { useConfirm } from '../Confirm/Confirm';
 import styles from './Sidebar.module.css';
@@ -12,7 +13,29 @@ import styles from './Sidebar.module.css';
 export function Sidebar() {
   const { doc, selection, setSelection, addCrew, removeCrew, isCrewDirty, isAgentDirty } = useBuilder();
   const confirm = useConfirm();
+  const navigate = useNavigate();
+  // Read the agent slug from the URL — that's the source of truth for
+  // the builder route. Going through the URL avoids races with the
+  // doc-derived `agent` (which can be undefined during the very first
+  // render, before fetchProject resolves).
+  const { agent: urlAgentSlug } = useParams<{ agent: string }>();
   const agent = doc.agents.find(a => a.id === selection.agentId) ?? doc.agents[0];
+
+  /**
+   * Pop back to the builder's index route any time the user picks
+   * something in the sidebar. Sibling routes (e.g. /dynamic-context/…)
+   * are URL-mounted, so without this they would keep rendering even
+   * though selection moved to project/agent/crew. React Router treats
+   * same-URL navigations as no-ops, so we don't need to check whether
+   * we're currently on a sibling route.
+   *
+   * Source of truth for the slug is `useParams` (URL), not
+   * `agent?.slug` (doc) — the URL is set the moment BuilderPage
+   * mounts, while doc lags behind by a fetch.
+   */
+  const goHome = () => {
+    if (urlAgentSlug) navigate(`/${urlAgentSlug}/builder`);
+  };
 
   /**
    * Delete a crew with confirmation. Blocks deletion of the agent's
@@ -63,7 +86,7 @@ export function Sidebar() {
         <button
           type="button"
           className={`${styles.row} ${isProjectSel ? styles.rowActive : ''}`}
-          onClick={() => setSelection({ level: 'project' })}
+          onClick={() => { goHome(); setSelection({ level: 'project' }); }}
         >
           <span className={styles.rowIcon}>📁</span>
           <div className={styles.rowText}>
@@ -79,7 +102,7 @@ export function Sidebar() {
             <button
               type="button"
               className={`${styles.row} ${isAgentSel ? styles.rowActive : ''}`}
-              onClick={() => setSelection({ level: 'agent', agentId: agent.id })}
+              onClick={() => { goHome(); setSelection({ level: 'agent', agentId: agent.id }); }}
             >
               <span className={styles.rowIcon}>🤖</span>
               <div className={styles.rowText}>
@@ -109,6 +132,7 @@ export function Sidebar() {
                 type="button"
                 className={styles.addBtn}
                 onClick={() => {
+                  goHome();
                   const crew = addCrew(agent.id);
                   setSelection({ level: 'crew', agentId: agent.id, crewId: crew.id });
                 }}
@@ -131,9 +155,10 @@ export function Sidebar() {
                     <button
                       type="button"
                       className={styles.crewRowMain}
-                      onClick={() =>
-                        setSelection({ level: 'crew', agentId: agent.id, crewId: c.id })
-                      }
+                      onClick={() => {
+                        goHome();
+                        setSelection({ level: 'crew', agentId: agent.id, crewId: c.id });
+                      }}
                     >
                       <span className={styles.crewDot} />
                       <span className={styles.crewName}>{c.name}</span>

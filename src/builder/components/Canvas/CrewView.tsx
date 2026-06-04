@@ -23,7 +23,6 @@ import { TitleBar } from '../TitleBar/TitleBar';
 import { ChainCanvas } from '../ChainCanvas/ChainCanvas';
 import { FieldsPanel } from '../FieldsPanel/FieldsPanel';
 import { ThinkingPanel } from '../ThinkingPanel/ThinkingPanel';
-import { VersionMenu } from '../VersionMenu/VersionMenu';
 import { VersionPill } from '../VersionMenu/VersionPill';
 import { BodyJsonModal } from '../BodyJsonModal/BodyJsonModal';
 import { ValidateAndLogModal } from '../ValidateAndLogModal/ValidateAndLogModal';
@@ -54,16 +53,10 @@ export function CrewView({ agent, crew }: Props) {
     t => !t.applied && t.entity === 'crew' && t.entityId === crew.id,
   );
 
-  // Working-copy CrewBody view — same shape the patch generator will
-  // consume in P5.2.
-  const crewBody = {
-    name:        crew.name,
-    description: crew.description,
-    spec:        crew.spec,
-    persona:     crew.persona,
-    addons:      crew.addons,
-    fields:      crew.fields,
-  };
+  // Debug viewer — show the working-copy CrewDoc as-is, minus the
+  // version history. Anything else added to CrewDoc later shows up
+  // automatically.
+  const crewBody = { ...crew, versions: undefined };
 
   return (
     <>
@@ -104,10 +97,10 @@ export function CrewView({ agent, crew }: Props) {
         }
       >
         {versionState && (
-          <>
-            <VersionPill state={versionState} />
-            <VersionMenu state={versionState} />
-          </>
+          /* Save / Save as / Discard / ⭐ Set as active live in the
+             TopBar globally. Keep the pill here for quick "what
+             version am I editing" feedback. */
+          <VersionPill state={versionState} />
         )}
       </TitleBar>
 

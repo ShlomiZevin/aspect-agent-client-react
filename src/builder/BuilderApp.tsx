@@ -10,12 +10,13 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Route, Routes } from 'react-router-dom';
 import { BuilderProvider, emptyProject } from './state/BuilderContext';
 import { BuilderLayout } from './components/BuilderLayout/BuilderLayout';
 import { TopBar } from './components/TopBar/TopBar';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { Canvas } from './components/Canvas/Canvas';
+import { DynamicContextScreen } from './components/DynamicContextScreen/DynamicContextScreen';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
 import { ConfirmProvider } from './components/Confirm/Confirm';
 import { useAutoSave } from './hooks/useAutoSave';
@@ -180,7 +181,19 @@ function BuilderShell() {
     <BuilderLayout
       topBar={<TopBar />}
       sidebar={<Sidebar />}
-      center={<Canvas />}
+      center={
+        <Routes>
+          {/* Default: project / agent / crew views driven by selection. */}
+          <Route index element={<Canvas />} />
+          {/* Dynamic Context: bookmarkable at every level. The screen
+              reads its own params (fieldName / value / section) so a
+              single route component covers the four nesting depths. */}
+          <Route path="dynamic-context" element={<DynamicContextScreen />} />
+          <Route path="dynamic-context/:fieldName" element={<DynamicContextScreen />} />
+          <Route path="dynamic-context/:fieldName/:value" element={<DynamicContextScreen />} />
+          <Route path="dynamic-context/:fieldName/:value/:section" element={<DynamicContextScreen />} />
+        </Routes>
+      }
       chat={<ChatPanel />}
     />
   );
