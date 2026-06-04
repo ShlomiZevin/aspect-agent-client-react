@@ -22,6 +22,7 @@ import { ConfirmProvider } from './components/Confirm/Confirm';
 import { useAutoSave } from './hooks/useAutoSave';
 import { loadModelsFromServer } from './registry/providerModels';
 import { bootstrapProject, fetchProject } from './state/builderApi';
+import type { ProjectDoc } from './types';
 import gateStyles from './BuilderApp.module.css';
 
 // Side effect: register all built-in plugins.
@@ -49,7 +50,7 @@ function getOrCreateOwnerUserId(): string {
 
 type GateState =
   | { kind: 'checking' }
-  | { kind: 'exists' }
+  | { kind: 'loaded'; doc: ProjectDoc }
   | { kind: 'missing' }
   | { kind: 'creating' }
   | { kind: 'error'; message: string };
@@ -66,15 +67,15 @@ export function BuilderApp({ agentSlug }: Props) {
 
   const [gate, setGate] = useState<GateState>({ kind: 'checking' });
 
-  // Existence probe — re-runs when the slug or owner changes. Sets the
-  // gate to 'exists' on success, 'missing' on 404, or 'error' otherwise.
+  // Load the project once, here — BuilderProvider receives the doc as
+  // a prop so its render 1 is consistent (no placeholder swap mid-mount).
   useEffect(() => {
     let cancelled = false;
     setGate({ kind: 'checking' });
     fetchProject({ agentSlug, ownerUserId })
       .then(doc => {
         if (cancelled) return;
-        setGate({ kind: doc ? 'exists' : 'missing' });
+        setGate(doc ? { kind: 'loaded', doc } : { kind: 'missing' });
       })
       .catch(err => {
         if (cancelled) return;
@@ -89,7 +90,7 @@ export function BuilderApp({ agentSlug }: Props) {
       const proj = emptyProject(agentSlug);
       const agent = proj.agents[0];
       const crew = agent.crews[0];
-      await bootstrapProject({
+      const doc = await bootstrapProject({
         ownerUserId,
         projectId:      proj.id,
         projectName:    proj.name,
@@ -117,7 +118,9 @@ export function BuilderApp({ agentSlug }: Props) {
           fields:      crew.fields,
         },
       });
-      setGate({ kind: 'exists' });
+      // Use the server's canonical response as the seed for the
+      // provider — same path the load effect takes, no swap mid-mount.
+      setGate({ kind: 'loaded', doc });
     } catch (err) {
       setGate({ kind: 'error', message: err instanceof Error ? err.message : String(err) });
     }
@@ -160,9 +163,9 @@ export function BuilderApp({ agentSlug }: Props) {
     );
   }
 
-  // gate.kind === 'exists' — render the builder.
+  // gate.kind === 'loaded' — render the builder with the loaded doc.
   return (
-    <BuilderProvider agentSlug={agentSlug} ownerUserId={ownerUserId}>
+    <BuilderProvider agentSlug={agentSlug} ownerUserId={ownerUserId} initialDoc={gate.doc}>
       <ConfirmProvider>
         <BuilderShell />
       </ConfirmProvider>

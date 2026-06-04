@@ -1,18 +1,13 @@
 /**
  * useProjectSync — bridges the local `BuilderContext` to the
- * server-side persistence at `/api/builder/*`.
+ * server-side persistence at `/api/builder/*`. Provides imperative
+ * `pushXxx` helpers that the BuilderContext mutations call after
+ * they update local state. Each helper maps to one surgical endpoint.
  *
- * Responsibilities:
- *   1. On mount: fetch the project from the server for
- *      (agentSlug, ownerUserId) and pass it back via `onLoaded`.
- *      If the project doesn't exist (404), this hook does NOTHING —
- *      the BuilderApp guards the URL with a "create this agent?"
- *      gate BEFORE mounting BuilderProvider, so reaching the
- *      provider implies the project already exists. This avoids
- *      typo'd URLs silently creating phantom projects.
- *   2. Provide imperative `pushXxx` helpers that the
- *      BuilderContext mutations call after they update local state.
- *      Each helper maps to one surgical endpoint.
+ * Loading is handled by BuilderApp before BuilderProvider mounts —
+ * the loaded doc is passed in as `initialDoc`. That keeps render 1
+ * consistent: selection, draft persistence, and every other piece of
+ * state initialized from `doc` see the real shape, not a placeholder.
  *
  * Notes:
  *   - Client generates all IDs (matches `uid()`). Server stores
@@ -21,7 +16,6 @@
  *     comes in a follow-up.
  */
 
-import { useEffect, useRef } from 'react';
 import * as api from './builderApi';
 import type {
   AgentBody,
@@ -29,7 +23,6 @@ import type {
   CrewBody,
   CrewDoc,
   ID,
-  ProjectDoc,
 } from '../types';
 
 /**
@@ -85,41 +78,13 @@ export interface ProjectSyncApi {
 }
 
 /**
- * Load (or bootstrap) the project for an agent slug. Calls
- * `onLoaded` with the hydrated doc. After that, returns push
- * helpers the caller can wire into BuilderContext mutations.
+ * Returns push helpers the caller wires into BuilderContext mutations.
+ * Loading is owned by BuilderApp; this hook is push-only.
  */
-export function useProjectSync(args: {
+export function useProjectSync(_args: {
   agentSlug: string;
   ownerUserId: string;
-  onLoaded: (doc: ProjectDoc) => void;
 }): ProjectSyncApi {
-  const { agentSlug, ownerUserId, onLoaded } = args;
-  const didLoadRef = useRef(false);
-
-  useEffect(() => {
-    if (didLoadRef.current) return;
-    didLoadRef.current = true;
-    (async () => {
-      try {
-        const existing = await api.fetchProject({ agentSlug, ownerUserId });
-        if (existing) {
-          onLoaded(existing);
-          return;
-        }
-        // 404 here would mean the BuilderApp gate didn't do its job.
-        // Don't silently bootstrap — that's how typo'd URLs end up as
-        // phantom projects. Log loudly so the misuse is visible.
-        console.error(
-          '[builder] useProjectSync: project not found on server. ' +
-          'BuilderApp should have gated this.',
-        );
-      } catch (err) {
-        console.error('[builder] useProjectSync load failed:', err);
-      }
-    })();
-  }, [agentSlug, ownerUserId, onLoaded]);
-
   return {
     pushSaveAgentVersion: async agent => {
       try {

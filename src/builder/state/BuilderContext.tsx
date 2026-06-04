@@ -431,11 +431,18 @@ interface ProviderProps {
   agentSlug: string;
   /** localStorage dummy user id — same pattern as v1 today. */
   ownerUserId: string;
+  /** The project doc, already loaded by BuilderApp. The provider
+   *  initializes its working copy from a local draft (if any) falling
+   *  back to this. Passing the loaded doc as a prop — instead of
+   *  re-fetching inside the provider — keeps render 1 consistent: the
+   *  selection state, draft persistence, and every other piece of
+   *  state initialized from `doc` see the real shape, not a placeholder. */
+  initialDoc: ProjectDoc;
   children: ReactNode;
 }
 
-export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderProps) {
-  const [doc, setDoc] = useState<ProjectDoc>(() => loadDraft(agentSlug) ?? emptyProject(agentSlug));
+export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }: ProviderProps) {
+  const [doc, setDoc] = useState<ProjectDoc>(() => loadDraft(agentSlug) ?? initialDoc);
 
   // Mirror `doc` in a ref so mutations can compute the next state
   // synchronously from the current state, *before* calling setDoc.
@@ -452,13 +459,12 @@ export function BuilderProvider({ agentSlug, ownerUserId, children }: ProviderPr
   const docRef = useRef<ProjectDoc>(doc);
   docRef.current = doc;
 
-  // Bridge to server-side persistence. Loads (or bootstraps) the
-  // doc on mount, then provides push helpers wired into the
-  // mutations below.
+  // Bridge to server-side persistence. The provider receives the
+  // already-loaded doc as a prop, so this hook only owns the push
+  // helpers used by mutations below.
   const sync: ProjectSyncApi = useProjectSync({
     agentSlug,
     ownerUserId,
-    onLoaded: setDoc,
   });
   const syncRef = useRef<ProjectSyncApi>(sync);
   syncRef.current = sync;

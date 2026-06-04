@@ -152,10 +152,7 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
   if (!agent) return null;
 
   const agentDirty = isAgentDirty(agentId);
-  // Which crews of this agent are dirty? An agent-level edit (e.g.
-  // adding an agent field, then ticking an extractor that lives in
-  // a crew) leaves those crews dirty too.
-  const dirtyCrewIds = useMemoDirtyCrews(agent.crews.map(c => c.id), id => isCrewDirty(agentId, id));
+  const dirtyCrewIds = agent.crews.map(c => c.id).filter(id => isCrewDirty(agentId, id));
 
   const nextNumber =
     agent.versions.reduce((max, v) => Math.max(max, v.number), 0) + 1;
@@ -197,10 +194,3 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
   };
 }
 
-/** Tiny helper: memoised stable list of crew ids that are dirty. */
-function useMemoDirtyCrews(crewIds: ID[], isDirty: (id: ID) => boolean): ID[] {
-  // Inline-tag the dirty state so useMemo re-runs only when it changes.
-  const tag = crewIds.map(id => `${id}:${isDirty(id) ? '1' : '0'}`).join('|');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => crewIds.filter(id => isDirty(id)), [tag]);
-}
