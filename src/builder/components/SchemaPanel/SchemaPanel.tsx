@@ -316,6 +316,24 @@ function FieldsSection({ agentId }: { agentId: ID }) {
     return map;
   }, [agent?.dynamicContexts]);
 
+  // Fields owned by a Field Reasoner addon — used to render the
+  // 🧠 chip. Value carries the crew where the reasoner lives so the
+  // tooltip can name it. One field → at most one reasoner (UI enforces
+  // it; first-found wins on a hand-edited doc).
+  const reasonerByFieldId = useMemo(() => {
+    const map = new Map<string, { crewId: ID; crewName: string }>();
+    for (const c of agent?.crews ?? []) {
+      for (const a of c.addons) {
+        if (a.pluginId !== 'field-reasoner') continue;
+        const list = (a.config as { extractsFields?: ID[] }).extractsFields ?? [];
+        for (const fid of list) {
+          if (!map.has(fid)) map.set(fid, { crewId: c.id, crewName: c.name });
+        }
+      }
+    }
+    return map;
+  }, [agent?.crews]);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<FieldDef | null>(null);
   const [wiringField, setWiringField] = useState<FieldDef | null>(null);
@@ -398,6 +416,7 @@ function FieldsSection({ agentId }: { agentId: ID }) {
               canClearLive={previewConversationId !== null}
               onClearLive={onClearLive}
               dcByFieldId={dcByFieldId}
+              reasonerByFieldId={reasonerByFieldId}
               agentSlug={agent?.slug ?? ''}
             />
           ))}
@@ -411,6 +430,7 @@ function FieldsSection({ agentId }: { agentId: ID }) {
               liveValueByField={liveValueByField}
               canClearLive={previewConversationId !== null}
               dcByFieldId={dcByFieldId}
+              reasonerByFieldId={reasonerByFieldId}
               agentSlug={agent?.slug ?? ''}
               onClearLive={onClearLive}
             />
@@ -442,7 +462,7 @@ function formatLiveValue(v: unknown): string {
 function FieldsGroup({
   label, fields, onPick, onWire, extractorCountFor,
   liveValueByField, canClearLive, onClearLive,
-  dcByFieldId, agentSlug,
+  dcByFieldId, reasonerByFieldId, agentSlug,
 }: {
   label: string;
   fields: FieldDef[];
@@ -453,6 +473,7 @@ function FieldsGroup({
   canClearLive: boolean;
   onClearLive: (name: string) => Promise<void> | void;
   dcByFieldId: Map<string, DynamicContextDef>;
+  reasonerByFieldId: Map<string, { crewId: ID; crewName: string }>;
   agentSlug: string;
 }) {
   return (
@@ -535,6 +556,14 @@ function FieldsGroup({
                   >
                     🎯 dynamic
                   </Link>
+                )}
+                {reasonerByFieldId.has(f.id) && (
+                  <span
+                    className={styles.reasonerChip}
+                    title={`Populated by a Field Reasoner in crew "${reasonerByFieldId.get(f.id)!.crewName}". Open that crew's chain to edit it.`}
+                  >
+                    🧠 reasoned
+                  </span>
                 )}
               </div>
 

@@ -15,6 +15,7 @@
 import { ModelPicker } from '../../components/ModelPicker/ModelPicker';
 import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
+import { InlineField } from '../../components/AddonModal/InlineField';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { TalkerConfig } from '../../types';
 import styles from './TalkerConfig.module.css';
@@ -29,13 +30,12 @@ export function TalkerConfigComponent({
 
   return (
     <div className={styles.wrap}>
-      <section className={styles.section}>
+      <InlineField label="Model" hint="LLM used for this addon's call.">
         <ModelPicker
           value={config.model}
           onChange={model => patch({ model })}
-          label="Model"
         />
-      </section>
+      </InlineField>
 
       <section className={styles.section}>
         <label className={styles.sectionLabel} htmlFor="talker-prompt">

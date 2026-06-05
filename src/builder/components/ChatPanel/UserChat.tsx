@@ -710,9 +710,10 @@ function Turn({ turn, rtl, onExpand, onDeleteSelf, onDeleteFromHere }: TurnProps
         />
       )}
       {showRuns && <TurnTimeline turn={turn} onExpand={onExpand} />}
-      {turn.dynamicResolutions && turn.dynamicResolutions.length > 0 && (
-        <DynamicTrail resolutions={turn.dynamicResolutions} />
-      )}
+      {/* DC resolutions are surfaced in the BrainPanel — keep them out
+          of the chat area to reduce noise. The SSE event + the data on
+          `turn.dynamicResolutions` are still produced and stored; only
+          the chat-area display is suppressed here. */}
       {turn.assistantText && (
         <Bubble
           text={turn.assistantText}

@@ -16,6 +16,7 @@ import { AddFieldModal } from '../../components/FieldsPanel/AddFieldModal';
 import { FieldEditorModal } from '../../components/FieldsPanel/FieldEditorModal';
 import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
+import { InlineField } from '../../components/AddonModal/InlineField';
 import { useCrewFields } from '../../state/useCrewFields';
 import type { CrewField } from '../../state/useCrewFields';
 import type { PluginConfigProps } from '../../registry/plugins';
@@ -100,13 +101,11 @@ export function FieldExtractorConfigComponent({
 
   return (
     <div className={styles.wrap}>
-      <section className={styles.section}>
-        <label className={styles.sectionLabel} htmlFor="fe-name">
-          Name
-        </label>
-        <p className={styles.sectionHint}>
-          Shown on the chain card. Leave blank for the default ("Field Extractor #N").
-        </p>
+      <InlineField
+        label="Name"
+        htmlFor="fe-name"
+        hint="Shown on the chain card. Leave blank for the default (Field Extractor #N)."
+      >
         <input
           id="fe-name"
           className={styles.input}
@@ -115,15 +114,14 @@ export function FieldExtractorConfigComponent({
           placeholder="e.g. Date Extractor"
           spellCheck={false}
         />
-      </section>
+      </InlineField>
 
-      <section className={styles.section}>
+      <InlineField label="Model" hint="LLM used for this addon's call.">
         <ModelPicker
           value={config.model}
           onChange={model => patch({ model })}
-          label="Model"
         />
-      </section>
+      </InlineField>
 
       <section className={styles.section}>
         <label className={styles.sectionLabel} htmlFor="fe-prompt">

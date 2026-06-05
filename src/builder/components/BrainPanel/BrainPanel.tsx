@@ -46,13 +46,14 @@ export function BrainDockSlot() {
   return (
     <div
       className={styles.dockWrap}
-      // Docked posture needs a real height — 40% of the containing
-      // center cell reads as "useful surface, still leaves canvas
-      // visible". Collapsed posture keeps natural (just the bar).
-      style={isDocked ? { height: '40%' } : undefined}
+      // Docked posture needs a real height — 50% of the containing
+      // center cell gives the panel a substantial surface (small
+      // enough to leave canvas visible above). Collapsed posture
+      // keeps natural (just the bar).
+      style={isDocked ? { height: '50%' } : undefined}
     >
       {isDocked && (
-        <div className={styles.body}>
+        <div className={`${styles.body} ${styles.bodyDocked}`}>
           <BrainBodyContent />
         </div>
       )}

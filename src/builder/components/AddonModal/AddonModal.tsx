@@ -23,12 +23,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Modal } from '../Modal/Modal';
 import { getPlugin } from '../../registry/plugins';
 import { useBuilder } from '../../state/BuilderContext';
+import { useCrewFields } from '../../state/useCrewFields';
 import { useConfirm } from '../Confirm/Confirm';
 import { useBuilderSettings } from '../TopBar/BuilderSettings';
 import { ExportToLibraryModal } from '../ExportToLibraryModal/ExportToLibraryModal';
 import { AddonContextSection } from '../AddonContext/AddonContextSection';
 import { AddonOutputSection } from '../AddonOutput/AddonOutputSection';
 import { PromptTemplateModal } from '../PromptTemplateModal/PromptTemplateModal';
+import { FIELD_REASONER_PLUGIN_ID } from '../../plugins/fieldReasoner/addon.fieldReasoner';
 import type { AddonContext, AddonInstance, ID, OutputType } from '../../types';
 import styles from './AddonModal.module.css';
 
@@ -62,6 +64,11 @@ export function AddonModal({ open, onClose, agentId, crewId, instance }: Props) 
   const [settings] = useBuilderSettings();
   const [exportOpen, setExportOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
+  // For Field Reasoner cascade-delete — the linked field is owned by
+  // this addon, so removing the addon also removes the field. Pulled
+  // unconditionally; the helpers no-op when the plugin isn't a
+  // reasoner.
+  const { allFields, removeField } = useCrewFields(agentId, crewId);
 
   // Snapshot the editable slice on open. The ref pattern is used over
   // useState because the snapshot should never trigger a re-render —
@@ -104,14 +111,34 @@ export function AddonModal({ open, onClose, agentId, crewId, instance }: Props) 
   };
 
   const handleRemove = async () => {
+    // Field Reasoner cascade — the linked FieldDef is owned by this
+    // addon, so deleting the addon also deletes the field. Per the
+    // BUILDER_V2_FIELD_REASONER.md plan: "deleting the addon deletes
+    // the field too. Rationale: the modal created the field as part
+    // of its setup. Field Reasoner is the field's owner."
+    const isReasoner = instance.pluginId === FIELD_REASONER_PLUGIN_ID;
+    const linkedFieldId = isReasoner
+      ? ((instance.config as { extractsFields?: ID[] }).extractsFields ?? [])[0]
+      : undefined;
+    const linkedField = linkedFieldId
+      ? allFields.find(cf => cf.field.id === linkedFieldId)
+      : null;
+
     const ok = await confirm({
-      title: `Remove ${desc.name}?`,
-      message: 'This removes the addon from this crew. You can re-add it any time.',
-      confirmLabel: 'Remove',
+      title: linkedField
+        ? `Delete "${linkedField.field.name}"?`
+        : `Remove ${desc.name}?`,
+      message: linkedField
+        ? `This removes the Field Reasoner AND the field declaration it owns. Dynamic Context cases or prompts referencing "${linkedField.field.name}" will stop resolving.`
+        : 'This removes the addon from this crew. You can re-add it any time.',
+      confirmLabel: linkedField ? 'Delete' : 'Remove',
       danger: true,
     });
     if (ok) {
       removeAddon(agentId, crewId, instance.instanceId);
+      if (linkedField) {
+        removeField(linkedField.scope, linkedField.ownerCrewId, linkedField.field.id);
+      }
       // Persist immediately when auto-save is on; otherwise the
       // removal sits as dirty state until the user clicks Save.
       if (settings.autoSave) saveCrewVersion(agentId, crewId);

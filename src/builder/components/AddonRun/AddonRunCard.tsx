@@ -110,7 +110,16 @@ export function AddonRunCard({ run }: Props) {
         <span className={styles.icon} style={{ background: `${accent}22`, color: accent }}>
           {desc?.icon ?? '?'}
         </span>
-        <span className={styles.name}>{run.label || desc?.name || run.pluginId}</span>
+        {/* The server fills `label` with `instance.config.name || pluginId`,
+            so a missing instance name arrives as the (lowercase, hyphenated)
+            pluginId — uglier than the descriptor's display name. Prefer
+            the descriptor in that case; keep the pluginId as the final
+            fallback for instances whose plugin isn't loaded. */}
+        <span className={styles.name}>{
+          (run.label && run.label !== run.pluginId)
+            ? run.label
+            : (desc?.name || run.pluginId)
+        }</span>
         <span className={`${styles.status} ${styles[`status_${run.status}`]}`}>
           {run.status === 'running' ? '… running' : run.status === 'error' ? 'error' : 'done'}
         </span>

@@ -15,6 +15,7 @@
 import { ModelPicker } from '../../components/ModelPicker/ModelPicker';
 import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
+import { InlineField } from '../../components/AddonModal/InlineField';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { ThinkerConfig } from '../../types';
 import styles from './ThinkerConfig.module.css';
@@ -29,8 +30,7 @@ export function ThinkerConfigComponent({
 
   return (
     <div className={styles.wrap}>
-      <label className={styles.field}>
-        <span className={styles.label}>Name</span>
+      <InlineField label="Name" hint="Shown on the chain card. Leave empty to use the plugin name.">
         <input
           className={styles.input}
           type="text"
@@ -38,13 +38,12 @@ export function ThinkerConfigComponent({
           onChange={e => patch({ name: e.target.value })}
           placeholder="e.g. Strategist (optional)"
         />
-        <span className={styles.hint}>
-          Shown on the chain card. Leave empty to use the plugin name.
-        </span>
-      </label>
+      </InlineField>
 
-      <label className={styles.field}>
-        <span className={styles.label}>Writes to thinking · domain</span>
+      <InlineField
+        label="Domain"
+        hint={`The brain section this Thinker writes into. Read its output downstream with {{thinking:${config.domain || 'strategy'}}} or {{thinking}} for every domain at once.`}
+      >
         <input
           className={styles.input}
           type="text"
@@ -52,20 +51,14 @@ export function ThinkerConfigComponent({
           onChange={e => patch({ domain: e.target.value })}
           placeholder="strategy"
         />
-        <span className={styles.hint}>
-          The brain section this Thinker writes into. Read its output
-          downstream with <code>{`{{thinking:${config.domain || 'strategy'}}}`}</code>
-          (or <code>{'{{thinking}}'}</code> for every domain at once).
-        </span>
-      </label>
+      </InlineField>
 
-      <div className={styles.field}>
-        <span className={styles.label}>Model</span>
+      <InlineField label="Model" hint="LLM used for this addon's call.">
         <ModelPicker
           value={config.model}
           onChange={model => patch({ model })}
         />
-      </div>
+      </InlineField>
 
       <div className={styles.field}>
         <span className={styles.label}>Strategic prompt</span>

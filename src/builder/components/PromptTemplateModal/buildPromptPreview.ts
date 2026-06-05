@@ -167,6 +167,18 @@ export function buildPromptPreview({
     fields_current: isExtractor ? buildFieldsCurrentBlock(fields) : '',
   });
 
+  // Single-field INLINE tokens — mirror of the server's substitution.
+  // First field is "this field" (Field Reasoner constrains to one).
+  // Plain string-replace so empty values don't eat surrounding
+  // whitespace mid-prose.
+  const thisField = isExtractor && fields.length > 0 ? fields[0] : null;
+  const thisFieldName  = thisField ? thisField.name : '';
+  const enumValuesText = thisField && thisField.enumValues && thisField.enumValues.length > 0
+    ? thisField.enumValues.join(', ')
+    : '';
+  template = template.split('{{this_field}}').join(thisFieldName);
+  template = template.split('{{enum_values}}').join(enumValuesText);
+
   // Parameterised tokens last.
   template = substituteParameterised(template, 'memory',   name => buildSingleDomainPreviewBlock(name), false);
   template = substituteParameterised(template, 'thinking', name => buildSingleDomainPreviewBlock(name), false);

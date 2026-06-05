@@ -289,6 +289,21 @@
   background: rgba(6, 182, 212, 0.18);
 }
 
+/* Field Reasoner ownership chip — informational only (no link, since
+ * the addon modal isn't URL-driven yet). Same visual family as the DC
+ * chip but in the purple Reasoner palette. */
+.reasonerChip {
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(124, 58, 237, 0.35);
+  background: rgba(124, 58, 237, 0.1);
+  color: #6d28d9;
+  white-space: nowrap;
+}
+
 /* ── Schema field row (declared agent field) ──
  * Two-row layout: name + Wire on top, small metadata pills below.
  * Replaces the older mishmash where everything tried to fit on one

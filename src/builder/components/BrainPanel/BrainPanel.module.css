@@ -26,8 +26,10 @@
   background: var(--bg-surface, #fff);
   border-top: 1px solid var(--border-color, #e5e7eb);
   border-left: 1px solid var(--border-color, #e5e7eb);
-  border-top-left-radius: 8px;
-  box-shadow: 0 -6px 16px rgba(15, 23, 42, 0.04);
+  border-top-left-radius: 10px;
+  box-shadow:
+    0 -10px 24px -6px rgba(15, 23, 42, 0.08),
+    0 -2px 4px rgba(99, 102, 241, 0.04);
   overflow: hidden;
   z-index: 4;
 }
@@ -35,68 +37,107 @@
   .dockWrap { width: 320px; }
 }
 
+/* Bar — the always-visible collapsed posture. Needs enough visual
+ * weight to read as "click me, something is in here" without being
+ * loud enough to compete with chat input. Indigo accent on the icon
+ * + title, faint tinted background, and a 2px primary-tinted top
+ * border give it presence at the bottom of the canvas. */
 .bar {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--bg-input, #fafafa);
-  border-top: 1px solid var(--border-color, #e5e7eb);
+  gap: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(99, 102, 241, 0.05) 0%,
+    rgba(99, 102, 241, 0.09) 100%
+  );
+  border-top: 2px solid rgba(99, 102, 241, 0.35);
   cursor: pointer;
   font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary, #4b5563);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-color, #6366f1);
   border-left: 0;
   border-right: 0;
   border-bottom: 0;
   text-align: left;
   width: 100%;
+  transition: background 120ms, border-top-color 120ms;
 }
-.barCollapsed { border-top: 1px solid var(--border-color, #e5e7eb); }
-.barDocked    { border-top: 1px solid var(--border-color, #e5e7eb); border-bottom: 1px solid var(--border-color, #f3f4f6); }
-.bar:hover { background: var(--bg-input, #f3f4f6); }
+.barCollapsed { /* gradient + accent border already on .bar */ }
+.barDocked {
+  border-bottom: 1px solid var(--border-color, #f3f4f6);
+}
+.bar:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(99, 102, 241, 0.08) 0%,
+    rgba(99, 102, 241, 0.14) 100%
+  );
+  border-top-color: var(--primary-color, #6366f1);
+}
 
-.barIcon { font-size: 14px; }
-.barTitle { flex: 1; }
+.barIcon {
+  font-size: 18px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 0 rgba(99, 102, 241, 0.15));
+}
+.barTitle {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--primary-color, #6366f1);
+}
 .barChevron {
   font-size: 11px;
-  color: var(--text-tertiary, #9ca3af);
+  color: var(--primary-color, #6366f1);
+  opacity: 0.7;
 }
 .barCount {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
-  color: var(--text-tertiary, #9ca3af);
-  padding: 1px 8px;
+  color: var(--primary-color, #6366f1);
+  padding: 2px 9px;
   border-radius: 999px;
-  background: var(--bg-surface, #fff);
-  border: 1px solid var(--border-color, #e5e7eb);
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
 }
+/* Activity dot — primary fill plus a gentle ring + pulse so a new
+ * extraction catches the eye even at the corner of the screen. */
 .barDot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--primary-color, #6366f1);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  animation: brain-dot-pulse 1.6s ease-out infinite;
+}
+@keyframes brain-dot-pulse {
+  0%   { box-shadow: 0 0 0 0   rgba(99, 102, 241, 0.45); }
+  60%  { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);    }
+  100% { box-shadow: 0 0 0 0   rgba(99, 102, 241, 0);    }
 }
 .barAction {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 6px;
   background: transparent;
-  color: var(--text-tertiary, #9ca3af);
+  color: var(--primary-color, #6366f1);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   font-family: inherit;
+  opacity: 0.75;
 }
 .barAction:hover {
-  color: var(--primary-color, #6366f1);
-  background: rgba(99, 102, 241, 0.08);
+  opacity: 1;
+  background: rgba(99, 102, 241, 0.14);
 }
 
 /* ── Fullscreen layer — overlays only the center cell ─────────── */
@@ -149,6 +190,25 @@
   flex-direction: column;
   gap: 16px;
 }
+
+/* Docked posture — same accent vocabulary as the bar so the bar +
+ * body read as one cohesive surface. Soft indigo tint on the surface,
+ * a left-edge primary stripe leading the eye in from the bar above,
+ * tighter padding to fit the smaller frame. Fullscreen is calmer
+ * (already roomy) so this treatment ONLY applies in docked mode. */
+.bodyDocked {
+  padding: 14px 16px 18px 18px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(99, 102, 241, 0.045) 0%,
+      rgba(99, 102, 241, 0.015) 100%
+    ),
+    var(--bg-surface, #fff);
+  border-left: 3px solid rgba(99, 102, 241, 0.35);
+  gap: 14px;
+}
+
 .bodyFullscreen {
   padding: 18px 24px 28px;
   display: grid;
@@ -194,6 +254,32 @@
   line-height: 1.5;
   text-align: center;
   font-style: italic;
+}
+
+/* When the panel is docked, lift the section headers and DC cards
+ * with the same primary tint as the bar — keeps the visual
+ * vocabulary consistent and stops the body from feeling like a
+ * separate, blander surface from the bar above it. Scoped to
+ * `.bodyDocked` so fullscreen stays calm. */
+.bodyDocked .sectionTitle {
+  color: var(--primary-color, #6366f1);
+  font-size: 11px;
+}
+.bodyDocked .sectionHeader {
+  border-bottom-color: rgba(99, 102, 241, 0.18);
+}
+.bodyDocked .dcCard {
+  border-color: rgba(99, 102, 241, 0.22);
+  border-left: 3px solid var(--primary-color, #6366f1);
+  background: linear-gradient(
+    180deg,
+    rgba(99, 102, 241, 0.04) 0%,
+    rgba(255, 255, 255, 1) 60%
+  );
+}
+.bodyDocked .domainHeader {
+  color: var(--primary-color, #6366f1);
+  opacity: 0.75;
 }
 
 /* ── Memory section ── */

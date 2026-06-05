@@ -1,0 +1,20 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.label {
+  flex: 0 0 110px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #6b7280);
+  cursor: default;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}

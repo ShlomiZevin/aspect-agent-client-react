@@ -46,6 +46,13 @@ interface Props {
    * pre-selected so the user lands in the right next step.
    */
   onWireExisting?: (fieldId: ID) => void;
+  /**
+   * Fired with the newly-created FieldDef right before the modal
+   * closes. Used by callers that need to react to the new id — e.g.
+   * Field Reasoner's WireOrCreate flow patches its own
+   * `extractsFields = [field.id]` to replace any previous link.
+   */
+  onCreated?: (field: FieldDef) => void;
 }
 
 const TYPES: { value: FieldType; label: string }[] = [
@@ -84,7 +91,7 @@ const emptyDraft = (source: FieldSource = 'explicit'): Draft => ({
 });
 
 export function AddFieldModal({
-  open, onClose, agentId, crewId, fromExtractor, onWireExisting,
+  open, onClose, agentId, crewId, fromExtractor, onWireExisting, onCreated,
 }: Props) {
   const { agentExtractors, extractorOptions, domainNames, addFieldToScope } =
     useCrewFields(agentId, crewId);
@@ -166,7 +173,7 @@ export function AddFieldModal({
           .filter(Boolean),
       }),
     };
-    addFieldToScope(
+    const created = addFieldToScope(
       'agent',
       draftField,
       Array.from(selectedExtractors),
@@ -174,6 +181,7 @@ export function AddFieldModal({
       // this crew automatically so the field has something to do.
       { createDefaultExtractor: noExtractorsAnywhere },
     );
+    onCreated?.(created);
     onClose();
   };
 

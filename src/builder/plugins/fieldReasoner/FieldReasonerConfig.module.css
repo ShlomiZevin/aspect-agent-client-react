@@ -1,0 +1,159 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-primary, #111827);
+  background: var(--bg-input, #fafafa);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #7c3aed;
+  background: #fff;
+}
+
+/* Output field row — unlinked state */
+
+.wireBtn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px dashed #7c3aed;
+  background: rgba(124, 58, 237, 0.04);
+  color: #6d28d9;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.wireBtn:hover {
+  background: rgba(124, 58, 237, 0.1);
+}
+
+/* Output field row — linked state */
+
+.linkedRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.linkedChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(124, 58, 237, 0.35);
+  background: rgba(124, 58, 237, 0.08);
+  color: #4c1d95;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 120ms;
+}
+
+.linkedChip:hover {
+  background: rgba(124, 58, 237, 0.14);
+}
+
+.linkedIcon {
+  font-size: 14px;
+}
+
+.linkedName {
+  font-weight: 600;
+}
+
+.linkedType,
+.linkedScope {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  color: #6d28d9;
+  text-transform: lowercase;
+}
+
+.linkedScope {
+  background: rgba(255, 255, 255, 0.85);
+  color: #4b5563;
+}
+
+.changeBtn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-surface, #fff);
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.changeBtn:hover {
+  border-color: #7c3aed;
+  color: #6d28d9;
+}
+
+.unlinkBtn {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary, #9ca3af);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+
+.unlinkBtn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Reasoning prompt — the dominant content */
+
+.promptSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.promptLabel {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #6b7280);
+}
+
+.promptHint {
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.promptHint code {
+  font-family: var(--font-mono, ui-monospace, "Menlo", monospace);
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--bg-input, #f3f4f6);
+  color: var(--text-secondary, #4b5563);
+}

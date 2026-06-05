@@ -9,6 +9,7 @@
 
 import './fieldExtractor/addon.fieldExtractor';
 import './vibeExtractor/addon.vibeExtractor';
+import './fieldReasoner/addon.fieldReasoner';
 import './thinker/addon.thinker';
 import './talker/addon.talker';
 import './transitionRouter/addon.transitionRouter';
