@@ -85,6 +85,62 @@
   color: #6d28d9;
 }
 
+/* Quick add (inline string field) */
+
+.quickAdd {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(124, 58, 237, 0.04);
+  border: 1px solid rgba(124, 58, 237, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quickAddLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6d28d9;
+}
+
+.quickAddRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.quickAddInput {
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-primary, #111827);
+  background: #fff;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  padding: 7px 10px;
+}
+
+.quickAddInput:focus {
+  outline: none;
+  border-color: #7c3aed;
+}
+
+.quickAddHint {
+  font-size: 11px;
+  color: var(--text-tertiary, #9ca3af);
+  line-height: 1.5;
+}
+
+.quickAddCollide {
+  font-size: 11px;
+  color: #b91c1c;
+  line-height: 1.5;
+}
+
 /* Footer */
 
 .footer {

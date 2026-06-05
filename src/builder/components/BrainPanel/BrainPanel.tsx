@@ -40,6 +40,7 @@ import styles from './BrainPanel.module.css';
  *  when posture is `fullscreen` (overlay owns everything then). */
 export function BrainDockSlot() {
   const { posture, setPosture, hasUnseen } = useBrain();
+  const { previewConversationId } = useBuilder();
   if (posture === 'fullscreen') return null;
 
   const isDocked = posture === 'docked';
@@ -53,18 +54,47 @@ export function BrainDockSlot() {
       style={isDocked ? { height: '50%' } : undefined}
     >
       {isDocked && (
-        <div className={`${styles.body} ${styles.bodyDocked}`}>
-          <BrainBodyContent />
-        </div>
+        <>
+          {/* Top header — gives the docked panel an actual top edge so
+              it reads as a contained surface, not as content bleeding
+              into the canvas above. Title + convo number anchor the
+              identity; ⤢ / × buttons mirror the fullscreen header so
+              users have actions on both edges of the panel. */}
+          <div className={styles.dockHeader}>
+            <span className={styles.dockHeaderIcon} aria-hidden>🧠</span>
+            <span className={styles.dockHeaderTitle}>Live Brain</span>
+            {previewConversationId !== null && (
+              <span className={styles.dockHeaderConvo}>#{previewConversationId}</span>
+            )}
+            <span style={{ flex: 1 }} />
+            <button
+              type="button"
+              className={styles.barAction}
+              onClick={() => setPosture('fullscreen')}
+              title="Expand to fullscreen"
+              aria-label="Expand to fullscreen"
+            >⤢</button>
+            <button
+              type="button"
+              className={styles.barAction}
+              onClick={() => setPosture('collapsed')}
+              title="Close brain panel"
+              aria-label="Close brain panel"
+            >×</button>
+          </div>
+          <div className={`${styles.body} ${styles.bodyDocked}`}>
+            <BrainBodyContent />
+          </div>
+        </>
       )}
       <button
         type="button"
         className={`${styles.bar} ${isDocked ? styles.barDocked : styles.barCollapsed}`}
         onClick={() => setPosture(isDocked ? 'collapsed' : 'docked')}
-        title={isDocked ? 'Collapse the brain panel' : 'Expand the brain panel'}
+        title={isDocked ? 'Collapse the brain panel' : 'Open the live brain panel'}
       >
         <span className={styles.barIcon} aria-hidden>🧠</span>
-        <span className={styles.barTitle}>Brain</span>
+        <span className={styles.barTitle}>Live Brain</span>
         <BrainBarSummary />
         {!isDocked && hasUnseen && <span className={styles.barDot} aria-label="new activity" />}
         {/* Fullscreen toggle is always present so the user can jump
@@ -121,9 +151,9 @@ export function BrainFullscreenLayer() {
   const { previewConversationId } = useBuilder();
   if (posture !== 'fullscreen') return null;
   return (
-    <div className={styles.fullscreenLayer} role="dialog" aria-label="Brain — runtime view">
+    <div className={styles.fullscreenLayer} role="dialog" aria-label="Live brain — runtime view for this conversation">
       <div className={styles.fullscreenHeader}>
-        <span className={styles.fullscreenTitle}>🧠 Brain</span>
+        <span className={styles.fullscreenTitle}>🧠 Live Brain</span>
         {previewConversationId !== null && (
           <span className={styles.fullscreenConvo}>convo #{previewConversationId}</span>
         )}
