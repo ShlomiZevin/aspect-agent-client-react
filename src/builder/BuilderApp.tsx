@@ -12,11 +12,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Route, Routes } from 'react-router-dom';
 import { BuilderProvider, emptyProject } from './state/BuilderContext';
+import { BrainProvider } from './state/BrainContext';
 import { BuilderLayout } from './components/BuilderLayout/BuilderLayout';
 import { TopBar } from './components/TopBar/TopBar';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { Canvas } from './components/Canvas/Canvas';
 import { DynamicContextScreen } from './components/DynamicContextScreen/DynamicContextScreen';
+import { BrainDockSlot, BrainFullscreenLayer } from './components/BrainPanel/BrainPanel';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
 import { ConfirmProvider } from './components/Confirm/Confirm';
 import { useAutoSave } from './hooks/useAutoSave';
@@ -166,9 +168,11 @@ export function BuilderApp({ agentSlug }: Props) {
   // gate.kind === 'loaded' — render the builder with the loaded doc.
   return (
     <BuilderProvider agentSlug={agentSlug} ownerUserId={ownerUserId} initialDoc={gate.doc}>
-      <ConfirmProvider>
-        <BuilderShell />
-      </ConfirmProvider>
+      <BrainProvider>
+        <ConfirmProvider>
+          <BuilderShell />
+        </ConfirmProvider>
+      </BrainProvider>
     </BuilderProvider>
   );
 }
@@ -185,17 +189,27 @@ function BuilderShell() {
       topBar={<TopBar />}
       sidebar={<Sidebar />}
       center={
-        <Routes>
-          {/* Default: project / agent / crew views driven by selection. */}
-          <Route index element={<Canvas />} />
-          {/* Dynamic Context: bookmarkable at every level. The screen
-              reads its own params (fieldName / value / section) so a
-              single route component covers the four nesting depths. */}
-          <Route path="dynamic-context" element={<DynamicContextScreen />} />
-          <Route path="dynamic-context/:fieldName" element={<DynamicContextScreen />} />
-          <Route path="dynamic-context/:fieldName/:value" element={<DynamicContextScreen />} />
-          <Route path="dynamic-context/:fieldName/:value/:section" element={<DynamicContextScreen />} />
-        </Routes>
+        <>
+          <Routes>
+            {/* Default: project / agent / crew views driven by selection. */}
+            <Route index element={<Canvas />} />
+            {/* Dynamic Context: bookmarkable at every level. The screen
+                reads its own params (fieldName / value / section) so a
+                single route component covers the four nesting depths. */}
+            <Route path="dynamic-context" element={<DynamicContextScreen />} />
+            <Route path="dynamic-context/:fieldName" element={<DynamicContextScreen />} />
+            <Route path="dynamic-context/:fieldName/:value" element={<DynamicContextScreen />} />
+            <Route path="dynamic-context/:fieldName/:value/:section" element={<DynamicContextScreen />} />
+          </Routes>
+          {/* Brain dock floats at the bottom-right of the canvas (just
+              left of the chat column) so the chat column never
+              shrinks. Collapsed → thin bar; docked → expands upward
+              into the canvas without pushing layout. */}
+          <BrainDockSlot />
+          {/* Fullscreen posture overlays the whole center cell only —
+              sidebar / topbar / chat stay clickable around it. */}
+          <BrainFullscreenLayer />
+        </>
       }
       chat={<ChatPanel />}
     />

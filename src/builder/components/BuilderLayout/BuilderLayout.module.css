@@ -42,6 +42,10 @@
 
 .center {
   background: var(--bg-page, #f9fafb);
+  /* Containing block for the Brain panel's fullscreen overlay
+   * (BrainFullscreenLayer uses `position: absolute; inset: 0`).
+   * Sibling cells (sidebar / chat) stay outside the overlay. */
+  position: relative;
 }
 
 .chat {
