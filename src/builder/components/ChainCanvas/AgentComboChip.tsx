@@ -24,7 +24,8 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useBuilder } from '../../state/BuilderContext';
 import { getPlugin } from '../../registry/plugins';
 import { AddonModal } from '../AddonModal/AddonModal';
 import type { AgentDoc, ID } from '../../types';
@@ -48,6 +49,19 @@ export function AgentComboChip({ agent, compact = false }: Props) {
   const [popupOpen, setPopupOpen] = useState(false);
   const [viewingInstanceId, setViewingInstanceId] = useState<ID | null>(null);
   const closeTimer = useRef<number | null>(null);
+  const { selection, setSelection } = useBuilder();
+  const navigate = useNavigate();
+
+  /** "Open agent" — Builder navigation is driven by `selection.level`,
+   *  not the URL alone, so flipping selection to 'agent' is what
+   *  actually switches the canvas. The `/<agent>/builder` URL is the
+   *  base for every level; navigating there handles the case where
+   *  the user is currently inside a sub-route like `/dynamic-context`. */
+  const openAgent = () => {
+    setSelection({ ...selection, level: 'agent', agentId: agent.id });
+    navigate(`/${agent.slug}/builder`);
+    setPopupOpen(false);
+  };
 
   const viewingInstance = useMemo(
     () => cortex.find(a => a.instanceId === viewingInstanceId) ?? null,
@@ -113,14 +127,14 @@ export function AgentComboChip({ agent, compact = false }: Props) {
           >
             <div className={styles.popupHeader}>
               <span className={styles.popupTitle}>Agent · runs first</span>
-              <Link
-                to={`/${agent.slug}/builder`}
+              <button
+                type="button"
                 className={styles.popupLink}
-                onClick={() => setPopupOpen(false)}
+                onClick={openAgent}
                 title="Open the agent page to edit the chain"
               >
                 Open agent ↗
-              </Link>
+              </button>
             </div>
 
             {cortex.length === 0 ? (

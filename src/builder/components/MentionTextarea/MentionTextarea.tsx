@@ -111,7 +111,17 @@ interface Props {
   autoFocus?: boolean;
   onBlur?: () => void;
   onFocus?: () => void;
+  /** When set, the textarea's current vertical size is persisted to
+   *  localStorage under this key and restored on mount. Each surface
+   *  that wants its own remembered height passes a stable key
+   *  (e.g. "persona"). Multiple instances sharing the same key share
+   *  the same height — that's a feature for "same kind of editor". */
+  storageKey?: string;
 }
+
+/** localStorage namespace for MentionTextarea remembered heights.
+ *  Bumped if we ever change the storage shape. */
+const HEIGHT_STORAGE_PREFIX = 'mta:height:';
 
 /**
  * Find the active trigger at the current caret position, if any.
@@ -234,10 +244,46 @@ export function MentionTextarea({
   autoFocus,
   onBlur,
   onFocus,
+  storageKey,
 }: Props) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const [picker, setPicker] = useState<PickerState | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
+
+  // Remembered vertical size for this surface. Read once at mount —
+  // a saved value drives an inline `height:` on the textarea so it
+  // overrides the CSS default. When the user resizes, ResizeObserver
+  // catches it and writes the new height back. Stays a no-op when
+  // `storageKey` is unset.
+  const [savedHeight, setSavedHeight] = useState<number | null>(() => {
+    if (!storageKey) return null;
+    try {
+      const raw = localStorage.getItem(`${HEIGHT_STORAGE_PREFIX}${storageKey}`);
+      const n = raw ? Number(raw) : NaN;
+      return Number.isFinite(n) && n > 0 ? n : null;
+    } catch { return null; }
+  });
+
+  useEffect(() => {
+    if (!storageKey) return;
+    const el = taRef.current;
+    if (!el) return;
+    // The browser-native `resize: vertical` handle fires no JS event,
+    // so we observe the actual rendered size. Persist on every change;
+    // localStorage writes are cheap enough that no debouncing is
+    // needed for a 4-byte string.
+    const obs = new ResizeObserver(() => {
+      const h = el.offsetHeight;
+      if (h > 0 && h !== savedHeight) {
+        setSavedHeight(h);
+        try { localStorage.setItem(`${HEIGHT_STORAGE_PREFIX}${storageKey}`, String(h)); } catch {
+          /* private mode / quota — silently drop */
+        }
+      }
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [storageKey, savedHeight]);
 
   const visibleOptions = useMemo<MentionOption[]>(() => {
     if (!picker) return [];
@@ -355,6 +401,7 @@ export function MentionTextarea({
       <textarea
         ref={taRef}
         className={styles.textarea}
+        style={savedHeight !== null ? { height: savedHeight } : undefined}
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}

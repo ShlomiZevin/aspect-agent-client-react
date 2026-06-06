@@ -1,7 +1,9 @@
 .row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
+  /* Same outer padding as the body block so label sits at the same
+   * horizontal position as the form control's content. */
 }
 
 .label {
@@ -12,6 +14,12 @@
   letter-spacing: 0.05em;
   color: var(--text-secondary, #6b7280);
   cursor: default;
+  /* Aligns the label baseline with the input/select text on a
+   * single-line control. Multi-line bodies (e.g. ModelPicker with
+   * its "notes" caption) keep the label pinned to the top so every
+   * row reads with the same anchor point. */
+  padding-top: 9px;
+  line-height: 1.2;
 }
 
 .body {

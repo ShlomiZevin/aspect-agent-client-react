@@ -10,6 +10,7 @@
  */
 
 import { useAddonMutations } from '../../state/useAddonMutations';
+import { InlineField } from '../AddonModal/InlineField';
 import type { AddonContext, AddonInstance, HistoryMode, ID } from '../../types';
 import styles from './AddonContextSection.module.css';
 
@@ -59,19 +60,16 @@ export function AddonContextSection({ agentId, crewId, instance }: Props) {
   const historyChoice = choiceFromMode(ctx.history);
 
   return (
-    <div className={styles.runtimeRows}>
-      <div className={styles.row}>
-        <span className={styles.label}>History</span>
-        <select
-          className={styles.select}
-          value={historyChoice}
-          onChange={e => patch({ history: modeFromChoice(e.target.value as HistoryChoice) })}
-        >
-          {HISTORY_OPTIONS.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-      </div>
-    </div>
+    <InlineField label="History" hint="How many past messages this addon sees on each turn.">
+      <select
+        className={styles.select}
+        value={historyChoice}
+        onChange={e => patch({ history: modeFromChoice(e.target.value as HistoryChoice) })}
+      >
+        {HISTORY_OPTIONS.map(o => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    </InlineField>
   );
 }

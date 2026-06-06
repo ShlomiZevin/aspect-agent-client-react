@@ -11,6 +11,7 @@
 
 import { useAddonMutations } from '../../state/useAddonMutations';
 import { getPlugin } from '../../registry/plugins';
+import { InlineField } from '../AddonModal/InlineField';
 import type { AddonInstance, ID, OutputType } from '../../types';
 import styles from './AddonOutputSection.module.css';
 
@@ -40,8 +41,7 @@ export function AddonOutputSection({ agentId, crewId, instance }: Props) {
   const locked = allowed.length <= 1;
 
   return (
-    <div className={styles.row}>
-      <span className={styles.label}>Output</span>
+    <InlineField label="Output" hint="What this addon produces at runtime.">
       {locked ? (
         <span className={styles.staticBadge} title="Locked by this plugin — no other output types allowed.">
           {currentLabel}
@@ -59,6 +59,6 @@ export function AddonOutputSection({ agentId, crewId, instance }: Props) {
           ))}
         </select>
       )}
-    </div>
+    </InlineField>
   );
 }
