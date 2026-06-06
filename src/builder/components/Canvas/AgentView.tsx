@@ -20,12 +20,12 @@
 
 import { useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
-import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
-import { useMentionOptions } from '../MentionTextarea/useMentionOptions';
 import { useAgentVersion } from '../../state/useEntityVersion';
 import { TitleBar } from '../TitleBar/TitleBar';
 import { VersionPill } from '../VersionMenu/VersionPill';
 import { SchemaPanel } from '../SchemaPanel/SchemaPanel';
+import { AgentSetupArea } from './AgentSetupArea';
+import { ChainCanvas } from '../ChainCanvas/ChainCanvas';
 import { BodyJsonModal } from '../BodyJsonModal/BodyJsonModal';
 import { ValidateAndLogModal } from '../ValidateAndLogModal/ValidateAndLogModal';
 import { HistoryModal } from '../HistoryModal/HistoryModal';
@@ -49,11 +49,6 @@ export function AgentView({ agent }: Props) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [pendingDetailsOpen, setPendingDetailsOpen] = useState(false);
   const ownerUserId = findOwnerUserId();
-  // Persona supports the same mention vocabulary as crew prompts so
-  // static config (`#param:bankName`) and memory references can be
-  // baked into the agent's voice. {{persona}} resolves once at runtime
-  // — nested {{persona}} won't recurse; the assembler short-circuits.
-  const mentionOptions = useMentionOptions(agent.id);
 
   // True when this agent has an un-saved Alfred apply target. The
   // banner below cues the user that Save will commit Alfred's draft.
@@ -172,24 +167,17 @@ export function AgentView({ agent }: Props) {
 
       <div className={styles.crewGrid}>
         <div className={styles.crewMain}>
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <span className={styles.cardTitle}>🎭 Persona</span>
-            </div>
-            <p className={styles.cardHint}>
-              Shared character / voice across every crew of this agent.
-              Type <kbd>#</kbd> to drop in agent parameters (e.g. <code>{`{{param:bankName}}`}</code>),
-              {' '}<kbd>@</kbd> for memory references,
-              {' '}<kbd>/</kbd> for the full picker.
-            </p>
-            <MentionTextarea
-              value={agent.persona}
-              onChange={persona => updateAgent(agent.id, { persona })}
-              options={mentionOptions}
-              placeholder="Describe how the agent sounds, the tone, and what it never does…"
-              rows={8}
-            />
-          </div>
+          {/* Setup zone — static, non-runtime things injected into every
+              turn. Currently just the Persona chip; other setup-only
+              entries may join later (parameters, fields snapshot…). */}
+          <AgentSetupArea agent={agent} />
+
+          {/* Agent-level cortex — runs BEFORE the current crew's cortex
+              on every turn. Same ChainCanvas component as a crew, with
+              `crew={null}` to switch the data source to agent.cortex.
+              Persona is NOT here anymore — it's a setup chip above
+              because it isn't a runtime step, it's authored text. */}
+          <ChainCanvas agent={agent} crew={null} />
         </div>
 
         <aside className={styles.crewSide}>

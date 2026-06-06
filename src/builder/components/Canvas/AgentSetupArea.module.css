@@ -1,0 +1,57 @@
+.area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(236, 72, 153, 0.35);
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(236, 72, 153, 0.02));
+  color: var(--text-primary, #111827);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms;
+}
+
+.chip:hover {
+  border-color: rgba(236, 72, 153, 0.6);
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(236, 72, 153, 0.04));
+}
+
+.chipIcon {
+  font-size: 16px;
+}
+
+.chipName {
+  font-weight: 600;
+  color: #be185d;
+}

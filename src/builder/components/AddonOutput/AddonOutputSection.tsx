@@ -9,14 +9,15 @@
  * the History row next to it.
  */
 
-import { useBuilder } from '../../state/BuilderContext';
+import { useAddonMutations } from '../../state/useAddonMutations';
 import { getPlugin } from '../../registry/plugins';
 import type { AddonInstance, ID, OutputType } from '../../types';
 import styles from './AddonOutputSection.module.css';
 
 interface Props {
   agentId: ID;
-  crewId: ID;
+  /** null → agent-cortex scope. */
+  crewId: ID | null;
   instance: AddonInstance;
 }
 
@@ -27,7 +28,7 @@ const OUTPUT_TYPE_LABEL: Record<OutputType, string> = {
 };
 
 export function AddonOutputSection({ agentId, crewId, instance }: Props) {
-  const { setAddonOutputType } = useBuilder();
+  const muts = useAddonMutations(agentId, crewId);
 
   const plugin = getPlugin(instance.pluginId);
   const allowed: OutputType[] =
@@ -50,7 +51,7 @@ export function AddonOutputSection({ agentId, crewId, instance }: Props) {
           className={styles.select}
           value={instance.outputType}
           onChange={e =>
-            setAddonOutputType(agentId, crewId, instance.instanceId, e.target.value as OutputType)
+            muts.setOutputType(instance.instanceId, e.target.value as OutputType)
           }
         >
           {allowed.map(t => (

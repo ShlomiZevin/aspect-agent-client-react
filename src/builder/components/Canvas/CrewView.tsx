@@ -162,6 +162,11 @@ export function CrewView({ agent, crew }: Props) {
 
       <div className={styles.crewGrid}>
         <div className={styles.crewMain}>
+          {/* The agent's chain is surfaced INSIDE the crew chain via
+              the fixed Agent combo chip rendered by ChainCanvas — hover
+              that chip for the agent steps and a link to the agent
+              page. The standalone agent strip that used to sit above
+              this is gone (replaced by the combo). */}
           <ChainCanvas agent={agent} crew={crew} />
           <ThinkingPanel agentId={agent.id} crewId={crew.id} />
         </div>

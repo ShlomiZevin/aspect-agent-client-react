@@ -9,13 +9,14 @@
  * "History".
  */
 
-import { useBuilder } from '../../state/BuilderContext';
+import { useAddonMutations } from '../../state/useAddonMutations';
 import type { AddonContext, AddonInstance, HistoryMode, ID } from '../../types';
 import styles from './AddonContextSection.module.css';
 
 interface Props {
   agentId: ID;
-  crewId: ID;
+  /** null → agent-cortex scope. */
+  crewId: ID | null;
   instance: AddonInstance;
 }
 
@@ -50,10 +51,10 @@ const HISTORY_OPTIONS: { value: HistoryChoice; label: string }[] = [
 ];
 
 export function AddonContextSection({ agentId, crewId, instance }: Props) {
-  const { updateAddonContext } = useBuilder();
+  const muts = useAddonMutations(agentId, crewId);
   const ctx = instance.context;
   const patch = (next: Partial<AddonContext>) =>
-    updateAddonContext(agentId, crewId, instance.instanceId, { ...ctx, ...next });
+    muts.updateContext(instance.instanceId, { ...ctx, ...next });
 
   const historyChoice = choiceFromMode(ctx.history);
 

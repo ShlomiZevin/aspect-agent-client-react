@@ -1,31 +1,50 @@
 /**
- * Cortex — the crew's reasoning surface. Cards (addons) arranged in
- * lanes. Each card is one neuron of the cortex; the chain across the
- * Blocking lane is what fires synchronously on every message.
+ * Cortex — chain of addons arranged in lanes. Card per addon; arrow
+ * between cards in the active (Blocking) lane; click opens the addon
+ * modal; drag-and-drop reorders within a lane.
  *
  * Lanes:
  *   - main / blocking  → active. Cards link with arrows.
  *   - background       → reserved. + disabled until we wire it up.
  *   - offline          → reserved. + disabled until we wire it up.
  *
- * Cards open a config modal for their plugin. + opens the Add Step
- * picker.
+ * Scope:
+ *   - Pass `crew` → renders the crew's cortex (`crew.addons[]`).
+ *   - Pass `crew={null}` → renders the agent-level cortex
+ *     (`agent.cortex[]`), filtering out plugins that don't belong
+ *     there (Talker, Transition Router).
+ *
+ * Variant flags:
+ *   - `readOnly` — disables drag, hides the Add button, opens addon
+ *      modal in view-only mode. Used by the crew view's "agent
+ *      cortex runs here first" strip.
+ *   - `compact`  — smaller chip layout. Strip uses this.
  */
 
 import { useMemo, useState } from 'react';
-import { useBuilder, newAddonInstanceId } from '../../state/BuilderContext';
+import { newAddonInstanceId } from '../../state/BuilderContext';
+import { useAddonMutations } from '../../state/useAddonMutations';
 import { getPlugin, defaultContextFor, defaultOutputTypeFor } from '../../registry/plugins';
 import { formatModelRef } from '../../registry/providerModels';
 import { useModels } from '../../registry/useModels';
 import { getLibraryEntry } from '../../state/addonLibrary';
 import { AddonModal } from '../AddonModal/AddonModal';
 import { AddStepModal, type AddStepChoice } from '../AddStepModal/AddStepModal';
+import { AgentComboChip } from './AgentComboChip';
 import type { AddonInstance, AddonLane, AgentDoc, CrewDoc, ID, ModelRef } from '../../types';
 import styles from './ChainCanvas.module.css';
 
 interface Props {
   agent: AgentDoc;
-  crew: CrewDoc;
+  /** null → agent.cortex scope; otherwise → this crew's addons. */
+  crew: CrewDoc | null;
+  /** Disables editing actions (drag, add, modal Done/Remove). */
+  readOnly?: boolean;
+  /** Smaller chips + simpler header. Used by the strip in CrewView. */
+  compact?: boolean;
+  /** Optional extra header content rendered after the title — e.g. a
+   *  link to the agent-level cortex page. The strip uses this. */
+  headerSlot?: React.ReactNode;
 }
 
 type LaneSpec = {
@@ -41,11 +60,6 @@ const LANES: LaneSpec[] = [
   { id: 'offline', title: 'Offline', hint: 'Runs periodically, not per message', enabled: false },
 ];
 
-/**
- * Best-effort pull of a `ModelRef` out of a plugin's opaque config blob
- * so the card can show the model name. Returns null if the plugin's
- * config doesn't expose `.model`.
- */
 function configModel(config: unknown): ModelRef | null {
   if (
     config &&
@@ -59,23 +73,27 @@ function configModel(config: unknown): ModelRef | null {
   return null;
 }
 
-export function ChainCanvas({ agent, crew }: Props) {
-  const { addAddon, reorderAddonInLane } = useBuilder();
-  // Subscribe to the model registry so formatModelRef calls below
-  // re-render with proper labels (instead of `provider/id` fallback)
-  // once the server registry has loaded.
+export function ChainCanvas({ agent, crew, readOnly = false, compact = false, headerSlot }: Props) {
+  const isAgentScope = crew === null;
+  const crewId: ID | null = crew ? crew.id : null;
+  const muts = useAddonMutations(agent.id, crewId);
+
   useModels();
+
+  // Source of truth for the addon list — agent.cortex or crew.addons.
+  const addons: AddonInstance[] = useMemo(
+    () => (isAgentScope ? (agent.cortex ?? []) : (crew?.addons ?? [])),
+    [isAgentScope, agent.cortex, crew?.addons],
+  );
+
   const [editingInstanceId, setEditingInstanceId] = useState<ID | null>(null);
   const [addingForLane, setAddingForLane] = useState<AddonLane | null>(null);
-  // Drag-and-drop state for main-lane addon reordering. `draggingIdx`
-  // is the lane-local index of the card being dragged; `overIdx` is
-  // the card currently hovered (drop target). Both reset on dragend.
   const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
 
   const editingInstance = useMemo(
-    () => crew.addons.find(a => a.instanceId === editingInstanceId) ?? null,
-    [crew.addons, editingInstanceId],
+    () => addons.find(a => a.instanceId === editingInstanceId) ?? null,
+    [addons, editingInstanceId],
   );
 
   const handlePick = (choice: AddStepChoice) => {
@@ -94,12 +112,11 @@ export function ChainCanvas({ agent, crew }: Props) {
         outputType: defaultOutputTypeFor(desc),
         promptTemplate: desc.defaultPromptTemplate,
       };
-      addAddon(agent.id, crew.id, instance);
+      muts.add(instance);
       setEditingInstanceId(instance.instanceId);
       return;
     }
 
-    // Library import — copy the entry's config into a fresh instance.
     const entry = getLibraryEntry(choice.entryId);
     if (!entry) return;
     const entryPlugin = getPlugin(entry.pluginId);
@@ -108,74 +125,102 @@ export function ChainCanvas({ agent, crew }: Props) {
       pluginId: entry.pluginId,
       lane,
       enabled: true,
-      // Deep clone so later edits don't mutate the library entry.
       config: JSON.parse(JSON.stringify(entry.config)),
       context: entryPlugin ? defaultContextFor(entryPlugin) : { history: { mode: 'last_n', n: 5 } },
       outputType: entryPlugin ? defaultOutputTypeFor(entryPlugin) : 'json-to-memory',
       promptTemplate: entryPlugin?.defaultPromptTemplate ?? '',
     };
-    addAddon(agent.id, crew.id, instance);
+    muts.add(instance);
     setEditingInstanceId(instance.instanceId);
   };
 
+  const wrapClassName = `${styles.canvas} ${compact ? styles.canvasCompact : ''} ${readOnly ? styles.canvasReadOnly : ''}`;
+
   return (
     <>
-      <div className={styles.canvas}>
+      <div className={wrapClassName}>
         <div className={styles.canvasHeader}>
-          <span className={styles.canvasTitle}>🧠 Cortex</span>
-          <span className={styles.canvasSub}>How this crew reacts on every turn</span>
+          <span className={styles.canvasTitle}>🧠 {compact ? 'Agent cortex' : 'Cortex'}</span>
+          {!compact && (
+            <span className={styles.canvasSub}>
+              {isAgentScope
+                ? 'Runs before every crew on every turn'
+                : 'How this crew reacts on every turn'}
+            </span>
+          )}
+          {headerSlot}
         </div>
 
         {LANES.map(lane => {
-          const items = crew.addons.filter(a => a.lane === lane.id);
+          // Strip variant only ever shows the active lane — background /
+          // offline are still placeholders.
+          if (compact && lane.id !== 'main') return null;
+          const items = addons.filter(a => a.lane === lane.id);
+          const interactiveLane = lane.enabled && !readOnly;
           return (
             <div
               key={lane.id}
               className={`${styles.lane} ${lane.enabled ? '' : styles.laneDisabled}`}
             >
-              <div className={styles.laneHeader}>
-                <span className={styles.laneTitle}>{lane.title}</span>
-                {lane.hint && <span className={styles.laneHint}>{lane.hint}</span>}
-                {!lane.enabled && <span className={styles.laneBadge}>reserved</span>}
-              </div>
+              {!compact && (
+                <div className={styles.laneHeader}>
+                  <span className={styles.laneTitle}>{lane.title}</span>
+                  {lane.hint && <span className={styles.laneHint}>{lane.hint}</span>}
+                  {!lane.enabled && <span className={styles.laneBadge}>reserved</span>}
+                </div>
+              )}
 
               <div className={styles.track}>
+                {/* Agent combo chip — fixed first card in the crew
+                    chain. Compact "this is what the agent runs before
+                    me" anchor that opens a hover popup with the agent
+                    chain (each entry click → read-only modal) and an
+                    "Open agent" link. Not present at agent scope
+                    (you're already editing it there). */}
+                {!isAgentScope && lane.id === 'main' && (
+                  <AgentComboChip agent={agent} compact={compact} />
+                )}
+                {items.length === 0 && compact && (
+                  <span className={styles.compactEmpty}>
+                    {isAgentScope ? 'No agent-level steps yet.' : 'No steps yet.'}
+                  </span>
+                )}
                 {items.map((instance, i) => {
                   const desc = getPlugin(instance.pluginId);
                   if (!desc) return null;
                   const model = configModel(instance.config);
                   const isMainLane = lane.id === 'main';
-                  // Prefer the user-set instance name (e.g. "Date Extractor")
-                  // over the plugin's generic display name (e.g. "Field Extractor").
                   const instanceName =
                     (instance.config && typeof (instance.config as { name?: unknown }).name === 'string'
                       ? ((instance.config as { name?: string }).name || '').trim()
                       : '') || desc.name;
-                  const isDragging = isMainLane && draggingIdx === i;
-                  const isDropTarget = isMainLane && overIdx === i && draggingIdx !== null && draggingIdx !== i;
+                  const draggable = interactiveLane && isMainLane;
+                  const isDragging = draggable && draggingIdx === i;
+                  const isDropTarget = draggable && overIdx === i && draggingIdx !== null && draggingIdx !== i;
+                  // First real addon needs an arrow when the agent
+                  // combo chip sits before it (crew scope). Otherwise
+                  // arrow logic stays as today (between addon[i-1]
+                  // and addon[i]).
+                  const drawLeadingArrow = isMainLane && (i > 0 || (!isAgentScope && i === 0));
                   return (
                     <div key={instance.instanceId} className={styles.nodeWrap}>
-                      {i > 0 && isMainLane && (
+                      {drawLeadingArrow && (
                         <span className={styles.arrow}>→</span>
                       )}
                       <button
                         type="button"
-                        className={`${styles.card} ${isDragging ? styles.cardDragging : ''} ${isDropTarget ? styles.cardDropTarget : ''}`}
+                        className={`${styles.card} ${compact ? styles.cardCompact : ''} ${isDragging ? styles.cardDragging : ''} ${isDropTarget ? styles.cardDropTarget : ''}`}
                         style={{ ['--card-color' as string]: desc.color }}
                         onClick={() => setEditingInstanceId(instance.instanceId)}
-                        // Drag-and-drop is main-lane only. Background +
-                        // offline lanes are reserved; once they ship
-                        // we can decide whether to allow cross-lane drag.
-                        draggable={isMainLane}
+                        draggable={draggable}
                         onDragStart={(e) => {
-                          if (!isMainLane) return;
+                          if (!draggable) return;
                           setDraggingIdx(i);
                           e.dataTransfer.effectAllowed = 'move';
-                          // Required for Firefox to start a drag.
                           e.dataTransfer.setData('text/plain', String(i));
                         }}
                         onDragOver={(e) => {
-                          if (!isMainLane || draggingIdx === null) return;
+                          if (!draggable || draggingIdx === null) return;
                           e.preventDefault();
                           e.dataTransfer.dropEffect = 'move';
                           if (overIdx !== i) setOverIdx(i);
@@ -184,10 +229,10 @@ export function ChainCanvas({ agent, crew }: Props) {
                           if (overIdx === i) setOverIdx(null);
                         }}
                         onDrop={(e) => {
-                          if (!isMainLane || draggingIdx === null) return;
+                          if (!draggable || draggingIdx === null) return;
                           e.preventDefault();
                           if (draggingIdx !== i) {
-                            reorderAddonInLane(agent.id, crew.id, 'main', draggingIdx, i);
+                            muts.reorderInLane('main', draggingIdx, i);
                           }
                           setDraggingIdx(null);
                           setOverIdx(null);
@@ -197,42 +242,44 @@ export function ChainCanvas({ agent, crew }: Props) {
                           setOverIdx(null);
                         }}
                       >
-                        {isMainLane && <span className={styles.dragHandle} aria-hidden="true">⋮⋮</span>}
+                        {draggable && <span className={styles.dragHandle} aria-hidden="true">⋮⋮</span>}
                         <span className={styles.cardIcon}>{desc.icon}</span>
                         <span className={styles.cardName}>{instanceName}</span>
-                        {/* Always render the model line so cards stay
-                          * the same height across the row. Hidden via
-                          * visibility (not display) when there's no
-                          * model so layout space is preserved. */}
-                        <span
-                          className={styles.cardModel}
-                          style={model ? undefined : { visibility: 'hidden' }}
-                          aria-hidden={!model || undefined}
-                        >
-                          {model ? formatModelRef(model) : ' '}
-                        </span>
+                        {!compact && (
+                          <span
+                            className={styles.cardModel}
+                            style={model ? undefined : { visibility: 'hidden' }}
+                            aria-hidden={!model || undefined}
+                          >
+                            {model ? formatModelRef(model) : ' '}
+                          </span>
+                        )}
                       </button>
                     </div>
                   );
                 })}
 
-                {lane.enabled ? (
-                  <button
-                    type="button"
-                    className={styles.addCard}
-                    onClick={() => setAddingForLane(lane.id)}
-                    title={`Add step to ${lane.title}`}
-                  >
-                    +
-                  </button>
-                ) : (
-                  <div
-                    className={`${styles.addCard} ${styles.addCardDisabled}`}
-                    title="This lane isn't active yet"
-                    aria-disabled="true"
-                  >
-                    +
-                  </div>
+                {/* Add button — hidden in readOnly variant. Reserved
+                    lanes still show a disabled + as before. */}
+                {!readOnly && (
+                  lane.enabled ? (
+                    <button
+                      type="button"
+                      className={`${styles.addCard} ${compact ? styles.addCardCompact : ''}`}
+                      onClick={() => setAddingForLane(lane.id)}
+                      title={`Add step to ${lane.title}`}
+                    >
+                      +
+                    </button>
+                  ) : (
+                    <div
+                      className={`${styles.addCard} ${styles.addCardDisabled}`}
+                      title="This lane isn't active yet"
+                      aria-disabled="true"
+                    >
+                      +
+                    </div>
+                  )
                 )}
               </div>
             </div>
@@ -244,8 +291,9 @@ export function ChainCanvas({ agent, crew }: Props) {
         open={editingInstance !== null}
         onClose={() => setEditingInstanceId(null)}
         agentId={agent.id}
-        crewId={crew.id}
+        crewId={crewId}
         instance={editingInstance}
+        readOnly={readOnly}
       />
 
       <AddStepModal
@@ -253,7 +301,9 @@ export function ChainCanvas({ agent, crew }: Props) {
         onClose={() => setAddingForLane(null)}
         lane={addingForLane ?? 'main'}
         onPick={handlePick}
+        scope={isAgentScope ? 'agent' : 'crew'}
       />
+
     </>
   );
 }

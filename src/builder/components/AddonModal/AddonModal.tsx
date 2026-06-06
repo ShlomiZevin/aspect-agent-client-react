@@ -20,9 +20,11 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Modal } from '../Modal/Modal';
 import { getPlugin } from '../../registry/plugins';
 import { useBuilder } from '../../state/BuilderContext';
+import { useAddonMutations } from '../../state/useAddonMutations';
 import { useCrewFields } from '../../state/useCrewFields';
 import { useConfirm } from '../Confirm/Confirm';
 import { useBuilderSettings } from '../TopBar/BuilderSettings';
@@ -38,8 +40,14 @@ interface Props {
   open: boolean;
   onClose: () => void;
   agentId: ID;
-  crewId: ID;
+  /** null → agent-cortex scope. Otherwise → addon belongs to a crew. */
+  crewId: ID | null;
   instance: AddonInstance | null;
+  /** View-only mode. Hides Remove/Done/snapshot machinery, disables
+   *  the inner ConfigComponent via a fieldset wrapper, and shows a
+   *  banner with a link to the editable location (agent page). Used
+   *  by the agent-cortex strip shown in CrewView. */
+  readOnly?: boolean;
 }
 
 interface Snapshot {
@@ -52,14 +60,11 @@ function deepEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-export function AddonModal({ open, onClose, agentId, crewId, instance }: Props) {
-  const {
-    updateAddonConfig,
-    updateAddonContext,
-    setAddonOutputType,
-    removeAddon,
-    saveCrewVersion,
-  } = useBuilder();
+export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly = false }: Props) {
+  const { saveCrewVersion, saveAgentVersion, doc } = useBuilder();
+  const muts = useAddonMutations(agentId, crewId);
+  const isAgentScope = crewId === null;
+  const agent = doc.agents.find(a => a.id === agentId);
   const confirm = useConfirm();
   const [settings] = useBuilderSettings();
   const [exportOpen, setExportOpen] = useState(false);
@@ -67,8 +72,14 @@ export function AddonModal({ open, onClose, agentId, crewId, instance }: Props) 
   // For Field Reasoner cascade-delete — the linked field is owned by
   // this addon, so removing the addon also removes the field. Pulled
   // unconditionally; the helpers no-op when the plugin isn't a
-  // reasoner.
-  const { allFields, removeField } = useCrewFields(agentId, crewId);
+  // reasoner. Uses '' as a sentinel crewId for agent-scope so
+  // useCrewFields still resolves the agent field pool.
+  const { allFields, removeField } = useCrewFields(agentId, crewId ?? '');
+
+  const persistVersion = () => {
+    if (isAgentScope) saveAgentVersion(agentId);
+    else if (crewId)  saveCrewVersion(agentId, crewId);
+  };
 
   // Snapshot the editable slice on open. The ref pattern is used over
   // useState because the snapshot should never trigger a re-render —
@@ -111,11 +122,9 @@ export function AddonModal({ open, onClose, agentId, crewId, instance }: Props) 
   };
 
   const handleRemove = async () => {
+    if (readOnly) return;
     // Field Reasoner cascade — the linked FieldDef is owned by this
-    // addon, so deleting the addon also deletes the field. Per the
-    // BUILDER_V2_FIELD_REASONER.md plan: "deleting the addon deletes
-    // the field too. Rationale: the modal created the field as part
-    // of its setup. Field Reasoner is the field's owner."
+    // addon, so deleting the addon also deletes the field.
     const isReasoner = instance.pluginId === FIELD_REASONER_PLUGIN_ID;
     const linkedFieldId = isReasoner
       ? ((instance.config as { extractsFields?: ID[] }).extractsFields ?? [])[0]
@@ -130,32 +139,31 @@ export function AddonModal({ open, onClose, agentId, crewId, instance }: Props) 
         : `Remove ${desc.name}?`,
       message: linkedField
         ? `This removes the Field Reasoner AND the field declaration it owns. Dynamic Context cases or prompts referencing "${linkedField.field.name}" will stop resolving.`
-        : 'This removes the addon from this crew. You can re-add it any time.',
+        : isAgentScope
+          ? 'This removes the addon from the agent cortex. You can re-add it any time.'
+          : 'This removes the addon from this crew. You can re-add it any time.',
       confirmLabel: linkedField ? 'Delete' : 'Remove',
       danger: true,
     });
     if (ok) {
-      removeAddon(agentId, crewId, instance.instanceId);
+      muts.remove(instance.instanceId);
       if (linkedField) {
         removeField(linkedField.scope, linkedField.ownerCrewId, linkedField.field.id);
       }
-      // Persist immediately when auto-save is on; otherwise the
-      // removal sits as dirty state until the user clicks Save.
-      if (settings.autoSave) saveCrewVersion(agentId, crewId);
+      if (settings.autoSave) persistVersion();
       onClose();
     }
   };
 
   const handleDone = () => {
-    // With auto-save ON, Done is the moment changes become durable.
-    // With auto-save OFF, Done just closes — the edits stay dirty
-    // until the user clicks Save in the version menu.
-    if (settings.autoSave) saveCrewVersion(agentId, crewId);
+    if (readOnly) { onClose(); return; }
+    if (settings.autoSave) persistVersion();
     snapshotRef.current = null;
     onClose();
   };
 
   const handleCancel = async () => {
+    if (readOnly) { onClose(); return; }
     if (isDirty()) {
       const ok = await confirm({
         title:        'Discard changes?',
@@ -167,12 +175,9 @@ export function AddonModal({ open, onClose, agentId, crewId, instance }: Props) 
     }
     const s = snapshotRef.current?.snap;
     if (s) {
-      // Restore via the existing setters — same code path inverse edits
-      // would have gone through, so the doc lands back exactly where it
-      // started without touching unrelated state.
-      updateAddonConfig(agentId, crewId, instance.instanceId, s.config);
-      updateAddonContext(agentId, crewId, instance.instanceId, s.context);
-      setAddonOutputType(agentId, crewId, instance.instanceId, s.outputType);
+      muts.updateConfig(instance.instanceId, s.config);
+      muts.updateContext(instance.instanceId, s.context);
+      muts.setOutputType(instance.instanceId, s.outputType);
     }
     snapshotRef.current = null;
     onClose();
@@ -190,67 +195,97 @@ export function AddonModal({ open, onClose, agentId, crewId, instance }: Props) 
             {desc.name}
           </>
         }
-        badge={instance.lane}
+        badge={readOnly ? 'read-only · agent cortex' : instance.lane}
         footer={
-          <>
-            <button type="button" className={styles.dangerBtn} onClick={handleRemove}>
-              Remove
-            </button>
-            <span className={styles.spacer} />
-            {!desc.hideStandardSections?.promptTemplate && (
-              <button
-                type="button"
-                className={styles.secondaryBtn}
-                onClick={() => setTemplateOpen(true)}
-                title="View the prompt template the runtime uses for this addon"
-              >
-                📄 Prompt template
+          readOnly ? (
+            <>
+              {agent && (
+                <Link
+                  to={`/${agent.slug}/builder`}
+                  onClick={onClose}
+                  className={styles.secondaryBtn}
+                  title="Open the agent page to edit the agent cortex"
+                >
+                  Edit at agent level ↗
+                </Link>
+              )}
+              <span className={styles.spacer} />
+              <button type="button" className={styles.primaryBtn} onClick={onClose}>
+                Close
               </button>
-            )}
-            {!desc.hideStandardSections?.repository && (
-              <button
-                type="button"
-                className={styles.secondaryBtn}
-                onClick={() => setExportOpen(true)}
-                title="Save this config to the shared Addon Repository"
-              >
-                ⬆️ Export to repository
+            </>
+          ) : (
+            <>
+              <button type="button" className={styles.dangerBtn} onClick={handleRemove}>
+                Remove
               </button>
-            )}
-            <button type="button" className={styles.secondaryBtn} onClick={handleCancel}>
-              Cancel
-            </button>
-            <button type="button" className={styles.primaryBtn} onClick={handleDone}>
-              Done
-            </button>
-          </>
+              <span className={styles.spacer} />
+              {!desc.hideStandardSections?.promptTemplate && (
+                <button
+                  type="button"
+                  className={styles.secondaryBtn}
+                  onClick={() => setTemplateOpen(true)}
+                  title="View the prompt template the runtime uses for this addon"
+                >
+                  📄 Prompt template
+                </button>
+              )}
+              {!desc.hideStandardSections?.repository && (
+                <button
+                  type="button"
+                  className={styles.secondaryBtn}
+                  onClick={() => setExportOpen(true)}
+                  title="Save this config to the shared Addon Repository"
+                >
+                  ⬆️ Export to repository
+                </button>
+              )}
+              <button type="button" className={styles.secondaryBtn} onClick={handleCancel}>
+                Cancel
+              </button>
+              <button type="button" className={styles.primaryBtn} onClick={handleDone}>
+                Done
+              </button>
+            </>
+          )
         }
       >
-        <div className={styles.body}>
-          <Config
-            config={instance.config}
-            instance={instance}
-            agentId={agentId}
-            crewId={crewId}
-            onChange={next => updateAddonConfig(agentId, crewId, instance.instanceId, next)}
-          />
-
-          {!desc.hideStandardSections?.context && (
-            <AddonContextSection
-              agentId={agentId}
-              crewId={crewId}
+        <fieldset
+          disabled={readOnly}
+          style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
+        >
+          <div className={styles.body}>
+            {readOnly && (
+              <div className={styles.readOnlyBanner}>
+                This addon runs from the <strong>agent cortex</strong> before
+                every crew. To edit it, open the agent page.
+              </div>
+            )}
+            <Config
+              config={instance.config}
               instance={instance}
-            />
-          )}
-
-          {!desc.hideStandardSections?.output && (
-            <AddonOutputSection
               agentId={agentId}
-              crewId={crewId}
-              instance={instance}
+              crewId={crewId ?? ''}
+              onChange={next => muts.updateConfig(instance.instanceId, next)}
             />
-          )}
-        </div>
+
+            {!desc.hideStandardSections?.context && (
+              <AddonContextSection
+                agentId={agentId}
+                crewId={crewId}
+                instance={instance}
+              />
+            )}
+
+            {!desc.hideStandardSections?.output && (
+              <AddonOutputSection
+                agentId={agentId}
+                crewId={crewId}
+                instance={instance}
+              />
+            )}
+          </div>
+        </fieldset>
       </Modal>
 
       <ExportToLibraryModal

@@ -29,7 +29,17 @@ interface Props {
   onClose: () => void;
   lane: AddonLane;
   onPick: (choice: AddStepChoice) => void;
+  /** Where these addons will live. Drives which plugins the picker
+   *  surfaces — at agent scope, Talker and Transition Router don't
+   *  belong (no crew context to speak from or transition between). */
+  scope?: 'agent' | 'crew';
 }
+
+/** Plugin IDs hidden from the picker when `scope === 'agent'`. */
+const AGENT_FORBIDDEN_PLUGINS: ReadonlySet<string> = new Set([
+  'talker',
+  'transition-router',
+]);
 
 const LANE_LABEL: Record<AddonLane, string> = {
   main: 'Blocking',
@@ -39,7 +49,7 @@ const LANE_LABEL: Record<AddonLane, string> = {
 
 type Tab = 'blank' | 'repository';
 
-export function AddStepModal({ open, onClose, lane, onPick }: Props) {
+export function AddStepModal({ open, onClose, lane, onPick, scope = 'crew' }: Props) {
   const [tab, setTab] = useState<Tab>('blank');
   const [entries, setEntries] = useState<LibraryEntry[]>(() => listLibraryEntries());
 
@@ -53,7 +63,12 @@ export function AddStepModal({ open, onClose, lane, onPick }: Props) {
     if (open) setTab('blank');
   }, [open]);
 
-  const plugins = listPlugins();
+  const plugins = listPlugins().filter(p =>
+    scope === 'agent' ? !AGENT_FORBIDDEN_PLUGINS.has(p.id) : true,
+  );
+  const visibleEntries = entries.filter(e =>
+    scope === 'agent' ? !AGENT_FORBIDDEN_PLUGINS.has(e.pluginId) : true,
+  );
 
   return (
     <Modal
@@ -77,13 +92,13 @@ export function AddStepModal({ open, onClose, lane, onPick }: Props) {
           onClick={() => setTab('repository')}
         >
           Repository
-          <span className={styles.tabCount}>{entries.length}</span>
+          <span className={styles.tabCount}>{visibleEntries.length}</span>
         </button>
       </div>
 
       {tab === 'blank' ? (
         <div className={styles.section}>
-          {plugins.length === 0 && <div className={styles.empty}>No plugins registered.</div>}
+          {plugins.length === 0 && <div className={styles.empty}>No plugins available at this scope.</div>}
           {plugins.map(p => (
             <button
               key={p.id}
@@ -109,13 +124,13 @@ export function AddStepModal({ open, onClose, lane, onPick }: Props) {
         </div>
       ) : (
         <div className={styles.section}>
-          {entries.length === 0 && (
+          {visibleEntries.length === 0 && (
             <div className={styles.empty}>
               Nothing in the repository yet. Open an addon and use{' '}
               <strong>Export to repository</strong> to share a good config.
             </div>
           )}
-          {entries.map(e => {
+          {visibleEntries.map(e => {
             const p = getPlugin(e.pluginId);
             return (
               <button

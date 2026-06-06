@@ -8,6 +8,16 @@
   gap: 16px;
 }
 
+.readOnlyBanner {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(124, 58, 237, 0.06);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  color: #4c1d95;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .dangerBtn {
   padding: 8px 14px;
   font-size: 13px;

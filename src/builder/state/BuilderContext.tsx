@@ -322,6 +322,40 @@ interface BuilderState {
     toIdx: number,
   ) => void;
 
+  // ── Agent-level cortex (parallel surface to the crew chain) ──
+  // Same shape as the crew mutations above with `crewId` removed.
+  // Runs BEFORE the crew's cortex on every turn. Restricted plugins
+  // (Talker, Transition Router) are filtered out at the picker level
+  // on the client; the server runtime also defensively filters them.
+  addAgentAddon: (agentId: ID, instance: AddonInstance) => void;
+  updateAgentAddonConfig: (
+    agentId: ID,
+    instanceId: ID,
+    nextConfig: unknown,
+  ) => void;
+  updateAgentAddonContext: (
+    agentId: ID,
+    instanceId: ID,
+    nextContext: AddonContext,
+  ) => void;
+  setAgentAddonOutputType: (
+    agentId: ID,
+    instanceId: ID,
+    nextType: OutputType,
+  ) => void;
+  setAgentAddonEnabled: (
+    agentId: ID,
+    instanceId: ID,
+    enabled: boolean,
+  ) => void;
+  removeAgentAddon: (agentId: ID, instanceId: ID) => void;
+  reorderAgentAddonInLane: (
+    agentId: ID,
+    lane: 'main' | 'background' | 'offline',
+    fromIdx: number,
+    toIdx: number,
+  ) => void;
+
   // Crew versioning
   /** Overwrite the *viewing* version's snapshot with the current working state. */
   saveCrewVersion: (agentId: ID, crewId: ID, opts?: SaveOpts) => void;
@@ -796,6 +830,98 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
           next[globalIdx] = c.addons[reorderedPositions[k]];
         });
         return { ...c, addons: next };
+      });
+    },
+    [],
+  );
+
+  // ── Agent-cortex mutations ──
+  //
+  // Same mechanics as the crew counterparts above, scoped to
+  // `agent.cortex`. Pulled out as a helper to keep the per-mutation
+  // bodies readable.
+  const mapAgent = (agentId: ID, fn: (a: AgentDoc) => AgentDoc) =>
+    setDoc(d => ({
+      ...d,
+      agents: d.agents.map(a => (a.id === agentId ? fn(a) : a)),
+    }));
+
+  const addAgentAddon = useCallback((agentId: ID, instance: AddonInstance) => {
+    mapAgent(agentId, a => ({ ...a, cortex: [...(a.cortex ?? []), instance] }));
+  }, []);
+
+  const updateAgentAddonConfig = useCallback(
+    (agentId: ID, instanceId: ID, nextConfig: unknown) => {
+      mapAgent(agentId, a => ({
+        ...a,
+        cortex: (a.cortex ?? []).map(x =>
+          x.instanceId === instanceId ? { ...x, config: nextConfig } : x,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const updateAgentAddonContext = useCallback(
+    (agentId: ID, instanceId: ID, nextContext: AddonContext) => {
+      mapAgent(agentId, a => ({
+        ...a,
+        cortex: (a.cortex ?? []).map(x =>
+          x.instanceId === instanceId ? { ...x, context: nextContext } : x,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const setAgentAddonOutputType = useCallback(
+    (agentId: ID, instanceId: ID, nextType: OutputType) => {
+      mapAgent(agentId, a => ({
+        ...a,
+        cortex: (a.cortex ?? []).map(x =>
+          x.instanceId === instanceId ? { ...x, outputType: nextType } : x,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const setAgentAddonEnabled = useCallback(
+    (agentId: ID, instanceId: ID, enabled: boolean) => {
+      mapAgent(agentId, a => ({
+        ...a,
+        cortex: (a.cortex ?? []).map(x =>
+          x.instanceId === instanceId ? { ...x, enabled } : x,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const removeAgentAddon = useCallback((agentId: ID, instanceId: ID) => {
+    mapAgent(agentId, a => ({
+      ...a,
+      cortex: (a.cortex ?? []).filter(x => x.instanceId !== instanceId),
+    }));
+  }, []);
+
+  const reorderAgentAddonInLane = useCallback(
+    (agentId: ID, lane: 'main' | 'background' | 'offline', fromIdx: number, toIdx: number) => {
+      mapAgent(agentId, a => {
+        const cortex = a.cortex ?? [];
+        const positions: number[] = [];
+        cortex.forEach((x, i) => { if (x.lane === lane) positions.push(i); });
+        if (fromIdx < 0 || fromIdx >= positions.length) return a;
+        if (toIdx   < 0 || toIdx   >= positions.length) return a;
+        if (fromIdx === toIdx) return a;
+        const reordered = [...positions];
+        const [movedPos] = reordered.splice(fromIdx, 1);
+        reordered.splice(toIdx, 0, movedPos);
+        const next = [...cortex];
+        positions.forEach((globalIdx, k) => {
+          next[globalIdx] = cortex[reordered[k]];
+        });
+        return { ...a, cortex: next };
       });
     },
     [],
@@ -1410,6 +1536,13 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       setAddonEnabled,
       removeAddon,
       reorderAddonInLane,
+      addAgentAddon,
+      updateAgentAddonConfig,
+      updateAgentAddonContext,
+      setAgentAddonOutputType,
+      setAgentAddonEnabled,
+      removeAgentAddon,
+      reorderAgentAddonInLane,
       saveCrewVersion,
       saveCrewVersionAs,
       setViewingCrewVersion,
@@ -1451,6 +1584,13 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       setAddonEnabled,
       removeAddon,
       reorderAddonInLane,
+      addAgentAddon,
+      updateAgentAddonConfig,
+      updateAgentAddonContext,
+      setAgentAddonOutputType,
+      setAgentAddonEnabled,
+      removeAgentAddon,
+      reorderAgentAddonInLane,
       saveCrewVersion,
       saveCrewVersionAs,
       setViewingCrewVersion,

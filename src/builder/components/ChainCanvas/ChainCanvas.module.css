@@ -200,3 +200,139 @@
   border-color: var(--border-color, #d1d5db);
   color: var(--text-secondary, #6b7280);
 }
+
+
+/* ── Compact + read-only variants (Agent cortex strip in CrewView) ── */
+
+.canvasCompact {
+  padding: 10px 12px;
+  gap: 8px;
+  background: var(--bg-input, #fafafa);
+  border-style: dashed;
+}
+
+.canvasCompact .canvasHeader {
+  gap: 8px;
+}
+
+.canvasCompact .canvasTitle {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary, #4b5563);
+}
+
+.canvasCompact .lane {
+  border: 0;
+  padding-bottom: 0;
+  gap: 0;
+}
+
+.canvasCompact .track {
+  gap: 6px;
+}
+
+.cardCompact {
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  flex-direction: row;
+  gap: 6px;
+}
+
+.cardCompact .cardIcon {
+  font-size: 14px;
+  margin: 0;
+}
+
+.cardCompact .cardName {
+  font-size: 12px;
+}
+
+.compactEmpty {
+  font-size: 11px;
+  color: var(--text-tertiary, #9ca3af);
+  font-style: italic;
+}
+
+.canvasReadOnly .card {
+  cursor: pointer;
+}
+
+.canvasReadOnly .card:hover {
+  filter: brightness(0.97);
+}
+
+.addCardCompact {
+  min-width: 28px;
+  padding: 4px 8px;
+  font-size: 14px;
+}
+
+
+/* ── Persona card (hardcoded at agent scope) ─────────────────────── */
+
+.cardPersona {
+  --card-color: #ec4899;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(236, 72, 153, 0.02));
+  border-color: rgba(236, 72, 153, 0.35);
+  cursor: pointer;
+}
+
+.cardPersona:hover {
+  border-color: rgba(236, 72, 153, 0.6);
+}
+
+.personaLockBadge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(236, 72, 153, 0.9);
+}
+
+/* Persona view modal (read-only fallback) */
+
+.personaModalText {
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--bg-input, #fafafa);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  font-family: var(--font-mono, ui-monospace, "Menlo", monospace);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary, #111827);
+  white-space: pre-wrap;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.personaModalLink {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(236, 72, 153, 0.35);
+  background: #fff;
+  color: #be185d;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.personaModalLink:hover {
+  background: rgba(236, 72, 153, 0.06);
+}
+
+.personaModalClose {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-surface, #fff);
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  font-family: inherit;
+}
+
