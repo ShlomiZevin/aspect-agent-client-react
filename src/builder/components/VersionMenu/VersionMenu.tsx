@@ -39,7 +39,7 @@ export function VersionMenu({ state }: Props) {
   const [attributionVariant, setAttributionVariant]   = useState<'save' | 'save-as'>('save');
   const [pendingDescription, setPendingDescription]   = useState<string | undefined>(undefined);
   const confirm = useConfirm();
-  const { pendingAlfredApply } = useBuilder();
+  const { pendingAlfredApply, resetToServerState } = useBuilder();
 
   const {
     entityLabel,
@@ -53,8 +53,11 @@ export function VersionMenu({ state }: Props) {
     save,
     saveAs,
     setActive,
-    discard,
   } = state;
+  // Note: `state.discard` (in-memory revert to the cached version body)
+  // is intentionally unused. The Reset button below calls
+  // `resetToServerState` instead so it always reflects the real DB —
+  // immune to stale localStorage drafts.
 
   const viewing = versions.find(v => v.id === viewingVersionId);
   const viewingIsActive = viewingVersionId === activeVersionId;
@@ -134,18 +137,18 @@ export function VersionMenu({ state }: Props) {
           className={`${styles.btn} ${styles.btnDanger}`}
           onClick={async () => {
             const ok = await confirm({
-              title:    'Discard your changes?',
+              title:    'Reset to last saved state?',
               message:  hasPendingAlfred
-                ? 'This reverts the working copy to the saved version and drops the pending Alfred apply (no log entry).'
-                : 'This reverts the working copy to the saved version. Unsaved edits are lost.',
-              confirmLabel: 'Discard',
+                ? 'Reloads the latest version from the server, drops your unsaved edits, and drops the pending Alfred apply (no log entry). If nothing is saved yet, you\'ll get a blank agent.'
+                : 'Reloads the latest version from the server and drops your unsaved edits. If nothing is saved yet, you\'ll get a blank agent.',
+              confirmLabel: 'Reset',
               danger:   true,
             });
-            if (ok) discard();
+            if (ok) await resetToServerState();
           }}
-          title="Revert working copy to the saved version"
+          title="Reload the last saved version from the server (blank if nothing saved)"
         >
-          ↶ Discard
+          ↶ Reset
         </button>
       )}
 

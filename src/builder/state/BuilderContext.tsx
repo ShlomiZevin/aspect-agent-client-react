@@ -397,6 +397,19 @@ interface BuilderState {
   reloadProject: () => Promise<void>;
 
   /**
+   * "Reset to last saved state" — fetch the current server-side doc and
+   * replace the working copy with it. If the server has no doc for this
+   * slug yet, fall back to an empty agent shell so the user is left in
+   * a usable initial state. Wired to the TopBar's single Reset button.
+   *
+   * Differs from `reloadProject` in that it has an empty fallback —
+   * `reloadProject` is for Alfred-apply-style flows where a 404 is an
+   * error to ignore. Here a 404 means "nothing saved yet, give me a
+   * clean slate".
+   */
+  resetToServerState: () => Promise<void>;
+
+  /**
    * Currently-pending Alfred Apply. Set when the user accepts the
    * preview modal's plan; cleared once every target has been Saved
    * (or when a new Apply replaces it). The presence of this state is
@@ -1520,6 +1533,16 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     }
   }, [agentSlug, ownerUserId]);
 
+  const resetToServerState = useCallback(async () => {
+    try {
+      const fresh = await fetchProject({ agentSlug, ownerUserId });
+      setDoc(fresh ?? emptyProject(agentSlug));
+    } catch (err) {
+      console.error('[builder] resetToServerState failed:', err);
+      // Network error: leave the working copy alone. The user can retry.
+    }
+  }, [agentSlug, ownerUserId]);
+
   const value = useMemo<BuilderState>(
     () => ({
       doc,
@@ -1561,6 +1584,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       isAgentDirty,
       resetDraft,
       reloadProject,
+      resetToServerState,
       pendingAlfredApply,
       applyAlfredBodies,
       previewConversationId,
@@ -1609,6 +1633,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       isAgentDirty,
       resetDraft,
       reloadProject,
+      resetToServerState,
       pendingAlfredApply,
       applyAlfredBodies,
       previewConversationId,

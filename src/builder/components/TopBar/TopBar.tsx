@@ -2,28 +2,36 @@ import { useRef, useState } from 'react';
 import { Link, useMatch } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { useAgentVersion, useCrewVersion } from '../../state/useEntityVersion';
-import { useConfirm } from '../Confirm/Confirm';
 import { useAnyDirty } from '../../hooks/useAutoSave';
 import { VersionMenu } from '../VersionMenu/VersionMenu';
 import { BuilderSettingsPopover, useBuilderSettings } from './BuilderSettings';
 import styles from './TopBar.module.css';
 
 export function TopBar() {
-  const { doc, resetDraft, pendingAlfredApply } = useBuilder();
-  const confirm = useConfirm();
+  const { doc, pendingAlfredApply } = useBuilder();
   const [settings, setSetting] = useBuilderSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsBtnRef = useRef<HTMLButtonElement>(null);
 
-  const handleReset = async () => {
-    const ok = await confirm({
-      title: 'Reset draft?',
-      message: 'Local changes will be lost. The builder will start from a blank project.',
-      confirmLabel: 'Reset',
-      danger: true,
-    });
-    if (ok) resetDraft();
-  };
+  // "Reset draft" button was retired — its behavior (wipe local doc to a
+  // blank project shell) was a debug-helper footgun next to the
+  // VersionMenu's Reset, which now does the right thing (reload from
+  // server, fall back to empty). The underlying `resetDraft` action
+  // stays available on BuilderContext for any future caller; only the
+  // UI surface is removed. Restore by uncommenting the JSX below and
+  // re-importing `useBuilder` / `useConfirm` for the handler.
+  //
+  // const { resetDraft } = useBuilder();
+  // const confirm = useConfirm();
+  // const handleReset = async () => {
+  //   const ok = await confirm({
+  //     title: 'Reset draft?',
+  //     message: 'Local changes will be lost. The builder will start from a blank project.',
+  //     confirmLabel: 'Reset',
+  //     danger: true,
+  //   });
+  //   if (ok) resetDraft();
+  // };
 
   return (
     <>
@@ -40,9 +48,9 @@ export function TopBar() {
           autoSaveBlocked={!!pendingAlfredApply}
         />
       )}
-      <button type="button" className={styles.resetBtn} onClick={handleReset}>
+      {/* <button type="button" className={styles.resetBtn} onClick={handleReset}>
         Reset draft
-      </button>
+      </button> */}
       <span className={styles.draftPill}>Draft</span>
       <div className={styles.settingsWrap}>
         <button
