@@ -20,12 +20,27 @@
   gap: 10px;
 }
 
+/* Embedded mode — the host (SchemaSectionModal) supplies the card
+ * chrome and the title; the section drops its own to avoid the
+ * double-title / card-in-card look. */
+.panelEmbedded {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+
 .header {
   display: flex;
   align-items: center;
   gap: 8px;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.headerEmbedded {
+  border-bottom: 0;
+  padding-bottom: 0;
 }
 
 .title {

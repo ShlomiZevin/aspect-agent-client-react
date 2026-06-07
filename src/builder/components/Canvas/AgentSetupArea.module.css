@@ -27,31 +27,59 @@
   gap: 8px;
 }
 
+/* Base chip — neutral indigo. Used by the schema chips
+ * (Parameters / Dynamic Context / Domains / Fields). */
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(236, 72, 153, 0.35);
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(236, 72, 153, 0.02));
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-surface, #fff);
   color: var(--text-primary, #111827);
   font-family: inherit;
   font-size: 13px;
   cursor: pointer;
-  transition: background 120ms, border-color 120ms;
+  transition: background 120ms, border-color 120ms, transform 120ms;
 }
 
 .chip:hover {
-  border-color: rgba(236, 72, 153, 0.6);
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(236, 72, 153, 0.04));
+  border-color: rgba(99, 102, 241, 0.6);
+  background: rgba(99, 102, 241, 0.05);
+  transform: translateY(-1px);
 }
 
 .chipIcon {
   font-size: 16px;
+  line-height: 1;
 }
 
 .chipName {
   font-weight: 600;
+}
+
+.chipCount {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--bg-input, #f3f4f6);
+  color: var(--text-secondary, #4b5563);
+}
+
+/* Persona chip — pink accent, keeps the special-but-still-a-chip
+ * feel from the previous version. No count badge (always exists). */
+.chipPersona {
+  border-color: rgba(236, 72, 153, 0.35);
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(236, 72, 153, 0.02));
+}
+
+.chipPersona:hover {
+  border-color: rgba(236, 72, 153, 0.6);
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(236, 72, 153, 0.04));
+}
+
+.chipPersona .chipName {
   color: #be185d;
 }

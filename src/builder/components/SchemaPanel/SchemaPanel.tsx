@@ -23,24 +23,40 @@ import { WireFieldModal } from './WireFieldModal';
 import type { DynamicContextDef, FieldDef, ID, ParameterDef } from '../../types';
 import styles from './SchemaPanel.module.css';
 
+export type SchemaSectionKind =
+  | 'parameters'
+  | 'dynamic-context'
+  | 'domains'
+  | 'fields';
+
 interface Props {
   agentId: ID;
+  /** Subset of sections to render. Omit (or pass `undefined`) to
+   *  render the default 4-section stack. The Setup-zone modals use
+   *  this to focus the panel on one section at a time. */
+  sections?: SchemaSectionKind[];
+  /** When true the sections drop their own card chrome (panel border,
+   *  title text, item count) so they can sit inside a host modal
+   *  without doubling up on the framing the modal already provides.
+   *  The "+ Add" affordance stays visible. */
+  embedded?: boolean;
 }
 
-export function SchemaPanel({ agentId }: Props) {
+export function SchemaPanel({ agentId, sections, embedded }: Props) {
+  const show = (k: SchemaSectionKind) => !sections || sections.includes(k);
   return (
     <div className={styles.stack}>
-      <ParametersSection agentId={agentId} />
-      <DynamicContextsSection agentId={agentId} />
-      <DomainsSection agentId={agentId} />
-      <FieldsSection agentId={agentId} />
+      {show('parameters')      && <ParametersSection      agentId={agentId} embedded={embedded} />}
+      {show('dynamic-context') && <DynamicContextsSection agentId={agentId} embedded={embedded} />}
+      {show('domains')         && <DomainsSection         agentId={agentId} embedded={embedded} />}
+      {show('fields')          && <FieldsSection          agentId={agentId} embedded={embedded} />}
     </div>
   );
 }
 
 /* ─── Dynamic Context ─────────────────────────────────────────── */
 
-function DynamicContextsSection({ agentId }: { agentId: ID }) {
+function DynamicContextsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean }) {
   const { doc } = useBuilder();
   const agent = doc.agents.find(a => a.id === agentId);
   const dcs = useMemo(() => agent?.dynamicContexts ?? [], [agent?.dynamicContexts]);
@@ -54,10 +70,10 @@ function DynamicContextsSection({ agentId }: { agentId: ID }) {
   const slug = agent?.slug ?? '';
 
   return (
-    <div className={styles.panel}>
-      <div className={styles.header}>
-        <span className={styles.title}>🎯 Dynamic context</span>
-        <span className={styles.count}>{dcs.length}</span>
+    <div className={`${styles.panel} ${embedded ? styles.panelEmbedded : ''}`}>
+      <div className={`${styles.header} ${embedded ? styles.headerEmbedded : ''}`}>
+        {!embedded && <span className={styles.title}>🎯 Dynamic context</span>}
+        {!embedded && <span className={styles.count}>{dcs.length}</span>}
         <span className={styles.spacer} />
         <Link
           to={`/${slug}/builder/dynamic-context`}
@@ -112,7 +128,7 @@ function DynamicContextsSection({ agentId }: { agentId: ID }) {
 
 /* ─── Domains ─────────────────────────────────────────────────── */
 
-function DomainsSection({ agentId }: { agentId: ID }) {
+function DomainsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean }) {
   const { doc, updateAgent, renameAgentDomain } = useBuilder();
   const agent = doc.agents.find(a => a.id === agentId);
   const declared = useMemo(() => agent?.domains ?? [], [agent?.domains]);
@@ -166,10 +182,10 @@ function DomainsSection({ agentId }: { agentId: ID }) {
   };
 
   return (
-    <div className={styles.panel}>
-      <div className={styles.header}>
-        <span className={styles.title}>🗂 Domains</span>
-        <span className={styles.count}>{allNames.length}</span>
+    <div className={`${styles.panel} ${embedded ? styles.panelEmbedded : ''}`}>
+      <div className={`${styles.header} ${embedded ? styles.headerEmbedded : ''}`}>
+        {!embedded && <span className={styles.title}>🗂 Domains</span>}
+        {!embedded && <span className={styles.count}>{allNames.length}</span>}
         <span className={styles.spacer} />
         <button type="button" className={styles.addBtn} onClick={openAdd}>
           + Add
@@ -220,7 +236,7 @@ function DomainsSection({ agentId }: { agentId: ID }) {
 
 /* ─── Parameters ──────────────────────────────────────────────── */
 
-function ParametersSection({ agentId }: { agentId: ID }) {
+function ParametersSection({ agentId, embedded }: { agentId: ID; embedded?: boolean }) {
   const { doc, updateAgent } = useBuilder();
   const agent = doc.agents.find(a => a.id === agentId);
   const parameters = useMemo(() => agent?.parameters ?? [], [agent?.parameters]);
@@ -247,10 +263,10 @@ function ParametersSection({ agentId }: { agentId: ID }) {
   };
 
   return (
-    <div className={styles.panel}>
-      <div className={styles.header}>
-        <span className={styles.title}>⚙️ Parameters</span>
-        <span className={styles.count}>{parameters.length}</span>
+    <div className={`${styles.panel} ${embedded ? styles.panelEmbedded : ''}`}>
+      <div className={`${styles.header} ${embedded ? styles.headerEmbedded : ''}`}>
+        {!embedded && <span className={styles.title}>⚙️ Parameters</span>}
+        {!embedded && <span className={styles.count}>{parameters.length}</span>}
         <span className={styles.spacer} />
         <button type="button" className={styles.addBtn} onClick={openAdd}>
           + Add
@@ -301,7 +317,7 @@ function ParametersSection({ agentId }: { agentId: ID }) {
 
 /* ─── Fields (agent-level declarations) ──────────────────────── */
 
-function FieldsSection({ agentId }: { agentId: ID }) {
+function FieldsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean }) {
   const { allFields } = useAgentFields(agentId);
   const {
     doc,
@@ -387,10 +403,10 @@ function FieldsSection({ agentId }: { agentId: ID }) {
   };
 
   return (
-    <div className={styles.panel}>
-      <div className={styles.header}>
-        <span className={styles.title}>🏷 Fields</span>
-        <span className={styles.count}>{allFields.length}</span>
+    <div className={`${styles.panel} ${embedded ? styles.panelEmbedded : ''}`}>
+      <div className={`${styles.header} ${embedded ? styles.headerEmbedded : ''}`}>
+        {!embedded && <span className={styles.title}>🏷 Fields</span>}
+        {!embedded && <span className={styles.count}>{allFields.length}</span>}
         <span className={styles.spacer} />
         <button type="button" className={styles.addBtn} onClick={openAdd}>
           + Declare
