@@ -119,26 +119,73 @@ function newFieldId(): ID {
 }
 
 /**
- * Build a labeled list of all extractor-class addon instances in an
- * agent (across every crew). Labels prefer the user-set `config.name`,
- * falling back to "<Plugin name> [#N]" disambiguated per crew so the
- * Vibe Extractors and Field Extractors don't collide visually.
+ * Single source of truth for "where do extractor-class addons live
+ * in this agent". Yields every extractor instance with its owning
+ * container tagged: `crewId === null` means the addon lives on
+ * `agent.cortex` (runs before any crew); otherwise it's the id of
+ * the crew whose `addons[]` it lives in. The display name in
+ * `crewName` follows the same split — `"Agent"` for cortex, the
+ * crew's name otherwise.
+ *
+ * Every site that walks all extractors in an agent (the picker, the
+ * "extracted by" lookup, the bulk-toggle, the delete-time scrub)
+ * consults this helper. That way the "where do addons live"
+ * knowledge sits in one place — if we ever add another container
+ * (project cortex, etc.) it's one update, not five.
  */
-function listAllExtractors(agent: AgentDoc | undefined): ExtractorRef[] {
+interface ExtractorWalkEntry {
+  instance: AddonInstance<FieldExtractorConfig>;
+  /** `null` → lives on `agent.cortex`. Otherwise the crew's id. */
+  crewId: ID | null;
+  /** Display name of the owning container — `"Agent"` for cortex. */
+  crewName: string;
+}
+
+export const AGENT_CORTEX_LABEL = 'Agent';
+
+export function walkExtractorsInAgent(agent: AgentDoc | undefined): ExtractorWalkEntry[] {
   if (!agent) return [];
-  const out: ExtractorRef[] = [];
+  const out: ExtractorWalkEntry[] = [];
+  for (const a of agent.cortex ?? []) {
+    if (isExtractor(a)) out.push({ instance: a, crewId: null, crewName: AGENT_CORTEX_LABEL });
+  }
   for (const crew of agent.crews) {
-    // Group same-plugin extractors per crew so the "#N" suffix only
-    // numbers among siblings of the same flavor — "Vibe Extractor #1"
-    // counts independently from "Field Extractor #1" in the same crew.
-    const byPluginCount = new Map<string, number>();
-    const byPluginTotal = new Map<string, number>();
     for (const a of crew.addons) {
-      if (!isExtractor(a)) continue;
-      byPluginTotal.set(a.pluginId, (byPluginTotal.get(a.pluginId) || 0) + 1);
+      if (isExtractor(a)) out.push({ instance: a, crewId: crew.id, crewName: crew.name });
     }
-    for (const a of crew.addons) {
-      if (!isExtractor(a)) continue;
+  }
+  return out;
+}
+
+/**
+ * Build a labeled list of all extractor-class addon instances in an
+ * agent (cortex + every crew). Labels prefer the user-set
+ * `config.name`, falling back to "<Plugin name> [#N]" disambiguated
+ * **per container** so the Vibe Extractors and Field Extractors don't
+ * collide visually within the same crew (or the agent cortex).
+ */
+export function listAllExtractors(agent: AgentDoc | undefined): ExtractorRef[] {
+  if (!agent) return [];
+  // Group walk entries by their container so the "#N" suffix only
+  // numbers among siblings of the same flavor inside the same
+  // container — "Vibe Extractor #1" counts independently from
+  // "Field Extractor #1" within one crew, and the agent cortex has
+  // its own counter family.
+  const byContainer = new Map<string, ExtractorWalkEntry[]>();
+  for (const entry of walkExtractorsInAgent(agent)) {
+    const key = entry.crewId ?? '__agent__';
+    if (!byContainer.has(key)) byContainer.set(key, []);
+    byContainer.get(key)!.push(entry);
+  }
+
+  const out: ExtractorRef[] = [];
+  for (const entries of byContainer.values()) {
+    const byPluginTotal = new Map<string, number>();
+    for (const e of entries) {
+      byPluginTotal.set(e.instance.pluginId, (byPluginTotal.get(e.instance.pluginId) || 0) + 1);
+    }
+    const byPluginCount = new Map<string, number>();
+    for (const { instance: a, crewId, crewName } of entries) {
       const pluginDesc = getPlugin(a.pluginId);
       const userName = (a.config?.name || '').trim();
       const pluginName = pluginDesc?.name || 'Extractor';
@@ -151,8 +198,13 @@ function listAllExtractors(agent: AgentDoc | undefined): ExtractorRef[] {
         pluginId:   a.pluginId,
         icon:       pluginDesc?.icon || '🛠',
         label:      userName || fallback,
-        crewId:     crew.id,
-        crewName:   crew.name,
+        // The ExtractorRef shape predates agent cortex; we use `''`
+        // (empty string) as the agent-cortex sentinel here so the
+        // interface stays a plain `ID` for crewId. Consumers that
+        // matter (FieldEditorModal, AddFieldModal) only group by
+        // crewName, so the empty crewId is invisible to them.
+        crewId:     crewId ?? '',
+        crewName,
       });
     }
   }
@@ -184,16 +236,14 @@ function buildCrewField(
       crewName: viewedCrewName,
     };
   }
-  // Resolve which extractors mention this id.
+  // Resolve which extractors mention this id — walks cortex + every
+  // crew so an agent-cortex-only extraction shows up here too.
   const extractors: ExtractorRef[] = [];
-  for (const crew of agent.crews) {
-    for (const a of crew.addons) {
-      if (!isExtractor(a)) continue;
-      const list = Array.isArray(a.config.extractsFields) ? a.config.extractsFields : [];
-      if (list.includes(def.id)) {
-        const ref = agentExtractors.find(x => x.instanceId === a.instanceId);
-        if (ref) extractors.push(ref);
-      }
+  for (const { instance: a } of walkExtractorsInAgent(agent)) {
+    const list = Array.isArray(a.config.extractsFields) ? a.config.extractsFields : [];
+    if (list.includes(def.id)) {
+      const ref = agentExtractors.find(x => x.instanceId === a.instanceId);
+      if (ref) extractors.push(ref);
     }
   }
   return {
@@ -209,17 +259,31 @@ function buildCrewField(
 }
 
 export function useCrewFields(agentId: ID, crewId: ID) {
-  const { doc, updateAgent, updateCrew, updateAddonConfig, addAddon } = useBuilder();
+  const {
+    doc, updateAgent, updateCrew, updateAddonConfig, updateAgentAddonConfig, addAddon,
+  } = useBuilder();
 
   const agent = doc.agents.find(a => a.id === agentId);
   const crew = agent?.crews.find(c => c.id === crewId);
+  // The agent-cortex context — when the hook is called with an empty
+  // crewId, the consumer is editing an agent-cortex extractor, not a
+  // crew-scoped one. We branch a few memos on this so the "this
+  // container's extractors" view sources from `agent.cortex` instead
+  // of a crew's `addons[]`.
+  const isAgentContext = crewId === '' && !!agent;
 
   const agentExtractors = useMemo(() => listAllExtractors(agent), [agent]);
 
-  /** Just this crew's extractors (used by the "this extractor" picker). */
+  /** Extractors that live in the CURRENT container — the crew the
+   *  consumer is viewing, or the agent cortex when invoked at agent
+   *  scope. Used by the "this extractor" picker in AddFieldModal. */
   const extractors = useMemo<AddonInstance<FieldExtractorConfig>[]>(
-    () => (crew?.addons ?? []).filter(isExtractor),
-    [crew?.addons],
+    () => (
+      isAgentContext
+        ? (agent?.cortex ?? []).filter(isExtractor)
+        : (crew?.addons ?? []).filter(isExtractor)
+    ),
+    [isAgentContext, agent?.cortex, crew?.addons],
   );
 
   const extractorOptions = useMemo<ExtractorOption[]>(
@@ -232,22 +296,27 @@ export function useCrewFields(agentId: ID, crewId: ID) {
   );
 
   /**
-   * Every field visible in this crew view: every agent field + this
-   * crew's crew-scoped fields. The order is agent-first (stable),
+   * Every field visible in this view. At crew scope: agent fields +
+   * this crew's crew-scoped fields. At agent scope (no `crewId`): just
+   * the agent fields — crew-scoped fields aren't reachable when you're
+   * editing an agent-cortex addon. The order is agent-first (stable),
    * then crew-scoped.
    */
   const allFields = useMemo<CrewField[]>(() => {
-    if (!agent || !crew) return [];
-    const crewName = crew.name;
+    if (!agent) return [];
+    const viewedCrewId  = crew?.id ?? '';
+    const viewedCrewName = crew?.name ?? AGENT_CORTEX_LABEL;
     const out: CrewField[] = [];
     for (const def of agent.fields || []) {
-      out.push(buildCrewField(def, 'agent', '', crewId, crewName, agentExtractors, agent));
+      out.push(buildCrewField(def, 'agent', '', viewedCrewId, viewedCrewName, agentExtractors, agent));
     }
-    for (const def of crew.fields || []) {
-      out.push(buildCrewField(def, 'crew', crew.id, crewId, crewName, agentExtractors, agent));
+    if (crew) {
+      for (const def of crew.fields || []) {
+        out.push(buildCrewField(def, 'crew', crew.id, viewedCrewId, viewedCrewName, agentExtractors, agent));
+      }
     }
     return out;
-  }, [agent, crew, crewId, agentExtractors]);
+  }, [agent, crew, agentExtractors]);
 
   const domains = useMemo<CrewDomain[]>(() => {
     const named = new Map<string, CrewField[]>();
@@ -285,24 +354,28 @@ export function useCrewFields(agentId: ID, crewId: ID) {
     (fieldId: ID, extractorIds: ID[]) => {
       if (!agent) return;
       const wanted = new Set(extractorIds);
-      // For each Field Extractor across the agent, decide if it
-      // should contain the id and patch its config when changed.
-      for (const c of agent.crews) {
-        for (const a of c.addons) {
-          if (!isExtractor(a)) continue;
-          const list = Array.isArray(a.config.extractsFields) ? a.config.extractsFields : [];
-          const has = list.includes(fieldId);
-          const should = wanted.has(a.instanceId);
-          if (has === should) continue;
-          const next = should
-            ? [...list, fieldId]
-            : list.filter(id => id !== fieldId);
-          const nextConfig: FieldExtractorConfig = { ...a.config, extractsFields: next };
-          updateAddonConfig(agentId, c.id, a.instanceId, nextConfig);
+      // For each extractor across the agent (cortex + every crew),
+      // decide if it should contain the id and patch its config when
+      // changed. The dispatch picks the right updater: crew-scoped
+      // addons go through `updateAddonConfig`, agent-cortex ones
+      // through `updateAgentAddonConfig`.
+      for (const { instance: a, crewId: ownerCrewId } of walkExtractorsInAgent(agent)) {
+        const list = Array.isArray(a.config.extractsFields) ? a.config.extractsFields : [];
+        const has = list.includes(fieldId);
+        const should = wanted.has(a.instanceId);
+        if (has === should) continue;
+        const next = should
+          ? [...list, fieldId]
+          : list.filter(id => id !== fieldId);
+        const nextConfig: FieldExtractorConfig = { ...a.config, extractsFields: next };
+        if (ownerCrewId === null) {
+          updateAgentAddonConfig(agentId, a.instanceId, nextConfig);
+        } else {
+          updateAddonConfig(agentId, ownerCrewId, a.instanceId, nextConfig);
         }
       }
     },
-    [agent, agentId, updateAddonConfig],
+    [agent, agentId, updateAddonConfig, updateAgentAddonConfig],
   );
 
   /**
@@ -420,21 +493,22 @@ export function useCrewFields(agentId: ID, crewId: ID) {
         const next = (c.fields || []).filter(f => f.id !== fieldId);
         updateCrew(agentId, c.id, { fields: next } as Partial<CrewDoc>);
       }
-      // Scrub.
-      for (const c of agent.crews) {
-        for (const a of c.addons) {
-          if (!isExtractor(a)) continue;
-          const list = Array.isArray(a.config.extractsFields) ? a.config.extractsFields : [];
-          if (!list.includes(fieldId)) continue;
-          const nextConfig: FieldExtractorConfig = {
-            ...a.config,
-            extractsFields: list.filter(id => id !== fieldId),
-          };
-          updateAddonConfig(agentId, c.id, a.instanceId, nextConfig);
+      // Scrub — drop the id from every extractor across cortex + crews.
+      for (const { instance: a, crewId: ownerCrewId } of walkExtractorsInAgent(agent)) {
+        const list = Array.isArray(a.config.extractsFields) ? a.config.extractsFields : [];
+        if (!list.includes(fieldId)) continue;
+        const nextConfig: FieldExtractorConfig = {
+          ...a.config,
+          extractsFields: list.filter(id => id !== fieldId),
+        };
+        if (ownerCrewId === null) {
+          updateAgentAddonConfig(agentId, a.instanceId, nextConfig);
+        } else {
+          updateAddonConfig(agentId, ownerCrewId, a.instanceId, nextConfig);
         }
       }
     },
-    [agent, agentId, updateAgent, updateCrew, updateAddonConfig],
+    [agent, agentId, updateAgent, updateCrew, updateAddonConfig, updateAgentAddonConfig],
   );
 
   return {
