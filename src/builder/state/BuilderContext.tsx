@@ -131,6 +131,7 @@ function bodyOfAgent(agent: AgentDoc): AgentBody {
     domains: agent.domains ?? [],
     parameters: agent.parameters ?? [],
     dynamicContexts: agent.dynamicContexts ?? [],
+    cortex: agent.cortex ?? [],
   };
 }
 
@@ -149,6 +150,7 @@ function emptyAgent(slug: string): AgentDoc {
     fields: [],
     domains: [],
     parameters: [],
+    cortex: [],
   };
   const versionId = uid('ver');
   const v1: AgentVersion = {

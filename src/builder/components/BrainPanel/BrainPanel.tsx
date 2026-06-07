@@ -30,6 +30,7 @@ import {
   type BrainDcHit,
   type BrainMemoryGroup,
   type BrainStaleRow,
+  type BrainThinkingCard,
 } from '../../state/useBrainSnapshot';
 import styles from './BrainPanel.module.css';
 
@@ -187,12 +188,13 @@ export function BrainFullscreenLayer() {
  *  they stack; in fullscreen the body class flips to grid via
  *  `.bodyFullscreen` so they sit side-by-side. */
 function BrainBodyContent() {
-  const { memoryGroups, staleRows, dcHits } = useBrainSnapshot();
+  const { memoryGroups, staleRows, dcHits, thinkingCards } = useBrainSnapshot();
 
   return (
     <>
       <MemorySection groups={memoryGroups} staleRows={staleRows} />
       <DynamicContextSection hits={dcHits} />
+      <ThinkingSection cards={thinkingCards} />
     </>
   );
 }
@@ -371,4 +373,49 @@ function DcBodyRow({
       )}
     </div>
   );
+}
+
+/* ─────────────────────── THINKING SECTION ─────────────────────── */
+
+/** Long-form plans the Thinker addon writes per turn. Hidden when
+ *  there's no data (runtime view — no point rendering empty chrome).
+ *  In the fullscreen 2-column grid this section is configured via
+ *  `.thinkingSpan` to span both columns so its multi-line text gets
+ *  full width. */
+function ThinkingSection({ cards }: { cards: BrainThinkingCard[] }) {
+  if (cards.length === 0) return null;
+  return (
+    <section className={`${styles.section} ${styles.thinkingSpan}`}>
+      <header className={styles.sectionHeader}>
+        <span className={styles.sectionTitle}>💭 Thinking</span>
+        <span className={styles.sectionCount}>
+          {cards.length} {cards.length === 1 ? 'bucket' : 'buckets'}
+        </span>
+      </header>
+      <div className={styles.thinkingCards}>
+        {cards.map(card => (
+          <article key={card.domain} className={styles.thinkingCard}>
+            <header className={styles.thinkingCardHeader}>{card.domain}</header>
+            <dl className={styles.thinkingEntries}>
+              {card.entries.map(e => (
+                <div key={e.field} className={styles.thinkingEntry}>
+                  <dt className={styles.thinkingEntryLabel}>{e.field}</dt>
+                  <dd className={styles.thinkingEntryValue}>{formatThinkingValue(e.value)}</dd>
+                </div>
+              ))}
+            </dl>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** Multi-line tolerant — strings render raw (white-space: pre-wrap on
+ *  the dd handles wrapping); non-strings JSON-stringify so structured
+ *  thoughts stay legible. */
+function formatThinkingValue(v: unknown): string {
+  if (v === null || v === undefined) return '—';
+  if (typeof v === 'string') return v;
+  try { return JSON.stringify(v, null, 2); } catch { return String(v); }
 }

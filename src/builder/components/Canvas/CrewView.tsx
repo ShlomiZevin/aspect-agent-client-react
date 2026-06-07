@@ -22,7 +22,6 @@ import { useCrewVersion } from '../../state/useEntityVersion';
 import { TitleBar } from '../TitleBar/TitleBar';
 import { ChainCanvas } from '../ChainCanvas/ChainCanvas';
 import { FieldsPanel } from '../FieldsPanel/FieldsPanel';
-import { ThinkingPanel } from '../ThinkingPanel/ThinkingPanel';
 import { VersionPill } from '../VersionMenu/VersionPill';
 import { BodyJsonModal } from '../BodyJsonModal/BodyJsonModal';
 import { ValidateAndLogModal } from '../ValidateAndLogModal/ValidateAndLogModal';
@@ -168,7 +167,6 @@ export function CrewView({ agent, crew }: Props) {
               page. The standalone agent strip that used to sit above
               this is gone (replaced by the combo). */}
           <ChainCanvas agent={agent} crew={crew} />
-          <ThinkingPanel agentId={agent.id} crewId={crew.id} />
         </div>
 
         <aside className={styles.crewSide}>

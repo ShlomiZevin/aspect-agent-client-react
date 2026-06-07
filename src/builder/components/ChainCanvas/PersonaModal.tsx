@@ -8,18 +8,22 @@
  * — no model picker, no history, no Output, no Remove.
  *
  * Source of truth is still `agent.persona` (edited via `updateAgent`).
- * The textarea on the AgentView page edits the same field; both
- * surfaces stay in sync because they read the live doc.
+ * Edits write through on every keystroke, mirroring how AddonModal's
+ * ConfigComponents work. To preserve Cancel-as-revert semantics we
+ * snapshot the persona on open and restore via the same setter on
+ * Cancel — same pattern AddonModal uses for config/context/outputType.
  *
  * `readOnly` mirrors AddonModal's read-only mode: disabled fieldset,
  * banner, footer collapses to a Close button + "Edit at agent level"
  * link. Used by the agent-cortex strip rendered in CrewView.
  */
 
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Modal } from '../Modal/Modal';
 import { useBuilder } from '../../state/BuilderContext';
 import { useBuilderSettings } from '../TopBar/BuilderSettings';
+import { useConfirm } from '../Confirm/Confirm';
 import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../MentionTextarea/useMentionOptions';
 import type { ID } from '../../types';
@@ -39,18 +43,53 @@ export function PersonaModal({
 }: Props) {
   const { updateAgent, saveAgentVersion } = useBuilder();
   const [settings] = useBuilderSettings();
+  const confirm = useConfirm();
   const mentionOptions = useMentionOptions(agentId);
+
+  // Snapshot the persona on open so Cancel can restore it. We use a
+  // ref (not state) because the snapshot should never trigger a
+  // re-render — only event handlers read it. Captured on the first
+  // render where `open` flips to true, cleared when the modal closes.
+  const snapshotRef = useRef<string | null>(null);
+  if (open && !readOnly && snapshotRef.current === null) {
+    snapshotRef.current = persona;
+  }
+  useEffect(() => {
+    if (!open) snapshotRef.current = null;
+  }, [open]);
 
   const handleDone = () => {
     if (readOnly) { onClose(); return; }
     if (settings.autoSave) saveAgentVersion(agentId);
+    snapshotRef.current = null;
+    onClose();
+  };
+
+  const handleCancel = async () => {
+    if (readOnly) { onClose(); return; }
+    const snap = snapshotRef.current;
+    const dirty = snap !== null && snap !== persona;
+    if (dirty) {
+      const ok = await confirm({
+        title:        'Discard changes?',
+        message:      'Your edits to the persona will be lost.',
+        confirmLabel: 'Discard',
+        danger:       true,
+      });
+      if (!ok) return;
+      // Restore via the existing setter — same path inverse edits
+      // would take, so the doc lands back exactly where it started
+      // and isAgentDirty flips back to false if nothing else changed.
+      updateAgent(agentId, { persona: snap });
+    }
+    snapshotRef.current = null;
     onClose();
   };
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={handleCancel}
       width={720}
       title={
         <>
@@ -78,7 +117,7 @@ export function PersonaModal({
         ) : (
           <>
             <span className={addonStyles.spacer} />
-            <button type="button" className={addonStyles.secondaryBtn} onClick={onClose}>
+            <button type="button" className={addonStyles.secondaryBtn} onClick={handleCancel}>
               Cancel
             </button>
             <button type="button" className={addonStyles.primaryBtn} onClick={handleDone}>

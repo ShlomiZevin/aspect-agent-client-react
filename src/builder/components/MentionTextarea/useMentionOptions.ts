@@ -53,6 +53,13 @@ function collectThinkingDomains(agentId: ID, doc: ReturnType<typeof useBuilder>[
   const agent = doc.agents.find(a => a.id === agentId);
   if (!agent) return [];
   const names = new Set<string>();
+  // Agent-level Thinkers run before every crew, so their domains are
+  // available system-wide. Walk those first.
+  for (const a of agent.cortex ?? []) {
+    if (a.pluginId !== 'thinker') continue;
+    const cfg = a.config as { domain?: string } | undefined;
+    if (cfg?.domain) names.add(cfg.domain);
+  }
   for (const c of agent.crews ?? []) {
     for (const a of c.addons ?? []) {
       if (a.pluginId !== 'thinker') continue;

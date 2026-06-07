@@ -317,6 +317,74 @@
   opacity: 0.75;
 }
 
+/* ── Thinking section ── */
+
+/* In the fullscreen grid (Memory | DC side-by-side), Thinking spans
+ * both columns underneath so its long-form text gets full horizontal
+ * width. Outside fullscreen the class is a no-op — the section just
+ * stacks naturally. */
+.bodyFullscreen .thinkingSpan {
+  grid-column: 1 / -1;
+}
+
+/* Card grid auto-fits: one column on narrow widths (docked),
+ * multiple columns when there's room (fullscreen). Each card has
+ * a teal "this is a plan, not a fact" accent — matches the Thinker
+ * addon's card color in the chain canvas so the visual vocabulary
+ * stays consistent across surfaces. */
+.thinkingCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.thinkingCard {
+  background: rgba(20, 184, 166, 0.05);
+  border: 1px solid rgba(20, 184, 166, 0.22);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.thinkingCardHeader {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #0f766e;
+  margin-bottom: 8px;
+}
+
+.thinkingEntries {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Each entry is label + multi-line value. Vertical layout because
+ * Thinker outputs are typically a sentence or two per field, not a
+ * single word — wrapping inline would look cramped. */
+.thinkingEntry {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.thinkingEntryLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #4b5563);
+}
+
+.thinkingEntryValue {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary, #111827);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* ── Memory section ── */
 
 .domainHeader {

@@ -74,13 +74,28 @@ export interface BrainDcHit {
   fallback: string;
 }
 
+/**
+ * One bucket of thinking — long-form strategic text the Thinker
+ * addon writes per turn. Cards are keyed by domain (the no-domain
+ * bucket surfaces as `general`). Order is stable (alphabetical) so
+ * the layout doesn't reshuffle turn-to-turn.
+ */
+export interface BrainThinkingCard {
+  /** Display label; the `_general` bucket renders as `general`. */
+  domain: string;
+  entries: Array<{ field: string; value: unknown }>;
+}
+
 export interface BrainSnapshot {
   memoryGroups: BrainMemoryGroup[];
   staleRows: BrainStaleRow[];
   dcHits: BrainDcHit[];
+  thinkingCards: BrainThinkingCard[];
 }
 
-const EMPTY_SNAPSHOT: BrainSnapshot = { memoryGroups: [], staleRows: [], dcHits: [] };
+const EMPTY_SNAPSHOT: BrainSnapshot = {
+  memoryGroups: [], staleRows: [], dcHits: [], thinkingCards: [],
+};
 
 const GENERAL_KEY = '_general';
 
@@ -188,7 +203,28 @@ export function useBrainSnapshot(): BrainSnapshot {
       }
     }
 
-    return { memoryGroups, staleRows, dcHits };
+    // ── Thinking cards — long-form plans the Thinker writes per turn.
+    // One card per non-empty bucket in `conversationMemory.thinking`;
+    // entries are field→value (non-null), alphabetical for stable
+    // layout. The brain panel renders nothing when this list is empty
+    // (no need to check whether the agent has a Thinker addon —
+    // runtime view).
+    const thinkingBuckets = conversationMemory?.thinking ?? {};
+    const thinkingCards: BrainThinkingCard[] = [];
+    for (const [domain, bucket] of Object.entries(thinkingBuckets)) {
+      if (!bucket || typeof bucket !== 'object') continue;
+      const entries = Object.entries(bucket)
+        .filter(([, v]) => v !== null && v !== undefined && v !== '')
+        .map(([field, value]) => ({ field, value }));
+      if (entries.length === 0) continue;
+      thinkingCards.push({
+        domain: domain === '_general' ? 'general' : domain,
+        entries,
+      });
+    }
+    thinkingCards.sort((a, b) => a.domain.localeCompare(b.domain));
+
+    return { memoryGroups, staleRows, dcHits, thinkingCards };
   }, [agent, conversationMemory]);
 }
 
