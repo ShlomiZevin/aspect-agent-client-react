@@ -782,33 +782,38 @@ function TurnTimeline({ turn, onExpand }: { turn: Turn; onExpand: () => void }) 
   return <AddonRunTimeline runs={turn.runs} />;
 }
 
-/**
- * Live trail of `{{dynamic:NAME}}` resolutions for this turn — one
- * quiet line per switch that the assembler fired, so the user can
- * see which case loaded and (on hover) the actual text that landed
- * in the prompt. Renders between the addon-run timeline and the
- * assistant bubble.
- */
-function DynamicTrail({ resolutions }: { resolutions: DynamicResolution[] }) {
-  return (
-    <div className={styles.dynamicTrail}>
-      {resolutions.map((r, i) => (
-        <div
-          key={`${r.fieldName}-${r.section ?? '_u'}-${r.matched ?? '_none'}-${i}`}
-          className={styles.dynamicTrailRow}
-          title={r.text || 'No text — fallback was empty.'}
-        >
-          🎯 <span className={styles.dynamicTrailField}>{r.fieldName}</span>
-          {r.section !== null && (
-            <> : <span className={styles.dynamicTrailField}>{r.section}</span></>
-          )}
-          {r.matched !== null ? (
-            <> = <span className={styles.dynamicTrailValue}>{r.matched}</span></>
-          ) : (
-            <> · <span className={styles.dynamicTrailFallback}>fallback</span></>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
+// TODO(builder): `DynamicTrail` was added in the recent builder merge but is never
+// rendered, so `tsc --noUnusedLocals` fails the whole client build. Commented out
+// (not deleted) to unblock the build + zolstock deploy — wire it in where intended
+// or remove it. Preserved verbatim below.
+//
+// /**
+//  * Live trail of `{{dynamic:NAME}}` resolutions for this turn — one
+//  * quiet line per switch that the assembler fired, so the user can
+//  * see which case loaded and (on hover) the actual text that landed
+//  * in the prompt. Renders between the addon-run timeline and the
+//  * assistant bubble.
+//  */
+// function DynamicTrail({ resolutions }: { resolutions: DynamicResolution[] }) {
+//   return (
+//     <div className={styles.dynamicTrail}>
+//       {resolutions.map((r, i) => (
+//         <div
+//           key={`${r.fieldName}-${r.section ?? '_u'}-${r.matched ?? '_none'}-${i}`}
+//           className={styles.dynamicTrailRow}
+//           title={r.text || 'No text — fallback was empty.'}
+//         >
+//           🎯 <span className={styles.dynamicTrailField}>{r.fieldName}</span>
+//           {r.section !== null && (
+//             <> : <span className={styles.dynamicTrailField}>{r.section}</span></>
+//           )}
+//           {r.matched !== null ? (
+//             <> = <span className={styles.dynamicTrailValue}>{r.matched}</span></>
+//           ) : (
+//             <> · <span className={styles.dynamicTrailFallback}>fallback</span></>
+//           )}
+//         </div>
+//       ))}
+//     </div>
+//   );
+// }

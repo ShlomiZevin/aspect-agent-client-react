@@ -306,6 +306,24 @@ export const translations: LanguageConfig = {
     'quick.hypertoy.crossBrand.text': 'Cost vs Sister Brands',
     'quick.hypertoy.crossBrand.question': 'Largest cost gaps between Hyper Toy and sister brands (The Stock, Pirat)',
 
+    // Quick Questions - Zol Stock
+    'quick.zolstock.customers.text': 'Customer Count',
+    'quick.zolstock.customers.question': 'How many customers do we have in total?',
+    'quick.zolstock.payments.text': 'Payment Methods',
+    'quick.zolstock.payments.question': 'Show payment totals grouped by payment type',
+    'quick.zolstock.cities.text': 'Top Cities',
+    'quick.zolstock.cities.question': 'Which cities have the most customers?',
+    'quick.zolstock.refunds.text': 'Refunds & Discounts',
+    'quick.zolstock.refunds.question': 'What is the total of credits, refunds, and discounts?',
+    'quick.zolstock.suppliers.text': 'Top Suppliers',
+    'quick.zolstock.suppliers.question': 'Which suppliers have the most products in our catalog?',
+    'quick.zolstock.families.text': 'Product Families',
+    'quick.zolstock.families.question': 'Show the number of products per family',
+    'quick.zolstock.stores.text': 'Top Stores',
+    'quick.zolstock.stores.question': 'Which stores have the most sales?',
+    'quick.zolstock.ages.text': 'Customer Ages',
+    'quick.zolstock.ages.question': 'What is the age distribution of our customers?',
+
     // Quick Questions - Banking
     'quick.banking.startOnboarding.text': 'Start Onboarding',
     'quick.banking.startOnboarding.question': 'I\'m ready to open a new bank account.',
@@ -663,6 +681,24 @@ export const translations: LanguageConfig = {
     'quick.hypertoy.inventory.question': 'מוצרים מובילים לפי ערך מלאי במחסן 500',
     'quick.hypertoy.crossBrand.text': 'עלות מול בריידים אחרים',
     'quick.hypertoy.crossBrand.question': 'הפערים הגדולים בעלות בין היפר טוי לבין הסטוק ופיראט',
+
+    // Quick Questions - Zol Stock
+    'quick.zolstock.customers.text': 'כמות לקוחות',
+    'quick.zolstock.customers.question': 'כמה לקוחות יש לנו בסך הכל?',
+    'quick.zolstock.payments.text': 'אמצעי תשלום',
+    'quick.zolstock.payments.question': 'הצג סכומי תשלום לפי סוג תשלום',
+    'quick.zolstock.cities.text': 'ערים מובילות',
+    'quick.zolstock.cities.question': 'באילו ערים יש הכי הרבה לקוחות?',
+    'quick.zolstock.refunds.text': 'זיכויים והנחות',
+    'quick.zolstock.refunds.question': 'מה סך הזיכויים, ההחזרים וההנחות?',
+    'quick.zolstock.suppliers.text': 'ספקים מובילים',
+    'quick.zolstock.suppliers.question': 'אילו ספקים הכי הרבה פריטים בקטלוג?',
+    'quick.zolstock.families.text': 'משפחות מוצר',
+    'quick.zolstock.families.question': 'הצג את מספר המוצרים לפי משפחה',
+    'quick.zolstock.stores.text': 'סניפים מובילים',
+    'quick.zolstock.stores.question': 'באילו סניפים הכי הרבה מכירות?',
+    'quick.zolstock.ages.text': 'גיל לקוחות',
+    'quick.zolstock.ages.question': 'מה התפלגות הגילאים של הלקוחות?',
 
     // Quick Questions - Banking
     'quick.banking.startOnboarding.text': 'התחל תהליך',

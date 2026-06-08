@@ -32,6 +32,7 @@ export { Zer4UPage } from './Zer4UPage';
 export { NewDeliPage } from './NewDeliPage';
 export { TheStockPage } from './TheStockPage';
 export { HyperToyPage } from './HyperToyPage';
+export { ZolStockPage } from './ZolStockPage';
 export { CrewBuilderMockupPage } from './CrewBuilderMockupPage';
 export { BuilderPage } from './BuilderPage';
 export { BuilderHomePage } from './BuilderHomePage';

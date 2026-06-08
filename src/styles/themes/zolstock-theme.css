@@ -1,0 +1,42 @@
+/* Zol Stock Theme — cobalt blue + yellow discount-retail palette (from zolstock.co.il logo) */
+.theme-zolstock {
+  --primary-color: #0a40a8;
+  --primary-hover: #082f7d;
+  --primary-light: rgba(10, 64, 168, 0.1);
+  --secondary-color: #ffd400;
+  --success-color: #16a34a;
+  --warning-color: #f59e0b;
+  --error-color: #ef4444;
+
+  --background: #ffffff;
+  --surface: #f5f8ff;
+  --surface-light: #eef3fb;
+  --border: #e5e7eb;
+
+  --text-primary: #1a1a1a;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.09);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.12);
+
+  --gradient: linear-gradient(135deg, #0a40a8, #0858d6);
+}
+
+.theme-zolstock[data-theme="dark"] {
+  --primary-color: #4d7fe0;
+  --primary-hover: #3a6ad0;
+  --primary-light: rgba(77, 127, 224, 0.15);
+  --secondary-color: #ffdb33;
+  --background: #111827;
+  --surface: #1f2937;
+  --surface-light: #374151;
+  --border: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+}
