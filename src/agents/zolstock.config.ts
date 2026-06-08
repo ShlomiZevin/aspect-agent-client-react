@@ -24,14 +24,14 @@ export const zolstockConfig: AgentConfig = {
   inputPlaceholder: 'Ask about your business...',
 
   quickQuestions: [
-    { icon: '👥', textKey: 'quick.zolstock.customers.text',     questionKey: 'quick.zolstock.customers.question' },
-    { icon: '💳', textKey: 'quick.zolstock.payments.text',      questionKey: 'quick.zolstock.payments.question' },
-    { icon: '🏙️', textKey: 'quick.zolstock.cities.text',        questionKey: 'quick.zolstock.cities.question' },
-    { icon: '🔄', textKey: 'quick.zolstock.refunds.text',       questionKey: 'quick.zolstock.refunds.question' },
-    { icon: '📦', textKey: 'quick.zolstock.suppliers.text',     questionKey: 'quick.zolstock.suppliers.question' },
-    { icon: '🏷️', textKey: 'quick.zolstock.families.text',      questionKey: 'quick.zolstock.families.question' },
-    { icon: '🏪', textKey: 'quick.zolstock.stores.text',        questionKey: 'quick.zolstock.stores.question' },
-    { icon: '🎂', textKey: 'quick.zolstock.ages.text',          questionKey: 'quick.zolstock.ages.question' },
+    { icon: '💰', textKey: 'quick.zolstock.revenue.text',    questionKey: 'quick.zolstock.revenue.question' },
+    { icon: '🏆', textKey: 'quick.zolstock.topItems.text',   questionKey: 'quick.zolstock.topItems.question' },
+    { icon: '🏪', textKey: 'quick.zolstock.topStores.text',  questionKey: 'quick.zolstock.topStores.question' },
+    { icon: '👤', textKey: 'quick.zolstock.topSellers.text', questionKey: 'quick.zolstock.topSellers.question' },
+    { icon: '📊', textKey: 'quick.zolstock.margin.text',     questionKey: 'quick.zolstock.margin.question' },
+    { icon: '📈', textKey: 'quick.zolstock.monthly.text',    questionKey: 'quick.zolstock.monthly.question' },
+    { icon: '📅', textKey: 'quick.zolstock.lastMonth.text',  questionKey: 'quick.zolstock.lastMonth.question' },
+    { icon: '⭐', textKey: 'quick.zolstock.topQty.text',     questionKey: 'quick.zolstock.topQty.question' },
   ],
 
   thinkingSteps: [
