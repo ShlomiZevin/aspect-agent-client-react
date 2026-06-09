@@ -1,18 +1,13 @@
 /**
- * Field Reasoner — config screen (v2: prompt-first).
+ * Field Interviewer — config screen.
  *
- * The reasoning prompt is the heart of the addon; everything else gets
- * a compact row. Field declaration lives behind a single "Wire / Create"
- * button that opens WireOrCreateFieldModal — the user picks an
- * existing eligible field OR creates a new one with Reasoner-
- * appropriate defaults (`source: inferred`, configurable type / scope /
- * domain / enum values). Selecting either path patches
- * `config.extractsFields = [id]` and surfaces a chip in the row.
+ * Layout mirrors Field Reasoner (Name / Model / Output field / Prompt)
+ * plus a Domain row borrowed from Thinker. The prompt is the heart of
+ * the addon — everything else gets a compact row.
  *
- * Why a modal (vs the v1 inline form): the inline form pushed the
- * reasoning prompt below the fold and made the addon feel like a
- * field-shape editor. The prompt is what authors actually iterate on;
- * the field declaration is a one-time setup.
+ * Why the same WireOrCreateFieldModal as Field Reasoner: Field
+ * Interviewer is also single-field-bound. The wire/create UX is
+ * identical — only the badge label differs.
  */
 
 import { useMemo, useState } from 'react';
@@ -22,23 +17,23 @@ import { useMentionOptions } from '../../components/MentionTextarea/useMentionOp
 import { InlineField } from '../../components/AddonModal/InlineField';
 import { FieldEditorModal } from '../../components/FieldsPanel/FieldEditorModal';
 import { useCrewFields } from '../../state/useCrewFields';
+import { WireOrCreateFieldModal } from '../fieldReasoner/WireOrCreateFieldModal';
 import type { PluginConfigProps } from '../../registry/plugins';
-import type { FieldReasonerConfig, ID } from '../../types';
-import { WireOrCreateFieldModal } from './WireOrCreateFieldModal';
-import styles from './FieldReasonerConfig.module.css';
+import type { FieldInterviewerConfig, ID } from '../../types';
+import styles from '../fieldReasoner/FieldReasonerConfig.module.css';
 
-export function FieldReasonerConfigComponent({
+export function FieldInterviewerConfigComponent({
   config,
   onChange,
   instance,
   agentId,
   crewId,
-}: PluginConfigProps<FieldReasonerConfig>) {
-  const patch = (next: Partial<FieldReasonerConfig>) => onChange({ ...config, ...next });
+}: PluginConfigProps<FieldInterviewerConfig>) {
+  const patch = (next: Partial<FieldInterviewerConfig>) => onChange({ ...config, ...next });
   const linkedId: ID | undefined = config.extractsFields?.[0];
-  // Opt into the picker's "Output field" group so {{this_field}} /
-  // {{enum_values}} surface under @ (and the universal `/`) with the
-  // currently-bound field's name + values shown in the descriptions.
+  // Same opt-in as Field Reasoner — exposes {{this_field}} and
+  // {{enum_values}} under the `@` trigger (and `/`) with descriptions
+  // tied to whatever field is currently wired.
   const mentionOptions = useMentionOptions(agentId, { boundField: { fieldId: linkedId } });
   const { allFields } = useCrewFields(agentId, crewId);
   const linked = useMemo(
@@ -61,13 +56,13 @@ export function FieldReasonerConfigComponent({
     <div className={styles.wrap}>
       <InlineField
         label="Name"
-        hint="Shown on the chain card. Leave blank for the default (Field Reasoner #N)."
+        hint="Shown on the chain card. Leave blank for the default (Field Interviewer #N)."
       >
         <input
           className={styles.input}
           value={config.name ?? ''}
           onChange={e => patch({ name: e.target.value })}
-          placeholder="e.g. Tier Reasoner"
+          placeholder="e.g. Symptom Area Interviewer"
           spellCheck={false}
         />
       </InlineField>
@@ -81,7 +76,7 @@ export function FieldReasonerConfigComponent({
 
       <InlineField
         label="Output field"
-        hint="The single field this Reasoner populates. Pick an existing one or create a new one."
+        hint="The single field this Interviewer drives toward. Pick an existing one or create a new one."
       >
         {linked ? (
           <div className={styles.linkedRow}>
@@ -91,7 +86,7 @@ export function FieldReasonerConfigComponent({
               onClick={() => setEditOpen(true)}
               title={`Edit the declaration of ${linked.field.name}`}
             >
-              <span className={styles.linkedIcon}>🧠</span>
+              <span className={styles.linkedIcon}>🎤</span>
               <span className={styles.linkedName}>{linked.field.name}</span>
               <span className={styles.linkedType}>{linked.field.type}</span>
               {linked.scope === 'crew' && <span className={styles.linkedScope}>crew</span>}
@@ -107,7 +102,7 @@ export function FieldReasonerConfigComponent({
               type="button"
               className={styles.unlinkBtn}
               onClick={handleUnlink}
-              title="Unlink — keeps the field declaration but stops this Reasoner from populating it"
+              title="Unlink — keeps the field declaration but stops this Interviewer from populating it"
             >
               ×
             </button>
@@ -123,21 +118,35 @@ export function FieldReasonerConfigComponent({
         )}
       </InlineField>
 
+      <InlineField
+        label="Thinking domain"
+        hint={`Where non-field keys land in the brain. Read downstream with {{thinking:${config.domain || 'interview'}}}.`}
+      >
+        <input
+          className={styles.input}
+          value={config.domain ?? 'interview'}
+          onChange={e => patch({ domain: e.target.value })}
+          placeholder="interview"
+          spellCheck={false}
+        />
+      </InlineField>
+
       <section className={styles.promptSection}>
-        <label className={styles.promptLabel} htmlFor="fr-prompt">
-          Reasoning prompt
+        <label className={styles.promptLabel} htmlFor="fi-prompt">
+          Interview prompt
         </label>
         <p className={styles.promptHint}>
-          Describe how to decide. Reference other fields inline with <code>@</code>,
-          parameters with <code>#</code>, persona with <code>^</code>. Use
-          <code> {'{{this_field}}'} </code> for the output field's name and
-          <code> {'{{enum_values}}'} </code> for its allowed values.
+          Tell the LLM how to decide what to ask next AND when to commit
+          a value. Use <code>{'{{this_field}}'}</code> for the output
+          field's name and <code>{'{{enum_values}}'}</code> for its
+          allowed values. Any key OTHER than <code>{'{{this_field}}'}</code> in the
+          JSON output lands under the thinking domain above.
         </p>
         <MentionTextarea
           value={config.prompt}
           onChange={prompt => patch({ prompt })}
           options={mentionOptions}
-          placeholder="If @intent is complaint and @tier is enterprise, lean toward... Type @ for fields/memory, # for parameters, ^ for persona, / for all."
+          placeholder="Ask about… If the user says X, commit value Y… Type @ for fields/memory, # for parameters, ^ for persona, / for all."
           rows={14}
         />
       </section>
@@ -149,6 +158,7 @@ export function FieldReasonerConfigComponent({
         crewId={crewId}
         instanceId={instance.instanceId}
         onWired={handleWired}
+        badgeLabel="Field Interviewer"
       />
 
       <FieldEditorModal

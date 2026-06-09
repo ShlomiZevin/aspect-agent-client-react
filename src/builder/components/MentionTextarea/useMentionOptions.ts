@@ -18,8 +18,36 @@
 
 import { useMemo } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
-import type { ID } from '../../types';
+import type { AgentDoc, FieldDef, ID } from '../../types';
 import type { MentionOption, MentionOptions } from './MentionTextarea';
+
+/**
+ * Plugin ids whose addons emit a `## Thinking` block under
+ * `config.domain`. Drives `collectThinkingDomains` so the mention
+ * picker surfaces domains written by any thinking-style addon, not
+ * just plain Thinker. Add to this set when a new addon starts writing
+ * to the thinking section.
+ */
+const THINKING_WRITER_PLUGIN_IDS = new Set<string>([
+  'thinker',
+  'field-interviewer',
+]);
+
+/** Find a FieldDef by id across agent.fields + every crew's fields.
+ *  Returns null when the id doesn't exist (e.g. caller passed a
+ *  freshly-typed value, or a deleted field id lingered on config). */
+function findFieldDefById(agent: AgentDoc, fieldId: ID | undefined): FieldDef | null {
+  if (!fieldId) return null;
+  for (const f of agent.fields ?? []) {
+    if (f.id === fieldId) return f;
+  }
+  for (const c of agent.crews ?? []) {
+    for (const f of c.fields ?? []) {
+      if (f.id === fieldId) return f;
+    }
+  }
+  return null;
+}
 
 /**
  * Collect the set of memory-domain names known to the agent. We union:
@@ -44,25 +72,30 @@ function collectMemoryDomains(agentId: ID, doc: ReturnType<typeof useBuilder>['d
 }
 
 /**
- * Collect thinking-domain names — every Thinker addon across the agent
- * writes to a configured domain. We harvest those so the picker offers
- * `!thinking:strategy`, `!thinking:tone`, etc. without the user
- * remembering which domain each Thinker uses.
+ * Collect thinking-domain names — every thinking-writing addon across
+ * the agent writes to a configured domain. We harvest those so the
+ * picker offers `!thinking:strategy`, `!thinking:tone`, etc. without
+ * the user remembering which domain each addon uses.
+ *
+ * "Thinking-writing addon" = plugin id in `THINKING_WRITER_PLUGIN_IDS`.
+ * Today that's plain Thinker plus Field Interviewer (which writes its
+ * non-bound-field keys into the thinking section, same shape as
+ * Thinker).
  */
 function collectThinkingDomains(agentId: ID, doc: ReturnType<typeof useBuilder>['doc']): string[] {
   const agent = doc.agents.find(a => a.id === agentId);
   if (!agent) return [];
   const names = new Set<string>();
-  // Agent-level Thinkers run before every crew, so their domains are
+  // Agent-level addons run before every crew, so their domains are
   // available system-wide. Walk those first.
   for (const a of agent.cortex ?? []) {
-    if (a.pluginId !== 'thinker') continue;
+    if (!THINKING_WRITER_PLUGIN_IDS.has(a.pluginId)) continue;
     const cfg = a.config as { domain?: string } | undefined;
     if (cfg?.domain) names.add(cfg.domain);
   }
   for (const c of agent.crews ?? []) {
     for (const a of c.addons ?? []) {
-      if (a.pluginId !== 'thinker') continue;
+      if (!THINKING_WRITER_PLUGIN_IDS.has(a.pluginId)) continue;
       const cfg = a.config as { domain?: string } | undefined;
       if (cfg?.domain) names.add(cfg.domain);
     }
@@ -70,14 +103,38 @@ function collectThinkingDomains(agentId: ID, doc: ReturnType<typeof useBuilder>[
   return Array.from(names).sort();
 }
 
-export function useMentionOptions(agentId: ID): MentionOptions {
+/**
+ * Caller hint for single-field-bound addons (Field Reasoner, Field
+ * Interviewer). Presence of the `boundField` key flips on a small
+ * "Output field" group inside the `@` trigger that exposes the
+ * `{{this_field}}` / `{{enum_values}}` substitution tokens — the
+ * caller signals "my addon supports these tokens" by passing the key.
+ *
+ * `fieldId` is the currently-wired field's id; pass `undefined` when
+ * the user hasn't wired one yet. The picker still shows the tokens
+ * (so they're discoverable while editing the prompt) but flips the
+ * descriptions to reflect the unwired state.
+ */
+export interface MentionOptionsOpts {
+  boundField?: { fieldId: ID | undefined };
+}
+
+export function useMentionOptions(
+  agentId: ID,
+  opts?: MentionOptionsOpts,
+): MentionOptions {
   const { doc } = useBuilder();
+  const boundFieldId = opts?.boundField?.fieldId;
+  const hasBoundFieldGroup = opts?.boundField !== undefined;
   return useMemo<MentionOptions>(() => {
     const agent = doc.agents.find(a => a.id === agentId);
     if (!agent) return {};
 
     const memoryDomains   = collectMemoryDomains(agentId, doc);
     const thinkingDomains = collectThinkingDomains(agentId, doc);
+    const boundField      = hasBoundFieldGroup
+      ? findFieldDefById(agent, boundFieldId)
+      : null;
 
     // ── @  Memory ─────────────────────────────────────────────────
     const at: MentionOption[] = [];
@@ -112,6 +169,41 @@ export function useMentionOptions(agentId: ID): MentionOptions {
           description: f.howToExtract || `The current value of ${f.name} (crew-scoped).`,
         });
       }
+    }
+
+    // ── Output field tokens — only when the host addon is single-
+    // ── field-bound (Field Reasoner, Field Interviewer). The caller
+    // ── opts in by passing `boundField` and the picker exposes the
+    // ── two self-referential template tokens; we still show them
+    // ── when nothing is wired so the user discovers them while
+    // ── authoring the prompt — the descriptions reflect the state.
+    if (hasBoundFieldGroup) {
+      const thisFieldDesc = boundField
+        ? `Inserts the bound field's name at runtime (currently "${boundField.name}").`
+        : `Inserts the bound field's name at runtime — wire a field above first.`;
+      at.push({
+        label:     'this_field',
+        insertion: '{{this_field}}',
+        group:     'Output field',
+        description: thisFieldDesc,
+      });
+
+      let enumDesc: string;
+      if (!boundField) {
+        enumDesc = `Inserts the bound field's allowed values — wire an enum field above first.`;
+      } else if (boundField.type !== 'enum') {
+        enumDesc = `Inserts the bound field's allowed values — only meaningful when the bound field is type=enum (current type: ${boundField.type}).`;
+      } else if (!boundField.enumValues?.length) {
+        enumDesc = `Inserts "${boundField.name}"'s allowed values — none declared yet.`;
+      } else {
+        enumDesc = `Inserts "${boundField.name}"'s allowed values: ${boundField.enumValues.join(', ')}.`;
+      }
+      at.push({
+        label:     'enum_values',
+        insertion: '{{enum_values}}',
+        group:     'Output field',
+        description: enumDesc,
+      });
     }
 
     // ── !  Thinking ───────────────────────────────────────────────
@@ -200,5 +292,5 @@ export function useMentionOptions(agentId: ID): MentionOptions {
     }
 
     return { '@': at, '!': bang, '#': hash, '^': caret, '*': star };
-  }, [doc, agentId]);
+  }, [doc, agentId, hasBoundFieldGroup, boundFieldId]);
 }

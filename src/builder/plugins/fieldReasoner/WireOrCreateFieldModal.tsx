@@ -40,6 +40,10 @@ interface Props {
   /** Fired with the field id once wired (or created+wired). The caller
    *  patches its own `extractsFields = [id]` to mirror the change. */
   onWired: (fieldId: ID) => void;
+  /** Badge shown in the modal header — defaults to "Field Reasoner".
+   *  Field Interviewer (and any future single-field-bound addon)
+   *  passes its own label so the surface reflects the caller. */
+  badgeLabel?: string;
 }
 
 /** Field Reasoner only handles string + enum at the LLM level — filter
@@ -47,7 +51,7 @@ interface Props {
 const ELIGIBLE_TYPES = new Set<FieldType>(['string', 'enum']);
 
 export function WireOrCreateFieldModal({
-  open, onClose, agentId, crewId, instanceId, onWired,
+  open, onClose, agentId, crewId, instanceId, onWired, badgeLabel = 'Field Reasoner',
 }: Props) {
   const { allFields, setFieldExtractors, addFieldToScope } = useCrewFields(agentId, crewId);
 
@@ -106,7 +110,7 @@ export function WireOrCreateFieldModal({
         open={open}
         onClose={onClose}
         title="Output field"
-        badge="Field Reasoner"
+        badge={badgeLabel}
         width={560}
         footer={
           <div className={styles.footer}>
