@@ -18,6 +18,7 @@
 
 import { useMemo } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
+import { getPlugin } from '../../registry/plugins';
 import type { AgentDoc, FieldDef, ID } from '../../types';
 import type { MentionOption, MentionOptions } from './MentionTextarea';
 
@@ -72,35 +73,50 @@ function collectMemoryDomains(agentId: ID, doc: ReturnType<typeof useBuilder>['d
 }
 
 /**
- * Collect thinking-domain names — every thinking-writing addon across
- * the agent writes to a configured domain. We harvest those so the
- * picker offers `!thinking:strategy`, `!thinking:tone`, etc. without
- * the user remembering which domain each addon uses.
+ * Collect thinking-domain names grouped by which plugin writes them.
  *
- * "Thinking-writing addon" = plugin id in `THINKING_WRITER_PLUGIN_IDS`.
- * Today that's plain Thinker plus Field Interviewer (which writes its
- * non-bound-field keys into the thinking section, same shape as
- * Thinker).
+ * Today the same `## Thinking` section is filled by two distinct
+ * plugins: plain Thinker and Field Interviewer (which routes its
+ * non-bound-field keys there). Lumping every domain into one
+ * "Thinking domains" group makes it hard for the author to tell which
+ * addon produced which bucket. We split by producer so the picker
+ * shows `Thinking · Thinker` and `Thinking · Field Interviewer` as
+ * separate groups; the underlying `{{thinking:DOMAIN}}` token is the
+ * same in both cases — the split is purely for authoring clarity.
+ *
+ * Returns a map keyed by `pluginId` so callers can look up the
+ * plugin's display name from the registry when labelling groups.
  */
-function collectThinkingDomains(agentId: ID, doc: ReturnType<typeof useBuilder>['doc']): string[] {
+function collectThinkingDomainsByProducer(
+  agentId: ID,
+  doc: ReturnType<typeof useBuilder>['doc'],
+): Map<string, string[]> {
   const agent = doc.agents.find(a => a.id === agentId);
-  if (!agent) return [];
-  const names = new Set<string>();
+  if (!agent) return new Map();
+  const byProducer = new Map<string, Set<string>>();
+  const record = (pluginId: string, domain: string) => {
+    if (!byProducer.has(pluginId)) byProducer.set(pluginId, new Set());
+    byProducer.get(pluginId)!.add(domain);
+  };
   // Agent-level addons run before every crew, so their domains are
   // available system-wide. Walk those first.
   for (const a of agent.cortex ?? []) {
     if (!THINKING_WRITER_PLUGIN_IDS.has(a.pluginId)) continue;
     const cfg = a.config as { domain?: string } | undefined;
-    if (cfg?.domain) names.add(cfg.domain);
+    if (cfg?.domain) record(a.pluginId, cfg.domain);
   }
   for (const c of agent.crews ?? []) {
     for (const a of c.addons ?? []) {
       if (!THINKING_WRITER_PLUGIN_IDS.has(a.pluginId)) continue;
       const cfg = a.config as { domain?: string } | undefined;
-      if (cfg?.domain) names.add(cfg.domain);
+      if (cfg?.domain) record(a.pluginId, cfg.domain);
     }
   }
-  return Array.from(names).sort();
+  const out = new Map<string, string[]>();
+  for (const [pluginId, domains] of byProducer) {
+    out.set(pluginId, Array.from(domains).sort());
+  }
+  return out;
 }
 
 /**
@@ -130,9 +146,9 @@ export function useMentionOptions(
     const agent = doc.agents.find(a => a.id === agentId);
     if (!agent) return {};
 
-    const memoryDomains   = collectMemoryDomains(agentId, doc);
-    const thinkingDomains = collectThinkingDomains(agentId, doc);
-    const boundField      = hasBoundFieldGroup
+    const memoryDomains              = collectMemoryDomains(agentId, doc);
+    const thinkingDomainsByProducer  = collectThinkingDomainsByProducer(agentId, doc);
+    const boundField                 = hasBoundFieldGroup
       ? findFieldDefById(agent, boundFieldId)
       : null;
 
@@ -214,13 +230,21 @@ export function useMentionOptions(
       group:     'Thinking',
       description: 'The whole ## Thinking section — every domain a Thinker has written.',
     });
-    for (const d of thinkingDomains) {
-      bang.push({
-        label:     d,
-        insertion: `{{thinking:${d}}}`,
-        group:     'Thinking domains',
-        description: `Just the "${d}" thinking bucket.`,
-      });
+    // Split by producer (Thinker vs Field Interviewer) so authors can
+    // tell at a glance which addon emits which thinking bucket. The
+    // resolved token `{{thinking:DOMAIN}}` is the same either way —
+    // the split is purely a labelling concern in the picker.
+    for (const [pluginId, domains] of thinkingDomainsByProducer) {
+      const pluginName = getPlugin(pluginId)?.name ?? pluginId;
+      const groupLabel = `Thinking · ${pluginName}`;
+      for (const d of domains) {
+        bang.push({
+          label:     d,
+          insertion: `{{thinking:${d}}}`,
+          group:     groupLabel,
+          description: `Just the "${d}" thinking bucket (written by ${pluginName}).`,
+        });
+      }
     }
 
     // ── #  Parameters ─────────────────────────────────────────────
