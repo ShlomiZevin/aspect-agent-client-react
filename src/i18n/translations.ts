@@ -306,6 +306,24 @@ export const translations: LanguageConfig = {
     'quick.hypertoy.crossBrand.text': 'Cost vs Sister Brands',
     'quick.hypertoy.crossBrand.question': 'Largest cost gaps between Hyper Toy and sister brands (The Stock, Pirat)',
 
+    // Quick Questions - Zol Stock
+    'quick.zolstock.revenue.text': 'Revenue & Profit',
+    'quick.zolstock.revenue.question': 'What is total revenue and profit this year?',
+    'quick.zolstock.topItems.text': 'Top Products',
+    'quick.zolstock.topItems.question': 'Top 10 items this year by revenue and profit',
+    'quick.zolstock.topStores.text': 'Top Stores',
+    'quick.zolstock.topStores.question': 'Top 10 stores by revenue this year',
+    'quick.zolstock.topSellers.text': 'Top Sellers',
+    'quick.zolstock.topSellers.question': 'Top 10 sellers by total sales this year',
+    'quick.zolstock.margin.text': 'Profit Margin',
+    'quick.zolstock.margin.question': 'What is the overall profit margin this year?',
+    'quick.zolstock.monthly.text': 'Monthly Trend',
+    'quick.zolstock.monthly.question': 'Monthly revenue and profit trend this year',
+    'quick.zolstock.lastMonth.text': 'Last Month',
+    'quick.zolstock.lastMonth.question': 'What was total revenue and profit last month?',
+    'quick.zolstock.topQty.text': 'Best Sellers by Qty',
+    'quick.zolstock.topQty.question': 'Top 10 items this year by quantity sold',
+
     // Quick Questions - Banking
     'quick.banking.startOnboarding.text': 'Start Onboarding',
     'quick.banking.startOnboarding.question': 'I\'m ready to open a new bank account.',
@@ -663,6 +681,24 @@ export const translations: LanguageConfig = {
     'quick.hypertoy.inventory.question': 'מוצרים מובילים לפי ערך מלאי במחסן 500',
     'quick.hypertoy.crossBrand.text': 'עלות מול בריידים אחרים',
     'quick.hypertoy.crossBrand.question': 'הפערים הגדולים בעלות בין היפר טוי לבין הסטוק ופיראט',
+
+    // Quick Questions - Zol Stock
+    'quick.zolstock.revenue.text': 'הכנסות ורווח',
+    'quick.zolstock.revenue.question': 'מה ההכנסות והרווח השנה?',
+    'quick.zolstock.topItems.text': 'מוצרים מובילים',
+    'quick.zolstock.topItems.question': 'טופ 10 מוצרים השנה לפי הכנסות ורווח',
+    'quick.zolstock.topStores.text': 'סניפים מובילים',
+    'quick.zolstock.topStores.question': 'טופ 10 סניפים לפי הכנסות השנה',
+    'quick.zolstock.topSellers.text': 'מוכרנים מובילים',
+    'quick.zolstock.topSellers.question': 'טופ 10 מוכרנים לפי סך מכירות השנה',
+    'quick.zolstock.margin.text': 'שולי רווח',
+    'quick.zolstock.margin.question': 'מה שולי הרווח הכוללים השנה?',
+    'quick.zolstock.monthly.text': 'מגמה חודשית',
+    'quick.zolstock.monthly.question': 'מגמת הכנסות ורווח לפי חודש השנה',
+    'quick.zolstock.lastMonth.text': 'חודש שעבר',
+    'quick.zolstock.lastMonth.question': 'מה היו ההכנסות והרווח בחודש שעבר?',
+    'quick.zolstock.topQty.text': 'נמכרים ביותר',
+    'quick.zolstock.topQty.question': 'טופ 10 מוצרים השנה לפי כמות שנמכרה',
 
     // Quick Questions - Banking
     'quick.banking.startOnboarding.text': 'התחל תהליך',

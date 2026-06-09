@@ -11,3 +11,4 @@ export { zer4uConfig } from './zer4u.config';
 export { newdeliConfig } from './newdeli.config';
 export { thestockConfig } from './thestock.config';
 export { hypertoyConfig } from './hypertoy.config';
+export { zolstockConfig } from './zolstock.config';

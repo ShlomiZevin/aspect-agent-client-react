@@ -24,6 +24,7 @@ import {
   newdeliConfig,
   thestockConfig,
   hypertoyConfig,
+  zolstockConfig,
   tiktokConfig,
   zer4uConfig,
 } from './index';
@@ -39,6 +40,7 @@ export const AGENT_REGISTRY: Record<string, AgentConfig> = {
   newdeli: newdeliConfig,
   thestock: thestockConfig,
   hypertoy: hypertoyConfig,
+  zolstock: zolstockConfig,
   tiktok: tiktokConfig,
   zer4u: zer4uConfig,
 };
