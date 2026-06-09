@@ -22,7 +22,9 @@ import styles from './ChatPanel.module.css';
 type Tab = 'builder' | 'user';
 
 export function ChatPanel() {
-  const [tab, setTab] = useState<Tab>('builder');
+  // Default to User Chat — that's the surface authors reach for most
+  // (test the agent they're building). Builder Chat is one tab away.
+  const [tab, setTab] = useState<Tab>('user');
 
   return (
     <div className={styles.wrap}>
