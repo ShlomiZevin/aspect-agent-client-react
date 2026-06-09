@@ -139,6 +139,7 @@ export function FieldReasonerConfigComponent({
           options={mentionOptions}
           placeholder="If @intent is complaint and @tier is enterprise, lean toward... Type @ for fields/memory, # for parameters, ^ for persona, / for all."
           rows={14}
+          storageKey={`addon:${instance.instanceId}:prompt`}
         />
       </section>
 

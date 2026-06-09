@@ -148,6 +148,7 @@ export function FieldInterviewerConfigComponent({
           options={mentionOptions}
           placeholder="Ask about… If the user says X, commit value Y… Type @ for fields/memory, # for parameters, ^ for persona, / for all."
           rows={14}
+          storageKey={`addon:${instance.instanceId}:prompt`}
         />
       </section>
 

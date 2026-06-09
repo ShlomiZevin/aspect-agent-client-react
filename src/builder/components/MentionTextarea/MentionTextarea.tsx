@@ -33,6 +33,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { autoDir } from '../../../utils/textDirection';
 import styles from './MentionTextarea.module.css';
 
 export interface MentionOption {
@@ -111,17 +112,51 @@ interface Props {
   autoFocus?: boolean;
   onBlur?: () => void;
   onFocus?: () => void;
-  /** When set, the textarea's current vertical size is persisted to
-   *  localStorage under this key and restored on mount. Each surface
-   *  that wants its own remembered height passes a stable key
-   *  (e.g. "persona"). Multiple instances sharing the same key share
-   *  the same height — that's a feature for "same kind of editor". */
+  /** When set, the textarea persists per-key state to localStorage and
+   *  restores it on mount:
+   *
+   *    - Vertical height — drag-to-resize is remembered.
+   *    - Manual direction override — Ctrl+Shift+R pins RTL,
+   *      Ctrl+Shift+L pins LTR, Ctrl+Shift+A clears the pin (back to
+   *      Hebrew-share auto-detection).
+   *
+   *  Pass a stable, prompt-specific key (e.g. `addon:<instanceId>`)
+   *  so each prompt remembers its own choice. Multiple textareas
+   *  sharing the same key share state — that's a feature when the
+   *  surfaces are interchangeable (same kind of editor), not when
+   *  they're distinct prompts. */
   storageKey?: string;
 }
 
-/** localStorage namespace for MentionTextarea remembered heights.
+/** localStorage namespaces for MentionTextarea remembered state.
  *  Bumped if we ever change the storage shape. */
 const HEIGHT_STORAGE_PREFIX = 'mta:height:';
+/** Per-key manual RTL/LTR override — set by Ctrl+Shift+R / Ctrl+Shift+L
+ *  on the textarea. Overrides the Hebrew-share auto-detection. Absent
+ *  key (or unset entry) → auto-detect via `autoDir(value)`. */
+const DIR_STORAGE_PREFIX = 'mta:dir:';
+
+type ManualDir = 'rtl' | 'ltr' | null;
+
+function readManualDir(storageKey: string | undefined): ManualDir {
+  if (!storageKey) return null;
+  try {
+    const raw = localStorage.getItem(`${DIR_STORAGE_PREFIX}${storageKey}`);
+    return raw === 'rtl' || raw === 'ltr' ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeManualDir(storageKey: string | undefined, dir: ManualDir): void {
+  if (!storageKey) return;
+  try {
+    if (dir === null) localStorage.removeItem(`${DIR_STORAGE_PREFIX}${storageKey}`);
+    else              localStorage.setItem(`${DIR_STORAGE_PREFIX}${storageKey}`, dir);
+  } catch {
+    /* private mode / quota — silently drop */
+  }
+}
 
 /**
  * Find the active trigger at the current caret position, if any.
@@ -250,6 +285,28 @@ export function MentionTextarea({
   const [picker, setPicker] = useState<PickerState | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
 
+  // Who owns the current highlight: keyboard or mouse. Arrow-key nav
+  // sets this to `true`; the next real mousemove inside the picker
+  // resets it. While true, hover events are suppressed — otherwise
+  // scrolling the list (driven by arrow nav) drags new rows under the
+  // stationary cursor, firing onMouseEnter and yanking the highlight
+  // back to the top of whatever scrolled into view.
+  const keyboardOwnsHighlight = useRef(false);
+
+  // Manual RTL/LTR pin per `storageKey`. `null` → no override, the
+  // textarea follows the Hebrew-share auto-detection. Persisted under
+  // the `mta:dir:` namespace and read once at mount. Updated by the
+  // Ctrl+Shift+R / Ctrl+Shift+L / Ctrl+Shift+A handlers in
+  // `handleKeyDown`. We keep it in state (not just localStorage) so
+  // the next render picks up the flip without an extra read.
+  const [manualDir, setManualDir] = useState<ManualDir>(() => readManualDir(storageKey));
+  // Resync the override when the host swaps to a different storageKey
+  // (e.g. an addon-modal Cancel → reopen-on-other-instance). Without
+  // this the override would stick to the wrong key.
+  useEffect(() => {
+    setManualDir(readManualDir(storageKey));
+  }, [storageKey]);
+
   // Remembered vertical size for this surface. Read once at mount —
   // a saved value drives an inline `height:` on the textarea so it
   // overrides the CSS default. When the user resizes, ResizeObserver
@@ -365,12 +422,38 @@ export function MentionTextarea({
   }, [value, onChange, picker, closePicker]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Manual direction override — Ctrl + the RIGHT Shift pins RTL,
+    // Ctrl + the LEFT Shift pins LTR. We rely on `e.code` to
+    // distinguish the two physical Shift keys (`ShiftLeft` vs
+    // `ShiftRight`) — `key` is just `"Shift"` for both. The picked
+    // combo is one neither the browser nor the task-board RTE binds
+    // to (Ctrl+Shift+R is browser hard-refresh, Ctrl+Shift+L is the
+    // task-board log shortcut, etc.). `!e.repeat` keeps held keys
+    // from re-firing. Handled BEFORE the picker guard so the
+    // shortcuts work whether the picker is open or not.
+    if (e.ctrlKey && !e.altKey && !e.metaKey && !e.repeat) {
+      if (e.code === 'ShiftRight') {
+        e.preventDefault();
+        setManualDir('rtl');
+        writeManualDir(storageKey, 'rtl');
+        return;
+      }
+      if (e.code === 'ShiftLeft') {
+        e.preventDefault();
+        setManualDir('ltr');
+        writeManualDir(storageKey, 'ltr');
+        return;
+      }
+    }
+
     if (!picker || visibleOptions.length === 0) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
+      keyboardOwnsHighlight.current = true;
       setActiveIdx(i => (i + 1) % visibleOptions.length);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
+      keyboardOwnsHighlight.current = true;
       setActiveIdx(i => (i - 1 + visibleOptions.length) % visibleOptions.length);
     } else if (e.key === 'Enter' || e.key === 'Tab') {
       e.preventDefault();
@@ -381,6 +464,20 @@ export function MentionTextarea({
       closePicker();
     }
   };
+
+  /** Picker-internal mousemove re-arms hover. Until the cursor
+   *  actually moves, hover events from scroll-induced reflows are
+   *  ignored. */
+  const handlePickerMouseMove = useCallback(() => {
+    keyboardOwnsHighlight.current = false;
+  }, []);
+
+  /** Wraps the raw onMouseEnter from PickerList so we can suppress
+   *  it during keyboard-owned highlight ownership. */
+  const handlePickerHover = useCallback((idx: number) => {
+    if (keyboardOwnsHighlight.current) return;
+    setActiveIdx(idx);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
@@ -412,6 +509,11 @@ export function MentionTextarea({
         disabled={disabled}
         spellCheck={spellCheck}
         autoFocus={autoFocus}
+        // Direction priority: manual Ctrl+Shift override (per
+        // storageKey) wins; otherwise we auto-flip to RTL when the
+        // prompt is mostly Hebrew. The browser handles caret +
+        // alignment + bidi resolution once `dir` is set.
+        dir={manualDir ?? autoDir(value)}
         onBlur={() => {
           // Defer close so a click on the picker fires before the close.
           window.setTimeout(closePicker, 120);
@@ -425,6 +527,11 @@ export function MentionTextarea({
           style={{ top: picker.top, left: picker.left }}
           // Prevent the blur-close from firing when the user clicks the menu.
           onMouseDown={e => e.preventDefault()}
+          // Re-arm hover after any real cursor movement inside the
+          // picker. While the user is arrow-keying, scrolling drags
+          // items under the stationary cursor; we ignore those
+          // pseudo-hovers until the mouse actually moves again.
+          onMouseMove={handlePickerMouseMove}
         >
           <div className={styles.pickerHint}>
             <span className={styles.pickerHintLabel}>{TRIGGER_LABELS[picker.trigger]}</span>
@@ -434,7 +541,7 @@ export function MentionTextarea({
             options={visibleOptions}
             activeIdx={activeIdx}
             onPick={insertOption}
-            onHover={setActiveIdx}
+            onHover={handlePickerHover}
           />
         </div>
       )}
@@ -462,6 +569,35 @@ function PickerList({
     return Array.from(byGroup.entries());
   }, [options]);
 
+  // Keep the highlighted row visible while the user arrow-keys
+  // through a long list. We keep a ref per button (an array slot per
+  // option index) so the active item is addressable directly — no
+  // ambiguity from conditionally swapping a single ref between
+  // siblings. Each arrow press just nudges the picker's scrollTop by
+  // the minimum needed to keep the active row fully inside the
+  // viewport; if it's already visible, nothing moves.
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  useEffect(() => {
+    const btn = itemRefs.current[activeIdx];
+    if (!btn) return;
+    // Climb to the scrollable container (.picker) — using `closest`
+    // would need a class selector that survives CSS modules; the
+    // structure is small and stable so two parentElement hops are
+    // fine and obvious. .picker → .pickerList → group div → button
+    const scroller = btn.parentElement?.parentElement?.parentElement as HTMLElement | null;
+    if (!scroller) return;
+    const sRect = scroller.getBoundingClientRect();
+    const bRect = btn.getBoundingClientRect();
+    // Small breathing margin so the active row never sits flush with
+    // the viewport edge — easier on the eye when arrow-keying fast.
+    const pad = 4;
+    if (bRect.top < sRect.top + pad) {
+      scroller.scrollTop -= (sRect.top + pad - bRect.top);
+    } else if (bRect.bottom > sRect.bottom - pad) {
+      scroller.scrollTop += (bRect.bottom - (sRect.bottom - pad));
+    }
+  }, [activeIdx]);
+
   return (
     <div className={styles.pickerList}>
       {grouped.map(([group, items]) => (
@@ -470,6 +606,7 @@ function PickerList({
           {items.map(({ idx, opt }) => (
             <button
               key={`${opt.insertion}-${idx}`}
+              ref={(el) => { itemRefs.current[idx] = el; }}
               type="button"
               className={`${styles.pickerItem} ${idx === activeIdx ? styles.pickerItemActive : ''}`}
               onMouseEnter={() => onHover(idx)}

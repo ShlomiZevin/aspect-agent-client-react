@@ -144,9 +144,11 @@ export function PersonaModal({
             options={mentionOptions}
             placeholder="Describe how the agent sounds, the tone, and what it never does…"
             rows={14}
-            // Persist the textarea's resized height across modal opens.
-            // One key for all personas — same editor type, same shape.
-            storageKey="persona"
+            // Per-agent key so resize-height AND the Ctrl+Shift R/L
+            // direction override are remembered per persona — a Hebrew
+            // persona on one agent and an English persona on another
+            // don't share the same pin.
+            storageKey={`persona:${agentId}`}
           />
         </div>
       </fieldset>

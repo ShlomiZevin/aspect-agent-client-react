@@ -24,6 +24,7 @@ import { useConfirm } from '../Confirm/Confirm';
 import { DomainInput } from './DomainInput';
 import type { CrewField } from '../../state/useCrewFields';
 import type { FieldSource, FieldType, ID } from '../../types';
+import { autoDir } from '../../../utils/textDirection';
 import styles from './AddFieldModal.module.css';
 
 function findLiveValue(
@@ -312,6 +313,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
             value={howToExtract}
             onChange={e => setHowToExtract(e.target.value)}
             placeholder="What this field means. Don't list allowed enum values here — they're injected automatically."
+            dir={autoDir(howToExtract)}
           />
         </label>
 

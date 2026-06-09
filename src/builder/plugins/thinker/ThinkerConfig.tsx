@@ -23,6 +23,7 @@ import styles from './ThinkerConfig.module.css';
 export function ThinkerConfigComponent({
   config,
   onChange,
+  instance,
   agentId,
 }: PluginConfigProps<ThinkerConfig>) {
   const patch = (next: Partial<ThinkerConfig>) => onChange({ ...config, ...next });
@@ -68,6 +69,7 @@ export function ThinkerConfigComponent({
           options={mentionOptions}
           rows={14}
           placeholder="Tell the LLM what strategy to produce and which JSON keys to emit. Type @ memory · # parameters · ^ persona · * dynamic · / or {{ for all."
+          storageKey={`addon:${instance.instanceId}:prompt`}
         />
         <span className={styles.hint}>
           The prompt is the schema. Whatever keys the LLM emits land

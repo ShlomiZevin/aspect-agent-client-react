@@ -157,6 +157,17 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
           if (compact && lane.id !== 'main') return null;
           const items = addons.filter(a => a.lane === lane.id);
           const interactiveLane = lane.enabled && !readOnly;
+          // Addons placed AFTER the Talker can't shape this turn's
+          // reply (the Talker already streamed it). They may still
+          // affect future turns by writing memory, but a Background
+          // lane is the better home — surface a warning so the user
+          // makes the call deliberately. `speaks === true` is the
+          // canonical "this addon emits the user-facing response"
+          // flag (set on Talker's descriptor), so this also covers
+          // any future speaker plugin.
+          const talkerIdx = lane.id === 'main'
+            ? items.findIndex(a => getPlugin(a.pluginId)?.speaks === true)
+            : -1;
           return (
             <div
               key={lane.id}
@@ -202,6 +213,15 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                   // arrow logic stays as today (between addon[i-1]
                   // and addon[i]).
                   const drawLeadingArrow = isMainLane && (i > 0 || (!isAgentScope && i === 0));
+                  // Addon sitting after the Talker — flag it so the
+                  // user knows it can't shape this turn's reply. It
+                  // can still write memory that affects future turns,
+                  // but the Background tier (not yet enabled) is the
+                  // intended home for that pattern.
+                  const isPostTalker = talkerIdx >= 0 && i > talkerIdx;
+                  const postTalkerTitle = isPostTalker
+                    ? "Runs after the Talker has spoken — won't affect this turn's reply. May influence future turns by writing memory. Consider moving to the Background tier (not yet available)."
+                    : undefined;
                   return (
                     <div key={instance.instanceId} className={styles.nodeWrap}>
                       {drawLeadingArrow && (
@@ -209,9 +229,10 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                       )}
                       <button
                         type="button"
-                        className={`${styles.card} ${compact ? styles.cardCompact : ''} ${isDragging ? styles.cardDragging : ''} ${isDropTarget ? styles.cardDropTarget : ''}`}
+                        className={`${styles.card} ${compact ? styles.cardCompact : ''} ${isDragging ? styles.cardDragging : ''} ${isDropTarget ? styles.cardDropTarget : ''} ${isPostTalker ? styles.cardOrphan : ''}`}
                         style={{ ['--card-color' as string]: desc.color }}
                         onClick={() => setEditingInstanceId(instance.instanceId)}
+                        title={postTalkerTitle}
                         draggable={draggable}
                         onDragStart={(e) => {
                           if (!draggable) return;
@@ -245,6 +266,15 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                         {draggable && <span className={styles.dragHandle} aria-hidden="true">⋮⋮</span>}
                         <span className={styles.cardIcon}>{desc.icon}</span>
                         <span className={styles.cardName}>{instanceName}</span>
+                        {isPostTalker && (
+                          <span
+                            className={styles.orphanBadge}
+                            aria-hidden="true"
+                            title="Won't affect this turn's reply"
+                          >
+                            after talker
+                          </span>
+                        )}
                         {!compact && (
                           <span
                             className={styles.cardModel}
@@ -259,8 +289,11 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                   );
                 })}
 
-                {/* Add button — hidden in readOnly variant. Reserved
-                    lanes still show a disabled + as before. */}
+                {/* Add button — at the end of the lane, regardless of
+                    Talker position. New addons that land after the
+                    Talker get flagged as "after talker" so the user
+                    notices and can drag them back if it wasn't
+                    intentional. */}
                 {!readOnly && (
                   lane.enabled ? (
                     <button

@@ -29,6 +29,7 @@ import { useCrewFields } from '../../state/useCrewFields';
 import { useConfirm } from '../Confirm/Confirm';
 import { DomainInput } from '../FieldsPanel/DomainInput';
 import type { FieldDef, FieldSource, FieldType, ID } from '../../types';
+import { autoDir } from '../../../utils/textDirection';
 import styles from './SchemaPanel.module.css';
 
 interface Props {
@@ -243,6 +244,7 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
             onChange={e => setHowToExtract(e.target.value)}
             placeholder="What this field means. Used by extractors that collect it."
             spellCheck={false}
+            dir={autoDir(howToExtract)}
           />
         </div>
 

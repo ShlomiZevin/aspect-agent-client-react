@@ -143,6 +143,46 @@
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
 }
 
+/* Post-Talker addons — they exist in the doc but can't influence the
+   response that just streamed. We mute them and tag with "no effect"
+   so the user notices. Drag-and-drop still works (so the user can
+   pull them back in front of the Talker). */
+.cardOrphan {
+  opacity: 0.55;
+  border-style: dashed !important;
+  border-color: #ef4444 !important;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(239, 68, 68, 0.04) 0,
+      rgba(239, 68, 68, 0.04) 6px,
+      transparent 6px,
+      transparent 12px
+    ),
+    var(--bg-surface, #fff);
+}
+
+/* Corner badge — pinned to the card so it doesn't take vertical
+   space (we want the orphan card to keep the same height as its
+   siblings). The card is `position: relative` already because the
+   drag handle uses absolute positioning, so this just rides on top. */
+.orphanBadge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 8.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
+  white-space: nowrap;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
 .dragHandle {
   position: absolute;
   top: 6px;

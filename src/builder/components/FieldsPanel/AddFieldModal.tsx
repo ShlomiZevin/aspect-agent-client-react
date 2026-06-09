@@ -21,6 +21,7 @@ import { useBuilder } from '../../state/BuilderContext';
 import { useCrewFields } from '../../state/useCrewFields';
 import { DomainInput } from './DomainInput';
 import type { FieldDef, FieldSource, FieldType, ID } from '../../types';
+import { autoDir } from '../../../utils/textDirection';
 import styles from './AddFieldModal.module.css';
 
 interface Props {
@@ -300,6 +301,7 @@ export function AddFieldModal({
             value={draft.howToExtract}
             onChange={e => setDraft(d => ({ ...d, howToExtract: e.target.value }))}
             placeholder="What this field means. Don't list allowed enum values here — they're injected automatically."
+            dir={autoDir(draft.howToExtract)}
           />
         </label>
 

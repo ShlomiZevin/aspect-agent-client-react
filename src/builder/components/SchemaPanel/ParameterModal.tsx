@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { Modal } from '../Modal/Modal';
 import { useConfirm } from '../Confirm/Confirm';
 import type { ParameterDef } from '../../types';
+import { autoDir } from '../../../utils/textDirection';
 import styles from './SchemaPanel.module.css';
 
 interface Props {
@@ -134,6 +135,7 @@ export function ParameterModal({
             onChange={e => setValue(e.target.value)}
             placeholder="The value substituted into prompts"
             spellCheck={false}
+            dir={autoDir(value)}
           />
         </div>
 

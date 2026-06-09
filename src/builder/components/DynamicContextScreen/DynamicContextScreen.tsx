@@ -1080,6 +1080,7 @@ function Editor({
             options={mentionOptions}
             placeholder="(optional) Default guidance when no case matches…"
             rows={18}
+            storageKey={`dc:${activeField.id}:fallback`}
           />
         </div>
       </div>
@@ -1141,6 +1142,7 @@ function Editor({
             options={mentionOptions}
             placeholder={`Write the body for ${activeField.name}=${activeCase.value} › ${activeSection.name}…`}
             rows={18}
+            storageKey={`dc:${activeField.id}:${activeCase.value}:section:${activeSection.name}`}
           />
         </div>
       </div>
@@ -1188,6 +1190,7 @@ function Editor({
           options={mentionOptions}
           placeholder="Umbrella prompt for this case — optional if you only use sections…"
           rows={18}
+          storageKey={`dc:${activeField.id}:${activeCase.value}:umbrella`}
         />
       </div>
     </div>

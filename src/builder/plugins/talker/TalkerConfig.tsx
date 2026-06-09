@@ -23,6 +23,7 @@ import styles from './TalkerConfig.module.css';
 export function TalkerConfigComponent({
   config,
   onChange,
+  instance,
   agentId,
 }: PluginConfigProps<TalkerConfig>) {
   const patch = (next: Partial<TalkerConfig>) => onChange({ ...config, ...next });
@@ -56,6 +57,7 @@ export function TalkerConfigComponent({
           options={mentionOptions}
           placeholder="You are… {{persona}}. Here is what you know: {{memory}}."
           rows={10}
+          storageKey={`addon:${instance.instanceId}:prompt`}
         />
       </section>
     </div>
