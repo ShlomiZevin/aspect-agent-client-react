@@ -25,6 +25,7 @@ import { useBuilder } from '../../state/BuilderContext';
 import { useConfirm } from '../Confirm/Confirm';
 import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../MentionTextarea/useMentionOptions';
+import { AddFieldModal } from '../FieldsPanel/AddFieldModal';
 import type {
   DynamicContextCase,
   DynamicContextDef,
@@ -137,6 +138,43 @@ export function DynamicContextScreen() {
       navigate(`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(field.name)}`);
     }
   }, [upsertDc, navigate, agentSlug]);
+
+  /**
+   * Drop the entire DC for a field — wipes every case prompt and any
+   * sections the user authored. Confirms first because this is
+   * destructive (the prompts can't be recovered from anywhere else).
+   * Navigates back to the field landing once removed so the user
+   * isn't stuck on a stale URL pointing at a value that no longer
+   * has any DC content.
+   */
+  const handleDetach = useCallback(async (field: FieldDef) => {
+    if (!agent) return;
+    const current = agent.dynamicContexts ?? [];
+    const target = current.find(d => d.fieldId === field.id);
+    if (!target) return;
+    const caseCount = target.cases.length;
+    const ok = await confirm({
+      title: `Detach Dynamic Context from "${field.name}"?`,
+      message:
+        `This will delete every case prompt you've authored on this field ` +
+        `(${caseCount} case${caseCount === 1 ? '' : 's'}` +
+        `${(target.sections ?? []).length > 0
+          ? `, plus all sections under each case`
+          : ''}` +
+        `${target.fallback ? `, plus the fallback` : ''}). ` +
+        `The field declaration and its enum values stay — only the DC is removed. ` +
+        `This can't be undone.`,
+      confirmLabel: 'Detach',
+      danger: true,
+    });
+    if (!ok) return;
+    writeDcs(current.filter(d => d.id !== target.id));
+    // If the URL currently points at this field, send the user back
+    // to the DC root so the editor doesn't try to render a stale case.
+    if (fieldName === field.name) {
+      navigate(`/${agentSlug}/builder/dynamic-context`);
+    }
+  }, [agent, confirm, writeDcs, fieldName, navigate, agentSlug]);
 
   /** Push a new enum value onto a field AND seed an empty case on its DC. */
   const handleAddValue = useCallback((field: FieldDef, rawValue: string) => {
@@ -298,6 +336,23 @@ export function DynamicContextScreen() {
     }
   }, [confirm, upsertDc, activeField, fieldName, section, navigate, agentSlug]);
 
+  // ── Create-enum-field flow ─────────────────────────────────────
+  // The DC page lets the author declare a new enum field without
+  // leaving for the Schema panel. Opens the standard AddFieldModal
+  // with the type locked so the form is "just name + values" — the
+  // most common case from this screen. After save, the field shows
+  // up in the sidebar as "not attached" until the user authors a
+  // prompt for one of its values.
+  const [createOpen, setCreateOpen] = useState(false);
+  const openCreate = useCallback(() => setCreateOpen(true), []);
+  const onFieldCreated = useCallback((created: FieldDef) => {
+    setCreateOpen(false);
+    // Navigate to the new field so the editor surface lands on
+    // something useful — same UX shape as `handleAttach` after a DC
+    // is created.
+    navigate(`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(created.name)}`);
+  }, [navigate, agentSlug]);
+
   // ── Render ──────────────────────────────────────────────────────
 
   if (!agent) {
@@ -346,10 +401,12 @@ export function DynamicContextScreen() {
             activeValue={value}
             activeSection={section}
             onAttach={handleAttach}
+            onDetach={handleDetach}
             onAddValue={handleAddValue}
             onRemoveValue={handleRemoveValue}
             onAddSection={handleAddSection}
             onRemoveSection={handleRemoveSection}
+            onCreateField={openCreate}
           />
         ) : (
           <ColumnsNav
@@ -362,10 +419,12 @@ export function DynamicContextScreen() {
             activeSection={section}
             isFallback={isFallback}
             onAttach={handleAttach}
+            onDetach={handleDetach}
             onAddValue={handleAddValue}
             onRemoveValue={handleRemoveValue}
             onAddSection={handleAddSection}
             onRemoveSection={handleRemoveSection}
+            onCreateField={openCreate}
           />
         )}
 
@@ -383,6 +442,15 @@ export function DynamicContextScreen() {
           onSectionTextChange={handleSectionTextChange}
         />
       </div>
+
+      <AddFieldModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        agentId={agent.id}
+        crewId={agent.crews[0]?.id ?? ''}
+        lockedType="enum"
+        onCreated={onFieldCreated}
+      />
     </div>
   );
 }
@@ -440,7 +508,7 @@ function Breadcrumb({
 
 function TreeNav({
   agentSlug, enumFields, dcByFieldId, activeFieldName, activeValue, activeSection,
-  onAttach, onAddValue, onRemoveValue, onAddSection, onRemoveSection,
+  onAttach, onDetach, onAddValue, onRemoveValue, onAddSection, onRemoveSection, onCreateField,
 }: {
   agentSlug: string;
   enumFields: FieldDef[];
@@ -449,10 +517,12 @@ function TreeNav({
   activeValue?: string;
   activeSection?: string;
   onAttach: (field: FieldDef) => void;
+  onDetach: (field: FieldDef) => void;
   onAddValue: (field: FieldDef, raw: string) => void;
   onRemoveValue: (field: FieldDef, val: string) => void;
   onAddSection: (dc: DynamicContextDef, caseValue: string, rawName: string) => void;
   onRemoveSection: (dc: DynamicContextDef, caseValue: string, sectionName: string) => void;
+  onCreateField: () => void;
 }) {
   // Expanded-field set tracked locally; auto-expand the active one.
   const [expanded, setExpanded] = useState<Set<ID>>(() => new Set());
@@ -480,9 +550,15 @@ function TreeNav({
   if (enumFields.length === 0) {
     return (
       <div className={styles.nav}>
+        <div className={styles.navHeader}>
+          <span className={styles.navHeaderTitle}>Enum fields</span>
+          <button type="button" className={styles.navHeaderBtn} onClick={onCreateField}>
+            + New enum field
+          </button>
+        </div>
         <div className={styles.navEmpty}>
-          No enum fields on this agent yet. Declare one from the Schema
-          panel, then attach a Dynamic Context to it here.
+          No enum fields on this agent yet. Create one with the button
+          above — Dynamic Context picks it up automatically.
         </div>
       </div>
     );
@@ -493,6 +569,9 @@ function TreeNav({
       <div className={styles.navHeader}>
         <span className={styles.navHeaderTitle}>Enum fields</span>
         <span className={styles.navHeaderCount}>{enumFields.length}</span>
+        <button type="button" className={styles.navHeaderBtn} onClick={onCreateField}>
+          + New enum field
+        </button>
       </div>
       <div className={styles.tree}>
         {enumFields.map(field => {
@@ -520,10 +599,28 @@ function TreeNav({
 
               {isOpen && !hasDc && (
                 <div className={styles.fieldChildren}>
+                  {/* Even without an attached DC, show the field's
+                      values so the DC panel doubles as an enum
+                      viewer. Clicking "+ Attach" creates the DC
+                      with empty cases for each value — same as
+                      before, just no longer the only thing visible. */}
+                  <div className={styles.subLabel}>
+                    Values for <code className={styles.subLabelField}>{field.name}</code>
+                  </div>
+                  <div className={styles.list}>
+                    {(field.enumValues ?? []).map(v => (
+                      <div key={v} className={styles.row}>
+                        <span className={styles.op} aria-hidden>=</span>
+                        <div className={styles.rowBody}>
+                          <span className={styles.rowValue}>{v}</span>
+                          <span className={styles.rowSnippetEmpty}>no Dynamic Context attached yet</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                   <div className={styles.attachPrompt}>
-                    <span>No Dynamic Context attached.</span>
                     <button type="button" className={styles.attachBtn} onClick={() => onAttach(field)}>
-                      + Attach
+                      + Attach Dynamic Context
                     </button>
                   </div>
                 </div>
@@ -733,6 +830,21 @@ function TreeNav({
                       </div>
                     </Link>
                   </div>
+
+                  {/* Destructive: drops the entire DC for this field
+                      (every case prompt, every section, the fallback).
+                      The field declaration itself stays. Confirms
+                      first in `handleDetach`. */}
+                  <div className={styles.detachPrompt}>
+                    <button
+                      type="button"
+                      className={styles.detachBtn}
+                      onClick={() => onDetach(field)}
+                      title="Remove every case prompt and section authored under this DC"
+                    >
+                      Detach Dynamic Context
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -747,7 +859,7 @@ function TreeNav({
 
 function ColumnsNav({
   agentSlug, enumFields, dcByFieldId, activeField, activeDc, activeCase, activeSection, isFallback,
-  onAttach, onAddValue, onRemoveValue, onAddSection, onRemoveSection,
+  onAttach, onDetach, onAddValue, onRemoveValue, onAddSection, onRemoveSection, onCreateField,
 }: {
   agentSlug: string;
   enumFields: FieldDef[];
@@ -758,10 +870,12 @@ function ColumnsNav({
   activeSection?: string;
   isFallback: boolean;
   onAttach: (field: FieldDef) => void;
+  onDetach: (field: FieldDef) => void;
   onAddValue: (field: FieldDef, raw: string) => void;
   onRemoveValue: (field: FieldDef, val: string) => void;
   onAddSection: (dc: DynamicContextDef, caseValue: string, rawName: string) => void;
   onRemoveSection: (dc: DynamicContextDef, caseValue: string, sectionName: string) => void;
+  onCreateField: () => void;
 }) {
   const [newValue, setNewValue] = useState('');
   const [newSection, setNewSection] = useState('');
@@ -773,10 +887,15 @@ function ColumnsNav({
     <div className={styles.columns}>
       {/* Column 1: Fields */}
       <div className={styles.column}>
-        <div className={styles.columnHeader}>Fields</div>
+        <div className={styles.columnHeader}>
+          <span>Fields</span>
+          <button type="button" className={styles.navHeaderBtn} onClick={onCreateField}>
+            + New enum field
+          </button>
+        </div>
         <div className={styles.columnList}>
           {enumFields.length === 0 ? (
-            <div className={styles.columnEmpty}>No enum fields yet.</div>
+            <div className={styles.columnEmpty}>No enum fields yet. Use the button above to create one.</div>
           ) : enumFields.map(field => {
             const dc = dcByFieldId.get(field.id);
             const isActive = activeField?.id === field.id;
@@ -895,6 +1014,19 @@ function ColumnsNav({
                   }}
                 >
                   Add
+                </button>
+              </div>
+
+              {/* Destructive — drops every case prompt + section + the
+                  fallback for this field. The declaration itself stays. */}
+              <div className={styles.detachPrompt}>
+                <button
+                  type="button"
+                  className={styles.detachBtn}
+                  onClick={() => onDetach(activeField)}
+                  title="Remove every case prompt and section authored under this DC"
+                >
+                  Detach Dynamic Context
                 </button>
               </div>
             </>

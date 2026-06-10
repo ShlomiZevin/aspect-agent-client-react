@@ -223,7 +223,15 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                   // can still write memory that affects future turns,
                   // but the Background tier (not yet enabled) is the
                   // intended home for that pattern.
-                  const isPostTalker = talkerIdx >= 0 && i > talkerIdx;
+                  //
+                  // Transition Router is the canonical exception: its
+                  // job is to decide the NEXT turn's crew based on what
+                  // just happened, so its natural home is right after
+                  // the Talker (read the answer, route from there).
+                  // Don't flag it.
+                  const isPostTalker = talkerIdx >= 0
+                    && i > talkerIdx
+                    && instance.pluginId !== 'transition-router';
                   const postTalkerTitle = isPostTalker
                     ? "Runs after the Talker has spoken — won't affect this turn's reply. May influence future turns by writing memory. Consider moving to the Background tier (not yet available)."
                     : undefined;

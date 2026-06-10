@@ -54,6 +54,13 @@ interface Props {
    * `extractsFields = [field.id]` to replace any previous link.
    */
   onCreated?: (field: FieldDef) => void;
+  /**
+   * When set, the field type picker is hidden and the draft starts
+   * with this type. Used by the DC page to open "+ New enum field"
+   * without making the user re-pick the type. The form behaves
+   * exactly like the regular flow for everything else.
+   */
+  lockedType?: FieldType;
 }
 
 const TYPES: { value: FieldType; label: string }[] = [
@@ -82,9 +89,9 @@ interface Draft {
 // "declared at agent level, wired only to that crew." Legacy crew-
 // scoped fields (CrewBody.fields) keep working; users can migrate
 // one via FieldEditorModal's Scope picker. No new ones from here.
-const emptyDraft = (source: FieldSource = 'explicit'): Draft => ({
+const emptyDraft = (source: FieldSource = 'explicit', type: FieldType = 'string'): Draft => ({
   name: '',
-  type: 'string',
+  type,
   source,
   domain: '',
   howToExtract: '',
@@ -92,7 +99,7 @@ const emptyDraft = (source: FieldSource = 'explicit'): Draft => ({
 });
 
 export function AddFieldModal({
-  open, onClose, agentId, crewId, fromExtractor, onWireExisting, onCreated,
+  open, onClose, agentId, crewId, fromExtractor, onWireExisting, onCreated, lockedType,
 }: Props) {
   const { agentExtractors, extractorOptions, domainNames, addFieldToScope } =
     useCrewFields(agentId, crewId);
@@ -109,7 +116,7 @@ export function AddFieldModal({
     return map;
   }, [agent?.fields]);
 
-  const [draft, setDraft] = useState<Draft>(() => emptyDraft(fromExtractor?.defaultSource));
+  const [draft, setDraft] = useState<Draft>(() => emptyDraft(fromExtractor?.defaultSource, lockedType));
   // Which extractor instances should extract this field. At least one
   // required to submit. When opened from a specific extractor's "+ Add
   // field", that one is pre-ticked. Otherwise we fall back to the
@@ -120,14 +127,22 @@ export function AddFieldModal({
   // (or the calling extractor when opened from an extractor's config).
   useEffect(() => {
     if (!open) return;
-    setDraft(emptyDraft(fromExtractor?.defaultSource));
+    setDraft(emptyDraft(fromExtractor?.defaultSource, lockedType));
     if (fromExtractor) {
       setSelectedExtractors(new Set([fromExtractor.instanceId]));
+    } else if (lockedType) {
+      // Caller-locked flow (DC page): don't pre-pick an arbitrary
+      // extractor — the author can wire the field later (e.g. from
+      // the Field Reasoner / Interviewer side, or by editing the
+      // declared field). Forcing a default here would silently
+      // attach the field to the first extractor in this crew, which
+      // is rarely what the DC author wants.
+      setSelectedExtractors(new Set());
     } else {
       const firstInThisCrew = extractorOptions[0]?.instanceId;
       setSelectedExtractors(firstInThisCrew ? new Set([firstInThisCrew]) : new Set());
     }
-  }, [open, extractorOptions, fromExtractor]);
+  }, [open, extractorOptions, fromExtractor, lockedType]);
 
   const noExtractorsAnywhere = agentExtractors.length === 0;
 
@@ -137,9 +152,14 @@ export function AddFieldModal({
   const trimmedName = draft.name.trim();
   const collidesWith = trimmedName ? agentFieldByName.get(trimmedName) ?? null : null;
 
+  // For the caller-locked flow (DC page), allow declaring the field
+  // without picking any extractor at all — the author can wire it
+  // later. For every other entry point, keep the existing rule
+  // (must have at least one extractor or the engine auto-creates one
+  // because the agent has none yet).
   const canSubmit = trimmedName.length > 0
     && !collidesWith
-    && (noExtractorsAnywhere || selectedExtractors.size > 0);
+    && (lockedType !== undefined || noExtractorsAnywhere || selectedExtractors.size > 0);
 
   const toggleExtractor = (id: ID) => {
     setSelectedExtractors(prev => {
@@ -179,8 +199,10 @@ export function AddFieldModal({
       draftField,
       Array.from(selectedExtractors),
       // If the agent has zero extractors anywhere, bootstrap one in
-      // this crew automatically so the field has something to do.
-      { createDefaultExtractor: noExtractorsAnywhere },
+      // this crew automatically so the field has something to do —
+      // EXCEPT in the caller-locked flow (DC page), where the author
+      // explicitly wants a naked declaration and will wire it later.
+      { createDefaultExtractor: noExtractorsAnywhere && lockedType === undefined },
     );
     onCreated?.(created);
     onClose();
@@ -252,18 +274,23 @@ export function AddFieldModal({
         </label>
 
         <div className={styles.row3}>
-          <label className={styles.field}>
-            <span className={styles.label}>Type</span>
-            <select
-              className={styles.input}
-              value={draft.type}
-              onChange={e => setDraft(d => ({ ...d, type: e.target.value as FieldType }))}
-            >
-              {TYPES.map(t => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-          </label>
+          {/* Type picker — hidden when the caller locks the type (e.g.
+              the DC page opens this modal pre-locked to enum, so the
+              user doesn't have to re-pick). */}
+          {!lockedType && (
+            <label className={styles.field}>
+              <span className={styles.label}>Type</span>
+              <select
+                className={styles.input}
+                value={draft.type}
+                onChange={e => setDraft(d => ({ ...d, type: e.target.value as FieldType }))}
+              >
+                {TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </label>
+          )}
 
           <label className={styles.field}>
             <span className={styles.label}>Source</span>

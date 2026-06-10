@@ -149,6 +149,29 @@
   color: var(--text-tertiary, #9ca3af);
 }
 
+/* "+ New enum field" button in the sidebar / columns header. Small
+   ghost-style button — sits next to the count without dominating the
+   header, but visible enough that the user finds it on the DC page
+   instead of bouncing to the Schema panel for an enum decl. */
+.navHeaderBtn {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 6px;
+  border: 1px dashed var(--border-color, #d1d5db);
+  background: transparent;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.navHeaderBtn:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+  border-style: solid;
+}
+
 .navEmpty {
   padding: 18px;
   border: 1px dashed var(--border-color, #e5e7eb);
@@ -444,6 +467,35 @@
 }
 .attachBtn:hover {
   filter: brightness(0.95);
+}
+
+/* Detach affordance — destructive. Sits at the bottom of the
+   field's children so it's reachable but not the first thing the
+   eye lands on. Same shell as `.attachPrompt` so the layout reads
+   as a footer row. */
+.detachPrompt {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 8px 10px 4px;
+  margin-top: 4px;
+}
+
+.detachBtn {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #fecaca;
+  background: transparent;
+  color: #b91c1c;
+  cursor: pointer;
+}
+
+.detachBtn:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
 }
 
 /* Inline add-row used for "+ Add value" and "+ Add section". */
