@@ -601,12 +601,19 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
    * matches the server's `builderMemory.applyWrites` semantics.
    */
   const applyLocalMemoryWrites = useCallback(
-    (writes: Array<{
-      kind?: 'memory' | 'thinking';
-      domain: string | null;
-      field: string;
-      value: unknown;
-    }>) => {
+    (writes: Array<
+      | {
+          kind?: 'memory' | 'thinking';
+          domain: string | null;
+          field: string;
+          value: unknown;
+        }
+      | {
+          kind: 'memory' | 'thinking';
+          domain: string | null;
+          replace: true;
+        }
+    >) => {
       if (!Array.isArray(writes) || writes.length === 0) return;
       setConversationMemory(prev => {
         const next = {
@@ -614,10 +621,20 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
           thinking: { ...prev.thinking },
         };
         for (const w of writes) {
-          if (w.value === null || w.value === undefined) continue;
           const section = w.kind === 'thinking' ? 'thinking' : 'memory';
           const key = (w.domain && String(w.domain).trim()) ? String(w.domain) : '_general';
-          next[section][key] = { ...(next[section][key] || {}), [w.field]: w.value };
+          // Domain-replace marker — wipe the bucket then move on. The
+          // server's `builderMemory.applyWrites` does the same, so the
+          // optimistic local view matches the post-`done` refresh
+          // (no two-phase "old keys linger, then disappear" flicker).
+          if ('replace' in w && w.replace === true) {
+            next[section][key] = {};
+            continue;
+          }
+          // Narrowed: not a replace marker → value-write shape.
+          const vw = w as { field: string; value: unknown };
+          if (vw.value === null || vw.value === undefined) continue;
+          next[section][key] = { ...(next[section][key] || {}), [vw.field]: vw.value };
         }
         return next;
       });

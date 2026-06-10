@@ -233,9 +233,13 @@ export function useBrainSnapshot(): BrainSnapshot {
     const thinkingCards: BrainThinkingCard[] = [];
     for (const [domain, bucket] of Object.entries(thinkingBuckets)) {
       if (!bucket || typeof bucket !== 'object') continue;
+      // Alphabetical sort by field name — stable across turns. The
+      // LLM emits keys in non-deterministic order; we don't propagate
+      // that volatility to the brain panel.
       const entries = Object.entries(bucket)
         .filter(([, v]) => v !== null && v !== undefined && v !== '')
-        .map(([field, value]) => ({ field, value }));
+        .map(([field, value]) => ({ field, value }))
+        .sort((a, b) => a.field.localeCompare(b.field));
       if (entries.length === 0) continue;
       thinkingCards.push({
         domain: domain === '_general' ? 'general' : domain,

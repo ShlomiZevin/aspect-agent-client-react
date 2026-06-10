@@ -48,6 +48,16 @@ export type RuntimeEvent =
             value: unknown;
           }
         | {
+            /** Domain-replace marker — wipes the `(section, domain)`
+             *  bucket before subsequent value writes land. Thinker /
+             *  Field Interviewer emit this first so rolling-replace
+             *  semantics work on the optimistic client cache just
+             *  like they do on the server's `applyWrites`. */
+            kind: 'memory' | 'thinking';
+            domain: string | null;
+            replace: true;
+          }
+        | {
             /** Summarizer writes — flat slot per summarizer name, no
              *  domain layer. The slot carries the synthesis text, the
              *  highest message id consumed (`watermark`), and the
