@@ -31,7 +31,8 @@ import { getLibraryEntry } from '../../state/addonLibrary';
 import { AddonModal } from '../AddonModal/AddonModal';
 import { AddStepModal, type AddStepChoice } from '../AddStepModal/AddStepModal';
 import { AgentComboChip } from './AgentComboChip';
-import type { AddonInstance, AddonLane, AgentDoc, CrewDoc, ID, ModelRef } from '../../types';
+import { formatTrigger } from '../Trigger/triggerFormat';
+import type { AddonContext, AddonInstance, AddonLane, AgentDoc, CrewDoc, ID, ModelRef } from '../../types';
 import styles from './ChainCanvas.module.css';
 
 interface Props {
@@ -57,7 +58,11 @@ type LaneSpec = {
 const LANES: LaneSpec[] = [
   { id: 'main', title: 'Blocking', hint: 'Runs on every message, response waits for it', enabled: true },
   { id: 'background', title: 'Background', hint: "Runs per message, doesn't block the response", enabled: false },
-  { id: 'offline', title: 'Offline', hint: 'Runs periodically, not per message', enabled: false },
+  // Offline lane is enabled today for event-driven addons (Summarizer
+  // and friends). For now, all triggers fire only as a reaction to a
+  // user message (after the blocking chain) — no background scheduler.
+  // Time-based / cron triggers are a future addition.
+  { id: 'offline', title: 'Offline', hint: "Fires per trigger (every N msgs, on transition) after the reply", enabled: true },
 ];
 
 function configModel(config: unknown): ModelRef | null {
@@ -282,6 +287,18 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                             aria-hidden={!model || undefined}
                           >
                             {model ? formatModelRef(model) : ' '}
+                          </span>
+                        )}
+                        {/* Offline-lane addons show their trigger
+                            summary under the model line so the
+                            author can see "when does this fire?" at
+                            a glance, like the blocking-lane cards
+                            show the model. Other lanes have no
+                            trigger concept (background runs every
+                            turn; main is the blocking chain). */}
+                        {!compact && instance.lane === 'offline' && (
+                          <span className={styles.cardTrigger}>
+                            {formatTrigger((instance.context as AddonContext | undefined)?.trigger)}
                           </span>
                         )}
                       </button>

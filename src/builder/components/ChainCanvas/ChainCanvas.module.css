@@ -211,6 +211,16 @@
   color: var(--text-tertiary, #9ca3af);
 }
 
+/* Offline-lane trigger summary — same scale as cardModel but tinted
+   to match the offline-lane convention (event-driven, not per-turn). */
+.cardTrigger {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #0891b2;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
 .addCard {
   min-width: 56px;
   display: flex;

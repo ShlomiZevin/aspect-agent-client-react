@@ -383,20 +383,29 @@ export type BrainSection = Record<string, Record<string, unknown>>;
  * plan. Dynamic Context resolves at prompt-assembly time and doesn't
  * write to the brain.
  */
+export interface SummarySection {
+  [name: string]: { text: string; watermark: number; ranAt: number };
+}
+
 export interface ConversationMemory {
   memory:   BrainSection;
   thinking: BrainSection;
+  /** Optional on the wire — older servers / fresh conversations may
+   *  not return the section. Treated as `{}` by every consumer. */
+  summary?: SummarySection;
 }
 
-const EMPTY_BRAIN: ConversationMemory = { memory: {}, thinking: {} };
+const EMPTY_BRAIN: ConversationMemory = { memory: {}, thinking: {}, summary: {} };
 
 function normalizeBrainResponse(res: {
   memory?: BrainSection;
   thinking?: BrainSection;
+  summary?: SummarySection;
 }): ConversationMemory {
   return {
     memory:   res.memory   || {},
     thinking: res.thinking || {},
+    summary:  res.summary  || {},
   };
 }
 
@@ -409,6 +418,7 @@ export async function fetchConversationMemory(args: {
   const res = await http<{
     memory: BrainSection;
     thinking: BrainSection;
+    summary?: SummarySection;
   }>(
     `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/memory?${params}`,
   );

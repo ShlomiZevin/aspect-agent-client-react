@@ -86,15 +86,35 @@ export interface BrainThinkingCard {
   entries: Array<{ field: string; value: unknown }>;
 }
 
+/**
+ * One Summarizer slot — the current checkpoint plus the watermark
+ * (highest message id consumed) and the last-fired timestamp. Read
+ * directly from `conversationMemory.summary`. Cards render in
+ * alphabetical order by `name` so layout stays stable.
+ */
+export interface BrainSummarizerCard {
+  /** Summarizer's `config.name` — the same key used in
+   *  `{{summary:NAME}}` and `since_summarizer: NAME`. */
+  name: string;
+  /** The current synthesis text. Empty when the addon ran but had
+   *  nothing to write. */
+  text: string;
+  /** Highest message DB id this summarizer consumed in its last run. */
+  watermark: number;
+  /** Epoch ms when the last run completed. */
+  ranAt: number;
+}
+
 export interface BrainSnapshot {
   memoryGroups: BrainMemoryGroup[];
   staleRows: BrainStaleRow[];
   dcHits: BrainDcHit[];
   thinkingCards: BrainThinkingCard[];
+  summarizerCards: BrainSummarizerCard[];
 }
 
 const EMPTY_SNAPSHOT: BrainSnapshot = {
-  memoryGroups: [], staleRows: [], dcHits: [], thinkingCards: [],
+  memoryGroups: [], staleRows: [], dcHits: [], thinkingCards: [], summarizerCards: [],
 };
 
 const GENERAL_KEY = '_general';
@@ -224,7 +244,27 @@ export function useBrainSnapshot(): BrainSnapshot {
     }
     thinkingCards.sort((a, b) => a.domain.localeCompare(b.domain));
 
-    return { memoryGroups, staleRows, dcHits, thinkingCards };
+    // ── Summarizer cards — one per slot in `conversationMemory.summary`.
+    // Slots are written by offline-lane Summarizer addons; the panel
+    // shows what's currently in each, plus the watermark + last-fired
+    // timestamp so the author can see "this checkpoint covers up to
+    // message N, last refreshed Z seconds ago." Empty list when no
+    // summarizer has fired yet (no card at all rather than empty
+    // placeholders — the brain panel is a runtime view, not a
+    // schema).
+    const summaryBlob = (conversationMemory as { summary?: Record<string, unknown> } | undefined)?.summary ?? {};
+    const summarizerCards: BrainSummarizerCard[] = [];
+    for (const [name, slotRaw] of Object.entries(summaryBlob)) {
+      if (!slotRaw || typeof slotRaw !== 'object') continue;
+      const slot = slotRaw as { text?: unknown; watermark?: unknown; ranAt?: unknown };
+      const text = typeof slot.text === 'string' ? slot.text : '';
+      const watermark = Number.isFinite(slot.watermark) ? Number(slot.watermark) : 0;
+      const ranAt = Number.isFinite(slot.ranAt) ? Number(slot.ranAt) : 0;
+      summarizerCards.push({ name, text, watermark, ranAt });
+    }
+    summarizerCards.sort((a, b) => a.name.localeCompare(b.name));
+
+    return { memoryGroups, staleRows, dcHits, thinkingCards, summarizerCards };
   }, [agent, conversationMemory]);
 }
 

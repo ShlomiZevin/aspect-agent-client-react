@@ -58,6 +58,10 @@ export interface MentionOptions {
   '^'?: MentionOption[];
   /** Dynamic Context switches (one entry per field with a DC attached). */
   '*'?: MentionOption[];
+  /** Summarizer slots — one entry per declared summarizer name plus
+   *  an "all summaries" whole-section entry. Written by offline-lane
+   *  Summarizer addons; read by any addon via `{{summary:NAME}}`. */
+  '%'?: MentionOption[];
 }
 
 /**
@@ -66,9 +70,9 @@ export interface MentionOptions {
  * category in one combined picker — useful when the user doesn't
  * remember which sigil opens what.
  */
-type SingleTrigger = '@' | '!' | '#' | '^' | '*';
+type SingleTrigger = '@' | '!' | '#' | '^' | '*' | '%';
 type Trigger = SingleTrigger | '{{' | '/';
-const SINGLE_TRIGGERS: SingleTrigger[] = ['@', '!', '#', '^', '*'];
+const SINGLE_TRIGGERS: SingleTrigger[] = ['@', '!', '#', '^', '*', '%'];
 
 /**
  * Human label for each trigger. Shown as the picker's header so the
@@ -82,6 +86,7 @@ const TRIGGER_LABELS: Record<Trigger, string> = {
   '#':  'Parameters',
   '^':  'Persona',
   '*':  'Dynamic context',
+  '%':  'Summary',
   '{{': 'All placeholders',
   '/':  'All placeholders',
 };

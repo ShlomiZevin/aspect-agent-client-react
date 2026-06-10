@@ -12,6 +12,7 @@ import './vibeExtractor/addon.vibeExtractor';
 import './fieldReasoner/addon.fieldReasoner';
 import './fieldInterviewer/addon.fieldInterviewer';
 import './thinker/addon.thinker';
+import './summarizer/addon.summarizer';
 import './talker/addon.talker';
 import './transitionRouter/addon.transitionRouter';
 

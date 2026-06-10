@@ -332,6 +332,7 @@ export function UserChat() {
           pluginId:   e.pluginId,
           label:      e.label,
           modelLabel: e.modelLabel ?? null,
+          lane:       e.lane,
           status:     'running',
         }));
         return;
@@ -344,7 +345,16 @@ export function UserChat() {
       case 'addon.token':
         updateLastTurn(t => ({ ...t, assistantText: t.assistantText + e.token }));
         return;
-      case 'addon.output':
+      case 'addon.output': {
+        // Split memory/thinking writes from summary writes. The card
+        // and the local memory cache understand the domain-keyed
+        // shape; summary writes are flat-per-name and live on a
+        // different brain section (refreshed via the post-`done`
+        // memory refetch, not via the optimistic local merge).
+        const domainWrites = (e.memoryWrites ?? []).filter(
+          (w): w is { kind?: 'memory' | 'thinking'; domain: string | null; field: string; value: unknown } =>
+            !w || (w as { kind?: string }).kind !== 'summary',
+        );
         updateLastTurn(t => upsertRun(t, {
           instanceId:   e.instanceId,
           label:        e.label,
@@ -352,21 +362,23 @@ export function UserChat() {
           status:       'success',
           rawOutput:    e.rawOutput,
           parsedOutput: e.parsedOutput,
-          memoryWrites: e.memoryWrites,
+          memoryWrites: domainWrites,
           parseError:   e.parseError,
           transition:   e.transition,
           broke:        e.broke,
           durationMs:   e.durationMs,
           firstTokenMs: e.firstTokenMs,
+          lane:         e.lane,
         }));
-        // Live-merge any memory writes from this addon into the local
-        // cache so the FieldsPanel updates the green value chip the
-        // moment the extractor finishes — long before the talker
-        // streams a response. Reconciled by refreshConversationMemory
-        // at 'done'.
-        if (e.memoryWrites && e.memoryWrites.length > 0) {
-          applyLocalMemoryWrites(e.memoryWrites);
+        // Live-merge any memory/thinking writes from this addon into
+        // the local cache so the FieldsPanel updates the green value
+        // chip the moment the extractor finishes — long before the
+        // talker streams a response. Summary writes don't participate
+        // — they get picked up by the next refreshConversationMemory.
+        if (domainWrites.length > 0) {
+          applyLocalMemoryWrites(domainWrites);
         }
+      }
         // A transition fired — the server already wrote it to
         // metadata. Surface the new crew in the header dropdown so
         // the user sees the handoff land in real time.

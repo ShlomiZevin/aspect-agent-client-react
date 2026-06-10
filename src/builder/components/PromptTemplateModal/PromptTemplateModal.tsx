@@ -33,11 +33,26 @@ interface Props {
   instance: AddonInstance | null;
 }
 
+/**
+ * Resolve the history slice for the prompt preview.
+ *
+ * The preview is a CLIENT-SIDE approximation — it doesn't have access
+ * to the conversation's actual brain blob (watermarks) or transition
+ * log. So `since_transition` / `since_summarizer` fall back to `all`
+ * here, which matches the server's "fallback to all when the cutoff
+ * is unknown" semantic. The user sees a faithful upper bound of what
+ * the LLM might receive; per-turn variation lives in the live runtime
+ * (visible on the addon run cards).
+ */
 function sliceForHistory(msgs: ConversationMessage[], h: HistoryMode): ConversationMessage[] {
-  if (h.mode === 'none') return [];
-  if (h.mode === 'full') return msgs;
-  const n = Math.max(0, h.n ?? 5);
-  return msgs.slice(-n);
+  switch (h.mode) {
+    case 'none':              return [];
+    case 'full':              return msgs;
+    case 'all':               return msgs;
+    case 'since_transition':  return msgs;
+    case 'since_summarizer':  return msgs;
+    case 'last_n':            return msgs.slice(-Math.max(0, h.n ?? 5));
+  }
 }
 
 export function PromptTemplateModal({ open, onClose, agentId, instance }: Props) {

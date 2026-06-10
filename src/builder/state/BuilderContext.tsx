@@ -439,6 +439,11 @@ interface BuilderState {
   conversationMemory: {
     memory:   Record<string, Record<string, unknown>>;
     thinking: Record<string, Record<string, unknown>>;
+    /** Summarizer slots — one entry per `config.name`. Written by
+     *  offline-lane Summarizer addons. The brain viewer renders one
+     *  card per slot; the prompt assembler substitutes
+     *  `{{summary:NAME}}` with `slot.text`. */
+    summary?: Record<string, { text: string; watermark: number; ranAt: number }>;
   };
   refreshConversationMemory: () => void;
   /**
@@ -555,11 +560,14 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
 
   // Live brain state for the preview conversation. The chat panel
   // calls refreshConversationMemory after each turn, and the
-  // FieldsPanel + Thinking panels render values inline.
+  // FieldsPanel + Thinking panels render values inline. The `summary`
+  // section is optional on the wire (older servers won't return it);
+  // the brain viewer treats a missing key as `{}`.
   const [conversationMemory, setConversationMemory] = useState<{
     memory:   Record<string, Record<string, unknown>>;
     thinking: Record<string, Record<string, unknown>>;
-  }>({ memory: {}, thinking: {} });
+    summary?: Record<string, { text: string; watermark: number; ranAt: number }>;
+  }>({ memory: {}, thinking: {}, summary: {} });
   const refreshConversationMemory = useCallback(() => {
     // No conv yet → nothing to fetch. Deliberately DO NOT reset the
     // local cache here. The dedicated effect below handles explicit
@@ -647,7 +655,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   // Reset / refetch memory whenever the conversation changes.
   useEffect(() => {
     if (previewConversationId === null) {
-      setConversationMemory({ memory: {}, thinking: {} });
+      setConversationMemory({ memory: {}, thinking: {}, summary: {} });
     } else {
       refreshConversationMemory();
     }

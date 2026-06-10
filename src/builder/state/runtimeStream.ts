@@ -21,15 +21,26 @@ export type RuntimeEvent =
       modelLabel?: { providerName: string; modelName: string } | null;
       rawOutput: string;
       parsedOutput?: unknown;
-      memoryWrites?: Array<{
-        /** Brain section the write goes into. `'memory'` (default) or
-         *  `'thinking'`. Thinker emits `'thinking'`; Field/Vibe
-         *  Extractor leave undefined which is treated as `'memory'`. */
-        kind?: 'memory' | 'thinking';
-        domain: string | null;
-        field: string;
-        value: unknown;
-      }>;
+      memoryWrites?: Array<
+        | {
+            /** Brain section the write goes into. `'memory'` (default),
+             *  `'thinking'`, or `'summary'`. Field/Vibe Extractor leave
+             *  it undefined which is treated as `'memory'`. */
+            kind?: 'memory' | 'thinking';
+            domain: string | null;
+            field: string;
+            value: unknown;
+          }
+        | {
+            /** Summarizer writes — flat slot per summarizer name, no
+             *  domain layer. The slot carries the synthesis text, the
+             *  highest message id consumed (`watermark`), and the
+             *  completion timestamp. */
+            kind: 'summary';
+            name: string;
+            entry: { text: string; watermark: number; ranAt: number };
+          }
+      >;
       tokens: { input: number; output: number; total: number };
       durationMs: number;
       /** Time-to-first-token (Talker only). Perceived latency. */
@@ -37,6 +48,10 @@ export type RuntimeEvent =
       parseError?: string;
       transition?: { to: string; reason?: string };
       broke?: boolean;
+      /** Which lane this addon ran in. Surfaced on addon.output so a
+       *  reloaded conversation can colour offline runs without
+       *  replaying the earlier addon.start event. */
+      lane?: string;
     }
   | { type: 'addon.error'; instanceId: string | null; error: { code: string; message: string } }
   | { type: 'assistant.message'; messageId: number; text: string }

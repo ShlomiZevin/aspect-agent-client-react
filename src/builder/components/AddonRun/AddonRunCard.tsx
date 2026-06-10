@@ -16,6 +16,12 @@ export interface AddonRunSnapshot {
   instanceId: string;
   pluginId: string;
   label?: string;
+  /** Lane this addon ran in. `'main'` (blocking), `'background'`, or
+   *  `'offline'`. Drives the "offline" badge on the card so the user
+   *  can tell at a glance that the run happened after the user-facing
+   *  response streamed. Filled from addon.start / addon.output events
+   *  (the server includes `lane` in both). */
+  lane?: string;
   /** Human-readable provider + model name pair. Resolved server-side
    *  from the addon's config against services/models.service.js so
    *  the card can render them directly. Null when the addon has no
@@ -120,6 +126,18 @@ export function AddonRunCard({ run }: Props) {
             ? run.label
             : (desc?.name || run.pluginId)
         }</span>
+        {/* Offline-lane runs happen AFTER the user-facing reply
+            streams, so the user-visible answer is unaffected by their
+            output. Surface a small badge so the reader knows this
+            card sits in the "post-reply" phase of the turn. */}
+        {run.lane === 'offline' && (
+          <span
+            className={styles.laneBadge}
+            title="Ran on the offline lane — after the user-facing reply streamed. Output affects FUTURE turns via memory writes."
+          >
+            offline
+          </span>
+        )}
         <span className={`${styles.status} ${styles[`status_${run.status}`]}`}>
           {run.status === 'running' ? '… running' : run.status === 'error' ? 'error' : 'done'}
         </span>

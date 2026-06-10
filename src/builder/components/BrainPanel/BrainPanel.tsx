@@ -30,6 +30,7 @@ import {
   type BrainDcHit,
   type BrainMemoryGroup,
   type BrainStaleRow,
+  type BrainSummarizerCard,
   type BrainThinkingCard,
 } from '../../state/useBrainSnapshot';
 import styles from './BrainPanel.module.css';
@@ -188,13 +189,14 @@ export function BrainFullscreenLayer() {
  *  they stack; in fullscreen the body class flips to grid via
  *  `.bodyFullscreen` so they sit side-by-side. */
 function BrainBodyContent() {
-  const { memoryGroups, staleRows, dcHits, thinkingCards } = useBrainSnapshot();
+  const { memoryGroups, staleRows, dcHits, thinkingCards, summarizerCards } = useBrainSnapshot();
 
   return (
     <>
       <MemorySection groups={memoryGroups} staleRows={staleRows} />
       <DynamicContextSection hits={dcHits} />
       <ThinkingSection cards={thinkingCards} />
+      <SummarizerSection cards={summarizerCards} />
     </>
   );
 }
@@ -418,4 +420,57 @@ function formatThinkingValue(v: unknown): string {
   if (v === null || v === undefined) return '—';
   if (typeof v === 'string') return v;
   try { return JSON.stringify(v, null, 2); } catch { return String(v); }
+}
+
+/** Summarizer section — one card per slot in `brain.summary`. Each
+ *  card shows the slot name, the watermark + last-fired timestamp,
+ *  and the current text. We reuse the thinking-card layout (same
+ *  visual scale, same "block of authored prose under a labelled
+ *  header") because a summarizer slot IS conceptually a thinking
+ *  bucket — just one written by an offline-lane addon and rolling
+ *  by name instead of by domain. */
+function SummarizerSection({ cards }: { cards: BrainSummarizerCard[] }) {
+  if (cards.length === 0) return null;
+  return (
+    <section className={`${styles.section} ${styles.thinkingSpan}`}>
+      <header className={styles.sectionHeader}>
+        <span className={styles.sectionTitle}>📝 Summaries</span>
+        <span className={styles.sectionCount}>
+          {cards.length} {cards.length === 1 ? 'slot' : 'slots'}
+        </span>
+      </header>
+      <div className={styles.thinkingCards}>
+        {cards.map(card => (
+          <article key={card.name} className={styles.thinkingCard}>
+            <header className={styles.thinkingCardHeader}>
+              {card.name}
+              <span style={{ float: 'right', fontSize: 10, opacity: 0.6, fontWeight: 500 }}>
+                {formatSummaryMeta(card)}
+              </span>
+            </header>
+            <div className={styles.thinkingEntryValue} style={{ padding: '8px 12px', whiteSpace: 'pre-wrap' }}>
+              {card.text || '(empty — the addon ran but had nothing to write)'}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** "watermark 42 · 12s ago" — minimal meta line on the summarizer
+ *  card. Watermark = highest message id consumed; ranAt-derived
+ *  relative time tells the author how fresh the checkpoint is. */
+function formatSummaryMeta(card: BrainSummarizerCard): string {
+  const wm = `watermark ${card.watermark || 0}`;
+  if (!card.ranAt) return wm;
+  const ageMs = Date.now() - card.ranAt;
+  if (ageMs < 0) return wm;
+  const s = Math.floor(ageMs / 1000);
+  if (s < 60)       return `${wm} · ${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60)       return `${wm} · ${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24)       return `${wm} · ${h}h ago`;
+  return `${wm} · ${Math.floor(h / 24)}d ago`;
 }

@@ -31,6 +31,7 @@ import { useBuilderSettings } from '../TopBar/BuilderSettings';
 import { ExportToLibraryModal } from '../ExportToLibraryModal/ExportToLibraryModal';
 import { AddonContextSection } from '../AddonContext/AddonContextSection';
 import { AddonOutputSection } from '../AddonOutput/AddonOutputSection';
+import { AddonTriggerSection } from '../Trigger/AddonTriggerSection';
 import { PromptTemplateModal } from '../PromptTemplateModal/PromptTemplateModal';
 import { FIELD_REASONER_PLUGIN_ID } from '../../plugins/fieldReasoner/addon.fieldReasoner';
 import type { AddonContext, AddonInstance, ID, OutputType } from '../../types';
@@ -268,6 +269,18 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
               crewId={crewId ?? ''}
               onChange={next => muts.updateConfig(instance.instanceId, next)}
             />
+
+            {/* Trigger config — only meaningful for offline-lane
+                addons (the lane that fires per event, not per turn).
+                Rendered ABOVE history so "when does this run?" reads
+                before "what does it see when it runs?". */}
+            {instance.lane === 'offline' && (
+              <AddonTriggerSection
+                agentId={agentId}
+                crewId={crewId}
+                instance={instance}
+              />
+            )}
 
             {!desc.hideStandardSections?.context && (
               <AddonContextSection

@@ -195,8 +195,11 @@ export function buildPromptPreview({
 export function describeHistory(instance: AddonInstance): string {
   const h = instance.context.history;
   switch (h.mode) {
-    case 'none':   return 'No history';
-    case 'full':   return 'Full conversation';
-    case 'last_n': return `Last ${h.n ?? 5} messages`;
+    case 'none':              return 'No history';
+    case 'full':              return 'Full conversation';
+    case 'all':               return 'Full conversation';
+    case 'last_n':            return `Last ${h.n ?? 5} messages`;
+    case 'since_transition':  return 'Since last crew transition';
+    case 'since_summarizer':  return `Since "${h.summarizerName}" last run`;
   }
 }

@@ -34,6 +34,11 @@ const THINKING_WRITER_PLUGIN_IDS = new Set<string>([
   'field-interviewer',
 ]);
 
+/** Plugin id of the Summarizer addon. Used to harvest declared
+ *  `{{summary:NAME}}` tokens from the agent's addons. Centralised so
+ *  the rename — should it ever happen — is a one-line edit. */
+const SUMMARIZER_PLUGIN_ID = 'summarizer';
+
 /** Find a FieldDef by id across agent.fields + every crew's fields.
  *  Returns null when the id doesn't exist (e.g. caller passed a
  *  freshly-typed value, or a deleted field id lingered on config). */
@@ -48,6 +53,41 @@ function findFieldDefById(agent: AgentDoc, fieldId: ID | undefined): FieldDef | 
     }
   }
   return null;
+}
+
+/**
+ * Collect declared summarizer names across the agent — cortex first,
+ * then every crew. Free-form names are unique per agent (validator
+ * concern); we dedupe here so a hand-edit can't surface duplicates in
+ * the picker.
+ *
+ * The crewName is the crew the summarizer lives in (or `null` for
+ * agent cortex), surfaced so the picker can show "main (Agent)" vs.
+ * "main (Sales Crew)" when the same name is reused at different
+ * scopes — the runtime treats them as the same token, but the picker
+ * is more useful when it shows the source.
+ */
+function collectSummarizers(
+  agentId: ID,
+  doc: ReturnType<typeof useBuilder>['doc'],
+): { name: string; scope: string }[] {
+  const agent = doc.agents.find(a => a.id === agentId);
+  if (!agent) return [];
+  const seen = new Set<string>();
+  const out: { name: string; scope: string }[] = [];
+  const harvest = (addons: AgentDoc['cortex'], scopeLabel: string) => {
+    for (const a of addons ?? []) {
+      if (a?.pluginId !== SUMMARIZER_PLUGIN_ID) continue;
+      const cfg = a.config as { name?: string } | undefined;
+      const n = (cfg?.name || '').trim();
+      if (!n || seen.has(n)) continue;
+      seen.add(n);
+      out.push({ name: n, scope: scopeLabel });
+    }
+  };
+  harvest(agent.cortex, 'Agent');
+  for (const c of agent.crews ?? []) harvest(c.addons, c.name || 'Crew');
+  return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**
@@ -148,6 +188,7 @@ export function useMentionOptions(
 
     const memoryDomains              = collectMemoryDomains(agentId, doc);
     const thinkingDomainsByProducer  = collectThinkingDomainsByProducer(agentId, doc);
+    const summarizers                = collectSummarizers(agentId, doc);
     const boundField                 = hasBoundFieldGroup
       ? findFieldDefById(agent, boundFieldId)
       : null;
@@ -315,6 +356,27 @@ export function useMentionOptions(
       }
     }
 
-    return { '@': at, '!': bang, '#': hash, '^': caret, '*': star };
+    // ── %  Summary ───────────────────────────────────────────────
+    // One "All summaries" entry + one per declared summarizer name.
+    // The token is the same regardless of which scope (agent cortex
+    // vs crew) the summarizer lives in — the brain blob is flat by
+    // name — so we don't differentiate insertions, only descriptions.
+    const percent: MentionOption[] = [];
+    percent.push({
+      label:     'All summaries',
+      insertion: '{{summary}}',
+      group:     'Summary',
+      description: 'The whole ## Summary section — every declared summarizer with text.',
+    });
+    for (const s of summarizers) {
+      percent.push({
+        label:     s.name,
+        insertion: `{{summary:${s.name}}}`,
+        group:     'Summarizers',
+        description: `Current text of the "${s.name}" summarizer (written by an offline-lane Summarizer in ${s.scope}).`,
+      });
+    }
+
+    return { '@': at, '!': bang, '#': hash, '^': caret, '*': star, '%': percent };
   }, [doc, agentId, hasBoundFieldGroup, boundFieldId]);
 }

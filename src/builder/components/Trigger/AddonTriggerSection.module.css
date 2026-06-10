@@ -1,0 +1,38 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.select {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-input, #fafafa);
+  color: var(--text-primary, #111827);
+}
+
+.select:focus {
+  outline: none;
+  border-color: #0891b2;
+  background: #fff;
+}
+
+.numberInput {
+  width: 80px;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-input, #fafafa);
+}
+
+.numberInput:focus {
+  outline: none;
+  border-color: #0891b2;
+  background: #fff;
+}
