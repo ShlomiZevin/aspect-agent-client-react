@@ -34,6 +34,23 @@ export interface AddonRunSnapshot {
   parsedOutput?: unknown;
   memoryWrites?: Array<{ domain: string | null; field: string; value: unknown }>;
   parseError?: string;
+  /** How many raw messages reached the LLM as history on this run.
+   *  Filled from the `addon.prompt` event (live) or the persisted
+   *  `addon_runs.run_data` (historical). Rendered as a header pill
+   *  so the user can see at a glance whether the addon got any
+   *  prior conversation context. */
+  historyCount?: number;
+  /** Resolution record from the server. Lets the card explain WHY
+   *  the count is what it is — especially useful when the
+   *  `since_summarizer` / `since_transition` mode falls back to
+   *  `all` (the prompt is suddenly the whole conversation, and the
+   *  author should see why). */
+  historyMode?: {
+    requestedMode: string;
+    effectiveMode: string;
+    fallbackReason?: string;
+    count: number;
+  };
   /** Set by the Transition Router when conditions matched and the engine wrote a new currentCrewId. */
   transition?: { to: string; reason?: string };
   /** Set by the Transition Router with onMatch:'break' — engine skipped the rest of the chain. */
@@ -56,6 +73,53 @@ function formatValue(v: unknown): string {
   if (v === null || v === undefined) return '—';
   if (typeof v === 'string') return v;
   return JSON.stringify(v);
+}
+
+/**
+ * Tooltip for the history-count pill. Spells out the requested mode
+ * AND the effective mode when they differ — that's the exact case
+ * where the author needs the explanation ("I asked for
+ * `since_summarizer:main` but I'm seeing the whole conversation —
+ * why?"). We pluralise the count too because "1 msgs" reads worse
+ * than spending one line on this helper.
+ */
+function formatHistoryTitle(
+  mode: AddonRunSnapshot['historyMode'],
+  count: number,
+): string {
+  const msgs = `${count} ${count === 1 ? 'message' : 'messages'} sent as history`;
+  if (!mode) return msgs;
+  const requested = describeHistoryMode(mode.requestedMode, mode);
+  if (mode.effectiveMode === mode.requestedMode) {
+    return `${msgs}\n\nMode: ${requested}`;
+  }
+  const effective = describeHistoryMode(mode.effectiveMode, mode);
+  return `${msgs}\n\nRequested: ${requested}\nEffective: ${effective}${mode.fallbackReason ? `\nReason: ${mode.fallbackReason}` : ''}`;
+}
+
+/**
+ * Render one history-mode value (requested or effective) into a
+ * short human label. Keeps the `since_summarizer` name attached so
+ * the tooltip is self-explanatory.
+ */
+function describeHistoryMode(
+  modeName: string,
+  ctx?: AddonRunSnapshot['historyMode'],
+): string {
+  switch (modeName) {
+    case 'none':              return 'No history';
+    case 'all':               return 'Full conversation';
+    case 'full':              return 'Full conversation';
+    case 'last_n':            return 'Last N messages';
+    case 'since_transition':  return 'Since last crew transition';
+    case 'since_summarizer': {
+      const m = (ctx?.requestedMode === 'since_summarizer'
+        ? (ctx as { summarizerName?: string }).summarizerName
+        : undefined);
+      return m ? `Since summarizer "${m}"` : 'Since summarizer';
+    }
+    default: return modeName;
+  }
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {
@@ -138,6 +202,19 @@ export function AddonRunCard({ run }: Props) {
             offline
           </span>
         )}
+        {/* History count — "5 msgs" pill so the author can see at a
+            glance how much prior conversation the addon got, without
+            opening the card. A 0-count run is meaningful too (None,
+            or a since_X mode that filtered everything out), so we
+            always show the pill when historyCount is known. */}
+        {typeof run.historyCount === 'number' && (
+          <span
+            className={styles.historyPill}
+            title={formatHistoryTitle(run.historyMode, run.historyCount)}
+          >
+            {run.historyCount} msg{run.historyCount === 1 ? '' : 's'}
+          </span>
+        )}
         <span className={`${styles.status} ${styles[`status_${run.status}`]}`}>
           {run.status === 'running' ? '… running' : run.status === 'error' ? 'error' : 'done'}
         </span>
@@ -166,6 +243,29 @@ export function AddonRunCard({ run }: Props) {
               <span className={styles.modelProvider}>{run.modelLabel.providerName}</span>
               <span className={styles.modelDot}>·</span>
               <span>{run.modelLabel.modelName}</span>
+            </div>
+          )}
+
+          {/* History resolution line — what mode was asked for vs.
+              actually applied, plus the message count. Surfaces the
+              "why is this prompt huge?" answer when `since_X` modes
+              fall back to `all`. Hidden when the count is unknown
+              (older addon_runs rows that pre-date this field). */}
+          {typeof run.historyCount === 'number' && (
+            <div className={styles.historyLine}>
+              <span className={styles.historyLabel}>History:</span>
+              <span className={styles.historyValue}>
+                {describeHistoryMode(
+                  run.historyMode?.effectiveMode || run.historyMode?.requestedMode || 'unknown',
+                  run.historyMode,
+                )} → {run.historyCount} {run.historyCount === 1 ? 'message' : 'messages'}
+              </span>
+              {run.historyMode && run.historyMode.effectiveMode !== run.historyMode.requestedMode && (
+                <span className={styles.historyFallback}>
+                  fallback from <code>{run.historyMode.requestedMode}</code>
+                  {run.historyMode.fallbackReason ? ` — ${run.historyMode.fallbackReason}` : ''}
+                </span>
+              )}
             </div>
           )}
 

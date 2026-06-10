@@ -13,7 +13,23 @@ export type RuntimeEvent =
   | { type: 'addon.start'; instanceId: string; pluginId: string; lane: string; label?: string;
       model?: unknown;
       modelLabel?: { providerName: string; modelName: string } | null }
-  | { type: 'addon.prompt'; instanceId: string; prompt: string; historyCount: number }
+  | { type: 'addon.prompt';
+      instanceId: string;
+      prompt: string;
+      historyCount: number;
+      /** Resolution record from `historyService.loadHistory`. Tells
+       *  the client which mode was requested vs. what actually
+       *  applied (e.g. `since_summarizer` fell back to `all` because
+       *  the watermark didn't exist yet). Surfaced in the card's
+       *  expanded body. Optional on the wire for compat — older
+       *  servers omit it. */
+      historyMode?: {
+        requestedMode: string;
+        effectiveMode: string;
+        fallbackReason?: string;
+        count: number;
+      };
+    }
   | { type: 'addon.token'; instanceId: string; token: string }
   | { type: 'addon.output';
       instanceId: string;
@@ -52,6 +68,16 @@ export type RuntimeEvent =
        *  reloaded conversation can colour offline runs without
        *  replaying the earlier addon.start event. */
       lane?: string;
+      /** Mirrors what addon.prompt carried — present here too so a
+       *  reloaded conversation can show the history info without
+       *  replaying the per-event stream. */
+      historyMode?: {
+        requestedMode: string;
+        effectiveMode: string;
+        fallbackReason?: string;
+        count: number;
+      };
+      historyCount?: number;
     }
   | { type: 'addon.error'; instanceId: string | null; error: { code: string; message: string } }
   | { type: 'assistant.message'; messageId: number; text: string }

@@ -122,7 +122,7 @@ export interface PluginDescriptor<TConfig = unknown> {
 /** Sensible defaults for any new addon instance. Phase B: only the
  *  knobs that don't fold into the promptTemplate live here. */
 export const DEFAULT_ADDON_CONTEXT: AddonContext = {
-  history: { mode: 'last_n', n: 5 },
+  history: { mode: 'all' },
 };
 
 /**

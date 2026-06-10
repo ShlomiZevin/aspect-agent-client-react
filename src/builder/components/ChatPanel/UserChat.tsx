@@ -338,8 +338,10 @@ export function UserChat() {
         return;
       case 'addon.prompt':
         updateLastTurn(t => upsertRun(t, {
-          instanceId: e.instanceId,
-          prompt:     e.prompt,
+          instanceId:   e.instanceId,
+          prompt:       e.prompt,
+          historyCount: e.historyCount,
+          historyMode:  e.historyMode,
         }));
         return;
       case 'addon.token':
@@ -369,6 +371,8 @@ export function UserChat() {
           durationMs:   e.durationMs,
           firstTokenMs: e.firstTokenMs,
           lane:         e.lane,
+          historyMode:  e.historyMode,
+          historyCount: e.historyCount,
         }));
         // Live-merge any memory/thinking writes from this addon into
         // the local cache so the FieldsPanel updates the green value

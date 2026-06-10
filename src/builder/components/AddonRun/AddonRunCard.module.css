@@ -72,6 +72,60 @@
   white-space: nowrap;
 }
 
+/* History-count pill on the card header — "5 msgs". Same scale as
+   the status pill but tinted neutral grey: it's metadata, not a
+   state. Hover for the requested-vs-effective tooltip. */
+.historyPill {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--bg-input, #f3f4f6);
+  color: var(--text-secondary, #4b5563);
+  white-space: nowrap;
+  cursor: help;
+}
+
+/* History resolution line inside the expanded body — small one-line
+   description of what mode was applied + count. The fallback note
+   wraps onto the next line in italic when it appears (rarely — only
+   when since_X modes degrade to `all`). */
+.historyLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary, #6b7280);
+  padding: 4px 0 6px;
+  border-bottom: 1px dashed var(--border-color, #f3f4f6);
+}
+
+.historyLabel {
+  font-weight: 600;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.historyValue {
+  color: var(--text-primary, #111827);
+}
+
+.historyFallback {
+  font-style: italic;
+  font-size: 10.5px;
+  color: #b45309;
+  flex-basis: 100%;
+}
+
+.historyFallback code {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 10px;
+  padding: 1px 4px;
+  background: #fef3c7;
+  border-radius: 3px;
+}
+
 .status_running {
   background: rgba(99, 102, 241, 0.12);
   color: #4f46e5;
