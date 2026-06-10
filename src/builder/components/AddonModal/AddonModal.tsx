@@ -32,6 +32,8 @@ import { ExportToLibraryModal } from '../ExportToLibraryModal/ExportToLibraryMod
 import { AddonContextSection } from '../AddonContext/AddonContextSection';
 import { AddonOutputSection } from '../AddonOutput/AddonOutputSection';
 import { AddonTriggerSection } from '../Trigger/AddonTriggerSection';
+import { FilterModal } from '../Filter/FilterModal';
+import { filterShortSummary, filterTooltip } from '../Filter/filterFormat';
 import { PromptTemplateModal } from '../PromptTemplateModal/PromptTemplateModal';
 import { FIELD_REASONER_PLUGIN_ID } from '../../plugins/fieldReasoner/addon.fieldReasoner';
 import type { AddonContext, AddonInstance, ID, OutputType } from '../../types';
@@ -70,6 +72,9 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
   const [settings] = useBuilderSettings();
   const [exportOpen, setExportOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
+  // Filter editor lives in its own focused modal — see the comment on
+  // the launcher button below for why we don't inline the section.
+  const [filterOpen, setFilterOpen] = useState(false);
   // For Field Reasoner cascade-delete — the linked field is owned by
   // this addon, so removing the addon also removes the field. Pulled
   // unconditionally; the helpers no-op when the plugin isn't a
@@ -262,6 +267,38 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
                 every crew. To edit it, open the agent page.
               </div>
             )}
+
+            {/* Filter launcher — small button at the top so the form
+                below stays focused on "what this addon does". The
+                filter governs WHEN it runs (gate against the brain
+                blob), which is a different concern from the plugin's
+                config. Opening it in its own modal keeps both
+                surfaces uncluttered. Same launcher exists on the
+                chain chip so the author can reach it from there too.
+                The button shows a one-line summary of the active
+                filter (or "No filter…") so the author can read the
+                gate at a glance without opening the editor. */}
+            {(() => {
+              const filter = instance.context?.filter;
+              const hasFilter = !!filter && Array.isArray(filter.conditions) && filter.conditions.length > 0;
+              return (
+                <div className={styles.filterLauncherRow}>
+                  <button
+                    type="button"
+                    className={`${styles.filterLauncher} ${hasFilter ? styles.filterLauncherActive : ''}`}
+                    onClick={() => setFilterOpen(true)}
+                    title={filterTooltip(filter)}
+                  >
+                    <span aria-hidden className={styles.filterLauncherIcon}>▽</span>
+                    <span className={styles.filterLauncherText}>
+                      {filterShortSummary(filter)}
+                    </span>
+                    <span className={styles.filterLauncherEdit}>{hasFilter ? 'Edit' : 'Add'}</span>
+                  </button>
+                </div>
+              );
+            })()}
+
             <Config
               config={instance.config}
               instance={instance}
@@ -290,6 +327,7 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
               />
             )}
 
+
             {!desc.hideStandardSections?.output && (
               <AddonOutputSection
                 agentId={agentId}
@@ -311,6 +349,14 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
         open={templateOpen}
         onClose={() => setTemplateOpen(false)}
         agentId={agentId}
+        instance={instance}
+      />
+
+      <FilterModal
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        agentId={agentId}
+        crewId={crewId}
         instance={instance}
       />
     </>

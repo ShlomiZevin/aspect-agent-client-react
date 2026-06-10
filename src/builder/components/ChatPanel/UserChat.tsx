@@ -399,6 +399,18 @@ export function UserChat() {
           setErrorMsg(e.error.message || 'Runtime error');
         }
         return;
+      case 'addon.skipped':
+        updateLastTurn(t => upsertRun(t, {
+          instanceId: e.instanceId,
+          label:      e.label,
+          modelLabel: e.modelLabel ?? null,
+          lane:       e.lane,
+          status:     'skipped',
+          filter:     e.filter,
+          skipReason: e.reason,
+          durationMs: e.durationMs,
+        }));
+        return;
       case 'assistant.message':
         updateLastTurn(t => ({
           ...t,

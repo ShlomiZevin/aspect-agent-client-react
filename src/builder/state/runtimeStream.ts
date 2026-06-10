@@ -89,6 +89,19 @@ export type RuntimeEvent =
       };
       historyCount?: number;
     }
+  | { type: 'addon.skipped';
+      instanceId: string;
+      label?: string;
+      modelLabel?: { providerName: string; modelName: string } | null;
+      lane?: string;
+      filter: {
+        mode: 'include' | 'exclude';
+        evaluations: Array<{ type: string; ok: boolean; why: string }>;
+      };
+      /** Single-line summary suitable for a card tooltip or chip. */
+      reason: string;
+      durationMs?: number;
+    }
   | { type: 'addon.error'; instanceId: string | null; error: { code: string; message: string } }
   | { type: 'assistant.message'; messageId: number; text: string }
   /**

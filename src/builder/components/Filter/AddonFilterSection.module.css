@@ -1,0 +1,58 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #6b7280);
+}
+
+/* Polarity toggle — pill group, matches the Transition Router's
+   Continue/Break toggle so the surface stays consistent. */
+.modePill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-left: auto;
+}
+
+.modeBtn {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+}
+
+.modeBtn + .modeBtn {
+  border-left: 1px solid var(--border-color, #e5e7eb);
+}
+
+.modeBtnActive {
+  background: var(--primary-color, #6366f1);
+  color: #fff;
+}
+
+.hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-tertiary, #9ca3af);
+}

@@ -1,0 +1,150 @@
+/* The 18×18 funnel badge — absolute positioned in the chip's top-
+   right corner. Always rendered (even when no filter is set) so the
+   "add a filter" affordance is discoverable from every chip; the
+   visual weight is what changes between states.
+     - muted   → no filter set; faint outline, no fill
+     - active  → include-mode filter set; soft amber fill
+     - exclude → exclude-mode filter set; deeper amber */
+.badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+  z-index: 2;
+  line-height: 1;
+  transition: background 100ms, color 100ms, opacity 100ms;
+}
+
+.badge:focus-visible {
+  outline: 2px solid rgba(202, 138, 4, 0.6);
+  outline-offset: 1px;
+}
+
+/* No filter set — barely-there. Only visible when the parent chip
+   is being hovered (managed by the parent via the `chipHovered`
+   prop); the rest of the time it's fully invisible so the chain
+   row at rest reads as "no filters anywhere". When it does show,
+   it's muted; the badge's own hover lifts it to full clarity so
+   the affordance reads as clickable. */
+.badgeMuted {
+  background: transparent;
+  color: var(--text-tertiary, #9ca3af);
+  opacity: 0.45;
+}
+
+.badgeMuted:hover {
+  opacity: 1;
+  background: rgba(156, 163, 175, 0.15);
+  color: var(--text-secondary, #4b5563);
+}
+
+/* Hidden state — set when no filter is configured AND the parent
+   chip isn't being hovered. Opacity 0 keeps the element in flow so
+   the popup (a child) can anchor to it, but `pointer-events: none`
+   means the badge can't intercept clicks meant for the chip
+   underneath. */
+.badgeHidden {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+/* Active include-mode filter — soft amber. */
+.badgeActive {
+  background: rgba(202, 138, 4, 0.14);
+  color: #b45309;
+}
+
+.badgeActive:hover {
+  background: rgba(202, 138, 4, 0.28);
+  color: #92400e;
+}
+
+/* Exclude polarity — deeper amber so include vs. exclude are
+   distinguishable at a glance without opening the popup. */
+.badgeExclude {
+  background: rgba(146, 64, 14, 0.18);
+  color: #78350f;
+}
+
+.badgeExclude:hover {
+  background: rgba(146, 64, 14, 0.32);
+}
+
+/* ── Hover popup ─────────────────────────────────────────────────
+   Anchored to the badge, opens just below + to the right so it
+   doesn't cover the badge itself. Z-index above other chips so
+   long popup lists don't get clipped by neighbouring cards. */
+.popup {
+  position: absolute;
+  top: 22px;
+  right: -4px;
+  min-width: 240px;
+  max-width: 360px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #1f2937;
+  color: #f9fafb;
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: default;
+  white-space: normal;
+  text-align: left;
+  z-index: 1000;
+}
+
+.popupHeader {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fbbf24;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.popupList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.popupRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.popupBullet {
+  color: #9ca3af;
+  font-size: 10px;
+  flex: 0 0 auto;
+}
+
+.popupCond {
+  color: #e5e7eb;
+  word-break: break-word;
+}
+
+.popupHint {
+  margin-top: 2px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

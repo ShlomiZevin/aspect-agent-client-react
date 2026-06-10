@@ -221,6 +221,9 @@
   letter-spacing: 0.02em;
 }
 
+/* Run-filter badge styling moved to FilterChipBadge.module.css
+   so the badge + its instant-show hover popup live in one place. */
+
 .addCard {
   min-width: 56px;
   display: flex;

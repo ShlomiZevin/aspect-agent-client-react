@@ -28,7 +28,16 @@ export interface AddonRunSnapshot {
    *  model (Transition Router) or the configured modelId isn't in
    *  the registry. */
   modelLabel?: { providerName: string; modelName: string } | null;
-  status: 'running' | 'success' | 'error';
+  status: 'running' | 'success' | 'error' | 'skipped';
+  /** When `status === 'skipped'`: filter evaluation trail + a short
+   *  human-readable reason. The card renders these in lieu of the
+   *  prompt / output sections, so the author sees why the addon
+   *  didn't run on this turn without having to open the modal. */
+  filter?: {
+    mode: 'include' | 'exclude';
+    evaluations: Array<{ type: string; ok: boolean; why: string }>;
+  };
+  skipReason?: string;
   prompt?: string;
   rawOutput?: string;
   parsedOutput?: unknown;
@@ -215,8 +224,14 @@ export function AddonRunCard({ run }: Props) {
             {run.historyCount} msg{run.historyCount === 1 ? '' : 's'}
           </span>
         )}
-        <span className={`${styles.status} ${styles[`status_${run.status}`]}`}>
-          {run.status === 'running' ? '… running' : run.status === 'error' ? 'error' : 'done'}
+        <span
+          className={`${styles.status} ${styles[`status_${run.status}`]}`}
+          title={run.status === 'skipped' ? (run.skipReason ?? 'Skipped by filter') : undefined}
+        >
+          {run.status === 'running' ? '… running'
+            : run.status === 'error'   ? 'error'
+            : run.status === 'skipped' ? 'skipped'
+            : 'done'}
         </span>
         {typeof run.durationMs === 'number' && run.status !== 'running' && (
           // Streaming plugins (Talker) get a two-number display:
@@ -243,6 +258,32 @@ export function AddonRunCard({ run }: Props) {
               <span className={styles.modelProvider}>{run.modelLabel.providerName}</span>
               <span className={styles.modelDot}>·</span>
               <span>{run.modelLabel.modelName}</span>
+            </div>
+          )}
+
+          {/* Skipped state — no LLM call happened, so no prompt / no
+              output. Show WHY: the filter mode + each condition's
+              evaluation. The author can scan and understand without
+              opening the modal. */}
+          {run.status === 'skipped' && run.filter && (
+            <div className={styles.skippedBlock}>
+              <div className={styles.skippedHeader}>
+                Skipped by filter
+                <span className={styles.skippedMode}>({run.filter.mode})</span>
+              </div>
+              {run.skipReason && (
+                <div className={styles.skippedReason}>{run.skipReason}</div>
+              )}
+              {run.filter.evaluations.length > 0 && (
+                <ul className={styles.skippedEvals}>
+                  {run.filter.evaluations.map((ev, i) => (
+                    <li key={i} className={ev.ok ? styles.evalOk : styles.evalFail}>
+                      <span className={styles.evalDot}>{ev.ok ? '●' : '○'}</span>
+                      <span className={styles.evalWhy}>{ev.why}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
 

@@ -32,6 +32,8 @@ import { AddonModal } from '../AddonModal/AddonModal';
 import { AddStepModal, type AddStepChoice } from '../AddStepModal/AddStepModal';
 import { AgentComboChip } from './AgentComboChip';
 import { formatTrigger } from '../Trigger/triggerFormat';
+import { FilterModal } from '../Filter/FilterModal';
+import { FilterChipBadge } from '../Filter/FilterChipBadge';
 import type { AddonContext, AddonInstance, AddonLane, AgentDoc, CrewDoc, ID, ModelRef } from '../../types';
 import styles from './ChainCanvas.module.css';
 
@@ -95,10 +97,25 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
   const [addingForLane, setAddingForLane] = useState<AddonLane | null>(null);
   const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
+  // The chip's filter badge opens the focused FilterModal directly,
+  // bypassing the regular addon settings modal — same affordance as
+  // the "Filter" launcher inside AddonModal, so the author can reach
+  // it from wherever they're looking.
+  const [filterInstanceId, setFilterInstanceId] = useState<ID | null>(null);
+  // Which chip the cursor is currently hovering. Drives the
+  // "muted" filter badge's visibility — un-filtered chips show the
+  // funnel affordance only when the author looks at THAT specific
+  // chip, not on every card in the chain at once. Single number is
+  // enough because the cursor can only be over one chip at a time.
+  const [hoveredCardIdx, setHoveredCardIdx] = useState<number | null>(null);
 
   const editingInstance = useMemo(
     () => addons.find(a => a.instanceId === editingInstanceId) ?? null,
     [addons, editingInstanceId],
+  );
+  const filterInstance = useMemo(
+    () => addons.find(a => a.instanceId === filterInstanceId) ?? null,
+    [addons, filterInstanceId],
   );
 
   const handlePick = (choice: AddStepChoice) => {
@@ -246,6 +263,8 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                         style={{ ['--card-color' as string]: desc.color }}
                         onClick={() => setEditingInstanceId(instance.instanceId)}
                         title={postTalkerTitle}
+                        onMouseEnter={() => setHoveredCardIdx(i)}
+                        onMouseLeave={() => setHoveredCardIdx(prev => (prev === i ? null : prev))}
                         draggable={draggable}
                         onDragStart={(e) => {
                           if (!draggable) return;
@@ -309,6 +328,24 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                             {formatTrigger((instance.context as AddonContext | undefined)?.trigger)}
                           </span>
                         )}
+                        {/* Filter indicator + launcher — absolute
+                            positioned in the card's top-right corner
+                            so chip height stays uniform across the
+                            row regardless of whether a filter is set.
+                            Always rendered (even when no filter) in
+                            a muted state so the "add a filter"
+                            affordance is discoverable from every
+                            chip; FilterChipBadge handles the state
+                            styling and the instant-show hover popup.
+                            Compact / readOnly modes suppress the
+                            badge (no editing path makes sense). */}
+                        {!compact && !readOnly && (
+                          <FilterChipBadge
+                            filter={(instance.context as AddonContext | undefined)?.filter}
+                            chipHovered={hoveredCardIdx === i}
+                            onOpen={() => setFilterInstanceId(instance.instanceId)}
+                          />
+                        )}
                       </button>
                     </div>
                   );
@@ -360,6 +397,14 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
         lane={addingForLane ?? 'main'}
         onPick={handlePick}
         scope={isAgentScope ? 'agent' : 'crew'}
+      />
+
+      <FilterModal
+        open={filterInstance !== null}
+        onClose={() => setFilterInstanceId(null)}
+        agentId={agent.id}
+        crewId={crewId}
+        instance={filterInstance}
       />
 
     </>

@@ -141,6 +141,77 @@
   color: #dc2626;
 }
 
+/* Skipped — neutral amber so it's distinct from running (indigo),
+   success (green), and error (red). The addon ran the filter check
+   and chose not to invoke the plugin; that's neither a failure nor
+   a no-op. */
+.status_skipped {
+  background: rgba(202, 138, 4, 0.12);
+  color: #92400e;
+  cursor: help;
+}
+
+/* Inside the expanded body when status === 'skipped' — shows the
+   filter evaluation trail so the author understands the decision
+   without opening the addon modal. */
+.skippedBlock {
+  padding: 8px 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skippedHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.skippedMode {
+  font-size: 10.5px;
+  font-weight: 600;
+  font-variant: small-caps;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.skippedReason {
+  font-size: 12px;
+  color: var(--text-secondary, #4b5563);
+  line-height: 1.5;
+}
+
+.skippedEvals {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.skippedEvals li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.evalDot {
+  flex: 0 0 auto;
+  font-size: 10px;
+}
+
+.evalOk    { color: #047857; }
+.evalFail  { color: #b45309; }
+.evalWhy {
+  color: var(--text-secondary, #4b5563);
+  word-break: break-word;
+}
+
 .duration {
   font-size: 10px;
   color: var(--text-tertiary, #9ca3af);
