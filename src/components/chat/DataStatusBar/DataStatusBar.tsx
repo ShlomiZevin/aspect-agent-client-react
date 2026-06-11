@@ -11,7 +11,7 @@ interface DataInfo {
     completed_at: string;
     total_rows: string;
   } | null;
-  lastDataDate: string | null; // "YYYY-MM"
+  lastDataDate: string | null; // "YYYY-MM-DD" (exact day), or "YYYY-MM" fallback
 }
 
 interface DataStatusBarProps {
@@ -31,9 +31,19 @@ function formatDateTime(iso: string, locale: string): string {
   });
 }
 
-function formatYearMonth(ym: string, locale: string): string {
-  const [year, month] = ym.split('-');
-  const d = new Date(parseInt(year), parseInt(month) - 1, 1);
+// Formats the "data through" value. Accepts an exact day ("YYYY-MM-DD" → e.g.
+// "30 Apr 2026") or a month-only fallback ("YYYY-MM" → "Apr 2026"). The exact day
+// lets the customer know precisely which date the data is current through; the
+// underlying sale_date is a DATE column, so there is no hour to show here (the
+// "last sync" value above already carries the refresh time).
+function formatDataThrough(value: string, locale: string): string {
+  const parts = value.split('-').map(p => parseInt(p, 10));
+  const [year, month, day] = parts;
+  if (parts.length >= 3 && day) {
+    const d = new Date(year, month - 1, day);
+    return d.toLocaleString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  const d = new Date(year, month - 1, 1);
   return d.toLocaleString(locale, { month: 'short', year: 'numeric' });
 }
 
@@ -66,7 +76,7 @@ export function DataStatusBar({ baseURL, schema }: DataStatusBarProps) {
       <span className={styles.item}>
         <span className={styles.label}>{t('dataStatusBar.dataThrough')}:</span>
         <span className={styles.value}>
-          {info.lastDataDate ? formatYearMonth(info.lastDataDate, locale) : naLabel}
+          {info.lastDataDate ? formatDataThrough(info.lastDataDate, locale) : naLabel}
         </span>
       </span>
     </div>
