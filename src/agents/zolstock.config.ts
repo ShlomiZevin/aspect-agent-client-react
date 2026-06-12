@@ -32,6 +32,10 @@ export const zolstockConfig: AgentConfig = {
     { icon: '📈', textKey: 'quick.zolstock.monthly.text',    questionKey: 'quick.zolstock.monthly.question' },
     { icon: '📅', textKey: 'quick.zolstock.lastMonth.text',  questionKey: 'quick.zolstock.lastMonth.question' },
     { icon: '⭐', textKey: 'quick.zolstock.topQty.text',     questionKey: 'quick.zolstock.topQty.question' },
+    { icon: '🛒', textKey: 'quick.zolstock.purchaseRec.text',   questionKey: 'quick.zolstock.purchaseRec.question' },
+    { icon: '🔄', textKey: 'quick.zolstock.transfers.text',     questionKey: 'quick.zolstock.transfers.question' },
+    { icon: '📦', textKey: 'quick.zolstock.replenish.text',     questionKey: 'quick.zolstock.replenish.question' },
+    { icon: '🚚', textKey: 'quick.zolstock.distribution.text',  questionKey: 'quick.zolstock.distribution.question' },
   ],
 
   thinkingSteps: [
