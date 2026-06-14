@@ -1,0 +1,66 @@
+/* SnippetsUsedFooter — pill row under MentionTextarea. */
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary, #6b7280);
+  line-height: 1.4;
+}
+
+.label {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: ui-monospace, "Menlo", monospace;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+}
+
+.pill:hover {
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+
+.pillGated {
+  background: rgba(202, 138, 4, 0.08);
+  border-color: rgba(202, 138, 4, 0.4);
+  color: #92400e;
+}
+
+.pillGated:hover {
+  background: rgba(202, 138, 4, 0.14);
+  border-color: #b45309;
+  color: #b45309;
+}
+
+.pillMissing {
+  background: rgba(220, 38, 38, 0.06);
+  border-color: rgba(220, 38, 38, 0.4);
+  color: #b91c1c;
+  cursor: help;
+}
+
+.pillBadge {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+}

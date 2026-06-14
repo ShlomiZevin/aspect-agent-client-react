@@ -2,8 +2,8 @@
  * MentionTextarea — a plain textarea with a triggered picker for
  * inserting prompt placeholders.
  *
- * Typing one of the trigger prefixes (`@`, `!`, `#`) opens a small
- * floating menu of options. Each option carries an `insertion` string
+ * Typing one of the trigger prefixes (`@`, `!`, `#`, `^`, `*`, `%`, `+`)
+ * opens a small floating menu of options. Each option carries an `insertion` string
  * — what actually lands in the textarea when the user picks it. This
  * way the storage stays a plain string (which is what `promptTemplate`
  * is) and what gets rendered to the LLM is byte-equal to what the user
@@ -45,6 +45,12 @@ export interface MentionOption {
   group?: string;
   /** Optional hover description. */
   description?: string;
+  /** When set, pick fires this callback INSTEAD of inserting `insertion`.
+   *  Used for action-style entries like "+ New snippet" that open an
+   *  authoring modal rather than dropping text. The partial trigger
+   *  token under the caret is cleaned up before the callback runs so
+   *  the textarea content stays tidy. */
+  onPick?: () => void;
 }
 
 export interface MentionOptions {
@@ -62,6 +68,12 @@ export interface MentionOptions {
    *  an "all summaries" whole-section entry. Written by offline-lane
    *  Summarizer addons; read by any addon via `{{summary:NAME}}`. */
   '%'?: MentionOption[];
+  /** Agent-level snippets — reusable, optionally-gated chunks of
+   *  prompt content. Inserts `{{snippet:NAME}}` tokens; see
+   *  `docs/guides/BUILDER_V2_SNIPPETS.md`. The picker may also surface
+   *  a `+ New snippet` quick-add entry whose `insertion` is empty
+   *  (the host catches that and opens the SnippetModal). */
+  '+'?: MentionOption[];
 }
 
 /**
@@ -70,9 +82,9 @@ export interface MentionOptions {
  * category in one combined picker — useful when the user doesn't
  * remember which sigil opens what.
  */
-type SingleTrigger = '@' | '!' | '#' | '^' | '*' | '%';
+type SingleTrigger = '@' | '!' | '#' | '^' | '*' | '%' | '+';
 type Trigger = SingleTrigger | '{{' | '/';
-const SINGLE_TRIGGERS: SingleTrigger[] = ['@', '!', '#', '^', '*', '%'];
+const SINGLE_TRIGGERS: SingleTrigger[] = ['@', '!', '#', '^', '*', '%', '+'];
 
 /**
  * Human label for each trigger. Shown as the picker's header so the
@@ -87,6 +99,7 @@ const TRIGGER_LABELS: Record<Trigger, string> = {
   '^':  'Persona',
   '*':  'Dynamic context',
   '%':  'Summary',
+  '+':  'Snippets',
   '{{': 'All placeholders',
   '/':  'All placeholders',
 };
@@ -408,6 +421,25 @@ export function MentionTextarea({
     const ta = taRef.current;
     if (!ta || !picker) return;
     const caret = ta.selectionStart ?? 0;
+    // Action entries (e.g. "+ New snippet") clean up the partial
+    // trigger token first, then run their callback INSTEAD of inserting
+    // text. Without the cleanup the textarea would keep `+`/`+foo`
+    // hanging where the user typed the trigger.
+    if (opt.onPick) {
+      const next = value.slice(0, picker.startIdx) + value.slice(caret);
+      onChange(next);
+      closePicker();
+      const targetCaret = picker.startIdx;
+      queueMicrotask(() => {
+        const el = taRef.current;
+        if (el) {
+          el.selectionStart = targetCaret;
+          el.selectionEnd   = targetCaret;
+        }
+        opt.onPick!();
+      });
+      return;
+    }
     const next =
       value.slice(0, picker.startIdx) +
       opt.insertion +

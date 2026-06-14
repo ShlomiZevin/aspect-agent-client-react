@@ -12,10 +12,15 @@
  * domain. See the addon's `purpose` for the design rationale.
  */
 
+import { useState } from 'react';
 import { ModelPicker } from '../../components/ModelPicker/ModelPicker';
 import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
 import { InlineField } from '../../components/AddonModal/InlineField';
+import { SnippetsUsedFooter } from '../../components/Snippets/SnippetsUsedFooter';
+import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
+import { ExpandPromptToggle } from '../../components/Snippets/ExpandPromptToggle';
+import { ExpandedPromptView } from '../../components/Snippets/ExpandedPromptView';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { ThinkerConfig } from '../../types';
 import styles from './ThinkerConfig.module.css';
@@ -27,7 +32,11 @@ export function ThinkerConfigComponent({
   agentId,
 }: PluginConfigProps<ThinkerConfig>) {
   const patch = (next: Partial<ThinkerConfig>) => onChange({ ...config, ...next });
-  const mentionOptions = useMentionOptions(agentId);
+  const openCreateSnippet = useSnippetCreator();
+  const mentionOptions = useMentionOptions(agentId, {
+    onCreateSnippet: () => openCreateSnippet(agentId),
+  });
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <div className={styles.wrap}>
@@ -62,15 +71,32 @@ export function ThinkerConfigComponent({
       </InlineField>
 
       <div className={styles.field}>
-        <span className={styles.label}>Strategic prompt</span>
-        <MentionTextarea
-          value={config.prompt}
-          onChange={prompt => patch({ prompt })}
-          options={mentionOptions}
-          rows={14}
-          placeholder="Tell the LLM what strategy to produce and which JSON keys to emit. Type @ memory · # parameters · ^ persona · * dynamic · / or {{ for all."
-          storageKey={`addon:${instance.instanceId}:prompt`}
-        />
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <span className={styles.label}>Strategic prompt</span>
+          <ExpandPromptToggle
+            text={config.prompt}
+            expanded={expanded}
+            onToggle={setExpanded}
+          />
+        </div>
+        {expanded ? (
+          <ExpandedPromptView
+            agentId={agentId}
+            text={config.prompt}
+            rows={14}
+            storageKey={`addon:${instance.instanceId}:prompt`}
+          />
+        ) : (
+          <MentionTextarea
+            value={config.prompt}
+            onChange={prompt => patch({ prompt })}
+            options={mentionOptions}
+            rows={14}
+            placeholder="Tell the LLM what strategy to produce and which JSON keys to emit. Type @ memory · # parameters · ^ persona · * dynamic · + snippets · / or {{ for all."
+            storageKey={`addon:${instance.instanceId}:prompt`}
+          />
+        )}
+        <SnippetsUsedFooter agentId={agentId} text={config.prompt} />
         <span className={styles.hint}>
           The prompt is the schema. Whatever keys the LLM emits land
           under the configured thinking domain; downstream addons read

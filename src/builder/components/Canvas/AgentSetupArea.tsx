@@ -41,6 +41,7 @@ interface ChipSpec {
 
 const SCHEMA_CHIPS: ChipSpec[] = [
   { kind: 'parameters', icon: '#', label: 'Parameters', count: a => (a.parameters ?? []).length },
+  { kind: 'snippets',   icon: '+', label: 'Snippets',   count: a => (a.snippets   ?? []).length },
   { kind: 'domains',    icon: '🧩', label: 'Domains',   count: a => (a.domains    ?? []).length },
   { kind: 'fields',     icon: '🏷', label: 'Fields',    count: a => (a.fields     ?? []).length },
 ];

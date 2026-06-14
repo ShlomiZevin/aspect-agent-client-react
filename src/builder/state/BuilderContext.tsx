@@ -132,6 +132,7 @@ function bodyOfAgent(agent: AgentDoc): AgentBody {
     parameters: agent.parameters ?? [],
     dynamicContexts: agent.dynamicContexts ?? [],
     cortex: agent.cortex ?? [],
+    snippets: agent.snippets ?? [],
   };
 }
 
@@ -151,6 +152,7 @@ function emptyAgent(slug: string): AgentDoc {
     domains: [],
     parameters: [],
     cortex: [],
+    snippets: [],
   };
   const versionId = uid('ver');
   const v1: AgentVersion = {
@@ -270,7 +272,7 @@ interface BuilderState {
   // Agent-level
   updateAgent: (
     agentId: ID,
-    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters' | 'dynamicContexts'>>,
+    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters' | 'dynamicContexts' | 'snippets'>>,
   ) => void;
   /**
    * Rename a declared domain. Cascades through `agent.domains`,
@@ -688,7 +690,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
 
   // ── Agent ──
   const updateAgent = useCallback(
-    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters' | 'dynamicContexts'>>) => {
+    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters' | 'dynamicContexts' | 'snippets'>>) => {
       setDoc(d => ({
         ...d,
         agents: d.agents.map(a => (a.id === agentId ? { ...a, ...patch } : a)),

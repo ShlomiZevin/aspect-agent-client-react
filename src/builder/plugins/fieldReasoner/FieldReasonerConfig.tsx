@@ -21,6 +21,10 @@ import { MentionTextarea } from '../../components/MentionTextarea/MentionTextare
 import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
 import { InlineField } from '../../components/AddonModal/InlineField';
 import { FieldEditorModal } from '../../components/FieldsPanel/FieldEditorModal';
+import { SnippetsUsedFooter } from '../../components/Snippets/SnippetsUsedFooter';
+import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
+import { ExpandPromptToggle } from '../../components/Snippets/ExpandPromptToggle';
+import { ExpandedPromptView } from '../../components/Snippets/ExpandedPromptView';
 import { useCrewFields } from '../../state/useCrewFields';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { FieldReasonerConfig, ID } from '../../types';
@@ -39,13 +43,18 @@ export function FieldReasonerConfigComponent({
   // Opt into the picker's "Output field" group so {{this_field}} /
   // {{enum_values}} surface under @ (and the universal `/`) with the
   // currently-bound field's name + values shown in the descriptions.
-  const mentionOptions = useMentionOptions(agentId, { boundField: { fieldId: linkedId } });
+  const openCreateSnippet = useSnippetCreator();
+  const mentionOptions = useMentionOptions(agentId, {
+    boundField: { fieldId: linkedId },
+    onCreateSnippet: () => openCreateSnippet(agentId),
+  });
   const { allFields } = useCrewFields(agentId, crewId);
   const linked = useMemo(
     () => allFields.find(cf => cf.field.id === linkedId) ?? null,
     [allFields, linkedId],
   );
 
+  const [expanded, setExpanded] = useState(false);
   const [wireOpen, setWireOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
@@ -124,23 +133,40 @@ export function FieldReasonerConfigComponent({
       </InlineField>
 
       <section className={styles.promptSection}>
-        <label className={styles.promptLabel} htmlFor="fr-prompt">
-          Reasoning prompt
-        </label>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <label className={styles.promptLabel} htmlFor="fr-prompt">
+            Reasoning prompt
+          </label>
+          <ExpandPromptToggle
+            text={config.prompt}
+            expanded={expanded}
+            onToggle={setExpanded}
+          />
+        </div>
         <p className={styles.promptHint}>
           Describe how to decide. Reference other fields inline with <code>@</code>,
           parameters with <code>#</code>, persona with <code>^</code>. Use
           <code> {'{{this_field}}'} </code> for the output field's name and
           <code> {'{{enum_values}}'} </code> for its allowed values.
         </p>
-        <MentionTextarea
-          value={config.prompt}
-          onChange={prompt => patch({ prompt })}
-          options={mentionOptions}
-          placeholder="If @intent is complaint and @tier is enterprise, lean toward... Type @ for fields/memory, # for parameters, ^ for persona, / for all."
-          rows={14}
-          storageKey={`addon:${instance.instanceId}:prompt`}
-        />
+        {expanded ? (
+          <ExpandedPromptView
+            agentId={agentId}
+            text={config.prompt}
+            rows={14}
+            storageKey={`addon:${instance.instanceId}:prompt`}
+          />
+        ) : (
+          <MentionTextarea
+            value={config.prompt}
+            onChange={prompt => patch({ prompt })}
+            options={mentionOptions}
+            placeholder="If @intent is complaint and @tier is enterprise, lean toward... Type @ for fields/memory, # for parameters, ^ for persona, + for snippets, / for all."
+            rows={14}
+            storageKey={`addon:${instance.instanceId}:prompt`}
+          />
+        )}
+        <SnippetsUsedFooter agentId={agentId} text={config.prompt} />
       </section>
 
       <WireOrCreateFieldModal

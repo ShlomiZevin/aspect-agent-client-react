@@ -12,10 +12,15 @@
  * reflect its declared fields and parameters.
  */
 
+import { useState } from 'react';
 import { ModelPicker } from '../../components/ModelPicker/ModelPicker';
 import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
 import { InlineField } from '../../components/AddonModal/InlineField';
+import { SnippetsUsedFooter } from '../../components/Snippets/SnippetsUsedFooter';
+import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
+import { ExpandPromptToggle } from '../../components/Snippets/ExpandPromptToggle';
+import { ExpandedPromptView } from '../../components/Snippets/ExpandedPromptView';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { TalkerConfig } from '../../types';
 import styles from './TalkerConfig.module.css';
@@ -27,7 +32,11 @@ export function TalkerConfigComponent({
   agentId,
 }: PluginConfigProps<TalkerConfig>) {
   const patch = (next: Partial<TalkerConfig>) => onChange({ ...config, ...next });
-  const mentionOptions = useMentionOptions(agentId);
+  const openCreateSnippet = useSnippetCreator();
+  const mentionOptions = useMentionOptions(agentId, {
+    onCreateSnippet: () => openCreateSnippet(agentId),
+  });
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <div className={styles.wrap}>
@@ -39,9 +48,16 @@ export function TalkerConfigComponent({
       </InlineField>
 
       <section className={styles.section}>
-        <label className={styles.sectionLabel} htmlFor="talker-prompt">
-          Voice prompt
-        </label>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <label className={styles.sectionLabel} htmlFor="talker-prompt">
+            Voice prompt
+          </label>
+          <ExpandPromptToggle
+            text={config.prompt}
+            expanded={expanded}
+            onToggle={setExpanded}
+          />
+        </div>
         <p className={styles.sectionHint}>
           What this crew is supposed to say. Type
           {' '}<kbd>@</kbd> memory ·
@@ -49,16 +65,27 @@ export function TalkerConfigComponent({
           {' '}<kbd>#</kbd> parameters ·
           {' '}<kbd>^</kbd> persona ·
           {' '}<kbd>*</kbd> dynamic ·
+          {' '}<kbd>+</kbd> snippets ·
           {' '}<kbd>/</kbd> or <kbd>{'{{'}</kbd> for all.
         </p>
-        <MentionTextarea
-          value={config.prompt}
-          onChange={prompt => patch({ prompt })}
-          options={mentionOptions}
-          placeholder="You are… {{persona}}. Here is what you know: {{memory}}."
-          rows={10}
-          storageKey={`addon:${instance.instanceId}:prompt`}
-        />
+        {expanded ? (
+          <ExpandedPromptView
+            agentId={agentId}
+            text={config.prompt}
+            rows={10}
+            storageKey={`addon:${instance.instanceId}:prompt`}
+          />
+        ) : (
+          <MentionTextarea
+            value={config.prompt}
+            onChange={prompt => patch({ prompt })}
+            options={mentionOptions}
+            placeholder="You are… {{persona}}. Here is what you know: {{memory}}."
+            rows={10}
+            storageKey={`addon:${instance.instanceId}:prompt`}
+          />
+        )}
+        <SnippetsUsedFooter agentId={agentId} text={config.prompt} />
       </section>
     </div>
   );

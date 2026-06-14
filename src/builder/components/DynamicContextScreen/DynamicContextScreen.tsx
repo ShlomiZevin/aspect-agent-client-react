@@ -25,6 +25,9 @@ import { useBuilder } from '../../state/BuilderContext';
 import { useConfirm } from '../Confirm/Confirm';
 import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../MentionTextarea/useMentionOptions';
+import { useSnippetCreator } from '../Snippets/SnippetCreator';
+import { ExpandPromptToggle } from '../Snippets/ExpandPromptToggle';
+import { ExpandedPromptView } from '../Snippets/ExpandedPromptView';
 import { AddFieldModal } from '../FieldsPanel/AddFieldModal';
 import type {
   DynamicContextCase,
@@ -59,7 +62,10 @@ export function DynamicContextScreen() {
   // First agent is the implicit current one — same convention as
   // BuilderContext's initial selection.
   const agent = doc.agents[0];
-  const mentionOptions = useMentionOptions(agent?.id ?? '');
+  const openCreateSnippet = useSnippetCreator();
+  const mentionOptions = useMentionOptions(agent?.id ?? '', {
+    onCreateSnippet: agent?.id ? () => openCreateSnippet(agent.id) : undefined,
+  });
 
   // ── Enum-field roster (the navigable universe) ─────────────────
   const enumFields = useMemo<FieldDef[]>(
@@ -429,6 +435,7 @@ export function DynamicContextScreen() {
         )}
 
         <Editor
+          agentId={agent.id}
           activeField={activeField}
           activeDc={activeDc}
           activeCase={activeCase}
@@ -1154,9 +1161,10 @@ function ColumnsNav({
 /* ─── Editor ───────────────────────────────────────────────────── */
 
 function Editor({
-  activeField, activeDc, activeCase, activeSection, isFallback, mentionOptions,
+  agentId, activeField, activeDc, activeCase, activeSection, isFallback, mentionOptions,
   onRenameValue, onRenameSection, onCaseTextChange, onFallbackChange, onSectionTextChange,
 }: {
+  agentId: ID;
   activeField: FieldDef | null;
   activeDc: DynamicContextDef | null;
   activeCase: DynamicContextCase | null;
@@ -1169,6 +1177,11 @@ function Editor({
   onFallbackChange: (dc: DynamicContextDef, text: string) => void;
   onSectionTextChange: (dc: DynamicContextDef, caseValue: string, sectionName: string, text: string) => void;
 }) {
+  // Single expand state shared across all three editor views — the
+  // editor only renders one at a time, and keeping the state shared
+  // means flipping case/section preserves the author's "expand"
+  // preference within a session.
+  const [expanded, setExpanded] = useState(false);
   if (!activeField) {
     return (
       <div className={styles.editor}>
@@ -1205,15 +1218,31 @@ function Editor({
           Rendered when <code>{activeField.name}</code> has no value or
           doesn't match any case above. Leave empty for silent fallback.
         </p>
-        <div className={styles.editorBody}>
-          <MentionTextarea
-            value={activeDc.fallback ?? ''}
-            onChange={text => onFallbackChange(activeDc, text)}
-            options={mentionOptions}
-            placeholder="(optional) Default guidance when no case matches…"
-            rows={18}
-            storageKey={`dc:${activeField.id}:fallback`}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 6px' }}>
+          <ExpandPromptToggle
+            text={activeDc.fallback ?? ''}
+            expanded={expanded}
+            onToggle={setExpanded}
           />
+        </div>
+        <div className={styles.editorBody}>
+          {expanded ? (
+            <ExpandedPromptView
+              agentId={agentId}
+              text={activeDc.fallback ?? ''}
+              rows={18}
+              storageKey={`dc:${activeField.id}:fallback`}
+            />
+          ) : (
+            <MentionTextarea
+              value={activeDc.fallback ?? ''}
+              onChange={text => onFallbackChange(activeDc, text)}
+              options={mentionOptions}
+              placeholder="(optional) Default guidance when no case matches…"
+              rows={18}
+              storageKey={`dc:${activeField.id}:fallback`}
+            />
+          )}
         </div>
       </div>
     );
@@ -1267,15 +1296,31 @@ function Editor({
           Section names are <strong>shared</strong> across every value of <code>{activeField.name}</code>; the body
           below is what gets injected when the live value is <code>{activeCase.value}</code>.
         </p>
-        <div className={styles.editorBody}>
-          <MentionTextarea
-            value={sectionBody}
-            onChange={text => onSectionTextChange(activeDc, activeCase.value, activeSection.name, text)}
-            options={mentionOptions}
-            placeholder={`Write the body for ${activeField.name}=${activeCase.value} › ${activeSection.name}…`}
-            rows={18}
-            storageKey={`dc:${activeField.id}:${activeCase.value}:section:${activeSection.name}`}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 6px' }}>
+          <ExpandPromptToggle
+            text={sectionBody}
+            expanded={expanded}
+            onToggle={setExpanded}
           />
+        </div>
+        <div className={styles.editorBody}>
+          {expanded ? (
+            <ExpandedPromptView
+              agentId={agentId}
+              text={sectionBody}
+              rows={18}
+              storageKey={`dc:${activeField.id}:${activeCase.value}:section:${activeSection.name}`}
+            />
+          ) : (
+            <MentionTextarea
+              value={sectionBody}
+              onChange={text => onSectionTextChange(activeDc, activeCase.value, activeSection.name, text)}
+              options={mentionOptions}
+              placeholder={`Write the body for ${activeField.name}=${activeCase.value} › ${activeSection.name}…`}
+              rows={18}
+              storageKey={`dc:${activeField.id}:${activeCase.value}:section:${activeSection.name}`}
+            />
+          )}
         </div>
       </div>
     );
@@ -1315,15 +1360,31 @@ function Editor({
         Use <code>{`{{dynamic:${activeField.name}:*}}`}</code> to inject every section under this case as headed blocks,
         or address a specific section via <code>{`{{dynamic:${activeField.name}:SECTION}}`}</code>.
       </p>
-      <div className={styles.editorBody}>
-        <MentionTextarea
-          value={activeCase.text ?? ''}
-          onChange={text => onCaseTextChange(activeDc, activeCase.value, text)}
-          options={mentionOptions}
-          placeholder="Umbrella prompt for this case — optional if you only use sections…"
-          rows={18}
-          storageKey={`dc:${activeField.id}:${activeCase.value}:umbrella`}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 6px' }}>
+        <ExpandPromptToggle
+          text={activeCase.text ?? ''}
+          expanded={expanded}
+          onToggle={setExpanded}
         />
+      </div>
+      <div className={styles.editorBody}>
+        {expanded ? (
+          <ExpandedPromptView
+            agentId={agentId}
+            text={activeCase.text ?? ''}
+            rows={18}
+            storageKey={`dc:${activeField.id}:${activeCase.value}:umbrella`}
+          />
+        ) : (
+          <MentionTextarea
+            value={activeCase.text ?? ''}
+            onChange={text => onCaseTextChange(activeDc, activeCase.value, text)}
+            options={mentionOptions}
+            placeholder="Umbrella prompt for this case — optional if you only use sections…"
+            rows={18}
+            storageKey={`dc:${activeField.id}:${activeCase.value}:umbrella`}
+          />
+        )}
       </div>
     </div>
   );

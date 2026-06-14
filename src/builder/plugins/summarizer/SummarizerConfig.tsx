@@ -15,10 +15,15 @@
  * sections.
  */
 
+import { useState } from 'react';
 import { ModelPicker } from '../../components/ModelPicker/ModelPicker';
 import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
 import { InlineField } from '../../components/AddonModal/InlineField';
+import { SnippetsUsedFooter } from '../../components/Snippets/SnippetsUsedFooter';
+import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
+import { ExpandPromptToggle } from '../../components/Snippets/ExpandPromptToggle';
+import { ExpandedPromptView } from '../../components/Snippets/ExpandedPromptView';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { SummarizerConfig } from '../../types';
 import styles from './SummarizerConfig.module.css';
@@ -30,7 +35,11 @@ export function SummarizerConfigComponent({
   agentId,
 }: PluginConfigProps<SummarizerConfig>) {
   const patch = (next: Partial<SummarizerConfig>) => onChange({ ...config, ...next });
-  const mentionOptions = useMentionOptions(agentId);
+  const openCreateSnippet = useSnippetCreator();
+  const mentionOptions = useMentionOptions(agentId, {
+    onCreateSnippet: () => openCreateSnippet(agentId),
+  });
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <div className={styles.wrap}>
@@ -56,7 +65,14 @@ export function SummarizerConfigComponent({
       </InlineField>
 
       <section className={styles.promptSection}>
-        <label className={styles.promptLabel}>Synthesis prompt</label>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <label className={styles.promptLabel}>Synthesis prompt</label>
+          <ExpandPromptToggle
+            text={config.prompt}
+            expanded={expanded}
+            onToggle={setExpanded}
+          />
+        </div>
         <p className={styles.promptHint}>
           Tell the LLM how to distil the conversation. Reference
           memory with <code>@</code>, parameters with <code>#</code>,
@@ -66,14 +82,24 @@ export function SummarizerConfigComponent({
           and records the message-id watermark for the
           <code>{' since_summarizer '}</code> mode.
         </p>
-        <MentionTextarea
-          value={config.prompt}
-          onChange={prompt => patch({ prompt })}
-          options={mentionOptions}
-          placeholder="Summarise the conversation so far in 6–12 lines. Output JSON: { text: '...' }. Type @ memory · # parameters · ^ persona · / for all."
-          rows={14}
-          storageKey={`addon:${instance.instanceId}:prompt`}
-        />
+        {expanded ? (
+          <ExpandedPromptView
+            agentId={agentId}
+            text={config.prompt}
+            rows={14}
+            storageKey={`addon:${instance.instanceId}:prompt`}
+          />
+        ) : (
+          <MentionTextarea
+            value={config.prompt}
+            onChange={prompt => patch({ prompt })}
+            options={mentionOptions}
+            placeholder="Summarise the conversation so far in 6–12 lines. Output JSON: { text: '...' }. Type @ memory · # parameters · ^ persona · + snippets · / for all."
+            rows={14}
+            storageKey={`addon:${instance.instanceId}:prompt`}
+          />
+        )}
+        <SnippetsUsedFooter agentId={agentId} text={config.prompt} />
       </section>
     </div>
   );

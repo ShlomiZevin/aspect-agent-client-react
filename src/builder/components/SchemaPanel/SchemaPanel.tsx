@@ -20,14 +20,16 @@ import { DomainModal } from './DomainModal';
 import { ParameterModal } from './ParameterModal';
 import { SchemaFieldModal } from './SchemaFieldModal';
 import { WireFieldModal } from './WireFieldModal';
-import type { DynamicContextDef, FieldDef, ID, ParameterDef } from '../../types';
+import { SnippetModal } from '../Snippets/SnippetModal';
+import type { DynamicContextDef, FieldDef, ID, ParameterDef, SnippetDef } from '../../types';
 import styles from './SchemaPanel.module.css';
 
 export type SchemaSectionKind =
   | 'parameters'
   | 'dynamic-context'
   | 'domains'
-  | 'fields';
+  | 'fields'
+  | 'snippets';
 
 interface Props {
   agentId: ID;
@@ -48,6 +50,7 @@ export function SchemaPanel({ agentId, sections, embedded }: Props) {
     <div className={styles.stack}>
       {show('parameters')      && <ParametersSection      agentId={agentId} embedded={embedded} />}
       {show('dynamic-context') && <DynamicContextsSection agentId={agentId} embedded={embedded} />}
+      {show('snippets')        && <SnippetsSection        agentId={agentId} embedded={embedded} />}
       {show('domains')         && <DomainsSection         agentId={agentId} embedded={embedded} />}
       {show('fields')          && <FieldsSection          agentId={agentId} embedded={embedded} />}
     </div>
@@ -310,6 +313,86 @@ function ParametersSection({ agentId, embedded }: { agentId: ID; embedded?: bool
         siblings={parameters}
         onSave={handleSave}
         onDelete={editing ? handleDelete : undefined}
+      />
+    </div>
+  );
+}
+
+/* ─── Snippets ────────────────────────────────────────────────── */
+
+function SnippetsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean }) {
+  const { doc } = useBuilder();
+  const agent = doc.agents.find(a => a.id === agentId);
+  const snippets = useMemo(() => agent?.snippets ?? [], [agent?.snippets]);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing]     = useState<SnippetDef | null>(null);
+
+  const openAdd  = () => { setEditing(null); setModalOpen(true); };
+  const openEdit = (s: SnippetDef) => { setEditing(s); setModalOpen(true); };
+
+  return (
+    <div className={`${styles.panel} ${embedded ? styles.panelEmbedded : ''}`}>
+      <div className={`${styles.header} ${embedded ? styles.headerEmbedded : ''}`}>
+        {!embedded && <span className={styles.title}>+ Snippets</span>}
+        {!embedded && <span className={styles.count}>{snippets.length}</span>}
+        <span className={styles.spacer} />
+        <button type="button" className={styles.addBtn} onClick={openAdd}>
+          + Add
+        </button>
+      </div>
+
+      {snippets.length === 0 ? (
+        <div className={styles.empty}>
+          Reusable, optionally-gated chunks of prompt text. Drop them into any
+          prompt as <code>{'{{snippet:name}}'}</code>. A snippet with a filter renders
+          only when its conditions match — otherwise the token resolves to empty.
+        </div>
+      ) : (
+        <div className={styles.paramList}>
+          {snippets.map(s => {
+            const gated = !!s.filter && Array.isArray(s.filter.conditions) && s.filter.conditions.length > 0;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                className={styles.paramRow}
+                onClick={() => openEdit(s)}
+              >
+                <div className={styles.paramHead}>
+                  <span className={styles.paramSigil}>+</span>
+                  <span className={styles.paramName}>{s.name}</span>
+                  {s.displayName && (
+                    <span className={styles.paramSigil}>· {s.displayName}</span>
+                  )}
+                  <span className={styles.spacerInline} />
+                  {gated && (
+                    <span
+                      className={styles.paramSigil}
+                      title={
+                        s.filter!.mode === 'exclude'
+                          ? `Skip when ${s.filter!.conditions.length} condition(s) match`
+                          : `Render when ${s.filter!.conditions.length} condition(s) match`
+                      }
+                    >
+                      ▽ filtered
+                    </span>
+                  )}
+                </div>
+                <span className={styles.paramDesc}>
+                  Reference as <code>{`{{snippet:${s.name}}}`}</code>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <SnippetModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        agentId={agentId}
+        initial={editing}
       />
     </div>
   );

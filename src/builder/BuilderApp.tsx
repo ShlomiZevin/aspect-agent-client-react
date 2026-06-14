@@ -21,6 +21,7 @@ import { DynamicContextScreen } from './components/DynamicContextScreen/DynamicC
 import { BrainDockSlot, BrainFullscreenLayer } from './components/BrainPanel/BrainPanel';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
 import { ConfirmProvider } from './components/Confirm/Confirm';
+import { SnippetCreatorProvider } from './components/Snippets/SnippetCreator';
 import { useAutoSave } from './hooks/useAutoSave';
 import { loadModelsFromServer } from './registry/providerModels';
 import { bootstrapProject, fetchProject } from './state/builderApi';
@@ -170,7 +171,9 @@ export function BuilderApp({ agentSlug }: Props) {
     <BuilderProvider agentSlug={agentSlug} ownerUserId={ownerUserId} initialDoc={gate.doc}>
       <BrainProvider>
         <ConfirmProvider>
-          <BuilderShell />
+          <SnippetCreatorProvider>
+            <BuilderShell />
+          </SnippetCreatorProvider>
         </ConfirmProvider>
       </BrainProvider>
     </BuilderProvider>

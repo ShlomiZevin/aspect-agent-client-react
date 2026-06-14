@@ -17,6 +17,10 @@ import { FieldEditorModal } from '../../components/FieldsPanel/FieldEditorModal'
 import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
 import { InlineField } from '../../components/AddonModal/InlineField';
+import { SnippetsUsedFooter } from '../../components/Snippets/SnippetsUsedFooter';
+import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
+import { ExpandPromptToggle } from '../../components/Snippets/ExpandPromptToggle';
+import { ExpandedPromptView } from '../../components/Snippets/ExpandedPromptView';
 import { useCrewFields } from '../../state/useCrewFields';
 import type { CrewField } from '../../state/useCrewFields';
 import type { PluginConfigProps } from '../../registry/plugins';
@@ -67,10 +71,14 @@ export function FieldExtractorConfigComponent({
 }: PluginConfigProps<FieldExtractorConfig>) {
   const patch = (next: Partial<FieldExtractorConfig>) => onChange({ ...config, ...next });
   const { allFields, setFieldExtractors } = useCrewFields(agentId, crewId);
-  const mentionOptions = useMentionOptions(agentId);
+  const openCreateSnippet = useSnippetCreator();
+  const mentionOptions = useMentionOptions(agentId, {
+    onCreateSnippet: () => openCreateSnippet(agentId),
+  });
   const [addOpen, setAddOpen] = useState(false);
   const [editingField, setEditingField] = useState<CrewField | null>(null);
   const [fieldsOpen, setFieldsOpen] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   // The CrewField objects this extractor extracts. Resolved by
   // intersecting `config.extractsFields[]` with the crew-visible
@@ -124,21 +132,38 @@ export function FieldExtractorConfigComponent({
       </InlineField>
 
       <section className={styles.section}>
-        <label className={styles.sectionLabel} htmlFor="fe-prompt">
-          Extractor prompt
-        </label>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <label className={styles.sectionLabel} htmlFor="fe-prompt">
+            Extractor prompt
+          </label>
+          <ExpandPromptToggle
+            text={config.prompt}
+            expanded={expanded}
+            onToggle={setExpanded}
+          />
+        </div>
         <p className={styles.sectionHint}>
           How the model should extract fields — rules like "stay literal", "don't
           guess", "only the latest message".
         </p>
-        <MentionTextarea
-          value={config.prompt}
-          onChange={prompt => patch({ prompt })}
-          options={mentionOptions}
-          placeholder="Extract only what the user explicitly said. Don't guess. Type @ memory · # parameters · ^ persona · * dynamic · / or {{ for all."
-          rows={10}
-          storageKey={`addon:${instance.instanceId}:prompt`}
-        />
+        {expanded ? (
+          <ExpandedPromptView
+            agentId={agentId}
+            text={config.prompt}
+            rows={10}
+            storageKey={`addon:${instance.instanceId}:prompt`}
+          />
+        ) : (
+          <MentionTextarea
+            value={config.prompt}
+            onChange={prompt => patch({ prompt })}
+            options={mentionOptions}
+            placeholder="Extract only what the user explicitly said. Don't guess. Type @ memory · # parameters · ^ persona · * dynamic · + snippets · / or {{ for all."
+            rows={10}
+            storageKey={`addon:${instance.instanceId}:prompt`}
+          />
+        )}
+        <SnippetsUsedFooter agentId={agentId} text={config.prompt} />
       </section>
 
       <section className={styles.collapsibleSection}>

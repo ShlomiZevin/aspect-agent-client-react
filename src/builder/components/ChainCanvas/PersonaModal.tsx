@@ -18,7 +18,7 @@
  * link. Used by the agent-cortex strip rendered in CrewView.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Modal } from '../Modal/Modal';
 import { useBuilder } from '../../state/BuilderContext';
@@ -26,6 +26,10 @@ import { useBuilderSettings } from '../TopBar/BuilderSettings';
 import { useConfirm } from '../Confirm/Confirm';
 import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../MentionTextarea/useMentionOptions';
+import { SnippetsUsedFooter } from '../Snippets/SnippetsUsedFooter';
+import { useSnippetCreator } from '../Snippets/SnippetCreator';
+import { ExpandPromptToggle } from '../Snippets/ExpandPromptToggle';
+import { ExpandedPromptView } from '../Snippets/ExpandedPromptView';
 import type { ID } from '../../types';
 import addonStyles from '../AddonModal/AddonModal.module.css';
 
@@ -44,13 +48,17 @@ export function PersonaModal({
   const { updateAgent, saveAgentVersion } = useBuilder();
   const [settings] = useBuilderSettings();
   const confirm = useConfirm();
-  const mentionOptions = useMentionOptions(agentId);
+  const openCreateSnippet = useSnippetCreator();
+  const mentionOptions = useMentionOptions(agentId, {
+    onCreateSnippet: () => openCreateSnippet(agentId),
+  });
 
   // Snapshot the persona on open so Cancel can restore it. We use a
   // ref (not state) because the snapshot should never trigger a
   // re-render — only event handlers read it. Captured on the first
   // render where `open` flips to true, cleared when the modal closes.
   const snapshotRef = useRef<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
   if (open && !readOnly && snapshotRef.current === null) {
     snapshotRef.current = persona;
   }
@@ -138,18 +146,38 @@ export function PersonaModal({
               To edit, open the agent page.
             </div>
           )}
-          <MentionTextarea
-            value={persona}
-            onChange={next => updateAgent(agentId, { persona: next })}
-            options={mentionOptions}
-            placeholder="Describe how the agent sounds, the tone, and what it never does…"
-            rows={14}
-            // Per-agent key so resize-height AND the Ctrl+Shift R/L
-            // direction override are remembered per persona — a Hebrew
-            // persona on one agent and an English persona on another
-            // don't share the same pin.
-            storageKey={`persona:${agentId}`}
-          />
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Persona prompt
+            </span>
+            <ExpandPromptToggle
+              text={persona}
+              expanded={expanded}
+              onToggle={setExpanded}
+            />
+          </div>
+          {expanded ? (
+            <ExpandedPromptView
+              agentId={agentId}
+              text={persona}
+              rows={14}
+              storageKey={`persona:${agentId}`}
+            />
+          ) : (
+            <MentionTextarea
+              value={persona}
+              onChange={next => updateAgent(agentId, { persona: next })}
+              options={mentionOptions}
+              placeholder="Describe how the agent sounds, the tone, and what it never does…"
+              rows={14}
+              // Per-agent key so resize-height AND the Ctrl+Shift R/L
+              // direction override are remembered per persona — a Hebrew
+              // persona on one agent and an English persona on another
+              // don't share the same pin.
+              storageKey={`persona:${agentId}`}
+            />
+          )}
+          <SnippetsUsedFooter agentId={agentId} text={persona} />
         </div>
       </fieldset>
     </Modal>

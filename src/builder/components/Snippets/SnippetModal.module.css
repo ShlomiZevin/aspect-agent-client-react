@@ -1,0 +1,196 @@
+/* SnippetModal — local styles. Mirrors AddonModal / ParameterModal
+   vocabulary so the snippets surface feels like one of the family. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.row2 {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr);
+  gap: 14px;
+}
+
+.label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-secondary, #4b5563);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.optional {
+  font-weight: 500;
+  text-transform: none;
+  color: var(--text-tertiary, #9ca3af);
+  letter-spacing: 0;
+}
+
+.input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text-primary, #111827);
+  font-family: ui-monospace, "Menlo", monospace;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.hint {
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--text-tertiary, #6b7280);
+  line-height: 1.5;
+}
+
+.hint code {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.05);
+  color: #1f2937;
+}
+
+.hintError {
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: #b91c1c;
+  line-height: 1.5;
+}
+
+/* Filter launcher — single horizontal pill that opens the focused
+   filter modal. Identical visual to the AddonModal launcher so the
+   author learns one pattern. */
+.filterLauncher {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px dashed var(--border-color, #e5e7eb);
+  background: transparent;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.filterLauncher:hover {
+  border-color: #b45309;
+  color: #92400e;
+  border-style: solid;
+}
+
+.filterLauncherActive {
+  background: rgba(202, 138, 4, 0.08);
+  border-style: solid;
+  border-color: rgba(202, 138, 4, 0.4);
+  color: #92400e;
+}
+
+.filterLauncherActive:hover {
+  background: rgba(202, 138, 4, 0.14);
+  border-color: #b45309;
+}
+
+.filterLauncherIcon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.filterLauncherText {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filterLauncherEdit {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-tertiary, #9ca3af);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.filterLauncherActive .filterLauncherEdit {
+  color: #b45309;
+}
+
+/* Footer buttons. The Modal footer is flex-row by default, so
+   `spacer` pushes Cancel/Save right while Delete stays at the left. */
+.spacer {
+  flex: 1;
+}
+
+.btnPrimary {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #2563eb;
+  color: #fff;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btnPrimary:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.btnPrimary:disabled {
+  background: #9ca3af;
+  border-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.btnGhost {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #fff;
+  color: var(--text-secondary, #4b5563);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btnGhost:hover {
+  background: #f9fafb;
+}
+
+.btnDanger {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #fff;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btnDanger:hover {
+  background: #fef2f2;
+  border-color: #f87171;
+}

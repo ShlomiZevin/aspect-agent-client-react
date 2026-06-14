@@ -1,0 +1,46 @@
+/* ExpandPromptToggle — small pill button next to a prompt label.
+   Style mirrors the muted pill family used elsewhere in the builder
+   so it slots in without designing for each host. */
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: inherit;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.toggle:hover {
+  border-color: #2563eb;
+  color: #1d4ed8;
+  background: #f8fafc;
+}
+
+/* Active state — amber to match the inline view's banner, so the
+   author sees a continuous "I'm in expanded mode" visual cue from the
+   toggle down through the view. */
+.toggleActive {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.toggleActive:hover {
+  background: #fde68a;
+  border-color: #f59e0b;
+  color: #b45309;
+}
+
+.icon {
+  font-size: 10px;
+  line-height: 1;
+}

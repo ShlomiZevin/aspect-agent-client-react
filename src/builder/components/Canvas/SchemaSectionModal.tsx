@@ -30,6 +30,7 @@ const TITLE: Record<SchemaSectionKind, string> = {
   'dynamic-context': 'Dynamic Context',
   'domains':         'Domains',
   'fields':          'Fields',
+  'snippets':        'Snippets',
 };
 
 export function SchemaSectionModal({ open, onClose, agentId, kind }: Props) {

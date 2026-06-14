@@ -173,6 +173,11 @@ function collectThinkingDomainsByProducer(
  */
 export interface MentionOptionsOpts {
   boundField?: { fieldId: ID | undefined };
+  /** When provided, the snippets picker surfaces a "+ New snippet"
+   *  quick-add entry whose onPick fires this callback. Hosts that
+   *  can't open the SnippetModal (read-only views) omit it; the picker
+   *  then shows only existing snippets. */
+  onCreateSnippet?: () => void;
 }
 
 export function useMentionOptions(
@@ -182,6 +187,7 @@ export function useMentionOptions(
   const { doc } = useBuilder();
   const boundFieldId = opts?.boundField?.fieldId;
   const hasBoundFieldGroup = opts?.boundField !== undefined;
+  const onCreateSnippet = opts?.onCreateSnippet;
   return useMemo<MentionOptions>(() => {
     const agent = doc.agents.find(a => a.id === agentId);
     if (!agent) return {};
@@ -377,6 +383,39 @@ export function useMentionOptions(
       });
     }
 
-    return { '@': at, '!': bang, '#': hash, '^': caret, '*': star, '%': percent };
-  }, [doc, agentId, hasBoundFieldGroup, boundFieldId]);
+    // ── +  Snippets ──────────────────────────────────────────────
+    // Existing snippets + (optionally) a "+ New snippet" quick-add
+    // entry whose onPick opens the SnippetModal in the host. Description
+    // surfaces the snippet's filter state so the author knows whether
+    // it'll always render or only under certain conditions.
+    const plus: MentionOption[] = [];
+    for (const s of agent.snippets ?? []) {
+      const gated = !!s.filter
+        && Array.isArray(s.filter.conditions)
+        && s.filter.conditions.length > 0;
+      const verb = s.filter?.mode === 'exclude' ? 'Skip when' : 'Render when';
+      const gateNote = gated
+        ? ` · ${verb} ${s.filter!.conditions.length} condition${s.filter!.conditions.length === 1 ? '' : 's'}`
+        : '';
+      plus.push({
+        label:     s.displayName ? `${s.name} — ${s.displayName}` : s.name,
+        insertion: `{{snippet:${s.name}}}`,
+        group:     'Snippets',
+        description:
+          (s.content ? s.content.slice(0, 140) + (s.content.length > 140 ? '…' : '') : '(empty)')
+          + gateNote,
+      });
+    }
+    if (onCreateSnippet) {
+      plus.push({
+        label:     '+ New snippet…',
+        insertion: '',
+        group:     'Quick add',
+        description: 'Open the snippet editor and create a new snippet on this agent.',
+        onPick:    onCreateSnippet,
+      });
+    }
+
+    return { '@': at, '!': bang, '#': hash, '^': caret, '*': star, '%': percent, '+': plus };
+  }, [doc, agentId, hasBoundFieldGroup, boundFieldId, onCreateSnippet]);
 }

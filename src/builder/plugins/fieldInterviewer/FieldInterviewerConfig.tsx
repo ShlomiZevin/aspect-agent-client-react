@@ -16,6 +16,10 @@ import { MentionTextarea } from '../../components/MentionTextarea/MentionTextare
 import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
 import { InlineField } from '../../components/AddonModal/InlineField';
 import { FieldEditorModal } from '../../components/FieldsPanel/FieldEditorModal';
+import { SnippetsUsedFooter } from '../../components/Snippets/SnippetsUsedFooter';
+import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
+import { ExpandPromptToggle } from '../../components/Snippets/ExpandPromptToggle';
+import { ExpandedPromptView } from '../../components/Snippets/ExpandedPromptView';
 import { useCrewFields } from '../../state/useCrewFields';
 import { WireOrCreateFieldModal } from '../fieldReasoner/WireOrCreateFieldModal';
 import type { PluginConfigProps } from '../../registry/plugins';
@@ -34,7 +38,11 @@ export function FieldInterviewerConfigComponent({
   // Same opt-in as Field Reasoner — exposes {{this_field}} and
   // {{enum_values}} under the `@` trigger (and `/`) with descriptions
   // tied to whatever field is currently wired.
-  const mentionOptions = useMentionOptions(agentId, { boundField: { fieldId: linkedId } });
+  const openCreateSnippet = useSnippetCreator();
+  const mentionOptions = useMentionOptions(agentId, {
+    boundField: { fieldId: linkedId },
+    onCreateSnippet: () => openCreateSnippet(agentId),
+  });
   const { allFields } = useCrewFields(agentId, crewId);
   const linked = useMemo(
     () => allFields.find(cf => cf.field.id === linkedId) ?? null,
@@ -43,6 +51,7 @@ export function FieldInterviewerConfigComponent({
 
   const [wireOpen, setWireOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const handleWired = (fieldId: ID) => {
     patch({ extractsFields: [fieldId] });
@@ -132,9 +141,16 @@ export function FieldInterviewerConfigComponent({
       </InlineField>
 
       <section className={styles.promptSection}>
-        <label className={styles.promptLabel} htmlFor="fi-prompt">
-          Interview prompt
-        </label>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <label className={styles.promptLabel} htmlFor="fi-prompt">
+            Interview prompt
+          </label>
+          <ExpandPromptToggle
+            text={config.prompt}
+            expanded={expanded}
+            onToggle={setExpanded}
+          />
+        </div>
         <p className={styles.promptHint}>
           Tell the LLM how to decide what to ask next AND when to commit
           a value. Use <code>{'{{this_field}}'}</code> for the output
@@ -142,14 +158,24 @@ export function FieldInterviewerConfigComponent({
           allowed values. Any key OTHER than <code>{'{{this_field}}'}</code> in the
           JSON output lands under the thinking domain above.
         </p>
-        <MentionTextarea
-          value={config.prompt}
-          onChange={prompt => patch({ prompt })}
-          options={mentionOptions}
-          placeholder="Ask about… If the user says X, commit value Y… Type @ for fields/memory, # for parameters, ^ for persona, / for all."
-          rows={14}
-          storageKey={`addon:${instance.instanceId}:prompt`}
-        />
+        {expanded ? (
+          <ExpandedPromptView
+            agentId={agentId}
+            text={config.prompt}
+            rows={14}
+            storageKey={`addon:${instance.instanceId}:prompt`}
+          />
+        ) : (
+          <MentionTextarea
+            value={config.prompt}
+            onChange={prompt => patch({ prompt })}
+            options={mentionOptions}
+            placeholder="Ask about… If the user says X, commit value Y… Type @ for fields/memory, # for parameters, ^ for persona, + for snippets, / for all."
+            rows={14}
+            storageKey={`addon:${instance.instanceId}:prompt`}
+          />
+        )}
+        <SnippetsUsedFooter agentId={agentId} text={config.prompt} />
       </section>
 
       <WireOrCreateFieldModal
