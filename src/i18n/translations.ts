@@ -323,6 +323,14 @@ export const translations: LanguageConfig = {
     'quick.zolstock.lastMonth.question': 'What was total revenue and profit last month?',
     'quick.zolstock.topQty.text': 'Best Sellers by Qty',
     'quick.zolstock.topQty.question': 'Top 10 items this year by quantity sold',
+    'quick.zolstock.purchaseRec.text': 'Purchasing Recommendations',
+    'quick.zolstock.purchaseRec.question': 'Which products should we reorder based on recent sales and current stock levels?',
+    'quick.zolstock.transfers.text': 'Inter-Store Transfers',
+    'quick.zolstock.transfers.question': 'Which inventory transfers between stores are recommended to balance stock?',
+    'quick.zolstock.replenish.text': 'Replenishment & Repeats',
+    'quick.zolstock.replenish.question': 'Which items need stock replenishment or repeat orders?',
+    'quick.zolstock.distribution.text': 'Distribution Recommendations',
+    'quick.zolstock.distribution.question': 'How should incoming inventory be distributed across the stores?',
 
     // Quick Questions - Banking
     'quick.banking.startOnboarding.text': 'Start Onboarding',
@@ -699,6 +707,14 @@ export const translations: LanguageConfig = {
     'quick.zolstock.lastMonth.question': 'מה היו ההכנסות והרווח בחודש שעבר?',
     'quick.zolstock.topQty.text': 'נמכרים ביותר',
     'quick.zolstock.topQty.question': 'טופ 10 מוצרים השנה לפי כמות שנמכרה',
+    'quick.zolstock.purchaseRec.text': 'המלצות לרכש',
+    'quick.zolstock.purchaseRec.question': 'אילו מוצרים מומלץ לרכוש מחדש על בסיס המכירות האחרונות ורמות המלאי הנוכחיות?',
+    'quick.zolstock.transfers.text': 'העברות בין סניפים',
+    'quick.zolstock.transfers.question': 'אילו העברות מלאי בין הסניפים מומלצות לאיזון המלאי?',
+    'quick.zolstock.replenish.text': 'השלמות מלאי וריפיטים',
+    'quick.zolstock.replenish.question': 'אילו פריטים זקוקים להשלמת מלאי או להזמנת ריפיט?',
+    'quick.zolstock.distribution.text': 'המלצות לחלוקה',
+    'quick.zolstock.distribution.question': 'כיצד מומלץ לחלק את המלאי הנכנס בין הסניפים?',
 
     // Quick Questions - Banking
     'quick.banking.startOnboarding.text': 'התחל תהליך',
