@@ -45,11 +45,13 @@ interface Props {
   initialType?: FieldType;
 }
 
-const TYPES: { value: FieldType; label: string }[] = [
+/** Primitive types that appear at the top of the unified Type select.
+ *  `enum` is intentionally NOT here — picking an enum means picking a
+ *  SPECIFIC enum from the bible, surfaced as its own optgroup below. */
+const PRIMITIVE_TYPES: { value: FieldType; label: string }[] = [
   { value: 'string',  label: 'String' },
   { value: 'int',     label: 'Integer' },
   { value: 'boolean', label: 'Boolean' },
-  { value: 'enum',    label: 'Enum' },
 ];
 
 const SOURCES: FieldSource[] = ['explicit', 'inferred'];
@@ -199,12 +201,37 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
             <div className={styles.label}>Type</div>
             <select
               className={styles.input}
-              value={type}
-              onChange={e => setType(e.target.value as FieldType)}
+              // Encoded value: primitives use their plain name; enums
+              // are "enum:<id>" so one change sets both type AND
+              // enumType — no separate dropdown below.
+              value={type === 'enum' && enumType ? `enum:${enumType}` : type}
+              onChange={e => {
+                const v = e.target.value;
+                if (v.startsWith('enum:')) {
+                  setType('enum');
+                  setEnumType(v.slice('enum:'.length) as ID);
+                } else {
+                  setType(v as FieldType);
+                  setEnumType('');
+                }
+              }}
             >
-              {TYPES.map(t => (
+              {PRIMITIVE_TYPES.map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
+              {(agent?.enums?.length ?? 0) > 0 && (
+                <optgroup label="Enums">
+                  {(agent?.enums ?? []).map(en => (
+                    <option key={en.id} value={`enum:${en.id}`}>{en.name}</option>
+                  ))}
+                </optgroup>
+              )}
+              {type === 'enum'
+                && enumType
+                && !(agent?.enums ?? []).some(en => en.id === enumType)
+                && (
+                  <option value={`enum:${enumType}`}>(missing enum)</option>
+                )}
             </select>
           </div>
           <div>
@@ -222,6 +249,48 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
             </select>
           </div>
         </div>
+
+        {/* Enum picker preview — visible only when an enum is selected.
+            Sits directly under the Type/Source row so the user
+            immediately sees the value vocabulary they just bound.
+            Same placement as in the Add field / Field editor modals.
+            The unified Type dropdown above already wires both `type` and
+            `enumType` in one go; this block is purely informative,
+            plus a shortcut to edit the enum bible without losing context. */}
+        {type === 'enum' && enumType && agent && (() => {
+          const en = (agent.enums ?? []).find(e => e.id === enumType);
+          if (!en) {
+            return (
+              <div className={styles.hint} style={{ color: '#b91c1c' }}>
+                Bound enum "{enumType}" no longer exists on the bible — pick a current one above.
+              </div>
+            );
+          }
+          const valueNames = (en.values ?? [])
+            .map(v => v?.value)
+            .filter((v): v is string => typeof v === 'string' && v.length > 0);
+          return (
+            <div className={styles.enumPreview}>
+              <span className={styles.enumPreviewLabel}>{en.name}</span>
+              {valueNames.length > 0 ? (
+                <span className={styles.enumPreviewValues}>
+                  {valueNames.join(' · ')}
+                </span>
+              ) : (
+                <span className={styles.enumPreviewEmpty}>
+                  No values declared on the bible yet
+                </span>
+              )}
+              <Link
+                to={`/${agent.slug}/builder/enums/${encodeURIComponent(en.name)}`}
+                onClick={onClose}
+                className={styles.enumPreviewLink}
+              >
+                Edit enum ↗
+              </Link>
+            </div>
+          );
+        })()}
 
         <div>
           <div className={styles.label}>Domain</div>
@@ -243,43 +312,9 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
             dir={autoDir(howToExtract)}
           />
         </div>
-
-        {type === 'enum' && (
-          <div>
-            <div className={styles.label}>Enum type</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <select
-                className={styles.input}
-                value={enumType}
-                onChange={e => setEnumType(e.target.value as ID | '')}
-                style={{ flex: 1 }}
-              >
-                <option value="">(none — pick an enum)</option>
-                {(agent?.enums ?? []).map(e => (
-                  <option key={e.id} value={e.id}>{e.name}</option>
-                ))}
-              </select>
-              {enumType && agent && (
-                <Link
-                  to={`/${agent.slug}/builder/enums/${encodeURIComponent(
-                    (agent.enums ?? []).find(e => e.id === enumType)?.name ?? ''
-                  )}`}
-                  onClick={onClose}
-                  style={{
-                    fontSize: 11, fontWeight: 700, padding: '6px 10px',
-                    border: '1px solid #e5e7eb', borderRadius: 6,
-                    background: '#fff', color: '#2563eb', textDecoration: 'none',
-                  }}
-                >
-                  Edit enum ↗
-                </Link>
-              )}
-            </div>
-            <div className={styles.hint} style={{ marginTop: 4 }}>
-              {(agent?.enums ?? []).length === 0
-                ? 'No enums declared yet. Open the Enums bible from the Setup area to author one.'
-                : 'Pick the value vocabulary this field draws from. Multiple fields can share an enum.'}
-            </div>
+        {type === 'enum' && !enumType && (agent?.enums ?? []).length === 0 && (
+          <div className={styles.hint}>
+            No enums declared yet. Open the Enums bible to author one.
           </div>
         )}
 

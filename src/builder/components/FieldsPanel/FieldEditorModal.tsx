@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Modal } from '../Modal/Modal';
 import { useCrewFields } from '../../state/useCrewFields';
 import { useBuilder } from '../../state/BuilderContext';
@@ -56,11 +57,14 @@ interface Props {
   crewId: ID;
 }
 
-const TYPES: { value: FieldType; label: string }[] = [
+/** Primitive types that appear at the top of the unified Type select.
+ *  `enum` is intentionally NOT here — picking an enum means picking a
+ *  SPECIFIC enum from the bible, which is surfaced as its own optgroup
+ *  underneath. */
+const PRIMITIVE_TYPES: { value: FieldType; label: string }[] = [
   { value: 'string',  label: 'String' },
   { value: 'int',     label: 'Integer' },
   { value: 'boolean', label: 'Boolean' },
-  { value: 'enum',    label: 'Enum' },
 ];
 
 const SOURCE_LABEL: Record<FieldSource, { label: string }> = {
@@ -270,10 +274,40 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
             <span className={styles.label}>Type</span>
             <select
               className={styles.input}
-              value={type}
-              onChange={e => setType(e.target.value as FieldType)}
+              // Encoded value: primitives use their plain name; enums are
+              // "enum:<id>" so a single change handler can set both type
+              // AND enumType without a separate dropdown below.
+              value={type === 'enum' && enumType ? `enum:${enumType}` : type}
+              onChange={e => {
+                const v = e.target.value;
+                if (v.startsWith('enum:')) {
+                  setType('enum');
+                  setEnumType(v.slice('enum:'.length) as ID);
+                } else {
+                  setType(v as FieldType);
+                  setEnumType('');
+                }
+              }}
             >
-              {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {PRIMITIVE_TYPES.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+              {(agent?.enums?.length ?? 0) > 0 && (
+                <optgroup label="Enums">
+                  {(agent?.enums ?? []).map(en => (
+                    <option key={en.id} value={`enum:${en.id}`}>{en.name}</option>
+                  ))}
+                </optgroup>
+              )}
+              {/* The currently-bound enum was deleted off the bible.
+                  Surface the orphan so the user sees the broken state
+                  and can re-pick a real one. */}
+              {type === 'enum'
+                && enumType
+                && !(agent?.enums ?? []).some(en => en.id === enumType)
+                && (
+                  <option value={`enum:${enumType}`}>(missing enum)</option>
+                )}
             </select>
           </label>
 
@@ -291,6 +325,45 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
           </label>
 
         </div>
+
+        {/* Enum preview strip — shows the value vocabulary the user
+            just bound, with a shortcut to edit the enum bible. The
+            unified Type select above already wires both type and
+            enumType together; this block is purely informative. */}
+        {type === 'enum' && enumType && agent && (() => {
+          const en = (agent.enums ?? []).find(e => e.id === enumType);
+          if (!en) {
+            return (
+              <div className={styles.enumPreviewError}>
+                Bound enum "{enumType}" no longer exists on the bible — pick a current one above.
+              </div>
+            );
+          }
+          const valueNames = (en.values ?? [])
+            .map(v => v?.value)
+            .filter((v): v is string => typeof v === 'string' && v.length > 0);
+          return (
+            <div className={styles.enumPreview}>
+              <span className={styles.enumPreviewLabel}>{en.name}</span>
+              {valueNames.length > 0 ? (
+                <span className={styles.enumPreviewValues}>
+                  {valueNames.join(' · ')}
+                </span>
+              ) : (
+                <span className={styles.enumPreviewEmpty}>
+                  No values declared on the bible yet
+                </span>
+              )}
+              <Link
+                to={`/${agent.slug}/builder/enums/${encodeURIComponent(en.name)}`}
+                onClick={onClose}
+                className={styles.enumPreviewLink}
+              >
+                Edit enum ↗
+              </Link>
+            </div>
+          );
+        })()}
 
         <label className={styles.field}>
           <span className={styles.label}>Domain</span>
@@ -314,26 +387,6 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
             dir={autoDir(howToExtract)}
           />
         </label>
-
-        {type === 'enum' && (
-          <label className={styles.field}>
-            <span className={styles.label}>Enum type</span>
-            <select
-              className={styles.input}
-              value={enumType}
-              onChange={e => setEnumType(e.target.value as ID | '')}
-            >
-              <option value="">(none — pick an enum)</option>
-              {(agent?.enums ?? []).map(en => (
-                <option key={en.id} value={en.id}>{en.name}</option>
-              ))}
-            </select>
-            <span className={styles.hint}>
-              The value vocabulary lives on the agent's enum bible. Multiple
-              fields can share an enum; the bible is the single source of truth.
-            </span>
-          </label>
-        )}
 
         {/* ── Extracted-by multi-select ─────────────────────────── */}
         <div className={styles.field}>

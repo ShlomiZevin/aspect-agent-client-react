@@ -126,6 +126,16 @@ export function FieldsPanel({ agentId, crewId }: Props) {
     return (agent?.crews.length ?? 0) > 1;
   }, [doc, agentId]);
 
+  // Enum id → name lookup so each FieldRow can label an enum-typed
+  // field's pill as `enum · <name>` without having to walk doc itself.
+  // Computed once at the panel level — list is short and stable per render.
+  const enumNameById = useMemo(() => {
+    const agent = doc.agents.find(a => a.id === agentId);
+    const m = new Map<string, string>();
+    for (const en of agent?.enums ?? []) m.set(en.id, en.name);
+    return m;
+  }, [doc, agentId]);
+
   const toggleCollapse = (key: string) => {
     setCollapsed(prev => {
       const next = new Set(prev);
@@ -184,6 +194,7 @@ export function FieldsPanel({ agentId, crewId }: Props) {
                   onPick={setEditing}
                   liveValueByField={liveValueByField}
                   showCrewChip={showCrewChip}
+                  enumNameById={enumNameById}
                 />
               ))}
             {domains
@@ -195,6 +206,7 @@ export function FieldsPanel({ agentId, crewId }: Props) {
                   onPick={setEditing}
                   liveValueByField={liveValueByField}
                   showCrewChip={showCrewChip}
+                  enumNameById={enumNameById}
                 />
               ))}
           </div>
@@ -247,10 +259,11 @@ interface DomainGroupProps {
   onPick: (cf: CrewField) => void;
   liveValueByField: Record<string, unknown>;
   showCrewChip: boolean;
+  enumNameById: Map<string, string>;
 }
 
 function DomainGroup({
-  group, collapsed, onToggle, onPick, liveValueByField, showCrewChip,
+  group, collapsed, onToggle, onPick, liveValueByField, showCrewChip, enumNameById,
 }: DomainGroupProps) {
   return (
     <div className={styles.group}>
@@ -272,6 +285,7 @@ function DomainGroup({
               onPick={onPick}
               liveValue={liveValueByField[cf.field.name]}
               showCrewChip={showCrewChip}
+              enumNameById={enumNameById}
             />
           ))}
         </div>
@@ -285,9 +299,10 @@ interface UngroupedProps {
   onPick: (cf: CrewField) => void;
   liveValueByField: Record<string, unknown>;
   showCrewChip: boolean;
+  enumNameById: Map<string, string>;
 }
 
-function UngroupedFields({ group, onPick, liveValueByField, showCrewChip }: UngroupedProps) {
+function UngroupedFields({ group, onPick, liveValueByField, showCrewChip, enumNameById }: UngroupedProps) {
   return (
     <div className={styles.ungrouped}>
       <div className={styles.list}>
@@ -298,6 +313,7 @@ function UngroupedFields({ group, onPick, liveValueByField, showCrewChip }: Ungr
             onPick={onPick}
             liveValue={liveValueByField[cf.field.name]}
             showCrewChip={showCrewChip}
+            enumNameById={enumNameById}
           />
         ))}
       </div>
@@ -310,9 +326,10 @@ interface FieldRowProps {
   onPick: (cf: CrewField) => void;
   liveValue?: unknown;
   showCrewChip: boolean;
+  enumNameById: Map<string, string>;
 }
 
-function FieldRow({ cf, onPick, liveValue, showCrewChip }: FieldRowProps) {
+function FieldRow({ cf, onPick, liveValue, showCrewChip, enumNameById }: FieldRowProps) {
   const { updateConversationMemoryField, previewConversationId } = useBuilder();
   const src = SOURCE_LABEL[cf.field.source];
   const hasValue = liveValue !== undefined;
@@ -351,8 +368,19 @@ function FieldRow({ cf, onPick, liveValue, showCrewChip }: FieldRowProps) {
         )}
       </div>
       <div className={styles.pills}>
-        <span className={styles.typePill}>
-          {TYPE_LABEL[cf.field.type] ?? cf.field.type}
+        <span
+          className={styles.typePill}
+          title={
+            cf.field.type === 'enum' && cf.field.enumType
+              ? enumNameById.has(cf.field.enumType)
+                ? `Enum type "${enumNameById.get(cf.field.enumType)}"`
+                : `Enum binding "${cf.field.enumType}" is missing from the bible`
+              : undefined
+          }
+        >
+          {cf.field.type === 'enum' && cf.field.enumType
+            ? `enum · ${enumNameById.get(cf.field.enumType) ?? '(missing)'}`
+            : TYPE_LABEL[cf.field.type] ?? cf.field.type}
         </span>
         <span className={styles.sourcePill} title={src?.label}>
           {src?.icon ?? ''} {src?.label ?? cf.field.source}
