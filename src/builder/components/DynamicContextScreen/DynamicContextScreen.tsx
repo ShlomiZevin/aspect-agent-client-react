@@ -1,1391 +1,798 @@
 /**
- * DynamicContextScreen — full-screen DC authoring surface.
+ * EnumBibleScreen — agent-level enum type editor (the "bible").
  *
- * Promoted from the v1 modal surface that used to live in SchemaPanel.
- * Reuses the same UX shape — enum fields as collapsible groups, cases
- * underneath, fallback as a special row, MentionTextarea in the editor
- * — and extends it with:
+ * Replaces the old DynamicContextScreen. The DC concept (per-field
+ * `dynamicContexts[]`) was retired in favour of agent-level
+ * `enums[]`: every value vocabulary is declared ONCE, multiple fields
+ * can share an enum (`primary_motive: motive`, `secondary_motive: motive`),
+ * and per-value knowledge (umbrella + sections) lives on the enum so it
+ * isn't duplicated per field.
  *
- *   • URL routing — /<agent>/builder/dynamic-context[/field[/value[/section]]]
- *     drives selection. Every level is bookmarkable.
- *   • Sections — a third hierarchy level under each case. Each case has
- *     an optional umbrella (the old `text`) plus an ordered list of
- *     named sub-prompts. Authors a `{{dynamic:F:S}}` token per section.
- *   • A view toggle — tree (default) vs columns.
- *   • A breadcrumb that mirrors the URL.
+ *   URL routing
+ *     /<agent>/builder/enums
+ *     /<agent>/builder/enums/<enumName>
+ *     /<agent>/builder/enums/<enumName>/<value>
+ *     /<agent>/builder/enums/<enumName>/<value>/<section>
+ *     /<agent>/builder/enums/<enumName>/-/<section>     ← section without value
  *
- * Persistence: edits write straight through `updateAgent`. There's no
- * local draft buffer. AutoSave handles the rest, matching every other
- * Canvas panel (Parameters, Domains, Fields).
+ *   `-` in the value slot means "no value picked, but a section is".
+ *   Lets the author author the section schema (name + delete) and hop
+ *   between values while staying on the same section — comparing
+ *   `how_to_identify` across every value with one click each.
+ *
+ *   Tokens consumed by other prompts
+ *     {{enum:NAME}}                       — aggregate, every value's umbrella
+ *     {{enum:NAME:SECTION}}               — aggregate, every value's section body
+ *     {{dc:FIELD}}                        — live value's umbrella (FIELD is enum-typed)
+ *     {{dc:FIELD:SECTION}}                — live value's section body
+ *     {{dc:FIELD:*}}                      — every section under the live value
+ *
+ * Layout: three columns. Left = enums list; middle = active enum's
+ * values + declared sections; right = editor for whatever's active.
+ * Edits write straight through to BuilderContext via `updateAgent`;
+ * AutoSave persists the result. No local draft buffer.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { useConfirm } from '../Confirm/Confirm';
 import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../MentionTextarea/useMentionOptions';
-import { useSnippetCreator } from '../Snippets/SnippetCreator';
-import { ExpandPromptToggle } from '../Snippets/ExpandPromptToggle';
-import { ExpandedPromptView } from '../Snippets/ExpandedPromptView';
-import { AddFieldModal } from '../FieldsPanel/AddFieldModal';
+import {
+  sanitiseName,
+  newEnumId,
+  newEnumValueId,
+  uniqueSectionName,
+  isReservedSectionName,
+} from './helpers';
 import type {
-  DynamicContextCase,
-  DynamicContextDef,
-  DynamicContextSection,
-  FieldDef,
+  EnumSectionDecl,
+  EnumTypeDef,
+  EnumValueDef,
   ID,
 } from '../../types';
-import {
-  FALLBACK_SEGMENT,
-  newDcId,
-  sanitiseSectionName,
-  snippetOf,
-  syncCases,
-  uniqueSectionName,
-} from './helpers';
 import styles from './DynamicContextScreen.module.css';
 
-type View = 'tree' | 'columns';
+/** Sentinel for "no value picked, but a section is" inside URLs. */
+const NO_VALUE = '-';
 
 export function DynamicContextScreen() {
-  const { agent: agentSlug, fieldName, value, section } = useParams<{
-    agent: string;
-    fieldName?: string;
-    value?: string;
-    section?: string;
-  }>();
   const navigate = useNavigate();
   const { doc, updateAgent } = useBuilder();
   const confirm = useConfirm();
-
-  // First agent is the implicit current one — same convention as
-  // BuilderContext's initial selection.
   const agent = doc.agents[0];
-  const openCreateSnippet = useSnippetCreator();
-  const mentionOptions = useMentionOptions(agent?.id ?? '', {
-    onCreateSnippet: agent?.id ? () => openCreateSnippet(agent.id) : undefined,
-  });
+  const agentSlug = agent?.slug ?? '';
+  const mentionOptions = useMentionOptions(agent?.id ?? '');
 
-  // ── Enum-field roster (the navigable universe) ─────────────────
-  const enumFields = useMemo<FieldDef[]>(
-    () => (agent?.fields ?? [])
-      .filter(f => f.type === 'enum' && Array.isArray(f.enumValues) && f.enumValues.length > 0)
-      .sort((a, b) => a.name.localeCompare(b.name)),
-    [agent?.fields],
-  );
+  const {
+    enumName: paramEnum,
+    value:    paramValueRaw,
+    section:  paramSection,
+  } = useParams<{ enumName?: string; value?: string; section?: string }>();
+  const paramValue = paramValueRaw === NO_VALUE ? undefined : paramValueRaw;
 
-  const dcByFieldId = useMemo(() => {
-    const m = new Map<ID, DynamicContextDef>();
-    for (const d of agent?.dynamicContexts ?? []) m.set(d.fieldId, d);
-    return m;
-  }, [agent?.dynamicContexts]);
+  const enums = useMemo(() => agent?.enums ?? [], [agent?.enums]);
 
-  // Resolve current URL params into concrete state.
-  const activeField = useMemo<FieldDef | null>(() => {
-    if (!fieldName) return null;
-    return enumFields.find(f => f.name === fieldName) ?? null;
-  }, [fieldName, enumFields]);
+  const activeEnum = useMemo<EnumTypeDef | null>(() => {
+    if (!paramEnum) return null;
+    return enums.find(e => e.name === paramEnum) ?? null;
+  }, [enums, paramEnum]);
 
-  const activeDc = useMemo<DynamicContextDef | null>(() => {
-    if (!activeField) return null;
-    const raw = dcByFieldId.get(activeField.id);
-    if (!raw) return null;
-    // Sync with current enumValues so the UI never shows stale cases.
-    return syncCases(raw, activeField);
-  }, [activeField, dcByFieldId]);
+  const activeValue = useMemo<EnumValueDef | null>(() => {
+    if (!activeEnum || !paramValue) return null;
+    return activeEnum.values.find(v => v.value === paramValue) ?? null;
+  }, [activeEnum, paramValue]);
 
-  const isFallback = value === FALLBACK_SEGMENT;
-  const activeCase = useMemo<DynamicContextCase | null>(() => {
-    if (!activeDc || !value || isFallback) return null;
-    return activeDc.cases.find(c => c.value === value) ?? null;
-  }, [activeDc, value, isFallback]);
+  const activeSection = useMemo<EnumSectionDecl | null>(() => {
+    if (!activeEnum || !paramSection) return null;
+    return (activeEnum.sections ?? []).find(s => s.name === paramSection) ?? null;
+  }, [activeEnum, paramSection]);
 
-  // The active section is a DC-level declaration (lives on
-  // `dc.sections`); the body shown in the editor is pulled from the
-  // active case's `sectionTexts[name]` separately.
-  const activeSection = useMemo<DynamicContextSection | null>(() => {
-    if (!activeDc || !section) return null;
-    return activeDc.sections?.find(s => s.name === section) ?? null;
-  }, [activeDc, section]);
-
-  // ── View mode (local UI state, not URL) ────────────────────────
-  const [view, setView] = useState<View>('tree');
-
-  // ── Mutation helpers — write through to the doc ────────────────
-
-  const writeDcs = useCallback((nextDcs: DynamicContextDef[]) => {
+  // ── Persistence helpers ──────────────────────────────────────────
+  const writeEnums = useCallback((nextEnums: EnumTypeDef[]) => {
     if (!agent) return;
-    updateAgent(agent.id, { dynamicContexts: nextDcs });
+    updateAgent(agent.id, { enums: nextEnums });
   }, [agent, updateAgent]);
 
-  const upsertDc = useCallback((next: DynamicContextDef) => {
+  const upsertEnum = useCallback((next: EnumTypeDef) => {
     if (!agent) return;
-    const current = agent.dynamicContexts ?? [];
-    const idx = current.findIndex(d => d.id === next.id);
-    const updated = idx === -1
-      ? [...current, next]
-      : current.map(d => (d.id === next.id ? next : d));
-    writeDcs(updated);
-  }, [agent, writeDcs]);
+    const current = agent.enums ?? [];
+    const i = current.findIndex(e => e.id === next.id);
+    writeEnums(i === -1 ? [...current, next] : current.map(e => (e.id === next.id ? next : e)));
+  }, [agent, writeEnums]);
 
-  const handleAttach = useCallback((field: FieldDef) => {
-    const fresh: DynamicContextDef = {
-      id:    newDcId(),
-      fieldId: field.id,
-      cases: (field.enumValues ?? []).map(v => ({ value: v, text: '' })),
-    };
-    upsertDc(fresh);
-    // Navigate to the first case so the editor is immediately useful.
-    const firstValue = field.enumValues?.[0];
-    if (firstValue) {
-      navigate(`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(field.name)}/${encodeURIComponent(firstValue)}`);
-    } else {
-      navigate(`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(field.name)}`);
+  // ── URL builders ─────────────────────────────────────────────────
+  /** Always preserves the section if one is active so switching value
+   *  while comparing sections is one click away. */
+  const urlEnum = (enumName: string) =>
+    `/${agentSlug}/builder/enums/${encodeURIComponent(enumName)}`;
+  const urlValue = (enumName: string, value: string, section?: string) =>
+    `${urlEnum(enumName)}/${encodeURIComponent(value)}` +
+    (section ? `/${encodeURIComponent(section)}` : '');
+  const urlSection = (enumName: string, value: string | null, section: string) =>
+    `${urlEnum(enumName)}/${encodeURIComponent(value ?? NO_VALUE)}/${encodeURIComponent(section)}`;
+
+  // ── Create / delete enums ────────────────────────────────────────
+  const handleCreateEnum = useCallback(() => {
+    if (!agent) return;
+    const base = 'new_enum';
+    let name = base;
+    let i = 2;
+    while ((agent.enums ?? []).some(e => e.name === name)) {
+      name = `${base}_${i}`;
+      i += 1;
     }
-  }, [upsertDc, navigate, agentSlug]);
+    const fresh: EnumTypeDef = { id: newEnumId(), name, sections: [], values: [] };
+    writeEnums([...(agent.enums ?? []), fresh]);
+    navigate(urlEnum(name));
+  }, [agent, agentSlug, navigate, writeEnums]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /**
-   * Drop the entire DC for a field — wipes every case prompt and any
-   * sections the user authored. Confirms first because this is
-   * destructive (the prompts can't be recovered from anywhere else).
-   * Navigates back to the field landing once removed so the user
-   * isn't stuck on a stale URL pointing at a value that no longer
-   * has any DC content.
-   */
-  const handleDetach = useCallback(async (field: FieldDef) => {
-    if (!agent) return;
-    const current = agent.dynamicContexts ?? [];
-    const target = current.find(d => d.fieldId === field.id);
-    if (!target) return;
-    const caseCount = target.cases.length;
+  const handleDeleteEnum = useCallback(async (e: EnumTypeDef) => {
     const ok = await confirm({
-      title: `Detach Dynamic Context from "${field.name}"?`,
-      message:
-        `This will delete every case prompt you've authored on this field ` +
-        `(${caseCount} case${caseCount === 1 ? '' : 's'}` +
-        `${(target.sections ?? []).length > 0
-          ? `, plus all sections under each case`
-          : ''}` +
-        `${target.fallback ? `, plus the fallback` : ''}). ` +
-        `The field declaration and its enum values stay — only the DC is removed. ` +
-        `This can't be undone.`,
-      confirmLabel: 'Detach',
-      danger: true,
-    });
-    if (!ok) return;
-    writeDcs(current.filter(d => d.id !== target.id));
-    // If the URL currently points at this field, send the user back
-    // to the DC root so the editor doesn't try to render a stale case.
-    if (fieldName === field.name) {
-      navigate(`/${agentSlug}/builder/dynamic-context`);
-    }
-  }, [agent, confirm, writeDcs, fieldName, navigate, agentSlug]);
-
-  /** Push a new enum value onto a field AND seed an empty case on its DC. */
-  const handleAddValue = useCallback((field: FieldDef, rawValue: string) => {
-    if (!agent) return;
-    const v = rawValue.trim();
-    if (!v) return;
-    const existing = field.enumValues ?? [];
-    if (existing.includes(v)) return;
-    const nextFields = agent.fields.map(f =>
-      f.id === field.id ? { ...f, enumValues: [...existing, v] } : f,
-    );
-    updateAgent(agent.id, { fields: nextFields });
-    const dc = dcByFieldId.get(field.id);
-    if (dc) {
-      upsertDc({ ...dc, cases: [...dc.cases, { value: v, text: '' }] });
-    }
-  }, [agent, updateAgent, dcByFieldId, upsertDc]);
-
-  /** Remove an enum value AND its matching case. Confirms first. */
-  const handleRemoveValue = useCallback(async (field: FieldDef, val: string) => {
-    if (!agent) return;
-    const ok = await confirm({
-      title:        `Remove "${val}" from ${field.name}?`,
-      message:      'This deletes the enum value from the field and discards the text authored for that case. Other places that reference this value will see it disappear.',
-      confirmLabel: 'Remove',
+      title:        `Delete enum "${e.name}"?`,
+      message:      `Every value and section authored under this enum is removed. Any field with enumType pointing at this enum will be left unwired.`,
+      confirmLabel: 'Delete',
       danger:       true,
     });
     if (!ok) return;
-    const nextFields = agent.fields.map(f =>
-      f.id === field.id ? { ...f, enumValues: (f.enumValues ?? []).filter(x => x !== val) } : f,
-    );
-    updateAgent(agent.id, { fields: nextFields });
-    const dc = dcByFieldId.get(field.id);
-    if (dc) {
-      upsertDc({ ...dc, cases: dc.cases.filter(c => c.value !== val) });
-    }
-    // If the URL was pointing at the removed value, drop back to the field.
-    if (fieldName === field.name && value === val) {
-      navigate(`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(field.name)}`);
-    }
-  }, [agent, confirm, updateAgent, dcByFieldId, upsertDc, fieldName, value, navigate, agentSlug]);
+    writeEnums((agent?.enums ?? []).filter(x => x.id !== e.id));
+    navigate(`/${agentSlug}/builder/enums`);
+  }, [agent, agentSlug, confirm, navigate, writeEnums]);
 
-  /** Rename a case value — cascades into the field's enumValues. */
-  const handleRenameValue = useCallback((field: FieldDef, oldVal: string, raw: string): boolean => {
-    if (!agent) return false;
-    const next = raw.trim();
-    if (!next || next === oldVal) return false;
-    const existing = field.enumValues ?? [];
-    if (existing.includes(next)) return false;
-    const nextFields = agent.fields.map(f =>
-      f.id === field.id ? { ...f, enumValues: existing.map(v => (v === oldVal ? next : v)) } : f,
-    );
-    updateAgent(agent.id, { fields: nextFields });
-    const dc = dcByFieldId.get(field.id);
-    if (dc) {
-      upsertDc({
-        ...dc,
-        cases: dc.cases.map(c => (c.value === oldVal ? { ...c, value: next } : c)),
-      });
-    }
-    if (fieldName === field.name && value === oldVal) {
-      navigate(`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(field.name)}/${encodeURIComponent(next)}${section ? `/${encodeURIComponent(section)}` : ''}`);
-    }
+  const handleRenameEnum = useCallback((e: EnumTypeDef, rawNext: string): boolean => {
+    const next = sanitiseName(rawNext);
+    if (!next || next === e.name) return false;
+    if ((agent?.enums ?? []).some(x => x.name === next)) return false;
+    upsertEnum({ ...e, name: next });
+    navigate(urlEnum(next));
     return true;
-  }, [agent, updateAgent, dcByFieldId, upsertDc, fieldName, value, section, navigate, agentSlug]);
+  }, [agent, agentSlug, navigate, upsertEnum]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /** Write umbrella text for a case. */
-  const handleCaseTextChange = useCallback((dc: DynamicContextDef, val: string, text: string) => {
-    upsertDc({
-      ...dc,
-      cases: dc.cases.map(c => (c.value === val ? { ...c, text } : c)),
+  // ── Values within active enum ────────────────────────────────────
+  const handleAddValue = useCallback(() => {
+    if (!activeEnum) return;
+    const base = 'new_value';
+    let value = base;
+    let i = 2;
+    while (activeEnum.values.some(v => v.value === value)) {
+      value = `${base}_${i}`;
+      i += 1;
+    }
+    const fresh: EnumValueDef = { id: newEnumValueId(), value, sectionTexts: {} };
+    upsertEnum({ ...activeEnum, values: [...activeEnum.values, fresh] });
+    navigate(urlValue(activeEnum.name, value, paramSection));
+  }, [activeEnum, agentSlug, navigate, paramSection, upsertEnum]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleRenameValue = useCallback((v: EnumValueDef, rawNext: string): boolean => {
+    if (!activeEnum) return false;
+    const next = sanitiseName(rawNext);
+    if (!next || next === v.value) return false;
+    if (activeEnum.values.some(x => x.value === next)) return false;
+    upsertEnum({
+      ...activeEnum,
+      values: activeEnum.values.map(x => (x.id === v.id ? { ...x, value: next } : x)),
     });
-  }, [upsertDc]);
-
-  const handleFallbackChange = useCallback((dc: DynamicContextDef, text: string) => {
-    upsertDc({ ...dc, fallback: text });
-  }, [upsertDc]);
-
-  // Sections are declared on the DC (shared across every case) — so
-  // these handlers all operate at the DC level, with `caseValue` only
-  // showing up where we need to navigate back into the case that was
-  // active when the user fired the action.
-
-  const handleAddSection = useCallback((dc: DynamicContextDef, caseValue: string, rawName: string) => {
-    const sanitised = sanitiseSectionName(rawName);
-    if (!sanitised) return;
-    const existing = dc.sections ?? [];
-    const name = uniqueSectionName(sanitised, existing);
-    const nextDc: DynamicContextDef = {
-      ...dc,
-      sections: [...existing, { name }],
-    };
-    upsertDc(nextDc);
-    // Navigate into the new section under whichever case is active.
-    if (activeField) {
-      navigate(`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(activeField.name)}/${encodeURIComponent(caseValue)}/${encodeURIComponent(name)}`);
-    }
-  }, [upsertDc, activeField, agentSlug, navigate]);
-
-  const handleRenameSection = useCallback((dc: DynamicContextDef, oldName: string, raw: string): boolean => {
-    const sanitised = sanitiseSectionName(raw);
-    if (!sanitised || sanitised === oldName) return false;
-    const existing = dc.sections ?? [];
-    const others = existing.filter(s => s.name !== oldName);
-    if (others.some(s => s.name === sanitised)) return false; // duplicate
-    // Rename the declaration on the DC AND migrate the keyed bodies on
-    // every case so authored content survives the rename. Cases that
-    // didn't have a body for `oldName` stay untouched.
-    const nextDc: DynamicContextDef = {
-      ...dc,
-      sections: existing.map(s => (s.name === oldName ? { ...s, name: sanitised } : s)),
-      cases: dc.cases.map(c => {
-        const t = c.sectionTexts;
-        if (!t || !(oldName in t)) return c;
-        const next: Record<string, string> = { ...t };
-        next[sanitised] = next[oldName];
-        delete next[oldName];
-        return { ...c, sectionTexts: next };
-      }),
-    };
-    upsertDc(nextDc);
-    if (activeField && fieldName === activeField.name && section === oldName) {
-      navigate(`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(activeField.name)}/${encodeURIComponent(value ?? '')}/${encodeURIComponent(sanitised)}`);
-    }
+    navigate(urlValue(activeEnum.name, next, paramSection));
     return true;
-  }, [upsertDc, activeField, fieldName, value, section, navigate, agentSlug]);
+  }, [activeEnum, agentSlug, navigate, paramSection, upsertEnum]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSectionTextChange = useCallback((dc: DynamicContextDef, caseValue: string, sectionName: string, text: string) => {
-    upsertDc({
-      ...dc,
-      cases: dc.cases.map(c =>
-        c.value === caseValue
-          ? { ...c, sectionTexts: { ...(c.sectionTexts ?? {}), [sectionName]: text } }
-          : c,
+  const handleDeleteValue = useCallback(async (v: EnumValueDef) => {
+    if (!activeEnum) return;
+    const ok = await confirm({
+      title:        `Delete value "${v.value}"?`,
+      message:      `The umbrella prompt and every section body authored under this value are removed.`,
+      confirmLabel: 'Delete',
+      danger:       true,
+    });
+    if (!ok) return;
+    upsertEnum({ ...activeEnum, values: activeEnum.values.filter(x => x.id !== v.id) });
+    // If a section is active, stay on it in no-value mode so the
+    // author can pivot to another value with the same section showing.
+    if (paramSection) {
+      navigate(urlSection(activeEnum.name, null, paramSection));
+    } else {
+      navigate(urlEnum(activeEnum.name));
+    }
+  }, [activeEnum, agentSlug, confirm, navigate, paramSection, upsertEnum]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleValueUmbrellaChange = useCallback((text: string) => {
+    if (!activeEnum || !activeValue) return;
+    upsertEnum({
+      ...activeEnum,
+      values: activeEnum.values.map(x =>
+        x.id === activeValue.id ? { ...x, umbrellaText: text } : x,
       ),
     });
-  }, [upsertDc]);
+  }, [activeEnum, activeValue, upsertEnum]);
 
-  const handleRemoveSection = useCallback(async (dc: DynamicContextDef, caseValue: string, sectionName: string) => {
+  // ── Sections (declared on the enum, body per value) ──────────────
+  const handleAddSection = useCallback(() => {
+    if (!activeEnum) return;
+    const declared = activeEnum.sections ?? [];
+    const name = uniqueSectionName('new_section', declared);
+    upsertEnum({ ...activeEnum, sections: [...declared, { name }] });
+    // Land on the new section with NO value picked so the author can
+    // immediately rename it via the inline rename in the editor pane.
+    navigate(urlSection(activeEnum.name, null, name));
+  }, [activeEnum, agentSlug, navigate, upsertEnum]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleRenameSection = useCallback((oldName: string, rawNext: string): boolean => {
+    if (!activeEnum) return false;
+    const next = sanitiseName(rawNext);
+    if (!next || next === oldName) return false;
+    // `values` would collide with the {{enum:NAME:values}} token —
+    // forbid it so authors don't accidentally shadow it.
+    if (isReservedSectionName(next)) return false;
+    const declared = activeEnum.sections ?? [];
+    if (declared.some(s => s.name === next)) return false;
+    // Cascade body rename through every value's sectionTexts so authored
+    // bodies follow their section name.
+    const renamedValues = activeEnum.values.map(v => {
+      if (!v.sectionTexts) return v;
+      if (!(oldName in v.sectionTexts)) return v;
+      const { [oldName]: body, ...rest } = v.sectionTexts;
+      return { ...v, sectionTexts: { ...rest, [next]: body } };
+    });
+    upsertEnum({
+      ...activeEnum,
+      sections: declared.map(s => (s.name === oldName ? { name: next } : s)),
+      values:   renamedValues,
+    });
+    if (paramSection === oldName) {
+      navigate(urlSection(activeEnum.name, paramValue ?? null, next));
+    }
+    return true;
+  }, [activeEnum, agentSlug, navigate, paramSection, paramValue, upsertEnum]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleDeleteSection = useCallback(async (name: string) => {
+    if (!activeEnum) return;
     const ok = await confirm({
-      title:        `Remove section "${sectionName}"?`,
-      message:      'This is shared across every value of this field — removing it deletes the section and its authored body under every case. Any addon prompts referencing it via {{dynamic:…:…}} will resolve to empty.',
-      confirmLabel: 'Remove',
+      title:        `Delete section "${name}"?`,
+      message:      `Removed from every value of "${activeEnum.name}". Any prompts referencing {{enum:${activeEnum.name}:${name}}} or {{dc:<field>:${name}}} will resolve to empty.`,
+      confirmLabel: 'Delete',
       danger:       true,
     });
     if (!ok) return;
-    upsertDc({
-      ...dc,
-      sections: (dc.sections ?? []).filter(s => s.name !== sectionName),
-      cases: dc.cases.map(c => {
-        if (!c.sectionTexts || !(sectionName in c.sectionTexts)) return c;
-        const next = { ...c.sectionTexts };
-        delete next[sectionName];
-        return { ...c, sectionTexts: next };
+    const declared = (activeEnum.sections ?? []).filter(s => s.name !== name);
+    const strippedValues = activeEnum.values.map(v => {
+      if (!v.sectionTexts || !(name in v.sectionTexts)) return v;
+      const { [name]: _, ...rest } = v.sectionTexts;
+      return { ...v, sectionTexts: rest };
+    });
+    upsertEnum({ ...activeEnum, sections: declared, values: strippedValues });
+    if (paramSection === name) {
+      // Drop the section from the URL but keep the value if one was
+      // picked — falls back to enum view otherwise.
+      if (paramValue) navigate(urlValue(activeEnum.name, paramValue));
+      else            navigate(urlEnum(activeEnum.name));
+    }
+  }, [activeEnum, agentSlug, confirm, navigate, paramSection, paramValue, upsertEnum]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSectionBodyChange = useCallback((text: string) => {
+    if (!activeEnum || !activeValue || !activeSection) return;
+    upsertEnum({
+      ...activeEnum,
+      values: activeEnum.values.map(x => {
+        if (x.id !== activeValue.id) return x;
+        const next = { ...(x.sectionTexts ?? {}), [activeSection.name]: text };
+        return { ...x, sectionTexts: next };
       }),
     });
-    if (activeField && fieldName === activeField.name && section === sectionName) {
-      navigate(`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(activeField.name)}/${encodeURIComponent(caseValue)}`);
+  }, [activeEnum, activeValue, activeSection, upsertEnum]);
+
+  // ── Navigation handlers for the list rows ────────────────────────
+  const pickValue = (v: EnumValueDef) => {
+    if (!activeEnum) return;
+    // Toggle off when clicking the already-active value — same affordance
+    // as the section list. If a section is active, stay on it (no-value
+    // mode) so the author can pick another value with the same section
+    // showing.
+    if (activeValue?.id === v.id) {
+      if (activeSection) navigate(urlSection(activeEnum.name, null, activeSection.name));
+      else               navigate(urlEnum(activeEnum.name));
+      return;
     }
-  }, [confirm, upsertDc, activeField, fieldName, section, navigate, agentSlug]);
+    navigate(urlValue(activeEnum.name, v.value, paramSection));
+  };
+  const pickSection = (s: EnumSectionDecl) => {
+    if (!activeEnum) return;
+    // Toggle off when clicking the already-active section.
+    if (activeSection?.name === s.name) {
+      if (activeValue) navigate(urlValue(activeEnum.name, activeValue.value));
+      else             navigate(urlEnum(activeEnum.name));
+      return;
+    }
+    navigate(urlSection(activeEnum.name, activeValue?.value ?? null, s.name));
+  };
 
-  // ── Create-enum-field flow ─────────────────────────────────────
-  // The DC page lets the author declare a new enum field without
-  // leaving for the Schema panel. Opens the standard AddFieldModal
-  // with the type locked so the form is "just name + values" — the
-  // most common case from this screen. After save, the field shows
-  // up in the sidebar as "not attached" until the user authors a
-  // prompt for one of its values.
-  const [createOpen, setCreateOpen] = useState(false);
-  const openCreate = useCallback(() => setCreateOpen(true), []);
-  const onFieldCreated = useCallback((created: FieldDef) => {
-    setCreateOpen(false);
-    // Navigate to the new field so the editor surface lands on
-    // something useful — same UX shape as `handleAttach` after a DC
-    // is created.
-    navigate(`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(created.name)}`);
-  }, [navigate, agentSlug]);
+  if (!agent) return null;
 
-  // ── Render ──────────────────────────────────────────────────────
-
-  if (!agent) {
-    return (
-      <div className={styles.root}>
-        <div className={styles.empty}>No agent loaded.</div>
-      </div>
-    );
-  }
-
+  // ── Render ────────────────────────────────────────────────────────
   return (
     <div className={styles.root}>
       <div className={styles.topBar}>
-        <Breadcrumb
-          agentSlug={agentSlug ?? ''}
-          fieldName={fieldName}
-          value={value}
-          section={section}
-          isFallback={isFallback}
-        />
-        <div className={styles.viewToggle} role="tablist" aria-label="View mode">
+        <div className={styles.breadcrumb}>
           <button
             type="button"
-            role="tab"
-            aria-selected={view === 'tree'}
-            className={`${styles.viewToggleBtn} ${view === 'tree' ? styles.viewToggleBtnActive : ''}`}
-            onClick={() => setView('tree')}
-          >Tree</button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === 'columns'}
-            className={`${styles.viewToggleBtn} ${view === 'columns' ? styles.viewToggleBtnActive : ''}`}
-            onClick={() => setView('columns')}
-          >Columns</button>
+            className={`${styles.crumb} ${!paramEnum ? styles.crumbCurrent : ''}`}
+            onClick={() => navigate(`/${agentSlug}/builder/enums`)}
+          >
+            Enums
+          </button>
+          {activeEnum && (
+            <>
+              <span> / </span>
+              <button
+                type="button"
+                className={`${styles.crumb} ${!paramValue && !paramSection ? styles.crumbCurrent : ''}`}
+                onClick={() => navigate(urlEnum(activeEnum.name))}
+              >
+                {activeEnum.name}
+              </button>
+            </>
+          )}
+          {activeEnum && activeValue && (
+            <>
+              <span> / </span>
+              <button
+                type="button"
+                className={`${styles.crumb} ${!paramSection ? styles.crumbCurrent : ''}`}
+                onClick={() => navigate(urlValue(activeEnum.name, activeValue.value))}
+              >
+                {activeValue.value}
+              </button>
+            </>
+          )}
+          {activeSection && (
+            <>
+              <span> / </span>
+              <span className={`${styles.crumb} ${styles.crumbCurrent}`}>{activeSection.name}</span>
+            </>
+          )}
         </div>
       </div>
 
-      <div className={`${styles.body} ${view === 'columns' ? styles.bodyColumns : ''}`}>
-        {view === 'tree' ? (
-          <TreeNav
-            agentSlug={agentSlug ?? ''}
-            enumFields={enumFields}
-            dcByFieldId={dcByFieldId}
-            activeFieldName={fieldName}
-            activeValue={value}
-            activeSection={section}
-            onAttach={handleAttach}
-            onDetach={handleDetach}
-            onAddValue={handleAddValue}
-            onRemoveValue={handleRemoveValue}
-            onAddSection={handleAddSection}
-            onRemoveSection={handleRemoveSection}
-            onCreateField={openCreate}
-          />
-        ) : (
-          <ColumnsNav
-            agentSlug={agentSlug ?? ''}
-            enumFields={enumFields}
-            dcByFieldId={dcByFieldId}
-            activeField={activeField}
-            activeDc={activeDc}
-            activeCase={activeCase}
-            activeSection={section}
-            isFallback={isFallback}
-            onAttach={handleAttach}
-            onDetach={handleDetach}
-            onAddValue={handleAddValue}
-            onRemoveValue={handleRemoveValue}
-            onAddSection={handleAddSection}
-            onRemoveSection={handleRemoveSection}
-            onCreateField={openCreate}
-          />
-        )}
+      <div style={{ display: 'grid', gridTemplateColumns: '220px 240px 1fr', gap: 16, alignItems: 'start' }}>
+        {/* ── Column 1: enums list ──────────────────────────────── */}
+        <Column title="Enums" onAdd={handleCreateEnum} addLabel="+ Add enum">
+          {enums.length === 0 ? (
+            <Empty>Declare an enum to start the bible.</Empty>
+          ) : (
+            <List
+              items={enums.map(e => ({
+                key:      e.id,
+                label:    e.name,
+                active:   e.id === activeEnum?.id,
+                onDelete: () => handleDeleteEnum(e),
+              }))}
+              onPick={({ key }) => {
+                const e = enums.find(x => x.id === key)!;
+                navigate(urlEnum(e.name));
+              }}
+            />
+          )}
+        </Column>
 
-        <Editor
-          agentId={agent.id}
-          activeField={activeField}
-          activeDc={activeDc}
-          activeCase={activeCase}
-          activeSection={activeSection}
-          isFallback={isFallback}
-          mentionOptions={mentionOptions}
-          onRenameValue={handleRenameValue}
-          onRenameSection={handleRenameSection}
-          onCaseTextChange={handleCaseTextChange}
-          onFallbackChange={handleFallbackChange}
-          onSectionTextChange={handleSectionTextChange}
-        />
+        {/* ── Column 2: values + section schema ─────────────────── */}
+        <Column
+          title={activeEnum ? `${activeEnum.name} · values` : 'Values'}
+          onAdd={activeEnum ? handleAddValue : undefined}
+          addLabel="+ Add value"
+        >
+          {!activeEnum ? (
+            <Empty>Pick an enum on the left.</Empty>
+          ) : (
+            <>
+              {activeEnum.values.length === 0 ? (
+                <Empty>No values yet. Add one to start authoring.</Empty>
+              ) : (
+                <List
+                  items={activeEnum.values.map(v => ({
+                    key:      v.id,
+                    label:    v.value,
+                    active:   v.id === activeValue?.id,
+                    onDelete: () => handleDeleteValue(v),
+                  }))}
+                  onPick={({ key }) => {
+                    const v = activeEnum.values.find(x => x.id === key);
+                    if (v) pickValue(v);
+                  }}
+                />
+              )}
+
+              {/* Sections schema — declared on the enum, shared across values.
+                  Sections are clickable regardless of whether a value is
+                  selected: comparing the same section across values is one
+                  click each. */}
+              <div style={{ marginTop: 16 }}>
+                <ColumnSubtitle title="Sections" onAdd={handleAddSection} addLabel="+ Add section" />
+                {(activeEnum.sections ?? []).length === 0 ? (
+                  <Empty>No sections yet.</Empty>
+                ) : (
+                  <List
+                    items={(activeEnum.sections ?? []).map(s => ({
+                      key:      s.name,
+                      label:    s.name,
+                      active:   s.name === activeSection?.name,
+                      onDelete: () => handleDeleteSection(s.name),
+                    }))}
+                    onPick={({ key }) => {
+                      const s = (activeEnum.sections ?? []).find(x => x.name === key);
+                      if (s) pickSection(s);
+                    }}
+                  />
+                )}
+              </div>
+            </>
+          )}
+        </Column>
+
+        {/* ── Column 3: editor pane ─────────────────────────────── */}
+        <div>
+          {!activeEnum && <Hint>Pick an enum on the left, or add one.</Hint>}
+
+          {/* Enum-only — metadata + section schema editor. */}
+          {activeEnum && !activeValue && !activeSection && (
+            <EnumMetaEditor
+              enumDef={activeEnum}
+              onRename={(next) => handleRenameEnum(activeEnum, next)}
+              onDelete={() => handleDeleteEnum(activeEnum)}
+            />
+          )}
+
+          {/* Value-only — umbrella editor. */}
+          {activeEnum && activeValue && !activeSection && (
+            <ValueUmbrellaEditor
+              key={`${activeEnum.id}/${activeValue.id}`}
+              enumDef={activeEnum}
+              value={activeValue}
+              mentionOptions={mentionOptions}
+              onRename={(next) => handleRenameValue(activeValue, next)}
+              onDelete={() => handleDeleteValue(activeValue)}
+              onChange={handleValueUmbrellaChange}
+            />
+          )}
+
+          {/* Section-only (no value) — section name editor + hint to pick a value. */}
+          {activeEnum && !activeValue && activeSection && (
+            <SectionMetaEditor
+              key={`${activeEnum.id}/section:${activeSection.name}`}
+              section={activeSection}
+              onRename={(next) => handleRenameSection(activeSection.name, next)}
+              onDelete={() => handleDeleteSection(activeSection.name)}
+            />
+          )}
+
+          {/* Value + section — body editor, with editable name and delete. */}
+          {activeEnum && activeValue && activeSection && (
+            <SectionBodyEditor
+              key={`${activeEnum.id}/${activeValue.id}/${activeSection.name}`}
+              enumDef={activeEnum}
+              value={activeValue}
+              section={activeSection}
+              body={activeValue.sectionTexts?.[activeSection.name] ?? ''}
+              mentionOptions={mentionOptions}
+              onRename={(next) => handleRenameSection(activeSection.name, next)}
+              onDelete={() => handleDeleteSection(activeSection.name)}
+              onChange={handleSectionBodyChange}
+            />
+          )}
+        </div>
       </div>
+    </div>
+  );
+}
 
-      <AddFieldModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        agentId={agent.id}
-        crewId={agent.crews[0]?.id ?? ''}
-        lockedType="enum"
-        onCreated={onFieldCreated}
+// ────────────────────────────────────────────────────────────────────
+// Editor panes
+// ────────────────────────────────────────────────────────────────────
+
+function EnumMetaEditor({
+  enumDef, onRename, onDelete,
+}: {
+  enumDef: EnumTypeDef;
+  onRename: (next: string) => boolean;
+  onDelete: () => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <SectionHeader>Enum</SectionHeader>
+      <InlineRename label="Name" value={enumDef.name} onCommit={onRename} />
+
+      <div style={{ marginTop: 14 }}>
+        <DangerBtn onClick={onDelete}>Delete this enum</DangerBtn>
+      </div>
+    </div>
+  );
+}
+
+function ValueUmbrellaEditor({
+  enumDef, value, mentionOptions, onRename, onDelete, onChange,
+}: {
+  enumDef: EnumTypeDef;
+  value: EnumValueDef;
+  mentionOptions: ReturnType<typeof useMentionOptions>;
+  onRename: (next: string) => boolean;
+  onDelete: () => void;
+  onChange: (text: string) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <SectionHeader>Value</SectionHeader>
+      <InlineRename label="Name" value={value.value} onCommit={onRename} />
+
+      <SectionHeader>Umbrella prompt</SectionHeader>
+      <MentionTextarea
+        value={value.umbrellaText ?? ''}
+        onChange={onChange}
+        options={mentionOptions}
+        placeholder="Umbrella briefing for this value — what the LLM should understand when this is what it's reasoning about."
+        rows={18}
+        storageKey={`enum:${enumDef.id}:val:${value.id}:umbrella`}
+      />
+
+      <div style={{ marginTop: 14 }}>
+        <DangerBtn onClick={onDelete}>Delete this value</DangerBtn>
+      </div>
+    </div>
+  );
+}
+
+function SectionMetaEditor({
+  section, onRename, onDelete,
+}: {
+  section: EnumSectionDecl;
+  onRename: (next: string) => boolean;
+  onDelete: () => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <SectionHeader>Section</SectionHeader>
+      <InlineRename label="Name" value={section.name} onCommit={onRename} />
+      <Hint>Pick a value on the left to author this section's body.</Hint>
+      <div style={{ marginTop: 14 }}>
+        <DangerBtn onClick={onDelete}>Delete this section</DangerBtn>
+      </div>
+    </div>
+  );
+}
+
+function SectionBodyEditor({
+  enumDef, value, section, body, mentionOptions,
+  onRename, onDelete, onChange,
+}: {
+  enumDef: EnumTypeDef;
+  value: EnumValueDef;
+  section: EnumSectionDecl;
+  body: string;
+  mentionOptions: ReturnType<typeof useMentionOptions>;
+  onRename: (next: string) => boolean;
+  onDelete: () => void;
+  onChange: (text: string) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <SectionHeader>Section</SectionHeader>
+      <InlineRename label="Name" value={section.name} onCommit={onRename} />
+
+      <SectionHeader>{`${value.value} · body`}</SectionHeader>
+      <MentionTextarea
+        value={body}
+        onChange={onChange}
+        options={mentionOptions}
+        placeholder={`Write the "${section.name}" briefing for ${enumDef.name} = ${value.value}…`}
+        rows={18}
+        storageKey={`enum:${enumDef.id}:val:${value.id}:sec:${section.name}`}
+      />
+
+      <div style={{ marginTop: 14 }}>
+        <DangerBtn onClick={onDelete}>Delete this section</DangerBtn>
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Inline primitives — minimal styling, slots into the existing CSS
+// module with a tiny appended ruleset (bibleListRow*) for hover delete.
+// ────────────────────────────────────────────────────────────────────
+
+function Column({
+  title, onAdd, addLabel, children,
+}: {
+  title: string;
+  onAdd?: () => void;
+  addLabel?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{
+      border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff',
+      padding: 12, display: 'flex', flexDirection: 'column', gap: 10,
+      minHeight: 320,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{
+          fontSize: 11, fontWeight: 700, color: '#4b5563',
+          textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1,
+        }}>{title}</span>
+        {onAdd && (
+          <button type="button" onClick={onAdd} style={{
+            fontSize: 11, fontWeight: 700, padding: '3px 10px',
+            border: '1px dashed #cbd5e1', borderRadius: 6, background: '#fff',
+            color: '#2563eb', cursor: 'pointer',
+          }}>{addLabel}</button>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ColumnSubtitle({
+  title, onAdd, addLabel,
+}: {
+  title: string;
+  onAdd?: () => void;
+  addLabel?: string;
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+      <span style={{
+        fontSize: 10.5, fontWeight: 700, color: '#6b7280',
+        textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1,
+      }}>{title}</span>
+      {onAdd && (
+        <button type="button" onClick={onAdd} style={{
+          fontSize: 10, fontWeight: 700, padding: '2px 8px',
+          border: '1px dashed #cbd5e1', borderRadius: 6, background: '#fff',
+          color: '#2563eb', cursor: 'pointer',
+        }}>{addLabel}</button>
+      )}
+    </div>
+  );
+}
+
+/** List of clickable rows. Each row optionally has a hover-revealed
+ *  ✕ delete button. */
+function List({
+  items, onPick,
+}: {
+  items: Array<{
+    key: string;
+    label: string;
+    active?: boolean;
+    onDelete?: () => void;
+  }>;
+  onPick: (item: { key: string }) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {items.map(item => (
+        <div
+          key={item.key}
+          role="button"
+          tabIndex={0}
+          onClick={() => onPick({ key: item.key })}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onPick({ key: item.key });
+            }
+          }}
+          className={`${styles.bibleListRow} ${item.active ? styles.bibleListRowActive : ''}`}
+        >
+          <span className={styles.bibleListRowLabel}>{item.label}</span>
+          {item.onDelete && (
+            <button
+              type="button"
+              className={styles.bibleListRowDelete}
+              onClick={e => {
+                e.stopPropagation();
+                item.onDelete!();
+              }}
+              title="Delete"
+              aria-label={`Delete ${item.label}`}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      padding: '12px 10px', fontSize: 12, color: '#6b7280',
+      background: '#f9fafb', borderRadius: 6, lineHeight: 1.5,
+    }}>{children}</div>
+  );
+}
+
+function Hint({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      padding: '10px 12px', fontSize: 12, color: '#4b5563',
+      background: '#f8fafc', borderRadius: 6, lineHeight: 1.6,
+      border: '1px solid #e2e8f0',
+    }}>{children}</div>
+  );
+}
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      fontSize: 11, fontWeight: 700, color: '#4b5563',
+      textTransform: 'uppercase', letterSpacing: '0.05em',
+      marginTop: 4,
+    }}>{children}</div>
+  );
+}
+
+function InlineRename({
+  label, value, onCommit, style,
+}: {
+  label: string | null;
+  value: string;
+  onCommit: (next: string) => boolean;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, ...(style ?? {}) }}>
+      {label !== null && (
+        <span style={{
+          fontSize: 10.5, fontWeight: 700, color: '#6b7280',
+          textTransform: 'uppercase', letterSpacing: '0.04em',
+        }}>{label}</span>
+      )}
+      <input
+        key={value}
+        defaultValue={value}
+        spellCheck={false}
+        onBlur={e => {
+          const ok = onCommit(e.currentTarget.value);
+          if (!ok) e.currentTarget.value = value;
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); }
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            e.currentTarget.value = value;
+            e.currentTarget.blur();
+          }
+        }}
+        style={{
+          fontFamily: 'ui-monospace, Menlo, monospace',
+          fontSize: 13, padding: '6px 10px',
+          border: '1px solid #e5e7eb', borderRadius: 6,
+          background: '#fff', color: '#111827',
+        }}
       />
     </div>
   );
 }
 
-/* ─── Breadcrumb ───────────────────────────────────────────────── */
-
-function Breadcrumb({
-  agentSlug, fieldName, value, section, isFallback,
+function DangerBtn({
+  children, onClick,
 }: {
-  agentSlug: string;
-  fieldName?: string;
-  value?: string;
-  section?: string;
-  isFallback: boolean;
+  children: React.ReactNode;
+  onClick: () => void;
 }) {
-  const crumbs: Array<{ label: string; to?: string }> = [
-    { label: 'Builder', to: `/${agentSlug}/builder` },
-    { label: 'Agent',   to: `/${agentSlug}/builder` },
-    { label: 'Dynamic Context', to: `/${agentSlug}/builder/dynamic-context` },
-  ];
-  if (fieldName) {
-    crumbs.push({
-      label: fieldName,
-      to: `/${agentSlug}/builder/dynamic-context/${encodeURIComponent(fieldName)}`,
-    });
-  }
-  if (fieldName && value) {
-    crumbs.push({
-      label: isFallback ? 'Fallback' : value,
-      to: section
-        ? `/${agentSlug}/builder/dynamic-context/${encodeURIComponent(fieldName)}/${encodeURIComponent(value)}`
-        : undefined,
-    });
-  }
-  if (fieldName && value && section) {
-    crumbs.push({ label: section });
-  }
   return (
-    <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-      {crumbs.map((c, i) => (
-        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          {i > 0 && <span className={styles.crumbSep} aria-hidden>›</span>}
-          {c.to && i < crumbs.length - 1 ? (
-            <Link to={c.to} className={styles.crumb}>{c.label}</Link>
-          ) : (
-            <span className={`${styles.crumb} ${styles.crumbCurrent}`}>{c.label}</span>
-          )}
-        </span>
-      ))}
-    </nav>
-  );
-}
-
-/* ─── Tree view ────────────────────────────────────────────────── */
-
-function TreeNav({
-  agentSlug, enumFields, dcByFieldId, activeFieldName, activeValue, activeSection,
-  onAttach, onDetach, onAddValue, onRemoveValue, onAddSection, onRemoveSection, onCreateField,
-}: {
-  agentSlug: string;
-  enumFields: FieldDef[];
-  dcByFieldId: Map<ID, DynamicContextDef>;
-  activeFieldName?: string;
-  activeValue?: string;
-  activeSection?: string;
-  onAttach: (field: FieldDef) => void;
-  onDetach: (field: FieldDef) => void;
-  onAddValue: (field: FieldDef, raw: string) => void;
-  onRemoveValue: (field: FieldDef, val: string) => void;
-  onAddSection: (dc: DynamicContextDef, caseValue: string, rawName: string) => void;
-  onRemoveSection: (dc: DynamicContextDef, caseValue: string, sectionName: string) => void;
-  onCreateField: () => void;
-}) {
-  // Expanded-field set tracked locally; auto-expand the active one.
-  const [expanded, setExpanded] = useState<Set<ID>>(() => new Set());
-  useEffect(() => {
-    if (!activeFieldName) return;
-    const f = enumFields.find(x => x.name === activeFieldName);
-    if (!f) return;
-    setExpanded(prev => (prev.has(f.id) ? prev : new Set(prev).add(f.id)));
-  }, [activeFieldName, enumFields]);
-
-  const [newValueByField, setNewValueByField] = useState<Record<ID, string>>({});
-  const [newSectionByCase, setNewSectionByCase] = useState<Record<string, string>>({});
-  // Sections start hidden behind a quiet "+ Add section" button — most
-  // cases never grow them, so showing the input row by default just
-  // adds clutter. Keyed by `${fieldId}/${caseValue}` and only one open
-  // at a time keeps the tree calm.
-  const [openAddSectionFor, setOpenAddSectionFor] = useState<string | null>(null);
-
-  const toggle = (id: ID) => setExpanded(prev => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
-
-  if (enumFields.length === 0) {
-    return (
-      <div className={styles.nav}>
-        <div className={styles.navHeader}>
-          <span className={styles.navHeaderTitle}>Enum fields</span>
-          <button type="button" className={styles.navHeaderBtn} onClick={onCreateField}>
-            + New enum field
-          </button>
-        </div>
-        <div className={styles.navEmpty}>
-          No enum fields on this agent yet. Create one with the button
-          above — Dynamic Context picks it up automatically.
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={styles.nav}>
-      <div className={styles.navHeader}>
-        <span className={styles.navHeaderTitle}>Enum fields</span>
-        <span className={styles.navHeaderCount}>{enumFields.length}</span>
-        <button type="button" className={styles.navHeaderBtn} onClick={onCreateField}>
-          + New enum field
-        </button>
-      </div>
-      <div className={styles.tree}>
-        {enumFields.map(field => {
-          const dc = dcByFieldId.get(field.id);
-          const isOpen = expanded.has(field.id);
-          const hasDc = !!dc;
-          return (
-            <div
-              key={field.id}
-              className={`${styles.fieldGroup} ${isOpen ? styles.fieldGroupOpen : ''}`}
-            >
-              <button type="button" className={styles.fieldRow} onClick={() => toggle(field.id)}>
-                <span className={styles.caret} aria-hidden>{isOpen ? '▾' : '▸'}</span>
-                <span className={styles.fieldName}>{field.name}</span>
-                <span className={styles.fieldType}>{field.type}</span>
-                <span className={styles.fieldSpacer} />
-                {hasDc ? (
-                  <span className={styles.fieldBadge}>
-                    {dc.cases.length} case{dc.cases.length === 1 ? '' : 's'}
-                  </span>
-                ) : (
-                  <span className={styles.fieldNoDc}>not attached</span>
-                )}
-              </button>
-
-              {isOpen && !hasDc && (
-                <div className={styles.fieldChildren}>
-                  {/* Even without an attached DC, show the field's
-                      values so the DC panel doubles as an enum
-                      viewer. Clicking "+ Attach" creates the DC
-                      with empty cases for each value — same as
-                      before, just no longer the only thing visible. */}
-                  <div className={styles.subLabel}>
-                    Values for <code className={styles.subLabelField}>{field.name}</code>
-                  </div>
-                  <div className={styles.list}>
-                    {(field.enumValues ?? []).map(v => (
-                      <div key={v} className={styles.row}>
-                        <span className={styles.op} aria-hidden>=</span>
-                        <div className={styles.rowBody}>
-                          <span className={styles.rowValue}>{v}</span>
-                          <span className={styles.rowSnippetEmpty}>no Dynamic Context attached yet</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className={styles.attachPrompt}>
-                    <button type="button" className={styles.attachBtn} onClick={() => onAttach(field)}>
-                      + Attach Dynamic Context
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {isOpen && hasDc && dc && (
-                <div className={styles.fieldChildren}>
-                  <div className={styles.subLabel}>
-                    When <code className={styles.subLabelField}>{field.name}</code> is…
-                  </div>
-                  <div className={styles.list}>
-                    {dc.cases.map(c => {
-                      const isCaseActive = activeFieldName === field.name && activeValue === c.value;
-                      // Section names are declared on the DC, but the
-                      // text/empty status shown next to each row is
-                      // per-case (the body lives in `case.sectionTexts`).
-                      const sectionList = dc.sections ?? [];
-                      const sectionTexts = c.sectionTexts ?? {};
-                      const filledSections = sectionList.filter(s => (sectionTexts[s.name] ?? '').trim().length > 0).length;
-                      return (
-                        <div key={c.value}>
-                          <Link
-                            to={`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(field.name)}/${encodeURIComponent(c.value)}`}
-                            className={`${styles.row} ${isCaseActive && !activeSection ? styles.rowActive : ''}`}
-                          >
-                            <span className={styles.op} aria-hidden>=</span>
-                            <div className={styles.rowBody}>
-                              <span className={styles.rowValue}>{c.value}</span>
-                              {c.text || filledSections > 0 ? (
-                                <span className={styles.rowSnippet}>
-                                  {c.text
-                                    ? snippetOf(c.text)
-                                    : `${filledSections}/${sectionList.length} section${sectionList.length === 1 ? '' : 's'} written`}
-                                </span>
-                              ) : (
-                                <span className={styles.rowSnippetEmpty}>not yet written</span>
-                              )}
-                            </div>
-                            <button
-                              type="button"
-                              className={styles.rowRemove}
-                              onClick={e => { e.preventDefault(); e.stopPropagation(); onRemoveValue(field, c.value); }}
-                              title={`Remove "${c.value}" from ${field.name}`}
-                              aria-label={`Remove ${c.value}`}
-                            >
-                              ×
-                            </button>
-                          </Link>
-                          {isCaseActive && (
-                            <div className={styles.caseExpanded}>
-                              {/* Section rows + the add-section affordance.
-                                  Sections are declared on the DC (shared
-                                  across every case), so the list comes
-                                  from `dc.sections`; what changes per
-                                  case is whether each one has a body
-                                  written. The add-section input only
-                                  appears after the user clicks
-                                  "+ Add section". */}
-                              {sectionList.length > 0 && (
-                                <div className={styles.list}>
-                                  {sectionList.map(s => {
-                                    const isSectionActive = activeSection === s.name;
-                                    const body = sectionTexts[s.name] ?? '';
-                                    return (
-                                      <Link
-                                        key={s.name}
-                                        to={`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(field.name)}/${encodeURIComponent(c.value)}/${encodeURIComponent(s.name)}`}
-                                        className={`${styles.row} ${isSectionActive ? styles.rowActive : ''}`}
-                                      >
-                                        <span className={styles.op} aria-hidden>›</span>
-                                        <div className={styles.rowBody}>
-                                          <span className={styles.rowValue}>{s.name}</span>
-                                          {body ? (
-                                            <span className={styles.rowSnippet}>{snippetOf(body)}</span>
-                                          ) : (
-                                            <span className={styles.rowSnippetEmpty}>not yet written</span>
-                                          )}
-                                        </div>
-                                        <button
-                                          type="button"
-                                          className={styles.rowRemove}
-                                          onClick={e => { e.preventDefault(); e.stopPropagation(); onRemoveSection(dc, c.value, s.name); }}
-                                          title={`Remove section "${s.name}" (shared across every value)`}
-                                          aria-label={`Remove section ${s.name}`}
-                                        >
-                                          ×
-                                        </button>
-                                      </Link>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                              {openAddSectionFor === `${field.id}/${c.value}` ? (
-                                <div className={styles.list}>
-                                  <div className={styles.addRow}>
-                                    <span className={styles.op} aria-hidden>+</span>
-                                    <input
-                                      autoFocus
-                                      className={styles.addInput}
-                                      value={newSectionByCase[`${field.id}/${c.value}`] ?? ''}
-                                      onChange={e => setNewSectionByCase(prev => ({ ...prev, [`${field.id}/${c.value}`]: e.target.value }))}
-                                      onKeyDown={e => {
-                                        if (e.key === 'Enter') {
-                                          e.preventDefault();
-                                          const raw = newSectionByCase[`${field.id}/${c.value}`] ?? '';
-                                          if (raw.trim()) {
-                                            onAddSection(dc, c.value, raw);
-                                            setNewSectionByCase(prev => ({ ...prev, [`${field.id}/${c.value}`]: '' }));
-                                            setOpenAddSectionFor(null);
-                                          }
-                                        } else if (e.key === 'Escape') {
-                                          e.preventDefault();
-                                          setNewSectionByCase(prev => ({ ...prev, [`${field.id}/${c.value}`]: '' }));
-                                          setOpenAddSectionFor(null);
-                                        }
-                                      }}
-                                      onBlur={() => {
-                                        const raw = newSectionByCase[`${field.id}/${c.value}`] ?? '';
-                                        if (!raw.trim()) setOpenAddSectionFor(null);
-                                      }}
-                                      placeholder="section name (e.g. how to address)"
-                                      spellCheck={false}
-                                    />
-                                    <button
-                                      type="button"
-                                      className={styles.addBtn}
-                                      disabled={!(newSectionByCase[`${field.id}/${c.value}`] ?? '').trim()}
-                                      onMouseDown={e => e.preventDefault() /* keep input focused for blur logic */}
-                                      onClick={() => {
-                                        const raw = newSectionByCase[`${field.id}/${c.value}`] ?? '';
-                                        if (raw.trim()) {
-                                          onAddSection(dc, c.value, raw);
-                                          setNewSectionByCase(prev => ({ ...prev, [`${field.id}/${c.value}`]: '' }));
-                                          setOpenAddSectionFor(null);
-                                        }
-                                      }}
-                                    >
-                                      Add
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <button
-                                  type="button"
-                                  className={styles.addSectionGhost}
-                                  onClick={() => setOpenAddSectionFor(`${field.id}/${c.value}`)}
-                                  title="Author a sub-prompt under this case"
-                                >
-                                  + Add section
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                    <div className={styles.addRow}>
-                      <span className={styles.op} aria-hidden>+</span>
-                      <input
-                        className={styles.addInput}
-                        value={newValueByField[field.id] ?? ''}
-                        onChange={e => setNewValueByField(prev => ({ ...prev, [field.id]: e.target.value }))}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const raw = newValueByField[field.id] ?? '';
-                            if (raw.trim()) {
-                              onAddValue(field, raw);
-                              setNewValueByField(prev => ({ ...prev, [field.id]: '' }));
-                            }
-                          }
-                        }}
-                        placeholder="add a value…"
-                        spellCheck={false}
-                      />
-                      <button
-                        type="button"
-                        className={styles.addBtn}
-                        disabled={!(newValueByField[field.id] ?? '').trim()}
-                        onClick={() => {
-                          const raw = newValueByField[field.id] ?? '';
-                          if (raw.trim()) {
-                            onAddValue(field, raw);
-                            setNewValueByField(prev => ({ ...prev, [field.id]: '' }));
-                          }
-                        }}
-                      >
-                        Add
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className={styles.subLabel}>Otherwise…</div>
-                  <div className={styles.list}>
-                    <Link
-                      to={`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(field.name)}/${encodeURIComponent(FALLBACK_SEGMENT)}`}
-                      className={`${styles.row} ${activeFieldName === field.name && activeValue === FALLBACK_SEGMENT ? styles.rowActive : ''}`}
-                    >
-                      <span className={styles.op} aria-hidden>↳</span>
-                      <div className={styles.rowBody}>
-                        <span className={`${styles.rowValue} ${styles.fallbackValue}`}>Fallback</span>
-                        {dc.fallback ? (
-                          <span className={styles.rowSnippet}>{snippetOf(dc.fallback)}</span>
-                        ) : (
-                          <span className={styles.rowSnippetEmpty}>not yet written</span>
-                        )}
-                      </div>
-                    </Link>
-                  </div>
-
-                  {/* Destructive: drops the entire DC for this field
-                      (every case prompt, every section, the fallback).
-                      The field declaration itself stays. Confirms
-                      first in `handleDetach`. */}
-                  <div className={styles.detachPrompt}>
-                    <button
-                      type="button"
-                      className={styles.detachBtn}
-                      onClick={() => onDetach(field)}
-                      title="Remove every case prompt and section authored under this DC"
-                    >
-                      Detach Dynamic Context
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/* ─── Columns view ─────────────────────────────────────────────── */
-
-function ColumnsNav({
-  agentSlug, enumFields, dcByFieldId, activeField, activeDc, activeCase, activeSection, isFallback,
-  onAttach, onDetach, onAddValue, onRemoveValue, onAddSection, onRemoveSection, onCreateField,
-}: {
-  agentSlug: string;
-  enumFields: FieldDef[];
-  dcByFieldId: Map<ID, DynamicContextDef>;
-  activeField: FieldDef | null;
-  activeDc: DynamicContextDef | null;
-  activeCase: DynamicContextCase | null;
-  activeSection?: string;
-  isFallback: boolean;
-  onAttach: (field: FieldDef) => void;
-  onDetach: (field: FieldDef) => void;
-  onAddValue: (field: FieldDef, raw: string) => void;
-  onRemoveValue: (field: FieldDef, val: string) => void;
-  onAddSection: (dc: DynamicContextDef, caseValue: string, rawName: string) => void;
-  onRemoveSection: (dc: DynamicContextDef, caseValue: string, sectionName: string) => void;
-  onCreateField: () => void;
-}) {
-  const [newValue, setNewValue] = useState('');
-  const [newSection, setNewSection] = useState('');
-  // Sections start hidden behind a "+ Add section" button to keep the
-  // sections column quiet on cases that haven't grown any yet.
-  const [addSectionOpen, setAddSectionOpen] = useState(false);
-
-  return (
-    <div className={styles.columns}>
-      {/* Column 1: Fields */}
-      <div className={styles.column}>
-        <div className={styles.columnHeader}>
-          <span>Fields</span>
-          <button type="button" className={styles.navHeaderBtn} onClick={onCreateField}>
-            + New enum field
-          </button>
-        </div>
-        <div className={styles.columnList}>
-          {enumFields.length === 0 ? (
-            <div className={styles.columnEmpty}>No enum fields yet. Use the button above to create one.</div>
-          ) : enumFields.map(field => {
-            const dc = dcByFieldId.get(field.id);
-            const isActive = activeField?.id === field.id;
-            return (
-              <Link
-                key={field.id}
-                to={`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(field.name)}`}
-                className={`${styles.columnRow} ${isActive ? styles.columnRowActive : ''}`}
-              >
-                <span className={styles.columnRowLabel}>{field.name}</span>
-                <span className={styles.columnRowMeta}>
-                  {dc ? `${dc.cases.length} case${dc.cases.length === 1 ? '' : 's'}` : 'not attached'}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Column 2: Values */}
-      <div className={styles.column}>
-        <div className={styles.columnHeader}>
-          Values{activeField && (<>· <span className={styles.columnHeaderCtx}>{activeField.name}</span></>)}
-        </div>
-        <div className={styles.columnList}>
-          {!activeField ? (
-            <div className={styles.columnEmpty}>Pick a field on the left.</div>
-          ) : !activeDc ? (
-            <div className={styles.columnEmpty} style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
-              <span>No Dynamic Context attached.</span>
-              <button type="button" className={styles.attachBtn} onClick={() => onAttach(activeField)}>
-                + Attach
-              </button>
-            </div>
-          ) : (
-            <>
-              {activeDc.cases.map(c => {
-                const isActive = activeCase?.value === c.value;
-                // Sections come from the DC, but the chip should reflect
-                // how many of THIS case's bodies are actually filled —
-                // so the author can tell at a glance which value still
-                // needs work.
-                const declaredSections = activeDc.sections ?? [];
-                const texts = c.sectionTexts ?? {};
-                const filledSections = declaredSections.filter(s => (texts[s.name] ?? '').trim().length > 0).length;
-                return (
-                  <Link
-                    key={c.value}
-                    to={`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(activeField.name)}/${encodeURIComponent(c.value)}`}
-                    className={`${styles.columnRow} ${isActive ? styles.columnRowActive : ''}`}
-                  >
-                    <span className={styles.columnRowLabel}>{c.value}</span>
-                    {declaredSections.length > 0 ? (
-                      <span className={styles.columnRowChip}>
-                        {filledSections}/{declaredSections.length} section{declaredSections.length === 1 ? '' : 's'}
-                      </span>
-                    ) : c.text ? (
-                      <span className={styles.columnRowMeta}>written</span>
-                    ) : (
-                      <span className={styles.columnRowMetaEmpty}>empty</span>
-                    )}
-                    <button
-                      type="button"
-                      className={styles.rowRemove}
-                      onClick={e => { e.preventDefault(); e.stopPropagation(); onRemoveValue(activeField, c.value); }}
-                      title={`Remove "${c.value}" from ${activeField.name}`}
-                      aria-label={`Remove ${c.value}`}
-                    >
-                      ×
-                    </button>
-                  </Link>
-                );
-              })}
-              <Link
-                to={`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(activeField.name)}/${encodeURIComponent(FALLBACK_SEGMENT)}`}
-                className={`${styles.columnRow} ${isFallback ? styles.columnRowActive : ''}`}
-              >
-                <span className={styles.columnRowLabel} style={{ fontStyle: 'italic' }}>↳ Fallback</span>
-                {activeDc.fallback ? (
-                  <span className={styles.columnRowMeta}>written</span>
-                ) : (
-                  <span className={styles.columnRowMetaEmpty}>empty</span>
-                )}
-              </Link>
-              {/* Add-value affordance — mirrors the tree view's "+ add
-                  a value" so authors don't have to switch views just to
-                  extend the enum. Updates the field's enumValues
-                  immediately (same handler as the tree). */}
-              <div className={styles.addRow}>
-                <span className={styles.op} aria-hidden>+</span>
-                <input
-                  className={styles.addInput}
-                  value={newValue}
-                  onChange={e => setNewValue(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      if (newValue.trim()) {
-                        onAddValue(activeField, newValue);
-                        setNewValue('');
-                      }
-                    }
-                  }}
-                  placeholder="add a value…"
-                  spellCheck={false}
-                />
-                <button
-                  type="button"
-                  className={styles.addBtn}
-                  disabled={!newValue.trim()}
-                  onClick={() => {
-                    if (newValue.trim()) {
-                      onAddValue(activeField, newValue);
-                      setNewValue('');
-                    }
-                  }}
-                >
-                  Add
-                </button>
-              </div>
-
-              {/* Destructive — drops every case prompt + section + the
-                  fallback for this field. The declaration itself stays. */}
-              <div className={styles.detachPrompt}>
-                <button
-                  type="button"
-                  className={styles.detachBtn}
-                  onClick={() => onDetach(activeField)}
-                  title="Remove every case prompt and section authored under this DC"
-                >
-                  Detach Dynamic Context
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Column 3: Sections */}
-      <div className={styles.column}>
-        <div className={styles.columnHeader}>
-          Sections{activeCase && (<>· <span className={styles.columnHeaderCtx}>{activeCase.value}</span></>)}
-        </div>
-        <div className={styles.columnList}>
-          {!activeCase ? (
-            <div className={styles.columnEmpty}>Pick a value.</div>
-          ) : (
-            <>
-              {/* "Umbrella" pseudo-row so the user can route back to the
-                  case's main prompt from the columns view. */}
-              <Link
-                to={`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(activeField!.name)}/${encodeURIComponent(activeCase.value)}`}
-                className={`${styles.columnRow} ${activeCase && !activeSection ? styles.columnRowActive : ''}`}
-              >
-                <span className={styles.columnRowLabel} style={{ fontStyle: 'italic' }}>[umbrella]</span>
-                {activeCase.text ? (
-                  <span className={styles.columnRowMeta}>written</span>
-                ) : (
-                  <span className={styles.columnRowMetaEmpty}>empty</span>
-                )}
-              </Link>
-              {/* Sections declared on the DC — shared across every
-                  case. The body shown next to each row comes from the
-                  active case's `sectionTexts[name]` so the written /
-                  empty status is per-value. */}
-              {(activeDc!.sections ?? []).map(s => {
-                const body = activeCase.sectionTexts?.[s.name] ?? '';
-                return (
-                  <Link
-                    key={s.name}
-                    to={`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(activeField!.name)}/${encodeURIComponent(activeCase.value)}/${encodeURIComponent(s.name)}`}
-                    className={`${styles.columnRow} ${activeSection === s.name ? styles.columnRowActive : ''}`}
-                  >
-                    <span className={styles.columnRowLabel}>{s.name}</span>
-                    {body ? (
-                      <span className={styles.columnRowMeta}>written</span>
-                    ) : (
-                      <span className={styles.columnRowMetaEmpty}>empty</span>
-                    )}
-                    <button
-                      type="button"
-                      className={styles.rowRemove}
-                      onClick={e => { e.preventDefault(); e.stopPropagation(); onRemoveSection(activeDc!, activeCase.value, s.name); }}
-                      title={`Remove section "${s.name}" (shared across every value)`}
-                      aria-label={`Remove section ${s.name}`}
-                    >
-                      ×
-                    </button>
-                  </Link>
-                );
-              })}
-            </>
-          )}
-          {activeCase && activeDc && (
-            addSectionOpen ? (
-              <div className={styles.addRow}>
-                <span className={styles.op} aria-hidden>+</span>
-                <input
-                  autoFocus
-                  className={styles.addInput}
-                  value={newSection}
-                  onChange={e => setNewSection(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      if (newSection.trim()) {
-                        onAddSection(activeDc, activeCase.value, newSection);
-                        setNewSection('');
-                        setAddSectionOpen(false);
-                      }
-                    } else if (e.key === 'Escape') {
-                      e.preventDefault();
-                      setNewSection('');
-                      setAddSectionOpen(false);
-                    }
-                  }}
-                  onBlur={() => {
-                    if (!newSection.trim()) setAddSectionOpen(false);
-                  }}
-                  placeholder="section name (e.g. how to address)"
-                  spellCheck={false}
-                />
-                <button
-                  type="button"
-                  className={styles.addBtn}
-                  disabled={!newSection.trim()}
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => {
-                    if (newSection.trim()) {
-                      onAddSection(activeDc, activeCase.value, newSection);
-                      setNewSection('');
-                      setAddSectionOpen(false);
-                    }
-                  }}
-                >
-                  Add
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                className={styles.addSectionGhost}
-                onClick={() => setAddSectionOpen(true)}
-                title="Author a sub-prompt under this case"
-              >
-                + Add section
-              </button>
-            )
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Editor ───────────────────────────────────────────────────── */
-
-function Editor({
-  agentId, activeField, activeDc, activeCase, activeSection, isFallback, mentionOptions,
-  onRenameValue, onRenameSection, onCaseTextChange, onFallbackChange, onSectionTextChange,
-}: {
-  agentId: ID;
-  activeField: FieldDef | null;
-  activeDc: DynamicContextDef | null;
-  activeCase: DynamicContextCase | null;
-  activeSection: DynamicContextSection | null;
-  isFallback: boolean;
-  mentionOptions: ReturnType<typeof useMentionOptions>;
-  onRenameValue: (field: FieldDef, oldVal: string, raw: string) => boolean;
-  onRenameSection: (dc: DynamicContextDef, oldName: string, raw: string) => boolean;
-  onCaseTextChange: (dc: DynamicContextDef, val: string, text: string) => void;
-  onFallbackChange: (dc: DynamicContextDef, text: string) => void;
-  onSectionTextChange: (dc: DynamicContextDef, caseValue: string, sectionName: string, text: string) => void;
-}) {
-  // Single expand state shared across all three editor views — the
-  // editor only renders one at a time, and keeping the state shared
-  // means flipping case/section preserves the author's "expand"
-  // preference within a session.
-  const [expanded, setExpanded] = useState(false);
-  if (!activeField) {
-    return (
-      <div className={styles.editor}>
-        <div className={styles.empty}>
-          Pick a field on the left to start authoring.
-          <br />
-          Each Dynamic Context switches a chunk of prompt text based on a memory field's current value.
-        </div>
-      </div>
-    );
-  }
-
-  if (!activeDc) {
-    return (
-      <div className={styles.editor}>
-        <div className={styles.empty}>
-          <strong>{activeField.name}</strong> has no Dynamic Context yet.
-          <br />
-          Click <strong>+ Attach</strong> on the left to start.
-        </div>
-      </div>
-    );
-  }
-
-  if (isFallback) {
-    return (
-      <div className={styles.editor}>
-        <div className={styles.editorHeader}>
-          <span className={styles.editorHeaderKind}>Fallback</span>
-          <span className={styles.editorHeaderSep}>·</span>
-          <span className={styles.editorHeaderField}>{activeField.name}</span>
-        </div>
-        <p className={styles.editorHint}>
-          Rendered when <code>{activeField.name}</code> has no value or
-          doesn't match any case above. Leave empty for silent fallback.
-        </p>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 6px' }}>
-          <ExpandPromptToggle
-            text={activeDc.fallback ?? ''}
-            expanded={expanded}
-            onToggle={setExpanded}
-          />
-        </div>
-        <div className={styles.editorBody}>
-          {expanded ? (
-            <ExpandedPromptView
-              agentId={agentId}
-              text={activeDc.fallback ?? ''}
-              rows={18}
-              storageKey={`dc:${activeField.id}:fallback`}
-            />
-          ) : (
-            <MentionTextarea
-              value={activeDc.fallback ?? ''}
-              onChange={text => onFallbackChange(activeDc, text)}
-              options={mentionOptions}
-              placeholder="(optional) Default guidance when no case matches…"
-              rows={18}
-              storageKey={`dc:${activeField.id}:fallback`}
-            />
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (!activeCase) {
-    return (
-      <div className={styles.editor}>
-        <div className={styles.empty}>Pick a case on the left.</div>
-      </div>
-    );
-  }
-
-  if (activeSection) {
-    // Section names are shared across every case (they're declared
-    // on the DC). The body shown here is the active case's text for
-    // this section — `case.sectionTexts[name]`.
-    const sectionBody = activeCase.sectionTexts?.[activeSection.name] ?? '';
-    return (
-      <div className={styles.editor}>
-        <div className={styles.editorHeader}>
-          <span className={styles.editorHeaderKind}>Section</span>
-          <span className={styles.editorHeaderSep}>·</span>
-          <span className={styles.editorHeaderField}>{activeField.name}</span>
-          <span className={styles.editorHeaderOp}>=</span>
-          <span className={styles.editorHeaderField}>{activeCase.value}</span>
-          <span className={styles.editorHeaderOp}>›</span>
-          <input
-            /* Force remount when switching sections so defaultValue picks up. */
-            key={`${activeField.id}/${activeCase.value}/${activeSection.name}`}
-            className={styles.editorHeaderSectionInput}
-            defaultValue={activeSection.name}
-            onBlur={e => {
-              const ok = onRenameSection(activeDc, activeSection.name, e.target.value);
-              if (!ok) e.target.value = activeSection.name;
-            }}
-            onKeyDown={e => {
-              if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur(); }
-              if (e.key === 'Escape') {
-                e.preventDefault();
-                (e.currentTarget as HTMLInputElement).value = activeSection.name;
-                (e.currentTarget as HTMLInputElement).blur();
-              }
-            }}
-            spellCheck={false}
-            title="Rename this section (snake_case; renames everywhere it's used)"
-          />
-        </div>
-        <p className={styles.editorHint}>
-          Reference as <code>{`{{dynamic:${activeField.name}:${activeSection.name}}}`}</code> from any addon prompt.
-          Section names are <strong>shared</strong> across every value of <code>{activeField.name}</code>; the body
-          below is what gets injected when the live value is <code>{activeCase.value}</code>.
-        </p>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 6px' }}>
-          <ExpandPromptToggle
-            text={sectionBody}
-            expanded={expanded}
-            onToggle={setExpanded}
-          />
-        </div>
-        <div className={styles.editorBody}>
-          {expanded ? (
-            <ExpandedPromptView
-              agentId={agentId}
-              text={sectionBody}
-              rows={18}
-              storageKey={`dc:${activeField.id}:${activeCase.value}:section:${activeSection.name}`}
-            />
-          ) : (
-            <MentionTextarea
-              value={sectionBody}
-              onChange={text => onSectionTextChange(activeDc, activeCase.value, activeSection.name, text)}
-              options={mentionOptions}
-              placeholder={`Write the body for ${activeField.name}=${activeCase.value} › ${activeSection.name}…`}
-              rows={18}
-              storageKey={`dc:${activeField.id}:${activeCase.value}:section:${activeSection.name}`}
-            />
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Umbrella editor for a case.
-  return (
-    <div className={styles.editor}>
-      <div className={styles.editorHeader}>
-        <span className={styles.editorHeaderKind}>Case</span>
-        <span className={styles.editorHeaderSep}>·</span>
-        <span className={styles.editorHeaderField}>{activeField.name}</span>
-        <span className={styles.editorHeaderOp}>=</span>
-        <input
-          key={`${activeField.id}/${activeCase.value}`}
-          className={styles.editorHeaderValueInput}
-          defaultValue={activeCase.value}
-          onBlur={e => {
-            const ok = onRenameValue(activeField, activeCase.value, e.target.value);
-            if (!ok) e.target.value = activeCase.value;
-          }}
-          onKeyDown={e => {
-            if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur(); }
-            if (e.key === 'Escape') {
-              e.preventDefault();
-              (e.currentTarget as HTMLInputElement).value = activeCase.value;
-              (e.currentTarget as HTMLInputElement).blur();
-            }
-          }}
-          spellCheck={false}
-          title="Click to rename this enum value"
-        />
-      </div>
-      <p className={styles.editorHint}>
-        Rendered inline at <code>{`{{dynamic:${activeField.name}}}`}</code>
-        {' '}whenever the live value is <code>{activeCase.value}</code>.
-        Use <code>{`{{dynamic:${activeField.name}:*}}`}</code> to inject every section under this case as headed blocks,
-        or address a specific section via <code>{`{{dynamic:${activeField.name}:SECTION}}`}</code>.
-      </p>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 6px' }}>
-        <ExpandPromptToggle
-          text={activeCase.text ?? ''}
-          expanded={expanded}
-          onToggle={setExpanded}
-        />
-      </div>
-      <div className={styles.editorBody}>
-        {expanded ? (
-          <ExpandedPromptView
-            agentId={agentId}
-            text={activeCase.text ?? ''}
-            rows={18}
-            storageKey={`dc:${activeField.id}:${activeCase.value}:umbrella`}
-          />
-        ) : (
-          <MentionTextarea
-            value={activeCase.text ?? ''}
-            onChange={text => onCaseTextChange(activeDc, activeCase.value, text)}
-            options={mentionOptions}
-            placeholder="Umbrella prompt for this case — optional if you only use sections…"
-            rows={18}
-            storageKey={`dc:${activeField.id}:${activeCase.value}:umbrella`}
-          />
-        )}
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: '6px 14px', fontSize: 12, fontWeight: 700,
+        background: '#fff', color: '#dc2626',
+        border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer',
+      }}
+    >
+      {children}
+    </button>
   );
 }

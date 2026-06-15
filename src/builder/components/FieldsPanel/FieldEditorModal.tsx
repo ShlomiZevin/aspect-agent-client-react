@@ -71,14 +71,15 @@ const SOURCE_LABEL: Record<FieldSource, { label: string }> = {
 export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props) {
   const { agentExtractors, domainNames, updateField, removeField, setFieldExtractors } =
     useCrewFields(agentId, crewId);
-  const { conversationMemory, previewConversationId, updateConversationMemoryField } = useBuilder();
+  const { conversationMemory, previewConversationId, updateConversationMemoryField, doc } = useBuilder();
+  const agent = doc.agents.find(a => a.id === agentId);
   const confirm = useConfirm();
 
   const [name, setName] = useState('');
   const [type, setType] = useState<FieldType>('string');
   const [source, setSource] = useState<FieldSource>('explicit');
   const [howToExtract, setHowToExtract] = useState('');
-  const [enumValues, setEnumValues] = useState('');
+  const [enumType, setEnumType] = useState<ID | ''>('');
   const [domain, setDomain] = useState('');
   const [selectedExtractors, setSelectedExtractors] = useState<Set<ID>>(new Set());
   const [editingLive, setEditingLive] = useState(false);
@@ -91,7 +92,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
     setType(f.type);
     setSource(f.source);
     setHowToExtract(f.howToExtract);
-    setEnumValues((f.enumValues ?? []).join(', '));
+    setEnumType((f.enumType ?? '') as ID | '');
     setDomain(f.domain ?? '');
     setSelectedExtractors(new Set(crewField.extractors.map(e => e.instanceId)));
     setEditingLive(false);
@@ -166,10 +167,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
         source,
         howToExtract: howToExtract.trim(),
         domain: domain.trim() || undefined,
-        enumValues:
-          type === 'enum'
-            ? enumValues.split(',').map(v => v.trim()).filter(Boolean)
-            : undefined,
+        enumType: type === 'enum' && enumType ? enumType : undefined,
       },
     );
     // 2. Sync the "extracted by" set.
@@ -319,13 +317,21 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
 
         {type === 'enum' && (
           <label className={styles.field}>
-            <span className={styles.label}>Allowed values (comma-separated)</span>
-            <input
+            <span className={styles.label}>Enum type</span>
+            <select
               className={styles.input}
-              value={enumValues}
-              onChange={e => setEnumValues(e.target.value)}
-              placeholder="e.g. salaried, self_employed, unemployed, retired"
-            />
+              value={enumType}
+              onChange={e => setEnumType(e.target.value as ID | '')}
+            >
+              <option value="">(none — pick an enum)</option>
+              {(agent?.enums ?? []).map(en => (
+                <option key={en.id} value={en.id}>{en.name}</option>
+              ))}
+            </select>
+            <span className={styles.hint}>
+              The value vocabulary lives on the agent's enum bible. Multiple
+              fields can share an enum; the bible is the single source of truth.
+            </span>
           </label>
         )}
 

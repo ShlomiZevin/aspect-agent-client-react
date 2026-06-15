@@ -17,7 +17,7 @@
  * difference is the chrome around it.
  *
  * No SSE wiring here: the panel is derived from `conversationMemory`
- * + `agent.dynamicContexts` via {@link useBrainSnapshot}, which
+ * + `agent.enums` via {@link useBrainSnapshot}, which
  * already updates correctly when conversations switch and after each
  * turn. Activity-detection (the unseen dot) lives in BrainContext.
  */
@@ -271,18 +271,19 @@ function DynamicContextSection({ hits }: { hits: BrainDcHit[] }) {
   return (
     <section className={styles.section}>
       <header className={styles.sectionHeader}>
-        <span className={styles.sectionTitle}>Dynamic Context</span>
+        <span className={styles.sectionTitle}>Live enum lookups</span>
         <span className={styles.sectionCount}>
           {hits.length} {hits.length === 1 ? 'hit' : 'hits'}
         </span>
       </header>
       {hits.length === 0 ? (
         <div className={styles.sectionEmpty}>
-          No dynamic contexts are active right now. Capture a field
-          value that matches a declared case to see what loads.
+          No enum-typed field has a live value that matches a declared
+          value on its enum. {`{{dc:FIELD…}}`} tokens for those fields
+          would resolve to empty right now.
         </div>
       ) : (
-        hits.map(hit => <DcCard key={hit.dc.id} hit={hit} />)
+        hits.map(hit => <DcCard key={`${hit.enumDef.id}/${hit.fieldName}`} hit={hit} />)
       )}
     </section>
   );
@@ -290,8 +291,9 @@ function DynamicContextSection({ hits }: { hits: BrainDcHit[] }) {
 
 function DcCard({ hit }: { hit: BrainDcHit }) {
   const { expandedBodies, toggleBody } = useBrain();
-  const isExpanded = (key: string) => expandedBodies.has(`${hit.dc.id}/${key}`);
-  const toggle = (key: string) => toggleBody(`${hit.dc.id}/${key}`);
+  const keyPrefix = `${hit.enumDef.id}/${hit.fieldName}`;
+  const isExpanded = (key: string) => expandedBodies.has(`${keyPrefix}/${key}`);
+  const toggle = (key: string) => toggleBody(`${keyPrefix}/${key}`);
 
   return (
     <article className={styles.dcCard}>
@@ -300,9 +302,6 @@ function DcCard({ hit }: { hit: BrainDcHit }) {
         <span className={styles.dcHeaderField}>{hit.fieldName}</span>
         <span className={styles.dcHeaderOp}>=</span>
         <span className={styles.dcHeaderValue}>{hit.liveValue}</span>
-        {hit.matched === null && (
-          <span className={styles.dcHeaderFallback}>↳ fallback (no case matched)</span>
-        )}
       </header>
 
       {hit.matched && (
@@ -322,18 +321,10 @@ function DcCard({ hit }: { hit: BrainDcHit }) {
               body={s.body}
               expanded={isExpanded(s.name)}
               onToggle={() => toggle(s.name)}
-              emptyHint={`no body for "${hit.matched!.caseValue}"`}
+              emptyHint={`no body for "${hit.matched!.value.value}"`}
             />
           ))}
         </>
-      )}
-      {hit.matched === null && hit.fallback && (
-        <DcBodyRow
-          label="fallback"
-          body={hit.fallback}
-          expanded={isExpanded('__fallback__')}
-          onToggle={() => toggle('__fallback__')}
-        />
       )}
     </article>
   );

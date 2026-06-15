@@ -2,7 +2,7 @@
  * BrainContext — posture + activity signal for the Brain panel.
  *
  * The Brain panel is a *view* onto data BuilderContext already holds
- * (`conversationMemory`, `agent.dynamicContexts`). This context owns
+ * (`conversationMemory`, `agent.enums`). This context owns
  * only the panel's own UI state:
  *
  *   • posture — `collapsed | docked | fullscreen`. Persisted to

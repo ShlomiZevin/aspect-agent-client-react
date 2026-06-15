@@ -81,7 +81,7 @@ interface Draft {
   source: FieldSource;
   domain: string;
   howToExtract: string;
-  enumValues: string;
+  enumType: ID | '';
 }
 
 // New fields are always agent-scoped now — the "schema declares,
@@ -95,7 +95,7 @@ const emptyDraft = (source: FieldSource = 'explicit', type: FieldType = 'string'
   source,
   domain: '',
   howToExtract: '',
-  enumValues: '',
+  enumType: '',
 });
 
 export function AddFieldModal({
@@ -187,12 +187,7 @@ export function AddFieldModal({
       source: draft.source,
       howToExtract: draft.howToExtract.trim(),
       domain: draft.domain.trim() || undefined,
-      ...(draft.type === 'enum' && {
-        enumValues: draft.enumValues
-          .split(',')
-          .map(v => v.trim())
-          .filter(Boolean),
-      }),
+      ...(draft.type === 'enum' && draft.enumType ? { enumType: draft.enumType } : {}),
     };
     const created = addFieldToScope(
       'agent',
@@ -334,13 +329,20 @@ export function AddFieldModal({
 
         {draft.type === 'enum' && (
           <label className={styles.field}>
-            <span className={styles.label}>Allowed values (comma-separated)</span>
-            <input
+            <span className={styles.label}>Enum type</span>
+            <select
               className={styles.input}
-              value={draft.enumValues}
-              onChange={e => setDraft(d => ({ ...d, enumValues: e.target.value }))}
-              placeholder="e.g. salaried, self_employed, unemployed, retired"
-            />
+              value={draft.enumType}
+              onChange={e => setDraft(d => ({ ...d, enumType: e.target.value as ID | '' }))}
+            >
+              <option value="">(none — pick an enum)</option>
+              {(agent?.enums ?? []).map(en => (
+                <option key={en.id} value={en.id}>{en.name}</option>
+              ))}
+            </select>
+            <span className={styles.hint}>
+              The enum's values + per-value briefings live on the agent's enum bible.
+            </span>
           </label>
         )}
 

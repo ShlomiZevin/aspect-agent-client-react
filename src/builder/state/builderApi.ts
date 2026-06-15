@@ -497,9 +497,16 @@ export function runtimeMessageStream(args: {
   /**
    * Optional working-copy crew body. Paired with overrideAgentBody so
    * the in-builder chat can run dirty addon configs / prompts without
-   * the user having to save first.
+   * the user having to save first. Covers the CURRENT crew only;
+   * Transition Router cascades into other crews need `overrideCrewBodies`.
    */
   overrideCrewBody?: unknown;
+  /**
+   * Optional working-copy crew bodies keyed by crewId — sent so a
+   * Transition Router that cascades into a different crew runs the
+   * cascade target against UNSAVED edits, not the saved DB body.
+   */
+  overrideCrewBodies?: Record<string, unknown>;
 }): Promise<Response> {
   return fetch(
     `${BASE_URL}/api/agents/${args.agentSlug}/conversations/${args.conversationId}/messages`,
@@ -513,6 +520,7 @@ export function runtimeMessageStream(args: {
         ...(args.overrideCrewId   ? { overrideCrewId:   args.overrideCrewId   } : {}),
         ...(args.overrideAgentBody ? { overrideAgentBody: args.overrideAgentBody } : {}),
         ...(args.overrideCrewBody  ? { overrideCrewBody:  args.overrideCrewBody  } : {}),
+        ...(args.overrideCrewBodies ? { overrideCrewBodies: args.overrideCrewBodies } : {}),
       }),
     },
   );

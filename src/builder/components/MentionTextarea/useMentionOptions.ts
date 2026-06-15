@@ -13,7 +13,7 @@
  *   - `^` → Persona (single option)
  *
  * Dynamic Context entries are surfaced under the `*` trigger so the
- * user can drop `{{dynamic:fieldname}}` switches into any prompt.
+ * user can drop `{{enum:NAME[:SECTION]}}` aggregate or `{{dc:FIELD[:S|*]}}` live-value tokens into any prompt.
  */
 
 import { useMemo } from 'react';
@@ -252,20 +252,50 @@ export function useMentionOptions(
       });
 
       let enumDesc: string;
+      const boundEnum = boundField && boundField.type === 'enum' && boundField.enumType
+        ? (agent.enums ?? []).find(e => e.id === boundField.enumType) ?? null
+        : null;
+      const boundEnumValues = boundEnum ? boundEnum.values.map(v => v.value).filter(Boolean) : [];
       if (!boundField) {
         enumDesc = `Inserts the bound field's allowed values — wire an enum field above first.`;
       } else if (boundField.type !== 'enum') {
         enumDesc = `Inserts the bound field's allowed values — only meaningful when the bound field is type=enum (current type: ${boundField.type}).`;
-      } else if (!boundField.enumValues?.length) {
-        enumDesc = `Inserts "${boundField.name}"'s allowed values — none declared yet.`;
+      } else if (!boundField.enumType) {
+        enumDesc = `Inserts "${boundField.name}"'s allowed values — wire it to an enum type on the bible first.`;
+      } else if (boundEnumValues.length === 0) {
+        enumDesc = `Inserts "${boundField.name}"'s allowed values — no values declared on enum "${boundEnum?.name ?? '?'}" yet.`;
       } else {
-        enumDesc = `Inserts "${boundField.name}"'s allowed values: ${boundField.enumValues.join(', ')}.`;
+        enumDesc = `Inserts "${boundField.name}"'s allowed values from enum "${boundEnum!.name}": ${boundEnumValues.join(', ')}.`;
       }
       at.push({
         label:     'enum_values',
         insertion: '{{enum_values}}',
         group:     'Output field',
         description: enumDesc,
+      });
+
+      // ── Multi-field counterparts. {{this_field}} / {{enum_values}}
+      // resolve to the FIRST wired field; {{fields_schema}} and
+      // {{fields_current}} cover ALL of them. Surfacing both pairs in
+      // the same group keeps the single- vs multi- author choice
+      // discoverable without forcing a separate trigger.
+      at.push({
+        label:     'fields_schema',
+        insertion: '{{fields_schema}}',
+        group:     'Output field',
+        description:
+          'Multi-field schema block — one line per wired field with type, ' +
+          'allowed values (for enum-typed fields), source, and how-to-extract. ' +
+          'Use when the addon writes more than one field in a single JSON output.',
+      });
+      at.push({
+        label:     'fields_current',
+        insertion: '{{fields_current}}',
+        group:     'Output field',
+        description:
+          'Multi-field current state — JSON of the wired fields\' present ' +
+          'memory values. Pair with {{fields_schema}} so the LLM sees both ' +
+          'what it must emit AND what it has already committed this turn.',
       });
     }
 
@@ -313,50 +343,87 @@ export function useMentionOptions(
       description: 'The agent persona text — voice and tone shared across crews.',
     }];
 
-    // ── *  Dynamic context ───────────────────────────────────────
-    // One entry per declared DC field switches on the field's current
-    // value at runtime; selecting it inserts `{{dynamic:<fieldname>}}`.
-    // Per the v2 sections design (sections are declared on the DC and
-    // shared across every case), we also emit:
-    //   • one entry per section name declared on the DC —
-    //     `{{dynamic:<fieldname>:<section>}}`. Same address space for
-    //     every case; the runtime resolves the body from the matched
-    //     case's `sectionTexts`.
-    //   • an "all sections" entry — `{{dynamic:<fieldname>:*}}` — the
-    //     convenience "give me every section under the matching case
-    //     as headed blocks" form.
+    // ── *  Enum bible ─────────────────────────────────────────────
+    // Two token families under the same sigil, grouped distinctly so the
+    // picker reads as two columns of the same shop:
+    //
+    //   1. Enum aggregate — one block per declared section, plus the
+    //      "umbrella" (no-section) form. Static; no live data needed.
+    //      Reads: "all values' how_to_identify content, dumped now".
+    //   2. Field DC live-value — one entry per enum-typed field, with
+    //      an umbrella entry, an all-sections (`*`) shortcut, and one
+    //      entry per declared section on the field's enum.
+    //
+    // Groups:
+    //   • `Enum · <enum_name>`        — aggregate (no specific field).
+    //   • `Field DC · <field_name>`   — driven by field.enumType.
     const star: MentionOption[] = [];
-    const fieldsById = new Map<string, { name: string; enumValues?: string[] }>();
-    for (const f of agent.fields ?? []) {
-      fieldsById.set(f.id, { name: f.name, enumValues: f.enumValues });
-    }
-    for (const dc of agent.dynamicContexts ?? []) {
-      const field = fieldsById.get(dc.fieldId);
-      if (!field) continue; // orphan DC (field deleted) — skip silently
-      const caseCount = Array.isArray(dc.cases) ? dc.cases.length : 0;
-      const groupLabel = `Dynamic context · ${field.name}`;
-      star.push({
-        label:     field.name,
-        insertion: `{{dynamic:${field.name}}}`,
-        group:     groupLabel,
-        description: `Switches on "${field.name}" — ${caseCount} case${caseCount === 1 ? '' : 's'}. Inserts the matching case's umbrella prompt.`,
-      });
-      const declaredSections = (dc.sections ?? [])
+    const enumsById = new Map((agent.enums ?? []).map(e => [e.id, e]));
+
+    // 1. Enum aggregate entries — one per enum, with:
+    //    • umbrella aggregate
+    //    • inline values-list shortcut (the `:values` reserved keyword)
+    //    • one entry per declared section
+    for (const en of agent.enums ?? []) {
+      const groupLabel = `Enum · ${en.name}`;
+      const sectionNames = (en.sections ?? [])
         .map(s => s?.name)
         .filter((n): n is string => typeof n === 'string' && n.length > 0);
-      if (declaredSections.length > 0) {
+      const valueCount = en.values?.length ?? 0;
+      star.push({
+        label:     `${en.name}  (umbrella)`,
+        insertion: `{{enum:${en.name}}}`,
+        group:     groupLabel,
+        description: `Dumps every value's umbrella for "${en.name}" (${valueCount} value${valueCount === 1 ? '' : 's'}). Wrapped in "## ${en.name}".`,
+      });
+      star.push({
+        label:     `${en.name}: values  (inline list)`,
+        insertion: `{{enum:${en.name}:values}}`,
+        group:     groupLabel,
+        description:
+          `Inline comma-separated list of the values of "${en.name}". ` +
+          (valueCount > 0
+            ? `Resolves to: ${en.values.map(v => v?.value).filter(Boolean).join(', ')}.`
+            : 'No values declared yet.'),
+      });
+      for (const sec of sectionNames) {
         star.push({
-          label:     `${field.name}: *  (all sections)`,
-          insertion: `{{dynamic:${field.name}:*}}`,
+          label:     `${en.name}: ${sec}`,
+          insertion: `{{enum:${en.name}:${sec}}}`,
           group:     groupLabel,
-          description: `Joins every section declared on "${field.name}" as headed blocks (only sections with a body under the matched case render).`,
+          description: `Dumps every value's "${sec}" body for "${en.name}". Wrapped in "## ${en.name} — ${sec}".`,
         });
-        for (const sec of declaredSections) {
+      }
+    }
+
+    // 2. Field DC live-value entries — one block per enum-typed field.
+    for (const f of agent.fields ?? []) {
+      if (f.type !== 'enum' || !f.enumType) continue;
+      const en = enumsById.get(f.enumType);
+      if (!en) continue;
+      const groupLabel = `Field DC · ${f.name}`;
+      const sectionNames = (en.sections ?? [])
+        .map(s => s?.name)
+        .filter((n): n is string => typeof n === 'string' && n.length > 0);
+      star.push({
+        label:     `${f.name}  (umbrella)`,
+        insertion: `{{dc:${f.name}}}`,
+        group:     groupLabel,
+        description: `Live umbrella of whatever value "${f.name}" currently holds on enum "${en.name}".`,
+      });
+      if (sectionNames.length > 0) {
+        star.push({
+          label:     `${f.name}: *  (all sections)`,
+          insertion: `{{dc:${f.name}:*}}`,
+          group:     groupLabel,
+          description: `Every authored section under "${f.name}"'s current matched value, as headed blocks.`,
+        });
+        for (const sec of sectionNames) {
           star.push({
-            label:     `${field.name}: ${sec}`,
-            insertion: `{{dynamic:${field.name}:${sec}}}`,
+            label:     `${f.name}: ${sec}`,
+            insertion: `{{dc:${f.name}:${sec}}}`,
             group:     groupLabel,
-            description: `The "${sec}" section under whichever case "${field.name}" matches.`,
+            description: `The "${sec}" body under "${f.name}"'s current matched value on enum "${en.name}".`,
           });
         }
       }

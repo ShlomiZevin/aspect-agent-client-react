@@ -1,17 +1,24 @@
 /**
- * WireOrCreateFieldModal — Field Reasoner's "pick the output field"
- * surface.
+ * WireOrCreateFieldModal — "pick or create a field, then wire it to
+ * this addon" surface. SHARED across every field-bearing plugin
+ * (Field Reasoner, Field Interviewer, Field Extractor, Vibe Extractor).
  *
- * Lists existing eligible fields (string / enum, agent or this crew's
- * scope). One click wires the picked field to this Reasoner. A "+
- * Create new field" button opens the canonical `AddFieldModal` — we
- * REUSE that screen rather than re-implementing the field-shape form
- * here (one create-a-field UI in the codebase, not two).
+ * Two paths in one modal:
+ *   1. Pick an existing eligible field → wires it to the caller.
+ *   2. Quick-add (name only, defaults to string + inferred) OR full
+ *      `AddFieldModal` for enum / domain / source customization.
  *
- * On create the AddFieldModal calls back with the created field; we
- * patch our `extractsFields = [id]` to overwrite any previous link
- * (setFieldExtractors only appends, so an explicit overwrite is what
- * keeps Field Reasoner single-field).
+ * Extractor list semantics: picking an existing field APPENDS the
+ * caller's `instanceId` to that field's extractor list rather than
+ * overwriting it, so the same field can be shared across multiple
+ * extractors (the Field Extractor's bread-and-butter case). The
+ * caller's `onWired(fieldId)` callback patches their own
+ * `config.extractsFields[]` — typically by appending.
+ *
+ * Why one modal across plugins: discoverability of the wire-existing
+ * path was the missing piece for Field Extractor. Same modal, same
+ * mental model — what differs per plugin is the `allowedTypes` filter
+ * and the badge label.
  */
 
 import { useMemo, useState } from 'react';
@@ -22,14 +29,6 @@ import type { CrewField } from '../../state/useCrewFields';
 import type { FieldDef, FieldType, ID } from '../../types';
 import styles from './WireOrCreateFieldModal.module.css';
 
-/**
- * Quick-add path: in a Reasoner, the "how to extract" rationale lives
- * in the reasoning prompt — the FieldDef doesn't need it. A name is
- * enough. We default type=`string`, source=`inferred`, no domain, no
- * howToExtract. For enum (which needs values too), the user falls
- * through to the full `+ Create new field` modal.
- */
-
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -37,27 +36,30 @@ interface Props {
   crewId: ID;
   /** Addon instance id that should own the wiring after pick / create. */
   instanceId: ID;
-  /** Fired with the field id once wired (or created+wired). The caller
-   *  patches its own `extractsFields = [id]` to mirror the change. */
+  /** Fired with the field id once wired (or created+wired). Callers
+   *  typically append to their own `config.extractsFields[]`. */
   onWired: (fieldId: ID) => void;
   /** Badge shown in the modal header — defaults to "Field Reasoner".
-   *  Field Interviewer (and any future single-field-bound addon)
-   *  passes its own label so the surface reflects the caller. */
+   *  Other callers pass their own label so the surface reflects them. */
   badgeLabel?: string;
+  /** Restrict the existing-field list to these types. Omit for "no
+   *  filter" (Field Extractor accepts everything). */
+  allowedTypes?: FieldType[];
 }
 
-/** Field Reasoner only handles string + enum at the LLM level — filter
- *  the existing-field list accordingly. */
-const ELIGIBLE_TYPES = new Set<FieldType>(['string', 'enum']);
-
 export function WireOrCreateFieldModal({
-  open, onClose, agentId, crewId, instanceId, onWired, badgeLabel = 'Field Reasoner',
+  open, onClose, agentId, crewId, instanceId, onWired,
+  badgeLabel = 'Field Reasoner', allowedTypes,
 }: Props) {
   const { allFields, setFieldExtractors, addFieldToScope } = useCrewFields(agentId, crewId);
 
   const eligible = useMemo<CrewField[]>(
-    () => allFields.filter(cf => ELIGIBLE_TYPES.has(cf.field.type)),
-    [allFields],
+    () => {
+      if (!allowedTypes || allowedTypes.length === 0) return allFields;
+      const set = new Set(allowedTypes);
+      return allFields.filter(cf => set.has(cf.field.type));
+    },
+    [allFields, allowedTypes],
   );
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -71,7 +73,13 @@ export function WireOrCreateFieldModal({
   const canQuickAdd = trimmedQuick.length > 0 && !quickCollides;
 
   const handlePick = (cf: CrewField) => {
-    setFieldExtractors(cf.field.id, [instanceId]);
+    // APPEND this addon to the field's extractor list — don't overwrite
+    // (a field can be shared between multiple extractors / reasoners).
+    // setFieldExtractors replaces the WHOLE list, so we compute the
+    // union of existing + this addon and pass that.
+    const existing = cf.extractors.map(e => e.instanceId);
+    const next = existing.includes(instanceId) ? existing : [...existing, instanceId];
+    setFieldExtractors(cf.field.id, next);
     onWired(cf.field.id);
     onClose();
   };
@@ -95,10 +103,10 @@ export function WireOrCreateFieldModal({
   };
 
   const handleCreated = (field: FieldDef) => {
-    // AddFieldModal already called setFieldExtractors via addFieldToScope
-    // — it appends our instance to the new field's extractors. We then
-    // overwrite our extractsFields to be [field.id] so any previously
-    // linked field is dropped (Field Reasoner is single-field).
+    // AddFieldModal already called setFieldExtractors via addFieldToScope,
+    // appending our instance to the new field's extractors. We then
+    // surface the new field id via onWired so the caller can append to
+    // its own extractsFields[].
     onWired(field.id);
     setCreateOpen(false);
     onClose();

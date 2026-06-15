@@ -31,20 +31,47 @@
 }
 
 /* Floating picker — absolutely positioned by JS so it tracks the
- * caret. Soft elevation lifts it above the form. */
+ * caret. Soft elevation lifts it above the form. Layout is a flex
+ * column with three regions:
+ *
+ *   .pickerHint    — trigger header (fixed at top)
+ *   .pickerScroll  — the scrolling list of options (flex: 1)
+ *   .pickerFooter  — full label + insertion of the active row
+ *                    (fixed at bottom). Lets the truncated rows
+ *                    above stay compact while the highlighted
+ *                    option's full content is always visible. */
 .picker {
   position: fixed;
   z-index: 200;
   min-width: 240px;
   max-width: 320px;
-  max-height: 280px;
-  overflow: auto;
+  /* No max-height on the picker itself — the scroll region below owns
+     the options-list cap, so a long footer description grows the
+     picker DOWNWARD instead of squeezing the options. */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--bg-surface, #fff);
   border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
-  padding: 4px;
   font-family: inherit;
+}
+
+/* Scroll region holding the option list. Padded so options breathe.
+   The cap lives HERE (not on .picker) so the footer can grow without
+   stealing rows from the visible list — when the active option has a
+   long description the picker just gets taller. */
+.pickerScroll {
+  flex: 1 1 auto;
+  overflow: auto;
+  /* Extra padding-bottom (and a matching scroll-padding-bottom) leaves
+     a breathing strip between the last visible row and the tinted
+     footer slab below — without it the highlighted bottom row visually
+     fuses into the footer's top edge. */
+  padding: 4px 4px 8px 4px;
+  scroll-padding-bottom: 8px;
+  max-height: 220px;
 }
 
 .pickerHint {
@@ -54,7 +81,54 @@
   gap: 8px;
   padding: 6px 10px 4px;
   border-bottom: 1px solid var(--border-color, #f3f4f6);
-  margin-bottom: 4px;
+  /* No margin-bottom now — the list sits in its own scroll region. */
+}
+
+/* Footer: full label + insertion of whichever row is highlighted.
+   Always visible so long names aren't lost to truncation in the list
+   above. Wraps onto a second line if the strings are long.
+
+   Visual treatment: a clearly distinct slab from the list — slightly
+   tinted with the active-row indigo family, a solid top border, and a
+   thin inset shadow at the top edge. The footer reads as a "preview
+   pane attached underneath" rather than the same surface continuing. */
+.pickerFooter {
+  flex: 0 0 auto;
+  padding: 8px 10px 10px;
+  border-top: 1px solid rgba(99, 102, 241, 0.28);
+  background: rgba(99, 102, 241, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.pickerFooterLabel {
+  font-weight: 700;
+  color: var(--primary-color, #4338ca);
+  word-break: break-word;
+}
+
+.pickerFooterInsertion {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 10.5px;
+  color: var(--text-primary, #1f2937);
+  word-break: break-all;
+}
+
+/* Long-form explanation of the active row — what the token actually
+   does at runtime. The insertion line above shows the literal
+   substitution ({{fields_schema}}); this line tells the user what
+   {{fields_schema}} expands to. Slightly muted vs the label so the
+   eye reads label → insertion → description without competition. */
+.pickerFooterDescription {
+  margin-top: 2px;
+  color: var(--text-secondary, #4b5563);
+  font-size: 11px;
+  line-height: 1.5;
+  word-break: break-word;
 }
 
 .pickerHintLabel {

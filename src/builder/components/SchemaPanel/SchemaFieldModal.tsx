@@ -22,6 +22,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Modal } from '../Modal/Modal';
 import { useBuilder } from '../../state/BuilderContext';
 import { useAgentFields } from '../../state/useAgentFields';
@@ -75,7 +76,7 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
   const [source,       setSource]       = useState<FieldSource>('explicit');
   const [domain,       setDomain]       = useState('');
   const [howToExtract, setHowToExtract] = useState('');
-  const [enumValues,   setEnumValues]   = useState('');
+  const [enumType,     setEnumType]     = useState<ID | ''>('');
 
   useEffect(() => {
     if (!open) return;
@@ -84,7 +85,7 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
     setSource(initial?.source ?? 'explicit');
     setDomain(initial?.domain ?? '');
     setHowToExtract(initial?.howToExtract ?? '');
-    setEnumValues((initial?.enumValues ?? []).join(', '));
+    setEnumType((initial?.enumType ?? '') as ID | '');
   }, [open, initial, initialType]);
 
   const trimmedName = name.trim();
@@ -134,12 +135,7 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
       source,
       howToExtract: howToExtract.trim(),
       ...(domain.trim() ? { domain: domain.trim() } : {}),
-      ...(type === 'enum' && {
-        enumValues: enumValues
-          .split(',')
-          .map(v => v.trim())
-          .filter(Boolean),
-      }),
+      ...(type === 'enum' && enumType ? { enumType } : {}),
     };
     const existing = agent.fields.find(f => f.id === nextField.id);
     const fields = existing
@@ -250,14 +246,40 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
 
         {type === 'enum' && (
           <div>
-            <div className={styles.label}>Allowed values (comma-separated)</div>
-            <input
-              className={styles.input}
-              value={enumValues}
-              onChange={e => setEnumValues(e.target.value)}
-              placeholder="e.g. salaried, self_employed, unemployed"
-              spellCheck={false}
-            />
+            <div className={styles.label}>Enum type</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <select
+                className={styles.input}
+                value={enumType}
+                onChange={e => setEnumType(e.target.value as ID | '')}
+                style={{ flex: 1 }}
+              >
+                <option value="">(none — pick an enum)</option>
+                {(agent?.enums ?? []).map(e => (
+                  <option key={e.id} value={e.id}>{e.name}</option>
+                ))}
+              </select>
+              {enumType && agent && (
+                <Link
+                  to={`/${agent.slug}/builder/enums/${encodeURIComponent(
+                    (agent.enums ?? []).find(e => e.id === enumType)?.name ?? ''
+                  )}`}
+                  onClick={onClose}
+                  style={{
+                    fontSize: 11, fontWeight: 700, padding: '6px 10px',
+                    border: '1px solid #e5e7eb', borderRadius: 6,
+                    background: '#fff', color: '#2563eb', textDecoration: 'none',
+                  }}
+                >
+                  Edit enum ↗
+                </Link>
+              )}
+            </div>
+            <div className={styles.hint} style={{ marginTop: 4 }}>
+              {(agent?.enums ?? []).length === 0
+                ? 'No enums declared yet. Open the Enums bible from the Setup area to author one.'
+                : 'Pick the value vocabulary this field draws from. Multiple fields can share an enum.'}
+            </div>
           </div>
         )}
 

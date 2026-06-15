@@ -26,11 +26,11 @@ interface Props {
 }
 
 const TITLE: Record<SchemaSectionKind, string> = {
-  'parameters':      'Parameters',
-  'dynamic-context': 'Dynamic Context',
-  'domains':         'Domains',
-  'fields':          'Fields',
-  'snippets':        'Snippets',
+  'parameters': 'Parameters',
+  'enums':      'Enums',
+  'domains':    'Domains',
+  'fields':     'Fields',
+  'snippets':   'Snippets',
 };
 
 export function SchemaSectionModal({ open, onClose, agentId, kind }: Props) {

@@ -14,6 +14,7 @@
 
 import type {
   AddonInstance,
+  EnumTypeDef,
   FieldDef,
   ParameterDef,
 } from '../../types';
@@ -36,14 +37,19 @@ interface BuildArgs {
    * the server's substitution byte-for-byte. Defaults to empty.
    */
   parameters?: ParameterDef[];
+  /**
+   * Agent.enums — the enum bible. Used to resolve `{{enum:NAME[:S]}}`
+   * (static, no live data needed) and `{{enum_values}}` (for an
+   * extractor's first field's allowed-values list). `{{dc:FIELD…}}`
+   * is left literal in preview because there's no live memory.
+   */
+  enums?: EnumTypeDef[];
+  /** Agent + crew fields in scope — used to resolve `{{dc:…}}` field
+   *  references at preview time. Today we just leave them literal
+   *  (no live brain), but the prop is here for future expansion. */
+  fieldsForDc?: FieldDef[];
 }
 
-/**
- * Substitute flat `{{name}}` placeholders. Empty values collapse the
- * placeholder AND surrounding blank lines so the prompt doesn't end up
- * with awkward gaps. Parameterised tokens like `{{memory:domain}}` are
- * handled separately by `substituteParameterised`.
- */
 function substitute(template: string, values: Record<string, string>): string {
   let result = template;
   for (const [key, value] of Object.entries(values)) {
@@ -59,14 +65,6 @@ function substitute(template: string, values: Record<string, string>): string {
   return result;
 }
 
-/**
- * Substitute parameterised tokens of the form `{{prefix:NAME}}`. The
- * `resolve(name)` callback returns the substitution string (empty
- * string for "value exists but is blank") or null/undefined to leave
- * the token in place.
- *
- * Mirrors the server's substituteParameterised in promptAssembler.js.
- */
 function substituteParameterised(
   template: string,
   prefix: string,
@@ -88,31 +86,31 @@ function buildPersonaBlock(persona: string): string {
   return `## Persona\n${text}`;
 }
 
-/**
- * Phase B: `{{memory}}` enumerates all populated domains at runtime.
- * Preview has no live values, so the section renders as empty `## Memory`
- * — same as server when no memory has been written. Matches server's
- * buildMemoryBlock when domainList returns [].
- */
-function buildMemoryBlock(): string {
-  return '';
+function buildMemoryBlock(): string { return ''; }
+function buildThinkingBlock(): string { return ''; }
+
+function findEnumById(enums: EnumTypeDef[] | undefined, id: string | undefined): EnumTypeDef | null {
+  if (!enums || !id) return null;
+  return enums.find(e => e.id === id) ?? null;
+}
+function findEnumByName(enums: EnumTypeDef[] | undefined, name: string): EnumTypeDef | null {
+  if (!enums) return null;
+  return enums.find(e => e.name === name) ?? null;
 }
 
-function buildThinkingBlock(): string {
-  return '';
-}
-
-function buildFieldsSchemaBlock(fields: FieldDef[]): string {
+function buildFieldsSchemaBlock(fields: FieldDef[], enums?: EnumTypeDef[]): string {
   if (fields.length === 0) return '';
-  // Format: `- <name> (type=..., [values=[...],] source=...): <how>`
-  // Explicit key=value props remove the ambiguity from the old
-  // comma-separated form where "explicit" could read as an enum value.
-  // MUST stay byte-equal to the server's buildFieldsSchemaBlock in
-  // aspect-agent-server/builder/runtime/promptAssembler.js.
+  // Format MUST stay byte-equal to the server's buildFieldsSchemaBlock
+  // in aspect-agent-server/builder/runtime/promptAssembler.js — drift =
+  // silent prompt divergence.
   const lines = fields.map(f => {
     const props: string[] = [`type=${f.type}`];
-    if (f.type === 'enum' && f.enumValues && f.enumValues.length > 0) {
-      props.push(`values=[${f.enumValues.join(', ')}]`);
+    if (f.type === 'enum') {
+      const enumDef = findEnumById(enums, f.enumType);
+      const vals = enumDef ? enumDef.values.map(v => v.value).filter(Boolean) : [];
+      if (vals.length > 0) {
+        props.push(`values=[${vals.join(', ')}]`);
+      }
     }
     props.push(`source=${f.source}`);
     const head = `- ${f.name} (${props.join(', ')})`;
@@ -123,63 +121,89 @@ function buildFieldsSchemaBlock(fields: FieldDef[]): string {
 }
 
 function buildFieldsCurrentBlock(_fields: FieldDef[]): string {
-  // Runtime contract: this block holds ONLY fields that have a
-  // captured value — never nulls. Including nulls confuses the LLM
-  // ("we already collected age = null"). At preview time we have no
-  // live values, so the block is empty `{}`.
   return '{}';
 }
 
-/**
- * Single-domain block for `{{memory:NAME}}` / `{{thinking:NAME}}`.
- * Preview has no live values, so the block is `### NAME\n{}` — mirrors
- * the empty-domain shape in the whole-section preview helpers above.
- * Mirrors the server's buildSingleDomainBlock byte-for-byte for the
- * empty case.
- */
 function buildSingleDomainPreviewBlock(name: string): string {
   return `### ${name}\n{}`;
 }
 
+/** Reserved second segment of `{{enum:NAME:…}}` — comma-separated
+ *  values list. MUST match the server's promptAssembler.js. */
+const ENUM_VALUES_KEYWORD = 'values';
+
+/**
+ * Aggregate render for `{{enum:NAME[:SECTION|:values]}}` — mirrors the
+ * server's resolveEnumAggregate in promptAssembler.js. Returns null
+ * for unknown enum (token stays literal); '' when nothing to render;
+ * otherwise the rendered text.
+ */
+function resolveEnumAggregate(rawName: string, enums?: EnumTypeDef[]): string | null {
+  const colonIdx = rawName.indexOf(':');
+  const enumName    = colonIdx === -1 ? rawName : rawName.slice(0, colonIdx);
+  const sectionPart = colonIdx === -1 ? null    : rawName.slice(colonIdx + 1);
+  const enumDef = findEnumByName(enums, enumName);
+  if (!enumDef) return null;
+
+  // Reserved: `:values` → inline comma-separated values list.
+  if (sectionPart === ENUM_VALUES_KEYWORD) {
+    return enumDef.values.map(v => v?.value).filter(Boolean).join(', ');
+  }
+
+  const blocks: string[] = [];
+  for (const v of enumDef.values) {
+    if (!v?.value) continue;
+    let body = '';
+    if (sectionPart === null) {
+      body = (v.umbrellaText ?? '').trim();
+    } else {
+      const raw = (v.sectionTexts ?? {})[sectionPart];
+      body = typeof raw === 'string' ? raw.trim() : '';
+    }
+    if (!body) continue;
+    blocks.push(`### ${v.value}\n${body}`);
+  }
+  if (blocks.length === 0) return '';
+  const header = sectionPart === null
+    ? `## ${enumDef.name}`
+    : `## ${enumDef.name} — ${sectionPart}`;
+  return `${header}\n\n${blocks.join('\n\n')}`;
+}
+
 export function buildPromptPreview({
-  instance, agentPersona, extractorFields, parameters,
+  instance, agentPersona, extractorFields, parameters, enums, fieldsForDc: _fieldsForDc,
 }: BuildArgs): string {
   const plugin = getPlugin(instance.pluginId);
   let template = instance.promptTemplate ?? '';
   const cfg = instance.config as { prompt?: string } | undefined;
 
   const isExtractor = plugin?.fieldMode === 'extractor';
-  // Field defs come from the caller now — they live on agent/crew
-  // bodies, not inside the extractor's config. Resolving them
-  // requires knowing the agent + crew so the modal does that lookup.
   const fields: FieldDef[] = isExtractor ? (extractorFields ?? []) : [];
 
-  // {{prompt}} first — config.prompt may itself contain placeholders
-  // that the resolvers below need to see. Same order as server.
   template = template.split('{{prompt}}').join(cfg?.prompt ?? '');
 
-  // Flat whole-section tokens.
   template = substitute(template, {
     persona: buildPersonaBlock(agentPersona),
     memory: buildMemoryBlock(),
     thinking: buildThinkingBlock(),
-    fields_schema: isExtractor ? buildFieldsSchemaBlock(fields) : '',
+    fields_schema: isExtractor ? buildFieldsSchemaBlock(fields, enums) : '',
     fields_current: isExtractor ? buildFieldsCurrentBlock(fields) : '',
   });
 
-  // Single-field INLINE tokens — mirror of the server's substitution.
-  // First field is "this field" (Field Reasoner constrains to one).
-  // Plain string-replace so empty values don't eat surrounding
-  // whitespace mid-prose.
+  // Single-field inline tokens for extractor prompts.
   const thisField = isExtractor && fields.length > 0 ? fields[0] : null;
-  const thisFieldName  = thisField ? thisField.name : '';
-  const enumValuesText = thisField && thisField.enumValues && thisField.enumValues.length > 0
-    ? thisField.enumValues.join(', ')
-    : '';
+  const thisFieldName = thisField ? thisField.name : '';
+  let enumValuesText = '';
+  if (thisField && thisField.type === 'enum') {
+    const enumDef = findEnumById(enums, thisField.enumType);
+    if (enumDef) {
+      enumValuesText = enumDef.values.map(v => v.value).filter(Boolean).join(', ');
+    }
+  }
   template = template.split('{{this_field}}').join(thisFieldName);
   template = template.split('{{enum_values}}').join(enumValuesText);
 
-  // Parameterised tokens last.
+  // Parameterised tokens.
   template = substituteParameterised(template, 'memory',   name => buildSingleDomainPreviewBlock(name), false);
   template = substituteParameterised(template, 'thinking', name => buildSingleDomainPreviewBlock(name), false);
   template = substituteParameterised(template, 'field',    () => '', true);
@@ -188,6 +212,26 @@ export function buildPromptPreview({
     if (!found) return '';
     return typeof found.value === 'string' ? found.value : JSON.stringify(found.value);
   }, true);
+
+  // Enum tokens — see resolveEnumAggregate. `:values` runs inline
+  // FIRST so the block pass can treat the remainder as block-mode.
+  template = template.replace(/\{\{enum:([^:}\s]+):values\}\}/g, (match, name: string) => {
+    const out = resolveEnumAggregate(`${name}:values`, enums);
+    return out === null || out === undefined ? match : out;
+  });
+  template = substituteParameterised(
+    template,
+    'enum',
+    name => resolveEnumAggregate(name, enums),
+    false,
+  );
+
+  // DC live-value lookup — preview has no live brain. We render empty
+  // string for matching token shapes (FIELD[:S|*]) so the preview shows
+  // "this would resolve at runtime" without leaving stale tokens. Use
+  // an empty string return so the assembler's block-collapse trims
+  // whitespace around them.
+  template = substituteParameterised(template, 'dc', () => '', false);
 
   return template.replace(/\n{3,}/g, '\n\n').trim();
 }

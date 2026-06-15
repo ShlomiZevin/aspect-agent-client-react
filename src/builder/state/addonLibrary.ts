@@ -77,7 +77,8 @@ const SEED: LibraryEntry[] = [
           type: 'enum',
           source: 'explicit',
           howToExtract: 'Employment situation, as stated by the user.',
-          enumValues: ['salaried', 'self_employed', 'unemployed', 'student', 'retired'],
+          // Pre-saved library snippet — caller should wire `enumType`
+          // to one of their agent's enums after import.
         },
         {
           id: 'fld_income',

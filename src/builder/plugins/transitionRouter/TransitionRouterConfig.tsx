@@ -77,7 +77,7 @@ export function TransitionRouterConfigComponent({
             type="button"
             className={`${styles.toggle} ${config.onMatch !== 'break' ? styles.toggleActive : ''}`}
             onClick={() => onChange({ ...config, onMatch: 'continue' })}
-            title="Run the rest of this turn's chain. Talker (if downstream) still speaks."
+            title="Run the rest of the CURRENT crew's chain. The target crew (if 'Fire immediately' is on) takes over after this crew finishes."
           >
             Continue
           </button>
@@ -85,10 +85,39 @@ export function TransitionRouterConfigComponent({
             type="button"
             className={`${styles.toggle} ${config.onMatch === 'break' ? styles.toggleActive : ''}`}
             onClick={() => onChange({ ...config, onMatch: 'break' })}
-            title="Skip the rest of this turn. No assistant response this turn."
+            title="Skip the rest of the CURRENT crew's chain. The target crew (if 'Fire immediately' is on) starts right away."
           >
             Break
           </button>
+        </div>
+      </div>
+
+      <div className={styles.row}>
+        <span className={styles.rowLabel}>Fire target</span>
+        <div className={styles.toggleStack}>
+          <div className={styles.toggleGroup}>
+            <button
+              type="button"
+              className={`${styles.toggle} ${config.fireImmediately !== false ? styles.toggleActive : ''}`}
+              onClick={() => onChange({ ...config, fireImmediately: true })}
+              title="The target crew's chain runs right after this crew settles — same turn."
+            >
+              This turn
+            </button>
+            <button
+              type="button"
+              className={`${styles.toggle} ${config.fireImmediately === false ? styles.toggleActive : ''}`}
+              onClick={() => onChange({ ...config, fireImmediately: false })}
+              title="The target crew is queued up but doesn't run until the next user message."
+            >
+              Next message
+            </button>
+          </div>
+          <div className={styles.toggleHint}>
+            {config.fireImmediately !== false
+              ? 'Target crew runs right after this one — same turn.'
+              : 'Target crew waits until the next user message.'}
+          </div>
         </div>
       </div>
     </div>

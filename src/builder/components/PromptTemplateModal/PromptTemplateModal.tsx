@@ -88,6 +88,7 @@ export function PromptTemplateModal({ open, onClose, agentId, instance }: Props)
       agentPersona: agent?.persona ?? '',
       extractorFields,
       parameters: agent?.parameters ?? [],
+      enums:      agent?.enums ?? [],
     });
   }, [instance, agent, extractorFields]);
 

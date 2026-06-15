@@ -42,16 +42,17 @@ import styles from './ChatPanel.module.css';
  * round-trip is done (live) or at load time (historical).
  */
 /**
- * One dynamic-context resolution surfaced for this turn. Populated
- * from the server's `dynamic.resolved` SSE events so the user can see
- * which switch fired and which case matched live in the chat.
+ * One DC resolution surfaced for this turn — emitted by the server's
+ * `dc.resolved` SSE events whenever a `{{dc:FIELD…}}` token resolved
+ * against the live brain. Shows which field's enum bible was consulted
+ * and which value matched.
  */
-interface DynamicResolution {
+interface DcResolution {
   fieldName: string;
-  /** `null` for the umbrella `{{dynamic:F}}`, the section name for
-   *  `{{dynamic:F:S}}`, or `'*'` for the all-sections join. */
+  /** `null` for the umbrella `{{dc:F}}`, the section name for
+   *  `{{dc:F:S}}`, or `'*'` for the all-sections join. */
   section: string | null;
-  matched: string | null; // null = fell through to fallback / empty
+  matched: string | null; // null = no value matched on the enum
   text: string;
 }
 
@@ -63,7 +64,7 @@ interface Turn {
   assistantMessageId: number | null;
   runs: AddonRunSnapshot[];
   runsLoaded: boolean;
-  dynamicResolutions: DynamicResolution[];
+  dcResolutions: DcResolution[];
 }
 
 function findOwnerUserId(): string {
@@ -91,7 +92,7 @@ function messagesToTurns(messages: ConversationMessage[]): Turn[] {
         assistantMessageId: paired ? paired.id : null,
         runs: [],
         runsLoaded: false,
-        dynamicResolutions: [],
+        dcResolutions: [],
       });
       i += paired ? 2 : 1;
     } else if (m.role === 'assistant') {
@@ -103,7 +104,7 @@ function messagesToTurns(messages: ConversationMessage[]): Turn[] {
         assistantMessageId: m.id,
         runs: [],
         runsLoaded: false,
-        dynamicResolutions: [],
+        dcResolutions: [],
       });
       i += 1;
     } else {
@@ -419,26 +420,32 @@ export function UserChat() {
           runsLoaded:          true,
         }));
         return;
-      case 'dynamic.resolved':
-        // Append one resolution per server event. We de-dup by
-        // fieldName + section + matched so the same DC resolving twice
-        // in one turn (e.g. referenced in both Talker and Thinker
-        // prompts) shows once rather than twice — but distinct token
-        // forms ({{dynamic:F}}, {{dynamic:F:S}}, {{dynamic:F:*}}) all
-        // surface separately because the user authored them for a
-        // reason.
+      case 'dc.resolved':
+        // Append one resolution per server event. De-dup by fieldName
+        // + section + matched so the same lookup resolving twice in
+        // one turn (e.g. referenced in both Talker and Thinker prompts)
+        // shows once. Distinct token forms ({{dc:F}}, {{dc:F:S}},
+        // {{dc:F:*}}) surface separately — the author wrote each for
+        // a reason.
         updateLastTurn(t => {
-          const existing = t.dynamicResolutions ?? [];
+          const existing = t.dcResolutions ?? [];
           const dedupKey = `${e.fieldName}::${e.section ?? ''}::${e.matched ?? ''}`;
           if (existing.some(r => `${r.fieldName}::${r.section ?? ''}::${r.matched ?? ''}` === dedupKey)) return t;
           return {
             ...t,
-            dynamicResolutions: [
+            dcResolutions: [
               ...existing,
               { fieldName: e.fieldName, section: e.section, matched: e.matched, text: e.text },
             ],
           };
         });
+        return;
+      case 'enum.resolved':
+        // Aggregate enum tokens don't carry a "matched" live value —
+        // they dump every value's content. Today we don't surface
+        // them in the per-turn trail (the trail is still wired only
+        // to `dcResolutions`); pass through so the SSE switch stays
+        // exhaustive and TS doesn't complain.
         return;
       case 'done':
         refreshConversationMemory();
@@ -470,7 +477,7 @@ export function UserChat() {
         assistantMessageId: null,
         runs: [],
         runsLoaded: false,
-        dynamicResolutions: [],
+        dcResolutions: [],
       };
       setTurns(prev => [...prev, turn]);
 
@@ -489,6 +496,16 @@ export function UserChat() {
         ? liveAgent?.crews.find(c => c.id === targetCrewId) ?? null
         : null;
 
+      // Cascading transitions can land on ANY crew this turn, not just
+      // the one currentCrewId points at. Sending every crew's working
+      // body means a Transition Router cascade hops into the target's
+      // UNSAVED edits, not the stale DB body. Cheap (just JSON of the
+      // builder doc) and side-steps "second crew's prompt is wrong"
+      // confusion when the user is iterating on the target.
+      const overrideCrewBodies = liveAgent
+        ? Object.fromEntries(liveAgent.crews.map(c => [c.id, bodyOfCrew(c)]))
+        : undefined;
+
       await sendRuntimeMessage({
         agentSlug:      slug,
         conversationId: convId,
@@ -498,6 +515,7 @@ export function UserChat() {
         overrideCrewId: currentCrewId,
         ...(liveAgent ? { overrideAgentBody: bodyOfAgent(liveAgent) } : {}),
         ...(liveCrew  ? { overrideCrewBody:  bodyOfCrew(liveCrew)   } : {}),
+        ...(overrideCrewBodies ? { overrideCrewBodies } : {}),
         onEvent:        handleEvent,
       });
     } catch (err) {
@@ -740,7 +758,7 @@ function Turn({ turn, rtl, onExpand, onDeleteSelf, onDeleteFromHere }: TurnProps
       {showRuns && <TurnTimeline turn={turn} onExpand={onExpand} />}
       {/* DC resolutions are surfaced in the BrainPanel — keep them out
           of the chat area to reduce noise. The SSE event + the data on
-          `turn.dynamicResolutions` are still produced and stored; only
+          `turn.dcResolutions` are still produced and stored; only
           the chat-area display is suppressed here. */}
       {turn.assistantText && (
         <Bubble

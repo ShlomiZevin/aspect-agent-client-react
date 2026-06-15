@@ -771,3 +771,76 @@
   font-size: 12px;
   line-height: 1.6;
 }
+
+/* ─── Enum bible list rows (rewrite of DC screen — new shape) ───── */
+
+/* One row in the values / sections / enums list. Hover surfaces the
+   trailing ✕ delete affordance. */
+.bibleListRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  padding: 8px 30px 8px 10px; /* right padding leaves room for the ✕ */
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.bibleListRow:hover {
+  border-color: rgba(37, 99, 235, 0.5);
+}
+
+.bibleListRowActive {
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.bibleListRowLabel {
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: ui-monospace, "Menlo", monospace;
+  color: var(--text-primary, #111827);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bibleListRowActive .bibleListRowLabel {
+  color: #1d4ed8;
+}
+
+/* Trailing ✕ — invisible until row hover, then fades in. Click stops
+   propagation in the host. */
+.bibleListRowDelete {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #9ca3af;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 80ms ease-in-out, background 80ms;
+}
+
+.bibleListRow:hover .bibleListRowDelete {
+  opacity: 1;
+}
+
+.bibleListRowDelete:hover {
+  color: #b91c1c;
+  background: rgba(220, 38, 38, 0.08);
+}

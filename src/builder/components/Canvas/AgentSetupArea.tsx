@@ -51,7 +51,7 @@ export function AgentSetupArea({ agent }: Props) {
   const [personaOpen, setPersonaOpen] = useState(false);
   const [sectionOpen, setSectionOpen] = useState<SchemaSectionKind | null>(null);
 
-  const dcCount = (agent.dynamicContexts ?? []).length;
+  const enumsCount = (agent.enums ?? []).length;
 
   return (
     <div className={styles.area}>
@@ -86,17 +86,18 @@ export function AgentSetupArea({ agent }: Props) {
           );
         })}
 
-        {/* Dynamic Context — own page; chip navigates instead of
-            opening the section modal. */}
+        {/* Enum bible — own page; chip navigates instead of opening
+            the section modal. The page lists agent enums + lets the
+            author edit each value's umbrella + sections. */}
         <button
           type="button"
           className={styles.chip}
-          onClick={() => navigate(`/${agent.slug}/builder/dynamic-context`)}
-          title="Open the Dynamic Context page"
+          onClick={() => navigate(`/${agent.slug}/builder/enums`)}
+          title="Open the enum bible"
         >
           <span className={styles.chipIcon}>🎯</span>
-          <span className={styles.chipName}>Dynamic context</span>
-          <span className={styles.chipCount}>{dcCount}</span>
+          <span className={styles.chipName}>Enums</span>
+          <span className={styles.chipCount}>{enumsCount}</span>
         </button>
       </div>
 

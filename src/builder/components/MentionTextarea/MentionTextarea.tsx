@@ -498,6 +498,14 @@ export function MentionTextarea({
       if (opt) insertOption(opt);
     } else if (e.key === 'Escape') {
       e.preventDefault();
+      // Stop propagation so the containing Modal's Esc-to-close handler
+      // doesn't also fire — Esc with an open picker means "close the
+      // picker", not "close the modal under it". Modal attaches a NATIVE
+      // `document.addEventListener('keydown', …)`, so the React synthetic
+      // stopPropagation isn't enough; we have to stop the native event
+      // from bubbling all the way up to document.
+      e.stopPropagation();
+      e.nativeEvent.stopImmediatePropagation();
       closePicker();
     }
   };
@@ -574,12 +582,29 @@ export function MentionTextarea({
             <span className={styles.pickerHintLabel}>{TRIGGER_LABELS[picker.trigger]}</span>
             <span className={styles.pickerHintTrigger}>typed {picker.trigger}</span>
           </div>
-          <PickerList
-            options={visibleOptions}
-            activeIdx={activeIdx}
-            onPick={insertOption}
-            onHover={handlePickerHover}
-          />
+          <div className={styles.pickerScroll}>
+            <PickerList
+              options={visibleOptions}
+              activeIdx={activeIdx}
+              onPick={insertOption}
+              onHover={handlePickerHover}
+            />
+          </div>
+          {visibleOptions[activeIdx] && (
+            <div className={styles.pickerFooter}>
+              <span className={styles.pickerFooterLabel}>
+                {visibleOptions[activeIdx].label}
+              </span>
+              <span className={styles.pickerFooterInsertion}>
+                {visibleOptions[activeIdx].insertion}
+              </span>
+              {visibleOptions[activeIdx].description && (
+                <span className={styles.pickerFooterDescription}>
+                  {visibleOptions[activeIdx].description}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -607,32 +632,18 @@ function PickerList({
   }, [options]);
 
   // Keep the highlighted row visible while the user arrow-keys
-  // through a long list. We keep a ref per button (an array slot per
-  // option index) so the active item is addressable directly — no
-  // ambiguity from conditionally swapping a single ref between
-  // siblings. Each arrow press just nudges the picker's scrollTop by
-  // the minimum needed to keep the active row fully inside the
-  // viewport; if it's already visible, nothing moves.
+  // through a long list. The manual scrollTop math we used before
+  // worked for ArrowDown but not always for ArrowUp (the `.pickerHint`
+  // header above the list eats into the scroller's top edge and the
+  // condition `bRect.top < sRect.top + pad` would miss the case where
+  // the active row sat just under the hint). `scrollIntoView` with
+  // `block: 'nearest'` handles both directions symmetrically AND
+  // accounts for in-flow headers automatically.
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   useEffect(() => {
     const btn = itemRefs.current[activeIdx];
     if (!btn) return;
-    // Climb to the scrollable container (.picker) — using `closest`
-    // would need a class selector that survives CSS modules; the
-    // structure is small and stable so two parentElement hops are
-    // fine and obvious. .picker → .pickerList → group div → button
-    const scroller = btn.parentElement?.parentElement?.parentElement as HTMLElement | null;
-    if (!scroller) return;
-    const sRect = scroller.getBoundingClientRect();
-    const bRect = btn.getBoundingClientRect();
-    // Small breathing margin so the active row never sits flush with
-    // the viewport edge — easier on the eye when arrow-keying fast.
-    const pad = 4;
-    if (bRect.top < sRect.top + pad) {
-      scroller.scrollTop -= (sRect.top + pad - bRect.top);
-    } else if (bRect.bottom > sRect.bottom - pad) {
-      scroller.scrollTop += (bRect.bottom - (sRect.bottom - pad));
-    }
+    btn.scrollIntoView({ block: 'nearest' });
   }, [activeIdx]);
 
   return (

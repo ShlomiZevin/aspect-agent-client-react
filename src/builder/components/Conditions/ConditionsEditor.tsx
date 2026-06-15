@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useMemo } from 'react';
+import { useBuilder } from '../../state/BuilderContext';
 import { useCrewFields } from '../../state/useCrewFields';
 import { ComboPicker } from './ComboPicker';
 import type { FieldDef, FieldOp, ID, TransitionCondition } from '../../types';
@@ -86,6 +87,20 @@ export function ConditionsEditor({
   emptyMessage = 'No conditions — this rule will never fire. Add one above.',
 }: ConditionsEditorProps) {
   const { allFields } = useCrewFields(agentId, crewId);
+  const { doc } = useBuilder();
+  const agent = doc.agents.find(a => a.id === agentId);
+
+  /** For an enum-typed field, look up its declared values via the
+   *  agent's enum bible. Returns [] when the field isn't enum-typed
+   *  or its enumType doesn't resolve. */
+  const enumValuesFor = useMemo(() => {
+    return (field: FieldDef | undefined): string[] => {
+      if (!field || field.type !== 'enum' || !field.enumType) return [];
+      const enumDef = (agent?.enums ?? []).find(e => e.id === field.enumType);
+      if (!enumDef) return [];
+      return enumDef.values.map(v => v.value).filter(Boolean);
+    };
+  }, [agent?.enums]);
 
   const fieldByName = useMemo(() => {
     const map = new Map<string, FieldDef>();
@@ -132,6 +147,7 @@ export function ConditionsEditor({
               cond={cond}
               fieldNames={fieldNames}
               fieldByName={fieldByName}
+              enumValuesFor={enumValuesFor}
               onChange={next => updateCondition(i, next)}
               onRemove={() => removeCondition(i)}
             />
@@ -148,12 +164,13 @@ interface ConditionCardProps {
   cond: TransitionCondition;
   fieldNames: string[];
   fieldByName: Map<string, FieldDef>;
+  enumValuesFor: (field: FieldDef | undefined) => string[];
   onChange: (next: TransitionCondition) => void;
   onRemove: () => void;
 }
 
 function ConditionCard({
-  cond, fieldNames, fieldByName, onChange, onRemove,
+  cond, fieldNames, fieldByName, enumValuesFor, onChange, onRemove,
 }: ConditionCardProps) {
   const setType = (type: CondType) => onChange(emptyCondition(type));
 
@@ -171,7 +188,7 @@ function ConditionCard({
 
       <div className={styles.condBody}>
         {cond.type === 'field' && (
-          <FieldBody cond={cond} fieldNames={fieldNames} fieldByName={fieldByName} onChange={onChange} />
+          <FieldBody cond={cond} fieldNames={fieldNames} fieldByName={fieldByName} enumValuesFor={enumValuesFor} onChange={onChange} />
         )}
         {cond.type === 'fields-collected' && (
           <FieldsCollectedBody cond={cond} fieldNames={fieldNames} onChange={onChange} />
@@ -194,11 +211,12 @@ function ConditionCard({
 /* ─── Bodies ───────────────────────────────────────────────────── */
 
 function FieldBody({
-  cond, fieldNames, fieldByName, onChange,
+  cond, fieldNames, fieldByName, enumValuesFor, onChange,
 }: {
   cond: Extract<TransitionCondition, { type: 'field' }>;
   fieldNames: string[];
   fieldByName: Map<string, FieldDef>;
+  enumValuesFor: (field: FieldDef | undefined) => string[];
   onChange: (next: TransitionCondition) => void;
 }) {
   const matched = fieldByName.get(cond.field);
@@ -211,9 +229,8 @@ function FieldBody({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cond.field, allowedOps.join(',')]);
 
-  const isEnum = matched?.type === 'enum'
-    && Array.isArray(matched.enumValues)
-    && matched.enumValues.length > 0;
+  const enumValues = enumValuesFor(matched);
+  const isEnum = matched?.type === 'enum' && enumValues.length > 0;
   const isBoolean = matched?.type === 'boolean';
   const isNumeric = matched?.type === 'int';
   const multiValue = isMultiValueOp(cond.op);
@@ -245,7 +262,7 @@ function FieldBody({
       {multiValue ? (
         isEnum ? (
           <MultiChipPicker
-            options={(matched!.enumValues ?? []).map(String)}
+            options={enumValues}
             values={(cond.values ?? []).map(String)}
             onChange={values => onChange({ ...cond, values })}
           />
@@ -264,7 +281,7 @@ function FieldBody({
       ) : isEnum ? (
         <ComboPicker
           value={String(cond.value ?? '')}
-          options={(matched!.enumValues ?? []).map(String)}
+          options={enumValues}
           onChange={v => onChange({ ...cond, value: v })}
           placeholder="pick value"
           allowFreeText={false}

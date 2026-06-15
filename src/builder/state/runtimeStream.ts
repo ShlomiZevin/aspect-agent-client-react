@@ -105,17 +105,33 @@ export type RuntimeEvent =
   | { type: 'addon.error'; instanceId: string | null; error: { code: string; message: string } }
   | { type: 'assistant.message'; messageId: number; text: string }
   /**
-   * Dynamic Context resolution surfaced for the live chat trail.
-   * Emitted once per dynamic-context token that the assembler actually
-   * resolved this turn — including the no-match case (where `matched`
-   * is null and `text` is the umbrella fallback or '').
+   * Enum aggregate resolution surfaced for the live chat trail.
+   * Emitted once per `{{enum:NAME[:SECTION]}}` token resolved this turn
+   * (whether or not any value had content for the requested slot).
    *
-   * `section` distinguishes the three token forms:
-   *   - `null`   for `{{dynamic:FIELD}}`        (umbrella)
-   *   - section  for `{{dynamic:FIELD:SECTION}}` (single section)
-   *   - `'*'`    for `{{dynamic:FIELD:*}}`      (all sections joined)
+   *   - `section === null` → `{{enum:NAME}}`        (all values' umbrellas)
+   *   - `section === '<n>'` → `{{enum:NAME:<n>}}`   (single section across all values)
+   *
+   * `count` is the number of value blocks that actually emitted body
+   * (values with empty content for the requested slot are omitted).
    */
-  | { type: 'dynamic.resolved';
+  | { type: 'enum.resolved';
+      instanceId: string;
+      enumName: string;
+      section: string | null;
+      count: number;
+      text: string;
+    }
+  /**
+   * Live-value (DC) resolution. Emitted once per `{{dc:FIELD[:SECTION|*]}}`
+   * token the assembler resolved this turn, including the no-match case
+   * (where `matched` is `null` and `text` is empty).
+   *
+   *   - `section === null` → `{{dc:FIELD}}`       (umbrella of matched value)
+   *   - section name        → `{{dc:FIELD:NAME}}` (matched value's section body)
+   *   - `'*'`              → `{{dc:FIELD:*}}`    (all sections under matched value)
+   */
+  | { type: 'dc.resolved';
       instanceId: string;
       fieldName: string;
       section: string | null;
@@ -137,8 +153,16 @@ export interface SendArgs {
   /** Working-copy agent body. Sent so the runtime can execute against
    *  unsaved edits — the in-builder chat reflects dirty state. */
   overrideAgentBody?: unknown;
-  /** Working-copy crew body (matched with overrideAgentBody). */
+  /** Working-copy crew body (matched with overrideAgentBody). Backwards
+   *  compat — covers only the CURRENT crew. Cascading transitions need
+   *  every crew's body, hence `overrideCrewBodies` below. */
   overrideCrewBody?: unknown;
+  /** Working-copy crew bodies keyed by crewId. The runtime consults
+   *  this map when a Transition Router cascades into a target crew —
+   *  without it the cascade falls back to the saved DB body and ignores
+   *  unsaved edits to the target. Include EVERY crew you might land on
+   *  during the turn (cheapest is "all of them"). */
+  overrideCrewBodies?: Record<string, unknown>;
   onEvent: (event: RuntimeEvent) => void;
   signal?: AbortSignal;
 }

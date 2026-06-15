@@ -34,31 +34,46 @@ export function FieldInterviewerConfigComponent({
   crewId,
 }: PluginConfigProps<FieldInterviewerConfig>) {
   const patch = (next: Partial<FieldInterviewerConfig>) => onChange({ ...config, ...next });
-  const linkedId: ID | undefined = config.extractsFields?.[0];
-  // Same opt-in as Field Reasoner — exposes {{this_field}} and
-  // {{enum_values}} under the `@` trigger (and `/`) with descriptions
-  // tied to whatever field is currently wired.
+  const linkedIds: ID[] = config.extractsFields ?? [];
+  const firstLinkedId: ID | undefined = linkedIds[0];
+  // {{this_field}} / {{enum_values}} resolve to the FIRST bound field
+  // — pass it as the boundField hint so the picker descriptions track
+  // the field whose values the tokens will surface.
   const openCreateSnippet = useSnippetCreator();
   const mentionOptions = useMentionOptions(agentId, {
-    boundField: { fieldId: linkedId },
+    boundField: { fieldId: firstLinkedId },
     onCreateSnippet: () => openCreateSnippet(agentId),
   });
-  const { allFields } = useCrewFields(agentId, crewId);
-  const linked = useMemo(
-    () => allFields.find(cf => cf.field.id === linkedId) ?? null,
-    [allFields, linkedId],
+  const { allFields, setFieldExtractors } = useCrewFields(agentId, crewId);
+  const linkedFields = useMemo(
+    () => linkedIds
+      .map(id => allFields.find(cf => cf.field.id === id) ?? null)
+      .filter((x): x is NonNullable<typeof x> => x !== null),
+    [allFields, linkedIds],
   );
 
   const [wireOpen, setWireOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
+  const [editFieldId, setEditFieldId] = useState<ID | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const editingField = useMemo(
+    () => editFieldId ? allFields.find(cf => cf.field.id === editFieldId) ?? null : null,
+    [allFields, editFieldId],
+  );
 
   const handleWired = (fieldId: ID) => {
-    patch({ extractsFields: [fieldId] });
+    if (linkedIds.includes(fieldId)) return;
+    patch({ extractsFields: [...linkedIds, fieldId] });
   };
 
-  const handleUnlink = () => {
-    patch({ extractsFields: [] });
+  const handleUnlink = (fieldId: ID) => {
+    patch({ extractsFields: linkedIds.filter(id => id !== fieldId) });
+    const cf = allFields.find(x => x.field.id === fieldId);
+    if (cf) {
+      const others = cf.extractors
+        .map(e => e.instanceId)
+        .filter(iid => iid !== instance.instanceId);
+      setFieldExtractors(fieldId, others);
+    }
   };
 
   return (
@@ -84,47 +99,45 @@ export function FieldInterviewerConfigComponent({
       </InlineField>
 
       <InlineField
-        label="Output field"
-        hint="The single field this Interviewer drives toward. Pick an existing one or create a new one."
+        label="Output fields"
+        hint={
+          linkedFields.length > 1
+            ? `Multi-field Interviewer — outputs JSON with one key per field plus non-field keys → thinking. {{this_field}} / {{enum_values}} resolve to "${linkedFields[0].field.name}" (the first field).`
+            : 'Field(s) this Interviewer drives toward. Wire one for a focused interviewer, or several to drive related fields in one call.'
+        }
       >
-        {linked ? (
-          <div className={styles.linkedRow}>
-            <button
-              type="button"
-              className={styles.linkedChip}
-              onClick={() => setEditOpen(true)}
-              title={`Edit the declaration of ${linked.field.name}`}
-            >
-              <span className={styles.linkedIcon}>🎤</span>
-              <span className={styles.linkedName}>{linked.field.name}</span>
-              <span className={styles.linkedType}>{linked.field.type}</span>
-              {linked.scope === 'crew' && <span className={styles.linkedScope}>crew</span>}
-            </button>
-            <button
-              type="button"
-              className={styles.changeBtn}
-              onClick={() => setWireOpen(true)}
-            >
-              Change
-            </button>
-            <button
-              type="button"
-              className={styles.unlinkBtn}
-              onClick={handleUnlink}
-              title="Unlink — keeps the field declaration but stops this Interviewer from populating it"
-            >
-              ×
-            </button>
-          </div>
-        ) : (
+        <div className={styles.linkedRow} style={{ flexWrap: 'wrap' }}>
+          {linkedFields.map(lf => (
+            <span key={lf.field.id} className={styles.linkedRow} style={{ gap: 4 }}>
+              <button
+                type="button"
+                className={styles.linkedChip}
+                onClick={() => setEditFieldId(lf.field.id)}
+                title={`Edit the declaration of ${lf.field.name}`}
+              >
+                <span className={styles.linkedIcon}>🎤</span>
+                <span className={styles.linkedName}>{lf.field.name}</span>
+                <span className={styles.linkedType}>{lf.field.type}</span>
+                {lf.scope === 'crew' && <span className={styles.linkedScope}>crew</span>}
+              </button>
+              <button
+                type="button"
+                className={styles.unlinkBtn}
+                onClick={() => handleUnlink(lf.field.id)}
+                title={`Unlink ${lf.field.name}`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
           <button
             type="button"
             className={styles.wireBtn}
             onClick={() => setWireOpen(true)}
           >
-            + Wire or create field
+            {linkedFields.length === 0 ? '+ Wire or create field' : '+ Add field'}
           </button>
-        )}
+        </div>
       </InlineField>
 
       <InlineField
@@ -152,11 +165,22 @@ export function FieldInterviewerConfigComponent({
           />
         </div>
         <p className={styles.promptHint}>
-          Tell the LLM how to decide what to ask next AND when to commit
-          a value. Use <code>{'{{this_field}}'}</code> for the output
-          field's name and <code>{'{{enum_values}}'}</code> for its
-          allowed values. Any key OTHER than <code>{'{{this_field}}'}</code> in the
-          JSON output lands under the thinking domain above.
+          Tell the LLM how to decide what to ask next AND when to commit a value.
+          {linkedFields.length <= 1 ? (
+            <>
+              {' '}Use <code>{'{{this_field}}'}</code> for the output field's name and
+              <code> {'{{enum_values}}'}</code> for its allowed values. Any key
+              OTHER than <code>{'{{this_field}}'}</code> in the JSON output lands
+              under the thinking domain above.
+            </>
+          ) : (
+            <>
+              {' '}Multi-field — emit JSON with one key per wired field
+              (<code>{'{{fields_schema}}'}</code> / <code>{'{{fields_current}}'}</code>
+              are the multi-field counterparts of single-field <code>{'{{this_field}}'}</code>).
+              Any key NOT matching a wired field name lands under the thinking domain above.
+            </>
+          )}
         </p>
         {expanded ? (
           <ExpandedPromptView
@@ -186,11 +210,12 @@ export function FieldInterviewerConfigComponent({
         instanceId={instance.instanceId}
         onWired={handleWired}
         badgeLabel="Field Interviewer"
+        allowedTypes={['string', 'enum']}
       />
 
       <FieldEditorModal
-        crewField={editOpen ? linked : null}
-        onClose={() => setEditOpen(false)}
+        crewField={editingField}
+        onClose={() => setEditFieldId(null)}
         agentId={agentId}
         crewId={crewId}
       />

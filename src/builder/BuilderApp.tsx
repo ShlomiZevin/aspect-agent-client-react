@@ -196,13 +196,13 @@ function BuilderShell() {
           <Routes>
             {/* Default: project / agent / crew views driven by selection. */}
             <Route index element={<Canvas />} />
-            {/* Dynamic Context: bookmarkable at every level. The screen
-                reads its own params (fieldName / value / section) so a
+            {/* Enum bible: bookmarkable at every level. The screen
+                reads its own params (enumName / value / section) so a
                 single route component covers the four nesting depths. */}
-            <Route path="dynamic-context" element={<DynamicContextScreen />} />
-            <Route path="dynamic-context/:fieldName" element={<DynamicContextScreen />} />
-            <Route path="dynamic-context/:fieldName/:value" element={<DynamicContextScreen />} />
-            <Route path="dynamic-context/:fieldName/:value/:section" element={<DynamicContextScreen />} />
+            <Route path="enums" element={<DynamicContextScreen />} />
+            <Route path="enums/:enumName" element={<DynamicContextScreen />} />
+            <Route path="enums/:enumName/:value" element={<DynamicContextScreen />} />
+            <Route path="enums/:enumName/:value/:section" element={<DynamicContextScreen />} />
           </Routes>
           {/* Brain dock floats at the bottom-right of the canvas (just
               left of the chat column) so the chat column never

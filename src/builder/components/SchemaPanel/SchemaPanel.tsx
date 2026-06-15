@@ -1,15 +1,17 @@
 /**
  * SchemaPanel — agent-level schema editor.
  *
- * Stacks four sections in the AgentView sidebar:
+ * Stacks five sections in the AgentView sidebar:
  *   1. Parameters       — static agent-wide values (`agent.parameters`)
- *   2. Dynamic context  — value-switched prompts (`agent.dynamicContexts`)
- *   3. Domains          — declared memory groupings (`agent.domains`)
- *   4. Fields           — agent-level field declarations (`agent.fields`)
+ *   2. Enums            — agent-level value vocabularies (`agent.enums`)
+ *   3. Snippets         — reusable prompt content (`agent.snippets`)
+ *   4. Domains          — declared memory groupings (`agent.domains`)
+ *   5. Fields           — agent-level field declarations (`agent.fields`)
  *
- * Runtime impact: zero from raw schema. Dynamic Context is the only
- * section with runtime effects — but only when its tokens are referenced
- * inside an addon's prompt. Inert otherwise.
+ * Runtime impact: zero from raw schema. The enum bible is the only
+ * section with runtime effects — but only when its tokens
+ * (`{{enum:…}}` / `{{dc:…}}`) are referenced inside an addon's prompt.
+ * Inert otherwise.
  */
 
 import { useMemo, useState } from 'react';
@@ -21,12 +23,12 @@ import { ParameterModal } from './ParameterModal';
 import { SchemaFieldModal } from './SchemaFieldModal';
 import { WireFieldModal } from './WireFieldModal';
 import { SnippetModal } from '../Snippets/SnippetModal';
-import type { DynamicContextDef, FieldDef, ID, ParameterDef, SnippetDef } from '../../types';
+import type { EnumTypeDef, FieldDef, ID, ParameterDef, SnippetDef } from '../../types';
 import styles from './SchemaPanel.module.css';
 
 export type SchemaSectionKind =
   | 'parameters'
-  | 'dynamic-context'
+  | 'enums'
   | 'domains'
   | 'fields'
   | 'snippets';
@@ -48,81 +50,57 @@ export function SchemaPanel({ agentId, sections, embedded }: Props) {
   const show = (k: SchemaSectionKind) => !sections || sections.includes(k);
   return (
     <div className={styles.stack}>
-      {show('parameters')      && <ParametersSection      agentId={agentId} embedded={embedded} />}
-      {show('dynamic-context') && <DynamicContextsSection agentId={agentId} embedded={embedded} />}
-      {show('snippets')        && <SnippetsSection        agentId={agentId} embedded={embedded} />}
-      {show('domains')         && <DomainsSection         agentId={agentId} embedded={embedded} />}
-      {show('fields')          && <FieldsSection          agentId={agentId} embedded={embedded} />}
+      {show('parameters') && <ParametersSection agentId={agentId} embedded={embedded} />}
+      {show('enums')      && <EnumsSection      agentId={agentId} embedded={embedded} />}
+      {show('snippets')   && <SnippetsSection   agentId={agentId} embedded={embedded} />}
+      {show('domains')    && <DomainsSection    agentId={agentId} embedded={embedded} />}
+      {show('fields')     && <FieldsSection     agentId={agentId} embedded={embedded} />}
     </div>
   );
 }
 
-/* ─── Dynamic Context ─────────────────────────────────────────── */
+/* ─── Enums (the bible) ───────────────────────────────────────── */
 
-function DynamicContextsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean }) {
+function EnumsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean }) {
   const { doc } = useBuilder();
   const agent = doc.agents.find(a => a.id === agentId);
-  const dcs = useMemo(() => agent?.dynamicContexts ?? [], [agent?.dynamicContexts]);
-
-  const fieldNameById = useMemo(() => {
-    const map = new Map<string, { name: string; type: string }>();
-    for (const f of agent?.fields ?? []) map.set(f.id, { name: f.name, type: f.type });
-    return map;
-  }, [agent?.fields]);
-
+  const enums = useMemo(() => agent?.enums ?? [], [agent?.enums]);
   const slug = agent?.slug ?? '';
 
   return (
     <div className={`${styles.panel} ${embedded ? styles.panelEmbedded : ''}`}>
       <div className={`${styles.header} ${embedded ? styles.headerEmbedded : ''}`}>
-        {!embedded && <span className={styles.title}>🎯 Dynamic context</span>}
-        {!embedded && <span className={styles.count}>{dcs.length}</span>}
+        {!embedded && <span className={styles.title}>🎯 Enums</span>}
+        {!embedded && <span className={styles.count}>{enums.length}</span>}
         <span className={styles.spacer} />
-        <Link
-          to={`/${slug}/builder/dynamic-context`}
-          className={styles.addBtn}
-        >
-          + Add
-        </Link>
+        <Link to={`/${slug}/builder/enums`} className={styles.addBtn}>+ Add</Link>
       </div>
 
-      {dcs.length === 0 ? (
+      {enums.length === 0 ? (
         <div className={styles.empty}>
-          Switch a chunk of prompt text based on a memory field's current value.
-          Authored once at agent level, dropped into any prompt via
-          <code> {'{{dynamic:fieldname}}'}</code>.
+          Shared value vocabularies. Bind a field's type to one and the bible
+          drives <code>{'{{enum:…}}'}</code> and <code>{'{{dc:…}}'}</code>.
         </div>
       ) : (
         <div className={styles.paramList}>
-          {dcs.map(dc => {
-            const field = fieldNameById.get(dc.fieldId);
-            const caseCount = Array.isArray(dc.cases) ? dc.cases.length : 0;
-            return (
-              <Link
-                key={dc.id}
-                to={field
-                  ? `/${slug}/builder/dynamic-context/${encodeURIComponent(field.name)}`
-                  : `/${slug}/builder/dynamic-context`}
-                className={styles.paramRow}
-              >
-                <div className={styles.paramHead}>
-                  <span className={styles.paramName}>
-                    {field?.name ?? '(field deleted)'}
-                  </span>
-                  <span className={styles.paramSigil}>· {field?.type ?? '?'}</span>
-                  <span className={styles.spacerInline} />
-                  <span className={styles.paramSigil}>
-                    {caseCount} case{caseCount === 1 ? '' : 's'}
-                  </span>
-                </div>
-                {field && (
-                  <span className={styles.paramDesc}>
-                    Reference as <code>{`{{dynamic:${field.name}}}`}</code>
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+          {enums.map((en: EnumTypeDef) => (
+            <Link
+              key={en.id}
+              to={`/${slug}/builder/enums/${encodeURIComponent(en.name)}`}
+              className={styles.paramRow}
+            >
+              <div className={styles.paramHead}>
+                <span className={styles.paramName}>{en.name}</span>
+                <span className={styles.spacerInline} />
+                <span className={styles.paramSigil}>
+                  {en.values.length} value{en.values.length === 1 ? '' : 's'}
+                </span>
+              </div>
+              <span className={styles.paramDesc}>
+                Reference as <code>{`{{enum:${en.name}}}`}</code>
+              </span>
+            </Link>
+          ))}
         </div>
       )}
     </div>
@@ -409,11 +387,18 @@ function FieldsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean 
     updateConversationMemoryField,
   } = useBuilder();
   const agent = doc.agents.find(a => a.id === agentId);
-  const dcByFieldId = useMemo(() => {
-    const map = new Map<string, DynamicContextDef>();
-    for (const dc of agent?.dynamicContexts ?? []) map.set(dc.fieldId, dc);
+  /** Map from field.id → the enum bound to that field via enumType.
+   *  Used to render the "🎯 enum" chip on enum-typed fields. */
+  const enumByFieldId = useMemo(() => {
+    const map = new Map<string, EnumTypeDef>();
+    const enumsById = new Map((agent?.enums ?? []).map(e => [e.id, e]));
+    for (const f of agent?.fields ?? []) {
+      if (f.type !== 'enum' || !f.enumType) continue;
+      const en = enumsById.get(f.enumType);
+      if (en) map.set(f.id, en);
+    }
     return map;
-  }, [agent?.dynamicContexts]);
+  }, [agent?.fields, agent?.enums]);
 
   // Fields owned by a Field Reasoner addon — used to render the
   // 🧠 chip. Value carries the crew where the reasoner lives so the
@@ -514,7 +499,7 @@ function FieldsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean 
               liveValueByField={liveValueByField}
               canClearLive={previewConversationId !== null}
               onClearLive={onClearLive}
-              dcByFieldId={dcByFieldId}
+              enumByFieldId={enumByFieldId}
               reasonerByFieldId={reasonerByFieldId}
               agentSlug={agent?.slug ?? ''}
             />
@@ -528,7 +513,7 @@ function FieldsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean 
               extractorCountFor={extractorCountFor}
               liveValueByField={liveValueByField}
               canClearLive={previewConversationId !== null}
-              dcByFieldId={dcByFieldId}
+              enumByFieldId={enumByFieldId}
               reasonerByFieldId={reasonerByFieldId}
               agentSlug={agent?.slug ?? ''}
               onClearLive={onClearLive}
@@ -561,7 +546,7 @@ function formatLiveValue(v: unknown): string {
 function FieldsGroup({
   label, fields, onPick, onWire, extractorCountFor,
   liveValueByField, canClearLive, onClearLive,
-  dcByFieldId, reasonerByFieldId, agentSlug,
+  enumByFieldId, reasonerByFieldId, agentSlug,
 }: {
   label: string;
   fields: FieldDef[];
@@ -571,7 +556,7 @@ function FieldsGroup({
   liveValueByField: Record<string, unknown>;
   canClearLive: boolean;
   onClearLive: (name: string) => Promise<void> | void;
-  dcByFieldId: Map<string, DynamicContextDef>;
+  enumByFieldId: Map<string, EnumTypeDef>;
   reasonerByFieldId: Map<string, { crewId: ID; crewName: string }>;
   agentSlug: string;
 }) {
@@ -583,7 +568,7 @@ function FieldsGroup({
           const n = extractorCountFor(f.id);
           const live = liveValueByField[f.name];
           const hasValue = live !== undefined;
-          const hasDc = dcByFieldId.has(f.id);
+          const boundEnum = enumByFieldId.get(f.id) ?? null;
           return (
             <div
               key={f.id}
@@ -647,13 +632,13 @@ function FieldsGroup({
                     ✓ wired · {n}
                   </span>
                 )}
-                {hasDc && (
+                {boundEnum && (
                   <Link
-                    to={`/${agentSlug}/builder/dynamic-context/${encodeURIComponent(f.name)}`}
+                    to={`/${agentSlug}/builder/enums/${encodeURIComponent(boundEnum.name)}`}
                     className={styles.dcChip}
-                    title={`Open the Dynamic Context attached to ${f.name}`}
+                    title={`Open the "${boundEnum.name}" enum bible (drives {{dc:${f.name}…}} and {{enum:${boundEnum.name}…}}).`}
                   >
-                    🎯 dynamic
+                    🎯 {boundEnum.name}
                   </Link>
                 )}
                 {reasonerByFieldId.has(f.id) && (

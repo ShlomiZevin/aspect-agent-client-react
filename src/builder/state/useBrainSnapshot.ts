@@ -29,7 +29,8 @@
 import { useMemo } from 'react';
 import { useBuilder } from './BuilderContext';
 import type {
-  DynamicContextDef,
+  EnumTypeDef,
+  EnumValueDef,
   FieldDef,
 } from '../types';
 
@@ -53,25 +54,33 @@ export interface BrainStaleRow {
 
 export interface BrainDcSectionResolution {
   name: string;
-  /** Empty string = no body authored for the matched case. */
+  /** Empty string = no body authored for this section under the matched value. */
   body: string;
 }
 
+/**
+ * One DC hit — a field of `type === 'enum'` with a live value that
+ * matched a declared value on its enum bible. Surfaced in the brain
+ * panel so the author can see "this field resolved to value X and
+ * here's the umbrella + sections that {{dc:field…}} would inject."
+ */
 export interface BrainDcHit {
-  dc: DynamicContextDef;
+  /** The enum the matched value lives on. */
+  enumDef: EnumTypeDef;
   fieldName: string;
-  /** The DC's field value at the time of the snapshot. */
+  /** The field's live memory value at the time of the snapshot. */
   liveValue: string;
+  /** Resolved when the live value matches a declared value on the enum;
+   *  `null` when there's no match (the {{dc:…}} token would resolve to
+   *  empty for this field at this moment). */
   matched: {
-    /** `case.value` that fired. */
-    caseValue: string;
-    /** `case.text` — '' if the case has no umbrella authored. */
+    /** The matched EnumValueDef. */
+    value: EnumValueDef;
+    /** Value's umbrella — '' when not authored. */
     umbrella: string;
-    /** Every declared section under the DC, with the matched case's body. */
+    /** Every section declared on the enum, with this value's body. */
     sections: BrainDcSectionResolution[];
   } | null;
-  /** Non-empty only when `matched === null` and the DC has a fallback. */
-  fallback: string;
 }
 
 /**
@@ -182,45 +191,40 @@ export function useBrainSnapshot(): BrainSnapshot {
       }
     }
 
-    // ── Dynamic Context hits ──
-    const fieldsById = new Map(fields.map(f => [f.id, f]));
+    // ── DC hits — enum-typed fields whose live value resolves to a
+    // declared value on the agent's enum bible. The runtime's
+    // {{dc:FIELD…}} token does the same lookup; this view mirrors
+    // what that injection would produce so the author can inspect it.
+    const enumsById = new Map((agent.enums ?? []).map(e => [e.id, e]));
     const dcHits: BrainDcHit[] = [];
-    for (const dc of agent.dynamicContexts ?? []) {
-      const field = fieldsById.get(dc.fieldId);
-      if (!field) continue; // orphan DC — no field to look up
-
+    for (const field of fields) {
+      if (field.type !== 'enum' || !field.enumType) continue;
+      const enumDef = enumsById.get(field.enumType);
+      if (!enumDef) continue;                   // orphan enumType — skip
       const live = valueOf(field);
-      if (live === undefined || live === null) continue; // no value, no hit
+      if (live === undefined || live === null) continue;
       const liveStr = String(live);
-
-      const matchedCase = (dc.cases ?? []).find(c => String(c.value) === liveStr);
-
-      if (matchedCase) {
-        const umbrella = matchedCase.text ?? '';
-        const sections: BrainDcSectionResolution[] = (dc.sections ?? []).map(s => ({
-          name: s.name,
-          body: matchedCase.sectionTexts?.[s.name] ?? '',
-        }));
-        const anyContent = umbrella.trim().length > 0 || sections.some(s => s.body.trim().length > 0);
-        if (!anyContent) continue; // matched but every body is empty → not a hit
-        dcHits.push({
-          dc,
-          fieldName: field.name,
-          liveValue: liveStr,
-          matched: { caseValue: liveStr, umbrella, sections },
-          fallback: '',
-        });
-      } else {
-        const fb = (dc.fallback ?? '').trim();
-        if (!fb) continue; // no match + no fallback → not a hit
-        dcHits.push({
-          dc,
-          fieldName: field.name,
-          liveValue: liveStr,
-          matched: null,
-          fallback: dc.fallback!,
-        });
+      const matchedValue = enumDef.values.find(v => String(v.value) === liveStr) || null;
+      if (!matchedValue) {
+        // Live value doesn't match any declared value — no hit (we
+        // surface only positive lookups in the panel, matching the
+        // runtime's silent-empty semantics for unmatched dc tokens).
+        continue;
       }
+      const umbrella = matchedValue.umbrellaText ?? '';
+      const sections: BrainDcSectionResolution[] = (enumDef.sections ?? []).map(s => ({
+        name: s.name,
+        body: matchedValue.sectionTexts?.[s.name] ?? '',
+      }));
+      const anyContent = umbrella.trim().length > 0
+        || sections.some(s => s.body.trim().length > 0);
+      if (!anyContent) continue;                // matched but bodies empty → not a hit
+      dcHits.push({
+        enumDef,
+        fieldName: field.name,
+        liveValue: liveStr,
+        matched: { value: matchedValue, umbrella, sections },
+      });
     }
 
     // ── Thinking cards — long-form plans the Thinker writes per turn.

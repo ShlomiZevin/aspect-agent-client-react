@@ -92,7 +92,7 @@ export function ThinkerConfigComponent({
             onChange={prompt => patch({ prompt })}
             options={mentionOptions}
             rows={14}
-            placeholder="Tell the LLM what strategy to produce and which JSON keys to emit. Type @ memory · # parameters · ^ persona · * dynamic · + snippets · / or {{ for all."
+            placeholder="Tell the LLM what strategy to produce and which JSON keys to emit. Type @ memory · # parameters · ^ persona · * enum/dc · + snippets · / or {{ for all."
             storageKey={`addon:${instance.instanceId}:prompt`}
           />
         )}

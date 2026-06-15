@@ -7,12 +7,14 @@
  *      against `agent.fields` ∪ this crew's `crew.fields`). Clicking
  *      a row opens the field editor; × removes the field id from
  *      THIS extractor's list (doesn't delete the field definition).
- *      "+ Add field" opens AddFieldModal pre-ticking this extractor.
+ *      "+ Add field" opens the SHARED WireOrCreateFieldModal — same
+ *      surface Field Reasoner / Field Interviewer use, so the wire-
+ *      existing path is first-class. FE doesn't filter types: any
+ *      declared field is fair game.
  */
 
 import { useMemo, useState } from 'react';
 import { ModelPicker } from '../../components/ModelPicker/ModelPicker';
-import { AddFieldModal } from '../../components/FieldsPanel/AddFieldModal';
 import { FieldEditorModal } from '../../components/FieldsPanel/FieldEditorModal';
 import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
@@ -21,11 +23,11 @@ import { SnippetsUsedFooter } from '../../components/Snippets/SnippetsUsedFooter
 import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
 import { ExpandPromptToggle } from '../../components/Snippets/ExpandPromptToggle';
 import { ExpandedPromptView } from '../../components/Snippets/ExpandedPromptView';
+import { WireOrCreateFieldModal } from '../fieldReasoner/WireOrCreateFieldModal';
 import { useCrewFields } from '../../state/useCrewFields';
 import type { CrewField } from '../../state/useCrewFields';
 import type { PluginConfigProps } from '../../registry/plugins';
-import { getPlugin } from '../../registry/plugins';
-import type { FieldDef, FieldExtractorConfig, FieldSource } from '../../types';
+import type { FieldExtractorConfig, ID } from '../../types';
 import styles from './FieldExtractorConfig.module.css';
 
 interface FieldGroup {
@@ -75,10 +77,26 @@ export function FieldExtractorConfigComponent({
   const mentionOptions = useMentionOptions(agentId, {
     onCreateSnippet: () => openCreateSnippet(agentId),
   });
-  const [addOpen, setAddOpen] = useState(false);
+  const [wireOpen, setWireOpen] = useState(false);
   const [editingField, setEditingField] = useState<CrewField | null>(null);
   const [fieldsOpen, setFieldsOpen] = useState(true);
   const [expanded, setExpanded] = useState(false);
+
+  /** Append the wired/created field id to this extractor's
+   *  `extractsFields[]` (de-duped). Mirrors FR / FI's pattern. */
+  const handleWired = (fieldId: ID) => {
+    const ids = config.extractsFields ?? [];
+    if (ids.includes(fieldId)) return;
+    patch({ extractsFields: [...ids, fieldId] });
+  };
+
+  /** Display label for the addon in the modal badge — falls back to
+   *  the plugin id. */
+  const badgeLabel = useMemo(() => {
+    const n = (config.name || '').trim();
+    if (n) return n;
+    return instance.pluginId === 'vibe-extractor' ? 'Vibe Extractor' : 'Field Extractor';
+  }, [config.name, instance.pluginId]);
 
   // The CrewField objects this extractor extracts. Resolved by
   // intersecting `config.extractsFields[]` with the crew-visible
@@ -158,7 +176,7 @@ export function FieldExtractorConfigComponent({
             value={config.prompt}
             onChange={prompt => patch({ prompt })}
             options={mentionOptions}
-            placeholder="Extract only what the user explicitly said. Don't guess. Type @ memory · # parameters · ^ persona · * dynamic · + snippets · / or {{ for all."
+            placeholder="Extract only what the user explicitly said. Don't guess. Type @ memory · # parameters · ^ persona · * enum/dc · + snippets · / or {{ for all."
             rows={10}
             storageKey={`addon:${instance.instanceId}:prompt`}
           />
@@ -181,7 +199,7 @@ export function FieldExtractorConfigComponent({
           <button
             type="button"
             className={styles.addBtn}
-            onClick={() => setAddOpen(true)}
+            onClick={() => setWireOpen(true)}
           >
             + Add field
           </button>
@@ -258,24 +276,16 @@ export function FieldExtractorConfigComponent({
         ))}
       </section>
 
-      <AddFieldModal
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
+      <WireOrCreateFieldModal
+        open={wireOpen}
+        onClose={() => setWireOpen(false)}
         agentId={agentId}
         crewId={crewId}
-        // Anchor the new field to THIS extractor instance with the
-        // plugin-preferred default source (first entry in the plugin
-        // descriptor's `allowedFieldSources`). So adding a field from
-        // a Vibe Extractor starts ticked + 'inferred', from a Field
-        // Extractor starts ticked + 'explicit'. Future extractor
-        // plugins inherit this behavior just by ordering their
-        // `allowedFieldSources` array.
-        fromExtractor={{
-          instanceId: instance.instanceId,
-          defaultSource:
-            (getPlugin(instance.pluginId)?.allowedFieldSources?.[0] as FieldSource | undefined)
-            ?? 'explicit',
-        }}
+        instanceId={instance.instanceId}
+        onWired={handleWired}
+        badgeLabel={badgeLabel}
+        // FE accepts any type — string / int / enum / boolean. Omit the
+        // filter so the existing-field list is unrestricted.
       />
 
       <FieldEditorModal
