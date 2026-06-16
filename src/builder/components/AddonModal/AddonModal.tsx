@@ -28,7 +28,7 @@ import { useAddonMutations } from '../../state/useAddonMutations';
 import { useCrewFields } from '../../state/useCrewFields';
 import { useConfirm } from '../Confirm/Confirm';
 import { useBuilderSettings } from '../TopBar/BuilderSettings';
-import { ExportToLibraryModal } from '../ExportToLibraryModal/ExportToLibraryModal';
+import { PromptRepoModal } from '../PromptRepo/PromptRepoModal';
 import { AddonContextSection } from '../AddonContext/AddonContextSection';
 import { AddonOutputSection } from '../AddonOutput/AddonOutputSection';
 import { AddonTriggerSection } from '../Trigger/AddonTriggerSection';
@@ -70,7 +70,7 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
   const agent = doc.agents.find(a => a.id === agentId);
   const confirm = useConfirm();
   const [settings] = useBuilderSettings();
-  const [exportOpen, setExportOpen] = useState(false);
+  const [repoOpen, setRepoOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
   // Filter editor lives in its own focused modal — see the comment on
   // the launcher button below for why we don't inline the section.
@@ -236,14 +236,18 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
                   📄 Prompt template
                 </button>
               )}
-              {!desc.hideStandardSections?.repository && (
+              {/* Repo button — shown when this addon's config has a
+                  prompt the user could browse / save. Transition
+                  Router has none → hidden. The modal does both
+                  directions (browse + save) in one place. */}
+              {typeof (instance.config as { prompt?: unknown })?.prompt === 'string' && (
                 <button
                   type="button"
                   className={styles.secondaryBtn}
-                  onClick={() => setExportOpen(true)}
-                  title="Save this config to the shared Addon Repository"
+                  onClick={() => setRepoOpen(true)}
+                  title="Browse the prompt repo or save the current prompt"
                 >
-                  ⬆️ Export to repository
+                  📚 Repo
                 </button>
               )}
               <button type="button" className={styles.secondaryBtn} onClick={handleCancel}>
@@ -339,10 +343,21 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
         </fieldset>
       </Modal>
 
-      <ExportToLibraryModal
-        open={exportOpen}
-        onClose={() => setExportOpen(false)}
-        instance={instance}
+      <PromptRepoModal
+        open={repoOpen}
+        onClose={() => setRepoOpen(false)}
+        pluginId={instance.pluginId}
+        pluginLabel={desc.name}
+        currentPrompt={(instance.config as { prompt?: string })?.prompt ?? ''}
+        onPick={prompt => {
+          // Replace the addon's prompt with the picked one. Same
+          // mutation path the inner ConfigComponent uses, so the
+          // snapshot/discard machinery in AddonModal stays consistent.
+          muts.updateConfig(instance.instanceId, {
+            ...(instance.config as object),
+            prompt,
+          });
+        }}
       />
 
       <PromptTemplateModal

@@ -23,6 +23,12 @@ import { useCrewFields } from '../../state/useCrewFields';
 import { useBuilder } from '../../state/BuilderContext';
 import { useConfirm } from '../Confirm/Confirm';
 import { DomainInput } from './DomainInput';
+import {
+  validateFieldName,
+  stripInvalid,
+  hadInvalidStripped,
+  SPACE_BLOCKED_MESSAGE,
+} from './fieldNameValidation';
 import type { CrewField } from '../../state/useCrewFields';
 import type { FieldSource, FieldType, ID } from '../../types';
 import { autoDir } from '../../../utils/textDirection';
@@ -80,6 +86,9 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
   const confirm = useConfirm();
 
   const [name, setName] = useState('');
+  // True when the user's last Name keystroke contained whitespace we
+  // silently stripped — drives the inline SPACE_BLOCKED_MESSAGE.
+  const [nameSpaceBlocked, setNameSpaceBlocked] = useState(false);
   const [type, setType] = useState<FieldType>('string');
   const [source, setSource] = useState<FieldSource>('explicit');
   const [howToExtract, setHowToExtract] = useState('');
@@ -259,15 +268,37 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
           </div>
         )}
 
-        <label className={styles.field}>
-          <span className={styles.label}>Name</span>
-          <input
-            className={styles.input}
-            value={name}
-            onChange={e => setName(e.target.value)}
-            autoFocus
-          />
-        </label>
+        {(() => {
+          const nv = name.trim().length > 0
+            ? validateFieldName(name)
+            : { ok: true, reason: '' };
+          const showInvalid = !nv.ok || nameSpaceBlocked;
+          return (
+            <label className={styles.field}>
+              <span className={styles.label}>Name</span>
+              <input
+                className={`${styles.input} ${showInvalid ? styles.inputInvalid : ''}`}
+                value={name}
+                onChange={e => {
+                  const raw = e.target.value;
+                  setNameSpaceBlocked(hadInvalidStripped(raw));
+                  setName(stripInvalid(raw));
+                }}
+                autoFocus
+              />
+              {/* Always rendered — see .nameWarning min-height. The
+                  space-block message takes priority over the shape
+                  warning since it's immediate keystroke feedback. */}
+              <div className={styles.nameWarning}>
+                {nameSpaceBlocked
+                  ? SPACE_BLOCKED_MESSAGE
+                  : !nv.ok
+                    ? nv.reason
+                    : ''}
+              </div>
+            </label>
+          );
+        })()}
 
         <div className={styles.row3}>
           <label className={styles.field}>

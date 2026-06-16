@@ -71,6 +71,33 @@
   margin-top: 8px;
 }
 
+/* Name-shape warning — surfaces when the typed field name uses spaces,
+   capitals, or non-Latin chars. Pure inline hint paired with
+   `.inputInvalid` on the field itself for the visual signal.
+   Non-blocking: save button stays enabled.
+
+   Critical: this row is rendered UNCONDITIONALLY by the caller so
+   that showing/hiding the message text never reflows the form. The
+   `min-height` reserves exactly one line of helper space whether
+   there's text in it or not — when the warning fires, the message
+   slides in without nudging anything below. */
+.nameWarning {
+  margin-top: 4px;
+  min-height: 16px;
+  color: #b91c1c;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Red border + faint red wash on the Name input when the typed name
+   fails validation. Wash is light so the input doesn't visually scream
+   — the border + the helper line below carry most of the signal. */
+.inputInvalid,
+.inputInvalid:focus {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
 .collisionPrimary {
   font-family: inherit;
   font-size: 12px;

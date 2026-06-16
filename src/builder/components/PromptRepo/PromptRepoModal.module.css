@@ -1,0 +1,400 @@
+/* PromptRepoModal — browse / save reusable prompts for one addon.
+   Chips mirror the cortex addon cards (top accent bar + emoji).
+   Fixed-height regions so the modal never resizes as you click.
+   `--accent` comes inline from the host keyed to the plugin's color. */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  --accent: var(--primary-color, #6366f1);
+}
+
+/* ── Two-column split: list (left) · preview (right) ──────────── */
+.split {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 14px;
+  height: 380px;
+}
+
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+/* ── Tabs ─────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--bg-input, #f3f4f6);
+  border-radius: 9px;
+}
+
+.tab {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-secondary, #6b7280);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 120ms, color 120ms, box-shadow 120ms;
+}
+
+.tab:hover {
+  color: var(--text-primary, #111827);
+}
+
+.tabActive,
+.tabActive:hover {
+  color: var(--text-primary, #111827);
+  background: var(--bg-surface, #fff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.tabCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+/* ── Chip area (fills the left column, scrolls) ───────────────── */
+.chipArea {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.chipGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tabEmpty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px;
+  color: var(--text-tertiary, #9ca3af);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.chip {
+  --card-color: var(--accent);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  width: 86px;
+  padding: 9px 6px 7px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 120ms, transform 120ms, box-shadow 120ms, background 120ms;
+}
+
+/* Top accent bar — same idiom as the cortex addon cards. */
+.chip::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  border-radius: 0 0 3px 3px;
+  background: var(--card-color);
+}
+
+.chip:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.chipActive,
+.chipActive:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-surface, #fff));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.chipIcon {
+  font-size: 16px;
+  line-height: 1;
+  margin-bottom: 1px;
+}
+
+.chipName {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  width: 100%;
+}
+
+.chipMeta {
+  font-size: 8.5px;
+  color: var(--text-tertiary, #9ca3af);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.chipTrash {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  opacity: 0;
+  transition: opacity 100ms, background 100ms;
+}
+
+.chip:hover .chipTrash {
+  opacity: 0.6;
+}
+
+.chipTrash:hover {
+  opacity: 1;
+  background: rgba(220, 38, 38, 0.12);
+}
+
+/* ── Preview pane — right column, fills the split height ──────── */
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding: 12px;
+  background: var(--bg-input, #fafafa);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+}
+
+.previewActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.previewEmpty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-tertiary, #9ca3af);
+  font-size: 12.5px;
+  border: 1px dashed var(--border-color, #e5e7eb);
+  border-radius: 8px;
+}
+
+.previewHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.previewIcon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.previewName {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.previewSpacer {
+  flex: 1 1 auto;
+}
+
+.previewMeta {
+  font-size: 10.5px;
+  color: var(--text-tertiary, #9ca3af);
+  font-weight: 600;
+}
+
+.sourceBadge {
+  flex: 0 0 auto;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.badgeSeed {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.badgeUser {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.14);
+}
+
+.previewBody {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 10px 12px;
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-primary, #1f2937);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: auto;
+}
+
+.usePrimary {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 16px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter 120ms;
+}
+
+.usePrimary:hover {
+  filter: brightness(1.08);
+}
+
+/* ── Save bar ─────────────────────────────────────────────────── */
+.saveBar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+}
+
+.saveRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.saveLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary, #9ca3af);
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.saveInput {
+  flex: 1 1 auto;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: var(--text-primary, #111827);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.saveInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.saveBtn {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 16px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  flex: 0 0 auto;
+  transition: filter 120ms;
+}
+
+.saveBtn:hover {
+  filter: brightness(1.08);
+}
+
+.saveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none;
+}
+
+.saveStatus {
+  font-size: 11px;
+  color: #b91c1c;
+  line-height: 1.45;
+}
+
+/* ── Shared ───────────────────────────────────────────────────── */
+.btnGhost {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-surface, #fff);
+  color: var(--text-primary, #111827);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btnGhost:hover {
+  background: var(--bg-input, #f3f4f6);
+}

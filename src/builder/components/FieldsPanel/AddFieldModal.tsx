@@ -21,6 +21,12 @@ import { Modal } from '../Modal/Modal';
 import { useBuilder } from '../../state/BuilderContext';
 import { useCrewFields } from '../../state/useCrewFields';
 import { DomainInput } from './DomainInput';
+import {
+  validateFieldName,
+  stripInvalid,
+  hadInvalidStripped,
+  SPACE_BLOCKED_MESSAGE,
+} from './fieldNameValidation';
 import type { FieldDef, FieldSource, FieldType, ID } from '../../types';
 import { autoDir } from '../../../utils/textDirection';
 import styles from './AddFieldModal.module.css';
@@ -120,6 +126,11 @@ export function AddFieldModal({
   }, [agent?.fields]);
 
   const [draft, setDraft] = useState<Draft>(() => emptyDraft(fromExtractor?.defaultSource, lockedType));
+  // True when the user's last keystroke on the Name input contained
+  // whitespace that we silently stripped. Drives the inline
+  // SPACE_BLOCKED_MESSAGE so the user sees why their space "did
+  // nothing". Cleared on the next no-whitespace edit.
+  const [nameSpaceBlocked, setNameSpaceBlocked] = useState(false);
   // Which extractor instances should extract this field. At least one
   // required to submit. When opened from a specific extractor's "+ Add
   // field", that one is pre-ticked. Otherwise we fall back to the
@@ -154,12 +165,25 @@ export function AddFieldModal({
   // so the user can't accidentally create a duplicate.
   const trimmedName = draft.name.trim();
   const collidesWith = trimmedName ? agentFieldByName.get(trimmedName) ?? null : null;
+  // Shape check — block names the 4o-class extractors will silently
+  // rewrite (capitals, spaces, non-Latin, etc.). Only surface the
+  // reason once the user has typed something; an empty box reads as
+  // "still drafting", not "invalid".
+  const nameValidation = trimmedName.length > 0
+    ? validateFieldName(trimmedName)
+    : { ok: true, reason: '' };
 
   // For the caller-locked flow (DC page), allow declaring the field
   // without picking any extractor at all — the author can wire it
   // later. For every other entry point, keep the existing rule
   // (must have at least one extractor or the engine auto-creates one
   // because the agent has none yet).
+  //
+  // `nameValidation.ok` is NOT in this guard on purpose — name shape
+  // is surfaced as a non-blocking warning (red border + concise
+  // hint). Collisions DO still block; those silently overwrite an
+  // existing field at runtime, which is unrecoverable. Shape issues
+  // only break extraction for THIS field; user can decide.
   const canSubmit = trimmedName.length > 0
     && !collidesWith
     && (lockedType !== undefined || noExtractorsAnywhere || selectedExtractors.size > 0);
@@ -232,15 +256,33 @@ export function AddFieldModal({
         <label className={styles.field}>
           <span className={styles.label}>Name</span>
           <input
-            className={styles.input}
+            className={`${styles.input} ${(!nameValidation.ok || nameSpaceBlocked) ? styles.inputInvalid : ''}`}
             autoFocus
             value={draft.name}
-            onChange={e => setDraft(d => ({ ...d, name: e.target.value }))}
+            onChange={e => {
+              const raw = e.target.value;
+              setNameSpaceBlocked(hadInvalidStripped(raw));
+              setDraft(d => ({ ...d, name: stripInvalid(raw) }));
+            }}
             placeholder="e.g. employment_status"
             onKeyDown={e => {
               if (e.key === 'Enter' && canSubmit) submit();
             }}
           />
+          {/* Always rendered — the .nameWarning row has min-height so
+              showing/hiding the text doesn't reflow the form below.
+              Collision note has its own slab; space-block message
+              takes priority over the shape warning since it's the
+              more immediate keystroke feedback. */}
+          <div className={styles.nameWarning}>
+            {collidesWith
+              ? ''
+              : nameSpaceBlocked
+                ? SPACE_BLOCKED_MESSAGE
+                : !nameValidation.ok
+                  ? nameValidation.reason
+                  : ''}
+          </div>
           {collidesWith && (
             <div className={styles.collisionNote}>
               A field <strong>"{collidesWith.name}"</strong> is already declared at the agent level.

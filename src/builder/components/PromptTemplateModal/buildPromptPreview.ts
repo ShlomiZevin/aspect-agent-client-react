@@ -203,6 +203,14 @@ export function buildPromptPreview({
   template = template.split('{{this_field}}').join(thisFieldName);
   template = template.split('{{enum_values}}').join(enumValuesText);
 
+  // Multi-field counterpart of {{this_field}} — comma-separated list
+  // of wired field names. Mirrors the server's substitution so the
+  // preview matches runtime output byte-for-byte.
+  const theseFieldsText = isExtractor
+    ? fields.map(f => f && f.name).filter(Boolean).join(', ')
+    : '';
+  template = template.split('{{these_fields}}').join(theseFieldsText);
+
   // Parameterised tokens.
   template = substituteParameterised(template, 'memory',   name => buildSingleDomainPreviewBlock(name), false);
   template = substituteParameterised(template, 'thinking', name => buildSingleDomainPreviewBlock(name), false);

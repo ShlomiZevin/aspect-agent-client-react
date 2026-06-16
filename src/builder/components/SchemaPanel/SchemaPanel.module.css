@@ -468,6 +468,24 @@
   padding: 8px 10px;
 }
 
+/* Name-shape warning + red border + faint red wash on the Name input.
+   Non-blocking — the save button stays enabled. The `.nameWarning`
+   row is rendered unconditionally and reserves a fixed-height line
+   so showing/hiding the message doesn't reflow the form below it. */
+.nameWarning {
+  margin-top: 4px;
+  min-height: 16px;
+  color: #b91c1c;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.inputInvalid,
+.inputInvalid:focus {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
 /* Enum preview strip — confirms what value vocabulary the user just
    bound to the field. Sits below the unified Type select.
    Layout: enum name (bold) · comma-separated values · "Edit enum ↗"

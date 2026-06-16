@@ -280,6 +280,15 @@ export function useMentionOptions(
       // the same group keeps the single- vs multi- author choice
       // discoverable without forcing a separate trigger.
       at.push({
+        label:     'these_fields',
+        insertion: '{{these_fields}}',
+        group:     'Output field',
+        description:
+          'Multi-field counterpart of {{this_field}} — inline comma-separated list ' +
+          'of every wired field\'s NAME. Useful in prose: e.g. "Return JSON with ' +
+          'one key per of {{these_fields}}, using those exact names as the keys."',
+      });
+      at.push({
         label:     'fields_schema',
         insertion: '{{fields_schema}}',
         group:     'Output field',

@@ -29,6 +29,12 @@ import { useAgentFields } from '../../state/useAgentFields';
 import { useCrewFields } from '../../state/useCrewFields';
 import { useConfirm } from '../Confirm/Confirm';
 import { DomainInput } from '../FieldsPanel/DomainInput';
+import {
+  validateFieldName,
+  stripInvalid,
+  hadInvalidStripped,
+  SPACE_BLOCKED_MESSAGE,
+} from '../FieldsPanel/fieldNameValidation';
 import type { FieldDef, FieldSource, FieldType, ID } from '../../types';
 import { autoDir } from '../../../utils/textDirection';
 import styles from './SchemaPanel.module.css';
@@ -74,6 +80,9 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
   const agent = doc.agents.find(a => a.id === agentId);
 
   const [name,         setName]         = useState('');
+  // True when the user's last Name keystroke contained whitespace
+  // that was silently stripped — drives the SPACE_BLOCKED_MESSAGE.
+  const [nameSpaceBlocked, setNameSpaceBlocked] = useState(false);
   const [type,         setType]         = useState<FieldType>('string');
   const [source,       setSource]       = useState<FieldSource>('explicit');
   const [domain,       setDomain]       = useState('');
@@ -97,6 +106,13 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
     return same.filter(f => f.id !== initial?.id);
   }, [agent, initial]);
   const collides = trimmedName !== '' && siblings.some(f => f.name === trimmedName);
+  // Shape check — surfaced as a non-blocking visual hint (red border
+  // on the Name input + concise red helper line below). Save stays
+  // enabled; collisions still block (silent overwrite is unrecoverable,
+  // shape issues only break THIS field's extraction).
+  const nameValidation = trimmedName.length > 0
+    ? validateFieldName(trimmedName)
+    : { ok: true, reason: '' };
   const canSave = trimmedName.length > 0 && !collides;
 
   // Count extractors currently wired to this field so the confirm
@@ -179,9 +195,13 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
         <div>
           <div className={styles.label}>Name</div>
           <input
-            className={styles.input}
+            className={`${styles.input} ${(!nameValidation.ok || nameSpaceBlocked) ? styles.inputInvalid : ''}`}
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={e => {
+              const raw = e.target.value;
+              setNameSpaceBlocked(hadInvalidStripped(raw));
+              setName(stripInvalid(raw));
+            }}
             placeholder="e.g. employment_status"
             spellCheck={false}
             autoFocus
@@ -194,6 +214,20 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
               An agent field with this name already exists.
             </div>
           )}
+          {/* Always rendered — fixed min-height reserves the slot so
+              the form below doesn't jump when the message appears.
+              Space-block message takes priority over the shape
+              warning since it's immediate keystroke feedback.
+              Suppress when collision is the active error. */}
+          <div className={styles.nameWarning}>
+            {collides
+              ? ''
+              : nameSpaceBlocked
+                ? SPACE_BLOCKED_MESSAGE
+                : !nameValidation.ok
+                  ? nameValidation.reason
+                  : ''}
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

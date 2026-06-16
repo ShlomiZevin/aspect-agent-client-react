@@ -24,6 +24,12 @@
 import { useMemo, useState } from 'react';
 import { Modal } from '../../components/Modal/Modal';
 import { AddFieldModal } from '../../components/FieldsPanel/AddFieldModal';
+import {
+  validateFieldName,
+  stripInvalid,
+  hadInvalidStripped,
+  SPACE_BLOCKED_MESSAGE,
+} from '../../components/FieldsPanel/fieldNameValidation';
 import { useCrewFields } from '../../state/useCrewFields';
 import type { CrewField } from '../../state/useCrewFields';
 import type { FieldDef, FieldType, ID } from '../../types';
@@ -64,12 +70,24 @@ export function WireOrCreateFieldModal({
 
   const [createOpen, setCreateOpen] = useState(false);
   const [quickName, setQuickName] = useState('');
+  // True when the user's last keystroke contained whitespace we
+  // silently stripped — drives the SPACE_BLOCKED_MESSAGE.
+  const [quickSpaceBlocked, setQuickSpaceBlocked] = useState(false);
 
   // Name uniqueness — agent-field names must be unique (memory writes
   // are keyed by name; a collision would silently overwrite).
   const trimmedQuick = quickName.trim();
   const quickCollides = trimmedQuick !== ''
     && allFields.some(cf => cf.field.name === trimmedQuick);
+  // Shape check — same constraint as the full Add field / Declare
+  // field modals so the quick-add path can't sneak in a name the
+  // extractor LLM would silently rewrite.
+  // Shape check — surfaced as a non-blocking visual hint (red border
+  // + concise red helper). Quick-add stays enabled; the warning is
+  // enough signal.
+  const quickNameValidation = trimmedQuick.length > 0
+    ? validateFieldName(trimmedQuick)
+    : { ok: true, reason: '' };
   const canQuickAdd = trimmedQuick.length > 0 && !quickCollides;
 
   const handlePick = (cf: CrewField) => {
@@ -176,10 +194,19 @@ export function WireOrCreateFieldModal({
             <input
               className={styles.quickAddInput}
               value={quickName}
-              onChange={e => setQuickName(e.target.value)}
+              onChange={e => {
+                const raw = e.target.value;
+                setQuickSpaceBlocked(hadInvalidStripped(raw));
+                setQuickName(stripInvalid(raw));
+              }}
               onKeyDown={e => { if (e.key === 'Enter' && canQuickAdd) handleQuickAdd(); }}
               placeholder="e.g. tier_inferred"
               spellCheck={false}
+              // Inline red border when the typed name fails the shape
+              // check OR when the user just attempted to type a space.
+              style={(!quickNameValidation.ok || quickSpaceBlocked)
+                ? { borderColor: '#dc2626' }
+                : undefined}
             />
             <button
               type="button"
@@ -193,6 +220,24 @@ export function WireOrCreateFieldModal({
           {quickCollides ? (
             <div className={styles.quickAddCollide}>
               A field named "{trimmedQuick}" already exists. Pick it above or choose a different name.
+            </div>
+          ) : quickSpaceBlocked ? (
+            <div style={{
+              marginTop: 4,
+              color: '#b91c1c',
+              fontSize: 11,
+              lineHeight: 1.4,
+            }}>
+              {SPACE_BLOCKED_MESSAGE}
+            </div>
+          ) : !quickNameValidation.ok ? (
+            <div style={{
+              marginTop: 4,
+              color: '#b91c1c',
+              fontSize: 11,
+              lineHeight: 1.4,
+            }}>
+              {quickNameValidation.reason}
             </div>
           ) : (
             <div className={styles.quickAddHint}>
