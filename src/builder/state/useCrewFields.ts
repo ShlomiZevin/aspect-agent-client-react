@@ -261,6 +261,7 @@ function buildCrewField(
 export function useCrewFields(agentId: ID, crewId: ID) {
   const {
     doc, updateAgent, updateCrew, updateAddonConfig, updateAgentAddonConfig, addAddon,
+    applyFieldRenameCascade,
   } = useBuilder();
 
   const agent = doc.agents.find(a => a.id === agentId);
@@ -441,6 +442,25 @@ export function useCrewFields(agentId: ID, crewId: ID) {
       if (currentScope === 'agent') {
         original = (agent.fields || []).find(f => f.id === fieldId);
         if (!original) return;
+      } else {
+        const c = agent.crews.find(x => x.id === currentOwnerCrewId);
+        original = (c?.fields || []).find(f => f.id === fieldId);
+        if (!original || !c) return;
+      }
+
+      // ── Rename cascade ──
+      // When the patch renames the field, sweep every place that
+      // stores the OLD name (transition conditions, addon filters,
+      // and — once wired — prompt/snippet/persona token bodies)
+      // BEFORE we change the FieldDef itself. Done first so downstream
+      // readers never see a window with a renamed FieldDef but stale
+      // references pointing at it. The cascade is a no-op when the
+      // name isn't changing.
+      if (patch.name && patch.name.trim() !== original.name.trim()) {
+        applyFieldRenameCascade(agentId, original.name, patch.name.trim());
+      }
+
+      if (currentScope === 'agent') {
         if (moving) {
           const remaining = (agent.fields || []).filter(f => f.id !== fieldId);
           updateAgent(agentId, { fields: remaining } as Partial<AgentDoc>);

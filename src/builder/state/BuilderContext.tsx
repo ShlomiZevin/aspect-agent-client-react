@@ -38,6 +38,7 @@ import type {
 import { loadDraft, saveDraft } from './draftStorage';
 import { talkerPlugin, TALKER_PLUGIN_ID } from '../plugins/talker/addon.talker';
 import { defaultContextFor, defaultOutputTypeFor } from '../registry/plugins';
+import { cascadeFieldRename } from './fieldRenameCascade';
 
 // ─── Factories ─────────────────────────────────────────────────────
 
@@ -282,6 +283,19 @@ interface BuilderState {
    * or trip the project-sync queue mid-update.
    */
   renameAgentDomain: (agentId: ID, oldName: string, newName: string) => void;
+
+  /**
+   * Cascade a field rename across every place that stores the field's
+   * name — transition router conditions, addon filters, and (future)
+   * prompt / snippet / persona token bodies. Single atomic state
+   * update; see `fieldRenameCascade.ts` for the registry of surfaces.
+   *
+   * Does NOT touch the FieldDef itself — the caller (typically
+   * `useCrewFields.updateField`) is responsible for patching the
+   * field's `name`. Splitting the two keeps each call site honest
+   * about which it's doing.
+   */
+  applyFieldRenameCascade: (agentId: ID, oldName: string, newName: string) => void;
 
   // Crew CRUD + edit
   addCrew: (agentId: ID) => CrewDoc;
@@ -726,6 +740,24 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
             })),
           };
         }),
+      }));
+    },
+    [],
+  );
+
+  /** Cascade field-name references across the agent doc. Delegates
+   *  to the surface-aware renamers in `fieldRenameCascade.ts` so this
+   *  mutator stays a thin atomic wrapper — when new surfaces start
+   *  to store field names (prompts, snippets, persona), they get
+   *  picked up automatically here. */
+  const applyFieldRenameCascade = useCallback(
+    (agentId: ID, oldName: string, newName: string) => {
+      if (!oldName || !newName || oldName === newName) return;
+      setDoc(d => ({
+        ...d,
+        agents: d.agents.map(a =>
+          a.id === agentId ? cascadeFieldRename(a, oldName, newName) : a,
+        ),
       }));
     },
     [],
@@ -1579,6 +1611,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       updateProject,
       updateAgent,
       renameAgentDomain,
+      applyFieldRenameCascade,
       addCrew,
       removeCrew,
       updateCrew,
@@ -1628,6 +1661,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       updateProject,
       updateAgent,
       renameAgentDomain,
+      applyFieldRenameCascade,
       addCrew,
       removeCrew,
       updateCrew,
