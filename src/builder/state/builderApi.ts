@@ -43,8 +43,13 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
 export interface ProjectListItem {
   projectId: string;
   projectName: string;
+  agentId: string;
   agentSlug: string;
   agentName: string;
+  /** Workspace folder this agent lives in; null = top level. */
+  workspaceId: string | null;
+  /** ISO timestamp when archived; null = live. */
+  archivedAt: string | null;
   /** ISO timestamp of the most recent agent-level mutation. */
   updatedAt: string;
 }
@@ -57,6 +62,88 @@ export async function listProjects(args: {
     `/api/builder/projects/list?${params}`,
   );
   return res.projects;
+}
+
+// ─── Workspaces (folders on the builder home page) ────────────────
+
+export interface WorkspaceItem {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+export async function listWorkspaces(): Promise<WorkspaceItem[]> {
+  const res = await http<{ workspaces: WorkspaceItem[] }>(`/api/builder/workspaces`);
+  return res.workspaces;
+}
+
+export async function createWorkspace(args: {
+  ownerUserId: string;
+  name: string;
+}): Promise<WorkspaceItem> {
+  const id = `ws_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
+  const res = await http<{ workspace: WorkspaceItem }>(`/api/builder/workspaces`, {
+    method: 'POST',
+    body: JSON.stringify({ id, ownerUserId: args.ownerUserId, name: args.name }),
+  });
+  return res.workspace;
+}
+
+export async function renameWorkspace(args: { id: string; name: string }): Promise<void> {
+  await http(`/api/builder/workspaces/${args.id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name: args.name }),
+  });
+}
+
+/** cascade: 'orphan' moves the agents to top level; 'agents' deletes them. */
+export async function deleteWorkspace(args: {
+  id: string;
+  cascade: 'orphan' | 'agents';
+}): Promise<void> {
+  await http(`/api/builder/workspaces/${args.id}?cascade=${args.cascade}`, {
+    method: 'DELETE',
+  });
+}
+
+// ─── Agent shell mutations (rename / move / archive) ──────────────
+
+/**
+ * Rename an agent — display name AND slug (URL). Returns the new slug
+ * so the caller can update any links. Throws on a slug already taken
+ * by another agent (server responds 409).
+ */
+export async function renameAgent(args: {
+  agentId: string;
+  name: string;
+  slug: string;
+}): Promise<{ slug: string; name: string }> {
+  return http<{ slug: string; name: string }>(`/api/builder/agents/${args.agentId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name: args.name, slug: args.slug }),
+  });
+}
+
+/** Move an agent into a workspace, or to top level (workspaceId = null). */
+export async function moveAgent(args: {
+  agentId: string;
+  workspaceId: string | null;
+}): Promise<void> {
+  await http(`/api/builder/agents/${args.agentId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ workspaceId: args.workspaceId }),
+  });
+}
+
+/** Archive (true) or restore (false) an agent. */
+export async function setAgentArchived(args: {
+  agentId: string;
+  archived: boolean;
+}): Promise<void> {
+  await http(`/api/builder/agents/${args.agentId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ archived: args.archived }),
+  });
 }
 
 /**
