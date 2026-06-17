@@ -36,6 +36,7 @@ import type {
   AddonInstance,
   AgentDoc,
   CrewDoc,
+  SnippetDef,
   TransitionCondition,
 } from '../types';
 
@@ -51,10 +52,13 @@ type Renamer = (agent: AgentDoc, oldName: string, newName: string) => AgentDoc;
 const RENAMERS: Renamer[] = [
   renameInTransitionConditions,
   renameInAddonFilters,
+  renameInSnippetFilters,
   // FUTURE — uncomment and implement when the surfaces start to
   // store field names. Each is a one-line drop-in:
   // renameInPromptTokens,        // {{field:NAME}} + @NAME inside addon `config.prompt`
-  // renameInSnippetTokens,       // same tokens inside snippet `content`
+  // renameInSnippetTokens,       // same tokens inside snippet `content` (DIFFERENT
+  //                              //   from snippet FILTERS above — filters are
+  //                              //   condition lists, content is the text body)
   // renameInPersonaTokens,       // same tokens inside `agent.persona` and any persona overrides
   // renameInDcTokens,            // {{dc:NAME:…}} — only needed if DC binding switches from id-keyed
 ];
@@ -252,4 +256,50 @@ function renameInAddonFilters(
       },
     };
   });
+}
+
+/**
+ * Snippets can carry the same gate shape as a per-addon run filter
+ * (`SnippetDef.filter?: AddonFilter`). Walk `agent.snippets[]` and
+ * rewrite each snippet's conditions in place. Same `rewriteCondition`
+ * helper as the two renamers above; the only thing that differs is
+ * the storage location.
+ *
+ * Distinct from a future `renameInSnippetTokens` — that would walk
+ * `snippet.content` (a free-text prompt body) and rewrite token
+ * references like `{{field:NAME}}` / `@NAME`. Filters and content
+ * are separate surfaces on the same SnippetDef.
+ */
+function renameInSnippetFilters(
+  agent: AgentDoc,
+  oldName: string,
+  newName: string,
+): AgentDoc {
+  const snippets = agent.snippets;
+  if (!Array.isArray(snippets) || snippets.length === 0) return agent;
+
+  let anyChanged = false;
+  const nextSnippets: SnippetDef[] = snippets.map(snip => {
+    const filter = snip.filter;
+    if (!filter) return snip;
+    const list = filter.conditions;
+    if (!Array.isArray(list) || list.length === 0) return snip;
+
+    let condsChanged = false;
+    const nextConds = list.map(c => {
+      const updated = rewriteCondition(c, oldName, newName);
+      if (updated !== c) condsChanged = true;
+      return updated;
+    });
+    if (!condsChanged) return snip;
+
+    anyChanged = true;
+    return {
+      ...snip,
+      filter: { mode: filter.mode, conditions: nextConds },
+    };
+  });
+
+  if (!anyChanged) return agent;
+  return { ...agent, snippets: nextSnippets };
 }
