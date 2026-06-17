@@ -53,16 +53,26 @@
   background: #eef2ff; border-color: #c7d2fe;
 }
 
-.rowIcon { font-size: 14px; }
-.rowLabel {
-  flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: #111827;
+.rowIcon { font-size: 14px; align-self: flex-start; margin-top: 1px; }
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.rowName {
+  font-size: 13px; font-weight: 600; color: #111827;
   font-family: ui-monospace, Menlo, monospace;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.rowAllTag {
-  font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-  color: #4f46e5; background: #e0e7ff; padding: 1px 6px; border-radius: 999px;
+.rowApplies {
+  font-size: 10px; color: #9ca3af; font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.rowAppliesAll { color: #4f46e5; font-weight: 600; }
+.rowAppliesEmpty { color: #d97706; }
 
 .rowReorder { display: inline-flex; flex-direction: column; gap: 0; opacity: 0; }
 .row:hover .rowReorder { opacity: 1; }

@@ -114,11 +114,27 @@ export function PersonasScreen() {
     writePersonas(cur);
   }, [agent, writePersonas]);
 
+  // "All addons" (`*`) is mutually exclusive with specific addons:
+  //   - clicking All when off  → selection becomes just ['*'].
+  //   - clicking All when on   → clears it (→ []).
+  //   - clicking any specific  → drops '*' first, then toggles that one.
   const toggleAppliesTo = useCallback((p: PersonaDef, key: string) => {
     const set = new Set(p.appliesTo ?? []);
+    if (key === '*') {
+      if (set.has('*')) { upsert({ ...p, appliesTo: [] }); }
+      else              { upsert({ ...p, appliesTo: ['*'] }); }
+      return;
+    }
+    set.delete('*');
     if (set.has(key)) set.delete(key); else set.add(key);
     upsert({ ...p, appliesTo: [...set] });
   }, [upsert]);
+
+  /** Short, human label for an appliesTo id (plugin name, or "All addons"). */
+  const labelFor = useCallback(
+    (id: string) => appliesToOptions.find(o => o.id === id)?.name ?? id,
+    [appliesToOptions],
+  );
 
   const handleContentChange = useCallback((text: string) => {
     if (!active) return;
@@ -162,7 +178,20 @@ export function PersonasScreen() {
             <div className={styles.empty}>No personas yet. Add one — tick “All addons” to make it the general persona.</div>
           ) : (
             <div className={styles.list}>
-              {personas.map((p, idx) => (
+              {personas.map((p, idx) => {
+                const applies = p.appliesTo ?? [];
+                const all = applies.includes('*');
+                const fullList = applies.map(labelFor).join(', ');
+                // Short → names; busy (3+) → a count. Tooltip always full.
+                const summary = all
+                  ? 'All addons'
+                  : applies.length === 0
+                    ? 'No addons'
+                    : applies.length <= 2
+                      ? fullList
+                      : `${applies.length} addons`;
+                const tip = all ? 'All addons' : applies.length === 0 ? 'No addons' : fullList;
+                return (
                 <div
                   key={p.id}
                   role="button"
@@ -172,8 +201,15 @@ export function PersonasScreen() {
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(urlPersona(p.name)); } }}
                 >
                   <span className={styles.rowIcon} aria-hidden>🎭</span>
-                  <span className={styles.rowLabel}>{p.name}</span>
-                  {(p.appliesTo ?? []).includes('*') && <span className={styles.rowAllTag}>all</span>}
+                  <span className={styles.rowMain}>
+                    <span className={styles.rowName}>{p.name}</span>
+                    <span
+                      className={`${styles.rowApplies} ${all ? styles.rowAppliesAll : ''} ${applies.length === 0 ? styles.rowAppliesEmpty : ''}`}
+                      title={tip}
+                    >
+                      {summary}
+                    </span>
+                  </span>
                   <span className={styles.rowReorder}>
                     <button type="button" className={styles.reBtn} title="Move up" disabled={idx === 0}
                       onClick={e => { e.stopPropagation(); move(p, -1); }}>▲</button>
@@ -183,7 +219,8 @@ export function PersonasScreen() {
                   <button type="button" className={styles.rowDelete} title="Delete"
                     onClick={e => { e.stopPropagation(); handleDelete(p); }}>✕</button>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
