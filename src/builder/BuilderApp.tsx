@@ -18,6 +18,7 @@ import { TopBar } from './components/TopBar/TopBar';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { Canvas } from './components/Canvas/Canvas';
 import { DynamicContextScreen } from './components/DynamicContextScreen/DynamicContextScreen';
+import { PersonasScreen } from './components/PersonasScreen/PersonasScreen';
 import { BrainDockSlot, BrainFullscreenLayer } from './components/BrainPanel/BrainPanel';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
 import { ConfirmProvider } from './components/Confirm/Confirm';
@@ -203,6 +204,10 @@ function BuilderShell() {
             <Route path="enums/:enumName" element={<DynamicContextScreen />} />
             <Route path="enums/:enumName/:value" element={<DynamicContextScreen />} />
             <Route path="enums/:enumName/:value/:section" element={<DynamicContextScreen />} />
+            {/* Personas: agent-level multi-persona editor. The screen
+                reads its own `personaName` param. */}
+            <Route path="personas" element={<PersonasScreen />} />
+            <Route path="personas/:personaName" element={<PersonasScreen />} />
           </Routes>
           {/* Brain dock floats at the bottom-right of the canvas (just
               left of the chat column) so the chat column never

@@ -127,6 +127,7 @@ function bodyOfAgent(agent: AgentDoc): AgentBody {
     slug: agent.slug,
     spec: agent.spec,
     persona: agent.persona,
+    personas: agent.personas ?? [],
     defaultCrewId: agent.defaultCrewId,
     fields: agent.fields,
     domains: agent.domains ?? [],
@@ -148,6 +149,9 @@ function emptyAgent(slug: string): AgentDoc {
     slug,
     spec: '',
     persona: '',
+    // New agents start with one general persona ("main") applied to all
+    // addons — the out-of-the-box equivalent of the old single persona.
+    personas: [{ id: uid('persona'), name: 'main', content: '', appliesTo: ['*'] }],
     defaultCrewId: crew.id,
     fields: [],
     domains: [],
@@ -274,7 +278,7 @@ interface BuilderState {
   // Agent-level
   updateAgent: (
     agentId: ID,
-    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters' | 'enums' | 'snippets'>>,
+    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters' | 'enums' | 'snippets'>>,
   ) => void;
   /**
    * Rename a declared domain. Cascades through `agent.domains`,
@@ -705,7 +709,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
 
   // ── Agent ──
   const updateAgent = useCallback(
-    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters' | 'enums' | 'snippets'>>) => {
+    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters' | 'enums' | 'snippets'>>) => {
       setDoc(d => ({
         ...d,
         agents: d.agents.map(a => (a.id === agentId ? { ...a, ...patch } : a)),

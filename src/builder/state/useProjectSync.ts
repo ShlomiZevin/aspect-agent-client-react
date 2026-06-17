@@ -38,6 +38,7 @@ export function bodyOfAgent(agent: AgentDoc): AgentBody {
     slug: agent.slug,
     spec: agent.spec,
     persona: agent.persona,
+    personas: agent.personas ?? [],
     defaultCrewId: agent.defaultCrewId,
     fields: agent.fields,
     domains: agent.domains ?? [],

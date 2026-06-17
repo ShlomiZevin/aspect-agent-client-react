@@ -213,6 +213,21 @@ function migrateDraft(raw: unknown): ProjectDoc {
     // (`agent.enums[]`). Old drafts surfacing here are pre-refactor
     // and are not migrated — the user has stated no live agents rely
     // on the old shape.
+
+    // Step 8 — multi-persona. Old agents had a single `persona` string.
+    // Seed a `personas[]` with one general persona named "main" applied
+    // to ALL addons (the equivalent of the old single persona). Only
+    // when `personas` is absent — an explicit empty array (user deleted
+    // all personas) is respected so we don't resurrect a deleted one.
+    const personaAny = a as unknown as { persona?: string; personas?: unknown[] };
+    if (!Array.isArray(personaAny.personas)) {
+      personaAny.personas = [{
+        id:        rand('persona'),
+        name:      'main',
+        content:   typeof personaAny.persona === 'string' ? personaAny.persona : '',
+        appliesTo: ['*'],
+      }];
+    }
   }
   return doc;
 }

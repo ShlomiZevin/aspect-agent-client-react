@@ -17,7 +17,6 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PersonaModal } from '../ChainCanvas/PersonaModal';
 import { SchemaSectionModal } from './SchemaSectionModal';
 import type { SchemaSectionKind } from '../SchemaPanel/SchemaPanel';
 import type { AgentDoc } from '../../types';
@@ -48,10 +47,10 @@ const SCHEMA_CHIPS: ChipSpec[] = [
 
 export function AgentSetupArea({ agent }: Props) {
   const navigate = useNavigate();
-  const [personaOpen, setPersonaOpen] = useState(false);
   const [sectionOpen, setSectionOpen] = useState<SchemaSectionKind | null>(null);
 
-  const enumsCount = (agent.enums ?? []).length;
+  const enumsCount    = (agent.enums ?? []).length;
+  const personasCount = (agent.personas ?? []).length;
 
   return (
     <div className={styles.area}>
@@ -62,11 +61,12 @@ export function AgentSetupArea({ agent }: Props) {
         <button
           type="button"
           className={`${styles.chip} ${styles.chipPersona}`}
-          onClick={() => setPersonaOpen(true)}
-          title="Open persona settings"
+          onClick={() => navigate(`/${agent.slug}/builder/personas`)}
+          title="Open the personas page"
         >
           <span className={styles.chipIcon}>🎭</span>
-          <span className={styles.chipName}>Persona</span>
+          <span className={styles.chipName}>Personas</span>
+          <span className={styles.chipCount}>{personasCount}</span>
         </button>
 
         {SCHEMA_CHIPS.map(spec => {
@@ -100,14 +100,6 @@ export function AgentSetupArea({ agent }: Props) {
           <span className={styles.chipCount}>{enumsCount}</span>
         </button>
       </div>
-
-      <PersonaModal
-        open={personaOpen}
-        onClose={() => setPersonaOpen(false)}
-        agentId={agent.id}
-        agentSlug={agent.slug}
-        persona={agent.persona}
-      />
 
       {sectionOpen && (
         <SchemaSectionModal

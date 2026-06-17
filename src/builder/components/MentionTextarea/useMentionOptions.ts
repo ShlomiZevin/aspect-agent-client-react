@@ -345,12 +345,28 @@ export function useMentionOptions(
     }
 
     // ── ^  Persona ────────────────────────────────────────────────
+    // Bare {{persona}} = every persona applicable to the host addon
+    // (its appliesTo includes this plugin id or '*'), concatenated in
+    // the Personas-page order. {{persona:NAME}} pulls one specifically.
     const caret: MentionOption[] = [{
-      label:     'Persona',
+      label:     'Persona (applicable)',
       insertion: '{{persona}}',
       group:     'Persona',
-      description: 'The agent persona text — voice and tone shared across crews.',
+      description: 'Every persona that applies to this addon, in page order.',
     }];
+    for (const p of agent.personas ?? []) {
+      const scope = (p.appliesTo ?? []).includes('*')
+        ? 'all addons'
+        : (p.appliesTo ?? []).length
+          ? `applies to: ${(p.appliesTo ?? []).join(', ')}`
+          : 'applies to nothing yet';
+      caret.push({
+        label:     p.name,
+        insertion: `{{persona:${p.name}}}`,
+        group:     'Personas',
+        description: (p.content ? p.content.slice(0, 120) + (p.content.length > 120 ? '…' : '') : '(empty)') + ` · ${scope}`,
+      });
+    }
 
     // ── *  Enum bible ─────────────────────────────────────────────
     // Two token families under the same sigil, grouped distinctly so the
