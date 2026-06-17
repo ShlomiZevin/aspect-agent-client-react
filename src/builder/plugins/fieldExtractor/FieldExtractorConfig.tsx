@@ -21,8 +21,8 @@ import { useMentionOptions } from '../../components/MentionTextarea/useMentionOp
 import { InlineField } from '../../components/AddonModal/InlineField';
 import { SnippetsUsedFooter } from '../../components/Snippets/SnippetsUsedFooter';
 import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
-import { ExpandPromptToggle } from '../../components/Snippets/ExpandPromptToggle';
-import { ExpandedPromptView } from '../../components/Snippets/ExpandedPromptView';
+import { PromptPreviewToggle } from '../../components/PromptPreview/PromptPreviewToggle';
+import { PromptPreviewView } from '../../components/PromptPreview/PromptPreviewView';
 import { WireOrCreateFieldModal } from '../fieldReasoner/WireOrCreateFieldModal';
 import { useCrewFields } from '../../state/useCrewFields';
 import type { CrewField } from '../../state/useCrewFields';
@@ -154,23 +154,15 @@ export function FieldExtractorConfigComponent({
           <label className={styles.sectionLabel} htmlFor="fe-prompt">
             Extractor prompt
           </label>
-          <ExpandPromptToggle
-            text={config.prompt}
-            expanded={expanded}
-            onToggle={setExpanded}
-          />
+          <PromptPreviewToggle expanded={expanded} onToggle={setExpanded} />
         </div>
         <p className={styles.sectionHint}>
           How the model should extract fields — rules like "stay literal", "don't
           guess", "only the latest message".
         </p>
         {expanded ? (
-          <ExpandedPromptView
-            agentId={agentId}
-            text={config.prompt}
-            rows={10}
-            storageKey={`addon:${instance.instanceId}:prompt`}
-          />
+          <PromptPreviewView instance={instance} config={config} agentId={agentId} crewId={crewId}
+            rows={10} storageKey={`addon:${instance.instanceId}:prompt`} />
         ) : (
           <MentionTextarea
             value={config.prompt}

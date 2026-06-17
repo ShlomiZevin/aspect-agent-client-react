@@ -1,0 +1,23 @@
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4f46e5;
+  background: #fff;
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.toggle:hover { background: #eef2ff; }
+
+.toggleActive,
+.toggleActive:hover {
+  color: #fff;
+  background: #6366f1;
+  border-color: #6366f1;
+}

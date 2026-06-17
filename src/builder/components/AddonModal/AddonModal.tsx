@@ -34,7 +34,6 @@ import { AddonOutputSection } from '../AddonOutput/AddonOutputSection';
 import { AddonTriggerSection } from '../Trigger/AddonTriggerSection';
 import { FilterModal } from '../Filter/FilterModal';
 import { filterShortSummary, filterTooltip } from '../Filter/filterFormat';
-import { PromptTemplateModal } from '../PromptTemplateModal/PromptTemplateModal';
 import { FIELD_REASONER_PLUGIN_ID } from '../../plugins/fieldReasoner/addon.fieldReasoner';
 import type { AddonContext, AddonInstance, ID, OutputType } from '../../types';
 import styles from './AddonModal.module.css';
@@ -71,7 +70,6 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
   const confirm = useConfirm();
   const [settings] = useBuilderSettings();
   const [repoOpen, setRepoOpen] = useState(false);
-  const [templateOpen, setTemplateOpen] = useState(false);
   // Filter editor lives in its own focused modal — see the comment on
   // the launcher button below for why we don't inline the section.
   const [filterOpen, setFilterOpen] = useState(false);
@@ -226,16 +224,10 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
                 Remove
               </button>
               <span className={styles.spacer} />
-              {!desc.hideStandardSections?.promptTemplate && (
-                <button
-                  type="button"
-                  className={styles.secondaryBtn}
-                  onClick={() => setTemplateOpen(true)}
-                  title="View the prompt template the runtime uses for this addon"
-                >
-                  📄 Prompt template
-                </button>
-              )}
+              {/* Prompt-template viewer retired — the per-prompt
+                  "👁 Preview" toggle (PromptPreviewView) shows the full
+                  assembled prompt with every token opened, which the
+                  flat template modal couldn't do usefully. */}
               {/* Repo button — shown when this addon's config has a
                   prompt the user could browse / save. Transition
                   Router has none → hidden. The modal does both
@@ -358,13 +350,6 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
             prompt,
           });
         }}
-      />
-
-      <PromptTemplateModal
-        open={templateOpen}
-        onClose={() => setTemplateOpen(false)}
-        agentId={agentId}
-        instance={instance}
       />
 
       <FilterModal

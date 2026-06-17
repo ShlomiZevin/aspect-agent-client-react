@@ -23,8 +23,8 @@ import { InlineField } from '../../components/AddonModal/InlineField';
 import { FieldEditorModal } from '../../components/FieldsPanel/FieldEditorModal';
 import { SnippetsUsedFooter } from '../../components/Snippets/SnippetsUsedFooter';
 import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
-import { ExpandPromptToggle } from '../../components/Snippets/ExpandPromptToggle';
-import { ExpandedPromptView } from '../../components/Snippets/ExpandedPromptView';
+import { PromptPreviewToggle } from '../../components/PromptPreview/PromptPreviewToggle';
+import { PromptPreviewView } from '../../components/PromptPreview/PromptPreviewView';
 import { useCrewFields } from '../../state/useCrewFields';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { FieldReasonerConfig, ID } from '../../types';
@@ -154,11 +154,7 @@ export function FieldReasonerConfigComponent({
           <label className={styles.promptLabel} htmlFor="fr-prompt">
             Reasoning prompt
           </label>
-          <ExpandPromptToggle
-            text={config.prompt}
-            expanded={expanded}
-            onToggle={setExpanded}
-          />
+          <PromptPreviewToggle expanded={expanded} onToggle={setExpanded} />
         </div>
         <p className={styles.promptHint}>
           Describe how to decide. Reference other fields inline with <code>@</code>,
@@ -177,12 +173,8 @@ export function FieldReasonerConfigComponent({
           )}
         </p>
         {expanded ? (
-          <ExpandedPromptView
-            agentId={agentId}
-            text={config.prompt}
-            rows={14}
-            storageKey={`addon:${instance.instanceId}:prompt`}
-          />
+          <PromptPreviewView instance={instance} config={config} agentId={agentId} crewId={crewId}
+            rows={14} storageKey={`addon:${instance.instanceId}:prompt`} />
         ) : (
           <MentionTextarea
             value={config.prompt}

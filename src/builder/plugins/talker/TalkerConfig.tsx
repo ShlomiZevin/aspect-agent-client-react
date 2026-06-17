@@ -19,8 +19,8 @@ import { useMentionOptions } from '../../components/MentionTextarea/useMentionOp
 import { InlineField } from '../../components/AddonModal/InlineField';
 import { SnippetsUsedFooter } from '../../components/Snippets/SnippetsUsedFooter';
 import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
-import { ExpandPromptToggle } from '../../components/Snippets/ExpandPromptToggle';
-import { ExpandedPromptView } from '../../components/Snippets/ExpandedPromptView';
+import { PromptPreviewToggle } from '../../components/PromptPreview/PromptPreviewToggle';
+import { PromptPreviewView } from '../../components/PromptPreview/PromptPreviewView';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { TalkerConfig } from '../../types';
 import styles from './TalkerConfig.module.css';
@@ -30,6 +30,7 @@ export function TalkerConfigComponent({
   onChange,
   instance,
   agentId,
+  crewId,
 }: PluginConfigProps<TalkerConfig>) {
   const patch = (next: Partial<TalkerConfig>) => onChange({ ...config, ...next });
   const openCreateSnippet = useSnippetCreator();
@@ -52,11 +53,7 @@ export function TalkerConfigComponent({
           <label className={styles.sectionLabel} htmlFor="talker-prompt">
             Voice prompt
           </label>
-          <ExpandPromptToggle
-            text={config.prompt}
-            expanded={expanded}
-            onToggle={setExpanded}
-          />
+          <PromptPreviewToggle expanded={expanded} onToggle={setExpanded} />
         </div>
         <p className={styles.sectionHint}>
           What this crew is supposed to say. Type
@@ -69,9 +66,11 @@ export function TalkerConfigComponent({
           {' '}<kbd>/</kbd> or <kbd>{'{{'}</kbd> for all.
         </p>
         {expanded ? (
-          <ExpandedPromptView
+          <PromptPreviewView
+            instance={instance}
+            config={config}
             agentId={agentId}
-            text={config.prompt}
+            crewId={crewId}
             rows={10}
             storageKey={`addon:${instance.instanceId}:prompt`}
           />

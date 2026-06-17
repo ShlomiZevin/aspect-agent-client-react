@@ -22,8 +22,8 @@ import { useMentionOptions } from '../../components/MentionTextarea/useMentionOp
 import { InlineField } from '../../components/AddonModal/InlineField';
 import { SnippetsUsedFooter } from '../../components/Snippets/SnippetsUsedFooter';
 import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
-import { ExpandPromptToggle } from '../../components/Snippets/ExpandPromptToggle';
-import { ExpandedPromptView } from '../../components/Snippets/ExpandedPromptView';
+import { PromptPreviewToggle } from '../../components/PromptPreview/PromptPreviewToggle';
+import { PromptPreviewView } from '../../components/PromptPreview/PromptPreviewView';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { SummarizerConfig } from '../../types';
 import styles from './SummarizerConfig.module.css';
@@ -33,6 +33,7 @@ export function SummarizerConfigComponent({
   onChange,
   instance,
   agentId,
+  crewId,
 }: PluginConfigProps<SummarizerConfig>) {
   const patch = (next: Partial<SummarizerConfig>) => onChange({ ...config, ...next });
   const openCreateSnippet = useSnippetCreator();
@@ -67,11 +68,7 @@ export function SummarizerConfigComponent({
       <section className={styles.promptSection}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <label className={styles.promptLabel}>Synthesis prompt</label>
-          <ExpandPromptToggle
-            text={config.prompt}
-            expanded={expanded}
-            onToggle={setExpanded}
-          />
+          <PromptPreviewToggle expanded={expanded} onToggle={setExpanded} />
         </div>
         <p className={styles.promptHint}>
           Tell the LLM how to distil the conversation. Reference
@@ -83,12 +80,8 @@ export function SummarizerConfigComponent({
           <code>{' since_summarizer '}</code> mode.
         </p>
         {expanded ? (
-          <ExpandedPromptView
-            agentId={agentId}
-            text={config.prompt}
-            rows={14}
-            storageKey={`addon:${instance.instanceId}:prompt`}
-          />
+          <PromptPreviewView instance={instance} config={config} agentId={agentId} crewId={crewId}
+            rows={14} storageKey={`addon:${instance.instanceId}:prompt`} />
         ) : (
           <MentionTextarea
             value={config.prompt}

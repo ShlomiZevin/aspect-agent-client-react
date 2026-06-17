@@ -19,8 +19,8 @@ import { useMentionOptions } from '../../components/MentionTextarea/useMentionOp
 import { InlineField } from '../../components/AddonModal/InlineField';
 import { SnippetsUsedFooter } from '../../components/Snippets/SnippetsUsedFooter';
 import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
-import { ExpandPromptToggle } from '../../components/Snippets/ExpandPromptToggle';
-import { ExpandedPromptView } from '../../components/Snippets/ExpandedPromptView';
+import { PromptPreviewToggle } from '../../components/PromptPreview/PromptPreviewToggle';
+import { PromptPreviewView } from '../../components/PromptPreview/PromptPreviewView';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { ThinkerConfig } from '../../types';
 import styles from './ThinkerConfig.module.css';
@@ -30,6 +30,7 @@ export function ThinkerConfigComponent({
   onChange,
   instance,
   agentId,
+  crewId,
 }: PluginConfigProps<ThinkerConfig>) {
   const patch = (next: Partial<ThinkerConfig>) => onChange({ ...config, ...next });
   const openCreateSnippet = useSnippetCreator();
@@ -73,19 +74,11 @@ export function ThinkerConfigComponent({
       <div className={styles.field}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span className={styles.label}>Strategic prompt</span>
-          <ExpandPromptToggle
-            text={config.prompt}
-            expanded={expanded}
-            onToggle={setExpanded}
-          />
+          <PromptPreviewToggle expanded={expanded} onToggle={setExpanded} />
         </div>
         {expanded ? (
-          <ExpandedPromptView
-            agentId={agentId}
-            text={config.prompt}
-            rows={14}
-            storageKey={`addon:${instance.instanceId}:prompt`}
-          />
+          <PromptPreviewView instance={instance} config={config} agentId={agentId} crewId={crewId}
+            rows={14} storageKey={`addon:${instance.instanceId}:prompt`} />
         ) : (
           <MentionTextarea
             value={config.prompt}
