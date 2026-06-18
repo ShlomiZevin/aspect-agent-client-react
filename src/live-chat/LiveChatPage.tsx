@@ -1,0 +1,347 @@
+/**
+ * LiveChatPage — the customer-facing Lybi chat surface.
+ *
+ * Standalone (NOT inside the builder). Reads the agent slug from the
+ * `/:agent/live` route, runs the agent's `active` version via the V2
+ * runtime, and renders Noa's mockup design. Owns all UI/overlay state;
+ * the conversation state machine lives in useLiveChat.
+ */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { fetchProject } from '../builder/state/builderApi';
+import { getOwnerUserId } from './identity';
+import { I18N, dirOf } from './i18n';
+import { useLiveSettings } from './useLiveSettings';
+import { useLiveChat, type LiveTurn } from './useLiveChat';
+import { useBranding } from './useBranding';
+import { brandCssVars } from './branding';
+import { clientById } from './liveConfig';
+import { IconBrain, IconProfiler } from './icons';
+import { TopBar } from './components/TopBar';
+import { BrandingModal } from './components/BrandingModal';
+import { MessageStream } from './components/MessageStream';
+import { Composer } from './components/Composer';
+import { HistoryDrawer } from './components/HistoryDrawer';
+import { SettingsPopover } from './components/SettingsPopover';
+import { SidePanel } from './components/SidePanel';
+import { ReportModal } from './components/ReportModal';
+import { ConfirmDelete } from './components/ConfirmDelete';
+import { AgentNotReady } from './components/AgentNotReady';
+import { Toast } from './components/Toast';
+import './liveChat.css';
+
+type Gate = 'checking' | 'ready' | 'missing' | 'no-active' | 'error';
+
+interface PendingDelete { turn: LiveTurn; mode: 'self' | 'fromHere'; }
+
+export function LiveChatPage() {
+  const { agent, convId: convIdParam } = useParams<{ agent: string; convId: string }>();
+  const slug = agent ?? 'lybi';
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // `?embed=1` (set by the on-site widget iframe) renders a compact variant.
+  const embed = searchParams.get('embed') === '1';
+  const ownerUserId = useMemo(() => getOwnerUserId(), []);
+
+  const [settings, setSetting] = useLiveSettings();
+  const t = I18N[settings.lang];
+  const dir = dirOf(settings.lang);
+
+  const branding = useBranding();
+  const { brand } = branding;
+
+  const chat = useLiveChat({ slug, ownerUserId, version: 'active' });
+
+  // Logo priority: custom brand logo → selected client's logo → none (name mark).
+  const clientLogo = clientById(settings.client).logoUrl ?? null;
+  const logo = brand.logo ?? clientLogo;
+  const logoFilterable = !brand.logo && clientLogo === '/img/lybi-logo-transparent.png';
+  const brandName = brand.agentName || clientById(settings.client).name[settings.lang];
+
+  // ── overlay / UI state ───────────────────────────────────────────
+  const [input, setInput] = useState('');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [brainOpen, setBrainOpen] = useState(false);
+  const [profilerOpen, setProfilerOpen] = useState(false);
+  const [reportFor, setReportFor] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [brandingOpen, setBrandingOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const settingsBtnRef = useRef<HTMLButtonElement>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2200);
+  }, []);
+
+  // ── agent-not-ready gate (reuse the builder's fetchProject) ──────
+  const [gate, setGate] = useState<Gate>('checking');
+  const [crewNames, setCrewNames] = useState<Record<string, string>>({});
+  const [defaultCrewName, setDefaultCrewName] = useState('');
+  useEffect(() => {
+    let cancelled = false;
+    setGate('checking');
+    fetchProject({ agentSlug: slug, ownerUserId })
+      .then(doc => {
+        if (cancelled) return;
+        if (!doc) { setGate('missing'); return; }
+        const a = doc.agents.find(x => x.slug === slug) ?? doc.agents[0];
+        // crewId → display name for the per-bubble crew label.
+        const names: Record<string, string> = {};
+        a?.crews?.forEach(c => { if (c.id) names[c.id] = c.name; });
+        setCrewNames(names);
+        setDefaultCrewName(
+          (a?.defaultCrewId && names[a.defaultCrewId]) || Object.values(names)[0] || '',
+        );
+        setGate(a && a.activeVersionId ? 'ready' : 'no-active');
+      })
+      .catch(() => { if (!cancelled) setGate('error'); });
+    return () => { cancelled = true; };
+  }, [slug, ownerUserId]);
+
+  // ── conversation URL: /:agent/live/c/:convId ─────────────────────
+  // Load the conversation named in the URL once the agent is ready (so a
+  // shared link or a refresh lands back on that conversation).
+  const loadedRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (gate !== 'ready') return;
+    const c = convIdParam && /^\d+$/.test(convIdParam) ? Number(convIdParam) : null;
+    if (c !== null && loadedRef.current !== c && c !== chat.conversationId) {
+      loadedRef.current = c;
+      chat.loadConversation(c);
+    }
+  }, [gate, convIdParam, chat.conversationId, chat.loadConversation]);
+
+  // Reflect the active conversation in the URL (shareable + refresh-safe).
+  // Only ADD the id here — removing it on "new chat" is done explicitly in
+  // onNewChat, so we never strip a fresh URL during the mount/load race
+  // (conversationId is briefly null before the URL's conversation loads).
+  useEffect(() => {
+    const cid = chat.conversationId;
+    if (cid !== null && convIdParam !== String(cid)) {
+      navigate(`/${slug}/live/c/${cid}`, { replace: true });
+    }
+  }, [chat.conversationId, convIdParam, navigate, slug]);
+
+  // ── inject the Assistant font once ───────────────────────────────
+  useEffect(() => {
+    const id = 'lybi-live-font';
+    if (document.getElementById(id)) return;
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&display=swap';
+    document.head.appendChild(link);
+  }, []);
+
+  // ── keyboard: Ctrl+Shift+D toggles debug, Esc closes overlays ────
+  const closeAll = useCallback(() => {
+    setDrawerOpen(false);
+    setSettingsOpen(false);
+  }, []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeAll();
+        setReportFor(null);
+        setPendingDelete(null);
+        setBrandingOpen(false);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+        e.preventDefault();
+        setSetting({ mode: settings.mode === 'debug' ? 'normal' : 'debug' });
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [closeAll, setSetting, settings.mode]);
+
+  // ── handlers ─────────────────────────────────────────────────────
+  const onSend = useCallback(() => {
+    const text = input;
+    setInput('');
+    chat.send(text);
+  }, [input, chat]);
+
+  const onNewChat = useCallback(() => {
+    chat.newChat();
+    loadedRef.current = null;
+    navigate(`/${slug}/live`, { replace: true });
+    setDrawerOpen(false);
+    showToast(t.newChatStarted);
+  }, [chat, navigate, slug, showToast, t.newChatStarted]);
+
+  const onPickConversation = useCallback((id: number) => {
+    setDrawerOpen(false);
+    chat.loadConversation(id);
+  }, [chat]);
+
+  const onOpenBuilder = useCallback(() => {
+    const suffix = chat.conversationId !== null ? `?c=${chat.conversationId}` : '';
+    navigate(`/${slug}/builder${suffix}`);
+  }, [navigate, slug, chat.conversationId]);
+
+  const confirmDelete = useCallback(() => {
+    if (!pendingDelete) return;
+    const { turn, mode } = pendingDelete;
+    setPendingDelete(null);
+    if (mode === 'self') chat.deleteTurn(turn);
+    else chat.deleteFromHere(turn);
+  }, [pendingDelete, chat]);
+
+  const debug = settings.mode === 'debug';
+  const showWelcome = chat.turns.length === 0 && !chat.busy;
+
+  return (
+    <div
+      className="lybi-chat"
+      dir={dir}
+      data-theme={settings.theme}
+      data-mode={settings.mode}
+      data-client={settings.client}
+      data-embed={embed ? '1' : undefined}
+      style={brandCssVars(brand.colors) as React.CSSProperties}
+    >
+      <div className="app">
+        {/* Brain — opens from the inline-end (visual left in RTL) */}
+        <SidePanel
+          which="brain"
+          open={brainOpen}
+          onClose={() => setBrainOpen(false)}
+          title={t.brain}
+          icon={<IconBrain />}
+          placeholderTitle={t.brainTitle}
+          placeholderSub={t.brainSub}
+          emoji="🧠"
+        />
+
+        <main className="chat-col">
+          <TopBar
+            t={t}
+            logo={logo}
+            brandName={brandName}
+            logoFilterable={logoFilterable}
+            debug={debug}
+            embed={embed}
+            brainOpen={brainOpen}
+            profilerOpen={profilerOpen}
+            onHistory={() => setDrawerOpen(true)}
+            onNewChat={onNewChat}
+            onToggleBrain={() => setBrainOpen(o => !o)}
+            onToggleProfiler={() => setProfilerOpen(o => !o)}
+            onSettings={e => { e.stopPropagation(); setSettingsOpen(o => !o); }}
+            onOpenBuilder={onOpenBuilder}
+            onViewEmbed={() => navigate(`/${slug}/embed`)}
+            settingsBtnRef={settingsBtnRef}
+          />
+
+          {gate === 'ready' && (
+            <>
+              <MessageStream
+                turns={chat.turns}
+                t={t}
+                lang={settings.lang}
+                debug={debug}
+                showWelcome={showWelcome}
+                crewNames={crewNames}
+                defaultCrewName={defaultCrewName}
+                onPick={text => chat.send(text)}
+                onExpandThink={turn => chat.loadThinkRuns(turn)}
+                onReport={text => setReportFor(text)}
+                onDelete={turn => setPendingDelete({ turn, mode: 'self' })}
+                onDeleteFromHere={turn => setPendingDelete({ turn, mode: 'fromHere' })}
+              />
+              {chat.error && <div className="err-chip">{chat.error}</div>}
+              <Composer
+                t={t}
+                value={input}
+                busy={chat.busy}
+                uiDir={dir}
+                ctrlEnter={settings.ctrlEnter}
+                onChange={setInput}
+                onSend={onSend}
+                onToggleCtrlEnter={() => setSetting({ ctrlEnter: !settings.ctrlEnter })}
+              />
+            </>
+          )}
+
+          {(gate === 'missing' || gate === 'no-active' || gate === 'error') && (
+            <AgentNotReady
+              t={t}
+              reason={gate === 'no-active' ? 'no-active' : 'missing'}
+              slug={slug}
+              onOpenBuilder={() => navigate(`/${slug}/builder`)}
+            />
+          )}
+        </main>
+
+        {/* Profiler — opens from the inline-start (visual right in RTL) */}
+        <SidePanel
+          which="profiler"
+          open={profilerOpen}
+          onClose={() => setProfilerOpen(false)}
+          title={t.profiler}
+          icon={<IconProfiler />}
+          placeholderTitle={t.profTitle}
+          placeholderSub={t.profSub}
+          emoji="👤"
+        />
+      </div>
+
+      <div className={`scrim ${drawerOpen ? 'show' : ''}`} onClick={closeAll} />
+
+      <HistoryDrawer
+        open={drawerOpen}
+        t={t}
+        lang={settings.lang}
+        conversations={chat.convList}
+        activeId={chat.conversationId}
+        onClose={() => setDrawerOpen(false)}
+        onPick={onPickConversation}
+        onNew={onNewChat}
+      />
+
+      <SettingsPopover
+        open={settingsOpen}
+        t={t}
+        settings={settings}
+        triggerRef={settingsBtnRef}
+        onClose={() => setSettingsOpen(false)}
+        onChange={setSetting}
+        onOpenBranding={() => { setSettingsOpen(false); setBrandingOpen(true); }}
+      />
+
+      <BrandingModal
+        open={brandingOpen}
+        t={t}
+        lang={settings.lang}
+        branding={branding}
+        onClose={() => setBrandingOpen(false)}
+      />
+
+      <ReportModal
+        open={reportFor !== null}
+        t={t}
+        messageText={reportFor ?? ''}
+        agentSlug={slug}
+        scenario={settings.scenario}
+        onClose={() => setReportFor(null)}
+        onDone={msg => { setReportFor(null); showToast(msg); }}
+      />
+
+      <ConfirmDelete
+        open={pendingDelete !== null}
+        t={t}
+        message={pendingDelete?.mode === 'fromHere' ? t.deleteFromHereConfirm : t.deleteMsgConfirm}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+      />
+
+      <Toast message={toast} />
+    </div>
+  );
+}

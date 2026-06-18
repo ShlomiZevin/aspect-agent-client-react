@@ -5,6 +5,10 @@ import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, Aspec
 // Builder lives in its own subtree — lazy so end-user routes don't pay for it.
 const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ default: m.BuilderPage })));
 const BuilderHomePage = lazy(() => import('./pages/BuilderHomePage').then(m => ({ default: m.BuilderHomePage })));
+// Customer-facing Live chat — its own subtree, lazy-loaded.
+const LiveChatPage = lazy(() => import('./pages/LiveChatPage').then(m => ({ default: m.LiveChatPage })));
+// On-site embed demo (Lybi mock site + agent widget iframe).
+const EmbedPage = lazy(() => import('./pages/EmbedPage').then(m => ({ default: m.EmbedPage })));
 
 const ZER4U_MAINTENANCE = false;
 
@@ -108,11 +112,61 @@ function AppContent() {
         <Route path="/lybi/backlog" element={<TechBacklogPage />} />
         <Route path="/lybi/about/shlomi" element={<AboutShlomiPage />} />
         <Route path="/lybi/freeda-legacy" element={<FreedaLegacyFlowPage />} />
+        {/* Explicit so the `/lybi/*` splat below doesn't shadow the Live chat. */}
+        <Route
+          path="/lybi/live"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <LiveChatPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/lybi/live/c/:convId"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <LiveChatPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/lybi/embed"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <EmbedPage />
+            </Suspense>
+          }
+        />
         {/* Generic agent-aware authenticated chat (e.g. /lybi/login, /lybi/chat).
             Supported agents are defined in src/agents/agentRegistry.ts. */}
         <Route path="/:agent/login" element={<AgentLoginPage />} />
         <Route path="/:agent/chat" element={<AgentChatPage />} />
         <Route path="/:agent/chat/conversations/:conversationId" element={<AgentChatPage />} />
+        {/* Customer-facing Live chat (V2 active runtime). */}
+        <Route
+          path="/:agent/live"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <LiveChatPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/:agent/live/c/:convId"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <LiveChatPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/:agent/embed"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <EmbedPage />
+            </Suspense>
+          }
+        />
         <Route
           path="/builder"
           element={

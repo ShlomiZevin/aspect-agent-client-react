@@ -288,6 +288,21 @@ export function UserChat() {
     }
   }, [slug, setConversationId, convList]);
 
+  // Deep-link: the customer Live chat links back here with `?c=<convId>`
+  // ("Open in builder"). Load that conversation once on mount so the
+  // builder lands on the same thread the user was just looking at.
+  const deepLinkedRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkedRef.current || !slug) return;
+    const c = new URLSearchParams(window.location.search).get('c');
+    if (c && /^\d+$/.test(c)) {
+      deepLinkedRef.current = true;
+      loadConversation(Number(c));
+    }
+    // loadConversation is stable enough for a one-shot deep link.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
+
   const loadRunsForTurn = useCallback(async (turn: Turn) => {
     if (turn.runsLoaded || turn.assistantMessageId === null) return;
     try {
@@ -631,6 +646,18 @@ export function UserChat() {
             ＋ <span className={styles.headerBtnLabel}>New</span>
           </button>
           <div className={styles.headerSpacer} />
+          <button
+            type="button"
+            className={styles.headerBtn}
+            onClick={() => {
+              const suffix = conversationId !== null ? `/c/${conversationId}` : '';
+              window.open(`/${slug}/live${suffix}`, '_blank', 'noopener');
+            }}
+            title="Open the customer-facing Live chat"
+            disabled={!slug}
+          >
+            ↗ <span className={styles.headerBtnLabel}>Live</span>
+          </button>
           <div className={styles.settingsWrap}>
             <button
               type="button"
