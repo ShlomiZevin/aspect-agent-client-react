@@ -25,6 +25,7 @@ import { useCrewFields } from '../../state/useCrewFields';
 import { AddFieldModal } from './AddFieldModal';
 import { FieldEditorModal } from './FieldEditorModal';
 import { WireToCrewModal } from './WireToCrewModal';
+import { SystemFieldsSection } from './SystemFieldsSection';
 import type { CrewField, CrewDomain } from '../../state/useCrewFields';
 import type { ID } from '../../types';
 import styles from './FieldsPanel.module.css';
@@ -173,6 +174,12 @@ export function FieldsPanel({ agentId, crewId }: Props) {
             </button>
           )}
         </div>
+
+        {/* System fields — sticky top section. Always visible, even
+            when the user hasn't declared any of their own fields, so
+            the affordance is discoverable. Read-only; the registry
+            owns the names/types. */}
+        <SystemFieldsSection conversationMemory={conversationMemory} />
 
         {allFields.length === 0 ? (
           <div className={styles.empty}>

@@ -119,6 +119,14 @@ function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
     transition?: { to: string; reason?: string };
     broke?: boolean;
     firstTokenMs?: number;
+    // Skipped-run fields — set when status === 'skipped'. Without
+    // these the AddonRunCard's skipped-state block has nothing to
+    // render and the card body comes back empty on history reload.
+    // Two shapes today: cap-skip + condition-skip (see AddonRunCard
+    // for the union). Legacy persisted rows pre-discriminator are
+    // treated as condition-skip by the card.
+    filter?: AddonRunSnapshot['filter'];
+    skipReason?: string;
   };
   return {
     instanceId:   r.instanceId,
@@ -135,6 +143,8 @@ function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
     broke:        d.broke,
     durationMs:   r.durationMs ?? d.durationMs,
     firstTokenMs: d.firstTokenMs,
+    filter:       d.filter,
+    skipReason:   d.skipReason,
   };
 }
 

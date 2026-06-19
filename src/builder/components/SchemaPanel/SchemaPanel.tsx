@@ -23,6 +23,7 @@ import { ParameterModal } from './ParameterModal';
 import { SchemaFieldModal } from './SchemaFieldModal';
 import { WireFieldModal } from './WireFieldModal';
 import { SnippetModal } from '../Snippets/SnippetModal';
+import { SystemFieldsSection } from '../FieldsPanel/SystemFieldsSection';
 import type { EnumTypeDef, FieldDef, ID, ParameterDef, SnippetDef } from '../../types';
 import styles from './SchemaPanel.module.css';
 
@@ -480,6 +481,11 @@ function FieldsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean 
           + Declare
         </button>
       </div>
+
+      {/* System fields — sticky top section. Always visible so the
+          author knows what reserved names exist before typing one
+          into the Declare modal. Read-only; the registry owns them. */}
+      <SystemFieldsSection conversationMemory={conversationMemory} />
 
       {allFields.length === 0 ? (
         <div className={styles.empty}>

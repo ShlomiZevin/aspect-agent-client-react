@@ -19,6 +19,7 @@
 import { useMemo } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
 import { getPlugin } from '../../registry/plugins';
+import { SYSTEM_FIELDS } from '../../registry/systemFields';
 import type { AgentDoc, FieldDef, ID } from '../../types';
 import type { MentionOption, MentionOptions } from './MentionTextarea';
 
@@ -201,6 +202,22 @@ export function useMentionOptions(
 
     // ── @  Memory ─────────────────────────────────────────────────
     const at: MentionOption[] = [];
+
+    // System fields go FIRST — they're platform-defined and most
+    // users will want to compose against them once they exist (e.g.
+    // referencing `move_on` in a Talker prompt). Surfaced in their
+    // own group AND with a SYS badge on each row so the visual
+    // distinction matches the conditions ComboPicker.
+    for (const sys of SYSTEM_FIELDS) {
+      at.push({
+        label:     sys.name,
+        insertion: `{{field:${sys.name}}}`,
+        group:     'Memory · System fields',
+        description: sys.description,
+        badge:     'SYS',
+      });
+    }
+
     at.push({
       label:     'All memory',
       insertion: '{{memory}}',

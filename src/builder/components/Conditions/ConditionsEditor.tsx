@@ -17,6 +17,7 @@ import { useEffect, useMemo, type ReactNode } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
 import { useCrewFields } from '../../state/useCrewFields';
 import { ComboPicker } from './ComboPicker';
+import { SYSTEM_FIELDS } from '../../registry/systemFields';
 import type { FieldDef, FieldOp, ID, TransitionCondition } from '../../types';
 import styles from './ConditionsEditor.module.css';
 
@@ -129,12 +130,35 @@ export function ConditionsEditor({
     for (const cf of allFields) {
       if (cf.field.name) map.set(cf.field.name, cf.field);
     }
+    // System fields appear in the same pool — they evaluate as
+    // regular fields at the server (`findFieldValue` walks every
+    // memory bucket regardless of domain). The synthetic `FieldDef`
+    // here is enough for the editor's type-aware widgets to render
+    // (e.g. boolean → true/false picker).
+    for (const sys of SYSTEM_FIELDS) {
+      if (map.has(sys.name)) continue; // shouldn't happen — names are reserved
+      map.set(sys.name, {
+        id:           `__system_${sys.name}`,
+        name:         sys.name,
+        type:         sys.type,
+        source:       'inferred',
+        howToExtract: sys.description,
+      });
+    }
     return map;
   }, [allFields]);
 
   const fieldNames = useMemo(
     () => Array.from(fieldByName.keys()).sort(),
     [fieldByName],
+  );
+
+  /** Set of names that are platform-defined system fields. Threaded
+   *  into the field-name ComboPicker so it can render a SYS badge
+   *  on those rows. */
+  const systemFieldNames = useMemo(
+    () => new Set(SYSTEM_FIELDS.map(s => s.name)),
+    [],
   );
 
   const updateCondition = (i: number, next: TransitionCondition) => {
@@ -175,6 +199,7 @@ export function ConditionsEditor({
               fieldNames={fieldNames}
               fieldByName={fieldByName}
               enumValuesFor={enumValuesFor}
+              systemFieldNames={systemFieldNames}
               onChange={next => updateCondition(i, next)}
               onRemove={() => removeCondition(i)}
             />
@@ -192,12 +217,13 @@ interface ConditionCardProps {
   fieldNames: string[];
   fieldByName: Map<string, FieldDef>;
   enumValuesFor: (field: FieldDef | undefined) => string[];
+  systemFieldNames: Set<string>;
   onChange: (next: TransitionCondition) => void;
   onRemove: () => void;
 }
 
 function ConditionCard({
-  cond, fieldNames, fieldByName, enumValuesFor, onChange, onRemove,
+  cond, fieldNames, fieldByName, enumValuesFor, systemFieldNames, onChange, onRemove,
 }: ConditionCardProps) {
   const setType = (type: CondType) => onChange(emptyCondition(type));
 
@@ -215,10 +241,10 @@ function ConditionCard({
 
       <div className={styles.condBody}>
         {cond.type === 'field' && (
-          <FieldBody cond={cond} fieldNames={fieldNames} fieldByName={fieldByName} enumValuesFor={enumValuesFor} onChange={onChange} />
+          <FieldBody cond={cond} fieldNames={fieldNames} fieldByName={fieldByName} enumValuesFor={enumValuesFor} systemFieldNames={systemFieldNames} onChange={onChange} />
         )}
         {cond.type === 'fields-collected' && (
-          <FieldsCollectedBody cond={cond} fieldNames={fieldNames} onChange={onChange} />
+          <FieldsCollectedBody cond={cond} fieldNames={fieldNames} systemFieldNames={systemFieldNames} onChange={onChange} />
         )}
         {/* `run-count` body is no longer surfaced here — see the cap
             input on AddonFilterSection. The type stays in the union
@@ -241,12 +267,13 @@ function ConditionCard({
 /* ─── Bodies ───────────────────────────────────────────────────── */
 
 function FieldBody({
-  cond, fieldNames, fieldByName, enumValuesFor, onChange,
+  cond, fieldNames, fieldByName, enumValuesFor, systemFieldNames, onChange,
 }: {
   cond: Extract<TransitionCondition, { type: 'field' }>;
   fieldNames: string[];
   fieldByName: Map<string, FieldDef>;
   enumValuesFor: (field: FieldDef | undefined) => string[];
+  systemFieldNames: Set<string>;
   onChange: (next: TransitionCondition) => void;
 }) {
   const matched = fieldByName.get(cond.field);
@@ -272,6 +299,7 @@ function FieldBody({
         options={fieldNames}
         onChange={v => onChange({ ...cond, field: v, value: '', values: [] })}
         placeholder="field name"
+        systemNames={systemFieldNames}
       />
       <select
         className={styles.opSelect}
@@ -339,10 +367,11 @@ function FieldBody({
 }
 
 function FieldsCollectedBody({
-  cond, fieldNames, onChange,
+  cond, fieldNames, systemFieldNames, onChange,
 }: {
   cond: Extract<TransitionCondition, { type: 'fields-collected' }>;
   fieldNames: string[];
+  systemFieldNames: Set<string>;
   onChange: (next: TransitionCondition) => void;
 }) {
   const valueSet = useMemo(() => new Set(cond.fields), [cond.fields]);
@@ -357,14 +386,17 @@ function FieldsCollectedBody({
       <div className={styles.miniChipGroup}>
         {fieldNames.map(n => {
           const active = valueSet.has(n);
+          const isSystem = systemFieldNames.has(n);
           return (
             <button
               key={n}
               type="button"
-              className={`${styles.miniChip} ${active ? styles.miniChipActive : ''}`}
+              className={`${styles.miniChip} ${active ? styles.miniChipActive : ''} ${isSystem ? styles.miniChipSystem : ''}`}
               onClick={() => toggle(n)}
+              title={isSystem ? `${n} — system field` : undefined}
             >
               {n}
+              {isSystem && <span className={styles.miniChipSysBadge}>SYS</span>}
             </button>
           );
         })}

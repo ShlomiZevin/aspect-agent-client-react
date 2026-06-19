@@ -29,14 +29,23 @@ export interface AddonRunSnapshot {
    *  the registry. */
   modelLabel?: { providerName: string; modelName: string } | null;
   status: 'running' | 'success' | 'error' | 'skipped';
-  /** When `status === 'skipped'`: filter evaluation trail + a short
-   *  human-readable reason. The card renders these in lieu of the
-   *  prompt / output sections, so the author sees why the addon
-   *  didn't run on this turn without having to open the modal. */
-  filter?: {
-    mode: 'include' | 'exclude';
-    evaluations: Array<{ type: string; ok: boolean; why: string }>;
-  };
+  /** When `status === 'skipped'`: discriminated union describing
+   *  why this turn was skipped. Two kinds today:
+   *   - `kind: 'cap'` — the addon hit its per-conversation cap;
+   *     `cap` and `seen` describe the count. No mode, no eval list.
+   *   - `kind: 'conditions'` — the configured conditions didn't
+   *     pass the polarity check; `mode` + `evaluations` describe
+   *     which conditions failed.
+   *  Legacy rows (before the discriminator) may carry just `mode`
+   *  + `evaluations`; the card treats that as the `'conditions'`
+   *  kind for compat. */
+  filter?:
+    | { kind: 'cap'; cap: number; seen: number }
+    | {
+        kind?: 'conditions';
+        mode: 'include' | 'exclude';
+        evaluations: Array<{ type: string; ok: boolean; why: string }>;
+      };
   skipReason?: string;
   prompt?: string;
   rawOutput?: string;
@@ -253,7 +262,12 @@ export function AddonRunCard({ run }: Props) {
 
       {open && (
         <div className={styles.body}>
-          {run.modelLabel && (
+          {/* Hide the model line when the addon was skipped — no LLM
+              call happened, so showing the configured model is
+              misleading (it implies "this is what ran"). The model
+              still lives on the snapshot for inspect/replay purposes,
+              it just doesn't earn a header row on skipped cards. */}
+          {run.modelLabel && run.status !== 'skipped' && (
             <div className={styles.modelLine}>
               <span className={styles.modelProvider}>{run.modelLabel.providerName}</span>
               <span className={styles.modelDot}>·</span>
@@ -262,29 +276,50 @@ export function AddonRunCard({ run }: Props) {
           )}
 
           {/* Skipped state — no LLM call happened, so no prompt / no
-              output. Show WHY: the filter mode + each condition's
-              evaluation. The author can scan and understand without
-              opening the modal. */}
+              output. Two kinds of skips render differently:
+
+                - cap         → single tight line, no eval list, no
+                                "(mode)" subtitle (caps don't have a
+                                polarity).
+                - conditions  → "Skipped by filter (mode)" header +
+                                reason + per-condition evaluation
+                                list. Useful for multi-condition
+                                gates where the failing condition
+                                isn't obvious from the reason alone.
+            */}
           {run.status === 'skipped' && run.filter && (
-            <div className={styles.skippedBlock}>
-              <div className={styles.skippedHeader}>
-                Skipped by filter
-                <span className={styles.skippedMode}>({run.filter.mode})</span>
+            run.filter.kind === 'cap' ? (
+              <div className={styles.skippedBlock}>
+                <div className={styles.skippedHeader}>Cap reached</div>
+                <div className={styles.skippedReason}>
+                  {run.skipReason ?? (
+                    run.filter.cap === 1
+                      ? 'Already ran once this conversation.'
+                      : `Ran ${run.filter.seen} of ${run.filter.cap} allowed times.`
+                  )}
+                </div>
               </div>
-              {run.skipReason && (
-                <div className={styles.skippedReason}>{run.skipReason}</div>
-              )}
-              {run.filter.evaluations.length > 0 && (
-                <ul className={styles.skippedEvals}>
-                  {run.filter.evaluations.map((ev, i) => (
-                    <li key={i} className={ev.ok ? styles.evalOk : styles.evalFail}>
-                      <span className={styles.evalDot}>{ev.ok ? '●' : '○'}</span>
-                      <span className={styles.evalWhy}>{ev.why}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            ) : (
+              <div className={styles.skippedBlock}>
+                <div className={styles.skippedHeader}>
+                  Skipped by filter
+                  <span className={styles.skippedMode}>({run.filter.mode})</span>
+                </div>
+                {run.skipReason && (
+                  <div className={styles.skippedReason}>{run.skipReason}</div>
+                )}
+                {run.filter.evaluations.length > 0 && (
+                  <ul className={styles.skippedEvals}>
+                    {run.filter.evaluations.map((ev, i) => (
+                      <li key={i} className={ev.ok ? styles.evalOk : styles.evalFail}>
+                        <span className={styles.evalDot}>{ev.ok ? '●' : '○'}</span>
+                        <span className={styles.evalWhy}>{ev.why}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
           )}
 
           {/* History resolution line — what mode was asked for vs.

@@ -45,6 +45,10 @@ export interface MentionOption {
   group?: string;
   /** Optional hover description. */
   description?: string;
+  /** Optional short badge rendered as a pill to the right of the
+   *  label (e.g. "SYS" for system fields). Drives row-level styling
+   *  so the eye spots platform-defined entries at a glance. */
+  badge?: string;
   /** When set, pick fires this callback INSTEAD of inserting `insertion`.
    *  Used for action-style entries like "+ New snippet" that open an
    *  authoring modal rather than dropping text. The partial trigger
@@ -656,12 +660,17 @@ function PickerList({
               key={`${opt.insertion}-${idx}`}
               ref={(el) => { itemRefs.current[idx] = el; }}
               type="button"
-              className={`${styles.pickerItem} ${idx === activeIdx ? styles.pickerItemActive : ''}`}
+              className={`${styles.pickerItem} ${idx === activeIdx ? styles.pickerItemActive : ''} ${opt.badge ? styles.pickerItemBadged : ''}`}
               onMouseEnter={() => onHover(idx)}
               onClick={() => onPick(opt)}
               title={opt.description}
             >
-              <span className={styles.pickerLabel}>{opt.label}</span>
+              <span className={styles.pickerLabel}>
+                {opt.label}
+                {opt.badge && (
+                  <span className={styles.pickerBadge}>{opt.badge}</span>
+                )}
+              </span>
               <span className={styles.pickerInsertion}>{opt.insertion}</span>
             </button>
           ))}

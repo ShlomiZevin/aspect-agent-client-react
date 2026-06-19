@@ -32,6 +32,7 @@
  * can decide whether to apply the rename atomically or in two steps.
  */
 
+import { isSystemFieldName } from '../registry/systemFields';
 import type {
   AddonInstance,
   AgentDoc,
@@ -78,6 +79,11 @@ export function cascadeFieldRename(
 ): AgentDoc {
   if (!oldName || !newName) return agent;
   if (oldName === newName) return agent;
+  // System field names are reserved — they can't be renamed AND
+  // they can't be user-targets of a rename. Defensive short-circuit
+  // so a buggy caller can't accidentally rewrite condition rows
+  // referencing a system field.
+  if (isSystemFieldName(oldName) || isSystemFieldName(newName)) return agent;
   let next = agent;
   for (const renamer of RENAMERS) {
     next = renamer(next, oldName, newName);

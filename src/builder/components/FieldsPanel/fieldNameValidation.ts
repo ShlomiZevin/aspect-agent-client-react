@@ -18,6 +18,8 @@
  * The modal surfaces the error and the user fixes it themselves.
  */
 
+import { isSystemFieldName } from '../../registry/systemFields';
+
 const FIELD_NAME_REGEX = /^[a-z_][a-z0-9_]*$/;
 const MAX_LEN = 64;
 
@@ -71,6 +73,12 @@ export function validateFieldName(raw: string): FieldNameValidation {
     return {
       ok: false,
       reason: 'Lowercase English letters, digits, and underscores only — other characters may break extraction.',
+    };
+  }
+  if (isSystemFieldName(name)) {
+    return {
+      ok: false,
+      reason: `"${name}" is a reserved system field name — pick a different one.`,
     };
   }
   return { ok: true, reason: '' };

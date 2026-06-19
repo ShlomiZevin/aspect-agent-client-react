@@ -214,6 +214,42 @@
   border-color: var(--primary-color, #6366f1);
 }
 
+/* System-field chip — same lavender treatment as the system fields
+   strip in the Fields panel + the SYS pill in the ComboPicker. The
+   SYS badge is inline next to the field name. */
+.miniChipSystem {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.35);
+  color: var(--primary-color, #4338ca);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.miniChipSystem.miniChipActive,
+.miniChipSystem.miniChipActive:hover {
+  background: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
+  color: #fff;
+}
+
+.miniChipSysBadge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  background: rgba(99, 102, 241, 0.18);
+  border: 1px solid rgba(99, 102, 241, 0.34);
+  color: var(--primary-color, #4338ca);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.miniChipActive .miniChipSysBadge {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.45);
+  color: #fff;
+}
+
 /* ComboPicker styles moved to ./ComboPicker.module.css (the picker
  * is now a shared component used by Switch rules in Triggered
  * Context as well). */

@@ -195,6 +195,51 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* SYS / similar badge — rendered inline next to the label. Matches
+   the SYS badge in the conditions ComboPicker so the two surfaces
+   read as one visual concept. */
+.pickerBadge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--primary-color, #4338ca);
+  background: rgba(99, 102, 241, 0.14);
+  border: 1px solid rgba(99, 102, 241, 0.28);
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+/* When a badged row is highlighted (keyboard nav / hover), the badge
+   pops to the indigo-on-white treatment so it stays legible against
+   the active row's wash. */
+.pickerItemActive .pickerBadge {
+  color: #fff;
+  background: rgba(99, 102, 241, 0.6);
+  border-color: rgba(99, 102, 241, 0.9);
+}
+
+/* Subtle left-accent on system-field rows so users can scan for
+   them in a long mixed list. Mirrors the ComboPicker treatment. */
+.pickerItemBadged {
+  background: linear-gradient(
+    to right,
+    rgba(99, 102, 241, 0.04),
+    transparent 70%
+  );
+  border-left: 2px solid rgba(99, 102, 241, 0.45);
+  padding-left: 6px;
+}
+
+.pickerItemBadged.pickerItemActive {
+  background: rgba(99, 102, 241, 0.12);
+  border-left-color: var(--primary-color, #6366f1);
 }
 
 .pickerInsertion {

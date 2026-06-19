@@ -8,20 +8,21 @@
  *
  * - `allowFreeText: true` (default) — user can type anything; the
  *   options act as autocomplete suggestions. Picking from the list
- *   commits the value. Typing + blur or Enter commits the typed value.
+ *   commits the value. Typing + blur or Enter (with no highlighted
+ *   suggestion) commits the typed value.
  *
  * - `allowFreeText: false` — read-only input; the chevron is the only
  *   way to open the list and the value can only be one of `options`.
  *
- * Pass `className` to widen / style the outer wrapper from a parent
- * (e.g. when the picker is the dominant control in a row vs. one of
- * several inline controls in a tight conditions list).
+ * Keyboard:
+ *   - ArrowDown / ArrowUp     → move highlight through filtered list
+ *   - Enter                    → pick highlighted, or commit raw text
+ *                                (free-text mode) when no highlight
+ *   - Escape                   → close menu, revert to last committed
  *
  * The dropdown MENU renders through a portal directly into
  * `document.body` so an ancestor with `overflow: hidden` (every modal
- * in the builder) can't clip the lower options. Position is computed
- * from the input's `getBoundingClientRect()` whenever the menu opens
- * or the window scrolls/resizes.
+ * in the builder) can't clip the lower options.
  */
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -38,6 +39,10 @@ export interface ComboPickerProps {
   /** Optional extra class on the outer wrapper. Lets callers control
    *  layout (e.g. flex: 1 in a header row). */
   className?: string;
+  /** Names that should render with a "SYS" badge in the dropdown.
+   *  Used by the conditions editor to mark platform-defined fields
+   *  (e.g. `move_on`) so authors can tell them apart at a glance. */
+  systemNames?: Set<string>;
 }
 
 interface MenuRect {
@@ -50,12 +55,15 @@ export function ComboPicker({
   value, options, onChange, placeholder,
   allowFreeText = true,
   className,
+  systemNames,
 }: ComboPickerProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value);
   const [menuRect, setMenuRect] = useState<MenuRect | null>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
 
   useEffect(() => { setDraft(value); }, [value]);
 
@@ -109,10 +117,62 @@ export function ComboPicker({
     return options.filter(o => o.toLowerCase().includes(q));
   }, [options, draft, allowFreeText]);
 
+  // Reset the highlighted index whenever the filtered list changes
+  // (typing narrows the list). Without this, the active index can
+  // point past the end of the filtered array and Enter would commit
+  // an empty selection.
+  useEffect(() => {
+    setActiveIdx(0);
+  }, [filtered.length, open]);
+
+  // Scroll the highlighted row into view as the user arrow-keys
+  // through a long list. Same `block: 'nearest'` trick the mention
+  // picker uses — handles both up and down without overshoot.
+  useEffect(() => {
+    if (!open) return;
+    const btn = itemRefs.current[activeIdx];
+    if (btn) btn.scrollIntoView({ block: 'nearest' });
+  }, [activeIdx, open]);
+
   const pick = (v: string) => {
     setDraft(v);
     onChange(v);
     setOpen(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
+      setDraft(value);
+      setOpen(false);
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      if (!open) { setOpen(true); return; }
+      if (filtered.length === 0) return;
+      e.preventDefault();
+      setActiveIdx(i => (i + 1) % filtered.length);
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      if (!open) return;
+      if (filtered.length === 0) return;
+      e.preventDefault();
+      setActiveIdx(i => (i - 1 + filtered.length) % filtered.length);
+      return;
+    }
+    if (e.key === 'Enter') {
+      // If the menu is open AND there's a highlighted row, pick it.
+      // Otherwise free-text commits the raw input value.
+      if (open && filtered.length > 0) {
+        e.preventDefault();
+        pick(filtered[activeIdx]);
+        return;
+      }
+      if (allowFreeText) {
+        onChange(draft);
+        setOpen(false);
+      }
+    }
   };
 
   return (
@@ -127,15 +187,7 @@ export function ComboPicker({
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
-        onKeyDown={e => {
-          if (e.key === 'Enter' && allowFreeText) {
-            onChange(draft);
-            setOpen(false);
-          } else if (e.key === 'Escape') {
-            setDraft(value);
-            setOpen(false);
-          }
-        }}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
         spellCheck={false}
         autoComplete="off"
@@ -159,11 +211,6 @@ export function ComboPicker({
           id="combo-picker-menu-active"
           className={styles.comboMenu}
           role="listbox"
-          // `--combo-min-width` keeps the menu at least as wide as
-          // the input (so it never looks narrower than its trigger),
-          // while the CSS `width: max-content` / `max-width: 320px`
-          // lets it expand to fit longer options up to a cap. Names
-          // past the cap get ellipsis + the `title` tooltip below.
           style={{
             position: 'fixed',
             top:    menuRect.top,
@@ -171,20 +218,32 @@ export function ComboPicker({
             ['--combo-min-width' as string]: `${menuRect.width}px`,
           }}
         >
-          {filtered.map(o => (
-            <button
-              key={o}
-              type="button"
-              role="option"
-              aria-selected={o === value}
-              title={o}
-              className={`${styles.comboItem} ${o === value ? styles.comboItemActive : ''}`}
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => pick(o)}
-            >
-              {o}
-            </button>
-          ))}
+          {filtered.map((o, idx) => {
+            const isSystem = !!systemNames && systemNames.has(o);
+            const isActive = idx === activeIdx;
+            return (
+              <button
+                key={o}
+                ref={el => { itemRefs.current[idx] = el; }}
+                type="button"
+                role="option"
+                aria-selected={isActive}
+                title={isSystem ? `${o} — system field` : o}
+                className={
+                  `${styles.comboItem} ` +
+                  `${o === value ? styles.comboItemActive : ''} ` +
+                  `${isActive ? styles.comboItemFocus : ''} ` +
+                  `${isSystem ? styles.comboItemSystem : ''}`
+                }
+                onMouseEnter={() => setActiveIdx(idx)}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => pick(o)}
+              >
+                <span className={styles.comboItemLabel}>{o}</span>
+                {isSystem && <span className={styles.comboItemSysBadge}>SYS</span>}
+              </button>
+            );
+          })}
         </div>,
         document.body,
       )}

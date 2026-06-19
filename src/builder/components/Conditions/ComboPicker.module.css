@@ -100,17 +100,74 @@
   padding: 5px 8px;
   cursor: pointer;
   font-family: inherit;
-  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Item label flexes to fill, with ellipsis when the name is wider
+   than the menu cap — the badge stays pinned on the right. */
+.comboItemLabel {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* System-field row: subtle lavender accent on the left + the SYS
+   pill on the right. Same palette as the Fields panel sub-section
+   so the two surfaces feel like the same concept. */
+.comboItemSystem {
+  background: linear-gradient(
+    to right,
+    rgba(99, 102, 241, 0.05),
+    transparent 60%
+  );
+  border-left: 2px solid rgba(99, 102, 241, 0.55);
+  padding-left: 6px;
+}
+
+.comboItemSystem:hover {
+  background: linear-gradient(
+    to right,
+    rgba(99, 102, 241, 0.10),
+    rgba(243, 244, 246, 0.5) 60%
+  );
+}
+
+.comboItemSysBadge {
+  flex: 0 0 auto;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--primary-color, #4338ca);
+  background: rgba(99, 102, 241, 0.14);
+  border: 1px solid rgba(99, 102, 241, 0.28);
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
 }
 
 .comboItem:hover {
   background: var(--bg-input, #f3f4f6);
 }
 
+/* Keyboard-focused row (arrow nav) — same wash as hover so arrow + mouse
+   feel identical. Active (currently committed value) gets bolder ink
+   regardless of focus. */
+.comboItemFocus,
+.comboItemFocus:hover {
+  background: rgba(99, 102, 241, 0.10);
+}
+
 .comboItemActive {
   color: var(--primary-color, #6366f1);
   font-weight: 600;
   background: rgba(99, 102, 241, 0.08);
+}
+
+.comboItemActive.comboItemFocus,
+.comboItemActive.comboItemFocus:hover {
+  background: rgba(99, 102, 241, 0.18);
 }
