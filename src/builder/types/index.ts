@@ -749,31 +749,10 @@ export interface CrewDoc {
  */
 export type AgentBody = Pick<
   AgentDoc,
-  'name' | 'slug' | 'spec' | 'persona' | 'personas' | 'defaultCrewId'
+  'name' | 'slug' | 'spec' | 'persona' | 'defaultCrewId'
   | 'fields' | 'domains' | 'parameters' | 'enums'
   | 'cortex' | 'snippets'
 >;
-
-/**
- * A named persona. Authored on the Personas page. The bare `{{persona}}`
- * token in an addon's template resolves to the concatenation of every
- * persona whose {@link PersonaDef.appliesTo} includes that addon's
- * pluginId (or the `'*'` wildcard), in list order. `{{persona:NAME}}`
- * pulls one specific persona by name regardless of binding.
- */
-export interface PersonaDef {
-  id: ID;
-  /** Unique within the agent. Token key for `{{persona:NAME}}`. */
-  name: string;
-  /** Mention-aware persona text (same content the single persona held). */
-  content: string;
-  /**
-   * Plugin ids this persona auto-appends to via the bare `{{persona}}`.
-   * `'*'` = every addon (the global / general persona). A persona can
-   * list several specific plugin ids and/or `'*'`.
-   */
-  appliesTo: string[];
-}
 
 export interface AgentVersion {
   id: ID;
@@ -791,19 +770,8 @@ export interface AgentDoc {
   name: string;
   /** Free-text spec at the agent level. */
   spec: string;
-  /**
-   * @deprecated Legacy single persona string. Kept as a runtime
-   * fallback for agents stored before multi-persona shipped; new
-   * authoring writes {@link AgentDoc.personas}. The migration in
-   * draftStorage seeds a "main" persona (appliesTo `['*']`) from this.
-   */
+  /** Persona shared across all crews. */
   persona: string;
-  /**
-   * Named personas (multi-persona). Each declares which addon types it
-   * appends to. Optional for back-compat; readers treat absence as `[]`
-   * and fall back to {@link AgentDoc.persona}. See {@link PersonaDef}.
-   */
-  personas?: PersonaDef[];
   defaultCrewId?: ID;
   /**
    * Agent-wide field DEFINITIONS. Visible from every crew of this
