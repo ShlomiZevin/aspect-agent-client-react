@@ -33,6 +33,7 @@ export { NewDeliPage } from './NewDeliPage';
 export { TheStockPage } from './TheStockPage';
 export { HyperToyPage } from './HyperToyPage';
 export { ZolStockPage } from './ZolStockPage';
+export { TevaNaotPage } from './TevaNaotPage';
 export { CrewBuilderMockupPage } from './CrewBuilderMockupPage';
 export { BuilderPage } from './BuilderPage';
 export { BuilderHomePage } from './BuilderHomePage';

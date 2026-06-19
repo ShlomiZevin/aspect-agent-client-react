@@ -306,6 +306,20 @@ export const translations: LanguageConfig = {
     'quick.hypertoy.crossBrand.text': 'Cost vs Sister Brands',
     'quick.hypertoy.crossBrand.question': 'Largest cost gaps between Hyper Toy and sister brands (The Stock, Pirat)',
 
+    // Quick Questions - Teva Naot
+    'quick.tevanaot.revenue.text': 'Revenue',
+    'quick.tevanaot.revenue.question': 'What is total sales revenue this year?',
+    'quick.tevanaot.topModels.text': 'Top Models',
+    'quick.tevanaot.topModels.question': 'Top 10 best-selling shoe models this year by quantity and revenue',
+    'quick.tevanaot.topStores.text': 'Top Stores',
+    'quick.tevanaot.topStores.question': 'Top 10 stores by revenue this year',
+    'quick.tevanaot.inventory.text': 'Inventory by Store',
+    'quick.tevanaot.inventory.question': 'Current inventory value and units by store',
+    'quick.tevanaot.monthly.text': 'Monthly Trend',
+    'quick.tevanaot.monthly.question': 'Monthly sales revenue trend this year',
+    'quick.tevanaot.avgBasket.text': 'Average Basket',
+    'quick.tevanaot.avgBasket.question': 'Number of transactions and average basket this month',
+
     // Quick Questions - Zol Stock
     'quick.zolstock.revenue.text': 'Revenue & Profit',
     'quick.zolstock.revenue.question': 'What is total revenue and profit this year?',
@@ -689,6 +703,20 @@ export const translations: LanguageConfig = {
     'quick.hypertoy.inventory.question': 'מוצרים מובילים לפי ערך מלאי במחסן 500',
     'quick.hypertoy.crossBrand.text': 'עלות מול בריידים אחרים',
     'quick.hypertoy.crossBrand.question': 'הפערים הגדולים בעלות בין היפר טוי לבין הסטוק ופיראט',
+
+    // Quick Questions - Teva Naot
+    'quick.tevanaot.revenue.text': 'הכנסות',
+    'quick.tevanaot.revenue.question': 'מה סך ההכנסות ממכירות השנה?',
+    'quick.tevanaot.topModels.text': 'דגמים מובילים',
+    'quick.tevanaot.topModels.question': 'טופ 10 דגמי נעליים נמכרים השנה לפי כמות והכנסות',
+    'quick.tevanaot.topStores.text': 'חנויות מובילות',
+    'quick.tevanaot.topStores.question': 'טופ 10 חנויות לפי הכנסות השנה',
+    'quick.tevanaot.inventory.text': 'מלאי לפי חנות',
+    'quick.tevanaot.inventory.question': 'ערך וכמות מלאי נוכחי לפי חנות',
+    'quick.tevanaot.monthly.text': 'מגמה חודשית',
+    'quick.tevanaot.monthly.question': 'מגמת הכנסות ממכירות חודשית השנה',
+    'quick.tevanaot.avgBasket.text': 'סל ממוצע',
+    'quick.tevanaot.avgBasket.question': 'מספר עסקאות וסל ממוצע החודש',
 
     // Quick Questions - Zol Stock
     'quick.zolstock.revenue.text': 'הכנסות ורווח',

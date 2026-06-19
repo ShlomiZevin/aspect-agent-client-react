@@ -1,0 +1,42 @@
+/* Teva Naot Theme — burgundy brand palette (Naot Burgundy) with warm neutral surfaces */
+.theme-tevanaot {
+  --primary-color: #7b2230;
+  --primary-hover: #611a26;
+  --primary-light: rgba(123, 34, 48, 0.1);
+  --secondary-color: #b08d57;
+  --success-color: #16a34a;
+  --warning-color: #d99a2b;
+  --error-color: #ef4444;
+
+  --background: #ffffff;
+  --surface: #faf6f5;
+  --surface-light: #f3eae9;
+  --border: #e8ddda;
+
+  --text-primary: #241a1b;
+  --text-secondary: #574a4b;
+  --text-muted: #998b8c;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.09);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.12);
+
+  --gradient: linear-gradient(135deg, #7b2230, #9c3344);
+}
+
+.theme-tevanaot[data-theme="dark"] {
+  --primary-color: #d98a96;
+  --primary-hover: #c9737f;
+  --primary-light: rgba(217, 138, 150, 0.15);
+  --secondary-color: #c9a772;
+  --background: #1a1517;
+  --surface: #241d1f;
+  --surface-light: #322829;
+  --border: #322829;
+  --text-primary: #f7f1f2;
+  --text-secondary: #d8cccd;
+  --text-muted: #998b8c;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+}
