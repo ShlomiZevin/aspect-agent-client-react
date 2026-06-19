@@ -43,8 +43,12 @@
 .picker {
   position: fixed;
   z-index: 200;
-  min-width: 240px;
-  max-width: 320px;
+  /* FIXED width — earlier we used a min/max range and the browser
+     re-sized the box to whichever footer description was active,
+     which made the whole picker jitter sideways as the user
+     arrow-keyed through rows. A single value pins the layout: the
+     footer text wraps inside instead of stretching the box. */
+  width: 320px;
   /* No max-height on the picker itself — the scroll region below owns
      the options-list cap, so a long footer description grows the
      picker DOWNWARD instead of squeezing the options. */

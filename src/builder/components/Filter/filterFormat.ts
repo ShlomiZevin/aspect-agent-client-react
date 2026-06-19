@@ -3,43 +3,71 @@
  * places that aren't the full editor: chip tooltips, modal-button
  * status labels, run cards. Centralised so the wording stays
  * consistent everywhere.
+ *
+ * Surfaces both axes of the filter:
+ *   - `cap` — "Cap: 3/conv" prefix when present.
+ *   - `conditions` + `mode` — the existing field-condition summary.
  */
 
 import type { AddonFilter, TransitionCondition } from '../../types';
 
-/** Short one-line header — "Run when 3 conditions" / "Skip when matches". */
+/** True when this filter actually gates anything. Centralised so the
+ *  chip-badge, AddonModal launcher, and tooltips agree on the
+ *  "is there a filter?" check. Cap alone counts. */
+export function isFilterActive(filter: AddonFilter | undefined): boolean {
+  if (!filter) return false;
+  const hasCap = typeof filter.cap === 'number' && filter.cap > 0;
+  const hasConds = Array.isArray(filter.conditions) && filter.conditions.length > 0;
+  return hasCap || hasConds;
+}
+
+/** "Cap: 3/conv" / "Cap: once" — short, fits inline. */
+function capLabel(cap: number): string {
+  if (cap === 1) return 'Cap: once / conv';
+  return `Cap: ${cap} / conv`;
+}
+
+/** Short one-line header — used in the chip tooltip. */
 export function filterHeadline(filter: AddonFilter | undefined): string {
-  if (!filter || !Array.isArray(filter.conditions) || filter.conditions.length === 0) {
-    return 'No filter — addon runs every turn';
+  if (!isFilterActive(filter)) return 'No filter — addon runs every turn';
+  const hasCap = typeof filter!.cap === 'number' && filter!.cap > 0;
+  const hasConds = filter!.conditions.length > 0;
+  const parts: string[] = [];
+  if (hasCap) parts.push(capLabel(filter!.cap as number));
+  if (hasConds) {
+    const n = filter!.conditions.length;
+    const noun = `${n} condition${n === 1 ? '' : 's'}`;
+    parts.push(filter!.mode === 'exclude'
+      ? `Skip when ${noun} match`
+      : `Run when ${noun} match`);
   }
-  const n = filter.conditions.length;
-  const noun = `${n} condition${n === 1 ? '' : 's'}`;
-  return filter.mode === 'exclude'
-    ? `Skip when ${noun} match`
-    : `Run when ${noun} match`;
+  return parts.join(' · ');
 }
 
 /**
- * Inline-readable summary — "Run when tier = enterprise (+1 more)".
- * Used by the AddonModal launcher button so the author sees WHAT the
- * gate looks at without opening the editor. Falls back to
- * `filterHeadline` for the empty / no-conditions case.
+ * Inline-readable summary used by the AddonModal launcher button.
+ * Same wording as the tooltip header so the surface stays consistent;
+ * appends a first-condition preview when conditions are configured.
  *
  * Format:
- *  - 0 conditions  → "No filter — addon runs every turn"
- *  - 1 condition   → "Run when <readable cond>"
- *  - 2+ conditions → "Run when <readable cond> (+N more)"
- * (Same shape with "Skip when" for `exclude` mode.)
+ *  - No filter         → "No filter — addon runs every turn"
+ *  - Cap only          → "Cap: 3 / conv"
+ *  - 1 condition       → "[Cap: 3 / conv · ] Run when <readable cond>"
+ *  - 2+ conditions     → "[Cap: 3 / conv · ] Run when <readable cond> (+N more)"
  */
 export function filterShortSummary(filter: AddonFilter | undefined): string {
-  if (!filter || !Array.isArray(filter.conditions) || filter.conditions.length === 0) {
-    return 'No filter — addon runs every turn';
+  if (!isFilterActive(filter)) return 'No filter — addon runs every turn';
+  const hasCap = typeof filter!.cap === 'number' && filter!.cap > 0;
+  const hasConds = filter!.conditions.length > 0;
+  const parts: string[] = [];
+  if (hasCap) parts.push(capLabel(filter!.cap as number));
+  if (hasConds) {
+    const verb = filter!.mode === 'exclude' ? 'Skip when' : 'Run when';
+    const first = conditionLine(filter!.conditions[0]);
+    const extra = filter!.conditions.length - 1;
+    parts.push(extra > 0 ? `${verb} ${first} (+${extra} more)` : `${verb} ${first}`);
   }
-  const verb = filter.mode === 'exclude' ? 'Skip when' : 'Run when';
-  const first = conditionLine(filter.conditions[0]);
-  if (filter.conditions.length === 1) return `${verb} ${first}`;
-  const extra = filter.conditions.length - 1;
-  return `${verb} ${first} (+${extra} more)`;
+  return parts.join(' · ');
 }
 
 /** Render one condition as a short readable line. */
@@ -55,6 +83,9 @@ export function conditionLine(c: TransitionCondition): string {
     }
     return `${c.field} ${c.op} ${JSON.stringify(c.value)}`;
   }
+  if (c.type === 'run-count') {
+    return `runs ≤ ${c.max}`;
+  }
   return '';
 }
 
@@ -66,7 +97,10 @@ export function conditionLine(c: TransitionCondition): string {
  */
 export function filterTooltip(filter: AddonFilter | undefined): string {
   const head = filterHeadline(filter);
-  if (!filter || filter.conditions.length === 0) return head;
-  const lines = filter.conditions.map(c => `  • ${conditionLine(c)}`);
-  return `${head}\n${lines.join('\n')}`;
+  if (!isFilterActive(filter)) return head;
+  const lines: string[] = [];
+  if (filter!.conditions.length > 0) {
+    for (const c of filter!.conditions) lines.push(`  • ${conditionLine(c)}`);
+  }
+  return lines.length > 0 ? `${head}\n${lines.join('\n')}` : head;
 }

@@ -28,16 +28,14 @@ import { useConfirm } from '../Confirm/Confirm';
 import { useBuilder } from '../../state/BuilderContext';
 import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../MentionTextarea/useMentionOptions';
-import { ConditionsEditor } from '../Conditions/ConditionsEditor';
+import { FilterEditor } from '../Filter/FilterEditor';
 import { conditionLine } from '../Filter/filterFormat';
 import type {
   AddonFilter,
   ID,
   SnippetDef,
-  TransitionCondition,
 } from '../../types';
 import addonStyles  from '../AddonModal/AddonModal.module.css';
-import filterStyles from '../Filter/AddonFilterSection.module.css';
 import styles       from './SnippetModal.module.css';
 
 interface Props {
@@ -57,17 +55,23 @@ function newSnippetId(): ID {
 }
 
 /** Local label for the launcher button. Differs from the addon
- *  `filterShortSummary` so the copy reads "snippet renders" instead of
- *  "addon runs every turn". */
+ *  `filterShortSummary` so the copy reads "snippet renders" instead
+ *  of "addon runs every turn". Surfaces the cap when present so the
+ *  filter line on the snippet matches what the editor shows.
+ */
+/** Snippets don't carry a cap yet (see SnippetFilterModal). The
+ *  label only narrates conditions + polarity for now; mirror the
+ *  shape of `filterShortSummary` so the future cap addition is a
+ *  one-line edit here. */
 function snippetFilterLabel(filter: AddonFilter | undefined): string {
-  if (!filter || !Array.isArray(filter.conditions) || filter.conditions.length === 0) {
+  const hasConds = !!filter && Array.isArray(filter.conditions) && filter.conditions.length > 0;
+  if (!hasConds) {
     return 'No filter — snippet renders whenever referenced';
   }
-  const verb = filter.mode === 'exclude' ? 'Skip when' : 'Render when';
-  const first = conditionLine(filter.conditions[0]);
-  if (filter.conditions.length === 1) return `${verb} ${first}`;
-  const extra = filter.conditions.length - 1;
-  return `${verb} ${first} (+${extra} more)`;
+  const verb = filter!.mode === 'exclude' ? 'Skip when' : 'Render when';
+  const first = conditionLine(filter!.conditions[0]);
+  const extra = filter!.conditions.length - 1;
+  return extra > 0 ? `${verb} ${first} (+${extra} more)` : `${verb} ${first}`;
 }
 
 export function SnippetModal({ open, onClose, agentId, initial }: Props) {
@@ -281,23 +285,32 @@ interface SnippetFilterModalProps {
 function SnippetFilterModal({
   open, onClose, agentId, snippetName, filter, onChange,
 }: SnippetFilterModalProps) {
+  // The shared FilterEditor works on a defined-but-possibly-empty
+  // shape. The snippet caller folds back to `undefined` when nothing
+  // is configured — that's how the snippet declares "no filter at
+  // all" downstream. Plain empty + default mode counts as no-op.
   const safe: AddonFilter = filter ?? { conditions: [], mode: 'include' };
-  const setMode = (mode: AddonFilter['mode']) =>
-    onChange({ conditions: safe.conditions, mode });
-  const setConditions = (conditions: TransitionCondition[]) => {
-    if (conditions.length === 0) {
-      onChange(undefined);                                  // no conditions → no filter
+
+  // Snippets don't carry a cap (the editor hides the input via
+  // allowCap={false}, but we strip it defensively just in case it
+  // ever round-trips back in from storage).
+  const handleChange = (next: AddonFilter) => {
+    const stripped: AddonFilter = {
+      conditions: next.conditions,
+      mode:       next.mode,
+    };
+    if (stripped.conditions.length === 0) {
+      onChange(undefined);
     } else {
-      onChange({ mode: safe.mode, conditions });
+      onChange(stripped);
     }
   };
-  const hasConditions = safe.conditions.length > 0;
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      width={620}
+      width={780}
       title="Snippet render filter"
       badge={snippetName}
       footer={
@@ -309,46 +322,19 @@ function SnippetFilterModal({
         </>
       }
     >
-      <section className={filterStyles.section}>
-        <header className={filterStyles.header}>
-          <span className={filterStyles.title}>Render filter</span>
-          <span className={filterStyles.modePill} role="group" aria-label="Filter polarity">
-            <button
-              type="button"
-              className={`${filterStyles.modeBtn} ${safe.mode !== 'exclude' ? filterStyles.modeBtnActive : ''}`}
-              onClick={() => setMode('include')}
-              title="Render this snippet only when ALL conditions match."
-            >
-              Render when matches
-            </button>
-            <button
-              type="button"
-              className={`${filterStyles.modeBtn} ${safe.mode === 'exclude' ? filterStyles.modeBtnActive : ''}`}
-              onClick={() => setMode('exclude')}
-              title="Skip this snippet when conditions match; render when at least one fails."
-            >
-              Skip when matches
-            </button>
-          </span>
-        </header>
-
-        <ConditionsEditor
-          conditions={safe.conditions}
-          onChange={setConditions}
-          agentId={agentId}
-          crewId={''}
-          title=""
-          emptyMessage="No conditions — snippet renders every time it's referenced."
-        />
-
-        {hasConditions && (
-          <p className={filterStyles.hint}>
-            {safe.mode === 'exclude'
-              ? 'Renders UNLESS every condition above matches. Otherwise the token resolves to empty.'
-              : 'Renders ONLY when every condition above matches. Otherwise the token resolves to empty.'}
-          </p>
-        )}
-      </section>
+      <FilterEditor
+        agentId={agentId}
+        crewId={null}
+        filter={safe}
+        onChange={handleChange}
+        verb="render"
+        verbs="renders"
+        skippedSentence="When skipped, the snippet token resolves to empty."
+        emptyMessage="No conditions — snippet renders every time it's referenced."
+        // Snippets don't get the cap row yet — render counts aren't
+        // tracked server-side. Flip to true once tracking lands.
+        allowCap={false}
+      />
     </Modal>
   );
 }

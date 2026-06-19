@@ -13,7 +13,7 @@
  */
 
 import { useRef, useState } from 'react';
-import { conditionLine, filterHeadline } from './filterFormat';
+import { conditionLine, filterHeadline, isFilterActive } from './filterFormat';
 import type { AddonFilter } from '../../types';
 import styles from './FilterChipBadge.module.css';
 
@@ -52,10 +52,10 @@ export function FilterChipBadge({ filter, chipHovered, onOpen }: Props) {
     closeTimer.current = window.setTimeout(() => setOpen(false), CLOSE_DELAY_MS);
   };
 
-  const hasFilter = !!filter
-    && Array.isArray(filter.conditions)
-    && filter.conditions.length > 0;
-  const isExclude = hasFilter && filter!.mode === 'exclude';
+  // `isFilterActive` returns true for cap-only filters too, so the
+  // badge lights up even when there are no conditions configured.
+  const hasFilter = isFilterActive(filter);
+  const isExclude = hasFilter && filter!.mode === 'exclude' && filter!.conditions.length > 0;
 
   // Visual state. Active filter → always visible in its mode colour.
   // No filter → muted, AND hidden entirely until the parent chip is
@@ -92,9 +92,7 @@ export function FilterChipBadge({ filter, chipHovered, onOpen }: Props) {
           onOpen();
         }
       }}
-      aria-label={hasFilter
-        ? `Run filter (${filter!.conditions.length} condition${filter!.conditions.length === 1 ? '' : 's'}) — click to edit`
-        : 'No run filter — click to add one'}
+      aria-label={hasFilter ? `${filterHeadline(filter)} — click to edit` : 'No run filter — click to add one'}
     >
       ▽
       {open && (

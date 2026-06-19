@@ -1,0 +1,130 @@
+/* FilterEditor — shared layout for every filter modal in the builder.
+   Flat: no nested cards, no slabs of background. Two-axis section
+   (cap on top, conditions below) separated by a thin hairline so the
+   eye reads them as distinct knobs without visual noise. */
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+/* ── Row 1: cap row — flat, inline ─────────────────────────────── */
+.capRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-primary, #111827);
+}
+
+.capLabel {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 11.5px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.capInput {
+  width: 64px;
+  padding: 4px 8px;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--text-primary, #111827);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.capInput:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+}
+
+/* Drop the browser spinner — the value is single-digit usually and
+   the spinner clutters the row. */
+.capInput::-webkit-outer-spin-button,
+.capInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.capInput[type='number'] {
+  -moz-appearance: textfield;
+}
+
+.capUnit {
+  color: var(--text-secondary, #4b5563);
+}
+
+.capClear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  color: var(--text-tertiary, #9ca3af);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  margin-left: 4px;
+}
+
+.capClear:hover {
+  color: #b91c1c;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+/* ── Separator ─────────────────────────────────────────────────── */
+.separator {
+  height: 1px;
+  background: var(--border-color, #e5e7eb);
+  margin: 2px 0;
+}
+
+/* ── Polarity toggle ───────────────────────────────────────────── */
+/* Rendered into ConditionsEditor's header via the `headerSlot` prop —
+   sits to the left of the +Add button on the same row. The slot
+   wrapper in ConditionsEditor handles the `margin-left: auto` push;
+   the pill itself just needs the visual chrome. */
+.modePill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.modeBtn {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+}
+
+.modeBtn + .modeBtn {
+  border-left: 1px solid var(--border-color, #e5e7eb);
+}
+
+.modeBtnActive {
+  background: var(--primary-color, #6366f1);
+  color: #fff;
+}
+
+/* ── Trailing hint ─────────────────────────────────────────────── */
+.hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-tertiary, #9ca3af);
+}

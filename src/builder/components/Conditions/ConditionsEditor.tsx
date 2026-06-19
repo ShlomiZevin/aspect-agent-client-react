@@ -13,7 +13,7 @@
  * comparison ops, booleans only get equality.
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
 import { useCrewFields } from '../../state/useCrewFields';
 import { ComboPicker } from './ComboPicker';
@@ -22,6 +22,16 @@ import styles from './ConditionsEditor.module.css';
 
 type CondType = TransitionCondition['type'];
 
+/**
+ * NOTE on `run-count`: the type stays in the `TransitionCondition`
+ * union (server still evaluates it; it remains useful for transition
+ * routers as "this router has fired ≤ N times"), but it is NOT
+ * surfaced in this picker any more. The per-addon "cap how many
+ * times this runs" gate moved to its own field on `AddonFilter.cap`
+ * — see AddonFilterSection. Mixing a cap inside the same dropdown
+ * as field-conditions made the polarity toggle (Run when / Skip
+ * when) ambiguous to authors.
+ */
 const CONDITION_TYPES: { value: CondType; label: string }[] = [
   { value: 'field',            label: 'Field check' },
   { value: 'fields-collected', label: 'Fields collected' },
@@ -67,6 +77,12 @@ function emptyCondition(type: CondType): TransitionCondition {
       return { type, fields: [] };
     case 'field':
       return { type, field: '', op: 'equals', value: '' };
+    case 'run-count':
+      // Defensive — `run-count` isn't picked from the dropdown any
+      // more, but if it ever arrives here (legacy data, programmatic
+      // call), give it a sane shape. The per-addon `cap` field
+      // on AddonFilter is the actual UX surface today.
+      return { type, max: 1 };
   }
 }
 
@@ -79,12 +95,18 @@ interface ConditionsEditorProps {
   title?: string;
   /** Message shown when the list is empty. */
   emptyMessage?: string;
+  /** Optional content slotted between the title and the +Add button.
+   *  FilterEditor uses this to put its polarity toggle on the same
+   *  row instead of stacking it above — saves a row of vertical
+   *  real estate. */
+  headerSlot?: ReactNode;
 }
 
 export function ConditionsEditor({
   conditions, onChange, agentId, crewId,
   title = 'Conditions',
   emptyMessage = 'No conditions — this rule will never fire. Add one above.',
+  headerSlot,
 }: ConditionsEditorProps) {
   const { allFields } = useCrewFields(agentId, crewId);
   const { doc } = useBuilder();
@@ -130,9 +152,14 @@ export function ConditionsEditor({
   return (
     <div className={styles.section}>
       <div className={styles.sectionHeader}>
-        <span className={styles.sectionTitle}>
-          {title} <span className={styles.sectionSub}>· all must match</span>
-        </span>
+        {title && (
+          <span className={styles.sectionTitle}>
+            {title} <span className={styles.sectionSub}>· all must match</span>
+          </span>
+        )}
+        {/* Caller-supplied content (FilterEditor passes its polarity
+            toggle here so it shares the row instead of stacking). */}
+        {headerSlot && <span className={styles.sectionSlot}>{headerSlot}</span>}
         <button type="button" className={styles.addBtn} onClick={addCondition}>
           + Add
         </button>
@@ -193,6 +220,9 @@ function ConditionCard({
         {cond.type === 'fields-collected' && (
           <FieldsCollectedBody cond={cond} fieldNames={fieldNames} onChange={onChange} />
         )}
+        {/* `run-count` body is no longer surfaced here — see the cap
+            input on AddonFilterSection. The type stays in the union
+            so legacy data + transition-router use keep evaluating. */}
       </div>
 
       <button

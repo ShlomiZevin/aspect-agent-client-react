@@ -204,6 +204,20 @@ export interface AddonContext {
 export interface AddonFilter {
   conditions: TransitionCondition[];
   mode: 'include' | 'exclude';
+  /**
+   * Optional per-conversation cap on how many times THIS addon may
+   * run successfully. When set, the runtime skips the addon as soon
+   * as `runCounts[instanceId] >= cap`.
+   *
+   * NOT a condition — kept out of `conditions` because:
+   *   - `mode` (include/exclude) doesn't apply to a cap; mixing them
+   *     in the same list confused authors.
+   *   - It's a separate-axis gate that always evaluates BEFORE the
+   *     condition list.
+   *
+   * Absent / `undefined` / `<= 0` → no cap.
+   */
+  cap?: number;
 }
 
 /**
@@ -608,7 +622,20 @@ export type TransitionCondition =
       value?: unknown;
       /** Multi-value for `in` / `not-in`; ignored for binary ops. */
       values?: unknown[];
-    };
+    }
+  /**
+   * Cap how many times THIS addon instance has run successfully in
+   * the current conversation. Evaluates as `runCount < max`, so the
+   * default `include` filter mode reads as "run AT MOST `max` times".
+   * Pair with `mode: 'exclude'` to read as "skip the first `max`
+   * runs" if the inverse is ever useful.
+   *
+   * The counter is incremented by the runtime on every successful
+   * addon completion and persisted on the brain blob under
+   * `runCounts[instanceId]`. Doesn't reference field names — the
+   * field-rename cascade has nothing to do for this variant.
+   */
+  | { type: 'run-count'; max: number };
 // `always` was dropped — composing with an upstream extractor +
 // field op covers the unconditional pipeline case more inspectably.
 

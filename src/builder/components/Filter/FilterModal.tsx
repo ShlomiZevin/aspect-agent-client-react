@@ -32,7 +32,7 @@ export function FilterModal({ open, onClose, agentId, crewId, instance }: Props)
     <Modal
       open={open}
       onClose={onClose}
-      width={620}
+      width={780}
       title="Run filter"
       badge={instance.config && (instance.config as { name?: string }).name
         ? (instance.config as { name?: string }).name!

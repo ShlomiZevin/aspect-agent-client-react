@@ -67,12 +67,18 @@
   transform: translateY(-50%) rotate(180deg);
 }
 
+/* Position is supplied inline (via portal + getBoundingClientRect).
+   Width is content-driven: `min-width` matches the input so the menu
+   never looks narrower than its trigger; `width: max-content` lets
+   it expand to fit the longest option without forcing every option
+   to truncate; `max-width` caps the expansion so a wild option name
+   doesn't blow out the screen. Long names past the cap get an
+   ellipsis + tooltip on the items themselves. */
 .comboMenu {
-  position: absolute;
-  top: calc(100% + 2px);
-  left: 0;
-  min-width: 100%;
-  max-height: 200px;
+  min-width: var(--combo-min-width, 0);
+  width: max-content;
+  max-width: 320px;
+  max-height: 240px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -80,8 +86,8 @@
   background: var(--bg-surface, #fff);
   border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 6px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-  z-index: 30;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  z-index: 1000;
 }
 
 .comboItem {

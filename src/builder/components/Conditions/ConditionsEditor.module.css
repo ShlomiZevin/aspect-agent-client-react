@@ -21,8 +21,27 @@
 
 .sectionHeader {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Caller-supplied content (e.g. FilterEditor's polarity toggle).
+   Pushed to the right of the title and immediately to the left of the
+   +Add button so the row reads: TITLE  …  [slot]  [+ Add]. */
+.sectionSlot {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* When there's no slot, +Add still ends up on the right via
+   `margin-left: auto` on the button. Keeps the layout consistent
+   whether the parent supplies a slot or not. */
+.addBtn {
+  margin-left: auto;
+}
+.sectionSlot + .addBtn {
+  margin-left: 0;
 }
 
 .sectionTitle {
