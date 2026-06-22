@@ -19,6 +19,7 @@ import { Sidebar } from './components/Sidebar/Sidebar';
 import { Canvas } from './components/Canvas/Canvas';
 import { DynamicContextScreen } from './components/DynamicContextScreen/DynamicContextScreen';
 import { PersonasScreen } from './components/PersonasScreen/PersonasScreen';
+import { FieldsScreen } from './components/FieldsScreen/FieldsScreen';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
 import { BrainDockSlot, BrainFullscreenLayer } from './components/BrainPanel/BrainPanel';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
@@ -217,6 +218,10 @@ function BuilderShell() {
                 reads its own `personaName` param. */}
             <Route path="personas" element={<PersonasScreen />} />
             <Route path="personas/:personaName" element={<PersonasScreen />} />
+            {/* Fields: agent-level fields editor (list + inline form).
+                Counterpart to the enum bible + personas screens. */}
+            <Route path="fields" element={<FieldsScreen />} />
+            <Route path="fields/:fieldName" element={<FieldsScreen />} />
           </Routes>
           {/* Brain dock floats at the bottom-right of the canvas (just
               left of the chat column) so the chat column never

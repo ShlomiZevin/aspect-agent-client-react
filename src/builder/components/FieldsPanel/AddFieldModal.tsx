@@ -90,6 +90,7 @@ interface Draft {
   source: FieldSource;
   domain: string;
   howToExtract: string;
+  definition: string;
   enumType: ID | '';
 }
 
@@ -104,6 +105,7 @@ const emptyDraft = (source: FieldSource = 'explicit', type: FieldType = 'string'
   source,
   domain: '',
   howToExtract: '',
+  definition: '',
   enumType: '',
 });
 
@@ -213,6 +215,7 @@ export function AddFieldModal({
       type: draft.type,
       source: draft.source,
       howToExtract: draft.howToExtract.trim(),
+      definition:   draft.definition.trim() || undefined,
       domain: draft.domain.trim() || undefined,
       ...(draft.type === 'enum' && draft.enumType ? { enumType: draft.enumType } : {}),
     };
@@ -418,6 +421,21 @@ export function AddFieldModal({
             onSubmit={() => {
               if (canSubmit) submit();
             }}
+          />
+        </label>
+
+        <label className={styles.field}>
+          <span className={styles.label}>
+            Definition
+            <span className={styles.labelSub}> · for you, never sent to the LLM</span>
+          </span>
+          <textarea
+            className={styles.textarea}
+            value={draft.definition}
+            onChange={e => setDraft(d => ({ ...d, definition: e.target.value }))}
+            placeholder="Your own note about what this field means. Builder-only — the runtime never reads it."
+            dir={autoDir(draft.definition)}
+            rows={2}
           />
         </label>
 

@@ -252,6 +252,15 @@ function classify(
   if (prefix === 'param') {
     return staticNode(token, resolveParam(arg ?? '', ctx.parameters), ctx, deps, depth);
   }
+  if (prefix === 'fieldname') {
+    // Resolves to the LITERAL field name (not its memory value).
+    // Used when authors want to mention a field's name in prose
+    // without misusing {{field:NAME}} (which substitutes the value).
+    // Unknown names stay literal so typos surface in the preview.
+    const f = (ctx.fieldPool ?? []).find(x => x && x.name === (arg ?? ''));
+    if (!f) return { kind: 'prose', text: token };
+    return staticNode(token, f.name, ctx, deps, depth);
+  }
   if (prefix === 'enum') {
     const resolved = resolveEnumAggregate(arg ?? '', ctx.enums);
     // Unknown enum → leave the token literal as prose so the typo shows.

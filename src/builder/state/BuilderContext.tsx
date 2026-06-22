@@ -400,6 +400,15 @@ interface BuilderState {
   // Agent versioning — same shape as crew.
   saveAgentVersion: (agentId: ID, opts?: SaveOpts) => void;
   saveAgentVersionAs: (agentId: ID, description?: string, opts?: SaveOpts) => AgentVersion;
+  /**
+   * "Save all as" — create a brand-new version row on the agent
+   * AND on every one of its crews, all sharing the same author-
+   * provided description. The runtime ends up with one synchronised
+   * snapshot across every entity, easily found later by scanning
+   * any entity's version history for the shared name. Each entity
+   * still gets its own version row + sync push (no batch endpoint).
+   */
+  saveAllVersionsAs: (agentId: ID, description?: string, opts?: SaveOpts) => void;
   setViewingAgentVersion: (agentId: ID, versionId: ID) => void;
   setActiveAgentVersion: (agentId: ID, versionId: ID) => void;
   discardAgentChanges: (agentId: ID) => void;
@@ -1439,6 +1448,12 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     }
   }, [fireApplyLogIfPending]);
 
+  /** "Save all as" — create a NEW version row for the agent AND for
+   *  every crew, all sharing the same description. The author
+   *  picks one name; the runtime ends up with one synchronised
+   *  snapshot across every entity. Returns the newly-created agent
+   *  version (callers usually just want confirmation). */
+
   const saveAgentVersionAs = useCallback(
     (agentId: ID, description?: string, opts?: SaveOpts): AgentVersion => {
       const newId = uid('ver');
@@ -1504,6 +1519,23 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     },
     [],
   );
+
+  /** "Save all as" — create a brand-new version row on the agent
+   *  AND on every crew with the same description. One shared
+   *  snapshot name across every entity so the version log reads as
+   *  a single named checkpoint when you scan a crew's history later.
+   *  Implemented as a sequential call into the per-entity `…As`
+   *  savers so each entity's mutation, sync push, and apply-log
+   *  handling stays single-purpose. */
+  const saveAllVersionsAs = useCallback((agentId: ID, description?: string, opts?: SaveOpts) => {
+    const d = docRef.current;
+    const agent = d.agents.find(a => a.id === agentId);
+    if (!agent) return;
+    saveAgentVersionAs(agentId, description, opts);
+    for (const c of agent.crews ?? []) {
+      saveCrewVersionAs(agentId, c.id, description, opts);
+    }
+  }, [saveAgentVersionAs, saveCrewVersionAs]);
 
   const setActiveAgentVersion = useCallback(
     (agentId: ID, versionId: ID) => {
@@ -1642,6 +1674,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       isCrewDirty,
       saveAgentVersion,
       saveAgentVersionAs,
+      saveAllVersionsAs,
       setViewingAgentVersion,
       setActiveAgentVersion,
       discardAgentChanges,
@@ -1692,6 +1725,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       isCrewDirty,
       saveAgentVersion,
       saveAgentVersionAs,
+      saveAllVersionsAs,
       setViewingAgentVersion,
       setActiveAgentVersion,
       discardAgentChanges,

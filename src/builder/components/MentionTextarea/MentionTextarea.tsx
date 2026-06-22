@@ -374,11 +374,31 @@ export function MentionTextarea({
       ? SINGLE_TRIGGERS.flatMap(t => options[t] ?? [])
       : (options[picker.trigger as SingleTrigger] ?? []);
     const f = picker.filter.toLowerCase();
-    if (f.length === 0) return openOnPrefixOnly ? pool : [];
-    return pool.filter(o =>
-      o.label.toLowerCase().includes(f) ||
-      o.insertion.toLowerCase().includes(f) ||
-      (o.group ?? '').toLowerCase().includes(f),
+    const filtered = f.length === 0
+      ? (openOnPrefixOnly ? pool : [])
+      : pool.filter(o =>
+        o.label.toLowerCase().includes(f) ||
+        o.insertion.toLowerCase().includes(f) ||
+        (o.group ?? '').toLowerCase().includes(f),
+      );
+    // CRITICAL: sort by FIRST-OCCURRENCE group order so the flat
+    // index used by arrow navigation matches the grouped visual
+    // display. Without this, items inside the same group end up
+    // scattered through the flat array (each `useMentionOptions`
+    // section pushes per-field entries into different groups), and
+    // arrow keys jump across groups while the eye follows the
+    // grouped visual layout — the bug screenshot showed exactly that.
+    const groupOrder = new Map<string, number>();
+    let next = 0;
+    for (const o of filtered) {
+      const g = o.group ?? '';
+      if (!groupOrder.has(g)) groupOrder.set(g, next++);
+    }
+    // Array.prototype.sort is stable in every modern engine, so equal
+    // group keys preserve the original within-group order.
+    return [...filtered].sort((a, b) =>
+      (groupOrder.get(a.group ?? '') ?? Infinity) -
+      (groupOrder.get(b.group ?? '') ?? Infinity),
     );
   }, [picker, options, openOnPrefixOnly]);
 
@@ -391,6 +411,14 @@ export function MentionTextarea({
 
   const closePicker = useCallback(() => setPicker(null), []);
 
+  // When the user explicitly dismisses the picker (Esc), we record
+  // which trigger they walked away from so the next `keyUp` →
+  // `refreshPickerFromCaret` doesn't immediately reopen the picker
+  // for the same trigger. Cleared when the trigger TEXT changes
+  // (typing more characters into the filter — a clear "I want to
+  // search more" signal) or the trigger position moves.
+  const dismissedRef = useRef<{ startIdx: number; filter: string } | null>(null);
+
   const refreshPickerFromCaret = useCallback(() => {
     const ta = taRef.current;
     if (!ta) return;
@@ -398,8 +426,17 @@ export function MentionTextarea({
     const found = detectTrigger(value, caret);
     if (!found) {
       closePicker();
+      dismissedRef.current = null;
       return;
     }
+    // User dismissed THIS exact trigger position + filter. Stay
+    // closed until they type more (filter changes) or move the
+    // cursor to a different trigger (startIdx changes).
+    const dis = dismissedRef.current;
+    if (dis !== null && dis.startIdx === found.startIdx && dis.filter === found.filter) {
+      return;
+    }
+    dismissedRef.current = null;
     const { top, left } = caretCoordsInTextarea(ta, found.startIdx);
     // Anchor the picker just below the trigger char. Approximate line
     // height fall-back keeps it from sitting on top of the typed token.
@@ -510,6 +547,12 @@ export function MentionTextarea({
       // from bubbling all the way up to document.
       e.stopPropagation();
       e.nativeEvent.stopImmediatePropagation();
+      // Record the dismissal so the subsequent `keyUp` →
+      // `refreshPickerFromCaret` doesn't immediately reopen for the
+      // same trigger. Cleared when the trigger text/position changes.
+      if (picker) {
+        dismissedRef.current = { startIdx: picker.startIdx, filter: picker.filter };
+      }
       closePicker();
     }
   };

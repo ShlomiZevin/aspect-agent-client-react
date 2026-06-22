@@ -26,9 +26,10 @@ interface Props {
   agent: AgentDoc;
 }
 
-/** Schema chips that open the SchemaSectionModal. Dynamic Context is
- *  intentionally NOT here — it has its own dedicated page; the chip
- *  navigates there instead of cramming the editor into a modal. */
+/** Schema chips that open the SchemaSectionModal. Fields, Dynamic
+ *  Context, Personas, and Enums are intentionally NOT here — they have
+ *  their own dedicated pages; their chips navigate there instead of
+ *  cramming the editor into a modal. */
 interface ChipSpec {
   kind: SchemaSectionKind;
   icon: string;
@@ -42,7 +43,6 @@ const SCHEMA_CHIPS: ChipSpec[] = [
   { kind: 'parameters', icon: '#', label: 'Parameters', count: a => (a.parameters ?? []).length },
   { kind: 'snippets',   icon: '+', label: 'Snippets',   count: a => (a.snippets   ?? []).length },
   { kind: 'domains',    icon: '🧩', label: 'Domains',   count: a => (a.domains    ?? []).length },
-  { kind: 'fields',     icon: '🏷', label: 'Fields',    count: a => (a.fields     ?? []).length },
 ];
 
 export function AgentSetupArea({ agent }: Props) {
@@ -85,6 +85,21 @@ export function AgentSetupArea({ agent }: Props) {
             </button>
           );
         })}
+
+        {/* Fields — own page; chip navigates instead of opening the
+            section modal. The page lists agent fields grouped by domain
+            + lets the author declare new ones or edit existing fields
+            inline in a split editor. */}
+        <button
+          type="button"
+          className={styles.chip}
+          onClick={() => navigate(`/${agent.slug}/builder/fields`)}
+          title="Open the fields page"
+        >
+          <span className={styles.chipIcon}>🏷</span>
+          <span className={styles.chipName}>Fields</span>
+          <span className={styles.chipCount}>{(agent.fields ?? []).length}</span>
+        </button>
 
         {/* Enum bible — own page; chip navigates instead of opening
             the section modal. The page lists agent enums + lets the

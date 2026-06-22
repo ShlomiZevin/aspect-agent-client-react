@@ -19,6 +19,7 @@
  */
 
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { useAgentFields } from '../../state/useAgentFields';
 import { useCrewFields } from '../../state/useCrewFields';
@@ -153,6 +154,23 @@ export function FieldsPanel({ agentId, crewId }: Props) {
           <span className={styles.title}>💾 Memory</span>
           <span className={styles.count}>{allFields.length}</span>
           <span className={styles.spacer} />
+          {/* Link to the dedicated Fields page (list + editor). The
+              panel here is the crew-scope shortcut; the page is the
+              place to do real schema work. */}
+          {(() => {
+            const agent = doc.agents.find(a => a.id === agentId);
+            if (!agent) return null;
+            return (
+              <Link
+                to={`/${agent.slug}/builder/fields`}
+                className={styles.addBtn}
+                title="Open the full Fields page (list + editor)"
+                style={{ textDecoration: 'none' }}
+              >
+                Fields ↗
+              </Link>
+            );
+          })()}
           {crewId && hasUnwiredCandidates && (
             <button
               type="button"

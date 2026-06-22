@@ -183,16 +183,13 @@
   line-height: 1.4;
 }
 
+/* Drag handle retired — the enable switch now sits in this corner,
+   and the chip's whole surface is draggable anyway so the explicit
+   `⋮⋮` glyph wasn't earning its keep. Kept as a no-op rule so any
+   future caller that reads `.dragHandle` doesn't error; visually it
+   renders nothing. */
 .dragHandle {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  font-size: 10px;
-  color: var(--text-tertiary, #d1d5db);
-  letter-spacing: -2px;
-  line-height: 1;
-  pointer-events: none;
-  user-select: none;
+  display: none;
 }
 
 .cardIcon {
@@ -389,3 +386,96 @@
   font-family: inherit;
 }
 
+
+/* ── Enable / disable switch ─────────────────────────────────────
+   Track-style switch pinned to the chip's bottom-left. Wide enough
+   that the user reads "ON" / "OFF" without hovering. Sits well clear
+   of the drag handle (top-left) and the filter badge (top-right) so
+   the three affordances don't pile up.
+
+   States:
+     ON  — indigo track, thumb on the right, "ON" label.
+     OFF — amber track, thumb on the left, "OFF" label. */
+.enableSwitch {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 2px 6px 2px 2px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  user-select: none;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  transition: background 120ms, color 120ms, border-color 120ms;
+  border: 1px solid transparent;
+  z-index: 2;
+}
+
+.enableSwitchThumb {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  margin-right: 4px;
+  transition: transform 120ms, margin 120ms;
+}
+
+.enableSwitchLabel {
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+.enableSwitchOn {
+  background: rgba(99, 102, 241, 0.85);
+  border-color: rgba(99, 102, 241, 0.95);
+  color: #fff;
+}
+
+.enableSwitchOn:hover {
+  background: rgba(79, 82, 221, 0.95);
+}
+
+/* "OFF" state — thumb on the left, amber palette so the disabled
+   state is unmissable. Flipped via flex-direction so the thumb sits
+   to the LEFT of the label without re-ordering markup. */
+.enableSwitchOff {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.55);
+  color: #b45309;
+  flex-direction: row-reverse;
+  padding: 2px 2px 2px 6px;
+}
+
+.enableSwitchOff .enableSwitchThumb {
+  margin-right: 0;
+  margin-left: 4px;
+  background: #b45309;
+}
+
+.enableSwitchOff:hover {
+  background: rgba(245, 158, 11, 0.28);
+}
+
+/* Disabled chip — washed out, dashed border. The switch keeps its
+   amber palette so "click here to re-enable" is the most legible
+   element on the card. */
+.cardDisabled {
+  opacity: 0.55;
+  background: var(--bg-input, #fafafa);
+  border-style: dashed;
+}
+
+.cardDisabled .enableSwitch {
+  opacity: 1;
+}
+
+.cardDisabled::before {
+  opacity: 0.4;
+}

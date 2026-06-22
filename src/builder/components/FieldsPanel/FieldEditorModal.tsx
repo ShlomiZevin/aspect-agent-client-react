@@ -92,6 +92,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
   const [type, setType] = useState<FieldType>('string');
   const [source, setSource] = useState<FieldSource>('explicit');
   const [howToExtract, setHowToExtract] = useState('');
+  const [definition, setDefinition] = useState('');
   const [enumType, setEnumType] = useState<ID | ''>('');
   const [domain, setDomain] = useState('');
   const [selectedExtractors, setSelectedExtractors] = useState<Set<ID>>(new Set());
@@ -105,6 +106,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
     setType(f.type);
     setSource(f.source);
     setHowToExtract(f.howToExtract);
+    setDefinition(f.definition ?? '');
     setEnumType((f.enumType ?? '') as ID | '');
     setDomain(f.domain ?? '');
     setSelectedExtractors(new Set(crewField.extractors.map(e => e.instanceId)));
@@ -179,6 +181,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
         type,
         source,
         howToExtract: howToExtract.trim(),
+        definition:   definition.trim() || undefined,
         domain: domain.trim() || undefined,
         enumType: type === 'enum' && enumType ? enumType : undefined,
       },
@@ -405,6 +408,21 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
             onSubmit={() => {
               if (name.trim() && selectedExtractors.size > 0) save();
             }}
+          />
+        </label>
+
+        <label className={styles.field}>
+          <span className={styles.label}>
+            Definition
+            <span className={styles.labelSub}> · for you, never sent to the LLM</span>
+          </span>
+          <textarea
+            className={styles.textarea}
+            value={definition}
+            onChange={e => setDefinition(e.target.value)}
+            placeholder="Your own note about what this field means. Builder-only — the runtime never reads it."
+            dir={autoDir(definition)}
+            rows={2}
           />
         </label>
 

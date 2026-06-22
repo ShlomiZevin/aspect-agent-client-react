@@ -1,29 +1,19 @@
 /**
- * SchemaFieldModal — declare an agent-level field without wiring it
- * to an extractor.
+ * SchemaFieldEditor — the inner editor form for a single field.
  *
- * Why a separate modal from AddFieldModal: AddFieldModal lives inside a
- * crew context and requires you to pick (or auto-create) at least one
- * Field Extractor for the new field. From the agent-level Schema panel
- * there isn't a crew context yet — the user is shaping the data model
- * before deciding which crew should populate it. So declaration and
- * collection are decoupled:
+ * Owns the per-field local state (name / type / source / domain /
+ * definition / howToExtract / enumType), the validation surface,
+ * and the save / delete handlers. The host (page) chrome lives
+ * outside — this component just renders the form body and the
+ * footer actions, accepting the host's `onAfterSave` / `onAfterDelete`
+ * / `onCancel` callbacks so it stays UI-shell agnostic.
  *
- *   - Schema panel declares (this modal) → field lands in `agent.fields`
- *     with no extractor references. Inert at runtime.
- *   - Crew view "collects" it later (existing FieldEditorModal
- *     extractor multi-select) → user wires the declared field to an
- *     extractor in a specific crew, and only then does memory start
- *     populating with its values.
- *
- * Domain autocomplete reuses the declared `agent.domains` list (plus
- * any in-use names) so the user can slot the field into a pre-shaped
- * group immediately.
+ * Mounted today by the dedicated Fields page (`/builder/fields`);
+ * the modal-based editing flow has been retired.
  */
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Modal } from '../Modal/Modal';
 import { useBuilder } from '../../state/BuilderContext';
 import { useAgentFields } from '../../state/useAgentFields';
 import { useCrewFields } from '../../state/useCrewFields';
@@ -40,15 +30,22 @@ import { autoDir } from '../../../utils/textDirection';
 import styles from './SchemaPanel.module.css';
 
 interface Props {
-  open: boolean;
-  onClose: () => void;
   agentId: ID;
-  /** Existing field being edited; when null, the modal adds a new one. */
+  /** Existing field being edited; when null/undefined, renders the
+   *  "declare new field" flow (no Delete button, primary action
+   *  reads "Declare"). */
   initial: FieldDef | null;
-  /** Seed the type dropdown when adding a new field. Used by the
-   *  Dynamic Context flow to land on `enum` directly. Ignored when
-   *  editing an existing field. Default `'string'`. */
+  /** Seed the type dropdown for the "declare new" path. Ignored when
+   *  `initial` is set. Default `'string'`. */
   initialType?: FieldType;
+  /** Fires after a successful save with the persisted FieldDef. The
+   *  host typically navigates / closes off this. */
+  onAfterSave?: (saved: FieldDef) => void;
+  /** Fires after a successful delete. */
+  onAfterDelete?: () => void;
+  /** Cancel — typically closes the host modal or navigates the host
+   *  screen back to its list. */
+  onCancel?: () => void;
 }
 
 /** Primitive types that appear at the top of the unified Type select.
@@ -70,7 +67,10 @@ function newFieldId(): ID {
   return `field_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function SchemaFieldModal({ open, onClose, agentId, initial, initialType }: Props) {
+export function SchemaFieldEditor({
+  agentId, initial, initialType,
+  onAfterSave, onAfterDelete, onCancel,
+}: Props) {
   const { doc, updateAgent } = useBuilder();
   const { domainNames } = useAgentFields(agentId);
   // `removeField` lives on useCrewFields but only needs agent context —
@@ -80,36 +80,35 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
   const agent = doc.agents.find(a => a.id === agentId);
 
   const [name,         setName]         = useState('');
-  // True when the user's last Name keystroke contained whitespace
-  // that was silently stripped — drives the SPACE_BLOCKED_MESSAGE.
   const [nameSpaceBlocked, setNameSpaceBlocked] = useState(false);
   const [type,         setType]         = useState<FieldType>('string');
   const [source,       setSource]       = useState<FieldSource>('explicit');
   const [domain,       setDomain]       = useState('');
   const [howToExtract, setHowToExtract] = useState('');
+  const [definition,   setDefinition]   = useState('');
   const [enumType,     setEnumType]     = useState<ID | ''>('');
 
+  // Reseat local state whenever `initial` changes (e.g. user picks a
+  // different field in the screen's left column). Distinct from the
+  // modal's open/close lifecycle — we key off the actual field id so
+  // switching between fields in the same screen mount works cleanly.
   useEffect(() => {
-    if (!open) return;
     setName(initial?.name ?? '');
+    setNameSpaceBlocked(false);
     setType(initial?.type ?? initialType ?? 'string');
     setSource(initial?.source ?? 'explicit');
     setDomain(initial?.domain ?? '');
     setHowToExtract(initial?.howToExtract ?? '');
+    setDefinition(initial?.definition ?? '');
     setEnumType((initial?.enumType ?? '') as ID | '');
-  }, [open, initial, initialType]);
+  }, [initial?.id, initialType]);
 
   const trimmedName = name.trim();
   const siblings = useMemo(() => {
     if (!agent) return [] as FieldDef[];
-    const same = [...agent.fields];
-    return same.filter(f => f.id !== initial?.id);
-  }, [agent, initial]);
+    return agent.fields.filter(f => f.id !== initial?.id);
+  }, [agent, initial?.id]);
   const collides = trimmedName !== '' && siblings.some(f => f.name === trimmedName);
-  // Shape check — surfaced as a non-blocking visual hint (red border
-  // on the Name input + concise red helper line below). Save stays
-  // enabled; collisions still block (silent overwrite is unrecoverable,
-  // shape issues only break THIS field's extraction).
   const nameValidation = trimmedName.length > 0
     ? validateFieldName(trimmedName)
     : { ok: true, reason: '' };
@@ -141,7 +140,7 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
     });
     if (!ok) return;
     removeField('agent', '', initial.id);
-    onClose();
+    onAfterDelete?.();
   };
 
   const handleSave = () => {
@@ -152,6 +151,7 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
       type,
       source,
       howToExtract: howToExtract.trim(),
+      ...(definition.trim() ? { definition: definition.trim() } : {}),
       ...(domain.trim() ? { domain: domain.trim() } : {}),
       ...(type === 'enum' && enumType ? { enumType } : {}),
     };
@@ -160,37 +160,11 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
       ? agent.fields.map(f => (f.id === nextField.id ? nextField : f))
       : [...agent.fields, nextField];
     updateAgent(agentId, { fields });
-    onClose();
+    onAfterSave?.(nextField);
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={initial ? `Edit field` : 'Declare field'}
-      width={560}
-      footer={
-        <div className={styles.actions}>
-          {initial && (
-            <button type="button" className={styles.btnDanger} onClick={handleDelete}>
-              Delete
-            </button>
-          )}
-          <span className={styles.spacerInline} />
-          <button type="button" className={styles.btnGhost} onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className={styles.btnPrimary}
-            disabled={!canSave}
-            onClick={handleSave}
-          >
-            {initial ? 'Save' : 'Declare'}
-          </button>
-        </div>
-      }
-    >
+    <>
       <div className={styles.form}>
         <div>
           <div className={styles.label}>Name</div>
@@ -214,11 +188,6 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
               An agent field with this name already exists.
             </div>
           )}
-          {/* Always rendered — fixed min-height reserves the slot so
-              the form below doesn't jump when the message appears.
-              Space-block message takes priority over the shape
-              warning since it's immediate keystroke feedback.
-              Suppress when collision is the active error. */}
           <div className={styles.nameWarning}>
             {collides
               ? ''
@@ -235,9 +204,6 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
             <div className={styles.label}>Type</div>
             <select
               className={styles.input}
-              // Encoded value: primitives use their plain name; enums
-              // are "enum:<id>" so one change sets both type AND
-              // enumType — no separate dropdown below.
               value={type === 'enum' && enumType ? `enum:${enumType}` : type}
               onChange={e => {
                 const v = e.target.value;
@@ -284,13 +250,6 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
           </div>
         </div>
 
-        {/* Enum picker preview — visible only when an enum is selected.
-            Sits directly under the Type/Source row so the user
-            immediately sees the value vocabulary they just bound.
-            Same placement as in the Add field / Field editor modals.
-            The unified Type dropdown above already wires both `type` and
-            `enumType` in one go; this block is purely informative,
-            plus a shortcut to edit the enum bible without losing context. */}
         {type === 'enum' && enumType && agent && (() => {
           const en = (agent.enums ?? []).find(e => e.id === enumType);
           if (!en) {
@@ -317,7 +276,6 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
               )}
               <Link
                 to={`/${agent.slug}/builder/enums/${encodeURIComponent(en.name)}`}
-                onClick={onClose}
                 className={styles.enumPreviewLink}
               >
                 Edit enum ↗
@@ -332,6 +290,27 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
             value={domain}
             onChange={setDomain}
             options={domainNames}
+          />
+        </div>
+
+        <div>
+          <div className={styles.label}>
+            Definition <span style={{
+              textTransform: 'none',
+              letterSpacing: 0,
+              fontWeight: 500,
+              fontStyle: 'italic',
+              opacity: 0.75,
+            }}>· for you, never sent to the LLM</span>
+          </div>
+          <textarea
+            className={styles.textarea}
+            value={definition}
+            onChange={e => setDefinition(e.target.value)}
+            placeholder="Your own note about what this field means. Builder-only — the runtime never reads it."
+            spellCheck={false}
+            dir={autoDir(definition)}
+            rows={2}
           />
         </div>
 
@@ -357,6 +336,32 @@ export function SchemaFieldModal({ open, onClose, agentId, initial, initialType 
           Open the field in a crew view to wire it (the "Extracted by" multi-select).
         </div>
       </div>
-    </Modal>
+
+      {/* Footer actions live INSIDE the editor — the host wraps this
+          component, doesn't need to know how the editor saves. The
+          Modal-host renders the same footer; the screen-host renders
+          them inline. */}
+      <div className={styles.actions} style={{ marginTop: 12 }}>
+        {initial && (
+          <button type="button" className={styles.btnDanger} onClick={handleDelete}>
+            Delete
+          </button>
+        )}
+        <span className={styles.spacerInline} />
+        {onCancel && (
+          <button type="button" className={styles.btnGhost} onClick={onCancel}>
+            Cancel
+          </button>
+        )}
+        <button
+          type="button"
+          className={styles.btnPrimary}
+          disabled={!canSave}
+          onClick={handleSave}
+        >
+          {initial ? 'Save' : 'Declare'}
+        </button>
+      </div>
+    </>
   );
 }

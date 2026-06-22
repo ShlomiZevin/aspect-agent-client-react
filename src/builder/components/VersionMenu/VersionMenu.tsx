@@ -35,11 +35,12 @@ function relativeTime(iso: string): string {
 
 export function VersionMenu({ state }: Props) {
   const [saveAsOpen, setSaveAsOpen]                   = useState(false);
+  const [saveAllAsOpen, setSaveAllAsOpen]             = useState(false);
   const [attributionOpen, setAttributionOpen]         = useState(false);
   const [attributionVariant, setAttributionVariant]   = useState<'save' | 'save-as'>('save');
   const [pendingDescription, setPendingDescription]   = useState<string | undefined>(undefined);
   const confirm = useConfirm();
-  const { pendingAlfredApply, resetToServerState } = useBuilder();
+  const { pendingAlfredApply, resetToServerState, doc, saveAllVersionsAs, selection } = useBuilder();
 
   const {
     entityLabel,
@@ -131,6 +132,28 @@ export function VersionMenu({ state }: Props) {
         Save as…
       </button>
 
+      {/* "Save all as" — create a NEW version row on the agent and on
+          every crew, all sharing one description. Author picks a single
+          name; the whole agent gets a synchronised snapshot. Only
+          meaningful when crews exist (otherwise it'd be identical to
+          plain Save as). */}
+      {(() => {
+        const agentId = selection.agentId;
+        if (!agentId) return null;
+        const agent = doc.agents.find(a => a.id === agentId);
+        if (!agent || (agent.crews?.length ?? 0) === 0) return null;
+        return (
+          <button
+            type="button"
+            className={styles.btn}
+            onClick={() => setSaveAllAsOpen(true)}
+            title={`Create a new version on the agent and on all ${agent.crews.length} crew${agent.crews.length === 1 ? '' : 's'}, all sharing one description.`}
+          >
+            Save all as…
+          </button>
+        );
+      })()}
+
       {isDirty && (
         <button
           type="button"
@@ -167,6 +190,24 @@ export function VersionMenu({ state }: Props) {
           } else {
             saveAs(description);
           }
+        }}
+      />
+
+      {/* Save-all-as picks ONE description that lands on every entity
+          (agent + every crew gets a new version row with this name).
+          `nextNumber` is intentionally omitted — each entity has its
+          OWN next-version number (agent might be on v3, crew A on v5,
+          crew B on v2). Showing one number would be misleading, so the
+          modal renders without a version badge and the button reads
+          "Save as new version". */}
+      <SaveAsModal
+        open={saveAllAsOpen}
+        onClose={() => setSaveAllAsOpen(false)}
+        entityLabel="agent + every crew"
+        onSubmit={(description) => {
+          const agentId = selection.agentId;
+          if (!agentId) return;
+          saveAllVersionsAs(agentId, description);
         }}
       />
 

@@ -329,20 +329,51 @@
   color: #991b1b;
 }
 
+.writesGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.writesGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.writesGroupHeader {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #4f46e5;
+  padding: 2px 6px;
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 3px;
+  align-self: flex-start;
+}
+
 .writesList {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
-.writesList li {
+.writesItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+}
+
+.writesItemHead {
   display: flex;
   align-items: baseline;
   gap: 6px;
-  font-size: 11px;
+  flex-wrap: wrap;
 }
 
 .writeDomain {
@@ -370,6 +401,62 @@
   font-family: ui-monospace, "Menlo", monospace;
   color: var(--text-secondary, #4b5563);
   word-break: break-word;
+}
+
+/* Long-value rendering: plain text that wraps. No input-like chrome
+   (no border, no fill) so the value reads as content, not a field.
+   Clamp + Show more toggle handles overflow. */
+.writeValueLong {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.writeValuePre {
+  margin: 0;
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary, #4b5563);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.writeValuePreClamped {
+  /* Three-line clamp via line-clamp (works on display: -webkit-box).
+     Falls back to max-height on engines that don't support it. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-height: 4.6em;
+}
+
+.writeValuePreExpanded {
+  /* When expanded, cap at ~18 lines and scroll past that — protects
+     against absurd 50KB blobs without trapping the user mid-card. */
+  max-height: 26em;
+  overflow: auto;
+}
+
+.writeValueToggle {
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--primary-color, #6366f1);
+  cursor: pointer;
+}
+
+.writeValueToggle:hover {
+  text-decoration: underline;
 }
 
 .memoryError {

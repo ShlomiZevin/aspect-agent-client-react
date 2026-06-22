@@ -259,7 +259,7 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                       )}
                       <button
                         type="button"
-                        className={`${styles.card} ${compact ? styles.cardCompact : ''} ${isDragging ? styles.cardDragging : ''} ${isDropTarget ? styles.cardDropTarget : ''} ${isPostTalker ? styles.cardOrphan : ''}`}
+                        className={`${styles.card} ${compact ? styles.cardCompact : ''} ${isDragging ? styles.cardDragging : ''} ${isDropTarget ? styles.cardDropTarget : ''} ${isPostTalker ? styles.cardOrphan : ''} ${instance.enabled === false ? styles.cardDisabled : ''}`}
                         style={{ ['--card-color' as string]: desc.color }}
                         onClick={() => setEditingInstanceId(instance.instanceId)}
                         title={postTalkerTitle}
@@ -296,6 +296,44 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                         }}
                       >
                         {draggable && <span className={styles.dragHandle} aria-hidden="true">⋮⋮</span>}
+                        {/* Enable/disable toggle — bottom-left of the
+                            chip, kept far from the drag handle (top-
+                            left) and the filter badge (top-right) so
+                            the three affordances don't pile up. Track-
+                            style switch with sliding thumb so the on
+                            / off state is obvious at a glance. Click
+                            flips `enabled`; the engine skips disabled
+                            instances in `runOnce`. Mainly used for
+                            testing — flip off, re-run, isolate
+                            chain behaviour. Hidden in readOnly / compact. */}
+                        {!compact && !readOnly && (
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            aria-pressed={instance.enabled !== false}
+                            aria-label={instance.enabled === false ? 'Enable addon' : 'Disable addon'}
+                            title={instance.enabled === false
+                              ? 'Disabled — click to enable'
+                              : 'Enabled — click to disable (useful for testing)'}
+                            className={`${styles.enableSwitch} ${instance.enabled === false ? styles.enableSwitchOff : styles.enableSwitchOn}`}
+                            onClick={e => {
+                              e.stopPropagation();
+                              muts.setEnabled(instance.instanceId, instance.enabled === false);
+                            }}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                muts.setEnabled(instance.instanceId, instance.enabled === false);
+                              }
+                            }}
+                          >
+                            <span className={styles.enableSwitchThumb} />
+                            <span className={styles.enableSwitchLabel}>
+                              {instance.enabled === false ? 'OFF' : 'ON'}
+                            </span>
+                          </span>
+                        )}
                         <span className={styles.cardIcon}>{desc.icon}</span>
                         <span className={styles.cardName}>{instanceName}</span>
                         {isPostTalker && (

@@ -18,6 +18,18 @@
   color: var(--text-tertiary, #9ca3af);
 }
 
+/* Inline qualifier on a label — for "Definition · for you, never
+   sent to the LLM" style sub-text. Lighter weight + lowercase so it
+   reads as parenthetical to the main label. */
+.labelSub {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  font-size: 10.5px;
+  color: var(--text-tertiary, #9ca3af);
+  font-style: italic;
+}
+
 .input,
 .textarea {
   width: 100%;

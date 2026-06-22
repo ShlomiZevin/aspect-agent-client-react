@@ -371,18 +371,26 @@
 }
 
 .thinkingEntryLabel {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary, #4b5563);
+  font-size: 12px;
+  font-weight: 700;
+  /* Match the card header tone so the field name reads as a sub-heading
+     of the bucket, not as plain text. The value below sits in a softer
+     body color so the eye lands on the label first. */
+  color: #0f766e;
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: ui-monospace, "Menlo", monospace;
 }
 
 .thinkingEntryValue {
   margin: 0;
-  font-size: 12px;
+  padding-left: 8px;
+  font-size: 11.5px;
   line-height: 1.5;
-  color: var(--text-primary, #111827);
+  color: var(--text-secondary, #4b5563);
   white-space: pre-wrap;
   word-break: break-word;
+  border-left: 2px solid rgba(15, 118, 110, 0.18);
 }
 
 /* ── Memory section ── */

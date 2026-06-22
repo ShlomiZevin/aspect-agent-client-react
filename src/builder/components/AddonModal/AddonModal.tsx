@@ -223,6 +223,25 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
               <button type="button" className={styles.dangerBtn} onClick={handleRemove}>
                 Remove
               </button>
+              {/* Enable / disable toggle — mirrors the chip-corner
+                  affordance so authors can flip the addon off without
+                  closing the modal first. Same `setEnabled` mutator;
+                  disabled addons are skipped by the engine. */}
+              <button
+                type="button"
+                className={styles.secondaryBtn}
+                onClick={() => muts.setEnabled(instance.instanceId, instance.enabled === false)}
+                title={instance.enabled === false
+                  ? 'Currently disabled — click to enable'
+                  : 'Currently enabled — click to disable (useful for testing)'}
+                style={instance.enabled === false ? {
+                  background: 'rgba(245, 158, 11, 0.14)',
+                  borderColor: 'rgba(245, 158, 11, 0.45)',
+                  color: '#b45309',
+                } : undefined}
+              >
+                {instance.enabled === false ? '⏻ Disabled' : '⏼ Enabled'}
+              </button>
               <span className={styles.spacer} />
               {/* Prompt-template viewer retired — the per-prompt
                   "👁 Preview" toggle (PromptPreviewView) shows the full

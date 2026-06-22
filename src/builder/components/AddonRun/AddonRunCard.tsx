@@ -7,7 +7,7 @@
  *   - expandable to show details
  */
 
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { getPlugin } from '../../registry/plugins';
 import { useBuilder } from '../../state/BuilderContext';
 import styles from './AddonRunCard.module.css';
@@ -87,10 +87,114 @@ function formatDomain(domain: string | null): string {
   return domain && domain.trim() ? domain : 'general';
 }
 
-function formatValue(v: unknown): string {
-  if (v === null || v === undefined) return '—';
-  if (typeof v === 'string') return v;
-  return JSON.stringify(v);
+/**
+ * Memory-writes list, grouped by domain. Each domain renders as one
+ * subheader followed by its `field = value` rows — the domain shows
+ * once at the top of its group instead of being repeated on every row.
+ */
+function WritesByDomain({
+  writes,
+}: {
+  writes: Array<{ domain: string | null; field: string; value: unknown }>;
+}) {
+  // Preserve write order within a group while grouping by domain.
+  // Map's insertion order gives us the order each domain first appeared,
+  // which keeps the visual flow stable across renders.
+  const groups = new Map<string, typeof writes>();
+  for (const w of writes) {
+    const key = formatDomain(w.domain);
+    const list = groups.get(key);
+    if (list) list.push(w);
+    else groups.set(key, [w]);
+  }
+
+  return (
+    <div className={styles.writesGroups}>
+      {Array.from(groups.entries()).map(([domain, list]) => (
+        <div key={domain} className={styles.writesGroup}>
+          <div className={styles.writesGroupHeader}>{domain}</div>
+          <ul className={styles.writesList}>
+            {list.map((w, i) => (
+              <WriteRow key={i} field={w.field} value={w.value} />
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function WriteRow({ field, value }: { field: string; value: unknown }) {
+  return (
+    <li className={styles.writesItem}>
+      <span className={styles.writesItemHead}>
+        <span className={styles.writeField}>{field}</span>
+        <span className={styles.writeEq}>=</span>
+      </span>
+      <WriteValue value={value} />
+    </li>
+  );
+}
+
+/**
+ * One memory write's value cell. Short scalars render as plain inline
+ * text. Potentially long values render in a clamped <pre> and we
+ * measure whether the clamp actually hid anything before showing the
+ * Show more / Show less toggle — a 130-char string that wraps into 3
+ * lines won't get a toggle because nothing is hidden.
+ */
+function WriteValue({ value }: { value: unknown }) {
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const preRef = useRef<HTMLPreElement | null>(null);
+
+  let display: string;
+  let candidateLong = false;
+  if (value === null || value === undefined) {
+    display = '—';
+  } else if (typeof value === 'string') {
+    display = value;
+    candidateLong = display.includes('\n') || display.length >= 60;
+  } else {
+    display = JSON.stringify(value, null, 2);
+    candidateLong = true;
+  }
+
+  // Measure actual overflow against the clamped pre so the toggle
+  // only appears when content is really hidden. Re-runs whenever the
+  // text changes; recomputes after expand→collapse so the toggle
+  // stays correct if the user toggles repeatedly.
+  useLayoutEffect(() => {
+    if (!candidateLong || expanded) return;
+    const el = preRef.current;
+    if (!el) return;
+    // 1px slack — sub-pixel rounding can otherwise lie about overflow.
+    setOverflows(el.scrollHeight - el.clientHeight > 1);
+  }, [display, candidateLong, expanded]);
+
+  if (!candidateLong) {
+    return <span className={styles.writeValue}>{display}</span>;
+  }
+
+  return (
+    <span className={styles.writeValueLong}>
+      <pre
+        ref={preRef}
+        className={`${styles.writeValuePre} ${expanded ? styles.writeValuePreExpanded : styles.writeValuePreClamped}`}
+      >
+        {display}
+      </pre>
+      {overflows && (
+        <button
+          type="button"
+          className={styles.writeValueToggle}
+          onClick={() => setExpanded(v => !v)}
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </span>
+  );
 }
 
 /**
@@ -168,7 +272,15 @@ export function AddonRunCard({ run }: Props) {
     return crewId;
   };
 
-  const writes = run.memoryWrites ?? [];
+  // Drop control entries from the rendered list. The Field Interviewer
+  // and Thinker emit a `{ kind: 'thinking', replace: true }` sentinel
+  // that tells the persistence layer to wipe the thinking bucket
+  // before applying the rest — it has no field/value of its own and
+  // would render as a blank `INTERVIEW = —` row if left in.
+  const writes = (run.memoryWrites ?? []).filter(w => {
+    const anyW = w as { field?: string; replace?: boolean };
+    return !anyW.replace && typeof anyW.field === 'string' && anyW.field.length > 0;
+  });
   const hasWrites = writes.length > 0;
   const hasParseError = !!run.parseError;
   const showMemorySection = hasWrites || hasParseError;
@@ -390,18 +502,7 @@ export function AddonRunCard({ run }: Props) {
                   ⚠ Couldn't parse JSON: {run.parseError}
                 </div>
               )}
-              {hasWrites && (
-                <ul className={styles.writesList}>
-                  {writes.map((w, i) => (
-                    <li key={i}>
-                      <span className={styles.writeDomain}>{formatDomain(w.domain)}</span>
-                      <span className={styles.writeField}>{w.field}</span>
-                      <span className={styles.writeEq}>=</span>
-                      <span className={styles.writeValue}>{formatValue(w.value)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {hasWrites && <WritesByDomain writes={writes} />}
               {!hasWrites && !hasParseError && (
                 <div className={styles.memoryNote}>Nothing extracted</div>
               )}

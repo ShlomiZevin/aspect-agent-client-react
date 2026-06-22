@@ -239,6 +239,16 @@ export function useMentionOptions(
         group:     'Memory fields',
         description: f.howToExtract || `The current value of ${f.name}.`,
       });
+      // {{fieldname:NAME}} — literal name, not the value. Separate
+      // group so the picker doesn't surface two entries for the same
+      // field side-by-side (one substitutes value, one substitutes
+      // the name itself).
+      at.push({
+        label:     `${f.name} (name)`,
+        insertion: `{{fieldname:${f.name}}}`,
+        group:     'Field names (literal)',
+        description: `Inserts the literal name "${f.name}" into prose — NOT the current value. Useful when writing an instruction like "Extract the user\'s {{fieldname:${f.name}}}".`,
+      });
     }
     for (const c of agent.crews ?? []) {
       for (const f of c.fields ?? []) {
@@ -247,6 +257,12 @@ export function useMentionOptions(
           insertion: `{{field:${f.name}}}`,
           group:     `Memory fields · ${c.name}`,
           description: f.howToExtract || `The current value of ${f.name} (crew-scoped).`,
+        });
+        at.push({
+          label:     `${f.name} (name)`,
+          insertion: `{{fieldname:${f.name}}}`,
+          group:     `Field names (literal) · ${c.name}`,
+          description: `Inserts the literal name "${f.name}" into prose — NOT the current value (crew-scoped).`,
         });
       }
     }

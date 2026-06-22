@@ -15,12 +15,11 @@
  */
 
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { useAgentFields } from '../../state/useAgentFields';
 import { DomainModal } from './DomainModal';
 import { ParameterModal } from './ParameterModal';
-import { SchemaFieldModal } from './SchemaFieldModal';
 import { WireFieldModal } from './WireFieldModal';
 import { SnippetModal } from '../Snippets/SnippetModal';
 import { SystemFieldsSection } from '../FieldsPanel/SystemFieldsSection';
@@ -419,12 +418,21 @@ function FieldsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean 
     return map;
   }, [agent?.crews]);
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<FieldDef | null>(null);
+  // Field add/edit now navigates to the dedicated Fields page instead
+  // of opening a modal. Single source of truth: one place to edit a
+  // field, regardless of where you clicked from.
+  const navigate = useNavigate();
   const [wiringField, setWiringField] = useState<FieldDef | null>(null);
 
-  const openAdd = () => { setEditing(null); setModalOpen(true); };
-  const openEdit = (f: FieldDef) => { setEditing(f); setModalOpen(true); };
+  const fieldsPagePath = agent?.slug ? `/${agent.slug}/builder/fields` : null;
+  const openAdd = () => {
+    if (!fieldsPagePath) return;
+    navigate(`${fieldsPagePath}/__new__`);
+  };
+  const openEdit = (f: FieldDef) => {
+    if (!fieldsPagePath) return;
+    navigate(`${fieldsPagePath}/${encodeURIComponent(f.name)}`);
+  };
   const openWire = (f: FieldDef) => setWiringField(f);
 
   // Live value lookup — only meaningful when a preview conversation
@@ -528,12 +536,6 @@ function FieldsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean 
         </div>
       )}
 
-      <SchemaFieldModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        agentId={agentId}
-        initial={editing}
-      />
       <WireFieldModal
         open={wiringField !== null}
         onClose={() => setWiringField(null)}

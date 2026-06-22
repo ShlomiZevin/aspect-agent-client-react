@@ -12,7 +12,11 @@ interface Props {
   onClose: () => void;
   /** "Crew" or "Agent" — used in the title. */
   entityLabel: string;
-  /** Suggested next version number — shown in the modal. */
+  /** Suggested next version number — shown in the modal.
+   *  Omit when each entity in the save has its own number
+   *  (e.g. "save all as" across agent + every crew); the
+   *  modal renders without a version badge and shows the
+   *  button as "Save as new version". */
   nextNumber?: number;
   onSubmit: (description?: string) => void;
 }
@@ -42,7 +46,7 @@ export function SaveAsModal({ open, onClose, entityLabel, nextNumber, onSubmit }
             Cancel
           </button>
           <button type="button" className={styles.save} onClick={submit} autoFocus>
-            Save as v{nextNumber ?? '?'}
+            {nextNumber ? `Save as v${nextNumber}` : 'Save as new version'}
           </button>
         </>
       }
