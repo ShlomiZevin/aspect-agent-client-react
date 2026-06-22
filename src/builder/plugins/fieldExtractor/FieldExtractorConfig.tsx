@@ -27,7 +27,7 @@ import { WireOrCreateFieldModal } from '../fieldReasoner/WireOrCreateFieldModal'
 import { useCrewFields } from '../../state/useCrewFields';
 import type { CrewField } from '../../state/useCrewFields';
 import type { PluginConfigProps } from '../../registry/plugins';
-import type { FieldExtractorConfig, ID } from '../../types';
+import type { FieldDef, FieldExtractorConfig, ID } from '../../types';
 import styles from './FieldExtractorConfig.module.css';
 
 interface FieldGroup {

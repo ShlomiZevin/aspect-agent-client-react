@@ -562,6 +562,40 @@ export async function listConversations(args: {
 }
 
 /**
+ * One row in the ADMIN conversations list — every conversation for the
+ * agent regardless of owner (the dashboard view). Extends the basic
+ * list item with owner identity + a message count.
+ */
+export interface AdminConversationListItem extends ConversationListItem {
+  messageCount: number;
+  currentCrewId: string | null;
+  userId: number | null;
+  ownerUserId: string | null;
+  ownerName: string | null;
+}
+
+/**
+ * Admin: list ALL conversations for an agent (no owner filter), keyed
+ * only by the runtime agent resolved from the slug. Powers the Admin
+ * dashboard Conversations tab.
+ */
+export async function listAdminConversations(args: {
+  agentSlug: string;
+  limit?: number;
+  /** Internal users.id — scope to a single owner (Users drill-down). */
+  userId?: number;
+}): Promise<AdminConversationListItem[]> {
+  const params = new URLSearchParams();
+  if (args.limit) params.set('limit', String(args.limit));
+  if (args.userId) params.set('userId', String(args.userId));
+  const qs = params.toString();
+  const res = await http<{ conversations: AdminConversationListItem[] }>(
+    `/api/agents/${args.agentSlug}/admin/conversations${qs ? `?${qs}` : ''}`,
+  );
+  return res.conversations;
+}
+
+/**
  * The runtime call. Posts a user message and returns an SSE
  * `Response`; consumer reads the body stream.
  */

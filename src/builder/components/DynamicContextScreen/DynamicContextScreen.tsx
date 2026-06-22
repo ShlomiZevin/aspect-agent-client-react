@@ -50,7 +50,6 @@ import type {
   EnumSectionDecl,
   EnumTypeDef,
   EnumValueDef,
-  ID,
 } from '../../types';
 import styles from './DynamicContextScreen.module.css';
 

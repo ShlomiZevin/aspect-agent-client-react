@@ -5,6 +5,55 @@
   overflow-y: auto;
   padding: 12px;
   gap: 16px;
+  /* "The builder menu enters" — slide in from the left whenever this
+     rail mounts (i.e. when switching back from the admin menu). */
+  animation: railEnter 220ms ease;
+}
+
+@keyframes railEnter {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Footer — pinned to the bottom of the rail (settings-area), where
+   utility entries like the admin dashboard live. */
+.footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+}
+
+.footerBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary, #6b7280);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms, color 120ms, border-color 120ms;
+}
+
+.footerBtn:hover {
+  background: var(--bg-input, #f3f4f6);
+  color: var(--text-primary, #111827);
+}
+
+.footerBtnActive {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: var(--primary-color, #6366f1);
+}
+
+.footerIcon {
+  font-size: 16px;
 }
 
 .section {

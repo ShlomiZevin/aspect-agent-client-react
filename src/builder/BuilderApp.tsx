@@ -19,6 +19,7 @@ import { Sidebar } from './components/Sidebar/Sidebar';
 import { Canvas } from './components/Canvas/Canvas';
 import { DynamicContextScreen } from './components/DynamicContextScreen/DynamicContextScreen';
 import { PersonasScreen } from './components/PersonasScreen/PersonasScreen';
+import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
 import { BrainDockSlot, BrainFullscreenLayer } from './components/BrainPanel/BrainPanel';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
 import { ConfirmProvider } from './components/Confirm/Confirm';
@@ -168,12 +169,20 @@ export function BuilderApp({ agentSlug }: Props) {
   }
 
   // gate.kind === 'loaded' — render the builder with the loaded doc.
+  // The admin dashboard is a SIBLING of the builder shell (full
+  // viewport, its own left-menu rail) rather than nested inside the
+  // three-panel layout — so switching to `/admin` "swaps" the left
+  // menu to admin and back. Both live under the same providers so the
+  // admin can read the agent via `useBuilder()`.
   return (
     <BuilderProvider agentSlug={agentSlug} ownerUserId={ownerUserId} initialDoc={gate.doc}>
       <BrainProvider>
         <ConfirmProvider>
           <SnippetCreatorProvider>
-            <BuilderShell />
+            <Routes>
+              <Route path="admin/*" element={<AdminDashboard />} />
+              <Route path="*" element={<BuilderShell />} />
+            </Routes>
           </SnippetCreatorProvider>
         </ConfirmProvider>
       </BrainProvider>

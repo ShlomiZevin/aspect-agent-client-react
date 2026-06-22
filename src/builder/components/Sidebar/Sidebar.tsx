@@ -5,7 +5,7 @@
  * what the center canvas renders.
  */
 
-import { useNavigate, useParams } from 'react-router-dom';
+import { useMatch, useNavigate, useParams } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { useConfirm } from '../Confirm/Confirm';
 import styles from './Sidebar.module.css';
@@ -20,6 +20,9 @@ export function Sidebar() {
   // render, before fetchProject resolves).
   const { agent: urlAgentSlug } = useParams<{ agent: string }>();
   const agent = doc.agents.find(a => a.id === selection.agentId) ?? doc.agents[0];
+  // Admin is a URL-routed view (not selection-driven), so its active
+  // state comes from the route, not `selection`.
+  const onAdminRoute = useMatch('/:agent/builder/admin/*');
 
   /**
    * Pop back to the builder's index route any time the user picks
@@ -192,6 +195,20 @@ export function Sidebar() {
             </div>
           </div>
         </>
+      )}
+
+      {agent && (
+        <div className={styles.footer}>
+          <button
+            type="button"
+            className={`${styles.footerBtn} ${onAdminRoute ? styles.footerBtnActive : ''}`}
+            onClick={() => { if (urlAgentSlug) navigate(`/${urlAgentSlug}/builder/admin`); }}
+            title="Open the admin dashboard"
+          >
+            <span className={styles.footerIcon} aria-hidden>📊</span>
+            <span>Admin dashboard</span>
+          </button>
+        </div>
       )}
     </div>
   );

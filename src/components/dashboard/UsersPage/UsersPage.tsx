@@ -18,6 +18,14 @@ interface UsersPageProps {
    */
   defaultTenant?: string;
   /**
+   * Agent slug (V2 builder admin). When provided, the list is scoped to
+   * users who have conversations with THIS agent (via the server's
+   * `agentName` filter) instead of by tenant — V2 builder users carry no
+   * tenant, so tenant-scoping would show nothing. Takes precedence over
+   * `defaultTenant` for scoping when set.
+   */
+  agentName?: string;
+  /**
    * Super-admin mode (rendered from the hidden /users page). Shows tenants,
    * exposes the tenant column/filter, and disables the per-tenant scoping
    * so all users — including null-tenant — are visible.
@@ -31,7 +39,7 @@ interface UsersPageProps {
   basePath?: string;
 }
 
-export function UsersPage({ baseURL, defaultTenant, superAdmin = false, basePath }: UsersPageProps) {
+export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = false, basePath }: UsersPageProps) {
   const navigate = useNavigate();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -65,8 +73,13 @@ export function UsersPage({ baseURL, defaultTenant, superAdmin = false, basePath
   const [editingCell, setEditingCell] = useState<{ id: number; field: string } | null>(null);
   const [editValue, setEditValue] = useState('');
 
+  // Scoping precedence: agent (V2 builder admin) → tenant (V1) → super.
+  // In agent mode we scope by the agent join server-side and leave
+  // tenant unset (V2 users have no tenant).
   // In tenant mode the URL pins tenant; in super mode the user picks via the filter.
-  const effectiveTenantFilter = superAdmin ? filters.tenant : defaultTenant;
+  const effectiveTenantFilter = agentName
+    ? undefined
+    : superAdmin ? filters.tenant : defaultTenant;
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -75,10 +88,11 @@ export function UsersPage({ baseURL, defaultTenant, superAdmin = false, basePath
         ...filters,
         search: debouncedSearch || undefined,
         tenant: effectiveTenantFilter || undefined,
+        agentName: agentName || undefined,
       };
       const [usersResponse, statsResponse] = await Promise.all([
         getUsers(scopedFilters, baseURL),
-        getStats(baseURL, undefined, effectiveTenantFilter || undefined),
+        getStats(baseURL, agentName || undefined, effectiveTenantFilter || undefined),
       ]);
       setUsers(usersResponse.users);
       setTotal(usersResponse.total);
@@ -88,7 +102,7 @@ export function UsersPage({ baseURL, defaultTenant, superAdmin = false, basePath
     } finally {
       setIsLoading(false);
     }
-  }, [baseURL, filters, debouncedSearch, effectiveTenantFilter]);
+  }, [baseURL, filters, debouncedSearch, effectiveTenantFilter, agentName]);
 
   useEffect(() => {
     loadData();

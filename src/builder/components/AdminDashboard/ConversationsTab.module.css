@@ -1,0 +1,236 @@
+/* ConversationsTab — admin conversation inspector (master/detail). */
+
+.wrap {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ── Master list ─────────────────────────────────────────────── */
+.list {
+  width: 300px;
+  flex-shrink: 0;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #fff;
+}
+
+.backToUsers {
+  display: block;
+  padding: 10px 14px 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6366f1;
+  text-decoration: none;
+}
+.backToUsers:hover { text-decoration: underline; }
+
+.listHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f1f4;
+}
+.listTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+.refresh {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  color: #4b5563;
+}
+.refresh:hover { background: #f3f4f6; }
+
+.listScroll {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  border: none;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fff;
+  cursor: pointer;
+}
+.row:hover { background: #f9fafb; }
+.rowActive { background: #eef2ff; }
+.rowActive:hover { background: #eef2ff; }
+
+.rowName {
+  font-size: 13px;
+  font-weight: 500;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rowMeta {
+  display: flex;
+  gap: 5px;
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+.dot { color: #d1d5db; }
+.rowTime {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+/* ── Detail ──────────────────────────────────────────────────── */
+.detail {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: #f9fafb;
+}
+.detailEmpty {
+  padding: 40px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+.thread {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.msg {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 12px;
+}
+.msg_user { background: #f8fafc; }
+.msg_system { background: #fffbeb; }
+
+.msgHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.role {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6366f1;
+}
+.msgTime {
+  font-size: 11px;
+  color: #9ca3af;
+}
+.trailBtn {
+  margin-left: auto;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: #4b5563;
+  cursor: pointer;
+}
+.trailBtn:hover { background: #f3f4f6; }
+
+.msgBody {
+  font-size: 13px;
+  color: #111827;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.muted { color: #9ca3af; font-size: 12px; }
+
+/* ── Addon trail ─────────────────────────────────────────────── */
+.runs {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.run {
+  border: 1px solid #eef2f7;
+  border-radius: 6px;
+  background: #fafafa;
+  padding: 8px 10px;
+}
+.runHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+.runStatus {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #e5e7eb;
+  color: #374151;
+}
+.status_success { background: #d1fae5; color: #065f46; }
+.status_error { background: #fee2e2; color: #b91c1c; }
+.status_running { background: #fef3c7; color: #92400e; }
+
+.runPlugin { font-weight: 600; color: #111827; }
+.runLabel { color: #4b5563; }
+.runDur { color: #9ca3af; }
+.runModel { color: #6b7280; margin-left: auto; }
+
+.runWrites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.write {
+  font-size: 11px;
+  background: #eef2ff;
+  color: #3730a3;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.runRaw {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #374151;
+  background: #fff;
+  border: 1px solid #f1f1f4;
+  border-radius: 4px;
+  padding: 6px 8px;
+  max-height: 200px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error {
+  color: #b91c1c;
+  font-size: 12px;
+  padding: 10px 14px;
+}
+.empty {
+  color: #9ca3af;
+  font-size: 12px;
+  padding: 14px;
+}

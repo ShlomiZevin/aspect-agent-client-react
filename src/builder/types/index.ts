@@ -205,17 +205,11 @@ export interface AddonFilter {
   conditions: TransitionCondition[];
   mode: 'include' | 'exclude';
   /**
-   * Optional per-conversation cap on how many times THIS addon may
-   * run successfully. When set, the runtime skips the addon as soon
-   * as `runCounts[instanceId] >= cap`.
-   *
-   * NOT a condition — kept out of `conditions` because:
-   *   - `mode` (include/exclude) doesn't apply to a cap; mixing them
-   *     in the same list confused authors.
-   *   - It's a separate-axis gate that always evaluates BEFORE the
-   *     condition list.
-   *
-   * Absent / `undefined` / `<= 0` → no cap.
+   * Optional per-conversation run cap — the addon runs at most `cap`
+   * times in a single conversation, independent of `conditions`. Absent
+   * / undefined / 0 = no cap. The counter lives in `context_data` per
+   * (conversation, instance). Surfaced in the Filter editor as
+   * "Run at most N times per conversation".
    */
   cap?: number;
 }
@@ -579,6 +573,37 @@ export interface SnippetDef {
   filter?: AddonFilter;
 }
 
+// ─── Personas (agent-level voice/role blocks) ─────────────────────
+
+/**
+ * One named persona — a reusable voice/role text block injected into
+ * addon prompts via the `{{persona}}` / `{{persona:NAME}}` tokens.
+ *
+ * `{{persona}}` (bare) appends every persona whose `appliesTo` includes
+ * the addon's plugin id (or the wildcard `'*'`), in the agent's list
+ * order. `{{persona:NAME}}` pulls one specific persona regardless of
+ * `appliesTo`.
+ *
+ * Lives on `AgentDoc.personas` (agent-scoped). Names are unique per
+ * agent. Replaces the older single `AgentDoc.persona` string for
+ * multi-persona agents; the legacy `persona` field is still read as a
+ * fallback when no personas are declared.
+ */
+export interface PersonaDef {
+  id: ID;
+  /** Canonical key — used in `{{persona:NAME}}` tokens. Unique per agent. */
+  name: string;
+  /** The persona voice/role text. Mention-aware. */
+  content: string;
+  /**
+   * Which addons receive this persona via the bare `{{persona}}` token.
+   * Entries are plugin ids (e.g. `'talker'`); the wildcard `'*'` means
+   * "all addons". Empty = this persona is only reachable via the
+   * explicit `{{persona:NAME}}` token.
+   */
+  appliesTo: string[];
+}
+
 // ─── Transition Router plugin ─────────────────────────────────────
 
 /**
@@ -623,19 +648,16 @@ export type TransitionCondition =
       /** Multi-value for `in` / `not-in`; ignored for binary ops. */
       values?: unknown[];
     }
-  /**
-   * Cap how many times THIS addon instance has run successfully in
-   * the current conversation. Evaluates as `runCount < max`, so the
-   * default `include` filter mode reads as "run AT MOST `max` times".
-   * Pair with `mode: 'exclude'` to read as "skip the first `max`
-   * runs" if the inverse is ever useful.
-   *
-   * The counter is incremented by the runtime on every successful
-   * addon completion and persisted on the brain blob under
-   * `runCounts[instanceId]`. Doesn't reference field names — the
-   * field-rename cascade has nothing to do for this variant.
-   */
-  | { type: 'run-count'; max: number };
+  | {
+      /**
+       * Matches while this addon/router has run at most `max` times in
+       * the conversation. Mostly superseded by `AddonFilter.cap` (the
+       * actual UX surface), but kept as a condition variant for legacy
+       * data and programmatic use.
+       */
+      type: 'run-count';
+      max: number;
+    };
 // `always` was dropped — composing with an upstream extractor +
 // field op covers the unconditional pipeline case more inspectably.
 
@@ -751,7 +773,7 @@ export type AgentBody = Pick<
   AgentDoc,
   'name' | 'slug' | 'spec' | 'persona' | 'defaultCrewId'
   | 'fields' | 'domains' | 'parameters' | 'enums'
-  | 'cortex' | 'snippets'
+  | 'cortex' | 'snippets' | 'personas'
 >;
 
 export interface AgentVersion {
@@ -839,6 +861,15 @@ export interface AgentDoc {
    * Optional for back-compat; readers should treat absence as `[]`.
    */
   snippets?: SnippetDef[];
+  /**
+   * Agent-level personas — named voice/role blocks injected into addon
+   * prompts via `{{persona}}` / `{{persona:NAME}}`. See {@link PersonaDef}
+   * and `PersonasScreen`. Supersedes the single `persona` string for
+   * multi-persona agents (which stays as a fallback).
+   *
+   * Optional for back-compat; readers should treat absence as `[]`.
+   */
+  personas?: PersonaDef[];
   /**
    * The crews that belong to this agent. NOT part of the agent
    * version body — crews are their own versioned entities and live

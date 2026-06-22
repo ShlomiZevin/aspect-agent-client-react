@@ -55,8 +55,10 @@ export type PreviewNode =
 
 export interface PreviewContext {
   instance: AddonInstance;
-  /** Live config (the working copy being edited), preferred over instance.config. */
-  config: { prompt?: string } & Record<string, unknown>;
+  /** Live config (the working copy being edited), preferred over instance.config.
+   *  Only `prompt` is read here; a plain shape keeps typed plugin configs
+   *  assignable without forcing an index signature on each interface. */
+  config: { prompt?: string };
   pluginFieldMode: 'none' | 'extractor' | undefined;
   personas: PersonaDef[];
   parameters: ParameterDef[];

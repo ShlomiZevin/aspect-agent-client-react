@@ -21,8 +21,11 @@ import styles from './PromptPreviewView.module.css';
 
 interface Props {
   instance: AddonInstance;
-  /** Live config being edited (preferred over instance.config). */
-  config: { prompt?: string } & Record<string, unknown>;
+  /** Live config being edited (preferred over instance.config). Only
+   *  `prompt` is read directly; other fields (e.g. `extractsFields`)
+   *  are accessed via local casts, so a plain shape keeps the typed
+   *  plugin configs (TalkerConfig, …) assignable without an index sig. */
+  config: { prompt?: string };
   agentId: ID;
   crewId: ID | null;
   /** Pass the SAME rows + storageKey the sibling MentionTextarea uses so
