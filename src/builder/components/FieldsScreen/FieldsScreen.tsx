@@ -3,24 +3,21 @@
  *
  * Counterpart to the EnumBibleScreen / PersonasScreen: a dedicated
  * page that hosts the list of every declared field on the left + the
- * editor for the active one on the right. Replaces the modal-only
- * editing flow when the author wants to do real schema work
- * (multiple fields in a row, comparing properties across fields, etc).
+ * editor for the active one on the right.
  *
  *   URL routing
  *     /<agent>/builder/fields
  *     /<agent>/builder/fields/<fieldName>
- *     /<agent>/builder/fields/-/new            ← declare flow
  *
- * The `-/new` form keeps the URL bookmarkable while in the "adding a
- * new field" mode (so a refresh lands you back at "Declare field" if
- * that's what you were doing).
- *
- * Editor body comes from `SchemaFieldEditor` — single source of truth
- * for declaring + editing a field across the builder.
+ * Adding a field is a one-click action — `+ Declare field` creates a
+ * stub field with a unique placeholder name (`new_field`, `new_field_2`,
+ * …), writes it to the doc, and navigates to its edit URL. Same model
+ * as the enum + persona pages. The editor pane has no Save button:
+ * every input auto-commits on blur (the rename cascade fires from
+ * inside `SchemaFieldEditor` when the name commits).
  */
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { SchemaFieldEditor } from '../SchemaPanel/SchemaFieldEditor';
@@ -28,12 +25,25 @@ import { SystemFieldsSection } from '../FieldsPanel/SystemFieldsSection';
 import type { FieldDef } from '../../types';
 import styles from './FieldsScreen.module.css';
 
-/** Sentinel for "no field picked, declaring new" inside URLs. */
-const NEW_SENTINEL = '__new__';
+function newFieldId(): string {
+  return `field_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Make a unique name in the form `new_field`, `new_field_2`, … so
+ *  the auto-create button always lands on a valid (non-colliding)
+ *  starting point. Matches the enum/section naming pattern on the
+ *  Dynamic Context screen. */
+function uniqueFieldName(base: string, existing: ReadonlyArray<FieldDef>): string {
+  const taken = new Set(existing.map(f => f.name));
+  if (!taken.has(base)) return base;
+  let i = 2;
+  while (taken.has(`${base}_${i}`)) i += 1;
+  return `${base}_${i}`;
+}
 
 export function FieldsScreen() {
   const navigate = useNavigate();
-  const { doc, conversationMemory } = useBuilder();
+  const { doc, conversationMemory, updateAgent } = useBuilder();
   const agent = doc.agents[0];
   const agentSlug = agent?.slug ?? '';
 
@@ -41,20 +51,15 @@ export function FieldsScreen() {
 
   const fields = useMemo(() => agent?.fields ?? [], [agent?.fields]);
 
-  // Resolve URL param → active field. `__new__` means we're in
-  // declare-new mode (right pane shows the empty editor); a real
-  // name resolves to an existing field; nothing means "no selection"
-  // and the right pane shows a placeholder.
-  const isNewMode = paramName === NEW_SENTINEL;
+  // Resolve URL param → active field. Unknown name → no selection
+  // (right pane shows the "pick a field" placeholder).
   const activeField = useMemo<FieldDef | null>(() => {
-    if (!paramName || isNewMode) return null;
+    if (!paramName) return null;
     return fields.find(f => f.name === paramName) ?? null;
-  }, [fields, paramName, isNewMode]);
+  }, [fields, paramName]);
 
   // Group fields by domain so a long list reads as a structured map
-  // of the schema (matches the SchemaPanel grouping pattern). The
-  // user can scan "where does the address stuff live?" without
-  // ctrl-F'ing through a flat list.
+  // of the schema (matches the SchemaPanel grouping pattern).
   const grouped = useMemo(() => {
     const byDomain = new Map<string, FieldDef[]>();
     const orphan: FieldDef[] = [];
@@ -75,20 +80,33 @@ export function FieldsScreen() {
 
   const urlFields = `/${agentSlug}/builder/fields`;
   const urlField = (name: string) => `${urlFields}/${encodeURIComponent(name)}`;
-  const urlNew   = `${urlFields}/${NEW_SENTINEL}`;
 
-  // Callbacks the editor uses to drive navigation. Save → land on
-  // the saved field's URL; delete → land on the list; cancel from
-  // declare → list; cancel from edit → list.
-  const handleAfterSave = (saved: FieldDef) => {
+  // ── Declare a new field ──────────────────────────────────────
+  // Create a stub with a unique placeholder name and route to it.
+  // The editor handles every subsequent edit inline so this flow
+  // doesn't need its own "declare" form.
+  const handleDeclare = useCallback(() => {
+    if (!agent) return;
+    const name = uniqueFieldName('new_field', fields);
+    const stub: FieldDef = {
+      id:           newFieldId(),
+      name,
+      type:         'string',
+      source:       'explicit',
+      howToExtract: '',
+    };
+    updateAgent(agent.id, { fields: [...agent.fields, stub] });
+    navigate(urlField(name));
+  }, [agent, fields, navigate, updateAgent, urlField]);
+
+  // ── Editor callbacks ─────────────────────────────────────────
+  const handleAfterRename = useCallback((saved: FieldDef) => {
     navigate(urlField(saved.name));
-  };
-  const handleAfterDelete = () => {
+  }, [navigate, urlField]);
+
+  const handleAfterDelete = useCallback(() => {
     navigate(urlFields);
-  };
-  const handleCancel = () => {
-    navigate(urlFields);
-  };
+  }, [navigate, urlFields]);
 
   if (!agent) {
     return <div className={styles.empty}>Loading agent…</div>;
@@ -111,12 +129,6 @@ export function FieldsScreen() {
               <span className={`${styles.crumb} ${styles.crumbCurrent}`}>{activeField.name}</span>
             </>
           )}
-          {isNewMode && (
-            <>
-              <span> / </span>
-              <span className={`${styles.crumb} ${styles.crumbCurrent}`}>new field</span>
-            </>
-          )}
         </div>
       </div>
 
@@ -126,7 +138,7 @@ export function FieldsScreen() {
           <button
             type="button"
             className={styles.addBtn}
-            onClick={() => navigate(urlNew)}
+            onClick={handleDeclare}
           >
             + Declare field
           </button>
@@ -165,23 +177,13 @@ export function FieldsScreen() {
 
         {/* ── Right: editor pane ────────────────────────────────── */}
         <div className={styles.editorCol}>
-          {isNewMode ? (
-            <SchemaFieldEditor
-              key="new"
-              agentId={agent.id}
-              initial={null}
-              onAfterSave={handleAfterSave}
-              onAfterDelete={handleAfterDelete}
-              onCancel={handleCancel}
-            />
-          ) : activeField ? (
+          {activeField ? (
             <SchemaFieldEditor
               key={activeField.id}
               agentId={agent.id}
               initial={activeField}
-              onAfterSave={handleAfterSave}
+              onAfterRename={handleAfterRename}
               onAfterDelete={handleAfterDelete}
-              onCancel={handleCancel}
             />
           ) : (
             <div className={styles.editorEmpty}>

@@ -42,7 +42,7 @@ function useAppliesToOptions(): Array<{ id: string; name: string; icon: string }
 
 export function PersonasScreen() {
   const navigate = useNavigate();
-  const { doc, updateAgent } = useBuilder();
+  const { doc, updateAgent, applyTokenRenameCascade } = useBuilder();
   const confirm = useConfirm();
   const agent = doc.agents[0];
   const agentSlug = agent?.slug ?? '';
@@ -88,10 +88,15 @@ export function PersonasScreen() {
     const next = sanitiseName(raw);
     if (!next || next === p.name) return false;
     if ((agent?.personas ?? []).some(x => x.name === next)) return false;
+    // Rewrite {{persona:OLDNAME}} tokens across every prompt-text
+    // surface BEFORE we rename the persona itself, so downstream
+    // readers never see a window with a renamed persona + stale
+    // token references pointing at the old name.
+    if (agent) applyTokenRenameCascade(agent.id, 'persona', p.name, next);
     upsert({ ...p, name: next });
     navigate(urlPersona(next));
     return true;
-  }, [agent, agentSlug, navigate, upsert]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [agent, agentSlug, navigate, upsert, applyTokenRenameCascade]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDelete = useCallback(async (p: PersonaDef) => {
     const ok = await confirm({

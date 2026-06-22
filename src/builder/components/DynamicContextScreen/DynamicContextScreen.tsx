@@ -58,7 +58,12 @@ const NO_VALUE = '-';
 
 export function DynamicContextScreen() {
   const navigate = useNavigate();
-  const { doc, updateAgent } = useBuilder();
+  const {
+    doc,
+    updateAgent,
+    applyTokenRenameCascade,
+    applyEnumSectionRenameCascade,
+  } = useBuilder();
   const confirm = useConfirm();
   const agent = doc.agents[0];
   const agentSlug = agent?.slug ?? '';
@@ -143,10 +148,15 @@ export function DynamicContextScreen() {
     const next = sanitiseName(rawNext);
     if (!next || next === e.name) return false;
     if ((agent?.enums ?? []).some(x => x.name === next)) return false;
+    // Rewrite {{enum:OLD}}, {{enum:OLD:SEC}}, {{enum:OLD:values}}
+    // tokens across every prompt-text surface BEFORE swapping the
+    // enum's own name so the cascade sees the doc with the old name
+    // still in place.
+    if (agent) applyTokenRenameCascade(agent.id, 'enum', e.name, next);
     upsertEnum({ ...e, name: next });
     navigate(urlEnum(next));
     return true;
-  }, [agent, agentSlug, navigate, upsertEnum]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [agent, agentSlug, navigate, upsertEnum, applyTokenRenameCascade]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Values within active enum ────────────────────────────────────
   const handleAddValue = useCallback(() => {
@@ -233,6 +243,13 @@ export function DynamicContextScreen() {
       const { [oldName]: body, ...rest } = v.sectionTexts;
       return { ...v, sectionTexts: { ...rest, [next]: body } };
     });
+    // Rewrite {{enum:EnumName:OLDSEC}} and {{dc:F:OLDSEC}} tokens
+    // BEFORE we mutate the enum so the cascade still sees the old
+    // section name as the authoritative literal. Scoped to this enum
+    // via id (for DC tokens) + name (for enum tokens).
+    if (agent) {
+      applyEnumSectionRenameCascade(agent.id, activeEnum.id, activeEnum.name, oldName, next);
+    }
     upsertEnum({
       ...activeEnum,
       sections: declared.map(s => (s.name === oldName ? { name: next } : s)),
@@ -242,7 +259,7 @@ export function DynamicContextScreen() {
       navigate(urlSection(activeEnum.name, paramValue ?? null, next));
     }
     return true;
-  }, [activeEnum, agentSlug, navigate, paramSection, paramValue, upsertEnum]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeEnum, agent, agentSlug, navigate, paramSection, paramValue, upsertEnum, applyEnumSectionRenameCascade]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDeleteSection = useCallback(async (name: string) => {
     if (!activeEnum) return;

@@ -218,7 +218,7 @@ function DomainsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean
 /* ─── Parameters ──────────────────────────────────────────────── */
 
 function ParametersSection({ agentId, embedded }: { agentId: ID; embedded?: boolean }) {
-  const { doc, updateAgent } = useBuilder();
+  const { doc, updateAgent, applyTokenRenameCascade } = useBuilder();
   const agent = doc.agents.find(a => a.id === agentId);
   const parameters = useMemo(() => agent?.parameters ?? [], [agent?.parameters]);
 
@@ -229,6 +229,12 @@ function ParametersSection({ agentId, embedded }: { agentId: ID; embedded?: bool
   const openEdit = (p: ParameterDef) => { setEditing(p); setModalOpen(true); };
 
   const handleSave = (next: ParameterDef) => {
+    // Parameter rename: rewrite {{param:OLDNAME}} tokens across every
+    // prompt-text surface BEFORE the parameter list is updated, so
+    // the cascade walks the doc with the old name still in place.
+    if (editing && editing.name && editing.name !== next.name) {
+      applyTokenRenameCascade(agentId, 'param', editing.name, next.name);
+    }
     const exists = parameters.some(p => p.id === next.id);
     const nextList = exists
       ? parameters.map(p => (p.id === next.id ? next : p))
@@ -426,8 +432,11 @@ function FieldsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean 
 
   const fieldsPagePath = agent?.slug ? `/${agent.slug}/builder/fields` : null;
   const openAdd = () => {
+    // The Fields page hosts its own + Declare button that creates the
+    // stub and routes to it — keep this entry point dumb and just
+    // navigate to the list. Avoids two creation code paths.
     if (!fieldsPagePath) return;
-    navigate(`${fieldsPagePath}/__new__`);
+    navigate(fieldsPagePath);
   };
   const openEdit = (f: FieldDef) => {
     if (!fieldsPagePath) return;

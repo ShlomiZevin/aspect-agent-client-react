@@ -15,7 +15,7 @@
  * sections.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ModelPicker } from '../../components/ModelPicker/ModelPicker';
 import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
@@ -24,6 +24,7 @@ import { SnippetsUsedFooter } from '../../components/Snippets/SnippetsUsedFooter
 import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
 import { PromptPreviewToggle } from '../../components/PromptPreview/PromptPreviewToggle';
 import { PromptPreviewView } from '../../components/PromptPreview/PromptPreviewView';
+import { useBuilder } from '../../state/BuilderContext';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { SummarizerConfig } from '../../types';
 import styles from './SummarizerConfig.module.css';
@@ -42,6 +43,36 @@ export function SummarizerConfigComponent({
   });
   const [expanded, setExpanded] = useState(false);
 
+  // Token-rename cascade for the summarizer's name. The input fires
+  // `patch({ name })` on every keystroke (so intermediate state can
+  // be inspected by the rest of the UI), but we only cascade
+  // `{{summary:OLD}}` → `{{summary:NEW}}` once the user commits a
+  // stable name — on blur OR when the component unmounts. Cascading
+  // per-keystroke would either rewrite tokens through every
+  // intermediate value (correct but noisy) or be skipped during
+  // empty-intermediate windows (broken). Blur-commit avoids both.
+  const { applyTokenRenameCascade } = useBuilder();
+  const lastCommittedNameRef = useRef<string>(config.name ?? '');
+
+  const commitNameRename = () => {
+    const prev = lastCommittedNameRef.current;
+    const curr = (config.name ?? '').trim();
+    if (!prev || !curr || prev === curr) {
+      lastCommittedNameRef.current = curr;
+      return;
+    }
+    applyTokenRenameCascade(agentId, 'summarizer', prev, curr);
+    lastCommittedNameRef.current = curr;
+  };
+
+  // Catch the case where the user closes the addon modal without
+  // blurring (escape, click-outside) — cascade on unmount so the
+  // last committed name still gets its tokens rewritten.
+  useEffect(() => {
+    return () => { commitNameRename(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className={styles.wrap}>
       <InlineField
@@ -53,6 +84,7 @@ export function SummarizerConfigComponent({
           type="text"
           value={config.name ?? ''}
           onChange={e => patch({ name: e.target.value })}
+          onBlur={commitNameRename}
           placeholder="main"
           spellCheck={false}
         />

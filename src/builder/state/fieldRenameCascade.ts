@@ -33,6 +33,7 @@
  */
 
 import { isSystemFieldName } from '../registry/systemFields';
+import { mapAllPromptText } from './promptTokenCascade';
 import type {
   AddonInstance,
   AgentDoc,
@@ -54,14 +55,14 @@ const RENAMERS: Renamer[] = [
   renameInTransitionConditions,
   renameInAddonFilters,
   renameInSnippetFilters,
-  // FUTURE — uncomment and implement when the surfaces start to
-  // store field names. Each is a one-line drop-in:
-  // renameInPromptTokens,        // {{field:NAME}} + @NAME inside addon `config.prompt`
-  // renameInSnippetTokens,       // same tokens inside snippet `content` (DIFFERENT
-  //                              //   from snippet FILTERS above — filters are
-  //                              //   condition lists, content is the text body)
-  // renameInPersonaTokens,       // same tokens inside `agent.persona` and any persona overrides
-  // renameInDcTokens,            // {{dc:NAME:…}} — only needed if DC binding switches from id-keyed
+  // Token-bearing free-text surfaces. Covered by ONE walker because
+  // every surface gets the same `rewriteFieldTokens` treatment —
+  // addon prompts, snippet bodies, persona bodies, enum value
+  // umbrella + section texts, and the legacy single agent/crew
+  // persona strings. See `promptTokenCascade.ts` for the surface
+  // list. The walker is identity-preserving so this is cheap when
+  // nothing matches.
+  renameInPromptTextSurfaces,
 ];
 
 /**
@@ -95,21 +96,21 @@ export function cascadeFieldRename(
 
 /**
  * Rewrite occurrences of a field name inside a free-text string for
- * the well-known token forms the builder supports today. Reused by
+ * every well-known token form the builder supports today. Reused by
  * any renamer that operates on a prompt-like body (addon prompts,
- * snippet content, persona text — all future hookups).
+ * snippet content, persona text, enum value bodies).
  *
  * Forms covered:
- *   - `{{field:NAME}}`          → `{{field:NEW}}`
- *   - `{{field:NAME:…}}`        → `{{field:NEW:…}}`     (any tail segments)
- *   - `{{fieldsCollected:NAME}}` family — not a real token today;
- *     listed here to make the pattern obvious if one is added.
+ *   - `{{field:NAME}}` / `{{field:NAME:…}}`
+ *   - `{{fieldname:NAME}}` / `{{fieldname:NAME:…}}` (defensive — tail
+ *     segments aren't a real token today but the lookahead is generic)
+ *   - `{{dc:NAME}}` / `{{dc:NAME:SECTION}}` / `{{dc:NAME:*}}`
  *   - `@NAME` mention prefix used by the mention textarea picker.
- *     Bounded by a non-identifier character on the right so the
- *     replacement of `@foo` doesn't also munge `@foobar`.
+ *     Right-bounded by a non-identifier so renaming `@foo` doesn't
+ *     also munge `@foobar`. Left-bounded so `email@foo` doesn't catch.
  *
- * Exported because every future token-aware renamer (prompts,
- * snippets, persona) will call this. One regex, one truth.
+ * Exported because every token-aware renamer (prompts, snippets,
+ * persona, enum bodies) calls this. One regex set, one truth.
  */
 export function rewriteFieldTokens(
   text: string,
@@ -120,18 +121,22 @@ export function rewriteFieldTokens(
   if (oldName === newName) return text;
   const escaped = oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  // {{field:OLD}} and {{field:OLD:…}}. The `(?=[:}])` lookahead ties
+  // {{field:OLD}} / {{field:OLD:…}}. The `(?=[:}])` lookahead ties
   // the match to the next structural character so renaming `foo`
   // doesn't sweep `foobar` off the line.
-  const tokenRe = new RegExp(`\\{\\{field:${escaped}(?=[:}])`, 'g');
-  let out = text.replace(tokenRe, `{{field:${newName}`);
+  let out = text;
+  out = out.replace(new RegExp(`\\{\\{field:${escaped}(?=[:}])`, 'g'), `{{field:${newName}`);
+  out = out.replace(new RegExp(`\\{\\{fieldname:${escaped}(?=[:}])`, 'g'), `{{fieldname:${newName}`);
+  out = out.replace(new RegExp(`\\{\\{dc:${escaped}(?=[:}])`, 'g'), `{{dc:${newName}`);
 
   // @OLD mention. Right-bounded by anything that isn't a normal
   // identifier character so `@foo` doesn't catch `@foobar`. Left-
   // bounded by start-of-string OR a non-identifier so `email@foo`
   // doesn't catch.
-  const mentionRe = new RegExp(`(^|[^A-Za-z0-9_])@${escaped}(?![A-Za-z0-9_])`, 'g');
-  out = out.replace(mentionRe, `$1@${newName}`);
+  out = out.replace(
+    new RegExp(`(^|[^A-Za-z0-9_])@${escaped}(?![A-Za-z0-9_])`, 'g'),
+    `$1@${newName}`,
+  );
 
   return out;
 }
@@ -262,6 +267,21 @@ function renameInAddonFilters(
       },
     };
   });
+}
+
+/**
+ * Walk every prompt-text surface (addon prompts + promptTemplates,
+ * snippet bodies, persona bodies, enum value umbrellas + section
+ * bodies) and rewrite any token form that references the field name —
+ * `{{field:N}}`, `{{fieldname:N}}`, `{{dc:N}}` (+ tail segments), plus
+ * the `@N` mention shortcut. All handled by `rewriteFieldTokens`.
+ */
+function renameInPromptTextSurfaces(
+  agent: AgentDoc,
+  oldName: string,
+  newName: string,
+): AgentDoc {
+  return mapAllPromptText(agent, t => rewriteFieldTokens(t, oldName, newName));
 }
 
 /**

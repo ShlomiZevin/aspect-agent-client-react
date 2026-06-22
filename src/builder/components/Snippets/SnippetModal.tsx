@@ -75,7 +75,7 @@ function snippetFilterLabel(filter: AddonFilter | undefined): string {
 }
 
 export function SnippetModal({ open, onClose, agentId, initial }: Props) {
-  const { doc, updateAgent } = useBuilder();
+  const { doc, updateAgent, applyTokenRenameCascade } = useBuilder();
   const confirm = useConfirm();
   const mentionOptions = useMentionOptions(agentId);
 
@@ -122,6 +122,13 @@ export function SnippetModal({ open, onClose, agentId, initial }: Props) {
         ? { filter }
         : {}),
     };
+    // Snippet rename: rewrite {{snippet:OLDNAME}} tokens across every
+    // prompt-text surface BEFORE the snippet itself is rewritten, so
+    // the cascade walks the doc with the old name still in place.
+    // No-op when the name hasn't actually changed.
+    if (initial && initial.name && initial.name !== trimmedName) {
+      applyTokenRenameCascade(agentId, 'snippet', initial.name, trimmedName);
+    }
     const list = siblings.some(s => s.id === next.id)
       ? siblings.map(s => (s.id === next.id ? next : s))
       : [...siblings, next];

@@ -1,15 +1,20 @@
 /**
- * SchemaFieldEditor — the inner editor form for a single field.
+ * SchemaFieldEditor — single-field editor for the dedicated Fields
+ * page. Every input auto-commits (blur for text, change for selects),
+ * matching the inline-rename pattern used by the enum bible + personas
+ * page. No Save button — the doc is the source of truth, and changes
+ * land as soon as the user moves focus.
  *
- * Owns the per-field local state (name / type / source / domain /
- * definition / howToExtract / enumType), the validation surface,
- * and the save / delete handlers. The host (page) chrome lives
- * outside — this component just renders the form body and the
- * footer actions, accepting the host's `onAfterSave` / `onAfterDelete`
- * / `onCancel` callbacks so it stays UI-shell agnostic.
+ * Name renames fire the rename cascade (rewriting tokens like
+ * `{{field:OLD}}`, `{{fieldname:OLD}}`, `{{dc:OLD…}}` in addon
+ * prompts / snippet bodies / persona bodies / enum value sections,
+ * plus the data-side condition + filter references) BEFORE the
+ * FieldDef itself is swapped.
  *
- * Mounted today by the dedicated Fields page (`/builder/fields`);
- * the modal-based editing flow has been retired.
+ * Expects an existing `initial` field. The new-field "Declare" flow
+ * lives in the host page (`FieldsScreen.handleDeclare`) — it creates
+ * a stub field with a unique placeholder name and routes the user
+ * here. Same pattern as the enum + persona pages.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -31,26 +36,20 @@ import styles from './SchemaPanel.module.css';
 
 interface Props {
   agentId: ID;
-  /** Existing field being edited; when null/undefined, renders the
-   *  "declare new field" flow (no Delete button, primary action
-   *  reads "Declare"). */
-  initial: FieldDef | null;
-  /** Seed the type dropdown for the "declare new" path. Ignored when
-   *  `initial` is set. Default `'string'`. */
-  initialType?: FieldType;
-  /** Fires after a successful save with the persisted FieldDef. The
-   *  host typically navigates / closes off this. */
-  onAfterSave?: (saved: FieldDef) => void;
-  /** Fires after a successful delete. */
+  /** The field being edited. Must be set — the editor no longer
+   *  renders a "declare new" flow; the host page handles new-field
+   *  creation by upserting a stub and navigating here. */
+  initial: FieldDef;
+  /** Called after a rename commits with the saved field. The host
+   *  uses this to navigate to the new URL (since `name` is the route
+   *  param). Other property commits don't fire this — they just
+   *  update the doc in place. */
+  onAfterRename?: (saved: FieldDef) => void;
+  /** Called after the field is deleted. The host navigates back to
+   *  the list. */
   onAfterDelete?: () => void;
-  /** Cancel — typically closes the host modal or navigates the host
-   *  screen back to its list. */
-  onCancel?: () => void;
 }
 
-/** Primitive types that appear at the top of the unified Type select.
- *  `enum` is intentionally NOT here — picking an enum means picking a
- *  SPECIFIC enum from the bible, surfaced as its own optgroup below. */
 const PRIMITIVE_TYPES: { value: FieldType; label: string }[] = [
   { value: 'string',  label: 'String' },
   { value: 'int',     label: 'Integer' },
@@ -63,15 +62,10 @@ const SOURCE_LABEL: Record<FieldSource, string> = {
   inferred: 'Inferred — can be concluded from conversation',
 };
 
-function newFieldId(): ID {
-  return `field_${Math.random().toString(36).slice(2, 10)}`;
-}
-
 export function SchemaFieldEditor({
-  agentId, initial, initialType,
-  onAfterSave, onAfterDelete, onCancel,
+  agentId, initial, onAfterRename, onAfterDelete,
 }: Props) {
-  const { doc, updateAgent } = useBuilder();
+  const { doc, updateAgent, applyFieldRenameCascade } = useBuilder();
   const { domainNames } = useAgentFields(agentId);
   // `removeField` lives on useCrewFields but only needs agent context —
   // safe to call with crewId='' for agent-scoped deletion.
@@ -79,45 +73,109 @@ export function SchemaFieldEditor({
   const confirm = useConfirm();
   const agent = doc.agents.find(a => a.id === agentId);
 
-  const [name,         setName]         = useState('');
+  // Local state for inputs that commit on blur. Selects + the domain
+  // autocomplete fire commits directly from their handlers, so they
+  // could read straight off the FieldDef — but keeping all values in
+  // local state keeps the editor uniform.
+  const [name,             setName]             = useState(initial.name);
   const [nameSpaceBlocked, setNameSpaceBlocked] = useState(false);
-  const [type,         setType]         = useState<FieldType>('string');
-  const [source,       setSource]       = useState<FieldSource>('explicit');
-  const [domain,       setDomain]       = useState('');
-  const [howToExtract, setHowToExtract] = useState('');
-  const [definition,   setDefinition]   = useState('');
-  const [enumType,     setEnumType]     = useState<ID | ''>('');
+  const [domain,           setDomain]           = useState(initial.domain ?? '');
+  const [definition,       setDefinition]       = useState(initial.definition ?? '');
+  const [howToExtract,     setHowToExtract]     = useState(initial.howToExtract ?? '');
 
-  // Reseat local state whenever `initial` changes (e.g. user picks a
-  // different field in the screen's left column). Distinct from the
-  // modal's open/close lifecycle — we key off the actual field id so
-  // switching between fields in the same screen mount works cleanly.
+  // Re-seat local state when the user picks a different field in the
+  // left column. Keyed off the field id so the screen mount can host
+  // many fields over its lifetime without remounting the editor.
   useEffect(() => {
-    setName(initial?.name ?? '');
+    setName(initial.name);
     setNameSpaceBlocked(false);
-    setType(initial?.type ?? initialType ?? 'string');
-    setSource(initial?.source ?? 'explicit');
-    setDomain(initial?.domain ?? '');
-    setHowToExtract(initial?.howToExtract ?? '');
-    setDefinition(initial?.definition ?? '');
-    setEnumType((initial?.enumType ?? '') as ID | '');
-  }, [initial?.id, initialType]);
+    setDomain(initial.domain ?? '');
+    setDefinition(initial.definition ?? '');
+    setHowToExtract(initial.howToExtract ?? '');
+  }, [initial.id, initial.name, initial.domain, initial.definition, initial.howToExtract]);
 
+  // ── Validation ────────────────────────────────────────────────
   const trimmedName = name.trim();
   const siblings = useMemo(() => {
     if (!agent) return [] as FieldDef[];
-    return agent.fields.filter(f => f.id !== initial?.id);
-  }, [agent, initial?.id]);
+    return agent.fields.filter(f => f.id !== initial.id);
+  }, [agent, initial.id]);
   const collides = trimmedName !== '' && siblings.some(f => f.name === trimmedName);
   const nameValidation = trimmedName.length > 0
     ? validateFieldName(trimmedName)
     : { ok: true, reason: '' };
-  const canSave = trimmedName.length > 0 && !collides;
 
-  // Count extractors currently wired to this field so the confirm
-  // message can warn the user before deletion scrubs them.
+  // ── Commit helpers ────────────────────────────────────────────
+  // One write path. Each input's blur/change calls this with a patch.
+  // The cascade only fires when `patch.name` is present and changed.
+  const writePatch = (patch: Partial<FieldDef>) => {
+    if (!agent) return;
+    const next: FieldDef = { ...initial, ...patch };
+    const renamed = patch.name !== undefined && patch.name !== initial.name;
+    if (renamed) {
+      applyFieldRenameCascade(agentId, initial.name, next.name);
+    }
+    const fields = agent.fields.map(f => f.id === next.id ? next : f);
+    updateAgent(agentId, { fields });
+    if (renamed) onAfterRename?.(next);
+  };
+
+  const commitName = () => {
+    if (!agent) return;
+    if (!trimmedName || collides || !nameValidation.ok) {
+      // Roll back to the saved name on invalid commit — same UX as
+      // the InlineRename helper on the enum page.
+      setName(initial.name);
+      setNameSpaceBlocked(false);
+      return;
+    }
+    if (trimmedName === initial.name) return;
+    writePatch({ name: trimmedName });
+  };
+
+  const commitDomain = (next: string) => {
+    const trimmed = next.trim();
+    if (trimmed === (initial.domain ?? '')) return;
+    writePatch(trimmed
+      ? { domain: trimmed }
+      : { domain: undefined });
+  };
+
+  const commitDefinition = () => {
+    const trimmed = definition.trim();
+    if (trimmed === (initial.definition ?? '')) return;
+    writePatch(trimmed
+      ? { definition: trimmed }
+      : { definition: undefined });
+  };
+
+  const commitHowToExtract = () => {
+    const trimmed = howToExtract.trim();
+    if (trimmed === (initial.howToExtract ?? '')) return;
+    writePatch({ howToExtract: trimmed });
+  };
+
+  const commitTypeChange = (raw: string) => {
+    if (raw.startsWith('enum:')) {
+      const enumId = raw.slice('enum:'.length) as ID;
+      if (initial.type === 'enum' && initial.enumType === enumId) return;
+      writePatch({ type: 'enum', enumType: enumId });
+    } else {
+      const t = raw as FieldType;
+      if (initial.type === t && !initial.enumType) return;
+      writePatch({ type: t, enumType: undefined });
+    }
+  };
+
+  const commitSourceChange = (raw: string) => {
+    const s = raw as FieldSource;
+    if (s === initial.source) return;
+    writePatch({ source: s });
+  };
+
+  // ── Extractors-wired counter (for delete confirmation) ────────
   const wiredCount = useMemo(() => {
-    if (!initial || !agent) return 0;
+    if (!agent) return 0;
     let n = 0;
     for (const c of agent.crews) {
       for (const a of c.addons) {
@@ -129,7 +187,6 @@ export function SchemaFieldEditor({
   }, [initial, agent]);
 
   const handleDelete = async () => {
-    if (!initial) return;
     const ok = await confirm({
       title: `Delete field "${initial.name}"?`,
       message: wiredCount > 0
@@ -143,225 +200,190 @@ export function SchemaFieldEditor({
     onAfterDelete?.();
   };
 
-  const handleSave = () => {
-    if (!canSave || !agent) return;
-    const nextField: FieldDef = {
-      id:   initial?.id ?? newFieldId(),
-      name: trimmedName,
-      type,
-      source,
-      howToExtract: howToExtract.trim(),
-      ...(definition.trim() ? { definition: definition.trim() } : {}),
-      ...(domain.trim() ? { domain: domain.trim() } : {}),
-      ...(type === 'enum' && enumType ? { enumType } : {}),
-    };
-    const existing = agent.fields.find(f => f.id === nextField.id);
-    const fields = existing
-      ? agent.fields.map(f => (f.id === nextField.id ? nextField : f))
-      : [...agent.fields, nextField];
-    updateAgent(agentId, { fields });
-    onAfterSave?.(nextField);
-  };
-
   return (
-    <>
-      <div className={styles.form}>
+    <div className={styles.form}>
+      <div>
+        <div className={styles.label}>Name</div>
+        <input
+          key={initial.id}
+          className={`${styles.input} ${(!nameValidation.ok || nameSpaceBlocked || collides) ? styles.inputInvalid : ''}`}
+          value={name}
+          onChange={e => {
+            const raw = e.target.value;
+            setNameSpaceBlocked(hadInvalidStripped(raw));
+            setName(stripInvalid(raw));
+          }}
+          onBlur={commitName}
+          onKeyDown={e => {
+            if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); }
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              setName(initial.name);
+              setNameSpaceBlocked(false);
+              e.currentTarget.blur();
+            }
+          }}
+          placeholder="e.g. employment_status"
+          spellCheck={false}
+        />
+        {collides && (
+          <div className={styles.hint} style={{ color: '#b91c1c' }}>
+            An agent field with this name already exists.
+          </div>
+        )}
+        <div className={styles.nameWarning}>
+          {collides
+            ? ''
+            : nameSpaceBlocked
+              ? SPACE_BLOCKED_MESSAGE
+              : !nameValidation.ok
+                ? nameValidation.reason
+                : ''}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div>
-          <div className={styles.label}>Name</div>
-          <input
-            className={`${styles.input} ${(!nameValidation.ok || nameSpaceBlocked) ? styles.inputInvalid : ''}`}
-            value={name}
-            onChange={e => {
-              const raw = e.target.value;
-              setNameSpaceBlocked(hadInvalidStripped(raw));
-              setName(stripInvalid(raw));
-            }}
-            placeholder="e.g. employment_status"
-            spellCheck={false}
-            autoFocus
-            onKeyDown={e => {
-              if (e.key === 'Enter' && canSave) handleSave();
-            }}
-          />
-          {collides && (
-            <div className={styles.hint} style={{ color: '#b91c1c' }}>
-              An agent field with this name already exists.
-            </div>
-          )}
-          <div className={styles.nameWarning}>
-            {collides
-              ? ''
-              : nameSpaceBlocked
-                ? SPACE_BLOCKED_MESSAGE
-                : !nameValidation.ok
-                  ? nameValidation.reason
-                  : ''}
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div>
-            <div className={styles.label}>Type</div>
-            <select
-              className={styles.input}
-              value={type === 'enum' && enumType ? `enum:${enumType}` : type}
-              onChange={e => {
-                const v = e.target.value;
-                if (v.startsWith('enum:')) {
-                  setType('enum');
-                  setEnumType(v.slice('enum:'.length) as ID);
-                } else {
-                  setType(v as FieldType);
-                  setEnumType('');
-                }
-              }}
-            >
-              {PRIMITIVE_TYPES.map(t => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-              {(agent?.enums?.length ?? 0) > 0 && (
-                <optgroup label="Enums">
-                  {(agent?.enums ?? []).map(en => (
-                    <option key={en.id} value={`enum:${en.id}`}>{en.name}</option>
-                  ))}
-                </optgroup>
+          <div className={styles.label}>Type</div>
+          <select
+            className={styles.input}
+            value={initial.type === 'enum' && initial.enumType ? `enum:${initial.enumType}` : initial.type}
+            onChange={e => commitTypeChange(e.target.value)}
+          >
+            {PRIMITIVE_TYPES.map(t => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+            {(agent?.enums?.length ?? 0) > 0 && (
+              <optgroup label="Enums">
+                {(agent?.enums ?? []).map(en => (
+                  <option key={en.id} value={`enum:${en.id}`}>{en.name}</option>
+                ))}
+              </optgroup>
+            )}
+            {initial.type === 'enum'
+              && initial.enumType
+              && !(agent?.enums ?? []).some(en => en.id === initial.enumType)
+              && (
+                <option value={`enum:${initial.enumType}`}>(missing enum)</option>
               )}
-              {type === 'enum'
-                && enumType
-                && !(agent?.enums ?? []).some(en => en.id === enumType)
-                && (
-                  <option value={`enum:${enumType}`}>(missing enum)</option>
-                )}
-            </select>
-          </div>
-          <div>
-            <div className={styles.label}>Source</div>
-            <select
-              className={styles.input}
-              value={source}
-              onChange={e => setSource(e.target.value as FieldSource)}
-            >
-              {SOURCES.map(s => (
-                <option key={s} value={s} title={SOURCE_LABEL[s]}>
-                  {SOURCE_LABEL[s].split(' — ')[0]}
-                </option>
-              ))}
-            </select>
-          </div>
+          </select>
         </div>
+        <div>
+          <div className={styles.label}>Source</div>
+          <select
+            className={styles.input}
+            value={initial.source}
+            onChange={e => commitSourceChange(e.target.value)}
+          >
+            {SOURCES.map(s => (
+              <option key={s} value={s} title={SOURCE_LABEL[s]}>
+                {SOURCE_LABEL[s].split(' — ')[0]}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
-        {type === 'enum' && enumType && agent && (() => {
-          const en = (agent.enums ?? []).find(e => e.id === enumType);
-          if (!en) {
-            return (
-              <div className={styles.hint} style={{ color: '#b91c1c' }}>
-                Bound enum "{enumType}" no longer exists on the bible — pick a current one above.
-              </div>
-            );
-          }
-          const valueNames = (en.values ?? [])
-            .map(v => v?.value)
-            .filter((v): v is string => typeof v === 'string' && v.length > 0);
+      {initial.type === 'enum' && initial.enumType && agent && (() => {
+        const en = (agent.enums ?? []).find(e => e.id === initial.enumType);
+        if (!en) {
           return (
-            <div className={styles.enumPreview}>
-              <span className={styles.enumPreviewLabel}>{en.name}</span>
-              {valueNames.length > 0 ? (
-                <span className={styles.enumPreviewValues}>
-                  {valueNames.join(' · ')}
-                </span>
-              ) : (
-                <span className={styles.enumPreviewEmpty}>
-                  No values declared on the bible yet
-                </span>
-              )}
-              <Link
-                to={`/${agent.slug}/builder/enums/${encodeURIComponent(en.name)}`}
-                className={styles.enumPreviewLink}
-              >
-                Edit enum ↗
-              </Link>
+            <div className={styles.hint} style={{ color: '#b91c1c' }}>
+              Bound enum "{initial.enumType}" no longer exists on the bible — pick a current one above.
             </div>
           );
-        })()}
+        }
+        const valueNames = (en.values ?? [])
+          .map(v => v?.value)
+          .filter((v): v is string => typeof v === 'string' && v.length > 0);
+        return (
+          <div className={styles.enumPreview}>
+            <span className={styles.enumPreviewLabel}>{en.name}</span>
+            {valueNames.length > 0 ? (
+              <span className={styles.enumPreviewValues}>
+                {valueNames.join(' · ')}
+              </span>
+            ) : (
+              <span className={styles.enumPreviewEmpty}>
+                No values declared on the bible yet
+              </span>
+            )}
+            <Link
+              to={`/${agent.slug}/builder/enums/${encodeURIComponent(en.name)}`}
+              className={styles.enumPreviewLink}
+            >
+              Edit enum ↗
+            </Link>
+          </div>
+        );
+      })()}
 
-        <div>
-          <div className={styles.label}>Domain</div>
+      <div>
+        <div className={styles.label}>Domain</div>
+        {/* DomainInput's onChange fires per keystroke; we wrap it in a
+            blur-commit so we only write the doc on a stable value. */}
+        <div onBlur={() => commitDomain(domain)}>
           <DomainInput
             value={domain}
             onChange={setDomain}
             options={domainNames}
           />
         </div>
-
-        <div>
-          <div className={styles.label}>
-            Definition <span style={{
-              textTransform: 'none',
-              letterSpacing: 0,
-              fontWeight: 500,
-              fontStyle: 'italic',
-              opacity: 0.75,
-            }}>· for you, never sent to the LLM</span>
-          </div>
-          <textarea
-            className={styles.textarea}
-            value={definition}
-            onChange={e => setDefinition(e.target.value)}
-            placeholder="Your own note about what this field means. Builder-only — the runtime never reads it."
-            spellCheck={false}
-            dir={autoDir(definition)}
-            rows={2}
-          />
-        </div>
-
-        <div>
-          <div className={styles.label}>How to extract</div>
-          <textarea
-            className={styles.textarea}
-            value={howToExtract}
-            onChange={e => setHowToExtract(e.target.value)}
-            placeholder="What this field means. Used by extractors that collect it."
-            spellCheck={false}
-            dir={autoDir(howToExtract)}
-          />
-        </div>
-        {type === 'enum' && !enumType && (agent?.enums ?? []).length === 0 && (
-          <div className={styles.hint}>
-            No enums declared yet. Open the Enums bible to author one.
-          </div>
-        )}
-
-        <div className={styles.usageHint}>
-          Declared fields are inert until a crew's extractor references them.
-          Open the field in a crew view to wire it (the "Extracted by" multi-select).
-        </div>
       </div>
 
-      {/* Footer actions live INSIDE the editor — the host wraps this
-          component, doesn't need to know how the editor saves. The
-          Modal-host renders the same footer; the screen-host renders
-          them inline. */}
+      <div>
+        <div className={styles.label}>
+          Definition <span style={{
+            textTransform: 'none',
+            letterSpacing: 0,
+            fontWeight: 500,
+            fontStyle: 'italic',
+            opacity: 0.75,
+          }}>· for you, never sent to the LLM</span>
+        </div>
+        <textarea
+          className={styles.textarea}
+          value={definition}
+          onChange={e => setDefinition(e.target.value)}
+          onBlur={commitDefinition}
+          placeholder="Your own note about what this field means. Builder-only — the runtime never reads it."
+          spellCheck={false}
+          dir={autoDir(definition)}
+          rows={2}
+        />
+      </div>
+
+      <div>
+        <div className={styles.label}>How to extract</div>
+        <textarea
+          className={styles.textarea}
+          value={howToExtract}
+          onChange={e => setHowToExtract(e.target.value)}
+          onBlur={commitHowToExtract}
+          placeholder="What this field means. Used by extractors that collect it."
+          spellCheck={false}
+          dir={autoDir(howToExtract)}
+        />
+      </div>
+      {initial.type === 'enum' && !initial.enumType && (agent?.enums ?? []).length === 0 && (
+        <div className={styles.hint}>
+          No enums declared yet. Open the Enums bible to author one.
+        </div>
+      )}
+
+      <div className={styles.usageHint}>
+        Declared fields are inert until a crew's extractor references them.
+        Open the field in a crew view to wire it (the "Extracted by" multi-select).
+      </div>
+
+      {/* Delete sits alone — there's no Save / Cancel because every
+          input auto-commits on blur. Matches the enum + persona page
+          patterns. */}
       <div className={styles.actions} style={{ marginTop: 12 }}>
-        {initial && (
-          <button type="button" className={styles.btnDanger} onClick={handleDelete}>
-            Delete
-          </button>
-        )}
-        <span className={styles.spacerInline} />
-        {onCancel && (
-          <button type="button" className={styles.btnGhost} onClick={onCancel}>
-            Cancel
-          </button>
-        )}
-        <button
-          type="button"
-          className={styles.btnPrimary}
-          disabled={!canSave}
-          onClick={handleSave}
-        >
-          {initial ? 'Save' : 'Declare'}
+        <button type="button" className={styles.btnDanger} onClick={handleDelete}>
+          Delete
         </button>
       </div>
-    </>
+    </div>
   );
 }

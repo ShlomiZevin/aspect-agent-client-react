@@ -39,6 +39,15 @@ import { loadDraft, saveDraft } from './draftStorage';
 import { talkerPlugin, TALKER_PLUGIN_ID } from '../plugins/talker/addon.talker';
 import { defaultContextFor, defaultOutputTypeFor } from '../registry/plugins';
 import { cascadeFieldRename } from './fieldRenameCascade';
+import {
+  cascadeDomainTokens,
+  cascadeEnumNameRename,
+  cascadeEnumSectionRename,
+  cascadeParameterRename,
+  cascadePersonaRename,
+  cascadeSnippetRename,
+  cascadeSummarizerRename,
+} from './promptTokenCascade';
 
 // ─── Factories ─────────────────────────────────────────────────────
 
@@ -300,6 +309,45 @@ interface BuilderState {
    * about which it's doing.
    */
   applyFieldRenameCascade: (agentId: ID, oldName: string, newName: string) => void;
+
+  /**
+   * Token-rename cascade for every entity kind whose name appears in a
+   * prompt token. Wraps the pure helpers in `promptTokenCascade.ts`
+   * with the same atomic-update pattern as `applyFieldRenameCascade`.
+   *
+   * Sites of `kind`:
+   *   - 'enum'       — `{{enum:N}}`, `{{enum:N:SEC}}`, `{{enum:N:values}}`
+   *   - 'persona'    — `{{persona:N}}`
+   *   - 'snippet'    — `{{snippet:N}}`
+   *   - 'param'      — `{{param:N}}`
+   *   - 'summarizer' — `{{summary:N}}` + addon history pointers
+   *
+   * Enum section rename uses `applyEnumSectionRenameCascade` instead
+   * because it needs the enum id + name context.
+   *
+   * Domain rename is folded into `renameAgentDomain` so the data side
+   * (FieldDef.domain) and the token side stay one atomic update.
+   */
+  applyTokenRenameCascade: (
+    agentId: ID,
+    kind: 'enum' | 'persona' | 'snippet' | 'param' | 'summarizer',
+    oldName: string,
+    newName: string,
+  ) => void;
+
+  /**
+   * Enum section rename — rewrites `{{enum:E:SEC}}` (one specific
+   * enum) and `{{dc:F:SEC}}` for every field bound to that enum.
+   * Requires the enum's id (to find bound fields) and current name
+   * (literal in the token).
+   */
+  applyEnumSectionRenameCascade: (
+    agentId: ID,
+    enumId: ID,
+    enumName: string,
+    oldSection: string,
+    newSection: string,
+  ) => void;
 
   // Crew CRUD + edit
   addCrew: (agentId: ID) => CrewDoc;
@@ -734,12 +782,13 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
         ...d,
         agents: d.agents.map(a => {
           if (a.id !== agentId) return a;
-          // Re-declare the domain under its new name (dedup-preserving order).
+          // ── Data side: re-declare the domain (dedup-preserving) and
+          // sweep `FieldDef.domain` references across agent + crews.
           const declared = a.domains ?? [];
           const renamedDeclared = declared
             .map(x => (x === oldName ? newName : x))
             .filter((x, i, arr) => arr.indexOf(x) === i);
-          return {
+          const dataUpdated: AgentDoc = {
             ...a,
             domains: renamedDeclared,
             fields: a.fields.map(f =>
@@ -752,6 +801,10 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
               ),
             })),
           };
+          // ── Token side: rewrite `{{memory:OLD}}` / `{{thinking:OLD}}`
+          // in every prompt-text surface. Single atomic update so the
+          // data + token sides stay consistent across React renders.
+          return cascadeDomainTokens(dataUpdated, oldName, newName);
         }),
       }));
     },
@@ -770,6 +823,67 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
         ...d,
         agents: d.agents.map(a =>
           a.id === agentId ? cascadeFieldRename(a, oldName, newName) : a,
+        ),
+      }));
+    },
+    [],
+  );
+
+  /**
+   * Generic token-rename cascade. One entry point per entity kind so
+   * call sites can do `applyTokenRenameCascade(agentId, 'persona', …)`
+   * after writing the new name. The pure cascaders live in
+   * `promptTokenCascade.ts`; this is the thin atomic-update wrapper.
+   *
+   * No-op when names are empty or equal — safe to call defensively
+   * from every rename hook without pre-checking.
+   */
+  const applyTokenRenameCascade = useCallback(
+    (
+      agentId: ID,
+      kind: 'enum' | 'persona' | 'snippet' | 'param' | 'summarizer',
+      oldName: string,
+      newName: string,
+    ) => {
+      if (!oldName || !newName || oldName === newName) return;
+      const fn =
+        kind === 'enum'       ? cascadeEnumNameRename :
+        kind === 'persona'    ? cascadePersonaRename :
+        kind === 'snippet'    ? cascadeSnippetRename :
+        kind === 'param'      ? cascadeParameterRename :
+        /* kind === 'summarizer' */ cascadeSummarizerRename;
+      setDoc(d => ({
+        ...d,
+        agents: d.agents.map(a =>
+          a.id === agentId ? fn(a, oldName, newName) : a,
+        ),
+      }));
+    },
+    [],
+  );
+
+  /**
+   * Enum-section rename — separate entry point because section renames
+   * need (enumId, enumName) context to:
+   *   - target `{{enum:EnumName:OLDSEC}}` to one enum, not all
+   *   - find the FieldDefs bound to enumId so `{{dc:F:OLDSEC}}` can
+   *     be rewritten for every F that resolves through this enum.
+   */
+  const applyEnumSectionRenameCascade = useCallback(
+    (
+      agentId: ID,
+      enumId: ID,
+      enumName: string,
+      oldSection: string,
+      newSection: string,
+    ) => {
+      if (!oldSection || !newSection || oldSection === newSection) return;
+      setDoc(d => ({
+        ...d,
+        agents: d.agents.map(a =>
+          a.id === agentId
+            ? cascadeEnumSectionRename(a, enumId, enumName, oldSection, newSection)
+            : a,
         ),
       }));
     },
@@ -1648,6 +1762,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       updateAgent,
       renameAgentDomain,
       applyFieldRenameCascade,
+      applyTokenRenameCascade,
+      applyEnumSectionRenameCascade,
       addCrew,
       removeCrew,
       updateCrew,
@@ -1699,6 +1815,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       updateAgent,
       renameAgentDomain,
       applyFieldRenameCascade,
+      applyTokenRenameCascade,
+      applyEnumSectionRenameCascade,
       addCrew,
       removeCrew,
       updateCrew,

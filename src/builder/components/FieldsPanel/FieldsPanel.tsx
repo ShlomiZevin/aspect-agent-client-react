@@ -151,46 +151,53 @@ export function FieldsPanel({ agentId, crewId }: Props) {
     <>
       <div className={styles.panel}>
         <div className={styles.header}>
-          <span className={styles.title}>💾 Memory</span>
-          <span className={styles.count}>{allFields.length}</span>
-          <span className={styles.spacer} />
-          {/* Link to the dedicated Fields page (list + editor). The
-              panel here is the crew-scope shortcut; the page is the
-              place to do real schema work. */}
+          {/* The title doubles as the entry point to the full Fields
+              page — standard "click the section header to see all"
+              pattern (Spotify, YouTube, GitHub). One affordance per
+              role: title navigates, action buttons act. */}
           {(() => {
             const agent = doc.agents.find(a => a.id === agentId);
-            if (!agent) return null;
-            return (
+            const titleNode = (
+              <>
+                <span className={styles.title}>💾 Memory</span>
+                <span className={styles.count}>{allFields.length}</span>
+              </>
+            );
+            return agent ? (
               <Link
                 to={`/${agent.slug}/builder/fields`}
-                className={styles.addBtn}
-                title="Open the full Fields page (list + editor)"
-                style={{ textDecoration: 'none' }}
+                className={styles.titleLink}
+                title="Open the full Fields page"
               >
-                Fields ↗
+                {titleNode}
               </Link>
+            ) : (
+              <span className={styles.titleLink}>{titleNode}</span>
             );
           })()}
-          {crewId && hasUnwiredCandidates && (
-            <button
-              type="button"
-              className={styles.addBtn}
-              onClick={() => setWireOpen(true)}
-              title="Pick an already-declared agent field to collect in this crew"
-            >
-              + Wire
-            </button>
-          )}
-          {crewId && (
-            <button
-              type="button"
-              className={styles.addBtn}
-              onClick={() => setAddOpen(true)}
-              title="Declare a new field and wire it to this crew"
-            >
-              + Add
-            </button>
-          )}
+          <span className={styles.spacer} />
+          <div className={styles.headerActions}>
+            {crewId && hasUnwiredCandidates && (
+              <button
+                type="button"
+                className={styles.addBtn}
+                onClick={() => setWireOpen(true)}
+                title="Pick an already-declared agent field to collect in this crew"
+              >
+                + Wire
+              </button>
+            )}
+            {crewId && (
+              <button
+                type="button"
+                className={styles.addBtn}
+                onClick={() => setAddOpen(true)}
+                title="Declare a new field and wire it to this crew"
+              >
+                + Add
+              </button>
+            )}
+          </div>
         </div>
 
         {/* System fields — sticky top section. Always visible, even

@@ -411,9 +411,26 @@
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.06em;
-  transition: background 120ms, color 120ms, border-color 120ms;
+  transition: background 120ms, color 120ms, border-color 120ms, opacity 120ms;
   border: 1px solid transparent;
   z-index: 2;
+}
+
+/* Hover-only visibility for the ON state — same pattern as the
+   filter badge. When everything is ON (the resting majority case)
+   the switch is invisible so the chip reads as just the addon. On
+   hover it fades in. The OFF state is exempt (see .enableSwitchOff
+   below): a disabled addon should be visible at a glance. */
+.enableSwitchOn {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.card:hover .enableSwitchOn,
+.enableSwitchOn:focus-visible,
+.enableSwitchOn:focus-within {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .enableSwitchThumb {

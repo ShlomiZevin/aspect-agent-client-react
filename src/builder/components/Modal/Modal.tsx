@@ -1,9 +1,15 @@
 /**
  * Modal — reusable frame. Click on overlay / Esc closes. Body is
  * caller-supplied. Used by SpecModal, AddonModal, AddStepModal.
+ *
+ * Rendered via a portal to `document.body` so the overlay sits at the
+ * root stacking context. Without the portal, modal's `z-index` only
+ * competes inside its parent — siblings like the chat panel or the
+ * chip canvas's on/off switch could leak through visually.
  */
 
 import { useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './Modal.module.css';
 
 interface Props {
@@ -31,7 +37,7 @@ export function Modal({ open, onClose, title, badge, children, footer, width = 6
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className={styles.overlay} onClick={onClose}>
       <div
         className={styles.modal}
@@ -55,6 +61,7 @@ export function Modal({ open, onClose, title, badge, children, footer, width = 6
         <div className={styles.body}>{children}</div>
         {footer && <div className={styles.footer}>{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
