@@ -256,6 +256,7 @@ async function copyToClipboard(text: string): Promise<boolean> {
 export function AddonRunCard({ run }: Props) {
   const [open, setOpen] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
+  const [outputCopied, setOutputCopied] = useState(false);
   const desc = getPlugin(run.pluginId);
   const accent = desc?.color || '#6366f1';
 
@@ -296,6 +297,16 @@ export function AddonRunCard({ run }: Props) {
     if (ok) {
       setPromptCopied(true);
       setTimeout(() => setPromptCopied(false), 1200);
+    }
+  };
+
+  const onCopyOutput = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!run.rawOutput) return;
+    const ok = await copyToClipboard(run.rawOutput);
+    if (ok) {
+      setOutputCopied(true);
+      setTimeout(() => setOutputCopied(false), 1200);
     }
   };
 
@@ -476,7 +487,19 @@ export function AddonRunCard({ run }: Props) {
           )}
 
           {run.rawOutput !== undefined && run.rawOutput !== '' && (
-            <Section title="Output">
+            <Section
+              title="Output"
+              actions={
+                <button
+                  type="button"
+                  className={styles.copyBtn}
+                  onClick={onCopyOutput}
+                  title="Copy output"
+                >
+                  {outputCopied ? '✓ copied' : 'copy'}
+                </button>
+              }
+            >
               <pre className={styles.pre}>{run.rawOutput}</pre>
             </Section>
           )}

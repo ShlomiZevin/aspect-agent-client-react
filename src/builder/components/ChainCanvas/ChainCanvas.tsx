@@ -319,6 +319,14 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                             onClick={e => {
                               e.stopPropagation();
                               muts.setEnabled(instance.instanceId, instance.enabled === false);
+                              // Drop focus so the ON state can hide
+                              // again once the pointer leaves — without
+                              // this, the click leaves the switch
+                              // focused and a stale `:focus-visible`
+                              // (on browsers that latch it on mouse
+                              // click of role="button" spans) keeps
+                              // the ON pill stuck visible.
+                              (e.currentTarget as HTMLElement).blur();
                             }}
                             onKeyDown={e => {
                               if (e.key === 'Enter' || e.key === ' ') {
