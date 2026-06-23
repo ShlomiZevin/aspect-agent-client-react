@@ -24,6 +24,7 @@ import { useAgentFields } from '../../state/useAgentFields';
 import { useCrewFields } from '../../state/useCrewFields';
 import { useConfirm } from '../Confirm/Confirm';
 import { DomainInput } from '../FieldsPanel/DomainInput';
+import { TagsInput } from '../FieldsPanel/TagsInput';
 import {
   validateFieldName,
   stripInvalid,
@@ -66,7 +67,7 @@ export function SchemaFieldEditor({
   agentId, initial, onAfterRename, onAfterDelete,
 }: Props) {
   const { doc, updateAgent, applyFieldRenameCascade } = useBuilder();
-  const { domainNames } = useAgentFields(agentId);
+  const { domainNames, tagNames } = useAgentFields(agentId);
   // `removeField` lives on useCrewFields but only needs agent context —
   // safe to call with crewId='' for agent-scoped deletion.
   const { removeField } = useCrewFields(agentId, '');
@@ -153,6 +154,25 @@ export function SchemaFieldEditor({
     const trimmed = howToExtract.trim();
     if (trimmed === (initial.howToExtract ?? '')) return;
     writePatch({ howToExtract: trimmed });
+  };
+
+  // Tag commit: write the field's tags AND promote any fresh tag names
+  // into `agent.tags` so the declared-list registry stays in sync.
+  // Without this side-effect, a tag only ever lives on its first
+  // field, and the Tags page would only show ones the user has
+  // explicitly visited there.
+  const commitTags = (next: string[]) => {
+    const prev = initial.tags ?? [];
+    const same = prev.length === next.length && prev.every((t, i) => t === next[i]);
+    if (same) return;
+    if (agent) {
+      const declared = new Set(agent.tags ?? []);
+      const fresh = next.filter(t => !declared.has(t));
+      if (fresh.length > 0) {
+        updateAgent(agentId, { tags: [...(agent.tags ?? []), ...fresh] });
+      }
+    }
+    writePatch(next.length > 0 ? { tags: next } : { tags: undefined });
   };
 
   const commitTypeChange = (raw: string) => {
@@ -329,6 +349,26 @@ export function SchemaFieldEditor({
             options={domainNames}
           />
         </div>
+      </div>
+
+      <div>
+        <div className={styles.label}>
+          Tags <span style={{
+            textTransform: 'none',
+            letterSpacing: 0,
+            fontWeight: 500,
+            fontStyle: 'italic',
+            opacity: 0.75,
+          }}>· cross-domain grouping for {`{{tag:NAME}}`}</span>
+        </div>
+        {/* TagsInput's onChange fires per discrete add/remove — no
+            need for a blur-deferred commit. Each change is already a
+            stable value. */}
+        <TagsInput
+          value={initial.tags ?? []}
+          onChange={commitTags}
+          options={tagNames}
+        />
       </div>
 
       <div>

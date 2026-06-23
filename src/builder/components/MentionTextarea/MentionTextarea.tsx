@@ -78,6 +78,11 @@ export interface MentionOptions {
    *  a `+ New snippet` quick-add entry whose `insertion` is empty
    *  (the host catches that and opens the SnippetModal). */
   '+'?: MentionOption[];
+  /** Field tags — cross-domain groupings used in
+   *  `{{tag:NAME}}` / `{{tag:NAME:values}}` / `{{tag:NAME:names}}`.
+   *  Three entries per tag (schema block, inline values, bare names).
+   *  See `docs/guides/BUILDER_V2_FIELD_TAGS.md`. */
+  '&'?: MentionOption[];
 }
 
 /**
@@ -86,9 +91,9 @@ export interface MentionOptions {
  * category in one combined picker — useful when the user doesn't
  * remember which sigil opens what.
  */
-type SingleTrigger = '@' | '!' | '#' | '^' | '*' | '%' | '+';
+type SingleTrigger = '@' | '!' | '#' | '^' | '*' | '%' | '+' | '&';
 type Trigger = SingleTrigger | '{{' | '/';
-const SINGLE_TRIGGERS: SingleTrigger[] = ['@', '!', '#', '^', '*', '%', '+'];
+const SINGLE_TRIGGERS: SingleTrigger[] = ['@', '!', '#', '^', '*', '%', '+', '&'];
 
 /**
  * Human label for each trigger. Shown as the picker's header so the
@@ -104,6 +109,7 @@ const TRIGGER_LABELS: Record<Trigger, string> = {
   '*':  'Dynamic context',
   '%':  'Summary',
   '+':  'Snippets',
+  '&':  'Tags',
   '{{': 'All placeholders',
   '/':  'All placeholders',
 };

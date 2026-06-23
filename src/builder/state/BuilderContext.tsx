@@ -47,6 +47,8 @@ import {
   cascadePersonaRename,
   cascadeSnippetRename,
   cascadeSummarizerRename,
+  cascadeTagRename,
+  deleteAgentTag,
 } from './promptTokenCascade';
 
 // ─── Factories ─────────────────────────────────────────────────────
@@ -287,7 +289,7 @@ interface BuilderState {
   // Agent-level
   updateAgent: (
     agentId: ID,
-    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters' | 'enums' | 'snippets'>>,
+    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets'>>,
   ) => void;
   /**
    * Rename a declared domain. Cascades through `agent.domains`,
@@ -330,10 +332,18 @@ interface BuilderState {
    */
   applyTokenRenameCascade: (
     agentId: ID,
-    kind: 'enum' | 'persona' | 'snippet' | 'param' | 'summarizer',
+    kind: 'enum' | 'persona' | 'snippet' | 'param' | 'summarizer' | 'tag',
     oldName: string,
     newName: string,
   ) => void;
+
+  /**
+   * Strip a tag from the agent — removes it from `agent.tags` and from
+   * every `FieldDef.tags[]` across the agent + crews. Leaves
+   * `{{tag:NAME}}` tokens in prompts AS-IS so the broken reference
+   * shows up to the author (same contract as enum/snippet delete).
+   */
+  removeAgentTag: (agentId: ID, tagName: string) => void;
 
   /**
    * Enum section rename — rewrites `{{enum:E:SEC}}` (one specific
@@ -766,7 +776,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
 
   // ── Agent ──
   const updateAgent = useCallback(
-    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'parameters' | 'enums' | 'snippets'>>) => {
+    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets'>>) => {
       setDoc(d => ({
         ...d,
         agents: d.agents.map(a => (a.id === agentId ? { ...a, ...patch } : a)),
@@ -841,7 +851,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   const applyTokenRenameCascade = useCallback(
     (
       agentId: ID,
-      kind: 'enum' | 'persona' | 'snippet' | 'param' | 'summarizer',
+      kind: 'enum' | 'persona' | 'snippet' | 'param' | 'summarizer' | 'tag',
       oldName: string,
       newName: string,
     ) => {
@@ -851,11 +861,31 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
         kind === 'persona'    ? cascadePersonaRename :
         kind === 'snippet'    ? cascadeSnippetRename :
         kind === 'param'      ? cascadeParameterRename :
+        kind === 'tag'        ? cascadeTagRename :
         /* kind === 'summarizer' */ cascadeSummarizerRename;
       setDoc(d => ({
         ...d,
         agents: d.agents.map(a =>
           a.id === agentId ? fn(a, oldName, newName) : a,
+        ),
+      }));
+    },
+    [],
+  );
+
+  /**
+   * Tag delete cascade — strips the tag from `agent.tags` and from
+   * every `FieldDef.tags[]` across agent + crews. Tokens (`{{tag:N}}`)
+   * are intentionally left in place so the broken reference is visible
+   * to the author. Atomic doc update.
+   */
+  const removeAgentTag = useCallback(
+    (agentId: ID, tagName: string) => {
+      if (!tagName) return;
+      setDoc(d => ({
+        ...d,
+        agents: d.agents.map(a =>
+          a.id === agentId ? deleteAgentTag(a, tagName) : a,
         ),
       }));
     },
@@ -1764,6 +1794,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       applyFieldRenameCascade,
       applyTokenRenameCascade,
       applyEnumSectionRenameCascade,
+      removeAgentTag,
       addCrew,
       removeCrew,
       updateCrew,
@@ -1817,6 +1848,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       applyFieldRenameCascade,
       applyTokenRenameCascade,
       applyEnumSectionRenameCascade,
+      removeAgentTag,
       addCrew,
       removeCrew,
       updateCrew,

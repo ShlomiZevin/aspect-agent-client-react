@@ -418,3 +418,125 @@ export function cascadeDomainTokens(
   const rewriteThinking = makeTerminalRewrite('thinking', oldName, newName);
   return mapAllPromptText(agent, t => rewriteThinking(rewriteMemory(t)));
 }
+
+/**
+ * Tag rename — both sides of the cascade in one atomic transform:
+ *
+ *   1. Token side: rewrite `{{tag:OLD}}`, `{{tag:OLD:values}}`,
+ *      `{{tag:OLD:names}}` across every prompt-text surface.
+ *   2. Data side: rewrite every `FieldDef.tags[]` entry that contained
+ *      OLD on the agent + every crew, and rewrite the matching entry
+ *      in `agent.tags[]` (dedup-preserving — if NEW was already
+ *      declared, OLD is just stripped without a duplicate).
+ *
+ * Same case-sensitive contract as every other cascader.
+ */
+export function cascadeTagRename(
+  agent: AgentDoc, oldName: string, newName: string,
+): AgentDoc {
+  if (!oldName || !newName || oldName === newName) return agent;
+
+  // 1. Token side. {{tag:OLD}} / {{tag:OLD:values}} / {{tag:OLD:names}}
+  //    all share the segmented prefix form — one rewriter covers them.
+  const tokenRewrite = makeSegmentedRewrite('tag', oldName, newName);
+  const withTokens = mapAllPromptText(agent, tokenRewrite);
+
+  // 2. Data side. Rewrite `agent.tags`, every `FieldDef.tags` on
+  //    `agent.fields`, and every `FieldDef.tags` on each crew's fields.
+  //    Map → swap → filter dedupe so dropping into an already-present
+  //    new name doesn't leave a duplicate behind.
+  const rewriteTagList = (list: string[] | undefined): string[] | undefined => {
+    if (!Array.isArray(list)) return list;
+    if (!list.includes(oldName)) return list;
+    const next = list
+      .map(t => (t === oldName ? newName : t))
+      .filter((t, i, arr) => arr.indexOf(t) === i);
+    return next;
+  };
+
+  let agentChanged = false;
+
+  const nextAgentTags = rewriteTagList(withTokens.tags);
+  if (nextAgentTags !== withTokens.tags) agentChanged = true;
+
+  let fieldsChanged = false;
+  const nextAgentFields = withTokens.fields.map(f => {
+    const next = rewriteTagList(f.tags);
+    if (next === f.tags) return f;
+    fieldsChanged = true;
+    return { ...f, tags: next };
+  });
+
+  let crewsChanged = false;
+  const nextCrews = withTokens.crews.map(crew => {
+    let crewFieldsChanged = false;
+    const nextFields = (crew.fields ?? []).map(f => {
+      const next = rewriteTagList(f.tags);
+      if (next === f.tags) return f;
+      crewFieldsChanged = true;
+      return { ...f, tags: next };
+    });
+    if (!crewFieldsChanged) return crew;
+    crewsChanged = true;
+    return { ...crew, fields: nextFields };
+  });
+
+  if (!agentChanged && !fieldsChanged && !crewsChanged) return withTokens;
+  return {
+    ...withTokens,
+    ...(agentChanged ? { tags: nextAgentTags } : {}),
+    ...(fieldsChanged ? { fields: nextAgentFields } : {}),
+    ...(crewsChanged ? { crews: nextCrews } : {}),
+  };
+}
+
+/**
+ * Tag delete — data side only. Strips the tag from `agent.tags` and
+ * from every `FieldDef.tags[]` across agent + crews. Leaves
+ * `{{tag:NAME}}` tokens in prompts AS-IS so the broken reference
+ * surfaces visibly (matches the resolver's unknown-tag behavior —
+ * empty render — and the `{{field:X}}` typo-surfacing contract).
+ */
+export function deleteAgentTag(agent: AgentDoc, tagName: string): AgentDoc {
+  if (!tagName) return agent;
+
+  const stripFromList = (list: string[] | undefined): string[] | undefined => {
+    if (!Array.isArray(list)) return list;
+    if (!list.includes(tagName)) return list;
+    return list.filter(t => t !== tagName);
+  };
+
+  let agentChanged = false;
+  const nextAgentTags = stripFromList(agent.tags);
+  if (nextAgentTags !== agent.tags) agentChanged = true;
+
+  let fieldsChanged = false;
+  const nextAgentFields = agent.fields.map(f => {
+    const next = stripFromList(f.tags);
+    if (next === f.tags) return f;
+    fieldsChanged = true;
+    return { ...f, tags: next };
+  });
+
+  let crewsChanged = false;
+  const nextCrews = agent.crews.map(crew => {
+    let crewFieldsChanged = false;
+    const nextFields = (crew.fields ?? []).map(f => {
+      const next = stripFromList(f.tags);
+      if (next === f.tags) return f;
+      crewFieldsChanged = true;
+      return { ...f, tags: next };
+    });
+    if (!crewFieldsChanged) return crew;
+    crewsChanged = true;
+    return { ...crew, fields: nextFields };
+  });
+
+  if (!agentChanged && !fieldsChanged && !crewsChanged) return agent;
+  return {
+    ...agent,
+    ...(agentChanged ? { tags: nextAgentTags } : {}),
+    ...(fieldsChanged ? { fields: nextAgentFields } : {}),
+    ...(crewsChanged ? { crews: nextCrews } : {}),
+  };
+}

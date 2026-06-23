@@ -101,6 +101,20 @@ export function AgentSetupArea({ agent }: Props) {
           <span className={styles.chipCount}>{(agent.fields ?? []).length}</span>
         </button>
 
+        {/* Tags — cross-domain grouping registry. Same chip family as
+            Fields / Personas / Enums; its page lists declared tags +
+            every field carrying each one. */}
+        <button
+          type="button"
+          className={styles.chip}
+          onClick={() => navigate(`/${agent.slug}/builder/tags`)}
+          title="Open the tags page"
+        >
+          <span className={styles.chipIcon}>🏷️</span>
+          <span className={styles.chipName}>Tags</span>
+          <span className={styles.chipCount}>{(agent.tags ?? []).length}</span>
+        </button>
+
         {/* Enum bible — own page; chip navigates instead of opening
             the section modal. The page lists agent enums + lets the
             author edit each value's umbrella + sections. */}

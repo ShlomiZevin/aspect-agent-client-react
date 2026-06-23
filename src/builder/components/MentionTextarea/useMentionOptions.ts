@@ -541,6 +541,69 @@ export function useMentionOptions(
       });
     }
 
-    return { '@': at, '!': bang, '#': hash, '^': caret, '*': star, '%': percent, '+': plus };
+    // ── &  Tags ──────────────────────────────────────────────────
+    // Each tag declared on the agent (or in-use on any field) gets
+    // three picker entries — one per token shape. Block form
+    // (`{{tag:NAME}}`) is listed first because it's the dominant use
+    // case ("pay attention to these fields"); the inline value/name
+    // forms come next for prompts that need a runtime snapshot of
+    // values or a bare names list.
+    const amp: MentionOption[] = [];
+    // Union of declared tags + tags actually used on any field
+    // (agent + every crew). Dedupe + sort so the picker reads in
+    // alphabetical order regardless of authoring order.
+    const tagSet = new Set<string>();
+    for (const t of agent.tags ?? []) tagSet.add(t);
+    for (const f of agent.fields ?? []) {
+      for (const t of f.tags ?? []) tagSet.add(t);
+    }
+    for (const c of agent.crews ?? []) {
+      for (const f of c.fields ?? []) {
+        for (const t of f.tags ?? []) tagSet.add(t);
+      }
+    }
+    const allTags = Array.from(tagSet).sort();
+    for (const tagName of allTags) {
+      // Count of fields carrying this tag, just for the description.
+      const fieldsWithTag: string[] = [];
+      for (const f of agent.fields ?? []) {
+        if (f.tags?.includes(tagName)) fieldsWithTag.push(f.name);
+      }
+      for (const c of agent.crews ?? []) {
+        for (const f of c.fields ?? []) {
+          if (f.tags?.includes(tagName)) fieldsWithTag.push(f.name);
+        }
+      }
+      const fieldsLine = fieldsWithTag.length === 0
+        ? '(no fields tagged yet)'
+        : `Fields: ${fieldsWithTag.join(', ')}.`;
+      const groupLabel = `Tag · ${tagName}`;
+      amp.push({
+        label:     `${tagName}  (schema block)`,
+        insertion: `{{tag:${tagName}}}`,
+        group:     groupLabel,
+        description:
+          `Labeled list of each tagged field's name + howToExtract. ` +
+          `Use to say "pay attention to these fields". ${fieldsLine}`,
+      });
+      amp.push({
+        label:     `${tagName}: values  (inline pairs)`,
+        insertion: `{{tag:${tagName}:values}}`,
+        group:     groupLabel,
+        description:
+          `Inline "name: value" pairs of the current memory values for every field ` +
+          `tagged "${tagName}". Skips fields with no value. ${fieldsLine}`,
+      });
+      amp.push({
+        label:     `${tagName}: names  (bare names)`,
+        insertion: `{{tag:${tagName}:names}}`,
+        group:     groupLabel,
+        description:
+          `Comma-separated field names tagged "${tagName}" — the variables themselves. ` +
+          fieldsLine,
+      });
+    }
+
+    return { '@': at, '!': bang, '#': hash, '^': caret, '*': star, '%': percent, '+': plus, '&': amp };
   }, [doc, agentId, hasBoundFieldGroup, boundFieldId, onCreateSnippet]);
 }

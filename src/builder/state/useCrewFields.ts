@@ -346,6 +346,24 @@ export function useCrewFields(agentId: ID, crewId: ID) {
     return Array.from(set).sort();
   }, [domains, agent?.domains]);
 
+  // Same union for tags so the TagsInput autocomplete pool matches
+  // whether the modal is opened from a crew view or the agent view.
+  // Walks every crew's fields too so a tag added on a crew-private
+  // field stays visible from the agent scope.
+  const tagNames = useMemo<string[]>(() => {
+    const set = new Set<string>();
+    for (const f of agent?.fields ?? []) {
+      for (const t of f.tags ?? []) set.add(t);
+    }
+    for (const c of agent?.crews ?? []) {
+      for (const f of c.fields ?? []) {
+        for (const t of f.tags ?? []) set.add(t);
+      }
+    }
+    for (const t of agent?.tags ?? []) set.add(t);
+    return Array.from(set).sort();
+  }, [agent?.fields, agent?.crews, agent?.tags]);
+
   /**
    * Register a field id in the `extractsFields` lists of the named
    * extractor instances (and remove from any not in `extractorIds`).
@@ -538,6 +556,7 @@ export function useCrewFields(agentId: ID, crewId: ID) {
     allFields,
     domains,
     domainNames,
+    tagNames,
     addFieldToScope,
     setFieldExtractors,
     updateField,

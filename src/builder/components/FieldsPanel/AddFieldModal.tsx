@@ -21,6 +21,7 @@ import { Modal } from '../Modal/Modal';
 import { useBuilder } from '../../state/BuilderContext';
 import { useCrewFields } from '../../state/useCrewFields';
 import { DomainInput } from './DomainInput';
+import { TagsInput } from './TagsInput';
 import {
   validateFieldName,
   stripInvalid,
@@ -92,6 +93,7 @@ interface Draft {
   howToExtract: string;
   definition: string;
   enumType: ID | '';
+  tags: string[];
 }
 
 // New fields are always agent-scoped now — the "schema declares,
@@ -107,14 +109,15 @@ const emptyDraft = (source: FieldSource = 'explicit', type: FieldType = 'string'
   howToExtract: '',
   definition: '',
   enumType: '',
+  tags: [],
 });
 
 export function AddFieldModal({
   open, onClose, agentId, crewId, fromExtractor, onWireExisting, onCreated, lockedType,
 }: Props) {
-  const { agentExtractors, extractorOptions, domainNames, addFieldToScope } =
+  const { agentExtractors, extractorOptions, domainNames, tagNames, addFieldToScope } =
     useCrewFields(agentId, crewId);
-  const { doc } = useBuilder();
+  const { doc, updateAgent } = useBuilder();
   const agent = doc.agents.find(a => a.id === agentId);
 
   // Existing agent-field-name lookup for collision detection. Memory
@@ -210,6 +213,16 @@ export function AddFieldModal({
 
   const submit = () => {
     if (!canSubmit) return;
+    // Promote any fresh tag names into `agent.tags` so the Tags page
+    // and autocomplete registry stay in sync — same side-effect the
+    // SchemaFieldEditor's commitTags applies on the Fields page.
+    if (agent && draft.tags.length > 0) {
+      const declared = new Set(agent.tags ?? []);
+      const fresh = draft.tags.filter(t => !declared.has(t));
+      if (fresh.length > 0) {
+        updateAgent(agentId, { tags: [...(agent.tags ?? []), ...fresh] });
+      }
+    }
     const draftField: Omit<FieldDef, 'id'> = {
       name: draft.name.trim(),
       type: draft.type,
@@ -218,6 +231,7 @@ export function AddFieldModal({
       definition:   draft.definition.trim() || undefined,
       domain: draft.domain.trim() || undefined,
       ...(draft.type === 'enum' && draft.enumType ? { enumType: draft.enumType } : {}),
+      ...(draft.tags.length > 0 ? { tags: draft.tags } : {}),
     };
     const created = addFieldToScope(
       'agent',
@@ -421,6 +435,16 @@ export function AddFieldModal({
             onSubmit={() => {
               if (canSubmit) submit();
             }}
+          />
+        </label>
+
+        <label className={styles.field}>
+          <span className={styles.label}>Tags</span>
+          <TagsInput
+            value={draft.tags}
+            onChange={tags => setDraft(d => ({ ...d, tags }))}
+            options={tagNames}
+            placeholder="e.g. emotional_signals"
           />
         </label>
 

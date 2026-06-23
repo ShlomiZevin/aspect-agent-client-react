@@ -20,6 +20,7 @@ import { Canvas } from './components/Canvas/Canvas';
 import { DynamicContextScreen } from './components/DynamicContextScreen/DynamicContextScreen';
 import { PersonasScreen } from './components/PersonasScreen/PersonasScreen';
 import { FieldsScreen } from './components/FieldsScreen/FieldsScreen';
+import { TagsScreen } from './components/TagsScreen/TagsScreen';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
 import { BrainDockSlot, BrainFullscreenLayer } from './components/BrainPanel/BrainPanel';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
@@ -222,6 +223,12 @@ function BuilderShell() {
                 Counterpart to the enum bible + personas screens. */}
             <Route path="fields" element={<FieldsScreen />} />
             <Route path="fields/:fieldName" element={<FieldsScreen />} />
+            {/* Tags: agent-level cross-domain grouping vocabulary.
+                Same family as Fields / Personas / Enums — own page
+                with list + editor; rename and delete cascade through
+                tokens and field tag arrays. */}
+            <Route path="tags" element={<TagsScreen />} />
+            <Route path="tags/:tagName" element={<TagsScreen />} />
           </Routes>
           {/* Brain dock floats at the bottom-right of the canvas (just
               left of the chat column) so the chat column never

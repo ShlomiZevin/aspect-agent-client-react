@@ -96,10 +96,29 @@ export function useAgentFields(agentId: ID) {
     return Array.from(set).sort();
   }, [domains, agent?.domains]);
 
+  // Union of in-use tags (collected across every field) and declared
+  // tags on `agent.tags`. The TagsInput uses this to autocomplete.
+  // Walks agent + crew fields so a crew-scoped field's tag stays
+  // visible in the agent-scope picker.
+  const tagNames = useMemo<string[]>(() => {
+    const set = new Set<string>();
+    for (const f of agent?.fields ?? []) {
+      for (const t of f.tags ?? []) set.add(t);
+    }
+    for (const c of agent?.crews ?? []) {
+      for (const f of c.fields ?? []) {
+        for (const t of f.tags ?? []) set.add(t);
+      }
+    }
+    for (const t of agent?.tags ?? []) set.add(t);
+    return Array.from(set).sort();
+  }, [agent?.fields, agent?.crews, agent?.tags]);
+
   return {
     agentExtractors,
     allFields,
     domains,
     domainNames,
+    tagNames,
   };
 }

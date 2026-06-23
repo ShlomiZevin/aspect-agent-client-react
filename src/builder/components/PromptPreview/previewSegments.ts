@@ -267,6 +267,50 @@ function classify(
     if (resolved === null) return { kind: 'prose', text: token };
     return staticNode(token, resolved, ctx, deps, depth);
   }
+  // `{{tag:NAME[:values|:names]}}` — walks the field pool, filters by
+  // tag membership. Block form (`names` / bare) is static (we know it
+  // at author time); the `:values` form depends on live memory and so
+  // renders as a runtime chip like other dynamic tokens.
+  if (prefix === 'tag') {
+    const rawArg = arg ?? '';
+    const colon = rawArg.indexOf(':');
+    const tagName = colon === -1 ? rawArg : rawArg.slice(0, colon);
+    const shape   = colon === -1 ? null   : rawArg.slice(colon + 1);
+    if (!tagName) return { kind: 'prose', text: token };
+    const tagged = (ctx.fieldPool ?? []).filter(
+      f => f && Array.isArray(f.tags) && f.tags.includes(tagName),
+    );
+    if (shape === 'values') {
+      // Expand to `field_a: {{field:field_a}}, field_b: {{field:field_b}}`
+      // and let the segmenter recurse — each `{{field:N}}` becomes its
+      // own dynamic chip, so the preview shows one chip per field's
+      // live value instead of a single opaque "tag" chip.
+      if (tagged.length === 0) return { kind: 'prose', text: token };
+      const resolved = tagged
+        .map(f => `${f.name}: {{field:${f.name}}}`)
+        .join(', ');
+      return staticNode(token, resolved, ctx, deps, depth);
+    }
+    if (tagged.length === 0) {
+      // No field carries the tag → resolves to empty at runtime.
+      // Render the token literally so the author notices.
+      return { kind: 'prose', text: token };
+    }
+    if (shape === 'names') {
+      return staticNode(token, tagged.map(f => f.name).join(', '), ctx, deps, depth);
+    }
+    if (shape === null) {
+      const lines = tagged.map(f => {
+        const how = (typeof f.howToExtract === 'string' && f.howToExtract.trim())
+          ? f.howToExtract.trim()
+          : (typeof f.definition === 'string' ? f.definition.trim() : '');
+        return how ? `- ${f.name} — ${how}` : `- ${f.name}`;
+      });
+      return staticNode(token, `### tag — ${tagName}\n${lines.join('\n')}`, ctx, deps, depth);
+    }
+    // Unknown shape — leave token literal so the typo surfaces.
+    return { kind: 'prose', text: token };
+  }
 
   // Unknown token — leave literal.
   return { kind: 'prose', text: token };
