@@ -168,7 +168,17 @@ export function UserChat() {
 
   const [input, setInput] = useState('');
   const [turns, setTurns] = useState<Turn[]>([]);
-  const [busy, setBusy] = useState(false);
+  // Two-piece input gate (replaces the old all-or-nothing `busy`):
+  //  - `awaitingTalker` — true while the user is waiting for the
+  //    LATEST send's Talker to start producing the reply. Clears the
+  //    moment that Talker's `addon.output` event arrives (i.e. the
+  //    user-facing response is fully streamed). Offline-lane addons
+  //    that fire later don't keep this true.
+  //  - `inFlightCount` — number of `sendRuntimeMessage` streams still
+  //    running (each turn opens one). New sends are dropped when this
+  //    hits MAX_INFLIGHT so offline work can't pile up indefinitely.
+  const [awaitingTalker, setAwaitingTalker] = useState(false);
+  const [inFlightCount, setInFlightCount] = useState(0);
   const [conversationId, setConversationIdLocal] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [convList, setConvList] = useState<ConversationListItem[]>([]);
@@ -185,6 +195,25 @@ export function UserChat() {
   const turnsRef = useRef<Turn[]>(turns);
   turnsRef.current = turns;
   const messagesRef = useRef<HTMLDivElement>(null);
+
+  // Concurrency cap — how many `sendRuntimeMessage` streams the user
+  // can have open at once. When the offline lane (Summarizer etc.)
+  // is still draining for a previous turn, the user CAN submit a
+  // follow-up; we just refuse new sends once this many streams are
+  // in flight to keep server load (and UI weirdness) bounded.
+  const MAX_INFLIGHT = 3;
+
+  // Track which addon instance IDs are the Talker so an `addon.output`
+  // event can flip the gate the moment the user-facing reply ends,
+  // not when the whole offline lane finishes. Populated on the
+  // Talker's `addon.start` event; entries are dropped on `addon.output`.
+  const talkerInstanceIdsRef = useRef<Set<string>>(new Set());
+
+  // The latest send's turn id — used to decide whether a Talker
+  // `addon.output` event should clear `awaitingTalker`. We only clear
+  // the gate for the LATEST send (older sends' Talker outputs would
+  // arrive late if the user already sent a follow-up).
+  const latestSendTurnIdRef = useRef<string | null>(null);
 
   // Auto-scroll to bottom. Tricky because the chat has TWO async
   // content sources after a history load:
@@ -278,7 +307,11 @@ export function UserChat() {
   }, [slug, setConversationId, reloadConvList]);
 
   const loadConversation = useCallback(async (convId: number) => {
-    setBusy(true);
+    // Reuse the input gate while the conversation is being fetched —
+    // user-facing meaning is the same ("hold on, the chat isn't ready
+    // yet") and it avoids introducing a third loading state just for
+    // this one async op.
+    setAwaitingTalker(true);
     setErrorMsg(null);
     try {
       const msgs = await fetchConversationMessages({ agentSlug: slug, conversationId: convId });
@@ -294,7 +327,7 @@ export function UserChat() {
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Failed to load conversation');
     } finally {
-      setBusy(false);
+      setAwaitingTalker(false);
     }
   }, [slug, setConversationId, convList]);
 
@@ -327,12 +360,12 @@ export function UserChat() {
     }
   }, [slug]);
 
-  const updateLastTurn = (mut: (turn: Turn) => Turn) => {
-    setTurns(prev => {
-      if (prev.length === 0) return prev;
-      const last = prev[prev.length - 1];
-      return [...prev.slice(0, -1), mut(last)];
-    });
+  // Address a specific turn by id. Used by `makeHandleEvent` so every
+  // streamed event lands on the turn that opened its own stream — not
+  // on "the last turn", which would be wrong once the user has
+  // multiple sends in flight simultaneously.
+  const updateTurn = (turnId: string, mut: (turn: Turn) => Turn) => {
+    setTurns(prev => prev.map(t => (t.id === turnId ? mut(t) : t)));
   };
 
   const upsertRun = (turn: Turn, partial: Partial<AddonRunSnapshot> & { instanceId: string }): Turn => {
@@ -345,15 +378,25 @@ export function UserChat() {
     return { ...turn, runs: turn.runs.map((r, i) => (i === idx ? merged : r)) };
   };
 
-  const handleEvent = (e: RuntimeEvent) => {
+  // Per-send event handler factory. The captured `turnId` lets us
+  // route every event to the SPECIFIC turn that opened this stream
+  // instead of "the last turn" — once multiple sends can be in flight
+  // simultaneously, "last" is the wrong target for older streams.
+  const makeHandleEvent = (turnId: string) => (e: RuntimeEvent) => {
     switch (e.type) {
       case 'conversation':
         setConversationId(e.conversationId);
-        updateLastTurn(t => ({ ...t, userMessageId: e.messageId }));
+        updateTurn(turnId, t => ({ ...t, userMessageId: e.messageId }));
         if (e.currentCrewId !== undefined) setCurrentCrewId(e.currentCrewId);
         return;
       case 'addon.start':
-        updateLastTurn(t => upsertRun(t, {
+        // Remember which instance IDs are this stream's Talker so the
+        // gate can flip the moment its output lands — without scanning
+        // every run to look up its pluginId. Cleared on `addon.output`.
+        if (e.pluginId === 'talker') {
+          talkerInstanceIdsRef.current.add(e.instanceId);
+        }
+        updateTurn(turnId, t => upsertRun(t, {
           instanceId: e.instanceId,
           pluginId:   e.pluginId,
           label:      e.label,
@@ -363,7 +406,7 @@ export function UserChat() {
         }));
         return;
       case 'addon.prompt':
-        updateLastTurn(t => upsertRun(t, {
+        updateTurn(turnId, t => upsertRun(t, {
           instanceId:   e.instanceId,
           prompt:       e.prompt,
           historyCount: e.historyCount,
@@ -371,7 +414,7 @@ export function UserChat() {
         }));
         return;
       case 'addon.token':
-        updateLastTurn(t => ({ ...t, assistantText: t.assistantText + e.token }));
+        updateTurn(turnId, t => ({ ...t, assistantText: t.assistantText + e.token }));
         return;
       case 'addon.output': {
         // Split memory/thinking writes from summary writes. The card
@@ -383,7 +426,7 @@ export function UserChat() {
           (w): w is { kind?: 'memory' | 'thinking'; domain: string | null; field: string; value: unknown } =>
             !w || (w as { kind?: string }).kind !== 'summary',
         );
-        updateLastTurn(t => upsertRun(t, {
+        updateTurn(turnId, t => upsertRun(t, {
           instanceId:   e.instanceId,
           label:        e.label,
           modelLabel:   e.modelLabel ?? null,
@@ -400,6 +443,17 @@ export function UserChat() {
           historyMode:  e.historyMode,
           historyCount: e.historyCount,
         }));
+        // Talker just finished — release the input gate IF this stream
+        // is the latest send. Older sends' Talker outputs (which would
+        // arrive after the user already submitted a follow-up) don't
+        // touch the gate; the follow-up's own Talker will clear it.
+        if (talkerInstanceIdsRef.current.has(e.instanceId)) {
+          talkerInstanceIdsRef.current.delete(e.instanceId);
+          if (latestSendTurnIdRef.current === turnId) {
+            setAwaitingTalker(false);
+            latestSendTurnIdRef.current = null;
+          }
+        }
         // Live-merge any memory/thinking writes from this addon into
         // the local cache so the FieldsPanel updates the green value
         // chip the moment the extractor finishes — long before the
@@ -416,7 +470,7 @@ export function UserChat() {
         return;
       case 'addon.error':
         if (e.instanceId) {
-          updateLastTurn(t => upsertRun(t, {
+          updateTurn(turnId, t => upsertRun(t, {
             instanceId: e.instanceId!,
             status:     'error',
             error:      e.error,
@@ -426,7 +480,7 @@ export function UserChat() {
         }
         return;
       case 'addon.skipped':
-        updateLastTurn(t => upsertRun(t, {
+        updateTurn(turnId, t => upsertRun(t, {
           instanceId: e.instanceId,
           label:      e.label,
           modelLabel: e.modelLabel ?? null,
@@ -438,7 +492,7 @@ export function UserChat() {
         }));
         return;
       case 'assistant.message':
-        updateLastTurn(t => ({
+        updateTurn(turnId, t => ({
           ...t,
           assistantText:       e.text,
           assistantMessageId:  e.messageId,
@@ -452,7 +506,7 @@ export function UserChat() {
         // shows once. Distinct token forms ({{dc:F}}, {{dc:F:S}},
         // {{dc:F:*}}) surface separately — the author wrote each for
         // a reason.
-        updateLastTurn(t => {
+        updateTurn(turnId, t => {
           const existing = t.dcResolutions ?? [];
           const dedupKey = `${e.fieldName}::${e.section ?? ''}::${e.matched ?? ''}`;
           if (existing.some(r => `${r.fieldName}::${r.section ?? ''}::${r.matched ?? ''}` === dedupKey)) return t;
@@ -481,10 +535,35 @@ export function UserChat() {
 
   const send = async () => {
     const text = input.trim();
-    if (!text || busy) return;
+    if (!text) return;
+    // Block while waiting for the latest send's Talker reply. Cleared
+    // the moment its `addon.output` lands — offline-lane work after
+    // that doesn't keep this true.
+    if (awaitingTalker) return;
+    // Concurrency cap — refuse new sends when too many streams are
+    // still draining (e.g. offline-lane work piled up because the
+    // user is sending follow-ups faster than the offline addons
+    // finish). Drop silently is too quiet; flash an inline message.
+    if (inFlightCount >= MAX_INFLIGHT) {
+      setErrorMsg(`Too many turns in flight (${MAX_INFLIGHT} max). Wait for an offline addon to finish, then try again.`);
+      return;
+    }
     setErrorMsg(null);
-    setBusy(true);
+    setAwaitingTalker(true);
+    setInFlightCount(c => c + 1);
     setInput('');
+
+    const turn: Turn = {
+      id: `turn_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      userText: text,
+      userMessageId: null,
+      assistantText: '',
+      assistantMessageId: null,
+      runs: [],
+      runsLoaded: false,
+      dcResolutions: [],
+    };
+    latestSendTurnIdRef.current = turn.id;
 
     try {
       let convId = conversationId;
@@ -494,16 +573,6 @@ export function UserChat() {
         setConversationId(convId);
       }
 
-      const turn: Turn = {
-        id: `turn_${Date.now()}`,
-        userText: text,
-        userMessageId: null,
-        assistantText: '',
-        assistantMessageId: null,
-        runs: [],
-        runsLoaded: false,
-        dcResolutions: [],
-      };
       setTurns(prev => [...prev, turn]);
 
       // Ship the working-copy bodies along with the request so the
@@ -541,12 +610,20 @@ export function UserChat() {
         ...(liveAgent ? { overrideAgentBody: bodyOfAgent(liveAgent) } : {}),
         ...(liveCrew  ? { overrideCrewBody:  bodyOfCrew(liveCrew)   } : {}),
         ...(overrideCrewBodies ? { overrideCrewBodies } : {}),
-        onEvent:        handleEvent,
+        onEvent:        makeHandleEvent(turn.id),
       });
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Unknown error');
     } finally {
-      setBusy(false);
+      setInFlightCount(c => Math.max(0, c - 1));
+      // Defensive: if the stream closed without us ever seeing the
+      // Talker's `addon.output` (network error, no Talker addon in
+      // the chain, etc.) AND this was still the latest send, release
+      // the gate so the user isn't stuck waiting forever.
+      if (latestSendTurnIdRef.current === turn.id) {
+        setAwaitingTalker(false);
+        latestSendTurnIdRef.current = null;
+      }
     }
   };
 
@@ -694,7 +771,7 @@ export function UserChat() {
               value={effectiveCrewId ?? ''}
               onChange={e => setCurrentCrewId(e.target.value || null)}
               title="Route the next message to this crew. Transition Routers can move it mid-conversation."
-              disabled={busy}
+              disabled={awaitingTalker}
             >
               {headerCrews.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
@@ -719,7 +796,7 @@ export function UserChat() {
         />
 
         <div className={styles.messages} ref={messagesRef} onScroll={onMessagesScroll}>
-          {turns.length === 0 && !busy && (
+          {turns.length === 0 && !awaitingTalker && (
             <div className={styles.intro}>
               <p>Try the agent as your end user would.</p>
             </div>
@@ -759,10 +836,15 @@ export function UserChat() {
           }}
           placeholder="Type as the user…"
           rows={2}
-          disabled={busy}
+          disabled={awaitingTalker}
         />
-        <button type="button" className={styles.sendBtn} onClick={send} disabled={busy || !input.trim()}>
-          {busy ? '…' : 'Send'}
+        <button
+          type="button"
+          className={styles.sendBtn}
+          onClick={send}
+          disabled={awaitingTalker || !input.trim() || inFlightCount >= MAX_INFLIGHT}
+        >
+          {awaitingTalker ? '…' : 'Send'}
         </button>
       </div>
     </div>
