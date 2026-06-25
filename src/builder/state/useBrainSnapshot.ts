@@ -114,16 +114,29 @@ export interface BrainSummarizerCard {
   ranAt: number;
 }
 
+/**
+ * One KB Retriever slot — the text currently injected via `{{kb:NAME}}`.
+ * Ephemeral: the retriever replaces/clears it every turn it runs. Read
+ * straight from `conversationMemory.retrieval` (a flat `{ [name]: text }`).
+ */
+export interface BrainKbSlot {
+  /** Slot name — the same key used in `{{kb:NAME}}`. */
+  name: string;
+  /** The text {{kb:NAME}} would inject right now. */
+  text: string;
+}
+
 export interface BrainSnapshot {
   memoryGroups: BrainMemoryGroup[];
   staleRows: BrainStaleRow[];
   dcHits: BrainDcHit[];
   thinkingCards: BrainThinkingCard[];
   summarizerCards: BrainSummarizerCard[];
+  kbSlots: BrainKbSlot[];
 }
 
 const EMPTY_SNAPSHOT: BrainSnapshot = {
-  memoryGroups: [], staleRows: [], dcHits: [], thinkingCards: [], summarizerCards: [],
+  memoryGroups: [], staleRows: [], dcHits: [], thinkingCards: [], summarizerCards: [], kbSlots: [],
 };
 
 const GENERAL_KEY = '_general';
@@ -272,7 +285,19 @@ export function useBrainSnapshot(): BrainSnapshot {
     }
     summarizerCards.sort((a, b) => a.name.localeCompare(b.name));
 
-    return { memoryGroups, staleRows, dcHits, thinkingCards, summarizerCards };
+    // ── KB slots — ephemeral {{kb:NAME}} retrieval results. Flat
+    // `{ [name]: text }` in `conversationMemory.retrieval`, written by
+    // KB Retriever addons. Shows what each token would inject right now
+    // (replaced/cleared every turn the retriever runs).
+    const retrievalBlob = (conversationMemory as { retrieval?: Record<string, unknown> } | undefined)?.retrieval ?? {};
+    const kbSlots: BrainKbSlot[] = [];
+    for (const [name, val] of Object.entries(retrievalBlob)) {
+      if (typeof val !== 'string' || !name) continue;
+      kbSlots.push({ name, text: val });
+    }
+    kbSlots.sort((a, b) => a.name.localeCompare(b.name));
+
+    return { memoryGroups, staleRows, dcHits, thinkingCards, summarizerCards, kbSlots };
   }, [agent, conversationMemory]);
 }
 

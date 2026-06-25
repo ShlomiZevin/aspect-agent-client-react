@@ -40,6 +40,39 @@ const THINKING_WRITER_PLUGIN_IDS = new Set<string>([
  *  the rename — should it ever happen — is a one-line edit. */
 const SUMMARIZER_PLUGIN_ID = 'summarizer';
 
+/** Plugin id of the KB Retriever addon — used to harvest its
+ *  `{{kb:DOMAIN}}` injection tokens for the `~` picker. */
+const KB_RETRIEVER_PLUGIN_ID = 'kb-retriever';
+
+/**
+ * Collect declared KB Retriever output slots (domains) across the
+ * agent — cortex first, then every crew. Each becomes a `{{kb:DOMAIN}}`
+ * token in the `~` picker. Older configs stored the slot on `name`;
+ * read `domain` first, fall back to `name`.
+ */
+function collectKbDomains(
+  agentId: ID,
+  doc: ReturnType<typeof useBuilder>['doc'],
+): { name: string; scope: string }[] {
+  const agent = doc.agents.find(a => a.id === agentId);
+  if (!agent) return [];
+  const seen = new Set<string>();
+  const out: { name: string; scope: string }[] = [];
+  const harvest = (addons: AgentDoc['cortex'], scopeLabel: string) => {
+    for (const a of addons ?? []) {
+      if (a?.pluginId !== KB_RETRIEVER_PLUGIN_ID) continue;
+      const cfg = a.config as { domain?: string; name?: string } | undefined;
+      const d = (cfg?.domain || cfg?.name || '').trim();
+      if (!d || seen.has(d)) continue;
+      seen.add(d);
+      out.push({ name: d, scope: scopeLabel });
+    }
+  };
+  harvest(agent.cortex, 'Agent');
+  for (const c of agent.crews ?? []) harvest(c.addons, c.name || 'Crew');
+  return out.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 /** Find a FieldDef by id across agent.fields + every crew's fields.
  *  Returns null when the id doesn't exist (e.g. caller passed a
  *  freshly-typed value, or a deleted field id lingered on config). */
@@ -196,6 +229,7 @@ export function useMentionOptions(
     const memoryDomains              = collectMemoryDomains(agentId, doc);
     const thinkingDomainsByProducer  = collectThinkingDomainsByProducer(agentId, doc);
     const summarizers                = collectSummarizers(agentId, doc);
+    const kbDomains                  = collectKbDomains(agentId, doc);
     const boundField                 = hasBoundFieldGroup
       ? findFieldDefById(agent, boundFieldId)
       : null;
@@ -604,6 +638,20 @@ export function useMentionOptions(
       });
     }
 
-    return { '@': at, '!': bang, '#': hash, '^': caret, '*': star, '%': percent, '+': plus, '&': amp };
+    // ── ~  Knowledge base (RAG) ──────────────────────────────────
+    // One entry per KB Retriever output slot. Inserts {{kb:DOMAIN}},
+    // which renders the chunks that retriever fetched this turn (or its
+    // empty-sentinel). Recomputed per turn; never persisted.
+    const tilde: MentionOption[] = [];
+    for (const k of kbDomains) {
+      tilde.push({
+        label:     k.name,
+        insertion: `{{kb:${k.name}}}`,
+        group:     'Knowledge base',
+        description: `Retrieved knowledge from the "${k.name}" KB Retriever (in ${k.scope}) — the chunks it fetched this turn, or its empty message.`,
+      });
+    }
+
+    return { '@': at, '!': bang, '#': hash, '^': caret, '*': star, '%': percent, '+': plus, '&': amp, '~': tilde };
   }, [doc, agentId, hasBoundFieldGroup, boundFieldId, onCreateSnippet]);
 }

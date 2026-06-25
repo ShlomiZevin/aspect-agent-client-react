@@ -47,7 +47,7 @@ export type PreviewNode =
   | {
       kind: 'dynamic';
       token: string;
-      dkind: 'field' | 'memory' | 'thinking' | 'summary' | 'dc';
+      dkind: 'field' | 'memory' | 'thinking' | 'summary' | 'dc' | 'kb';
       label: string;
       field?: string;
       section?: string;
@@ -80,7 +80,7 @@ const TOKEN_SRC = '\\{\\{([a-z_]+)(?::([^}]+))?\\}\\}';
 const STATIC_NO_ARG = new Set([
   'fields_schema', 'fields_current', 'this_field', 'enum_values', 'these_fields',
 ]);
-const DYNAMIC_PREFIXES = new Set(['field', 'memory', 'thinking', 'summary', 'dc']);
+const DYNAMIC_PREFIXES = new Set(['field', 'memory', 'thinking', 'summary', 'dc', 'kb']);
 
 // ─── Static resolvers (mirror the server) ──────────────────────────
 
@@ -203,7 +203,7 @@ function classify(
       const section = colon === -1 ? undefined : (arg ?? '').slice(colon + 1);
       return { kind: 'dynamic', token, dkind: 'dc', label: arg ?? '', field, section };
     }
-    return { kind: 'dynamic', token, dkind: prefix as 'field' | 'memory' | 'thinking' | 'summary', label: arg ?? '' };
+    return { kind: 'dynamic', token, dkind: prefix as 'field' | 'memory' | 'thinking' | 'summary' | 'kb', label: arg ?? '' };
   }
 
   // ── Snippet (gated static) ──

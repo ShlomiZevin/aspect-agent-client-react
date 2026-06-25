@@ -222,6 +222,18 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                   const desc = getPlugin(instance.pluginId);
                   if (!desc) return null;
                   const model = configModel(instance.config);
+                  // Subtitle line under the name. Model-bearing addons show
+                  // the model; KB Retriever (no single model) shows its KB
+                  // count so the card keeps the same height as its neighbours.
+                  const cardSubtitle = model
+                    ? formatModelRef(model)
+                    : instance.pluginId === 'kb-retriever'
+                      ? (() => {
+                          const ns = (instance.config as { kbNamespaces?: unknown[] })?.kbNamespaces;
+                          const c = Array.isArray(ns) ? ns.length : 0;
+                          return `${c} KB${c === 1 ? '' : 's'}`;
+                        })()
+                      : '';
                   const isMainLane = lane.id === 'main';
                   const instanceName =
                     (instance.config && typeof (instance.config as { name?: unknown }).name === 'string'
@@ -356,10 +368,10 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                         {!compact && (
                           <span
                             className={styles.cardModel}
-                            style={model ? undefined : { visibility: 'hidden' }}
-                            aria-hidden={!model || undefined}
+                            style={cardSubtitle ? undefined : { visibility: 'hidden' }}
+                            aria-hidden={!cardSubtitle || undefined}
                           >
-                            {model ? formatModelRef(model) : ' '}
+                            {cardSubtitle || ' '}
                           </span>
                         )}
                         {/* Offline-lane addons show their trigger

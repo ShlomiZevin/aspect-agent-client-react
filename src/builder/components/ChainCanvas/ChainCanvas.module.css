@@ -100,6 +100,10 @@
   --card-color: #6366f1;
   position: relative;
   min-width: 130px;
+  /* Equal height whether or not the card shows a model subtitle (e.g.
+     KB Retriever has no single model) so the chain row reads evenly. */
+  min-height: 86px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -284,6 +288,7 @@
 
 .cardCompact {
   min-width: 0;
+  min-height: 0;
   padding: 6px 10px;
   border-radius: 6px;
   flex-direction: row;

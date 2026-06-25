@@ -1,0 +1,106 @@
+.wrap { display: flex; flex-direction: column; gap: 12px; }
+
+.input {
+  width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 7px;
+  font-size: 13px; font-family: inherit; box-sizing: border-box;
+}
+.input:focus { outline: none; border-color: #4f46e5; }
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.label { font-size: 12px; font-weight: 600; color: #374151; }
+.muted { font-size: 12px; color: #9ca3af; }
+
+/* one row: toggle + an inline note / preview pill — stays on ONE line;
+   the pill shrinks + ellipsizes rather than wrapping below the toggle. */
+.axis { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; min-width: 0; }
+
+/* segmented toggle */
+.toggle { display: inline-flex; background: #f3f4f6; border-radius: 8px; padding: 2px; gap: 2px; }
+.toggleBtn {
+  border: 0; background: transparent; cursor: pointer; font-family: inherit;
+  font-size: 12px; font-weight: 600; color: #6b7280; padding: 5px 12px; border-radius: 6px;
+}
+.toggleBtn:hover { color: #111827; }
+.toggleBtnActive, .toggleBtnActive:hover { background: #fff; color: #4f46e5; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+
+/* live prompt preview pill shown when an axis is in LLM mode — model +
+   first line of the prompt; click to edit in the modal. */
+.pill {
+  display: inline-flex; align-items: center; gap: 8px; flex: 1 1 0; min-width: 0;
+  border: 1px solid #e5e7eb; background: #fff; border-radius: 8px; cursor: pointer;
+  font-family: inherit; padding: 5px 10px; text-align: left;
+}
+.pill:hover { border-color: #4f46e5; background: rgba(79,70,229,0.03); }
+.pillModel { font-size: 11px; font-weight: 700; color: #4f46e5; flex-shrink: 0; }
+.pillPrompt { font-size: 12px; color: #6b7280; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.pillEdit { font-size: 11px; color: #9ca3af; flex-shrink: 0; }
+
+/* inline "using the last [N] messages" so the count reads as connected */
+.inlineNote { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; }
+.miniNum { width: 52px; padding: 4px 6px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px; font-family: inherit; }
+.miniNum:focus { outline: none; border-color: #4f46e5; }
+
+/* help "?" */
+.help {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%; border: 1px solid #d1d5db;
+  font-size: 10px; font-weight: 700; color: #9ca3af; cursor: help;
+}
+.help:hover { border-color: #4f46e5; color: #4f46e5; }
+
+/* KB selection — field-style toggle chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border: 1px solid #d1d5db; border-radius: 999px; background: #fff;
+  font-size: 12px; font-weight: 500; color: #374151; cursor: pointer; font-family: inherit;
+}
+.chip:hover { border-color: #4f46e5; }
+.chipOn { background: #eef2ff; border-color: #4f46e5; color: #4f46e5; }
+.chipCount { font-size: 10px; color: #9ca3af; }
+.chipOn .chipCount { color: #6366f1; }
+/* selected but absent from the live index (renamed/deleted) */
+.chipMissing { border-color: #f59e0b; border-style: dashed; color: #b45309; background: #fffbeb; }
+.chipMissing .chipCount { color: #d97706; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* labelled retrieval knobs */
+.knobRow { display: flex; gap: 14px; flex-wrap: wrap; }
+.knobField { display: flex; flex-direction: column; gap: 3px; }
+.knobLabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #9ca3af; }
+.knob { width: 92px; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; font-family: inherit; }
+.knob:focus { outline: none; border-color: #4f46e5; }
+
+/* LLM-step modal */
+.overlay { position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.modal { background: #fff; border-radius: 14px; width: 100%; max-width: 600px; max-height: 84vh; overflow-y: auto; padding: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 12px; }
+.modalHead { display: flex; align-items: center; justify-content: space-between; }
+.modalTitle { font-size: 16px; font-weight: 700; color: #111827; }
+.modalClose {
+  flex-shrink: 0; width: 30px; height: 30px; border: 1px solid #e5e7eb; border-radius: 8px;
+  background: #fff; cursor: pointer; color: #6b7280; font-size: 13px;
+}
+.modalClose:hover { background: #f3f4f6; color: #111827; }
+.modalHint { font-size: 12px; color: #6b7280; margin: -4px 0 4px; }
+.modalFooter { display: flex; justify-content: flex-end; }
+
+/* locked output-format contract (double-click to edit, danger-gated) */
+.lockTag { font-size: 10px; font-weight: 600; color: #9ca3af; margin-left: 6px; }
+.contractLocked {
+  padding: 8px 10px; border: 1px dashed #d1d5db; border-radius: 7px; background: #f9fafb;
+  font-size: 12px; color: #6b7280; cursor: default; user-select: none; white-space: pre-wrap;
+}
+.contractLocked:hover { border-color: #9ca3af; }
+.contractDanger {
+  display: flex; gap: 6px; padding: 6px 9px; margin-bottom: 6px; border-radius: 6px;
+  background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 11px; font-weight: 600;
+}
+.relock {
+  align-self: flex-start; margin-top: 6px; padding: 4px 10px; border: 1px solid #d1d5db;
+  border-radius: 6px; background: #fff; color: #374151; font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+}
+.relock:hover { background: #f3f4f6; }
+
+.btn { padding: 8px 16px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: #374151; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.btnPrimary { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+.btnPrimary:hover { background: #4338ca; }

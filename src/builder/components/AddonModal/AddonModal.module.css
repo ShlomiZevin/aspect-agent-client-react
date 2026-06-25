@@ -152,3 +152,71 @@
 .spacer {
   flex: 1;
 }
+
+/* ── Enable / disable track switch ──────────────────────────────────
+   Mirrors the chip-corner switch palette so the same affordance reads
+   the same across surfaces. Height + box-sizing match the modal-footer
+   secondary/danger buttons (8px y + 13px text + 1px border ≈ 34px) so
+   the switch aligns on the same baseline as Remove / Close. */
+.enableSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  box-sizing: border-box;
+  padding: 0 14px 0 4px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  border: 1px solid transparent;
+  user-select: none;
+  vertical-align: middle;
+  transition: background 120ms, color 120ms, border-color 120ms;
+}
+
+.enableSwitchThumb {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+  transition: transform 120ms;
+}
+
+.enableSwitchLabel {
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+.enableSwitchOn {
+  background: rgba(99, 102, 241, 0.92);
+  border-color: rgba(99, 102, 241, 1);
+  color: #fff;
+}
+
+.enableSwitchOn:hover {
+  background: rgba(79, 82, 221, 1);
+}
+
+/* "OFF" state — thumb on the LEFT, amber palette so the disabled
+   state is unmissable. flex-direction reversal places the thumb on
+   the opposite side of the label without re-ordering markup. */
+.enableSwitchOff {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.55);
+  color: #b45309;
+  flex-direction: row-reverse;
+  padding: 0 4px 0 14px;
+}
+
+.enableSwitchOff .enableSwitchThumb {
+  background: #b45309;
+}
+
+.enableSwitchOff:hover {
+  background: rgba(245, 158, 11, 0.28);
+}

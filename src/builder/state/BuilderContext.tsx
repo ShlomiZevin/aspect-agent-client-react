@@ -655,7 +655,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     memory:   Record<string, Record<string, unknown>>;
     thinking: Record<string, Record<string, unknown>>;
     summary?: Record<string, { text: string; watermark: number; ranAt: number }>;
-  }>({ memory: {}, thinking: {}, summary: {} });
+    retrieval?: Record<string, string>;
+  }>({ memory: {}, thinking: {}, summary: {}, retrieval: {} });
   const refreshConversationMemory = useCallback(() => {
     // No conv yet → nothing to fetch. Deliberately DO NOT reset the
     // local cache here. The dedicated effect below handles explicit
@@ -701,26 +702,57 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
           domain: string | null;
           replace: true;
         }
+      | {
+          kind: 'retrieval';
+          name: string;
+          value?: unknown;
+          clear?: boolean;
+        }
     >) => {
       if (!Array.isArray(writes) || writes.length === 0) return;
       setConversationMemory(prev => {
+        // Spread prev first so untouched sections (summary, retrieval)
+        // survive this optimistic memory/thinking merge — otherwise the
+        // Live Brain's Summaries/Knowledge flicker away until the
+        // post-turn refresh restores them.
         const next = {
-          memory:   { ...prev.memory },
-          thinking: { ...prev.thinking },
+          ...prev,
+          memory:    { ...prev.memory },
+          thinking:  { ...prev.thinking },
+          retrieval: { ...(prev.retrieval || {}) },
         };
         for (const w of writes) {
-          const section = w.kind === 'thinking' ? 'thinking' : 'memory';
-          const key = (w.domain && String(w.domain).trim()) ? String(w.domain) : '_general';
+          // Retrieval — ephemeral KB slot. Update the Knowledge section
+          // live; it has no field/domain, so it must NEVER fall through
+          // to the memory path (that produced an `undefined` stale row).
+          if ((w as { kind?: string }).kind === 'retrieval') {
+            const rw = w as { name: string; value?: unknown; clear?: boolean };
+            if (!rw.name) continue;
+            if (rw.clear === true || rw.value === null || rw.value === undefined) {
+              delete next.retrieval[rw.name];
+            } else if (typeof rw.value === 'string') {
+              next.retrieval[rw.name] = rw.value;
+            }
+            continue;
+          }
+          const dw = w as
+            | { kind?: 'memory' | 'thinking'; domain: string | null; field: string; value: unknown }
+            | { kind: 'memory' | 'thinking'; domain: string | null; replace: true };
+          const section = dw.kind === 'thinking' ? 'thinking' : 'memory';
+          const key = (dw.domain && String(dw.domain).trim()) ? String(dw.domain) : '_general';
           // Domain-replace marker — wipe the bucket then move on. The
           // server's `builderMemory.applyWrites` does the same, so the
           // optimistic local view matches the post-`done` refresh
           // (no two-phase "old keys linger, then disappear" flicker).
-          if ('replace' in w && w.replace === true) {
+          if ('replace' in dw && dw.replace === true) {
             next[section][key] = {};
             continue;
           }
-          // Narrowed: not a replace marker → value-write shape.
-          const vw = w as { field: string; value: unknown };
+          // Narrowed: not a replace marker → value-write shape. Guard
+          // against a missing field so a malformed write can't create an
+          // `undefined` key.
+          const vw = dw as { field: string; value: unknown };
+          if (!vw.field) continue;
           if (vw.value === null || vw.value === undefined) continue;
           next[section][key] = { ...(next[section][key] || {}), [vw.field]: vw.value };
         }

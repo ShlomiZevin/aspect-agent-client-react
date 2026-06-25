@@ -63,6 +63,7 @@ const DKIND_META: Record<string, { icon: string; word: string }> = {
   thinking: { icon: '💭', word: 'thinking' },
   summary:  { icon: '📊', word: 'summary' },
   dc:       { icon: '🎯', word: 'dc' },
+  kb:       { icon: '📚', word: 'kb' },
 };
 
 export function PromptPreviewView({ instance, config, agentId, crewId, rows, storageKey }: Props) {

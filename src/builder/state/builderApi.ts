@@ -480,19 +480,24 @@ export interface ConversationMemory {
   /** Optional on the wire — older servers / fresh conversations may
    *  not return the section. Treated as `{}` by every consumer. */
   summary?: SummarySection;
+  /** Ephemeral KB Retriever slots — flat `{ [name]: injectionText }`.
+   *  Optional on the wire (older servers omit it). */
+  retrieval?: Record<string, string>;
 }
 
-const EMPTY_BRAIN: ConversationMemory = { memory: {}, thinking: {}, summary: {} };
+const EMPTY_BRAIN: ConversationMemory = { memory: {}, thinking: {}, summary: {}, retrieval: {} };
 
 function normalizeBrainResponse(res: {
   memory?: BrainSection;
   thinking?: BrainSection;
   summary?: SummarySection;
+  retrieval?: Record<string, string>;
 }): ConversationMemory {
   return {
-    memory:   res.memory   || {},
-    thinking: res.thinking || {},
-    summary:  res.summary  || {},
+    memory:    res.memory    || {},
+    thinking:  res.thinking  || {},
+    summary:   res.summary   || {},
+    retrieval: res.retrieval || {},
   };
 }
 
@@ -506,6 +511,7 @@ export async function fetchConversationMemory(args: {
     memory: BrainSection;
     thinking: BrainSection;
     summary?: SummarySection;
+    retrieval?: Record<string, string>;
   }>(
     `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/memory?${params}`,
   );

@@ -10,7 +10,10 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { getPlugin } from '../../registry/plugins';
 import { useBuilder } from '../../state/BuilderContext';
+import { KbRetrieverRunBody, type KbParsed } from './KbRetrieverRunBody';
 import styles from './AddonRunCard.module.css';
+
+const KB_RETRIEVER_PLUGIN_ID = 'kb-retriever';
 
 export interface AddonRunSnapshot {
   instanceId: string;
@@ -282,9 +285,19 @@ export function AddonRunCard({ run }: Props) {
     const anyW = w as { field?: string; replace?: boolean };
     return !anyW.replace && typeof anyW.field === 'string' && anyW.field.length > 0;
   });
+  // KB Retriever renders its own step-by-step body (decide → rewrite →
+  // search → write) instead of the generic Prompt/Output/Memory sections,
+  // which don't fit a multi-step retrieval addon. Falls back to the
+  // generic layout if the structured payload is missing (old runs).
+  const isKb = run.pluginId === KB_RETRIEVER_PLUGIN_ID;
+  const kbParsed = isKb && run.parsedOutput && typeof run.parsedOutput === 'object'
+    && Array.isArray((run.parsedOutput as { steps?: unknown }).steps)
+    ? (run.parsedOutput as KbParsed)
+    : null;
+
   const hasWrites = writes.length > 0;
   const hasParseError = !!run.parseError;
-  const showMemorySection = hasWrites || hasParseError;
+  const showMemorySection = !kbParsed && (hasWrites || hasParseError);
   const hasTransition = !!run.transition;
   // Plugins that don't have a prompt template (Transition Router) still
   // emit an empty prompt via the engine — drop the section when empty.
@@ -398,6 +411,11 @@ export function AddonRunCard({ run }: Props) {
             </div>
           )}
 
+          {/* KB Retriever's own step-by-step body. Replaces the generic
+              prompt/output/memory sections below (suppressed via
+              `kbParsed`). */}
+          {kbParsed && <KbRetrieverRunBody parsed={kbParsed} />}
+
           {/* Skipped state — no LLM call happened, so no prompt / no
               output. Two kinds of skips render differently:
 
@@ -450,7 +468,7 @@ export function AddonRunCard({ run }: Props) {
               "why is this prompt huge?" answer when `since_X` modes
               fall back to `all`. Hidden when the count is unknown
               (older addon_runs rows that pre-date this field). */}
-          {typeof run.historyCount === 'number' && (
+          {!kbParsed && typeof run.historyCount === 'number' && (
             <div className={styles.historyLine}>
               <span className={styles.historyLabel}>History:</span>
               <span className={styles.historyValue}>
@@ -468,7 +486,7 @@ export function AddonRunCard({ run }: Props) {
             </div>
           )}
 
-          {hasPrompt && (
+          {!kbParsed && hasPrompt && (
             <Section
               title="Prompt"
               actions={
@@ -486,7 +504,7 @@ export function AddonRunCard({ run }: Props) {
             </Section>
           )}
 
-          {run.rawOutput !== undefined && run.rawOutput !== '' && (
+          {!kbParsed && run.rawOutput !== undefined && run.rawOutput !== '' && (
             <Section
               title="Output"
               actions={

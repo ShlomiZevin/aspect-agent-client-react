@@ -88,6 +88,30 @@ export function mapAllPromptText(
       }
     }
 
+    // KB Retriever holds its prompts on nested axes (config.trigger.prompt
+    // and config.query.prompt) rather than config.prompt — rewrite those
+    // too so token renames cascade into them like any other prompt.
+    if (addon.pluginId === 'kb-retriever') {
+      const kc = addon.config as {
+        trigger?: { prompt?: unknown }; query?: { prompt?: unknown };
+      } | undefined;
+      const curCfg = nextAddon.config as Record<string, unknown>;
+      let kcChanged = false;
+      const patch: Record<string, unknown> = {};
+      if (kc?.trigger && typeof kc.trigger.prompt === 'string') {
+        const r = rewriteString(kc.trigger.prompt);
+        if (r.changed) { kcChanged = true; patch.trigger = { ...kc.trigger, prompt: r.value }; }
+      }
+      if (kc?.query && typeof kc.query.prompt === 'string') {
+        const r = rewriteString(kc.query.prompt);
+        if (r.changed) { kcChanged = true; patch.query = { ...kc.query, prompt: r.value }; }
+      }
+      if (kcChanged) {
+        changed = true;
+        nextAddon = { ...nextAddon, config: { ...curCfg, ...patch } };
+      }
+    }
+
     if (typeof addon.promptTemplate === 'string') {
       const r = rewriteString(addon.promptTemplate);
       if (r.changed) {

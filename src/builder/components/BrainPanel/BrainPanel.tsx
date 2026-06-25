@@ -28,6 +28,7 @@ import {
   formatBrainValue,
   useBrainSnapshot,
   type BrainDcHit,
+  type BrainKbSlot,
   type BrainMemoryGroup,
   type BrainStaleRow,
   type BrainSummarizerCard,
@@ -189,7 +190,7 @@ export function BrainFullscreenLayer() {
  *  they stack; in fullscreen the body class flips to grid via
  *  `.bodyFullscreen` so they sit side-by-side. */
 function BrainBodyContent() {
-  const { memoryGroups, staleRows, dcHits, thinkingCards, summarizerCards } = useBrainSnapshot();
+  const { memoryGroups, staleRows, dcHits, thinkingCards, summarizerCards, kbSlots } = useBrainSnapshot();
 
   return (
     <>
@@ -197,6 +198,7 @@ function BrainBodyContent() {
       <DynamicContextSection hits={dcHits} />
       <ThinkingSection cards={thinkingCards} />
       <SummarizerSection cards={summarizerCards} />
+      <KnowledgeSection slots={kbSlots} />
     </>
   );
 }
@@ -441,6 +443,41 @@ function SummarizerSection({ cards }: { cards: BrainSummarizerCard[] }) {
             </header>
             <div className={styles.thinkingEntryValue} style={{ padding: '8px 12px', whiteSpace: 'pre-wrap' }}>
               {card.text || '(empty — the addon ran but had nothing to write)'}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** Knowledge section — one card per live `{{kb:NAME}}` slot. Ephemeral:
+ *  the KB Retriever replaces/clears these every turn it runs, so the
+ *  panel shows exactly what each token would inject right now. Reuses
+ *  the thinking-card layout (labelled header + prose block) since a KB
+ *  slot is conceptually the same shape — a named block of injected text.
+ *  Hidden when no retriever has written a slot yet. */
+function KnowledgeSection({ slots }: { slots: BrainKbSlot[] }) {
+  if (slots.length === 0) return null;
+  return (
+    <section className={`${styles.section} ${styles.thinkingSpan}`}>
+      <header className={styles.sectionHeader}>
+        <span className={styles.sectionTitle}>📚 Knowledge</span>
+        <span className={styles.sectionCount}>
+          {slots.length} {slots.length === 1 ? 'slot' : 'slots'}
+        </span>
+      </header>
+      <div className={styles.thinkingCards}>
+        {slots.map(slot => (
+          <article key={slot.name} className={styles.thinkingCard}>
+            <header className={styles.thinkingCardHeader}>
+              {slot.name}
+              <span style={{ float: 'right', fontSize: 10, opacity: 0.6, fontWeight: 500 }}>
+                {slot.text.length} chars
+              </span>
+            </header>
+            <div className={styles.thinkingEntryValue} style={{ padding: '8px 12px', whiteSpace: 'pre-wrap', maxHeight: 220, overflow: 'auto' }}>
+              {slot.text}
             </div>
           </article>
         ))}

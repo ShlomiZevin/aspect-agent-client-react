@@ -83,6 +83,9 @@ export interface MentionOptions {
    *  Three entries per tag (schema block, inline values, bare names).
    *  See `docs/guides/BUILDER_V2_FIELD_TAGS.md`. */
   '&'?: MentionOption[];
+  /** KB Retriever slots — one entry per `{{kb:DOMAIN}}` a KB Retriever
+   *  addon writes in this agent. Injects retrieved knowledge. */
+  '~'?: MentionOption[];
 }
 
 /**
@@ -91,9 +94,9 @@ export interface MentionOptions {
  * category in one combined picker — useful when the user doesn't
  * remember which sigil opens what.
  */
-type SingleTrigger = '@' | '!' | '#' | '^' | '*' | '%' | '+' | '&';
+type SingleTrigger = '@' | '!' | '#' | '^' | '*' | '%' | '+' | '&' | '~';
 type Trigger = SingleTrigger | '{{' | '/';
-const SINGLE_TRIGGERS: SingleTrigger[] = ['@', '!', '#', '^', '*', '%', '+', '&'];
+const SINGLE_TRIGGERS: SingleTrigger[] = ['@', '!', '#', '^', '*', '%', '+', '&', '~'];
 
 /**
  * Human label for each trigger. Shown as the picker's header so the
@@ -110,6 +113,7 @@ const TRIGGER_LABELS: Record<Trigger, string> = {
   '%':  'Summary',
   '+':  'Snippets',
   '&':  'Tags',
+  '~':  'Knowledge base',
   '{{': 'All placeholders',
   '/':  'All placeholders',
 };
