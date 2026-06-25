@@ -313,6 +313,15 @@ export async function deleteNamespace(kbId: number): Promise<void> {
   if (!response.ok) throw new Error(`Delete namespace failed: ${response.status}`);
 }
 
+/** Delete an entire knowledge base by raw namespace name (vectors + DB rows). */
+export async function deleteKB(namespace: string): Promise<void> {
+  const response = await fetch(`${BASE()}/api/pinecone/kb/${encodeURIComponent(namespace)}`, { method: 'DELETE' });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `Delete KB failed: ${response.status}`);
+  }
+}
+
 export async function queryPinecone(
   namespaces: string[],
   query: string,
@@ -409,6 +418,21 @@ export async function getLibraryFiles(
   const response = await fetch(`${BASE()}/api/library/files?${params}`);
   if (!response.ok) throw new Error(`List files failed: ${response.status}`);
   return response.json();
+}
+
+export interface LibraryNamespaceStats {
+  namespace: string;
+  fileCount: number;
+  chunkCount: number;
+  cost: number;
+}
+
+/** Aggregated per-namespace stats (file count, chunks, cost) for the active index. */
+export async function getLibraryStats(): Promise<LibraryNamespaceStats[]> {
+  const response = await fetch(`${BASE()}/api/library/stats`);
+  if (!response.ok) return [];
+  const data = await response.json();
+  return data.stats || [];
 }
 
 export async function deleteLibraryFile(id: number): Promise<void> {
