@@ -11,6 +11,10 @@ interface DataLoaderPageProps {
   schemaName: string;
 }
 
+// Schemas whose source folder is mirrored from Google Drive (CLIENTS in
+// server/services/drive-to-gcs.service.js). Only these show the Sync button.
+const DRIVE_SYNC_SCHEMAS = ['zer4u', 'hypertoy'];
+
 export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   const [files, setFiles] = useState<GCSFile[]>([]);
   const [currentRun, setCurrentRun] = useState<RunState | null>(null);
@@ -20,7 +24,9 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   const [isLive, setIsLive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState<'import' | 'index' | 'index-full' | 'cancel' | null>(null);
+  const [confirming, setConfirming] = useState<'import' | 'index' | 'index-full' | 'cancel' | 'drive-sync' | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [importMonths, setImportMonths] = useState<string>('');
   const [importMonthsSource, setImportMonthsSource] = useState<'db' | 'env' | 'default'>('default');
   const [importMonthsSupported, setImportMonthsSupported] = useState(false);
@@ -33,6 +39,7 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
 
   const runStatus = currentRun?.status;
   const isBusy = runStatus === 'running' && isLive;
+  const supportsDriveSync = DRIVE_SYNC_SCHEMAS.includes(schemaName);
 
   const loadData = useCallback(async () => {
     try {
@@ -277,6 +284,31 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
     }
   }
 
+  async function handleDriveSyncConfirm() {
+    setConfirming(null);
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const res = await fetch(`${apiBase}/drive-sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to start Drive sync');
+      }
+      setSyncMsg('Drive sync started. New/changed files are streamed to GCS in the background — refresh Source Files in a few minutes.');
+      // Refresh the source-file list once the small files have landed.
+      setTimeout(() => loadData(), 8000);
+    } catch (e: unknown) {
+      setSyncMsg(null);
+      alert(e instanceof Error ? e.message : 'Failed to start Drive sync');
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   if (loading) {
     return <div className={styles.loading}>Loading Data Loader...</div>;
   }
@@ -293,6 +325,16 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
           <p className={styles.pageSubtitle}>Schema: <code>{schemaName}</code></p>
         </div>
         <div className={styles.headerActions}>
+          {supportsDriveSync && (
+            <button
+              className={`${styles.indexBtn} ${(isBusy || syncing) ? styles.reloadBtnDisabled : ''}`}
+              onClick={() => setConfirming('drive-sync')}
+              disabled={isBusy || syncing}
+              title="Mirror the client's Google Drive folder into GCS"
+            >
+              {syncing ? '● Syncing...' : '⟳ Sync from Drive'}
+            </button>
+          )}
           <button
             className={`${styles.reloadBtn} ${isBusy ? styles.reloadBtnDisabled : ''}`}
             onClick={() => setConfirming('import')}
@@ -374,6 +416,32 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
               <button className={styles.cancelBtn} onClick={() => setConfirming(null)}>Cancel</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {confirming === 'drive-sync' && (
+        <div className={styles.confirmOverlay}>
+          <div className={styles.confirmDialog}>
+            <p>Sync <strong>{schemaName}</strong> from Google Drive?</p>
+            <p className={styles.confirmNote}>Mirrors the client's Drive folder into GCS: only new/changed files (by md5) are uploaded, names are mapped to the canonical loader names. This does not import into the database — run Import afterwards.</p>
+            <div className={styles.confirmActions}>
+              <button className={styles.confirmBtn} onClick={handleDriveSyncConfirm}>Start Sync</button>
+              <button className={styles.cancelBtn} onClick={() => setConfirming(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {syncMsg && (
+        <div className={styles.savedMsg} style={{ margin: '0 0 12px' }}>
+          {syncMsg}
+          <button
+            className={styles.cancelBtn}
+            style={{ marginLeft: 12 }}
+            onClick={() => setSyncMsg(null)}
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
