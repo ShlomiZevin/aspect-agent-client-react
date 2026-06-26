@@ -94,7 +94,7 @@ function toAssistantMessage(m: FreedaMessage): Message | null {
     content = m.text ?? '';
   }
   if (!content) return null;
-  return { id: newMessageId(), role: 'assistant', content, timestamp: new Date() };
+  return { id: newMessageId(), role: 'assistant', content, timestamp: new Date(), crewMember: 'Freeda' };
 }
 
 export function FreedaNextChatProvider({ children }: { children: ReactNode }) {
