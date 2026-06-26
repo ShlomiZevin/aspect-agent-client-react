@@ -61,6 +61,8 @@ export interface AgentConfig {
     hideMessageActions?: boolean;
     /** Hide conversation delete actions (delete chat / delete all) in the history sidebar. */
     hideHistoryManagement?: boolean;
+    /** Hide the debug-mode toggle button in the header (customer-facing surfaces). */
+    hideDebugToggle?: boolean;
   };
 
   // Theming

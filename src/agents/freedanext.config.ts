@@ -13,5 +13,6 @@ export const freedaNextConfig: AgentConfig = {
     ...freedaConfig.features,
     hideMessageActions: true,
     hideHistoryManagement: true,
+    hideDebugToggle: true,
   },
 };
