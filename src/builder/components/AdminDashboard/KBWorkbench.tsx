@@ -29,9 +29,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getConnectionStatus,
-  getIndexStats,
+  getAgentKbs,
   getLibraryFiles,
-  getLibraryStats,
+  linkKb,
   previewChunks,
   indexBulk,
   deleteLibraryFile,
@@ -45,12 +45,15 @@ import {
   type QueryResponse,
 } from '../../../services/pineconeService';
 import { IndexSettingsModal } from './IndexSettingsModal';
+// import { LinkedAgents } from './KBLinkedAgents'; // temporarily hidden
 import { useConfirm } from '../Confirm/Confirm';
 import styles from './KBWorkbench.module.css';
 
 interface Props {
   /** Builder agent slug — used to suggest a default KB name. */
   agentSlug: string;
+  /** Builder agent id — scopes the KB list to this agent's links. */
+  agentId: string;
 }
 
 interface KBEntry {
@@ -59,11 +62,13 @@ interface KBEntry {
   /** DB-tracked aggregates (may be absent for legacy namespaces). */
   fileCount?: number;
   cost?: number;
+  /** Whether this KB is linked to the current agent. */
+  linked?: boolean;
   /** True for a KB the user just created that has no vectors yet. */
   pending?: boolean;
 }
 
-export function KBWorkbench({ agentSlug }: Props) {
+export function KBWorkbench({ agentSlug, agentId }: Props) {
   const [status, setStatus] = useState<ConnectionStatus | null>(null);
   const [statusLoaded, setStatusLoaded] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -73,6 +78,11 @@ export function KBWorkbench({ agentSlug }: Props) {
   const [pending, setPending] = useState<string[]>([]); // locally-created, not-yet-indexed
   const [selected, setSelected] = useState<string | null>(null);
   const [loadingKbs, setLoadingKbs] = useState(false);
+  // Scope: linked (this agent's KBs) by default; "show all" reveals every
+  // KB so a shared one can be linked / inspected.
+  // show-all toggle temporarily hidden — re-add `setShowAll` + the button
+  // below to restore.
+  const [showAll] = useState(false);
 
   const refreshStatus = useCallback(async () => {
     try {
@@ -88,22 +98,18 @@ export function KBWorkbench({ agentSlug }: Props) {
   const refreshKbs = useCallback(async () => {
     setLoadingKbs(true);
     try {
-      const [idxStats, libStats] = await Promise.all([getIndexStats(), getLibraryStats()]);
-      const byNs = new Map(libStats.map(s => [s.namespace, s]));
-      const fromIndex: KBEntry[] = idxStats.namespaces
-        .map(n => {
-          const ls = byNs.get(n.name);
-          return { name: n.name, vectorCount: n.vectorCount, fileCount: ls?.fileCount, cost: ls?.cost };
-        })
+      const list = await getAgentKbs(agentId, showAll ? 'all' : 'linked');
+      const rows: KBEntry[] = list
+        .map(k => ({ name: k.namespace, vectorCount: k.vectorCount, fileCount: k.fileCount, cost: k.cost, linked: k.linked }))
         .sort((a, b) => a.name.localeCompare(b.name));
-      setKbs(fromIndex);
-      setSelected(prev => prev ?? fromIndex[0]?.name ?? null);
+      setKbs(rows);
+      setSelected(prev => prev ?? rows[0]?.name ?? null);
     } catch {
       setKbs([]);
     } finally {
       setLoadingKbs(false);
     }
-  }, []);
+  }, [agentId, showAll]);
 
   useEffect(() => { refreshStatus(); }, [refreshStatus]);
   useEffect(() => { if (status?.configured) refreshKbs(); }, [status?.configured, refreshKbs]);
@@ -125,11 +131,12 @@ export function KBWorkbench({ agentSlug }: Props) {
   }, []);
 
   // After a successful index, the namespace now has vectors — drop it
-  // from the pending set and refresh from the index.
+  // from the pending set, LINK it to this agent (so it's "owned" here and
+  // stays visible without "show all"), then refresh.
   const handleIndexed = useCallback((ns: string) => {
     setPending(prev => prev.filter(p => p !== ns));
-    refreshKbs();
-  }, [refreshKbs]);
+    linkKb(agentId, ns).catch(() => {}).finally(refreshKbs);
+  }, [agentId, refreshKbs]);
 
   const handleDeleteKB = useCallback(async (kb: KBEntry) => {
     // A pending (never-indexed) KB exists only locally — just drop it.
@@ -188,10 +195,17 @@ export function KBWorkbench({ agentSlug }: Props) {
 
         <NewKBButton agentSlug={agentSlug} onCreate={handleCreateKB} />
 
+        {/* Temporarily hidden — restore with `setShowAll` (see useState above).
+        <button type="button" className={styles.scopeToggle} onClick={() => setShowAll(v => !v)}>
+          {showAll ? '◂ Show this agent’s KBs' : 'Show all KBs ▸'}
+        </button> */}
+
         <div className={styles.kbList}>
           {loadingKbs && allKbs.length === 0 && <div className={styles.muted}>Loading…</div>}
           {!loadingKbs && allKbs.length === 0 && (
-            <div className={styles.muted}>No knowledge bases yet. Create one to start.</div>
+            <div className={styles.muted}>
+              {showAll ? 'No knowledge bases yet. Create one to start.' : 'No KBs linked to this agent. Create one, or “Show all KBs”.'}
+            </div>
           )}
           {allKbs.map(kb => (
             <div
@@ -295,7 +309,12 @@ function NewKBButton({ agentSlug, onCreate }: { agentSlug: string; onCreate: (na
 }
 
 // ─── Detail: one knowledge base ──────────────────────────────────────
-function KBDetail({ namespace, onIndexed }: { namespace: string; onIndexed: (ns: string) => void }) {
+// NOTE: `agentId` + `onLinksChanged` props were removed along with the
+// hidden LinkedAgents row — re-add them (and the call-site props) to
+// restore the link-management UI.
+function KBDetail({ namespace, onIndexed }: {
+  namespace: string; onIndexed: (ns: string) => void;
+}) {
   const [files, setFiles] = useState<LibraryFile[]>([]);
   const [filesLoading, setFilesLoading] = useState(true);
 
@@ -340,6 +359,10 @@ function KBDetail({ namespace, onIndexed }: { namespace: string; onIndexed: (ns:
           ))}
         </div>
       </header>
+
+      {/* Temporarily hidden — restore the import + this row to manage which
+          agents a KB is linked to (incl. the "pick an agent" picker).
+      <LinkedAgents namespace={namespace} currentAgentId={agentId} onChanged={onLinksChanged} /> */}
 
       <div className={styles.kbColumns}>
         {view !== 'test' && (

@@ -62,6 +62,15 @@
 /* selected but absent from the live index (renamed/deleted) */
 .chipMissing { border-color: #f59e0b; border-style: dashed; color: #b45309; background: #fffbeb; }
 .chipMissing .chipCount { color: #d97706; text-transform: uppercase; letter-spacing: 0.04em; }
+/* shown only under "show all" — belongs to another agent, linkable */
+.chipUnlinked { border-style: dashed; color: #6b7280; background: #fafafa; }
+.chipLink { font-weight: 700; color: #4f46e5; }
+/* show-all / show-linked toggle, sits inline with the chips */
+.showAll {
+  padding: 5px 10px; border: 0; background: transparent; border-radius: 999px;
+  font-size: 11px; font-weight: 600; color: #4f46e5; cursor: pointer; font-family: inherit;
+}
+.showAll:hover { background: #eef2ff; }
 
 /* labelled retrieval knobs */
 .knobRow { display: flex; gap: 14px; flex-wrap: wrap; }

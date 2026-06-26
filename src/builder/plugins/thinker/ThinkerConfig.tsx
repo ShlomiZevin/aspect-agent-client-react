@@ -21,6 +21,7 @@ import { SnippetsUsedFooter } from '../../components/Snippets/SnippetsUsedFooter
 import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
 import { PromptPreviewToggle } from '../../components/PromptPreview/PromptPreviewToggle';
 import { PromptPreviewView } from '../../components/PromptPreview/PromptPreviewView';
+import { useSlotRenameCascade } from '../../state/useSlotRenameCascade';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { ThinkerConfig } from '../../types';
 import styles from './ThinkerConfig.module.css';
@@ -37,6 +38,7 @@ export function ThinkerConfigComponent({
   const mentionOptions = useMentionOptions(agentId, {
     onCreateSnippet: () => openCreateSnippet(agentId),
   });
+  const domainRename = useSlotRenameCascade(agentId, 'thinkingDomain');
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -60,6 +62,7 @@ export function ThinkerConfigComponent({
           type="text"
           value={config.domain ?? 'strategy'}
           onChange={e => patch({ domain: e.target.value })}
+          {...domainRename}
           placeholder="strategy"
         />
       </InlineField>

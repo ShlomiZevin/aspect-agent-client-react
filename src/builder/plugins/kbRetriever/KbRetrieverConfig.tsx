@@ -16,7 +16,8 @@ import { ModelPicker } from '../../components/ModelPicker/ModelPicker';
 import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
 import { InlineField } from '../../components/AddonModal/InlineField';
-import { getIndexStats, type PineconeNamespace } from '../../../services/pineconeService';
+import { getAgentKbs, linkKb, type AgentKb } from '../../../services/pineconeService';
+import { useSlotRenameCascade } from '../../state/useSlotRenameCascade';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { HistoryMode, KbRetrieverConfig, ModelRef } from '../../types';
 import styles from './KbRetrieverConfig.module.css';
@@ -154,28 +155,50 @@ export function KbRetrieverConfigComponent({ config, onChange, agentId }: Plugin
   const patchTrigger = (next: Partial<KbRetrieverConfig['trigger']>) => patch({ trigger: { ...config.trigger, ...next } });
   const patchQuery = (next: Partial<KbRetrieverConfig['query']>) => patch({ query: { ...config.query, ...next } });
   const mentionOptions = useMentionOptions(agentId);
+  const domainRename = useSlotRenameCascade(agentId, 'kbDomain');
   const [editing, setEditing] = useState<null | 'trigger' | 'query'>(null);
 
-  const [namespaces, setNamespaces] = useState<PineconeNamespace[]>([]);
+  // KBs are scoped to THIS agent (the many-to-many link layer). Default
+  // shows only the agent's linked KBs; "Show all" reveals every KB so a
+  // shared one can be pulled in — selecting an unlinked KB links it.
+  const [kbs, setKbs] = useState<AgentKb[]>([]);
   const [loadingKbs, setLoadingKbs] = useState(true);
+  // show-all toggle temporarily hidden — re-add `setShowAll` + the button
+  // below to restore the "link a shared KB" affordance.
+  const [showAll] = useState(false);
   useEffect(() => {
-    getIndexStats().then(s => setNamespaces(s.namespaces)).catch(() => setNamespaces([])).finally(() => setLoadingKbs(false));
-  }, []);
+    let live = true;
+    setLoadingKbs(true);
+    getAgentKbs(agentId, showAll ? 'all' : 'linked')
+      .then(list => { if (live) setKbs(list); })
+      .catch(() => { if (live) setKbs([]); })
+      .finally(() => { if (live) setLoadingKbs(false); });
+    return () => { live = false; };
+  }, [agentId, showAll]);
 
   const selected = config.kbNamespaces ?? [];
   const domain = config.domain || 'knowledge';
   const n = config.query.n ?? 1;
-  const toggleKb = (ns: string) =>
-    patch({ kbNamespaces: selected.includes(ns) ? selected.filter(x => x !== ns) : [...selected, ns] });
+  const toggleKb = (kb: AgentKb) => {
+    const isOn = selected.includes(kb.namespace);
+    // Selecting a not-yet-linked KB (only reachable in "show all") links
+    // it to this agent so it stays visible without "show all" next time.
+    if (!isOn && !kb.linked) {
+      linkKb(agentId, kb.namespace).catch(() => {});
+      setKbs(prev => prev.map(k => k.namespace === kb.namespace ? { ...k, linked: true } : k));
+    }
+    patch({ kbNamespaces: isOn ? selected.filter(x => x !== kb.namespace) : [...selected, kb.namespace] });
+  };
 
-  // Selected KBs live in the agent JSON → show them immediately. Then
-  // merge the live list (with chunk counts) on top. A selected KB that's
-  // no longer in the index (renamed/deleted) still shows, flagged, so it
-  // can be fixed rather than silently dangling. (vectorCount -1 = missing.)
-  const fetched = new Set(namespaces.map(x => x.name));
-  const kbOptions: PineconeNamespace[] = [
-    ...selected.filter(s => !fetched.has(s)).map(name => ({ name, vectorCount: -1 } as PineconeNamespace)),
-    ...namespaces,
+  // Selected KBs live in the agent JSON → show them immediately even
+  // before the fetch settles. A selected KB absent from the fetched list
+  // (deleted/renamed, or simply not linked) still shows, flagged
+  // (vectorCount -1 = missing), so it can be fixed not silently dangle.
+  const fetched = new Set(kbs.map(x => x.namespace));
+  const kbOptions: AgentKb[] = [
+    ...selected.filter(s => !fetched.has(s)).map(namespace =>
+      ({ namespace, vectorCount: -1, fileCount: 0, chunkCount: 0, cost: 0, linked: true } as AgentKb)),
+    ...kbs,
   ];
 
   return (
@@ -185,29 +208,43 @@ export function KbRetrieverConfigComponent({ config, onChange, agentId }: Plugin
       </InlineField>
 
       <InlineField label="Writes to" hint={`Inject the result downstream with {{kb:${domain}}}.`}>
-        <input className={styles.input} value={config.domain ?? ''} onChange={e => patch({ domain: e.target.value })} placeholder="knowledge" />
+        <input className={styles.input} value={config.domain ?? ''} onChange={e => patch({ domain: e.target.value })}
+          {...domainRename} placeholder="knowledge" />
       </InlineField>
 
-      <InlineField label="Knowledge bases" hint="Every selected KB is searched. Manage KBs in Admin → Knowledge Base.">
+      <InlineField label="Knowledge bases" hint="Only KBs linked to this agent are shown. “Show all” to link a shared KB. Manage in Admin → Knowledge Base.">
         <div className={styles.chips}>
           {loadingKbs ? (
             <span className={styles.muted}>Loading knowledge bases…</span>
           ) : kbOptions.length === 0 ? (
-            <span className={styles.muted}>No knowledge bases found.</span>
-          ) : kbOptions.map(ns => {
+            <span className={styles.muted}>
+              {showAll ? 'No knowledge bases found.' : 'No KBs linked to this agent yet.'}
+            </span>
+          ) : kbOptions.map(kb => {
             // Only meaningful once loaded — `fetched` is empty mid-load, so
             // we never flag "missing" until the live list has arrived.
-            const on = selected.includes(ns.name);
-            const missing = ns.vectorCount < 0;
+            const on = selected.includes(kb.namespace);
+            const missing = kb.vectorCount < 0;
+            // In "show all", an unlinked KB belongs to another agent —
+            // mark it so it reads as "linkable", not already yours.
+            const unlinked = !missing && !kb.linked;
             return (
-              <button key={ns.name} type="button"
-                className={`${styles.chip} ${on ? styles.chipOn : ''} ${missing ? styles.chipMissing : ''}`}
-                title={missing ? 'Selected but not found in the index (renamed or deleted).' : undefined}
-                onClick={() => toggleKb(ns.name)}>
-                {ns.name}<span className={styles.chipCount}>{missing ? 'missing' : ns.vectorCount.toLocaleString()}</span>
+              <button key={kb.namespace} type="button"
+                className={`${styles.chip} ${on ? styles.chipOn : ''} ${missing ? styles.chipMissing : ''} ${unlinked ? styles.chipUnlinked : ''}`}
+                title={missing ? 'Selected but not found in the index (renamed or deleted).'
+                  : unlinked ? 'Not linked to this agent yet — select to link it.' : undefined}
+                onClick={() => toggleKb(kb)}>
+                {unlinked && <span className={styles.chipLink}>+ </span>}
+                {kb.namespace}<span className={styles.chipCount}>{missing ? 'missing' : kb.vectorCount.toLocaleString()}</span>
               </button>
             );
           })}
+          {/* Temporarily hidden — restore with `setShowAll` (see useState above).
+          {!loadingKbs && (
+            <button type="button" className={styles.showAll} onClick={() => setShowAll(v => !v)}>
+              {showAll ? 'Show linked only' : 'Show all KBs'}
+            </button>
+          )} */}
         </div>
       </InlineField>
 

@@ -21,6 +21,7 @@ import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
 import { PromptPreviewToggle } from '../../components/PromptPreview/PromptPreviewToggle';
 import { PromptPreviewView } from '../../components/PromptPreview/PromptPreviewView';
 import { useCrewFields } from '../../state/useCrewFields';
+import { useSlotRenameCascade } from '../../state/useSlotRenameCascade';
 import { WireOrCreateFieldModal } from '../fieldReasoner/WireOrCreateFieldModal';
 import type { PluginConfigProps } from '../../registry/plugins';
 import type { FieldInterviewerConfig, ID } from '../../types';
@@ -45,6 +46,7 @@ export function FieldInterviewerConfigComponent({
     onCreateSnippet: () => openCreateSnippet(agentId),
   });
   const { allFields, setFieldExtractors } = useCrewFields(agentId, crewId);
+  const domainRename = useSlotRenameCascade(agentId, 'thinkingDomain');
   const linkedFields = useMemo(
     () => linkedIds
       .map(id => allFields.find(cf => cf.field.id === id) ?? null)
@@ -148,6 +150,7 @@ export function FieldInterviewerConfigComponent({
           className={styles.input}
           value={config.domain ?? 'interview'}
           onChange={e => patch({ domain: e.target.value })}
+          {...domainRename}
           placeholder="interview"
           spellCheck={false}
         />

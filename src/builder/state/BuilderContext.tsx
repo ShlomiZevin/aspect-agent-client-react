@@ -43,11 +43,13 @@ import {
   cascadeDomainTokens,
   cascadeEnumNameRename,
   cascadeEnumSectionRename,
+  cascadeKbDomainTokens,
   cascadeParameterRename,
   cascadePersonaRename,
   cascadeSnippetRename,
   cascadeSummarizerRename,
   cascadeTagRename,
+  cascadeThinkingDomainTokens,
   deleteAgentTag,
 } from './promptTokenCascade';
 
@@ -332,7 +334,7 @@ interface BuilderState {
    */
   applyTokenRenameCascade: (
     agentId: ID,
-    kind: 'enum' | 'persona' | 'snippet' | 'param' | 'summarizer' | 'tag',
+    kind: 'enum' | 'persona' | 'snippet' | 'param' | 'summarizer' | 'tag' | 'kbDomain' | 'thinkingDomain',
     oldName: string,
     newName: string,
   ) => void;
@@ -883,17 +885,19 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   const applyTokenRenameCascade = useCallback(
     (
       agentId: ID,
-      kind: 'enum' | 'persona' | 'snippet' | 'param' | 'summarizer' | 'tag',
+      kind: 'enum' | 'persona' | 'snippet' | 'param' | 'summarizer' | 'tag' | 'kbDomain' | 'thinkingDomain',
       oldName: string,
       newName: string,
     ) => {
       if (!oldName || !newName || oldName === newName) return;
       const fn =
-        kind === 'enum'       ? cascadeEnumNameRename :
-        kind === 'persona'    ? cascadePersonaRename :
-        kind === 'snippet'    ? cascadeSnippetRename :
-        kind === 'param'      ? cascadeParameterRename :
-        kind === 'tag'        ? cascadeTagRename :
+        kind === 'enum'           ? cascadeEnumNameRename :
+        kind === 'persona'        ? cascadePersonaRename :
+        kind === 'snippet'        ? cascadeSnippetRename :
+        kind === 'param'          ? cascadeParameterRename :
+        kind === 'tag'            ? cascadeTagRename :
+        kind === 'kbDomain'       ? cascadeKbDomainTokens :
+        kind === 'thinkingDomain' ? cascadeThinkingDomainTokens :
         /* kind === 'summarizer' */ cascadeSummarizerRename;
       setDoc(d => ({
         ...d,

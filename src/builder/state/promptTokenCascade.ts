@@ -444,6 +444,42 @@ export function cascadeDomainTokens(
 }
 
 /**
+ * KB-domain rename — token-side cascade for the KB Retriever's "Writes
+ * to" slot. Rewrites `{{kb:OLD}}` → `{{kb:NEW}}` across every prompt-text
+ * surface so a prompt that injects the retrieved knowledge keeps working
+ * after the slot is renamed.
+ *
+ * Terminal token (`{{kb:NAME}}` — no further segments), so a long name
+ * like `knowledge_base` isn't clipped when renaming `knowledge`. The
+ * data side (the addon's own `config.domain`) is updated by the config
+ * editor that triggers this — this function only fixes the references.
+ */
+export function cascadeKbDomainTokens(
+  agent: AgentDoc, oldName: string, newName: string,
+): AgentDoc {
+  if (!oldName || !newName || oldName === newName) return agent;
+  return mapAllPromptText(agent, makeTerminalRewrite('kb', oldName, newName));
+}
+
+/**
+ * Thinking-domain rename — token-side cascade for the free-text "Domain"
+ * slot on the Thinker and Field Interviewer (both write non-field keys
+ * into `brain.thinking[domain]`, read downstream via `{{thinking:DOMAIN}}`).
+ * Rewrites `{{thinking:OLD}}` → `{{thinking:NEW}}` across every prompt
+ * surface. Leaves the bare `{{thinking}}` (all-domains) token untouched.
+ *
+ * Distinct from `cascadeDomainTokens` (which also rewrites `{{memory:}}`
+ * and is driven by the declared-domain rename UI) — renaming where ONE
+ * Thinker writes shouldn't disturb a same-named memory domain.
+ */
+export function cascadeThinkingDomainTokens(
+  agent: AgentDoc, oldName: string, newName: string,
+): AgentDoc {
+  if (!oldName || !newName || oldName === newName) return agent;
+  return mapAllPromptText(agent, makeTerminalRewrite('thinking', oldName, newName));
+}
+
+/**
  * Tag rename — both sides of the cascade in one atomic transform:
  *
  *   1. Token side: rewrite `{{tag:OLD}}`, `{{tag:OLD:values}}`,

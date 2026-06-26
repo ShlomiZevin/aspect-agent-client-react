@@ -106,6 +106,27 @@ export async function deleteWorkspace(args: {
   });
 }
 
+/**
+ * Duplicate a project's agent (active versions only) into a fresh copy
+ * with a new slug. Returns the new slug. Throws on a slug already taken
+ * (server responds 409).
+ */
+export async function duplicateProject(args: {
+  projectId: string;
+  newName: string;
+  newSlug: string;
+  workspaceId: string | null;
+}): Promise<{ projectId: string; agentId: string; slug: string; name: string }> {
+  return http(`/api/builder/projects/${args.projectId}/duplicate`, {
+    method: 'POST',
+    body: JSON.stringify({
+      newName: args.newName,
+      newSlug: args.newSlug,
+      workspaceId: args.workspaceId,
+    }),
+  });
+}
+
 // ─── Agent shell mutations (rename / move / archive) ──────────────
 
 /**

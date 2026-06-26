@@ -17,6 +17,7 @@ import {
   createWorkspace,
   deleteProject,
   deleteWorkspace,
+  duplicateProject,
   fetchProject,
   listProjects,
   listWorkspaces,
@@ -110,6 +111,7 @@ function HomeContent() {
   const [wsDeleteTarget, setWsDeleteTarget]     = useState<WorkspaceItem | null>(null);
   const [agentRenameTarget, setAgentRenameTarget] = useState<ProjectListItem | null>(null);
   const [agentMoveTarget, setAgentMoveTarget]     = useState<ProjectListItem | null>(null);
+  const [agentDupTarget, setAgentDupTarget]       = useState<ProjectListItem | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -253,6 +255,10 @@ function HomeContent() {
                 <button type="button" className={styles.menuItem}
                   onClick={() => { close(); setAgentMoveTarget(item); }}>
                   <span className={styles.menuIcon}>📁</span> Move to…
+                </button>
+                <button type="button" className={styles.menuItem}
+                  onClick={() => { close(); setAgentDupTarget(item); }}>
+                  <span className={styles.menuIcon}>📄</span> Duplicate
                 </button>
                 <button type="button" className={styles.menuItem}
                   onClick={() => { close(); doArchive(item, true); }}>
@@ -457,8 +463,36 @@ function HomeContent() {
           }}
         />
       )}
+
+      {agentDupTarget && (
+        <DuplicateAgentModal
+          item={agentDupTarget}
+          existingSlugs={all.map(i => i.agentSlug)}
+          onClose={() => setAgentDupTarget(null)}
+          onSubmit={async (name, slug) => {
+            await duplicateProject({
+              projectId: agentDupTarget.projectId,
+              newName: name,
+              newSlug: slug,
+              workspaceId: agentDupTarget.workspaceId,
+            });
+            await reload();
+            setAgentDupTarget(null);
+          }}
+        />
+      )}
     </div>
   );
+}
+
+/** Suggest a free `<base>-copy` slug, bumping `-copy-2`, `-copy-3`, … */
+function suggestCopySlug(base: string, existing: string[]): string {
+  const taken = new Set(existing);
+  const first = `${base}-copy`;
+  if (!taken.has(first)) return first;
+  let i = 2;
+  while (taken.has(`${base}-copy-${i}`)) i += 1;
+  return `${base}-copy-${i}`;
 }
 
 // ─── Kebab menu ─────────────────────────────────────────────────────
@@ -704,6 +738,68 @@ function RenameAgentModal({
             <code> /{item.agentSlug}/builder</code> will stop working.
           </div>
         )}
+        {err && <div className={styles.modalError}>{err}</div>}
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Duplicate-agent modal ──────────────────────────────────────────
+
+function DuplicateAgentModal({
+  item, existingSlugs, onSubmit, onClose,
+}: {
+  item: ProjectListItem;
+  existingSlugs: string[];
+  onSubmit: (name: string, slug: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(`${item.agentName} copy`);
+  const [slug, setSlug] = useState(() => suggestCopySlug(item.agentSlug, existingSlugs));
+  const [slugDirty, setSlugDirty] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr]   = useState<string | null>(null);
+
+  const trimmedName = name.trim();
+  const trimmedSlug = slug.trim();
+
+  const submit = async () => {
+    if (!trimmedName || !trimmedSlug || busy) return;
+    setBusy(true); setErr(null);
+    try { await onSubmit(trimmedName, trimmedSlug); }
+    catch (e) { setErr(cleanErr(e)); setBusy(false); }
+  };
+
+  return (
+    <Modal open onClose={onClose} width={460}
+      title="📄 Duplicate agent"
+      footer={
+        <div className={styles.modalFooter}>
+          <button type="button" className={styles.secondaryBtn} onClick={onClose}>Cancel</button>
+          <button type="button" className={styles.primaryBtn} disabled={!trimmedName || !trimmedSlug || busy} onClick={submit}>
+            {busy ? 'Duplicating…' : 'Duplicate'}
+          </button>
+        </div>
+      }>
+      <div className={styles.modalBody}>
+        <div className={styles.modalNote}>
+          Makes a full copy of <strong>“{item.agentName}”</strong> — its current (active) crews,
+          addons, fields and personas — in the same place. The original is untouched.
+        </div>
+        <label className={styles.fieldLabel}>
+          New name
+          <input type="text" autoFocus value={name}
+            onChange={e => { setName(e.target.value); if (!slugDirty) setSlug(slugify(e.target.value)); }}
+            className={styles.fieldInput} />
+        </label>
+        <label className={styles.fieldLabel}>
+          New slug (URL)
+          <input type="text" value={slug}
+            onChange={e => { setSlugDirty(true); setSlug(slugify(e.target.value)); }}
+            onKeyDown={e => { if (e.key === 'Enter') submit(); }}
+            className={styles.fieldInput} />
+          <small className={styles.hint}>URL: <code>/{trimmedSlug || 'your-slug'}/builder</code></small>
+        </label>
         {err && <div className={styles.modalError}>{err}</div>}
       </div>
     </Modal>

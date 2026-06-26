@@ -52,34 +52,46 @@ const STEP_ICON: Record<string, string> = { trigger: '🟢', query: '✏️', se
 export function KbRetrieverRunBody({ parsed }: { parsed: KbParsed }) {
   const hits = parsed.hits ?? [];
   const written = parsed.written;
+  // Search-step body: queryLine + results live UNDER the search step
+  // the same way LLM prompt/output detail lives under the trigger /
+  // query steps. Same `.stepDetail` indent so the trail reads as
+  // "When → What → Search ↳ results" instead of three flat blocks.
+  const searchBody = (parsed.query || hits.length > 0 || (parsed.fired && hits.length === 0))
+    ? (
+      <>
+        {parsed.query && (
+          <div className={styles.queryLine}>
+            <span className={styles.queryLabel}>Searched for</span>
+            <span className={styles.queryText}>{parsed.query}</span>
+          </div>
+        )}
+        {hits.length > 0 && (
+          <div className={styles.results}>
+            <div className={styles.resultsHead}>
+              {hits.length} result{hits.length === 1 ? '' : 's'}
+              {typeof parsed.queryTimeMs === 'number' && <span className={styles.dim}> · {parsed.queryTimeMs}ms</span>}
+            </div>
+            {hits.map((h, i) => <HitCard key={i} hit={h} />)}
+          </div>
+        )}
+        {parsed.fired && hits.length === 0 && (
+          <div className={styles.noResults}>No chunks passed the score threshold.</div>
+        )}
+      </>
+    )
+    : null;
   return (
     <div className={styles.wrap}>
       {/* ── Step trail ── */}
       <div className={styles.steps}>
-        {parsed.steps.map((s, i) => <StepRow key={i} step={s} />)}
+        {parsed.steps.map((s, i) => (
+          <StepRow
+            key={i}
+            step={s}
+            body={s.id === 'search' ? searchBody : null}
+          />
+        ))}
       </div>
-
-      {/* ── Final query (what actually hit the index) ── */}
-      {parsed.query && (
-        <div className={styles.queryLine}>
-          <span className={styles.queryLabel}>Searched for</span>
-          <span className={styles.queryText}>{parsed.query}</span>
-        </div>
-      )}
-
-      {/* ── Results ── */}
-      {hits.length > 0 && (
-        <div className={styles.results}>
-          <div className={styles.resultsHead}>
-            {hits.length} result{hits.length === 1 ? '' : 's'}
-            {typeof parsed.queryTimeMs === 'number' && <span className={styles.dim}> · {parsed.queryTimeMs}ms</span>}
-          </div>
-          {hits.map((h, i) => <HitCard key={i} hit={h} />)}
-        </div>
-      )}
-      {parsed.fired && hits.length === 0 && (
-        <div className={styles.noResults}>No chunks passed the score threshold.</div>
-      )}
 
       {/* ── What was written to the brain slot ── */}
       {written && (
@@ -95,30 +107,51 @@ export function KbRetrieverRunBody({ parsed }: { parsed: KbParsed }) {
   );
 }
 
-function StepRow({ step }: { step: KbStep }) {
+function StepRow({
+  step, body = null, alwaysOpen = false,
+}: {
+  step: KbStep;
+  /** Optional content rendered inside the step's `.stepDetail` block.
+   *  Used by the Search step to nest the searched-for query + results
+   *  visually under the step (instead of as flat siblings further
+   *  down the trail). */
+  body?: React.ReactNode;
+  /** When true, the body is always rendered (no expand/collapse). The
+   *  Search step uses this — its results ARE the main event, not a
+   *  click-through detail. */
+  alwaysOpen?: boolean;
+}) {
   const [open, setOpen] = useState(false);
-  const hasDetail = !!step.llm;
+  const hasLlm = !!step.llm;
+  const hasBody = !!body;
+  const isOpen = alwaysOpen || open;
+  const collapsible = !alwaysOpen && (hasLlm || hasBody);
   return (
     <div className={styles.step}>
       <button
         type="button"
         className={styles.stepHead}
-        onClick={hasDetail ? () => setOpen(o => !o) : undefined}
-        style={hasDetail ? undefined : { cursor: 'default' }}
+        onClick={collapsible ? () => setOpen(o => !o) : undefined}
+        style={collapsible ? undefined : { cursor: 'default' }}
       >
         <span className={styles.stepIcon}>{STEP_ICON[step.id] ?? '•'}</span>
         <span className={styles.stepTitle}>{step.title}</span>
         <span className={`${styles.stepSummary} ${step.error ? styles.stepError : ''}`}>{step.summary}</span>
         {step.llm && <span className={styles.stepModel}>🤖 {step.llm.model ?? 'model'}</span>}
-        {hasDetail && <span className={styles.stepCaret}>{open ? '▾' : '▸'}</span>}
+        {collapsible && <span className={styles.stepCaret}>{isOpen ? '▾' : '▸'}</span>}
       </button>
-      {hasDetail && open && step.llm && (
+      {(hasLlm || hasBody) && isOpen && (
         <div className={styles.stepDetail}>
-          <div className={styles.detailMeta}>history: {step.llm.history}</div>
-          <div className={styles.detailLabel}>Prompt sent</div>
-          <pre className={styles.detailPre}>{step.llm.prompt}</pre>
-          <div className={styles.detailLabel}>LLM answered</div>
-          <pre className={styles.detailPre}>{step.llm.output}</pre>
+          {hasLlm && step.llm && (
+            <>
+              <div className={styles.detailMeta}>history: {step.llm.history}</div>
+              <div className={styles.detailLabel}>Prompt sent</div>
+              <pre className={styles.detailPre}>{step.llm.prompt}</pre>
+              <div className={styles.detailLabel}>LLM answered</div>
+              <pre className={styles.detailPre}>{step.llm.output}</pre>
+            </>
+          )}
+          {body}
         </div>
       )}
     </div>

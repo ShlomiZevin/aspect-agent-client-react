@@ -442,3 +442,70 @@ export async function deleteLibraryFile(id: number): Promise<void> {
     throw new Error(err.error || `Delete failed: ${response.status}`);
   }
 }
+
+// ─── KB↔agent visibility links (many-to-many) ────────────────────────────────
+// A KB is a Pinecone namespace (global). Links record which builder agents
+// each namespace is "related to" so the builder shows only the relevant KBs
+// per agent. Pure visibility — no owner, no vector copies.
+
+export interface AgentKb {
+  namespace: string;
+  vectorCount: number;
+  fileCount: number;
+  chunkCount: number;
+  cost: number;
+  /** Whether this KB is linked to the agent the list was scoped to. */
+  linked: boolean;
+}
+
+/**
+ * Scoped KB list. `scope: 'linked'` (default when agentId given) returns
+ * only KBs linked to the agent; `scope: 'all'` returns every KB with a
+ * `linked` flag so the picker can offer "show all / link more".
+ */
+export async function getAgentKbs(
+  agentId: string,
+  scope: 'linked' | 'all' = 'linked',
+): Promise<AgentKb[]> {
+  const params = new URLSearchParams({ agentId, scope });
+  const response = await fetch(`${BASE()}/api/library/kbs?${params}`);
+  if (!response.ok) return [];
+  const data = await response.json();
+  return data.kbs || [];
+}
+
+/** Relate a KB (namespace) to an agent. Idempotent. */
+export async function linkKb(agentId: string, namespace: string): Promise<void> {
+  const response = await fetch(`${BASE()}/api/library/links`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agentId, namespace }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `Link failed: ${response.status}`);
+  }
+}
+
+/** Remove a KB↔agent relation. */
+export async function unlinkKb(agentId: string, namespace: string): Promise<void> {
+  const response = await fetch(`${BASE()}/api/library/links`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agentId, namespace }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `Unlink failed: ${response.status}`);
+  }
+}
+
+export interface LinkedAgent { agentId: string; slug: string; name: string }
+
+/** Agents a KB is linked to (with display names) — for the workbench. */
+export async function getKbAgents(namespace: string): Promise<LinkedAgent[]> {
+  const response = await fetch(`${BASE()}/api/library/namespace/${encodeURIComponent(namespace)}/agents`);
+  if (!response.ok) return [];
+  const data = await response.json();
+  return data.agents || [];
+}

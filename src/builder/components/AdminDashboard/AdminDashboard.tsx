@@ -143,7 +143,7 @@ export function AdminDashboard() {
           />
           <Route
             path="knowledge-base"
-            element={<KBWorkbench agentSlug={slug} />}
+            element={<KBWorkbench agentSlug={slug} agentId={agent.id} />}
           />
           <Route
             path="usage"
