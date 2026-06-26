@@ -197,50 +197,44 @@ export function FreedaNextChatProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  // Start a fresh conversation: new id, URL, greeting.
-  const startConversation = useCallback(
-    (id: string) => {
-      setConversationId(id);
-      convRef.current = id;
-      setMessages([]);
-      setError(null);
-      setHasStartedChat(true);
-      void callEngine(id, { text: 'hi' });
-    },
-    [callEngine]
-  );
-
-  // Boot: resolve the conversation from the URL, or create a new one.
+  // Boot: restore the conversation from the URL (if any). No auto-greeting —
+  // the welcome screen (quick-question tiles) shows until the user sends the
+  // first message, which lazily creates the conversation.
   useEffect(() => {
     const id = urlConvId || '';
+    if (bootedRef.current === id) return;
+    bootedRef.current = id;
 
     if (!id) {
-      // No conversation in the URL -> create one and navigate to it.
-      if (bootedRef.current === '<creating>') return;
-      bootedRef.current = '<creating>';
-      navigate(`/freedanext/conversations/${newConversationId()}`, { replace: true });
+      setConversationId('');
+      convRef.current = '';
+      setMessages([]);
+      setStepIndex(0);
+      setHasStartedChat(false);
       return;
     }
 
-    if (bootedRef.current === id) return;
-    bootedRef.current = id;
     setConversationId(id);
     convRef.current = id;
     const stored = loadMsgs(id);
-    if (stored.length > 0) {
-      setMessages(stored);
-      setHasStartedChat(true);
-      setStepIndex(Number(localStorage.getItem(stepKey(id))) || 0);
-    } else {
-      startConversation(id);
-    }
+    setMessages(stored);
+    setStepIndex(Number(localStorage.getItem(stepKey(id))) || 0);
+    setHasStartedChat(stored.length > 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlConvId]);
 
   const sendMessage = useCallback(
     async (text: string, options?: { hidden?: boolean }) => {
-      const id = convRef.current;
-      if (!text.trim() || isLoading || !id) return;
+      if (!text.trim() || isLoading) return;
+      let id = convRef.current;
+      if (!id) {
+        // Lazily create the conversation on the first message / tile click.
+        id = newConversationId();
+        convRef.current = id;
+        bootedRef.current = id;
+        setConversationId(id);
+        navigate(`/freedanext/conversations/${id}`);
+      }
       setHasStartedChat(true);
       if (!options?.hidden) {
         setMessages((prev) => {
@@ -254,16 +248,22 @@ export function FreedaNextChatProvider({ children }: { children: ReactNode }) {
       upsertConv(id, '');
       refreshConversations();
     },
-    [isLoading, callEngine, refreshConversations]
+    [isLoading, callEngine, refreshConversations, navigate]
   );
 
+  // New chat -> back to the welcome screen (no greeting). The conversation is
+  // created lazily when the user sends the first message.
   const createNewChat = useCallback(() => {
-    const id = newConversationId();
-    navigate(`/freedanext/conversations/${id}`);
-    bootedRef.current = id;
-    startConversation(id);
-    return id;
-  }, [navigate, startConversation]);
+    bootedRef.current = '';
+    convRef.current = '';
+    setConversationId('');
+    setMessages([]);
+    setStepIndex(0);
+    setError(null);
+    setHasStartedChat(false);
+    navigate('/freedanext');
+    return '';
+  }, [navigate]);
 
   const switchToChat = useCallback(
     async (id: string) => {

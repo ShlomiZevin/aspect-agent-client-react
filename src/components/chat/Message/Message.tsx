@@ -77,6 +77,8 @@ export function Message({ message }: MessageProps) {
   const rtl = isRTL(message.content);
   const canFeedback = !restrictedMode && !isUser && !isDeveloper && message.dbId;
   const canReportBug = debugMode && !isUser && !isDeveloper;
+  // Agents whose backend has no message deletion hide per-message actions.
+  const showActions = !config.features.hideMessageActions;
 
   // Parse UI elements from bot messages
   const { cleanText: uiCleanText, elements: uiElements } = (!isUser && !isDeveloper)
@@ -239,7 +241,7 @@ export function Message({ message }: MessageProps) {
                   ? `Transition prompt for: ${message.injectionMeta.crewMemberName}`
                   : 'Injected for testing'}
               </span>
-              <DeleteButton />
+              {showActions && <DeleteButton />}
             </div>
             <pre className={styles.developerContent}>{message.content}</pre>
           </div>
@@ -248,7 +250,7 @@ export function Message({ message }: MessageProps) {
             <span dir={rtl ? 'rtl' : undefined}>{message.content}</span>
             <div className={styles.messageActions}>
               <CopyActions />
-              <DeleteButton />
+              {showActions && <DeleteButton />}
             </div>
           </div>
         ) : (
@@ -300,7 +302,7 @@ export function Message({ message }: MessageProps) {
                   </button>
                 )}
                 <CopyActions />
-                <DeleteButton />
+                {showActions && <DeleteButton />}
               </div>
             </div>
             {hasThinkingSteps && (

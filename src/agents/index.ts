@@ -4,6 +4,7 @@ export { bankingOnboarderV2Config } from './banking-onboarder-v2.config';
 export { bylineConfig } from './byline.config';
 export { foremanConfig } from './foreman.config';
 export { freedaConfig } from './freeda.config';
+export { freedaNextConfig } from './freedanext.config';
 export { oneZeroConfig } from './onezero.config';
 export { compassConfig } from './compass.config';
 export { tiktokConfig } from './tiktok.config';

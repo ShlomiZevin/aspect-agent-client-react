@@ -3,7 +3,7 @@ import { LanguageProvider } from '../context/LanguageContext';
 import { FreedaNextChatProvider } from '../context/FreedaNextChatProvider';
 import { AppLayout } from '../components/layout';
 import { ChatContainer } from '../components/chat';
-import { freedaConfig } from '../agents';
+import { freedaNextConfig } from '../agents';
 import { useDocumentMeta } from '../hooks';
 
 /**
@@ -16,16 +16,16 @@ import { useDocumentMeta } from '../hooks';
  */
 export function FreedaNextPage() {
   useDocumentMeta({
-    title: freedaConfig.pageTitle,
-    favicon: freedaConfig.favicon,
-    description: freedaConfig.metaDescription,
+    title: freedaNextConfig.pageTitle,
+    favicon: freedaNextConfig.favicon,
+    description: freedaNextConfig.metaDescription,
   });
 
   return (
     <ThemeProvider storagePrefix="freedanext_">
       <LanguageProvider storagePrefix="freedanext_">
-        <UserProvider storagePrefix="freedanext_" baseURL={freedaConfig.baseURL}>
-          <AgentProvider config={freedaConfig}>
+        <UserProvider storagePrefix="freedanext_" baseURL={freedaNextConfig.baseURL}>
+          <AgentProvider config={freedaNextConfig}>
             <FreedaNextChatProvider>
               <AppLayout>
                 <ChatContainer showCrewSelector={false} />
