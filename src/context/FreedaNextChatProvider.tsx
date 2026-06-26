@@ -4,7 +4,12 @@ import { ChatContext } from './ChatContext';
 import type { Message, Conversation } from '../types/chat';
 import type { CrewMember, CrewJourneyStep } from '../types/crew';
 import { useAgentContext } from './AgentContext';
-import { sendFreedaMessage, type FreedaMessage } from '../services/freedaNextService';
+import {
+  sendFreedaMessage,
+  fetchFreedaHistory,
+  type FreedaMessage,
+  type FreedaHistoryMessage,
+} from '../services/freedaNextService';
 
 /**
  * Drop-in replacement for ChatProvider that drives the SAME standard chat UI
@@ -97,6 +102,29 @@ function toAssistantMessage(m: FreedaMessage): Message | null {
   }
   if (!content) return null;
   return { id: newMessageId(), role: 'assistant', content, timestamp: new Date(), crewMember: 'Freeda AI' };
+}
+
+// Map a server-side history transcript onto standard Message objects.
+function historyToMessages(items: FreedaHistoryMessage[]): Message[] {
+  const out: Message[] = [];
+  for (const m of items) {
+    if (m.role === 'user') {
+      if (m.text) out.push({ id: m.id, role: 'user', content: m.text, timestamp: new Date() });
+      continue;
+    }
+    let content = '';
+    if (m.type === 'image' && m.imageUrl) {
+      content = `![](${m.imageUrl})`;
+    } else if (m.type === 'buttons') {
+      const labels = (m.buttons ?? []).map((b) => b.title).filter(Boolean);
+      content = (m.text ?? '').trim();
+      if (labels.length) content += `${content ? '\n\n' : ''}[buttons: ${labels.join(' | ')}]`;
+    } else {
+      content = m.text ?? '';
+    }
+    if (content) out.push({ id: m.id, role: 'assistant', content, timestamp: new Date(), crewMember: 'Freeda AI' });
+  }
+  return out;
 }
 
 // ---- Freeda flow stages (rendered as the journey stepper at the top) -------
@@ -216,10 +244,36 @@ export function FreedaNextChatProvider({ children }: { children: ReactNode }) {
 
     setConversationId(id);
     convRef.current = id;
-    const stored = loadMsgs(id);
-    setMessages(stored);
+    const cached = loadMsgs(id);
+    setMessages(cached);
     setStepIndex(Number(localStorage.getItem(stepKey(id))) || 0);
-    setHasStartedChat(stored.length > 0);
+    setHasStartedChat(cached.length > 0);
+
+    // Pull authoritative history from the server so shared URLs / other
+    // browsers / incognito restore the conversation (not just this browser).
+    void (async () => {
+      try {
+        const hist = await fetchFreedaHistory(id);
+        if (convRef.current !== id) return;
+        const serverMsgs = historyToMessages(hist.messages);
+        if (serverMsgs.length === 0) return;
+        let applied = false;
+        setMessages((prev) => {
+          if (serverMsgs.length < prev.length) return prev; // keep in-flight local sends
+          applied = true;
+          saveMsgs(id, serverMsgs);
+          return serverMsgs;
+        });
+        if (applied) {
+          const idx = stageIndexForStep(hist.step);
+          setStepIndex(idx);
+          localStorage.setItem(stepKey(id), String(idx));
+          setHasStartedChat(true);
+        }
+      } catch {
+        /* keep cache / welcome */
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlConvId]);
 

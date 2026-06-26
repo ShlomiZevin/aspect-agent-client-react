@@ -10,6 +10,10 @@ const FREEDA_CHAT_URL =
   (import.meta.env.VITE_FREEDA_CHAT_URL as string | undefined) ||
   'https://us-central1-menopause-bot.cloudfunctions.net/freedaChat';
 
+const FREEDA_HISTORY_URL =
+  (import.meta.env.VITE_FREEDA_HISTORY_URL as string | undefined) ||
+  'https://us-central1-menopause-bot.cloudfunctions.net/freedaChatHistory';
+
 const SESSION_KEY = 'freedanext:sessionId';
 
 export interface FreedaButton {
@@ -55,6 +59,28 @@ export async function sendFreedaMessage(params: SendParams): Promise<FreedaChatR
     }
     throw new Error(`freedaChat ${res.status}${detail ? `: ${detail}` : ''}`);
   }
+  return res.json();
+}
+
+export interface FreedaHistoryMessage {
+  id: string;
+  role: 'user' | 'bot';
+  type: 'text' | 'image' | 'buttons';
+  text?: string;
+  imageUrl?: string;
+  buttons?: FreedaButton[];
+}
+
+export interface FreedaHistoryResponse {
+  sessionId: string;
+  step?: string;
+  messages: FreedaHistoryMessage[];
+}
+
+/** Fetch the server-side transcript for a session (shared URLs / other browsers). */
+export async function fetchFreedaHistory(sessionId: string): Promise<FreedaHistoryResponse> {
+  const res = await fetch(`${FREEDA_HISTORY_URL}?sessionId=${encodeURIComponent(sessionId)}`);
+  if (!res.ok) throw new Error(`freedaChatHistory ${res.status}`);
   return res.json();
 }
 
