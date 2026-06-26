@@ -199,6 +199,7 @@ function AppContent() {
         <Route path="/freeda" element={<FreedaPage />} />
         <Route path="/freeda/conversations/:conversationId" element={<FreedaPage />} />
         <Route path="/freedanext" element={<FreedaNextPage />} />
+        <Route path="/freedanext/conversations/:conversationId" element={<FreedaNextPage />} />
         <Route path="/compass" element={<CompassPage />} />
         <Route path="/compass/conversations/:conversationId" element={<CompassPage />} />
         <Route path="/tiktok" element={<TiktokPage />} />
