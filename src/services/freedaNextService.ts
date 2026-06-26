@@ -28,6 +28,8 @@ export interface FreedaMessage {
 
 export interface FreedaChatResponse {
   sessionId: string;
+  /** Current engine step id (for flow-progress UI). */
+  step?: string;
   messages: FreedaMessage[];
 }
 

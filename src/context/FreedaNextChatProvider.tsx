@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChatContext } from './ChatContext';
 import type { Message, Conversation } from '../types/chat';
+import type { CrewMember, CrewJourneyStep } from '../types/crew';
 import { useAgentContext } from './AgentContext';
 import { sendFreedaMessage, type FreedaMessage } from '../services/freedaNextService';
 
@@ -37,7 +38,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // ---- localStorage helpers --------------------------------------------------
 
-interface StoredMsg { id: string; role: Message['role']; content: string; ts: string }
+interface StoredMsg { id: string; role: Message['role']; content: string; ts: string; crew?: string }
 interface StoredConv { id: string; title: string; createdAt: string; updatedAt: string }
 
 function loadList(): StoredConv[] {
@@ -49,11 +50,11 @@ function saveList(list: StoredConv[]) {
 function loadMsgs(id: string): Message[] {
   try {
     const raw: StoredMsg[] = JSON.parse(localStorage.getItem(msgsKey(id)) || '[]');
-    return raw.map((m) => ({ id: m.id, role: m.role, content: m.content, timestamp: new Date(m.ts) }));
+    return raw.map((m) => ({ id: m.id, role: m.role, content: m.content, timestamp: new Date(m.ts), crewMember: m.crew }));
   } catch { return []; }
 }
 function saveMsgs(id: string, msgs: Message[]) {
-  const raw: StoredMsg[] = msgs.map((m) => ({ id: m.id, role: m.role, content: m.content, ts: m.timestamp.toISOString() }));
+  const raw: StoredMsg[] = msgs.map((m) => ({ id: m.id, role: m.role, content: m.content, ts: m.timestamp.toISOString(), crew: m.crewMember }));
   localStorage.setItem(msgsKey(id), JSON.stringify(raw));
 }
 function upsertConv(id: string, title: string) {
@@ -94,7 +95,55 @@ function toAssistantMessage(m: FreedaMessage): Message | null {
     content = m.text ?? '';
   }
   if (!content) return null;
-  return { id: newMessageId(), role: 'assistant', content, timestamp: new Date(), crewMember: 'Freeda' };
+  return { id: newMessageId(), role: 'assistant', content, timestamp: new Date() };
+}
+
+// ---- Freeda flow stages (rendered as the journey stepper at the top) -------
+const FREEDA_STAGES = [
+  { name: 'welcome', displayName: 'Welcome' },
+  { name: 'about_you', displayName: 'About You' },
+  { name: 'menstrual', displayName: 'Menstrual Status' },
+  { name: 'symptoms', displayName: 'Symptom Check' },
+  { name: 'roadmap', displayName: 'Your Roadmap' },
+  { name: 'qa', displayName: 'Q&A' },
+];
+
+// Map an engine step id onto a journey stage index.
+function stageIndexForStep(stepId?: string): number {
+  if (!stepId) return 0;
+  if (/CollectName|CollectAge|AfterName|postNameIntro/i.test(stepId)) return 1;
+  if (/menstrual|stopped|tooYoung|preAssessment/i.test(stepId)) return 2;
+  if (/intakeStart|Vasomotor|Emotional|Cognitive|Physical|TopSymptoms|Top3/i.test(stepId)) return 3;
+  if (/Summary/i.test(stepId)) return 4;
+  if (/generalAma|feedback/i.test(stepId)) return 5;
+  return 0;
+}
+
+function stageIndexFromLabel(label?: string): number {
+  const i = FREEDA_STAGES.findIndex((s) => s.displayName === label);
+  return i === -1 ? 0 : i;
+}
+
+function makeCrew(stage: { name: string; displayName: string }): CrewMember {
+  return {
+    name: stage.name,
+    displayName: stage.displayName,
+    description: '',
+    isDefault: false,
+    model: '',
+    collectFields: [],
+    fieldsToCollect: [],
+    transitionTo: null,
+    toolCount: 0,
+    hasKnowledgeBase: false,
+  };
+}
+
+function buildJourney(currentIndex: number): CrewJourneyStep[] {
+  return FREEDA_STAGES.map((stage, i) => ({
+    crew: makeCrew(stage),
+    status: i < currentIndex ? 'completed' : i === currentIndex ? 'current' : 'upcoming',
+  }));
 }
 
 export function FreedaNextChatProvider({ children }: { children: ReactNode }) {
@@ -109,6 +158,8 @@ export function FreedaNextChatProvider({ children }: { children: ReactNode }) {
   const [isThinking, setIsThinking] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [isJourneyModalOpen, setJourneyModalOpen] = useState(false);
 
   const convRef = useRef<string>(conversationId);
   convRef.current = conversationId;
@@ -127,7 +178,11 @@ export function FreedaNextChatProvider({ children }: { children: ReactNode }) {
       try {
         const res = await sendFreedaMessage({ sessionId: id, ...payload });
         setIsThinking(false);
+        const idx = stageIndexForStep(res.step);
+        setStepIndex(idx);
+        const stageLabel = FREEDA_STAGES[idx].displayName;
         const bot = res.messages.map(toAssistantMessage).filter((m): m is Message => m !== null);
+        bot.forEach((m) => { m.crewMember = stageLabel; });
         for (let i = 0; i < bot.length; i++) {
           if (convRef.current !== id) break; // user switched conversations
           setMessages((prev) => {
@@ -180,6 +235,8 @@ export function FreedaNextChatProvider({ children }: { children: ReactNode }) {
     if (stored.length > 0) {
       setMessages(stored);
       setHasStartedChat(true);
+      const lastBot = [...stored].reverse().find((m) => m.role === 'assistant' && m.crewMember);
+      setStepIndex(stageIndexFromLabel(lastBot?.crewMember));
     } else {
       startConversation(id);
     }
@@ -220,7 +277,10 @@ export function FreedaNextChatProvider({ children }: { children: ReactNode }) {
       bootedRef.current = id;
       setConversationId(id);
       convRef.current = id;
-      setMessages(loadMsgs(id));
+      const stored = loadMsgs(id);
+      setMessages(stored);
+      const lastBot = [...stored].reverse().find((m) => m.role === 'assistant' && m.crewMember);
+      setStepIndex(stageIndexFromLabel(lastBot?.crewMember));
       setHasStartedChat(true);
       setError(null);
     },
@@ -291,16 +351,16 @@ export function FreedaNextChatProvider({ children }: { children: ReactNode }) {
     updateChatTitle,
     loadConversations: async () => refreshConversations(),
 
-    // Crew (none)
-    crewMembers: [],
-    currentCrew: null,
+    // Crew journey — show the Freeda flow stages as the top stepper
+    crewMembers: FREEDA_STAGES.map(makeCrew),
+    currentCrew: makeCrew(FREEDA_STAGES[stepIndex]),
     selectedOverride: null,
     setSelectedOverride: noop,
-    hasCrew: false,
-    journeySteps: [],
-    isJourneyModalOpen: false,
-    openJourneyModal: noop,
-    closeJourneyModal: noop,
+    hasCrew: true,
+    journeySteps: buildJourney(stepIndex),
+    isJourneyModalOpen,
+    openJourneyModal: () => setJourneyModalOpen(true),
+    closeJourneyModal: () => setJourneyModalOpen(false),
 
     // Phone linking (unused)
     linkedPhone: null,
