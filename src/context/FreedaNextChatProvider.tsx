@@ -187,6 +187,8 @@ export function FreedaNextChatProvider({ children }: { children: ReactNode }) {
 
   const convRef = useRef<string>(conversationId);
   convRef.current = conversationId;
+  const messagesRef = useRef<Message[]>(messages);
+  messagesRef.current = messages;
   const bootedRef = useRef<string | null>(null);
 
   const refreshConversations = useCallback((list?: StoredConv[]) => {
@@ -257,19 +259,14 @@ export function FreedaNextChatProvider({ children }: { children: ReactNode }) {
         if (convRef.current !== id) return;
         const serverMsgs = historyToMessages(hist.messages);
         if (serverMsgs.length === 0) return;
-        let applied = false;
-        setMessages((prev) => {
-          if (serverMsgs.length < prev.length) return prev; // keep in-flight local sends
-          applied = true;
-          saveMsgs(id, serverMsgs);
-          return serverMsgs;
-        });
-        if (applied) {
-          const idx = stageIndexForStep(hist.step);
-          setStepIndex(idx);
-          localStorage.setItem(stepKey(id), String(idx));
-          setHasStartedChat(true);
-        }
+        // Don't drop in-flight local sends (the server snapshot may be stale).
+        if (serverMsgs.length < messagesRef.current.length) return;
+        setMessages(serverMsgs);
+        saveMsgs(id, serverMsgs);
+        const idx = stageIndexForStep(hist.step);
+        setStepIndex(idx);
+        localStorage.setItem(stepKey(id), String(idx));
+        setHasStartedChat(true);
       } catch {
         /* keep cache / welcome */
       }
