@@ -25,6 +25,7 @@ import { sendFreedaMessage, type FreedaMessage } from '../services/freedaNextSer
 
 const LIST_KEY = 'freedanext:list';
 const msgsKey = (id: string) => `freedanext:msgs:${id}`;
+const stepKey = (id: string) => `freedanext:step:${id}`;
 const REVEAL_DELAY_MS = 450;
 
 let idCounter = 0;
@@ -95,7 +96,7 @@ function toAssistantMessage(m: FreedaMessage): Message | null {
     content = m.text ?? '';
   }
   if (!content) return null;
-  return { id: newMessageId(), role: 'assistant', content, timestamp: new Date() };
+  return { id: newMessageId(), role: 'assistant', content, timestamp: new Date(), crewMember: 'Freeda AI' };
 }
 
 // ---- Freeda flow stages (rendered as the journey stepper at the top) -------
@@ -117,11 +118,6 @@ function stageIndexForStep(stepId?: string): number {
   if (/Summary/i.test(stepId)) return 4;
   if (/generalAma|feedback/i.test(stepId)) return 5;
   return 0;
-}
-
-function stageIndexFromLabel(label?: string): number {
-  const i = FREEDA_STAGES.findIndex((s) => s.displayName === label);
-  return i === -1 ? 0 : i;
 }
 
 function makeCrew(stage: { name: string; displayName: string }): CrewMember {
@@ -180,9 +176,8 @@ export function FreedaNextChatProvider({ children }: { children: ReactNode }) {
         setIsThinking(false);
         const idx = stageIndexForStep(res.step);
         setStepIndex(idx);
-        const stageLabel = FREEDA_STAGES[idx].displayName;
+        localStorage.setItem(stepKey(id), String(idx));
         const bot = res.messages.map(toAssistantMessage).filter((m): m is Message => m !== null);
-        bot.forEach((m) => { m.crewMember = stageLabel; });
         for (let i = 0; i < bot.length; i++) {
           if (convRef.current !== id) break; // user switched conversations
           setMessages((prev) => {
@@ -235,8 +230,7 @@ export function FreedaNextChatProvider({ children }: { children: ReactNode }) {
     if (stored.length > 0) {
       setMessages(stored);
       setHasStartedChat(true);
-      const lastBot = [...stored].reverse().find((m) => m.role === 'assistant' && m.crewMember);
-      setStepIndex(stageIndexFromLabel(lastBot?.crewMember));
+      setStepIndex(Number(localStorage.getItem(stepKey(id))) || 0);
     } else {
       startConversation(id);
     }
@@ -277,10 +271,8 @@ export function FreedaNextChatProvider({ children }: { children: ReactNode }) {
       bootedRef.current = id;
       setConversationId(id);
       convRef.current = id;
-      const stored = loadMsgs(id);
-      setMessages(stored);
-      const lastBot = [...stored].reverse().find((m) => m.role === 'assistant' && m.crewMember);
-      setStepIndex(stageIndexFromLabel(lastBot?.crewMember));
+      setMessages(loadMsgs(id));
+      setStepIndex(Number(localStorage.getItem(stepKey(id))) || 0);
       setHasStartedChat(true);
       setError(null);
     },
