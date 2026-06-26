@@ -15,6 +15,7 @@ export { BylinePage } from './BylinePage';
 export { DemoPage } from './DemoPage';
 export { ForemanPage } from './ForemanPage';
 export { FreedaPage } from './FreedaPage';
+export { FreedaNextPage } from './FreedaNextPage';
 export { HomePage } from './HomePage';
 export { LybiLandingPage } from './LybiLandingPage';
 export { AgentLoginPage } from './AgentLoginPage';
