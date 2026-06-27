@@ -198,3 +198,103 @@ export function rowsToTsv(rows: string[][]): string {
     ).join('\t'),
   ).join('\n');
 }
+
+/* ─── JSON / CSV round-trip ──────────────────────────────────────────
+ *
+ * The body of an enum-value section can store the same table in any of
+ * three on-the-wire forms — markdown pipe-table, JSON array of objects,
+ * or CSV. The form chosen in the modal IS what gets injected into the
+ * prompt; no server transform happens. These helpers let us:
+ *
+ *   - emit a TableModel as JSON / CSV when the user saves with that
+ *     format chosen (the body literally becomes that string), and
+ *   - detect-and-parse any of the three forms back into a TableModel
+ *     so the doc / tree viewer can still render-as-table AND the
+ *     modal can open click-to-edit on a JSON/CSV block too.
+ */
+
+/** Emit a TableModel as a JSON array of `{column: value}` objects.
+ *  Pretty-printed (two-space indent) so a saved body is readable when
+ *  the section is opened in plain text mode. No fence, no marker —
+ *  the body literally is the JSON string. */
+export function tableToJson(t: TableModel): string {
+  const colCount = t.columns.length;
+  if (colCount === 0) return '[]';
+  const arr = t.rows.map(r => {
+    const obj: Record<string, string> = {};
+    for (let i = 0; i < colCount; i++) {
+      const name = t.columns[i]?.name ?? `col_${i + 1}`;
+      obj[name] = r[i] ?? '';
+    }
+    return obj;
+  });
+  return JSON.stringify(arr, null, 2);
+}
+
+/** Emit a TableModel as CSV (header row + body). RFC-4180-ish: a cell
+ *  is wrapped in `"…"` only if it contains a comma / quote / newline.
+ *  Pure-token cells stay bare so the form reads as cheaply as possible
+ *  when interpolated into a prompt. */
+export function tableToCsv(t: TableModel): string {
+  const colCount = t.columns.length;
+  if (colCount === 0) return '';
+  const header = t.columns.map(c => csvCell(c.name));
+  const body   = t.rows.map(r => {
+    const cells: string[] = [];
+    for (let i = 0; i < colCount; i++) cells.push(csvCell(r[i] ?? ''));
+    return cells.join(',');
+  });
+  return [header.join(','), ...body].join('\n');
+}
+
+function csvCell(text: string): string {
+  if (/[",\r\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+  return text;
+}
+
+/** Parse a JSON-array-of-objects string into a TableModel. Returns
+ *  null when the input isn't valid JSON, isn't an array, is empty, or
+ *  the rows aren't flat objects of string-coercible values. Columns
+ *  are taken from the FIRST row's keys (later rows fill missing keys
+ *  with `''`) — same convention v1 uses. */
+export function jsonToTable(text: string): TableModel | null {
+  const t = text.trim();
+  if (!t || t[0] !== '[') return null;
+  let parsed: unknown;
+  try { parsed = JSON.parse(t); }
+  catch { return null; }
+  if (!Array.isArray(parsed) || parsed.length === 0) return null;
+  if (!parsed.every(r => r && typeof r === 'object' && !Array.isArray(r))) return null;
+
+  const first = parsed[0] as Record<string, unknown>;
+  const columns = Object.keys(first).map(name => ({ name }));
+  if (columns.length === 0) return null;
+  const rows = parsed.map(r => {
+    const obj = r as Record<string, unknown>;
+    return columns.map(c => {
+      const v = obj[c.name];
+      if (v === undefined || v === null) return '';
+      return typeof v === 'string' ? v : String(v);
+    });
+  });
+  return { columns, rows };
+}
+
+/** Parse a CSV string into a TableModel. Returns null when the input
+ *  doesn't have at least two non-empty lines with consistent column
+ *  counts of ≥ 2 — that heuristic keeps random prose with commas from
+ *  matching. Also rejects any input with pipe characters (so a pipe
+ *  table doesn't accidentally parse here). */
+export function csvToTable(text: string): TableModel | null {
+  const t = text.trim();
+  if (!t) return null;
+  if (t.includes('|')) return null;
+  const rows = parseWithDelimiter(t, ',');
+  if (!rows || rows.length < 2) return null;
+  const colCount = rows[0].length;
+  if (colCount < 2) return null;
+  if (!rows.every(r => r.length === colCount)) return null;
+  const columns = rows[0].map(name => ({ name }));
+  const body    = rows.slice(1);
+  return { columns, rows: body };
+}

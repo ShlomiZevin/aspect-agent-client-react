@@ -81,6 +81,47 @@
   filter: brightness(0.95);
 }
 
+/* Prompt-format segmented switcher — three options visible at a
+   glance, connected pill chrome. Sits in the modal header (next to
+   the title) so it reads as "what this table IS" — a property of
+   the table, not another action. The active button gets the indigo
+   primary; the rest stay quiet. */
+.formatSwitcher {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-input, #f3f4f6);
+  padding: 2px;
+  gap: 2px;
+  margin-right: 10px;
+}
+
+.switchBtn {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  border-radius: 999px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.switchBtn:hover {
+  color: var(--text-primary, #111827);
+}
+
+.switchBtnActive,
+.switchBtnActive:hover {
+  background: var(--primary-color, #6366f1);
+  color: #fff;
+}
+
 /* Spacer that fills any remaining modal body height. Visually
    nothing — it just absorbs the empty area so the table + actions
    stay close together near the top instead of being centered. */

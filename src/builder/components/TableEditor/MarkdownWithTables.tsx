@@ -15,7 +15,12 @@
  *   modal) to make changes.
  */
 
-import { markdownToTable } from './tableMarkdown';
+import {
+  csvToTable,
+  jsonToTable,
+  markdownToTable,
+  type TableModel,
+} from './tableMarkdown';
 
 interface Props {
   text: string;
@@ -32,14 +37,23 @@ interface TableMatch {
   /** Inclusive start (and exclusive end) of the table block inside `text`. */
   start: number;
   end: number;
-  /** Slice ready to be parsed by markdownToTable. */
+  /** Slice ready to be re-opened by the modal. May be markdown
+   *  pipe-table, JSON array of objects, or CSV — the modal auto-detects. */
   md: string;
+  /** Pre-parsed table model so `RenderedTable` doesn't have to re-detect. */
+  model: TableModel;
 }
 
-/** Find every markdown pipe-table block in `text`. A block is a header
- *  row + separator row + zero-or-more body rows. Captions (a single
- *  `**bold**` line directly above) are absorbed into the same block so
- *  click-to-edit picks them up too. */
+/** Find every table-shaped block in `text`. A block is one of:
+ *    - a markdown pipe-table (header row + separator + body rows).
+ *    - a JSON array of flat `{column: value}` objects.
+ *    - a CSV table (≥ 2 lines, consistent comma-separated columns, no pipes).
+ *
+ *  We scan in a single line walk, peeling off pipe-table blocks first
+ *  (their exact line shape is unambiguous) and then checking each
+ *  remaining blank-line-separated paragraph for JSON / CSV shape. The
+ *  modal auto-detects which form on open and emits the chosen form on
+ *  save — the body literally is whichever string the user picked. */
 function findTables(text: string): TableMatch[] {
   const out: TableMatch[] = [];
   const lines = text.split(/\r?\n/);
@@ -53,6 +67,10 @@ function findTables(text: string): TableMatch[] {
       acc += ln.length + 1; // +1 for the \n (or final dangling — close enough)
     }
   }
+
+  // Track which lines are already consumed by a pipe-table match so
+  // the paragraph pass below doesn't re-claim them.
+  const consumed = new Array<boolean>(lines.length).fill(false);
 
   let i = 0;
   while (i < lines.length) {
@@ -77,13 +95,38 @@ function findTables(text: string): TableMatch[] {
     const endLine = j - 1;
     const endLineEnd =
       lineStarts[endLine] + lines[endLine].length;
-    out.push({
-      start,
-      end: endLineEnd,
-      md: text.slice(start, endLineEnd),
-    });
+    const slice = text.slice(start, endLineEnd);
+    const model = markdownToTable(slice);
+    if (model) {
+      out.push({ start, end: endLineEnd, md: slice, model });
+      for (let k = startLine; k <= endLine; k += 1) consumed[k] = true;
+    }
     i = j;
   }
+
+  // Paragraph pass: any chunk of consecutive non-blank, non-consumed
+  // lines is a candidate for JSON / CSV detection. We try JSON first
+  // (cheap: only fires when the chunk starts with `[`) then CSV.
+  let p = 0;
+  while (p < lines.length) {
+    if (consumed[p] || /^\s*$/.test(lines[p] ?? '')) { p += 1; continue; }
+    let q = p;
+    while (q < lines.length && !consumed[q] && !/^\s*$/.test(lines[q] ?? '')) q += 1;
+    const startCh = lineStarts[p];
+    const endCh   = lineStarts[q - 1] + lines[q - 1].length;
+    const slice   = text.slice(startCh, endCh);
+    const model =
+      jsonToTable(slice) ??
+      csvToTable(slice);
+    if (model) {
+      out.push({ start: startCh, end: endCh, md: slice, model });
+    }
+    p = q;
+  }
+
+  // Sort by start so render order tracks source order regardless of
+  // which pass produced each match.
+  out.sort((a, b) => a.start - b.start);
   return out;
 }
 
@@ -121,24 +164,16 @@ export function MarkdownWithTables({
         );
       }
     }
-    const parsed = markdownToTable(t.md);
-    if (parsed) {
-      nodes.push(
-        <RenderedTable
-          key={`t-${idx}`}
-          caption={parsed.caption}
-          columns={parsed.columns}
-          rows={parsed.rows}
-          className={tableClassName}
-          onEdit={() => onEditTable(t.md, { start: t.start, end: t.end })}
-        />,
-      );
-    } else {
-      // Couldn't parse despite our regex matching — fall back to text.
-      nodes.push(
-        <pre key={`tf-${idx}`} className={proseClassName ?? className}>{t.md}</pre>,
-      );
-    }
+    nodes.push(
+      <RenderedTable
+        key={`t-${idx}`}
+        caption={t.model.caption}
+        columns={t.model.columns}
+        rows={t.model.rows}
+        className={tableClassName}
+        onEdit={() => onEditTable(t.md, { start: t.start, end: t.end })}
+      />,
+    );
     cursor = t.end;
   });
   if (cursor < text.length) {

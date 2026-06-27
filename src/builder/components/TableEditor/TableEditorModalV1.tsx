@@ -20,20 +20,52 @@ import { importSpreadsheet } from '../../../services/dynamicKBService';
 import type { TableData } from '../../../types/dynamicKB';
 import {
   type TableModel,
+  csvToTable,
+  jsonToTable,
   markdownToTable,
+  tableToCsv,
+  tableToJson,
   tableToMarkdown,
 } from './tableMarkdown';
 import styles from './TableEditorModalV1.module.css';
 
+/** Chosen on-the-wire form for THIS table. The body string in storage
+ *  literally is that form — no marker, no wrapper. The runtime ships
+ *  the body verbatim into the prompt, and the doc/tree viewer detects
+ *  the form by structure so it can keep rendering as a table.
+ *
+ *   - 'markdown' — pipe-table. Strong "this is a table" signal in mixed
+ *                  prose. Saturated in LLM training data.
+ *   - 'json'     — array of `{column: value}` objects. Robust for wide
+ *                  tables; ~2× the token cost of markdown.
+ *   - 'csv'      — header + comma rows. Cheapest tokens; relies on the
+ *                  surrounding prose to signal "table." */
+type TableFormat = 'markdown' | 'json' | 'csv';
+
+/** Detect which form the body slice is in. Tries the cheapest test
+ *  first (markdown's pipe shape) and falls back to JSON, then CSV.
+ *  Empty / unparseable input opens as a fresh markdown table. */
+function detectFormat(body: string | undefined): TableFormat {
+  if (!body || !body.trim()) return 'markdown';
+  if (markdownToTable(body)) return 'markdown';
+  if (jsonToTable(body))     return 'json';
+  if (csvToTable(body))      return 'csv';
+  return 'markdown';
+}
+
 interface Props {
   open: boolean;
-  /** Markdown pipe-table to open the editor on. Empty string starts
-   *  a fresh 3×2 table. Anything else parses as MD; non-table input
-   *  also lands on the empty starter so authoring can begin. */
+  /** Body slice to open the editor on. Auto-detects markdown pipe-table,
+   *  JSON array of objects, or CSV. Empty / unparseable input starts a
+   *  fresh 3×2 table. The prop name is retained for backwards-compat
+   *  with the existing call sites — the content can be any of the three
+   *  forms now, not just markdown. */
   initialMarkdown?: string;
   onCancel: () => void;
-  /** Fires with the freshly-emitted MD pipe-table string. */
-  onSave: (markdown: string) => void;
+  /** Fires with the freshly-emitted body string. The form depends on
+   *  the user's "Prompt format" choice in the modal — could be a
+   *  markdown pipe-table, a JSON array of objects, or a CSV blob. */
+  onSave: (body: string) => void;
 }
 
 /** Default starter table when there's nothing to parse. Same shape v1
@@ -44,11 +76,16 @@ const STARTER: TableData = {
   indexColumns: [],
 };
 
-/** Convert MD pipe-table to v1's TableData shape. Non-table input
- *  resolves to the starter. */
-function mdToTableData(md: string | undefined): TableData {
-  if (!md || !md.trim()) return STARTER;
-  const parsed = markdownToTable(md);
+/** Parse a body slice (in any of the three forms) into v1's TableData
+ *  shape. Tries markdown first, then JSON, then CSV. Falls back to the
+ *  starter table when nothing parses — covers fresh inserts and
+ *  malformed input alike. */
+function bodyToTableData(body: string | undefined): TableData {
+  if (!body || !body.trim()) return STARTER;
+  const parsed =
+    markdownToTable(body) ??
+    jsonToTable(body) ??
+    csvToTable(body);
   if (!parsed) return STARTER;
   return {
     headers: parsed.columns.map(c => c.name),
@@ -57,24 +94,32 @@ function mdToTableData(md: string | undefined): TableData {
   };
 }
 
-/** Convert v1's TableData back to a MD pipe-table. We drop captions
- *  and alignment because v1 doesn't model them — the user said "use
- *  v1 exactly", so feature parity wins over extra polish here. */
-function tableDataToMd(td: TableData): string {
+/** Serialise v1's TableData to whichever form the user picked. The
+ *  returned string is literally what gets stored in the body and
+ *  shipped to the prompt — no wrapper, no marker. Captions and
+ *  alignment are dropped because v1 doesn't model them; the user said
+ *  "use v1 exactly", so feature parity wins over polish here. */
+function tableDataToBody(td: TableData, format: TableFormat): string {
   const model: TableModel = {
     columns: td.headers.map(name => ({ name })),
     rows: td.rows,
   };
+  if (format === 'json') return tableToJson(model);
+  if (format === 'csv')  return tableToCsv(model);
   return tableToMarkdown(model);
 }
 
 export function TableEditorModalV1({ open, initialMarkdown, onCancel, onSave }: Props) {
-  const [data, setData] = useState<TableData>(() => mdToTableData(initialMarkdown));
+  const [data, setData] = useState<TableData>(() => bodyToTableData(initialMarkdown));
+  const [format, setFormat] = useState<TableFormat>(() => detectFormat(initialMarkdown));
 
-  // Re-seat on every open so a re-open with different initial MD
-  // shows the right table.
+  // Re-seat on every open so a re-open with different initial body
+  // shows the right table AND the right detected format.
   useEffect(() => {
-    if (open) setData(mdToTableData(initialMarkdown));
+    if (open) {
+      setData(bodyToTableData(initialMarkdown));
+      setFormat(detectFormat(initialMarkdown));
+    }
   }, [open, initialMarkdown]);
 
   /** Wire v1's onImport to the server endpoint and load the result
@@ -96,7 +141,7 @@ export function TableEditorModalV1({ open, initialMarkdown, onCancel, onSave }: 
   };
 
   const handleSave = () => {
-    onSave(tableDataToMd(data));
+    onSave(tableDataToBody(data, format));
   };
 
   return (
@@ -110,6 +155,42 @@ export function TableEditorModalV1({ open, initialMarkdown, onCancel, onSave }: 
         <span style={{ fontSize: 13, fontWeight: 600, color: '#4b5563' }}>
           Table editor
         </span>
+      }
+      headerExtra={
+        // Segmented switcher in the header — three options visible at
+        // a glance, no click-to-reveal. Reads as "what this table IS"
+        // (a property of the table) rather than another button in the
+        // action bar. The chosen form IS the body string we'll write
+        // on Save.
+        <div
+          className={styles.formatSwitcher}
+          role="tablist"
+          aria-label="Prompt format"
+        >
+          {(['markdown', 'json', 'csv'] as const).map(opt => (
+            <button
+              key={opt}
+              type="button"
+              role="tab"
+              aria-selected={format === opt}
+              className={
+                format === opt
+                  ? `${styles.switchBtn} ${styles.switchBtnActive}`
+                  : styles.switchBtn
+              }
+              onClick={() => setFormat(opt)}
+              title={
+                opt === 'markdown'
+                  ? 'Pipe-table form. Strong "this is a table" signal in mixed prose.'
+                  : opt === 'json'
+                    ? 'Array of {column: value} objects. Robust for wide tables.'
+                    : 'Header + comma rows. Cheapest tokens.'
+              }
+            >
+              {opt === 'markdown' ? 'Markdown' : opt === 'json' ? 'JSON' : 'CSV'}
+            </button>
+          ))}
+        </div>
       }
       width={1100}
       compactHeader
