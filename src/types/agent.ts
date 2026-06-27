@@ -57,6 +57,12 @@ export interface AgentConfig {
     showDataStatus?: boolean;
     /** Hide quick-question clicks from the chat UI (still sent to server). For BI agents where the question buttons act as shortcuts rather than user utterances. */
     hideQuickQuestionsInUI?: boolean;
+    /** Hide per-message actions (delete / delete-from-here). For agents whose backend has no message deletion. */
+    hideMessageActions?: boolean;
+    /** Hide conversation delete actions (delete chat / delete all) in the history sidebar. */
+    hideHistoryManagement?: boolean;
+    /** Hide the debug-mode toggle button in the header (customer-facing surfaces). */
+    hideDebugToggle?: boolean;
   };
 
   // Theming

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChatContext } from '../../../context';
+import { useAgentConfig } from '../../../context/AgentContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { ConfirmDialog } from '../../common';
 import { formatDate } from '../../../utils';
@@ -18,6 +19,8 @@ interface DeleteConfirmState {
 
 export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
   const { conversations, conversationId, switchToChat, deleteChat, deleteAllChats, duplicateChat, updateChatTitle } = useChatContext();
+  const config = useAgentConfig();
+  const showHistoryMgmt = !config.features.hideHistoryManagement;
   const { t } = useLanguage();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -204,7 +207,7 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
         </div>
 
         <div className={`${styles.list} ${someSelected ? styles.hasSelection : ''}`}>
-          {conversations.length > 0 && (
+          {showHistoryMgmt && conversations.length > 0 && (
             <div className={styles.selectionToolbar}>
               {someSelected ? (
                 <>
@@ -322,16 +325,18 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
                         </button>
                       </>
                     )}
-                    <button
-                      className={styles.deleteBtn}
-                      onClick={(e) => handleDeleteClick(e, conv.id)}
-                      aria-label={t('sidebar.deleteConversation')}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                    </button>
+                    {showHistoryMgmt && (
+                      <button
+                        className={styles.deleteBtn}
+                        onClick={(e) => handleDeleteClick(e, conv.id)}
+                        aria-label={t('sidebar.deleteConversation')}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
               );
