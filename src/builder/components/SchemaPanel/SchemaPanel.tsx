@@ -22,12 +22,13 @@ import { DomainModal } from './DomainModal';
 import { ParameterModal } from './ParameterModal';
 import { WireFieldModal } from './WireFieldModal';
 import { SnippetModal } from '../Snippets/SnippetModal';
-import { SystemFieldsSection } from '../FieldsPanel/SystemFieldsSection';
+import { PinnedFieldsPanel } from '../PinnedFieldsPanel/PinnedFieldsPanel';
 import type { EnumTypeDef, FieldDef, ID, ParameterDef, SnippetDef } from '../../types';
 import styles from './SchemaPanel.module.css';
 
 export type SchemaSectionKind =
   | 'parameters'
+  | 'pinned'
   | 'enums'
   | 'domains'
   | 'fields'
@@ -51,6 +52,7 @@ export function SchemaPanel({ agentId, sections, embedded }: Props) {
   return (
     <div className={styles.stack}>
       {show('parameters') && <ParametersSection agentId={agentId} embedded={embedded} />}
+      {show('pinned')     && <PinnedFieldsSection agentId={agentId} embedded={embedded} />}
       {show('enums')      && <EnumsSection      agentId={agentId} embedded={embedded} />}
       {show('snippets')   && <SnippetsSection   agentId={agentId} embedded={embedded} />}
       {show('domains')    && <DomainsSection    agentId={agentId} embedded={embedded} />}
@@ -70,7 +72,7 @@ function EnumsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean }
   return (
     <div className={`${styles.panel} ${embedded ? styles.panelEmbedded : ''}`}>
       <div className={`${styles.header} ${embedded ? styles.headerEmbedded : ''}`}>
-        {!embedded && <span className={styles.title}>🎯 Enums</span>}
+        {!embedded && <span className={styles.title}>🎯 Targeted KB</span>}
         {!embedded && <span className={styles.count}>{enums.length}</span>}
         <span className={styles.spacer} />
         <Link to={`/${slug}/builder/enums`} className={styles.addBtn}>+ Add</Link>
@@ -78,8 +80,8 @@ function EnumsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean }
 
       {enums.length === 0 ? (
         <div className={styles.empty}>
-          Shared value vocabularies. Bind a field's type to one and the bible
-          drives <code>{'{{enum:…}}'}</code> and <code>{'{{dc:…}}'}</code>.
+          Shared value vocabularies. Bind a field's type to one and the KB
+          drives <code>{'{{targetedkb:…}}'}</code> and <code>{'{{dc:…}}'}</code>.
         </div>
       ) : (
         <div className={styles.paramList}>
@@ -97,7 +99,7 @@ function EnumsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean }
                 </span>
               </div>
               <span className={styles.paramDesc}>
-                Reference as <code>{`{{enum:${en.name}}}`}</code>
+                Reference as <code>{`{{targetedkb:${en.name}}}`}</code>
               </span>
             </Link>
           ))}
@@ -302,6 +304,15 @@ function ParametersSection({ agentId, embedded }: { agentId: ID; embedded?: bool
   );
 }
 
+/* ─── Pinned Fields ───────────────────────────────────────────────
+   Visual chrome lives in the shared `PinnedFieldsPanel` component
+   (so the CrewView can render the same panel below its Memory
+   section). This section here is just a thin wrapper. */
+
+function PinnedFieldsSection({ agentId }: { agentId: ID; embedded?: boolean }) {
+  return <PinnedFieldsPanel agentId={agentId} />;
+}
+
 /* ─── Snippets ────────────────────────────────────────────────── */
 
 function SnippetsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean }) {
@@ -499,10 +510,9 @@ function FieldsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean 
         </button>
       </div>
 
-      {/* System fields — sticky top section. Always visible so the
-          author knows what reserved names exist before typing one
-          into the Declare modal. Read-only; the registry owns them. */}
-      <SystemFieldsSection conversationMemory={conversationMemory} />
+      {/* System fields display retired — the generalized "any JSON
+          key matching a declared field auto-writes to memory" path
+          covers what the legacy `move_on` registry used to do. */}
 
       {allFields.length === 0 ? (
         <div className={styles.empty}>

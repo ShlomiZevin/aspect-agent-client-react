@@ -267,11 +267,18 @@ export function useMentionOptions(
       });
     }
     for (const f of agent.fields ?? []) {
+      // Pinned fields get a separate sub-group + 🎯 prefix so the
+      // author can spot at a glance which fields are pre-set vs
+      // collected at runtime. Token inserted is identical
+      // (`{{field:NAME}}`) — pin-ness is a provenance distinction.
+      const isPinned = f.source === 'pinned';
       at.push({
-        label:     f.name,
+        label:     isPinned ? `🎯 ${f.name}` : f.name,
         insertion: `{{field:${f.name}}}`,
-        group:     'Memory fields',
-        description: f.howToExtract || `The current value of ${f.name}.`,
+        group:     isPinned ? 'Memory fields · 🎯 Pinned' : 'Memory fields',
+        description: isPinned
+          ? `Pinned to a Targeted KB. Default: ${f.defaultValue ?? '(unset)'}.`
+          : (f.howToExtract || `The current value of ${f.name}.`),
       });
       // {{fieldname:NAME}} — literal name, not the value. Separate
       // group so the picker doesn't surface two entries for the same
@@ -456,35 +463,44 @@ export function useMentionOptions(
     //    • umbrella aggregate
     //    • inline values-list shortcut (the `:values` reserved keyword)
     //    • one entry per declared section
+    // Two prefixes for the same resolver — both work, the picker
+    // offers each so authors can pick whichever vocabulary feels
+    // natural. `enum:` is the legacy form; `targetedkb:` is the
+    // forward-looking name. We emit both entries under sibling groups
+    // so the picker reads as "old name vs new name, same thing".
     for (const en of agent.enums ?? []) {
-      const groupLabel = `Enum · ${en.name}`;
       const sectionNames = (en.sections ?? [])
         .map(s => s?.name)
         .filter((n): n is string => typeof n === 'string' && n.length > 0);
       const valueCount = en.values?.length ?? 0;
-      star.push({
-        label:     `${en.name}  (umbrella)`,
-        insertion: `{{enum:${en.name}}}`,
-        group:     groupLabel,
-        description: `Dumps every value's umbrella for "${en.name}" (${valueCount} value${valueCount === 1 ? '' : 's'}). Wrapped in "## ${en.name}".`,
-      });
-      star.push({
-        label:     `${en.name}: values  (inline list)`,
-        insertion: `{{enum:${en.name}:values}}`,
-        group:     groupLabel,
-        description:
-          `Inline comma-separated list of the values of "${en.name}". ` +
-          (valueCount > 0
-            ? `Resolves to: ${en.values.map(v => v?.value).filter(Boolean).join(', ')}.`
-            : 'No values declared yet.'),
-      });
-      for (const sec of sectionNames) {
+      const enumValuesText = valueCount > 0
+        ? `Resolves to: ${en.values.map(v => v?.value).filter(Boolean).join(', ')}.`
+        : 'No values declared yet.';
+
+      for (const prefix of ['enum', 'targetedkb'] as const) {
+        const groupLabel = prefix === 'enum'
+          ? `Enum · ${en.name}`
+          : `Targeted KB · ${en.name}`;
         star.push({
-          label:     `${en.name}: ${sec}`,
-          insertion: `{{enum:${en.name}:${sec}}}`,
+          label:     `${en.name}  (umbrella)`,
+          insertion: `{{${prefix}:${en.name}}}`,
           group:     groupLabel,
-          description: `Dumps every value's "${sec}" body for "${en.name}". Wrapped in "## ${en.name} — ${sec}".`,
+          description: `Dumps every value's umbrella for "${en.name}" (${valueCount} value${valueCount === 1 ? '' : 's'}). Wrapped in "## ${en.name}".`,
         });
+        star.push({
+          label:     `${en.name}: values  (inline list)`,
+          insertion: `{{${prefix}:${en.name}:values}}`,
+          group:     groupLabel,
+          description: `Inline comma-separated list of the values of "${en.name}". ${enumValuesText}`,
+        });
+        for (const sec of sectionNames) {
+          star.push({
+            label:     `${en.name}: ${sec}`,
+            insertion: `{{${prefix}:${en.name}:${sec}}}`,
+            group:     groupLabel,
+            description: `Dumps every value's "${sec}" body for "${en.name}". Wrapped in "## ${en.name} — ${sec}".`,
+          });
+        }
       }
     }
 

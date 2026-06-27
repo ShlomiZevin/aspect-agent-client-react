@@ -83,6 +83,7 @@ const PRIMITIVE_TYPES: { value: FieldType; label: string }[] = [
 const SOURCE_LABEL: Record<FieldSource, { label: string; hint: string }> = {
   explicit: { label: 'Explicit', hint: 'Only when the user literally says it' },
   inferred: { label: 'Inferred', hint: 'Can be concluded from conversation' },
+  pinned:   { label: 'Pinned',   hint: 'Pre-set value, no collector. Type=enum only.' },
 };
 
 interface Draft {

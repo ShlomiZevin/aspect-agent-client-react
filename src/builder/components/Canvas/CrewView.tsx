@@ -170,6 +170,10 @@ export function CrewView({ agent, crew }: Props) {
         </div>
 
         <aside className={styles.crewSide}>
+          {/* Pinned fields surface INSIDE the Memory panel under a
+              gentle "Pinned" subheader (see FieldsPanel) — not as
+              a separate panel. Per-conversation overrides still
+              happen on the brain panel. */}
           <FieldsPanel agentId={agent.id} crewId={crew.id} />
         </aside>
       </div>

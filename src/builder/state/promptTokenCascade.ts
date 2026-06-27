@@ -278,10 +278,14 @@ export function cascadeEnumNameRename(
   agent: AgentDoc, oldName: string, newName: string,
 ): AgentDoc {
   if (!oldName || !newName || oldName === newName) return agent;
-  // {{enum:OLD}}, {{enum:OLD:SECTION}}, {{enum:OLD:values}} — all
-  // share the segmented form.
-  const rewrite = makeSegmentedRewrite('enum', oldName, newName);
-  return mapAllPromptText(agent, rewrite);
+  // Rewrite BOTH token prefixes — `{{enum:...}}` (legacy) and
+  // `{{targetedkb:...}}` (new) — since both resolve through the
+  // same enum lookup at runtime. Authors might be using either or
+  // a mix; renaming a KB has to fix every reference regardless of
+  // which prefix the author typed.
+  const rewriteEnum       = makeSegmentedRewrite('enum',       oldName, newName);
+  const rewriteTargetedkb = makeSegmentedRewrite('targetedkb', oldName, newName);
+  return mapAllPromptText(agent, t => rewriteTargetedkb(rewriteEnum(t)));
 }
 
 /**
@@ -305,11 +309,15 @@ export function cascadeEnumSectionRename(
   if (!oldSection || !newSection || oldSection === newSection) return agent;
   if (!enumId || !enumName) return agent;
 
+  // Match both `{{enum:E:OLDSEC}}` AND `{{targetedkb:E:OLDSEC}}`.
+  // The capture group preserves whichever prefix the author used so
+  // the replacement keeps it (no surprise rewriting of legacy form
+  // into the new vocabulary or vice versa).
   const enumRe = new RegExp(
-    `\\{\\{enum:${escRe(enumName)}:${escRe(oldSection)}(?=\\})`,
+    `\\{\\{(enum|targetedkb):${escRe(enumName)}:${escRe(oldSection)}(?=\\})`,
     'g',
   );
-  const enumReplacement = `{{enum:${enumName}:${newSection}`;
+  const enumReplacement = `{{$1:${enumName}:${newSection}`;
 
   // Collect every field name bound to this enum (agent + crew scope).
   // Names may collide across scopes — Set dedupes.

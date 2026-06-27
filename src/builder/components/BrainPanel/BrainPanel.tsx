@@ -22,6 +22,7 @@
  * turn. Activity-detection (the unseen dot) lives in BrainContext.
  */
 
+import { useMemo } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
 import { useBrain } from '../../state/BrainContext';
 import {
@@ -34,6 +35,7 @@ import {
   type BrainSummarizerCard,
   type BrainThinkingCard,
 } from '../../state/useBrainSnapshot';
+import type { EnumTypeDef, FieldDef } from '../../types';
 import styles from './BrainPanel.module.css';
 
 /* ────────────────────────────── DOCK SLOT ────────────────────── */
@@ -208,6 +210,25 @@ function MemorySection({
 }: { groups: BrainMemoryGroup[]; staleRows: BrainStaleRow[] }) {
   const totalDeclared = groups.reduce((n, g) => n + g.rows.length, 0);
   const isEmpty = totalDeclared === 0 && staleRows.length === 0;
+  const { doc, updateConversationMemoryField } = useBuilder();
+  const agent = doc.agents[0];
+  const enumsById = useMemo(() => {
+    const map = new Map<string, EnumTypeDef>();
+    for (const e of agent?.enums ?? []) map.set(e.id, e);
+    return map;
+  }, [agent?.enums]);
+
+  const writePinned = async (
+    field: FieldDef,
+    next: string,
+  ) => {
+    await updateConversationMemoryField({
+      field: field.name,
+      value: next,
+      domain: field.domain ?? null,
+    });
+  };
+
   return (
     <section className={styles.section}>
       <header className={styles.sectionHeader}>
@@ -229,10 +250,78 @@ function MemorySection({
               )}
               {g.rows.map(r => {
                 const hasValue = r.value !== undefined && r.value !== null;
+                const isPinned = r.fieldDef?.source === 'pinned';
+                const kb = isPinned && r.fieldDef?.enumType
+                  ? enumsById.get(r.fieldDef.enumType)
+                  : undefined;
+                const kbValues = (kb?.values ?? [])
+                  .map(v => v?.value)
+                  .filter((v): v is string => typeof v === 'string' && v.length > 0);
                 return (
                   <div key={r.name} className={styles.memoryRow}>
-                    <span className={styles.memoryRowName}>{r.name}</span>
-                    {hasValue ? (
+                    <span className={styles.memoryRowName}>
+                      {isPinned && (
+                        <span
+                          title="Pinned field — pre-set Targeted KB value"
+                          style={{ marginRight: 4 }}
+                        >
+                          🎯
+                        </span>
+                      )}
+                      {r.name}
+                    </span>
+                    {/* For pinned-enum fields with a KB, expose a value
+                        picker right here so per-conversation overrides
+                        are one click. Writes to conversation memory.
+
+                        Pinned defaults are SEEDED by the server when
+                        BuilderRunner.runOnce fires (on the first
+                        message). Before that, conversation memory is
+                        empty client-side. So when we have no live
+                        value but the FieldDef has a `defaultValue`,
+                        show it as the visually-selected option with a
+                        small "(default)" tag — that's what the server
+                        will seed it with, and the user can pre-swap
+                        from here before sending a message. */}
+                    {isPinned && r.fieldDef && kbValues.length > 0 ? (() => {
+                      const pendingDefault = !hasValue && r.fieldDef.defaultValue
+                        ? r.fieldDef.defaultValue
+                        : '';
+                      const selected = hasValue
+                        ? String(r.value)
+                        : pendingDefault;
+                      const showingDefault = !hasValue && !!pendingDefault;
+                      return (
+                        <select
+                          value={selected}
+                          onChange={e => writePinned(r.fieldDef!, e.target.value)}
+                          title={showingDefault
+                            ? `Default value (will be seeded into memory on the first turn). Pick another to override before sending.`
+                            : undefined}
+                          style={{
+                            fontFamily: 'inherit',
+                            fontSize:   11.5,
+                            padding:    '2px 6px',
+                            border:     '1px solid #e5e7eb',
+                            borderRadius: 4,
+                            background: '#fff',
+                            color:      showingDefault ? '#6b7280' : '#111827',
+                            fontStyle:  showingDefault ? 'italic' : 'normal',
+                          }}
+                        >
+                          {!selected && <option value="">— pick —</option>}
+                          {kbValues.map(v => (
+                            <option key={v} value={v}>
+                              {v}
+                              {showingDefault && v === pendingDefault ? ' (default)' : ''}
+                            </option>
+                          ))}
+                          {hasValue && !kbValues.includes(String(r.value)) && (
+                            <option value={String(r.value)}>{String(r.value)} (stale)</option>
+                          )}
+                        </select>
+                      );
+                    })() : hasValue ? (
                       <span className={styles.memoryRowValue} title={formatBrainValue(r.value)}>
                         {formatBrainValue(r.value)}
                       </span>

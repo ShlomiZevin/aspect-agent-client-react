@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect, type KeyboardEvent } from 'react';
+import { useRef, useState, useCallback, useEffect, type KeyboardEvent, type ReactNode } from 'react';
 import type { TableData } from '../../../types/dynamicKB';
 import styles from './TableEditor.module.css';
 
@@ -6,9 +6,14 @@ interface TableEditorProps {
   value: TableData;
   onChange: (value: TableData) => void;
   onImport: (file: File) => void;
+  /** Optional content rendered RIGHT-aligned inside the action bar
+   *  (after `+ Add Row` / `+ Add Column` / `Import` / `RTL →`).
+   *  Used by the modal wrapper to slot Save / Cancel into the same
+   *  flex row so all buttons share the same baseline. */
+  rightActions?: ReactNode;
 }
 
-export function TableEditor({ value, onChange, onImport }: TableEditorProps) {
+export function TableEditor({ value, onChange, onImport, rightActions }: TableEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tableWrapRef = useRef<HTMLDivElement>(null);
   const [isRTL, setIsRTL] = useState(false);
@@ -143,9 +148,6 @@ export function TableEditor({ value, onChange, onImport }: TableEditorProps) {
                   </button>
                 </th>
               ))}
-              <th className={styles.addColHeader}>
-                <button className={styles.addColBtn} onClick={addColumn} title="Add column">+</button>
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -173,7 +175,6 @@ export function TableEditor({ value, onChange, onImport }: TableEditorProps) {
                     />
                   </td>
                 ))}
-                <td />
               </tr>
             ))}
           </tbody>
@@ -181,6 +182,7 @@ export function TableEditor({ value, onChange, onImport }: TableEditorProps) {
       </div>
       <div className={styles.tableActions}>
         <button className={styles.addBtn} onClick={addRow}>+ Add Row</button>
+        <button className={styles.addBtn} onClick={addColumn}>+ Add Column</button>
         <button className={styles.importBtnInline} onClick={() => fileInputRef.current?.click()}>
           Import .csv / .xls / .xlsx
         </button>
@@ -191,6 +193,12 @@ export function TableEditor({ value, onChange, onImport }: TableEditorProps) {
         >
           {isRTL ? '← LTR' : 'RTL →'}
         </button>
+        {rightActions && (
+          <>
+            <span style={{ flex: 1 }} />
+            {rightActions}
+          </>
+        )}
       </div>
       <input
         ref={fileInputRef}

@@ -1,0 +1,288 @@
+/* TableEditorModal — large-grid table editor sat inside the shared
+   Modal frame. The grid is the centerpiece; chrome stays minimal. */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.captionRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.captionLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary, #6b7280);
+  white-space: nowrap;
+}
+
+.captionInput {
+  flex: 1;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 11px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  background: var(--bg-input, #fafafa);
+}
+
+.captionInput:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  background: #fff;
+}
+
+.gridScroll {
+  max-height: 480px;
+  overflow: auto;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--bg-input, #fafafa);
+}
+
+.grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  table-layout: auto;
+}
+
+.cornerCell {
+  background: var(--bg-input, #f3f4f6);
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  border-right: 1px solid var(--border-color, #e5e7eb);
+  width: 60px;
+  min-width: 60px;
+}
+
+.headerCell {
+  background: var(--bg-input, #f9fafb);
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  border-right: 1px solid var(--border-color, #e5e7eb);
+  padding: 0;
+  min-width: 140px;
+}
+
+.headerCellInner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.headerName {
+  width: 100%;
+  font-family: ui-monospace, "Menlo", monospace;
+  font-weight: 700;
+  font-size: 12.5px;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 4px 6px;
+  border-radius: 4px;
+  color: var(--text-primary, #111827);
+}
+
+.headerName:hover,
+.headerName:focus {
+  background: #fff;
+  border-color: var(--border-color, #e5e7eb);
+}
+
+.headerName:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+}
+
+.headerCtrls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.alignSelect {
+  flex: 1;
+  font-family: inherit;
+  font-size: 10.5px;
+  padding: 2px 4px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--text-secondary, #4b5563);
+}
+
+.iconBtn,
+.iconBtnDanger {
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: #fff;
+  color: var(--text-secondary, #4b5563);
+  font-family: inherit;
+  font-size: 11px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.iconBtn:hover:not(:disabled) {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+}
+
+.iconBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.iconBtnDanger:hover {
+  border-color: #fca5a5;
+  color: #b91c1c;
+  background: rgba(220, 38, 38, 0.05);
+}
+
+.addColCell {
+  background: var(--bg-input, #f9fafb);
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  border-right: 1px solid var(--border-color, #e5e7eb);
+  padding: 6px 10px;
+  min-width: 60px;
+}
+
+.addBtn {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  background: transparent;
+  border: 1px dashed var(--border-color, #cbd5e1);
+  color: var(--text-secondary, #4b5563);
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.addBtn:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+}
+
+.rowHeader {
+  background: var(--bg-input, #f9fafb);
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  border-right: 1px solid var(--border-color, #e5e7eb);
+  padding: 4px 6px;
+  text-align: left;
+  vertical-align: top;
+  width: 60px;
+  min-width: 60px;
+}
+
+.rowHeaderCtrls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.rowIndex {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-tertiary, #9ca3af);
+  padding: 2px 4px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 4px;
+  width: 16px;
+  text-align: center;
+}
+
+.bodyCell {
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  border-right: 1px solid var(--border-color, #e5e7eb);
+  padding: 0;
+  background: var(--bg-surface, #fff);
+  vertical-align: top;
+  min-width: 140px;
+}
+
+.cellInput {
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.4;
+  border: 0;
+  background: transparent;
+  padding: 6px 8px;
+  color: var(--text-primary, #111827);
+  min-height: 28px;
+  box-sizing: border-box;
+}
+
+.cellInput:focus {
+  outline: 1px solid var(--primary-color, #6366f1);
+  outline-offset: -1px;
+  background: #fff;
+}
+
+.bodyCellTrailing {
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-input, #f9fafb);
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+  line-height: 1.5;
+}
+
+.hint strong {
+  color: var(--text-secondary, #4b5563);
+}
+
+.footerSpacer {
+  flex: 1;
+}
+
+.btnGhost,
+.btnPrimary {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btnGhost {
+  background: #fff;
+  border: 1px solid var(--border-color, #e5e7eb);
+  color: var(--text-primary, #111827);
+}
+
+.btnGhost:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+}
+
+.btnPrimary {
+  background: var(--primary-color, #6366f1);
+  border: 1px solid var(--primary-color, #6366f1);
+  color: #fff;
+}
+
+.btnPrimary:hover {
+  filter: brightness(0.95);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

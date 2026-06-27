@@ -57,10 +57,11 @@ const PRIMITIVE_TYPES: { value: FieldType; label: string }[] = [
   { value: 'boolean', label: 'Boolean' },
 ];
 
-const SOURCES: FieldSource[] = ['explicit', 'inferred'];
+const SOURCES: FieldSource[] = ['explicit', 'inferred', 'pinned'];
 const SOURCE_LABEL: Record<FieldSource, string> = {
   explicit: 'Explicit — only when the user literally says it',
   inferred: 'Inferred — can be concluded from conversation',
+  pinned:   'Pinned — pre-set value, no collector (Targeted KB only)',
 };
 
 export function SchemaFieldEditor({
@@ -190,7 +191,30 @@ export function SchemaFieldEditor({
   const commitSourceChange = (raw: string) => {
     const s = raw as FieldSource;
     if (s === initial.source) return;
+    // When swapping AWAY from 'pinned', drop `defaultValue` — it's
+    // dead weight under any other source. When swapping TO 'pinned'
+    // for an enum-typed field with a single declared value, prefill
+    // `defaultValue` so the user lands on a sane starting point.
+    if (s !== 'pinned' && initial.defaultValue !== undefined) {
+      writePatch({ source: s, defaultValue: undefined });
+      return;
+    }
+    if (s === 'pinned' && initial.type === 'enum' && !initial.defaultValue && agent) {
+      const en = (agent.enums ?? []).find(e => e.id === initial.enumType);
+      const firstValue = en?.values?.find(v => v?.value)?.value;
+      if (typeof firstValue === 'string') {
+        writePatch({ source: s, defaultValue: firstValue });
+        return;
+      }
+    }
     writePatch({ source: s });
+  };
+
+  /** Commit a new pinned-default selection. Only meaningful when
+   *  source === 'pinned' + type === 'enum'. */
+  const commitDefaultValue = (next: string) => {
+    if (next === (initial.defaultValue ?? '')) return;
+    writePatch(next ? { defaultValue: next } : { defaultValue: undefined });
   };
 
   // ── Extractors-wired counter (for delete confirmation) ────────
@@ -309,7 +333,7 @@ export function SchemaFieldEditor({
         if (!en) {
           return (
             <div className={styles.hint} style={{ color: '#b91c1c' }}>
-              Bound enum "{initial.enumType}" no longer exists on the bible — pick a current one above.
+              Bound KB "{initial.enumType}" no longer exists — pick a current one above.
             </div>
           );
         }
@@ -325,18 +349,83 @@ export function SchemaFieldEditor({
               </span>
             ) : (
               <span className={styles.enumPreviewEmpty}>
-                No values declared on the bible yet
+                No values declared on the KB yet
               </span>
             )}
             <Link
               to={`/${agent.slug}/builder/enums/${encodeURIComponent(en.name)}`}
               className={styles.enumPreviewLink}
             >
-              Edit enum ↗
+              Edit KB ↗
             </Link>
           </div>
         );
       })()}
+
+      {/* Pinned default value picker. Visible only when the field is
+          a pinned enum — pinned non-enum fields have nowhere to point
+          the default at (and the runtime treats them as no-ops). The
+          runtime seeds memory[domain][name] with this value at every
+          turn if the slot is empty, so per-conversation overrides win. */}
+      {initial.source === 'pinned' && initial.type === 'enum' && agent && (() => {
+        const en = (agent.enums ?? []).find(e => e.id === initial.enumType);
+        const valueNames = (en?.values ?? [])
+          .map(v => v?.value)
+          .filter((v): v is string => typeof v === 'string' && v.length > 0);
+        return (
+          <div>
+            <div className={styles.label}>
+              🎯 Default value <span style={{
+                textTransform: 'none',
+                letterSpacing: 0,
+                fontWeight: 500,
+                fontStyle: 'italic',
+                opacity: 0.75,
+              }}>· seeded at conversation start when memory slot is empty</span>
+            </div>
+            {!en ? (
+              <div className={styles.hint} style={{ color: '#b91c1c' }}>
+                Bound KB missing — pick a KB above before setting a default.
+              </div>
+            ) : valueNames.length === 0 ? (
+              <div className={styles.hint}>
+                No values declared on this KB yet — declare one in the KB editor
+                to pin a default.
+              </div>
+            ) : (
+              <select
+                className={styles.input}
+                value={initial.defaultValue ?? ''}
+                onChange={e => commitDefaultValue(e.target.value)}
+              >
+                {!initial.defaultValue && (
+                  <option value="">— pick a value —</option>
+                )}
+                {valueNames.map(v => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+                {/* Show a stale value too so a renamed KB value doesn't
+                    silently disappear — author can spot + pick again. */}
+                {initial.defaultValue && !valueNames.includes(initial.defaultValue) && (
+                  <option value={initial.defaultValue}>
+                    {initial.defaultValue} (no longer on KB)
+                  </option>
+                )}
+              </select>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Hint: non-enum pinned fields don't make sense. The runtime
+          skips them; surface it to the author so they realise the
+          field will be inert. */}
+      {initial.source === 'pinned' && initial.type !== 'enum' && (
+        <div className={styles.hint} style={{ color: '#b45309' }}>
+          Pinned source only seeds enum-typed fields today. Pick a Targeted KB
+          on the Type dropdown above, or change the source.
+        </div>
+      )}
 
       <div>
         <div className={styles.label}>Domain</div>

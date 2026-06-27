@@ -76,6 +76,7 @@ const PRIMITIVE_TYPES: { value: FieldType; label: string }[] = [
 const SOURCE_LABEL: Record<FieldSource, { label: string }> = {
   explicit: { label: 'Explicit' },
   inferred: { label: 'Inferred' },
+  pinned:   { label: 'Pinned' },
 };
 
 export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props) {

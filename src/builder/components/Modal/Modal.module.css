@@ -30,6 +30,24 @@
   border-bottom: 1px solid var(--border-color, #e5e7eb);
 }
 
+/* Compact header — half the vertical padding, no separator. Pairs
+   with `noBodyPadding` for surfaces where the host component owns
+   the entire interior layout (e.g. the table editor). */
+.headerCompact {
+  padding: 6px 10px;
+  border-bottom: 0;
+  gap: 6px;
+}
+
+/* Right-side action cluster: headerExtra (e.g. Save/Cancel) hugs the
+   close X so the title sits flush left and the buttons sit flush
+   right — no centered gap between them. */
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .titleWrap {
   display: inline-flex;
   align-items: center;
@@ -79,6 +97,17 @@
   min-height: 0;
   overflow-y: auto;
   padding: 20px;
+}
+
+/* Tight body — drops padding so a child component (e.g. the table
+   editor's grid) can paint edge-to-edge inside the modal frame. */
+.bodyTight {
+  padding: 0;
+  /* Reset overflow so the inner editor manages its own scroll/scrollable
+     region instead of being clipped between two scroll containers. */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .footer {

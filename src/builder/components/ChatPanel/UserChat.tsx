@@ -780,6 +780,11 @@ export function UserChat() {
           ) : (
             <div className={styles.crewBadge}>No crew selected</div>
           )}
+          {/* Pin swap chips retired from the chat header — the user's
+              preference is to surface this stuff only inside the live
+              memory / brain panel (where collected fields also live).
+              Brain panel shows pinned values with the 🎯 badge so
+              the swap UI is reachable there. */}
         </div>
       </div>
 
@@ -850,6 +855,10 @@ export function UserChat() {
     </div>
   );
 }
+
+// PinSwapChips retired: the user wants pin overrides only in the
+// live memory / brain panel. That surface now exposes a value picker
+// directly on each pinned-field row (see BrainPanel.MemorySection).
 
 interface TurnProps {
   turn: Turn;

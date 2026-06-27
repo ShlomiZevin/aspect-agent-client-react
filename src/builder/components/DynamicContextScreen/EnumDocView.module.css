@@ -1,0 +1,423 @@
+/* EnumDocView — doc-shaped renderer for one Targeted KB.
+   Two-column layout: sticky TOC on the left, scrollable document on
+   the right. Visual rhythm mirrors the FieldsScreen / PersonasScreen
+   pages so the Setup family reads as one. */
+
+.layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+  align-items: stretch;
+  /* Fill the parent contentArea height so the doc body scrolls
+     INSIDE itself instead of scrolling the whole page. The TOC
+     stays put on the left; only the doc article moves. */
+  height: 100%;
+  min-height: 0;
+}
+
+/* ── TOC (sticky left rail) ────────────────────────────────────── */
+.toc {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  /* Independent scroll within the layout — the rail stays put while
+     the doc article scrolls separately on the right. */
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.tocTitle {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary, #6b7280);
+}
+
+.tocEmpty {
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+  font-style: italic;
+}
+
+.tocList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tocItem {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 12px;
+  color: var(--text-primary, #111827);
+  cursor: pointer;
+}
+
+.tocItem:hover {
+  background: rgba(99, 102, 241, 0.07);
+  color: var(--primary-color, #6366f1);
+}
+
+.tocSection {
+  display: block;
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 11.5px;
+  color: var(--text-tertiary, #9ca3af);
+  padding: 3px 8px;
+}
+
+.tocAddBtn {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: transparent;
+  border: 1px dashed var(--border-color, #cbd5e1);
+  color: var(--text-secondary, #4b5563);
+  border-radius: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.tocAddBtn:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.04);
+}
+
+/* ── Doc body ──────────────────────────────────────────────────── */
+.doc {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 28px 36px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  /* Doc article owns its own scroll so the page header (breadcrumb +
+     toggle) and the TOC rail stay anchored while the user scrolls
+     through values. */
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.docTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+}
+
+.docTitleAside {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary, #9ca3af);
+  text-decoration: none;
+}
+
+.docTitleAside:hover {
+  color: var(--primary-color, #6366f1);
+  text-decoration: underline;
+}
+
+.emptyDoc {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-tertiary, #9ca3af);
+  background: var(--bg-input, #fafafa);
+  border: 1px dashed var(--border-color, #e5e7eb);
+  border-radius: 8px;
+}
+
+/* ── Value block ──────────────────────────────────────────────── */
+.valueBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 0;
+  border-bottom: 1px dashed var(--border-color, #e5e7eb);
+}
+
+.valueBlock:last-child {
+  border-bottom: 0;
+}
+
+.valueHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.valueHash {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 14px;
+  color: var(--text-tertiary, #cbd5e1);
+}
+
+.valueName {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  font-family: ui-monospace, "Menlo", monospace;
+  flex: 1;
+}
+
+.headerActionBtn {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-tertiary, #9ca3af);
+  border-radius: 5px;
+  padding: 3px 8px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 100ms, border-color 100ms, color 100ms;
+}
+
+.valueHeader:hover .headerActionBtn,
+.sectionHeader:hover .headerActionBtnSubtle {
+  opacity: 1;
+}
+
+.headerActionBtn:hover {
+  border-color: #fca5a5;
+  color: #b91c1c;
+  background: rgba(220, 38, 38, 0.05);
+}
+
+.headerActionBtnSubtle {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  background: transparent;
+  border: 0;
+  color: var(--text-tertiary, #9ca3af);
+  padding: 2px 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 100ms, color 100ms;
+}
+
+.headerActionBtnSubtle:hover {
+  color: #b91c1c;
+}
+
+/* ── Section block ────────────────────────────────────────────── */
+.sectionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  padding-left: 18px;
+  border-left: 2px solid var(--border-color, #e5e7eb);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sectionHash {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 12px;
+  color: var(--text-tertiary, #cbd5e1);
+}
+
+.sectionName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-secondary, #4b5563);
+  font-family: ui-monospace, "Menlo", monospace;
+  flex: 1;
+}
+
+.noSections {
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+  margin-left: 18px;
+  font-style: italic;
+}
+
+/* ── Inline rename input (headers) ────────────────────────────── */
+.inlineRename {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-family: inherit;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  outline: none;
+  min-width: 0;
+  flex: 1;
+}
+
+.inlineRename:hover,
+.inlineRename:focus {
+  background: var(--bg-input, #fafafa);
+  border-color: var(--border-color, #e5e7eb);
+}
+
+.inlineRename:focus {
+  border-color: var(--primary-color, #6366f1);
+  background: #fff;
+}
+
+/* ── Body render + edit ───────────────────────────────────────── */
+.bodyRender {
+  position: relative;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-primary, #111827);
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: text;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.bodyRender:hover {
+  background: rgba(99, 102, 241, 0.03);
+  outline: 1px dashed rgba(99, 102, 241, 0.35);
+  outline-offset: -2px;
+}
+
+/* "Click to edit text" hint surfaces on hover so the prose region
+   visually distinguishes itself from the "Edit table" cards that
+   live inside it. Hidden by default to keep the doc clean at rest. */
+.bodyRender::before {
+  content: '✎ Click to edit text';
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary, #9ca3af);
+  background: var(--bg-surface, #fff);
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  opacity: 0;
+  transition: opacity 100ms;
+  pointer-events: none;
+}
+
+.bodyRender:hover::before {
+  opacity: 1;
+}
+
+.bodyEmpty {
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--text-tertiary, #9ca3af);
+  padding: 8px 12px;
+  border: 1px dashed var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  cursor: text;
+}
+
+.bodyEmpty:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--text-secondary, #4b5563);
+  background: rgba(99, 102, 241, 0.03);
+}
+
+.bodyPre {
+  margin: 0;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-primary, #111827);
+}
+
+.bodyEdit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg-input, #fafafa);
+  border: 1px solid var(--primary-color, #6366f1);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+/* Editor area fills the wrapper's `min-height` so the textarea
+   inherits the viewer's pre-click height — clicking "edit" doesn't
+   jump the page. The textarea inside auto-resizes by content too
+   so typing won't ever shrink below this floor. */
+.editFill {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.editFill > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.editFill textarea {
+  height: 100% !important;
+  min-height: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.bodyEditFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.bodyEditCancel,
+.bodyEditSave {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.bodyEditCancel {
+  background: #fff;
+  border: 1px solid var(--border-color, #e5e7eb);
+  color: var(--text-secondary, #4b5563);
+}
+
+.bodyEditCancel:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+}
+
+.bodyEditSave {
+  background: var(--primary-color, #6366f1);
+  border: 1px solid var(--primary-color, #6366f1);
+  color: #fff;
+}
+
+.bodyEditSave:hover {
+  filter: brightness(0.95);
+}

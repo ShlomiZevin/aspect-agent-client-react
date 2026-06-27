@@ -26,7 +26,6 @@ import { useCrewFields } from '../../state/useCrewFields';
 import { AddFieldModal } from './AddFieldModal';
 import { FieldEditorModal } from './FieldEditorModal';
 import { WireToCrewModal } from './WireToCrewModal';
-import { SystemFieldsSection } from './SystemFieldsSection';
 import type { CrewField, CrewDomain } from '../../state/useCrewFields';
 import type { ID } from '../../types';
 import styles from './FieldsPanel.module.css';
@@ -80,6 +79,23 @@ export function FieldsPanel({ agentId, crewId }: Props) {
   const crewSource = useCrewFields(agentId, crewId ?? '');
   const agentSource = useAgentFields(agentId);
   const { allFields, domains } = crewId ? crewSource : agentSource;
+
+  // Split pinned fields out — they render under a small "Pinned"
+  // subheader at the bottom of the panel so org-KB defaults read
+  // distinctly from collected fields. The domain groups above
+  // filter pinned out.
+  const pinnedFields = useMemo(
+    () => allFields.filter(cf => cf.field.source === 'pinned'),
+    [allFields],
+  );
+  const collectedDomains = useMemo(() => {
+    return domains
+      .map(g => ({
+        ...g,
+        fields: g.fields.filter(cf => cf.field.source !== 'pinned'),
+      }))
+      .filter(g => g.fields.length > 0);
+  }, [domains]);
 
   const { conversationMemory, previewConversationId, doc } = useBuilder();
   const [addOpen, setAddOpen] = useState(false);
@@ -200,11 +216,10 @@ export function FieldsPanel({ agentId, crewId }: Props) {
           </div>
         </div>
 
-        {/* System fields — sticky top section. Always visible, even
-            when the user hasn't declared any of their own fields, so
-            the affordance is discoverable. Read-only; the registry
-            owns the names/types. */}
-        <SystemFieldsSection conversationMemory={conversationMemory} />
+        {/* System-fields visible section retired: the generalized
+            "any json key matching a declared field name is auto-written
+            to memory" capability covers the same use case. Authors
+            declare what they want; the runtime harvests it. */}
 
         {allFields.length === 0 ? (
           <div className={styles.empty}>
@@ -215,7 +230,33 @@ export function FieldsPanel({ agentId, crewId }: Props) {
           </div>
         ) : (
           <div className={styles.groups}>
-            {domains
+            {/* Pinned FIRST — org-level defaults read at a glance
+                before the collected fields below them. Uses the same
+                FieldRow component as the rest of Memory so a pinned
+                field reads as "just a field with a different source".
+                FieldRow itself skips the "no extractor" warning for
+                pinned fields. */}
+            {pinnedFields.length > 0 && (
+              <div className={styles.pinnedGroup}>
+                <div className={styles.pinnedHeader}>
+                  <span className={styles.pinnedHeaderTitle}>🎯 Pinned</span>
+                  <span className={styles.pinnedHeaderCount}>{pinnedFields.length}</span>
+                </div>
+                <div className={styles.list}>
+                  {pinnedFields.map(cf => (
+                    <FieldRow
+                      key={`${cf.crewId}/${cf.field.id}`}
+                      cf={cf}
+                      onPick={setEditing}
+                      liveValue={liveValueByField[cf.field.name]}
+                      showCrewChip={showCrewChip}
+                      enumNameById={enumNameById}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            {collectedDomains
               .filter(g => g.name !== null)
               .map(group => (
                 <DomainGroup
@@ -229,7 +270,7 @@ export function FieldsPanel({ agentId, crewId }: Props) {
                   enumNameById={enumNameById}
                 />
               ))}
-            {domains
+            {collectedDomains
               .filter(g => g.name === null)
               .map(group => (
                 <UngroupedFields
@@ -378,6 +419,9 @@ function FieldRow({ cf, onPick, liveValue, showCrewChip, enumNameById }: FieldRo
     <div className={styles.row} role="button" tabIndex={0} onClick={() => onPick(cf)}>
       <div className={styles.rowMain}>
         <span className={styles.fieldName}>{cf.field.name || '(unnamed)'}</span>
+        {/* Pinned-source badge intentionally NOT shown here — the
+            section header ("🎯 PINNED") already groups these rows,
+            and the source pill below carries the redundant info. */}
         {isCrewScoped && (
           <span className={styles.scopeBadge} title="Crew-scoped — visible only in this crew">
             🔒 crew
@@ -414,10 +458,21 @@ function FieldRow({ cf, onPick, liveValue, showCrewChip, enumNameById }: FieldRo
             ? `enum · ${enumNameById.get(cf.field.enumType) ?? '(missing)'}`
             : TYPE_LABEL[cf.field.type] ?? cf.field.type}
         </span>
-        <span className={styles.sourcePill} title={src?.label}>
-          {src?.icon ?? ''} {src?.label ?? cf.field.source}
-        </span>
-        {extractorCount === 0 ? (
+        {/* Source pill suppressed for pinned — the "🎯 PINNED"
+            section header above already says it; repeating it here
+            would be the second of the "twice mentioned" the user
+            flagged. Pinned rows therefore wear only the typePill. */}
+        {cf.field.source !== 'pinned' && (
+          <span className={styles.sourcePill} title={src?.label}>
+            {src?.icon ?? ''} {src?.label ?? cf.field.source}
+          </span>
+        )}
+        {cf.field.source === 'pinned' ? (
+          // Pinned fields are pre-set at config time — no collector
+          // is expected. Skip the "no extractor" warning so the row
+          // doesn't carry a false-positive error chip.
+          null
+        ) : extractorCount === 0 ? (
           <span
             className={styles.unwired}
             title="No Field Extractor references this field — open the editor to wire one"

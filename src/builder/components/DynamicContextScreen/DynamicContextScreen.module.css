@@ -9,9 +9,25 @@
 .root {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
-  padding: 18px 22px 28px;
+  /* No scroll on the root — the top bar + breadcrumb stay anchored
+     while the inner content area handles its own scroll. The doc /
+     tree view inside each carry their own `overflow: auto` so the
+     left rail (TOC / KB list) stays in place. */
+  height: 100%;
+  overflow: hidden;
+  padding: 18px 22px 0;
   gap: 14px;
+  box-sizing: border-box;
+}
+
+/* Content area below the top bar. Takes remaining height and lets
+   children control their own scroll. */
+.contentArea {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 28px;
 }
 
 /* ── Top bar: breadcrumb + view toggle ─────────────────────────── */

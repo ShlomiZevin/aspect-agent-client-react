@@ -21,6 +21,7 @@ import { DynamicContextScreen } from './components/DynamicContextScreen/DynamicC
 import { PersonasScreen } from './components/PersonasScreen/PersonasScreen';
 import { FieldsScreen } from './components/FieldsScreen/FieldsScreen';
 import { TagsScreen } from './components/TagsScreen/TagsScreen';
+import { PinnedFieldsScreen } from './components/PinnedFieldsScreen/PinnedFieldsScreen';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
 import { BrainDockSlot, BrainFullscreenLayer } from './components/BrainPanel/BrainPanel';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
@@ -229,6 +230,10 @@ function BuilderShell() {
                 tokens and field tag arrays. */}
             <Route path="tags" element={<TagsScreen />} />
             <Route path="tags/:tagName" element={<TagsScreen />} />
+            {/* Pinned Fields: focused surface for `source: 'pinned'`
+                fields. Same data as Fields page; this is the
+                "thinking in pins" entry point. */}
+            <Route path="pinned" element={<PinnedFieldsScreen />} />
           </Routes>
           {/* Brain dock floats at the bottom-right of the canvas (just
               left of the chat column) so the chat column never

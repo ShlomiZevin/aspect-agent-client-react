@@ -27,7 +27,7 @@ interface Props {
 }
 
 /** Schema chips that open the SchemaSectionModal. Fields, Dynamic
- *  Context, Personas, and Enums are intentionally NOT here — they have
+ *  Context, Personas, and Targeted KB are intentionally NOT here — they have
  *  their own dedicated pages; their chips navigate there instead of
  *  cramming the editor into a modal. */
 interface ChipSpec {
@@ -115,17 +115,37 @@ export function AgentSetupArea({ agent }: Props) {
           <span className={styles.chipCount}>{(agent.tags ?? []).length}</span>
         </button>
 
-        {/* Enum bible — own page; chip navigates instead of opening
-            the section modal. The page lists agent enums + lets the
-            author edit each value's umbrella + sections. */}
+        {/* Pinned Fields — fields with `source: 'pinned'`. Focused
+            surface for org-KB selectors ("act as Bank Hapoalim").
+            Same FieldDef under the hood, different page so the user
+            can manage pins separately from collected fields. */}
+        <button
+          type="button"
+          className={styles.chip}
+          onClick={() => navigate(`/${agent.slug}/builder/pinned`)}
+          title="Open the pinned fields page"
+        >
+          <span className={styles.chipIcon}>🎯</span>
+          <span className={styles.chipName}>Pinned</span>
+          <span className={styles.chipCount}>
+            {(agent.fields ?? []).filter(f => f.source === 'pinned').length}
+          </span>
+        </button>
+
+        {/* Targeted KB — own page; chip navigates instead of opening
+            the section modal. The page lists agent KBs + lets the
+            author edit each value's umbrella + sections. "Targeted"
+            because the agent picks ONE branch by value match instead
+            of doing semantic search (RAG). Internal type still
+            `enum` / `EnumTypeDef`; only the UI label changed. */}
         <button
           type="button"
           className={styles.chip}
           onClick={() => navigate(`/${agent.slug}/builder/enums`)}
-          title="Open the enum bible"
+          title="Open the Targeted KB editor"
         >
           <span className={styles.chipIcon}>🎯</span>
-          <span className={styles.chipName}>Enums</span>
+          <span className={styles.chipName}>Targeted KB</span>
           <span className={styles.chipCount}>{enumsCount}</span>
         </button>
       </div>

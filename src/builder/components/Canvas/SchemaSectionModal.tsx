@@ -27,7 +27,8 @@ interface Props {
 
 const TITLE: Record<SchemaSectionKind, string> = {
   'parameters': 'Parameters',
-  'enums':      'Enums',
+  'enums':      'Targeted KB',
+  'pinned':     'Pinned Fields',
   'domains':    'Domains',
   'fields':     'Fields',
   'snippets':   'Snippets',

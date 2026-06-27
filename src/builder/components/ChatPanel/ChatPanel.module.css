@@ -93,11 +93,61 @@
  * highlighted, like browser tabs. */
 .headerRowBottom {
   display: flex;
-  flex-wrap: nowrap;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 6px;
   align-items: center;
   padding: 6px 10px;
-  overflow-x: auto;
+}
+
+/* Pin swap chips — one per pinned field. Renders inline next to the
+   crew select so the tester can flip the active Targeted KB value
+   without leaving the chat. Each chip embeds a native <select> for
+   the value; styling makes the whole thing read as a single chip. */
+.pinChips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.pinChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 999px;
+  padding: 2px 6px 2px 8px;
+  color: #4f46e5;
+}
+
+.pinChipIcon { font-size: 11px; }
+
+.pinChipName {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-weight: 600;
+}
+
+.pinChipSelect {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #4f46e5;
+  background: transparent;
+  border: 0;
+  padding: 1px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pinChipSelect:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.pinChipSelect:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .helperBadge {

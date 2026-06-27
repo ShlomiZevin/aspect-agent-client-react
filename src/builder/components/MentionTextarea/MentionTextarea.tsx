@@ -158,6 +158,18 @@ interface Props {
    *  surfaces are interchangeable (same kind of editor), not when
    *  they're distinct prompts. */
   storageKey?: string;
+  /** Lower bound for the textarea's rendered height in pixels.
+   *  Used by callers that want to match the editor to a captured
+   *  viewer size (so a click-to-edit swap doesn't shrink the box).
+   *  Merged into the inline style — wins over `rows` when greater,
+   *  but lets the user still drag-resize taller. */
+  minHeight?: number;
+  /** When true, the textarea grows to fit its content (height set to
+   *  `scrollHeight` on every change). Useful for inline editors that
+   *  shouldn't show an inner scroll — the host's scroll container
+   *  takes over instead. Disables the user's drag-to-resize handle
+   *  while active (auto-grow drives the height). */
+  autoGrow?: boolean;
 }
 
 /** localStorage namespaces for MentionTextarea remembered state.
@@ -312,6 +324,8 @@ export function MentionTextarea({
   onBlur,
   onFocus,
   storageKey,
+  minHeight,
+  autoGrow = false,
 }: Props) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const [picker, setPicker] = useState<PickerState | null>(null);
@@ -324,6 +338,21 @@ export function MentionTextarea({
   // stationary cursor, firing onMouseEnter and yanking the highlight
   // back to the top of whatever scrolled into view.
   const keyboardOwnsHighlight = useRef(false);
+
+  // Auto-grow: keep the textarea's height matched to its content's
+  // natural height (scrollHeight) so the editor never shows an inner
+  // scroll. Run on every value change after layout. The min-height
+  // floor still applies — `minHeight` wins when content is shorter.
+  useLayoutEffect(() => {
+    if (!autoGrow) return;
+    const el = taRef.current;
+    if (!el) return;
+    // Reset to auto so shrinking content can pull the height back
+    // down, then grow to fit.
+    el.style.height = 'auto';
+    const target = el.scrollHeight;
+    el.style.height = `${target}px`;
+  }, [autoGrow, value]);
 
   // Manual RTL/LTR pin per `storageKey`. `null` → no override, the
   // textarea follows the Hebrew-share auto-detection. Persisted under
@@ -600,7 +629,10 @@ export function MentionTextarea({
       <textarea
         ref={taRef}
         className={styles.textarea}
-        style={savedHeight !== null ? { height: savedHeight } : undefined}
+        style={{
+          ...(savedHeight !== null ? { height: savedHeight } : {}),
+          ...(minHeight !== undefined ? { minHeight } : {}),
+        }}
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}

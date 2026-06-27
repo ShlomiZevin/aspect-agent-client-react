@@ -1,0 +1,90 @@
+/* TableEditorModalV1 — local overrides on top of the v1 dynamic-KB
+   TableEditor. The original component was authored as a standalone
+   page where vertical empty space below the grid was fine. Inside
+   our modal that empty space looks like wasted real estate. These
+   targeted attribute selectors find the v1 component's hashed class
+   names by the source token (`tableWrap`, `tableActions`, …) so we
+   override layout without forking the v1 file. */
+
+.wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* v1 `.container` — fills our wrapper. */
+.wrap > [class*="container"] {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* v1 `.tableWrap` — flex-grow so it fills whatever vertical space
+   the modal offers. When the user drags the modal taller, the grid
+   gets the new height (more rows visible / authorable space), NOT
+   an empty void. Edge-flush so the grid hugs the modal sides —
+   "100% table" look. */
+.wrap [class*="tableWrap"] {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0;
+}
+
+/* The v1 grid itself: make sure the rows extend to the modal edges
+   so we don't get a thin white margin around the table. */
+.wrap [class*="tableWrap"] > table {
+  width: 100%;
+  border-left: 0;
+  border-right: 0;
+}
+
+/* v1 `.tableActions` — fixed-height bottom bar. Snug padding,
+   buttons sit on one baseline (Save/Cancel slot in via
+   `rightActions` so they're inside the same flex row). */
+.wrap [class*="tableActions"] {
+  padding: 8px 12px;
+  gap: 6px;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.cancelBtn,
+.saveBtn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cancelBtn {
+  background: #fff;
+  color: var(--text-primary, #111827);
+  border: 1px solid var(--border-color, #e5e7eb);
+}
+
+.cancelBtn:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+}
+
+.saveBtn {
+  background: var(--primary-color, #6366f1);
+  color: #fff;
+  border: 1px solid var(--primary-color, #6366f1);
+}
+
+.saveBtn:hover {
+  filter: brightness(0.95);
+}
+
+/* Spacer that fills any remaining modal body height. Visually
+   nothing — it just absorbs the empty area so the table + actions
+   stay close together near the top instead of being centered. */
+.spacer {
+  flex: 1;
+  min-height: 0;
+}

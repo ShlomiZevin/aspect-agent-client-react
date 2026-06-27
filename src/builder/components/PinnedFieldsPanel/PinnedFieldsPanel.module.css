@@ -1,0 +1,279 @@
+/* PinnedFieldsPanel — visually identical to FieldsPanel row chrome.
+   We copy the relevant styles rather than `composes:` because the
+   panel is in a different folder and we want it standalone, but the
+   shapes / spacings match line-for-line so the two panels read as one
+   family. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px 14px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+}
+
+.count {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--bg-input, #f3f4f6);
+  color: var(--text-secondary, #6b7280);
+  font-weight: 600;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.addBtn {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.addBtn:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.empty {
+  padding: 18px;
+  border: 1px dashed var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: var(--bg-input, #fafafa);
+  color: var(--text-secondary, #6b7280);
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--bg-surface, #fff);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 120ms, background 120ms;
+  box-sizing: border-box;
+}
+
+.row:hover {
+  border-color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.03);
+}
+
+.rowMain {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fieldName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pinnedBadge {
+  font-size: 10px;
+  font-weight: 600;
+  color: #4f46e5;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.28);
+  border-radius: 4px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.typePill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+  text-transform: lowercase;
+}
+
+.valueSelect {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text-primary, #111827);
+  cursor: pointer;
+}
+
+.valueSelect:hover {
+  border-color: var(--primary-color, #6366f1);
+}
+
+.valueSelect:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+}
+
+.unwired {
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(245, 158, 11, 0.15);
+  color: #92400e;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 999px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+/* Field-style row chrome — visually identical to FieldsPanel rows so
+   a pinned field reads the same in agent view as it does inline in
+   the crew Memory panel. Two stacked lines: name on top, pills row
+   below (type/KB + source). */
+.fieldRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--bg-surface, #fff);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 120ms, background 120ms;
+  box-sizing: border-box;
+}
+
+.fieldRow:hover {
+  border-color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.03);
+}
+
+.fieldRowMain {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fieldRowName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fieldRowPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.typePill,
+.sourcePill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.typePill {
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+  text-transform: lowercase;
+}
+
+.sourcePill {
+  background: var(--bg-input, #f3f4f6);
+  color: var(--text-secondary, #4b5563);
+}
+
+/* Inline value picker — quiet by default so it doesn't dominate the
+   row, but turns indigo on hover/focus so the affordance is obvious
+   the moment the eye lands on it. */
+.equals {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.valueSelect {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--text-primary, #111827);
+  cursor: pointer;
+  max-width: 160px;
+}
+
+.valueSelect:hover,
+.valueSelect:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+}
+
+.noValues {
+  font-size: 10.5px;
+  color: var(--text-tertiary, #9ca3af);
+  font-style: italic;
+}

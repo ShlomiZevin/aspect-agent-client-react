@@ -21,7 +21,6 @@ import { useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { SchemaFieldEditor } from '../SchemaPanel/SchemaFieldEditor';
-import { SystemFieldsSection } from '../FieldsPanel/SystemFieldsSection';
 import type { FieldDef } from '../../types';
 import styles from './FieldsScreen.module.css';
 
@@ -43,7 +42,7 @@ function uniqueFieldName(base: string, existing: ReadonlyArray<FieldDef>): strin
 
 export function FieldsScreen() {
   const navigate = useNavigate();
-  const { doc, conversationMemory, updateAgent } = useBuilder();
+  const { doc, updateAgent } = useBuilder();
   const agent = doc.agents[0];
   const agentSlug = agent?.slug ?? '';
 
@@ -142,11 +141,6 @@ export function FieldsScreen() {
           >
             + Declare field
           </button>
-
-          {/* System fields — read-only, sticky top section. Same
-              component used in the FieldsPanel + SchemaPanel so the
-              user sees the platform-defined names from every angle. */}
-          <SystemFieldsSection conversationMemory={conversationMemory} />
 
           {fields.length === 0 ? (
             <div className={styles.listEmpty}>
