@@ -51,7 +51,6 @@ export function TopBar() {
       {/* <button type="button" className={styles.resetBtn} onClick={handleReset}>
         Reset draft
       </button> */}
-      <span className={styles.draftPill}>Draft</span>
       <div className={styles.settingsWrap}>
         <button
           type="button"

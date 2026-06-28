@@ -35,7 +35,7 @@ import type {
   ProjectDoc,
   TalkerConfig,
 } from '../types';
-import { loadDraft, saveDraft } from './draftStorage';
+import { clearDraft, loadDraft, saveDraft } from './draftStorage';
 import { talkerPlugin, TALKER_PLUGIN_ID } from '../plugins/talker/addon.talker';
 import { defaultContextFor, defaultOutputTypeFor } from '../registry/plugins';
 import { cascadeFieldRename } from './fieldRenameCascade';
@@ -1810,14 +1810,18 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   }, [agentSlug, ownerUserId]);
 
   const resetToServerState = useCallback(async () => {
-    try {
-      const fresh = await fetchProject({ agentSlug, ownerUserId });
-      setDoc(fresh ?? emptyProject(agentSlug));
-    } catch (err) {
-      console.error('[builder] resetToServerState failed:', err);
-      // Network error: leave the working copy alone. The user can retry.
+    // Bulletproof Reset: wipe the local draft AND hard-reload. We used
+    // to do clearDraft + fetchProject + setDoc, but the in-memory React
+    // state (doc ref, autosave hook, dirty calc, useEffect persistence
+    // of doc back to localStorage) gave the user a thousand ways to
+    // see "dirty" right after Reset. Reload sidesteps all of them —
+    // every cache, every ref, every effect starts from scratch and
+    // BuilderApp's initial fetchProject is the single source of truth.
+    clearDraft(agentSlug);
+    if (typeof window !== 'undefined') {
+      window.location.reload();
     }
-  }, [agentSlug, ownerUserId]);
+  }, [agentSlug]);
 
   const value = useMemo<BuilderState>(
     () => ({
