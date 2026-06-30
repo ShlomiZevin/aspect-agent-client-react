@@ -128,6 +128,7 @@ export const translations: LanguageConfig = {
 
     // DataStatusBar — shared across all data-driven agents
     'dataStatusBar.lastSync': 'Last sync',
+    'dataStatusBar.dataFrom': 'Data from',
     'dataStatusBar.dataThrough': 'Data through',
     'dataStatusBar.na': 'N/A',
 
@@ -526,6 +527,7 @@ export const translations: LanguageConfig = {
 
     // DataStatusBar — shared across all data-driven agents
     'dataStatusBar.lastSync': 'סנכרון אחרון',
+    'dataStatusBar.dataFrom': 'נתונים מ-',
     'dataStatusBar.dataThrough': 'נתונים עד',
     'dataStatusBar.na': 'לא זמין',
 
