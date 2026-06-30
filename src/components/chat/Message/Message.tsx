@@ -9,7 +9,7 @@ import { ThinkingIndicator } from '../ThinkingIndicator';
 import { DebugPanel } from '../DebugPanel';
 import { FeedbackPanel } from '../FeedbackPanel';
 import { AgentBugModal } from '../AgentBugModal/AgentBugModal';
-import { TableWithExport } from './TableWithExport';
+import { DataTableModal } from './DataTableModal';
 import { createTask, getAssignees } from '../../../services/taskService';
 import { useCommenterIdentity } from '../../../hooks/useCommenterIdentity';
 import type { CreateTaskData } from '../../../types/task';
@@ -71,11 +71,19 @@ export function Message({ message }: MessageProps) {
   const [idProcessing, setIdProcessing] = useState(false);
   const [idCaptured, setIdCaptured] = useState(false);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
+  const [openTableIdx, setOpenTableIdx] = useState<number | null>(null);
   const isUser = message.role === 'user';
   const isDeveloper = message.role === 'developer';
   // Outside users never see thinking steps inside the bubble, never get the feedback button.
   const hasThinkingSteps = !restrictedMode && !isUser && !isDeveloper && message.thinkingSteps && message.thinkingSteps.length > 0;
   const rtl = isRTL(message.content);
+
+  // Full structured query results the agent attached to this message (one per
+  // fetch). Each carries the COMPLETE row set so the viewer/export shows every
+  // row, not just the preview the agent rendered in text.
+  const dataTables = (!isUser && !isDeveloper && message.thinkingSteps)
+    ? message.thinkingSteps.filter(s => s.stepType === 'data_table' && Array.isArray((s.metadata as { rows?: unknown[] })?.rows))
+    : [];
   const canFeedback = !restrictedMode && !isUser && !isDeveloper && message.dbId;
   const canReportBug = debugMode && !isUser && !isDeveloper;
   // Agents whose backend has no message deletion hide per-message actions.
@@ -319,17 +327,50 @@ export function Message({ message }: MessageProps) {
                 components={{
                   a: ({ href, children }) => (
                     <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
-                  ),
-                  table: ({ node, children }) => (
-                    <TableWithExport node={node} label={t('chat.exportToExcel')}>
-                      {children}
-                    </TableWithExport>
                   )
                 }}
               >
                 {uiCleanText}
               </ReactMarkdown>
             </div>
+            {dataTables.length > 0 && (
+              <div className={styles.dataTableButtons}>
+                {dataTables.map((step, idx) => {
+                  const meta = step.metadata as { rowCount?: number; rows?: unknown[] };
+                  const count = meta.rowCount ?? meta.rows?.length ?? 0;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      className={styles.dataTableBtn}
+                      onClick={() => setOpenTableIdx(idx)}
+                    >
+                      📊 {t('chat.viewFullTable')} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {openTableIdx !== null && dataTables[openTableIdx] && (() => {
+              const meta = dataTables[openTableIdx].metadata as {
+                rows: Record<string, unknown>[];
+                columns?: unknown;
+                rowCount?: number;
+                question?: string;
+              };
+              return (
+                <DataTableModal
+                  rows={meta.rows}
+                  columns={meta.columns}
+                  title={meta.question}
+                  exportLabel={t('chat.exportToExcel')}
+                  filterPlaceholder={t('chat.filterRows')}
+                  closeLabel={t('chat.close')}
+                  rowsLabel={(n) => `${n} ${t('chat.rows')}`}
+                  onClose={() => setOpenTableIdx(null)}
+                />
+              );
+            })()}
             {uiElements.length > 0 && (() => {
               const inputEls = uiElements.filter(e => e.type === 'input');
               const otherEls = uiElements.filter(e => e.type !== 'input');

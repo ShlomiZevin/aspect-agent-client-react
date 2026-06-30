@@ -269,36 +269,31 @@
   opacity: 0.8;
 }
 
-/* Table-with-export wrapper (agent data tables) */
-.tableWrap {
-  position: relative;
-  overflow-x: auto;
-  margin: 1em 0;
+/* Full-data table viewer launch buttons (agent query results) */
+.dataTableButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0.5em 0 0.25em;
 }
 
-.tableWrap table {
-  margin: 0;
-}
-
-.tableExportBtn {
+.dataTableBtn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-bottom: 0.5em;
-  padding: 4px 10px;
-  font-size: 0.8em;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 0.85em;
   font-weight: 600;
-  color: var(--primary);
-  background: transparent;
-  border: 1px solid var(--primary);
-  border-radius: 6px;
+  color: white;
+  background: var(--primary);
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: opacity 0.15s;
 }
 
-.tableExportBtn:hover {
-  background: var(--primary);
-  color: white;
+.dataTableBtn:hover {
+  opacity: 0.9;
 }
 
 /* User message wrapper for actions */

@@ -132,8 +132,12 @@ export const translations: LanguageConfig = {
     'dataStatusBar.dataThrough': 'Data through',
     'dataStatusBar.na': 'N/A',
 
-    // Chat table export
+    // Chat table export + full-data viewer
     'chat.exportToExcel': 'Export to Excel',
+    'chat.viewFullTable': 'View full table',
+    'chat.filterRows': 'Filter rows…',
+    'chat.rows': 'rows',
+    'chat.close': 'Close',
 
     // Thinking step query labels
     'thinking.businessQuestion': 'Business Question',
@@ -534,8 +538,12 @@ export const translations: LanguageConfig = {
     'dataStatusBar.dataThrough': 'נתונים עד',
     'dataStatusBar.na': 'לא זמין',
 
-    // Chat table export
+    // Chat table export + full-data viewer
     'chat.exportToExcel': 'ייצוא לאקסל',
+    'chat.viewFullTable': 'הצג טבלה מלאה',
+    'chat.filterRows': 'סינון שורות…',
+    'chat.rows': 'שורות',
+    'chat.close': 'סגור',
 
     // Thinking step query labels
     'thinking.businessQuestion': 'שאלה עסקית',
