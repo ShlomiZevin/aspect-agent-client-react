@@ -132,6 +132,9 @@ export const translations: LanguageConfig = {
     'dataStatusBar.dataThrough': 'Data through',
     'dataStatusBar.na': 'N/A',
 
+    // Chat table export
+    'chat.exportToExcel': 'Export to Excel',
+
     // Thinking step query labels
     'thinking.businessQuestion': 'Business Question',
     'thinking.sqlQuery': 'SQL Query',
@@ -530,6 +533,9 @@ export const translations: LanguageConfig = {
     'dataStatusBar.dataFrom': 'נתונים מ-',
     'dataStatusBar.dataThrough': 'נתונים עד',
     'dataStatusBar.na': 'לא זמין',
+
+    // Chat table export
+    'chat.exportToExcel': 'ייצוא לאקסל',
 
     // Thinking step query labels
     'thinking.businessQuestion': 'שאלה עסקית',

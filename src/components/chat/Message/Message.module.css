@@ -269,6 +269,38 @@
   opacity: 0.8;
 }
 
+/* Table-with-export wrapper (agent data tables) */
+.tableWrap {
+  position: relative;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.tableWrap table {
+  margin: 0;
+}
+
+.tableExportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 0.5em;
+  padding: 4px 10px;
+  font-size: 0.8em;
+  font-weight: 600;
+  color: var(--primary);
+  background: transparent;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tableExportBtn:hover {
+  background: var(--primary);
+  color: white;
+}
+
 /* User message wrapper for actions */
 .userMessageWrapper {
   display: flex;

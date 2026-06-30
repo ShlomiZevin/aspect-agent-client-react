@@ -9,6 +9,7 @@ import { ThinkingIndicator } from '../ThinkingIndicator';
 import { DebugPanel } from '../DebugPanel';
 import { FeedbackPanel } from '../FeedbackPanel';
 import { AgentBugModal } from '../AgentBugModal/AgentBugModal';
+import { TableWithExport } from './TableWithExport';
 import { createTask, getAssignees } from '../../../services/taskService';
 import { useCommenterIdentity } from '../../../hooks/useCommenterIdentity';
 import type { CreateTaskData } from '../../../types/task';
@@ -318,6 +319,11 @@ export function Message({ message }: MessageProps) {
                 components={{
                   a: ({ href, children }) => (
                     <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
+                  ),
+                  table: ({ node, children }) => (
+                    <TableWithExport node={node} label={t('chat.exportToExcel')}>
+                      {children}
+                    </TableWithExport>
                   )
                 }}
               >
