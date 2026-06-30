@@ -135,6 +135,7 @@ export const translations: LanguageConfig = {
     // Chat table export + full-data viewer
     'chat.exportToExcel': 'Export to Excel',
     'chat.viewFullTable': 'View full table',
+    'chat.dataTableTitle': 'Data table',
     'chat.filterRows': 'Filter rows…',
     'chat.rows': 'rows',
     'chat.close': 'Close',
@@ -541,6 +542,7 @@ export const translations: LanguageConfig = {
     // Chat table export + full-data viewer
     'chat.exportToExcel': 'ייצוא לאקסל',
     'chat.viewFullTable': 'הצג טבלה מלאה',
+    'chat.dataTableTitle': 'טבלת נתונים',
     'chat.filterRows': 'סינון שורות…',
     'chat.rows': 'שורות',
     'chat.close': 'סגור',

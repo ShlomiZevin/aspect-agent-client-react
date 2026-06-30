@@ -356,13 +356,12 @@ export function Message({ message }: MessageProps) {
                 rows: Record<string, unknown>[];
                 columns?: unknown;
                 rowCount?: number;
-                question?: string;
               };
               return (
                 <DataTableModal
                   rows={meta.rows}
                   columns={meta.columns}
-                  title={meta.question}
+                  title={t('chat.dataTableTitle')}
                   exportLabel={t('chat.exportToExcel')}
                   filterPlaceholder={t('chat.filterRows')}
                   closeLabel={t('chat.close')}

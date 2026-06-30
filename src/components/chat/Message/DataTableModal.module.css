@@ -11,7 +11,7 @@
 
 .modal {
   background: var(--surface, #fff);
-  color: var(--text, #111);
+  color: var(--text-primary, #111);
   border-radius: 12px;
   width: min(1100px, 96vw);
   max-height: 88vh;
@@ -48,7 +48,7 @@
   padding: 0 4px;
 }
 
-.close:hover { color: var(--text, #111); }
+.close:hover { color: var(--text-primary, #111); }
 
 .toolbar {
   display: flex;
@@ -65,7 +65,7 @@
   border: 1px solid var(--border, #ccc);
   border-radius: 8px;
   font-size: 0.9rem;
-  background: var(--bg, #fff);
+  background: var(--surface, #fff);
   color: inherit;
 }
 
@@ -83,7 +83,7 @@
   font-size: 0.85rem;
   font-weight: 600;
   color: #fff;
-  background: var(--primary, #6b3fd4);
+  background: var(--primary-color, #7c3aed);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -105,7 +105,7 @@
 .th {
   position: sticky;
   top: 0;
-  background: var(--primary, #6b3fd4);
+  background: var(--primary-color, #7c3aed);
   color: #fff;
   text-align: start;
   padding: 9px 12px;
@@ -124,9 +124,9 @@
 }
 
 .table tbody tr:nth-child(even) {
-  background: var(--surface-alt, rgba(0, 0, 0, 0.03));
+  background: var(--surface-light, rgba(0, 0, 0, 0.03));
 }
 
 .table tbody tr:hover {
-  background: var(--hover, rgba(107, 63, 212, 0.08));
+  background: var(--primary-light, rgba(124, 58, 237, 0.08));
 }
