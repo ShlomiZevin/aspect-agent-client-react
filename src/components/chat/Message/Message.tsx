@@ -336,8 +336,9 @@ export function Message({ message }: MessageProps) {
             {dataTables.length > 0 && (
               <div className={styles.dataTableButtons}>
                 {dataTables.map((step, idx) => {
-                  const meta = step.metadata as { rowCount?: number; rows?: unknown[] };
+                  const meta = step.metadata as { rowCount?: number; rows?: unknown[]; title?: string };
                   const count = meta.rowCount ?? meta.rows?.length ?? 0;
+                  const label = meta.title?.trim() || t('chat.viewFullTable');
                   return (
                     <button
                       key={idx}
@@ -345,7 +346,7 @@ export function Message({ message }: MessageProps) {
                       className={styles.dataTableBtn}
                       onClick={() => setOpenTableIdx(idx)}
                     >
-                      📊 {t('chat.viewFullTable')} ({count})
+                      📊 {label} ({count})
                     </button>
                   );
                 })}
@@ -356,12 +357,13 @@ export function Message({ message }: MessageProps) {
                 rows: Record<string, unknown>[];
                 columns?: unknown;
                 rowCount?: number;
+                title?: string;
               };
               return (
                 <DataTableModal
                   rows={meta.rows}
                   columns={meta.columns}
-                  title={t('chat.dataTableTitle')}
+                  title={meta.title?.trim() || t('chat.dataTableTitle')}
                   exportLabel={t('chat.exportToExcel')}
                   filterPlaceholder={t('chat.filterRows')}
                   closeLabel={t('chat.close')}
