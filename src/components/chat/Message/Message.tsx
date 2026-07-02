@@ -10,6 +10,7 @@ import { DebugPanel } from '../DebugPanel';
 import { FeedbackPanel } from '../FeedbackPanel';
 import { AgentBugModal } from '../AgentBugModal/AgentBugModal';
 import { DataTableModal } from './DataTableModal';
+import { parseMarkdownTables } from './parseMarkdownTables';
 import { createTask, getAssignees } from '../../../services/taskService';
 import { useCommenterIdentity } from '../../../hooks/useCommenterIdentity';
 import type { CreateTaskData } from '../../../types/task';
@@ -96,6 +97,29 @@ export function Message({ message }: MessageProps) {
   // Disable UI elements if a subsequent message exists (user already responded)
   const msgIndex = messages.findIndex((m: MessageType) => m.id === message.id);
   const uiDisabled = uiElements.length > 0 && msgIndex >= 0 && msgIndex < messages.length - 1;
+
+  // Tables the user can open in the full sortable/filterable/Excel-export viewer.
+  // Prefer the structured tool result (`data_table` step — carries the COMPLETE
+  // row set). Fall back to parsing a markdown table out of the reply so agents
+  // without a data tool (e.g. Aspect demo crews) still get the viewer/export.
+  const toolTables = dataTables.map(step => {
+    const meta = step.metadata as { rowCount?: number; rows?: Record<string, unknown>[]; columns?: unknown; title?: string };
+    return {
+      rows: (meta.rows ?? []) as Record<string, unknown>[],
+      columns: meta.columns,
+      title: meta.title?.trim() || undefined,
+      count: meta.rowCount ?? meta.rows?.length ?? 0,
+    };
+  });
+  const markdownTables = (toolTables.length === 0 && !isUser && !isDeveloper)
+    ? parseMarkdownTables(uiCleanText).map(tbl => ({
+        rows: tbl.rows as Record<string, unknown>[],
+        columns: tbl.columns,
+        title: tbl.title,
+        count: tbl.rows.length,
+      }))
+    : [];
+  const viewerTables = toolTables.length ? toolTables : markdownTables;
 
   // When disabled, parse the next user message to recover submitted input values (for display)
   const nextUserMsg = uiElements.length > 0
@@ -333,45 +357,32 @@ export function Message({ message }: MessageProps) {
                 {uiCleanText}
               </ReactMarkdown>
             </div>
-            {dataTables.length > 0 && (
+            {viewerTables.length > 0 && (
               <div className={styles.dataTableButtons}>
-                {dataTables.map((step, idx) => {
-                  const meta = step.metadata as { rowCount?: number; rows?: unknown[]; title?: string };
-                  const count = meta.rowCount ?? meta.rows?.length ?? 0;
-                  const label = meta.title?.trim() || t('chat.viewFullTable');
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      className={styles.dataTableBtn}
-                      onClick={() => setOpenTableIdx(idx)}
-                    >
-                      📊 {label} ({count})
-                    </button>
-                  );
-                })}
+                {viewerTables.map((tbl, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={styles.dataTableBtn}
+                    onClick={() => setOpenTableIdx(idx)}
+                  >
+                    📊 {tbl.title || t('chat.viewFullTable')} ({tbl.count})
+                  </button>
+                ))}
               </div>
             )}
-            {openTableIdx !== null && dataTables[openTableIdx] && (() => {
-              const meta = dataTables[openTableIdx].metadata as {
-                rows: Record<string, unknown>[];
-                columns?: unknown;
-                rowCount?: number;
-                title?: string;
-              };
-              return (
-                <DataTableModal
-                  rows={meta.rows}
-                  columns={meta.columns}
-                  title={meta.title?.trim() || t('chat.dataTableTitle')}
-                  exportLabel={t('chat.exportToExcel')}
-                  filterPlaceholder={t('chat.filterRows')}
-                  closeLabel={t('chat.close')}
-                  rowsLabel={(n) => `${n} ${t('chat.rows')}`}
-                  onClose={() => setOpenTableIdx(null)}
-                />
-              );
-            })()}
+            {openTableIdx !== null && viewerTables[openTableIdx] && (
+              <DataTableModal
+                rows={viewerTables[openTableIdx].rows}
+                columns={viewerTables[openTableIdx].columns}
+                title={viewerTables[openTableIdx].title || t('chat.dataTableTitle')}
+                exportLabel={t('chat.exportToExcel')}
+                filterPlaceholder={t('chat.filterRows')}
+                closeLabel={t('chat.close')}
+                rowsLabel={(n) => `${n} ${t('chat.rows')}`}
+                onClose={() => setOpenTableIdx(null)}
+              />
+            )}
             {uiElements.length > 0 && (() => {
               const inputEls = uiElements.filter(e => e.type === 'input');
               const otherEls = uiElements.filter(e => e.type !== 'input');
