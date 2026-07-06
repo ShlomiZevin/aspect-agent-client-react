@@ -52,7 +52,9 @@ export function MessageBubble({ turn, t, debug, crewNames, defaultCrewName, onEx
       )}
       {showBot && (
         <div className="msg bot">
-          <div className="avatar">L</div>
+          <div className="avatar avatar-spiral">
+            <img src="/img/lybi-spiral.png" alt="" />
+          </div>
           <div className="bubble-wrap">
             {crewName && <div className="crew-label">{crewName}</div>}
             {thinking ? (

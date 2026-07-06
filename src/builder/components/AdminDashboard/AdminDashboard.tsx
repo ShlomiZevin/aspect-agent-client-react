@@ -153,7 +153,14 @@ export function AdminDashboard() {
           />
           <Route
             path="usage"
-            element={<LLMUsagePage baseURL={baseURL} agentName={slug} agentSlug={slug} />}
+            /* Pass the display name AS `agentName` and the slug AS
+               `agentSlug`. The V2 builder runtime logs usage rows with
+               `body.name` (display name) in `agent_name`; passing the
+               slug into both props here would only match rows whose
+               display name happens to equal the slug — which is why
+               most agents' usage looked empty. The server ORs the two
+               values, so pre-V2 rows keyed by slug still surface. */
+            element={<LLMUsagePage baseURL={baseURL} agentName={agent.name} agentSlug={slug} />}
           />
           <Route
             path="billing"

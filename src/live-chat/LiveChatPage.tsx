@@ -321,6 +321,7 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
                 lang={settings.lang}
                 debug={debug}
                 showWelcome={showWelcome}
+                logo={logo}
                 crewNames={crewNames}
                 defaultCrewName={defaultCrewName}
                 onPick={text => chat.send(text)}

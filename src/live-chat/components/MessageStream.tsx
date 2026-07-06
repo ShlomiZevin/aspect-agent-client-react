@@ -10,6 +10,8 @@ interface Props {
   lang: Lang;
   debug: boolean;
   showWelcome: boolean;
+  /** Brand logo for the welcome header (same value the TopBar shows). */
+  logo?: string | null;
   crewNames: Record<string, string>;
   defaultCrewName: string;
   onPick: (text: string) => void;
@@ -20,7 +22,7 @@ interface Props {
 }
 
 export function MessageStream({
-  turns, t, lang, debug, showWelcome, crewNames, defaultCrewName, onPick, onExpandThink, onReport, onDelete, onDeleteFromHere,
+  turns, t, lang, debug, showWelcome, logo, crewNames, defaultCrewName, onPick, onExpandThink, onReport, onDelete, onDeleteFromHere,
 }: Props) {
   const streamRef = useRef<HTMLDivElement>(null);
   const wasAtBottom = useRef(true);
@@ -41,7 +43,7 @@ export function MessageStream({
   return (
     <div className="stream" ref={streamRef} onScroll={onScroll}>
       <div className="stream-inner">
-        {showWelcome && <WelcomeBoxes t={t} lang={lang} onPick={onPick} />}
+        {showWelcome && <WelcomeBoxes t={t} lang={lang} logo={logo} onPick={onPick} />}
         {turns.map(turn => (
           <MessageBubble
             key={turn.id}
