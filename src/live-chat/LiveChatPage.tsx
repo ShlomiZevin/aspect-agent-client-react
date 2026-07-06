@@ -123,9 +123,11 @@ export function LiveChatPage() {
   useEffect(() => {
     const cid = chat.conversationId;
     if (cid !== null && convIdParam !== String(cid)) {
-      navigate(`/${slug}/live/c/${cid}`, { replace: true });
+      // Keep ?embed=1 — dropping it would silently flip the widget
+      // iframe into the full desktop layout mid-conversation.
+      navigate(`/${slug}/live/c/${cid}${embed ? '?embed=1' : ''}`, { replace: true });
     }
-  }, [chat.conversationId, convIdParam, navigate, slug]);
+  }, [chat.conversationId, convIdParam, navigate, slug, embed]);
 
   // ── inject the Assistant font once ───────────────────────────────
   useEffect(() => {
@@ -170,10 +172,10 @@ export function LiveChatPage() {
   const onNewChat = useCallback(() => {
     chat.newChat();
     loadedRef.current = null;
-    navigate(`/${slug}/live`, { replace: true });
+    navigate(`/${slug}/live${embed ? '?embed=1' : ''}`, { replace: true });
     setDrawerOpen(false);
     showToast(t.newChatStarted);
-  }, [chat, navigate, slug, showToast, t.newChatStarted]);
+  }, [chat, navigate, slug, embed, showToast, t.newChatStarted]);
 
   const onPickConversation = useCallback((id: number) => {
     setDrawerOpen(false);
@@ -185,6 +187,26 @@ export function LiveChatPage() {
     navigate(`/${slug}/builder${suffix}`);
   }, [navigate, slug, chat.conversationId]);
 
+  // Embed mode: break out of the widget iframe back to the full desktop
+  // chat, keeping the current conversation. The widget iframe is
+  // same-origin on our demo page, so navigating window.top works; a
+  // sandboxed / cross-origin host falls back to a new tab.
+  const onOpenFull = useCallback(() => {
+    const path = chat.conversationId !== null
+      ? `/${slug}/live/c/${chat.conversationId}`
+      : `/${slug}/live`;
+    if (window.top !== window.self) {
+      try {
+        window.top!.location.href = path;
+        return;
+      } catch {
+        window.open(path, '_blank', 'noopener');
+        return;
+      }
+    }
+    navigate(path, { replace: true });
+  }, [slug, chat.conversationId, navigate]);
+
   const confirmDelete = useCallback(() => {
     if (!pendingDelete) return;
     const { turn, mode } = pendingDelete;
@@ -193,7 +215,9 @@ export function LiveChatPage() {
     else chat.deleteFromHere(turn);
   }, [pendingDelete, chat]);
 
-  const debug = settings.mode === 'debug';
+  // The floating widget always runs in regular mode — no debug, no
+  // builder shortcuts, regardless of what's stored in settings.
+  const debug = settings.mode === 'debug' && !embed;
   const showWelcome = chat.turns.length === 0 && !chat.busy;
 
   return (
@@ -201,7 +225,7 @@ export function LiveChatPage() {
       className="lybi-chat"
       dir={dir}
       data-theme={settings.theme}
-      data-mode={settings.mode}
+      data-mode={embed ? 'normal' : settings.mode}
       data-client={settings.client}
       data-embed={embed ? '1' : undefined}
       style={brandCssVars(brand.colors) as React.CSSProperties}
@@ -236,6 +260,7 @@ export function LiveChatPage() {
             onSettings={e => { e.stopPropagation(); setSettingsOpen(o => !o); }}
             onOpenBuilder={onOpenBuilder}
             onViewEmbed={() => navigate(`/${slug}/embed`)}
+            onOpenFull={onOpenFull}
             settingsBtnRef={settingsBtnRef}
           />
 
@@ -329,6 +354,7 @@ export function LiveChatPage() {
         messageText={reportFor ?? ''}
         agentSlug={slug}
         scenario={settings.scenario}
+        conversationId={chat.conversationId}
         onClose={() => setReportFor(null)}
         onDone={msg => { setReportFor(null); showToast(msg); }}
       />

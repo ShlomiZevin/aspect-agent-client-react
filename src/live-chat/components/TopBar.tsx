@@ -1,5 +1,5 @@
 import {
-  IconMenu, IconNewChat, IconProfiler, IconBrain, IconSettings, IconBuilder, IconSite,
+  IconMenu, IconNewChat, IconProfiler, IconBrain, IconSettings, IconBuilder, IconSite, IconExpand,
 } from '../icons';
 import type { Dict } from '../i18n';
 
@@ -23,12 +23,15 @@ interface Props {
   onSettings: (e: React.MouseEvent) => void;
   onOpenBuilder: () => void;
   onViewEmbed: () => void;
+  /** Embed mode only — break out of the widget iframe back to the full
+   *  desktop chat, carrying the current conversation. */
+  onOpenFull: () => void;
   settingsBtnRef: React.RefObject<HTMLButtonElement | null>;
 }
 
 export function TopBar({
   t, logo, brandName, logoFilterable, debug, embed, brainOpen, profilerOpen,
-  onHistory, onNewChat, onToggleBrain, onToggleProfiler, onSettings, onOpenBuilder, onViewEmbed,
+  onHistory, onNewChat, onToggleBrain, onToggleProfiler, onSettings, onOpenBuilder, onViewEmbed, onOpenFull,
   settingsBtnRef,
 }: Props) {
   return (
@@ -54,6 +57,11 @@ export function TopBar({
           <IconSite />
         </button>
       )}
+      {embed && (
+        <button className="icon-btn" onClick={onOpenFull} aria-label="open full chat" title={t.openFullChat}>
+          <IconExpand />
+        </button>
+      )}
       <button className="icon-btn" onClick={onNewChat} aria-label="new chat" title={t.newChat}>
         <IconNewChat />
       </button>
@@ -64,10 +72,14 @@ export function TopBar({
       <button className={`icon-btn ${brainOpen ? 'active' : ''}`} onClick={onToggleBrain} aria-label="brain" title={t.brain}>
         <IconBrain />
       </button>
-      <span className="divider" />
-      <button ref={settingsBtnRef} className="icon-btn" onClick={onSettings} aria-label="settings" title={t.settings}>
-        <IconSettings />
-      </button>
+      {!embed && (
+        <>
+          <span className="divider" />
+          <button ref={settingsBtnRef} className="icon-btn" onClick={onSettings} aria-label="settings" title={t.settings}>
+            <IconSettings />
+          </button>
+        </>
+      )}
     </header>
   );
 }
