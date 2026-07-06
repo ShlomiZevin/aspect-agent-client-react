@@ -9,6 +9,8 @@ import { ThinkingIndicator } from '../ThinkingIndicator';
 import { DebugPanel } from '../DebugPanel';
 import { FeedbackPanel } from '../FeedbackPanel';
 import { AgentBugModal } from '../AgentBugModal/AgentBugModal';
+import { DataTableModal } from './DataTableModal';
+import { parseMarkdownTables } from './parseMarkdownTables';
 import { createTask, getAssignees } from '../../../services/taskService';
 import { useCommenterIdentity } from '../../../hooks/useCommenterIdentity';
 import type { CreateTaskData } from '../../../types/task';
@@ -70,11 +72,19 @@ export function Message({ message }: MessageProps) {
   const [idProcessing, setIdProcessing] = useState(false);
   const [idCaptured, setIdCaptured] = useState(false);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
+  const [openTableIdx, setOpenTableIdx] = useState<number | null>(null);
   const isUser = message.role === 'user';
   const isDeveloper = message.role === 'developer';
   // Outside users never see thinking steps inside the bubble, never get the feedback button.
   const hasThinkingSteps = !restrictedMode && !isUser && !isDeveloper && message.thinkingSteps && message.thinkingSteps.length > 0;
   const rtl = isRTL(message.content);
+
+  // Full structured query results the agent attached to this message (one per
+  // fetch). Each carries the COMPLETE row set so the viewer/export shows every
+  // row, not just the preview the agent rendered in text.
+  const dataTables = (!isUser && !isDeveloper && message.thinkingSteps)
+    ? message.thinkingSteps.filter(s => s.stepType === 'data_table' && Array.isArray((s.metadata as { rows?: unknown[] })?.rows))
+    : [];
   const canFeedback = !restrictedMode && !isUser && !isDeveloper && message.dbId;
   const canReportBug = debugMode && !isUser && !isDeveloper;
   // Agents whose backend has no message deletion hide per-message actions.
@@ -87,6 +97,29 @@ export function Message({ message }: MessageProps) {
   // Disable UI elements if a subsequent message exists (user already responded)
   const msgIndex = messages.findIndex((m: MessageType) => m.id === message.id);
   const uiDisabled = uiElements.length > 0 && msgIndex >= 0 && msgIndex < messages.length - 1;
+
+  // Tables the user can open in the full sortable/filterable/Excel-export viewer.
+  // Prefer the structured tool result (`data_table` step — carries the COMPLETE
+  // row set). Fall back to parsing a markdown table out of the reply so agents
+  // without a data tool (e.g. Aspect demo crews) still get the viewer/export.
+  const toolTables = dataTables.map(step => {
+    const meta = step.metadata as { rowCount?: number; rows?: Record<string, unknown>[]; columns?: unknown; title?: string };
+    return {
+      rows: (meta.rows ?? []) as Record<string, unknown>[],
+      columns: meta.columns,
+      title: meta.title?.trim() || undefined,
+      count: meta.rowCount ?? meta.rows?.length ?? 0,
+    };
+  });
+  const markdownTables = (toolTables.length === 0 && !isUser && !isDeveloper)
+    ? parseMarkdownTables(uiCleanText).map(tbl => ({
+        rows: tbl.rows as Record<string, unknown>[],
+        columns: tbl.columns,
+        title: tbl.title,
+        count: tbl.rows.length,
+      }))
+    : [];
+  const viewerTables = toolTables.length ? toolTables : markdownTables;
 
   // When disabled, parse the next user message to recover submitted input values (for display)
   const nextUserMsg = uiElements.length > 0
@@ -324,6 +357,32 @@ export function Message({ message }: MessageProps) {
                 {uiCleanText}
               </ReactMarkdown>
             </div>
+            {viewerTables.length > 0 && (
+              <div className={styles.dataTableButtons}>
+                {viewerTables.map((tbl, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={styles.dataTableBtn}
+                    onClick={() => setOpenTableIdx(idx)}
+                  >
+                    📊 {tbl.title || t('chat.viewFullTable')} ({tbl.count})
+                  </button>
+                ))}
+              </div>
+            )}
+            {openTableIdx !== null && viewerTables[openTableIdx] && (
+              <DataTableModal
+                rows={viewerTables[openTableIdx].rows}
+                columns={viewerTables[openTableIdx].columns}
+                title={viewerTables[openTableIdx].title || t('chat.dataTableTitle')}
+                exportLabel={t('chat.exportToExcel')}
+                filterPlaceholder={t('chat.filterRows')}
+                closeLabel={t('chat.close')}
+                rowsLabel={(n) => `${n} ${t('chat.rows')}`}
+                onClose={() => setOpenTableIdx(null)}
+              />
+            )}
             {uiElements.length > 0 && (() => {
               const inputEls = uiElements.filter(e => e.type === 'input');
               const otherEls = uiElements.filter(e => e.type !== 'input');

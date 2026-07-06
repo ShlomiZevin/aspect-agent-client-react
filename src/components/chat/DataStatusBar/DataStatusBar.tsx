@@ -11,6 +11,7 @@ interface DataInfo {
     completed_at: string;
     total_rows: string;
   } | null;
+  firstDataDate?: string | null; // "YYYY-MM-DD" (exact day), or "YYYY-MM" fallback — start of coverage
   lastDataDate: string | null; // "YYYY-MM-DD" (exact day), or "YYYY-MM" fallback
 }
 
@@ -72,6 +73,17 @@ export function DataStatusBar({ baseURL, schema }: DataStatusBarProps) {
           {info.lastRun ? formatDateTime(info.lastRun.completed_at, locale) : naLabel}
         </span>
       </span>
+      {info.firstDataDate && (
+        <>
+          <span className={styles.dot} aria-hidden="true">·</span>
+          <span className={styles.item}>
+            <span className={styles.label}>{t('dataStatusBar.dataFrom')}:</span>
+            <span className={styles.value}>
+              {formatDataThrough(info.firstDataDate, locale)}
+            </span>
+          </span>
+        </>
+      )}
       <span className={styles.dot} aria-hidden="true">·</span>
       <span className={styles.item}>
         <span className={styles.label}>{t('dataStatusBar.dataThrough')}:</span>

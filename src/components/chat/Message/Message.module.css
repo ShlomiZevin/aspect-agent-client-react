@@ -269,6 +269,33 @@
   opacity: 0.8;
 }
 
+/* Full-data table viewer launch buttons (agent query results) */
+.dataTableButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0.5em 0 0.25em;
+}
+
+.dataTableBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: white;
+  background: var(--primary-color, #7c3aed);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.dataTableBtn:hover {
+  opacity: 0.9;
+}
+
 /* User message wrapper for actions */
 .userMessageWrapper {
   display: flex;

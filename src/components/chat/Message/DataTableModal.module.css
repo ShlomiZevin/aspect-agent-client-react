@@ -1,0 +1,132 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.modal {
+  background: var(--surface, #fff);
+  color: var(--text-primary, #111);
+  border-radius: 12px;
+  width: min(1100px, 96vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border, #e5e5e5);
+}
+
+.title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.close {
+  border: none;
+  background: transparent;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-secondary, #666);
+  padding: 0 4px;
+}
+
+.close:hover { color: var(--text-primary, #111); }
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border, #e5e5e5);
+}
+
+.filter {
+  flex: 1;
+  max-width: 360px;
+  padding: 7px 12px;
+  border: 1px solid var(--border, #ccc);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--surface, #fff);
+  color: inherit;
+}
+
+.count {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #666);
+}
+
+.exportBtn {
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--primary-color, #7c3aed);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.exportBtn:hover { opacity: 0.9; }
+
+.tableScroll {
+  overflow: auto;
+  flex: 1;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.th {
+  position: sticky;
+  top: 0;
+  background: var(--primary-color, #7c3aed);
+  color: #fff;
+  text-align: start;
+  padding: 9px 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.th:hover { filter: brightness(1.08); }
+
+.td {
+  padding: 7px 12px;
+  border: 1px solid var(--border, #e5e5e5);
+  white-space: nowrap;
+}
+
+.table tbody tr:nth-child(even) {
+  background: var(--surface-light, rgba(0, 0, 0, 0.03));
+}
+
+.table tbody tr:hover {
+  background: var(--primary-light, rgba(124, 58, 237, 0.08));
+}
