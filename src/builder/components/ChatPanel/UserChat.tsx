@@ -680,6 +680,20 @@ export function UserChat() {
     }
   };
 
+  const onDeleteManyFromHistory = async (ids: number[]) => {
+    try {
+      // Sequential — the endpoint is per-conversation; a handful of
+      // rows doesn't justify parallel fan-out.
+      for (const id of ids) {
+        await deleteConversation({ agentSlug: slug, conversationId: id });
+      }
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Delete failed');
+    }
+    setConvList(prev => prev.filter(c => !ids.includes(c.id)));
+    if (conversationId !== null && ids.includes(conversationId)) onNewChat();
+  };
+
   // ── Per-message delete (debug controls) ───────────────────────────
 
   const deleteTurnSelf = async (turn: Turn) => {
@@ -814,6 +828,7 @@ export function UserChat() {
           onNew={onNewChat}
           onRename={onRenameConversation}
           onDelete={onDeleteFromHistory}
+          onDeleteMany={onDeleteManyFromHistory}
         />
 
         <div className={styles.messages} ref={messagesRef} onScroll={onMessagesScroll}>

@@ -56,9 +56,11 @@ export function MessageBubble({ turn, t, debug, crewNames, defaultCrewName, onEx
           <div className="bubble-wrap">
             {crewName && <div className="crew-label">{crewName}</div>}
             {thinking ? (
+              // Customer-facing: just the dots — no addon names, even in
+              // debug (the builder's chat is where per-addon progress
+              // belongs). thinkingLabel still drives the thinking STATE.
               <div className="bubble thinking" dir="ltr">
                 <span className="dots"><i /><i /><i /></span>
-                {debug && turn.thinkingLabel && <span className="thinking-label">{turn.thinkingLabel}</span>}
               </div>
             ) : (
               <div className="bubble"><div className="bubble-md" dir="auto"><MarkdownBody text={turn.assistantText} /></div></div>

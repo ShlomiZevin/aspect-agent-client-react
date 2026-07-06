@@ -170,3 +170,97 @@
   outline: none;
   min-width: 0;
 }
+
+/* ── Multi-select delete mode ── */
+
+.selectBtn {
+  margin-left: auto;
+  margin-right: 6px;
+  background: transparent;
+  border: 0;
+  color: var(--text-tertiary, #9ca3af);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+.selectBtn:hover {
+  color: var(--primary-color, #6366f1);
+  background: var(--bg-surface, #fff);
+}
+
+.rowSelect {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.selText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.tick {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-color, #d1d5db);
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  color: transparent;
+  transition: all 100ms;
+}
+
+.tickOn {
+  background: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
+  color: #fff;
+}
+
+.selBar {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-input, #fafafa);
+}
+
+.selCancel {
+  flex: 1;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #4b5563);
+  background: transparent;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.selDelete {
+  flex: 1;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: #dc2626;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.selDelete:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

@@ -116,15 +116,24 @@ export function LiveChatPage() {
     }
   }, [gate, convIdParam, chat.conversationId, chat.loadConversation]);
 
-  // Reflect the active conversation in the URL (shareable + refresh-safe).
-  // Only ADD the id here — removing it on "new chat" is done explicitly in
-  // onNewChat, so we never strip a fresh URL during the mount/load race
-  // (conversationId is briefly null before the URL's conversation loads).
+  // Reflect a FRESH conversation in the URL (shareable + refresh-safe).
+  //
+  // The URL is the single source of truth for which conversation is
+  // open: picking from history navigates, and the effect above loads
+  // whatever the URL names. This effect writes state → URL in exactly
+  // one case — a brand-new chat just got its id from the server (the
+  // URL has no /c/ segment yet). It deliberately never fires when the
+  // URL already names a conversation: during the async load after a
+  // pick, `chat.conversationId` still holds the PREVIOUS id, and
+  // navigating to it here is what caused the URL ping-pong + screen
+  // flicker (task #727).
   useEffect(() => {
     const cid = chat.conversationId;
-    if (cid !== null && convIdParam !== String(cid)) {
-      // Keep ?embed=1 — dropping it would silently flip the widget
-      // iframe into the full desktop layout mid-conversation.
+    if (cid !== null && convIdParam === undefined) {
+      // Already live in state — mark it loaded so the URL effect
+      // doesn't fetch it again. Keep ?embed=1: dropping it would flip
+      // the widget iframe into the desktop layout mid-conversation.
+      loadedRef.current = cid;
       navigate(`/${slug}/live/c/${cid}${embed ? '?embed=1' : ''}`, { replace: true });
     }
   }, [chat.conversationId, convIdParam, navigate, slug, embed]);
@@ -177,10 +186,24 @@ export function LiveChatPage() {
     showToast(t.newChatStarted);
   }, [chat, navigate, slug, embed, showToast, t.newChatStarted]);
 
+  // Picking from history ONLY navigates — the URL effect above is the
+  // single loader. No direct loadConversation call here, so state and
+  // URL can never race each other.
   const onPickConversation = useCallback((id: number) => {
     setDrawerOpen(false);
-    chat.loadConversation(id);
-  }, [chat]);
+    navigate(`/${slug}/live/c/${id}${embed ? '?embed=1' : ''}`);
+  }, [navigate, slug, embed]);
+
+  const onDeleteConversations = useCallback(async (ids: number[]) => {
+    const activeDeleted = chat.conversationId !== null && ids.includes(chat.conversationId);
+    await chat.deleteConversations(ids);
+    if (activeDeleted) {
+      // The active chat is gone — reset the URL so a refresh doesn't
+      // try to load a deleted conversation.
+      loadedRef.current = null;
+      navigate(`/${slug}/live${embed ? '?embed=1' : ''}`, { replace: true });
+    }
+  }, [chat, navigate, slug, embed]);
 
   const onOpenBuilder = useCallback(() => {
     const suffix = chat.conversationId !== null ? `?c=${chat.conversationId}` : '';
@@ -327,6 +350,8 @@ export function LiveChatPage() {
         activeId={chat.conversationId}
         onClose={() => setDrawerOpen(false)}
         onPick={onPickConversation}
+        onRename={chat.renameConversation}
+        onDelete={onDeleteConversations}
         onNew={onNewChat}
       />
 

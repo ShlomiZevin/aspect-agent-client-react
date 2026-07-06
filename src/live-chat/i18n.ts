@@ -39,6 +39,12 @@ export interface Dict {
   viewOnSite: string;
   openFullChat: string;
   openInBuilder: string;
+  rename: string;
+  select: string;
+  deleteChat: string;
+  deleteChatConfirm: string;
+  deleteManyConfirm: string;
+  deleteN: string;
   deleteMsg: string;
   deleteFromHere: string;
   deleteMsgConfirm: string;
@@ -105,6 +111,12 @@ export const I18N: Record<Lang, Dict> = {
     viewOnSite: 'תצוגה באתר (הטמעה)',
     openFullChat: 'פתיחת הצ׳אט במסך מלא',
     openInBuilder: 'פתח ב-Builder',
+    rename: 'שינוי שם',
+    select: 'בחירה',
+    deleteChat: 'מחיקת שיחה',
+    deleteChatConfirm: 'למחוק את השיחה?',
+    deleteManyConfirm: 'למחוק {n} שיחות?',
+    deleteN: 'מחיקה ({n})',
     deleteMsg: 'מחק הודעה',
     deleteFromHere: 'מחק מכאן ומטה',
     deleteMsgConfirm: 'למחוק את ההודעה הזו?',
@@ -169,6 +181,12 @@ export const I18N: Record<Lang, Dict> = {
     viewOnSite: 'View on site (embed)',
     openFullChat: 'Open full chat',
     openInBuilder: 'Open in builder',
+    rename: 'Rename',
+    select: 'Select',
+    deleteChat: 'Delete chat',
+    deleteChatConfirm: 'Delete this chat?',
+    deleteManyConfirm: 'Delete {n} chats?',
+    deleteN: 'Delete ({n})',
     deleteMsg: 'Delete message',
     deleteFromHere: 'Delete from here down',
     deleteMsgConfirm: 'Delete this message?',
