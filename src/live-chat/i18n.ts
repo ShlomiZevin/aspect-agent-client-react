@@ -40,6 +40,13 @@ export interface Dict {
   openFullChat: string;
   openInBuilder: string;
   rename: string;
+  loginTitle: string;
+  loginSub: string;
+  loginName: string;
+  loginPass: string;
+  loginBtn: string;
+  loginError: string;
+  logout: string;
   select: string;
   deleteChat: string;
   deleteChatConfirm: string;
@@ -112,6 +119,13 @@ export const I18N: Record<Lang, Dict> = {
     openFullChat: 'פתיחת הצ׳אט במסך מלא',
     openInBuilder: 'פתח ב-Builder',
     rename: 'שינוי שם',
+    loginTitle: 'כניסה ל-{agent}',
+    loginSub: 'הסיסמה היא מספר הטלפון איתו נרשמתם',
+    loginName: 'שם',
+    loginPass: 'סיסמה',
+    loginBtn: 'כניסה',
+    loginError: 'שם או סיסמה שגויים',
+    logout: 'התנתקות',
     select: 'בחירה',
     deleteChat: 'מחיקת שיחה',
     deleteChatConfirm: 'למחוק את השיחה?',
@@ -182,6 +196,13 @@ export const I18N: Record<Lang, Dict> = {
     openFullChat: 'Open full chat',
     openInBuilder: 'Open in builder',
     rename: 'Rename',
+    loginTitle: 'Sign in to {agent}',
+    loginSub: 'Your password is the phone number you registered with',
+    loginName: 'Name',
+    loginPass: 'Password',
+    loginBtn: 'Sign in',
+    loginError: 'Wrong name or password',
+    logout: 'Log out',
     select: 'Select',
     deleteChat: 'Delete chat',
     deleteChatConfirm: 'Delete this chat?',

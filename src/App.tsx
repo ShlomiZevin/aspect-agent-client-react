@@ -7,6 +7,7 @@ const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ defaul
 const BuilderHomePage = lazy(() => import('./pages/BuilderHomePage').then(m => ({ default: m.BuilderHomePage })));
 // Customer-facing Live chat — its own subtree, lazy-loaded.
 const LiveChatPage = lazy(() => import('./pages/LiveChatPage').then(m => ({ default: m.LiveChatPage })));
+const CustomerChatPage = lazy(() => import('./pages/CustomerChatPage').then(m => ({ default: m.CustomerChatPage })));
 // On-site embed demo (Lybi mock site + agent widget iframe).
 const EmbedPage = lazy(() => import('./pages/EmbedPage').then(m => ({ default: m.EmbedPage })));
 
@@ -148,6 +149,24 @@ function AppContent() {
           element={
             <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
               <LiveChatPage />
+            </Suspense>
+          }
+        />
+        {/* Login-gated restricted customer chat (V2) — the link sent to
+            business/test users. NOT /:agent/chat: that's the V1 flow. */}
+        <Route
+          path="/:agent/go"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <CustomerChatPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/:agent/go/c/:convId"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <CustomerChatPage />
             </Suspense>
           }
         />

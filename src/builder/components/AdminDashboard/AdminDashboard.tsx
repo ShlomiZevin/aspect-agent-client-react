@@ -131,7 +131,13 @@ export function AdminDashboard() {
           />
           <Route
             path="users"
-            element={<UsersPage baseURL={baseURL} agentName={slug} basePath={basePath} />}
+            element={
+              // defaultTenant = slug so "Add user" creates users under
+              // THIS agent's tenant — that's what /api/auth/login matches
+              // when a customer signs into /:agent/chat. List scoping
+              // still comes from agentName (it takes precedence).
+              <UsersPage baseURL={baseURL} agentName={slug} defaultTenant={slug} basePath={basePath} />
+            }
           />
           <Route
             path="users/:userId"

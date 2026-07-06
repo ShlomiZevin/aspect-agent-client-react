@@ -1,5 +1,5 @@
 import {
-  IconMenu, IconNewChat, IconProfiler, IconBrain, IconSettings, IconBuilder, IconSite, IconExpand,
+  IconMenu, IconNewChat, IconProfiler, IconBrain, IconSettings, IconBuilder, IconSite, IconExpand, IconLogout,
 } from '../icons';
 import type { Dict } from '../i18n';
 
@@ -14,6 +14,9 @@ interface Props {
   /** True when rendered inside the on-site widget iframe (hides the
    *  "view as embed" button so there's no embed-inside-embed). */
   embed: boolean;
+  /** Customer-restricted surface: brand + new chat + logout only. */
+  restricted?: boolean;
+  onLogout?: () => void;
   brainOpen: boolean;
   profilerOpen: boolean;
   onHistory: () => void;
@@ -30,15 +33,17 @@ interface Props {
 }
 
 export function TopBar({
-  t, logo, brandName, logoFilterable, debug, embed, brainOpen, profilerOpen,
-  onHistory, onNewChat, onToggleBrain, onToggleProfiler, onSettings, onOpenBuilder, onViewEmbed, onOpenFull,
+  t, logo, brandName, logoFilterable, debug, embed, restricted, brainOpen, profilerOpen,
+  onHistory, onNewChat, onToggleBrain, onToggleProfiler, onSettings, onOpenBuilder, onViewEmbed, onOpenFull, onLogout,
   settingsBtnRef,
 }: Props) {
   return (
     <header className="topbar">
-      <button className="icon-btn" onClick={onHistory} aria-label="history" title={t.history}>
-        <IconMenu />
-      </button>
+      {!restricted && (
+        <button className="icon-btn" onClick={onHistory} aria-label="history" title={t.history}>
+          <IconMenu />
+        </button>
+      )}
       <div className="brand" data-logofilter={logoFilterable ? 'on' : 'off'}>
         {logo
           ? <img src={logo} alt={brandName} />
@@ -52,7 +57,7 @@ export function TopBar({
           <IconBuilder />
         </button>
       )}
-      {!embed && (
+      {!embed && !restricted && (
         <button className="icon-btn" onClick={onViewEmbed} aria-label="embed" title={t.viewOnSite}>
           <IconSite />
         </button>
@@ -65,18 +70,30 @@ export function TopBar({
       <button className="icon-btn" onClick={onNewChat} aria-label="new chat" title={t.newChat}>
         <IconNewChat />
       </button>
-      <span className="divider" />
-      <button className={`icon-btn ${profilerOpen ? 'active' : ''}`} onClick={onToggleProfiler} aria-label="profiler" title={t.profiler}>
-        <IconProfiler />
-      </button>
-      <button className={`icon-btn ${brainOpen ? 'active' : ''}`} onClick={onToggleBrain} aria-label="brain" title={t.brain}>
-        <IconBrain />
-      </button>
-      {!embed && (
+      {!restricted && (
+        <>
+          <span className="divider" />
+          <button className={`icon-btn ${profilerOpen ? 'active' : ''}`} onClick={onToggleProfiler} aria-label="profiler" title={t.profiler}>
+            <IconProfiler />
+          </button>
+          <button className={`icon-btn ${brainOpen ? 'active' : ''}`} onClick={onToggleBrain} aria-label="brain" title={t.brain}>
+            <IconBrain />
+          </button>
+        </>
+      )}
+      {!embed && !restricted && (
         <>
           <span className="divider" />
           <button ref={settingsBtnRef} className="icon-btn" onClick={onSettings} aria-label="settings" title={t.settings}>
             <IconSettings />
+          </button>
+        </>
+      )}
+      {restricted && onLogout && (
+        <>
+          <span className="divider" />
+          <button className="icon-btn" onClick={onLogout} aria-label="logout" title={t.logout}>
+            <IconLogout />
           </button>
         </>
       )}
