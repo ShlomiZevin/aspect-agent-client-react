@@ -37,7 +37,14 @@ interface Props {
   field: FieldDef | null;
 }
 
+/** Sentinel `crewId` value used for agent-level (Cortex) extractors.
+ *  Agent addons don't belong to any crew, but the row shape wants a
+ *  string key so downstream grouping / save code branches by
+ *  `crewId === AGENT_SCOPE`. */
+const AGENT_SCOPE = '__agent__';
+
 interface ExtractorRow {
+  /** Owning crew id, or `AGENT_SCOPE` for agent-level (Cortex) rows. */
   crewId: ID;
   crewName: string;
   instanceId: ID;
@@ -61,16 +68,55 @@ function defaultLabelFor(a: AddonInstance, suffixIdx?: number): string {
 }
 
 export function WireFieldModal({ open, onClose, agentId, field }: Props) {
-  const { doc, updateAddonConfig, addAddon } = useBuilder();
+  const {
+    doc,
+    updateAddonConfig,
+    addAddon,
+    updateAgentAddonConfig,
+    addAgentAddon,
+  } = useBuilder();
   const agent = doc.agents.find(a => a.id === agentId);
 
   // Snapshot the current wiring across the whole agent. `selected`
   // mirrors which instance ids should have this field in their
   // extractsFields after Save. Init from the current state so the
   // modal is a faithful "edit current wiring" surface.
+  //
+  // Two owner scopes surface here:
+  //   1. Agent-level extractors on `agent.cortex[]` — run before any
+  //      crew each turn.
+  //   2. Crew-level extractors on each `crew.addons[]`.
+  // Both flavours use the same `FieldExtractorConfig.extractsFields`
+  // wiring, so the row shape is identical modulo `crewId` (which is
+  // the sentinel `AGENT_SCOPE` for cortex rows).
   const allExtractorRows = useMemo<ExtractorRow[]>(() => {
     if (!agent || !field) return [];
     const out: ExtractorRow[] = [];
+
+    // 1) Agent-level (Cortex) extractors.
+    {
+      const byPluginCount = new Map<string, number>();
+      for (const a of (agent.cortex ?? [])) {
+        const plugin = getPlugin(a.pluginId);
+        if (!plugin || plugin.fieldMode !== 'extractor') continue;
+        const idx = (byPluginCount.get(a.pluginId) || 0) + 1;
+        byPluginCount.set(a.pluginId, idx);
+        const cfg = (a.config as FieldExtractorConfig | undefined) || ({} as FieldExtractorConfig);
+        const list = Array.isArray(cfg.extractsFields) ? cfg.extractsFields : [];
+        out.push({
+          crewId:      AGENT_SCOPE,
+          crewName:    'Agent (Cortex)',
+          instanceId:  a.instanceId,
+          pluginId:    a.pluginId,
+          pluginLabel: plugin.name || a.pluginId,
+          label:       defaultLabelFor(a, idx),
+          icon:        plugin.icon || '🛠',
+          currentlyExtracts: list.includes(field.id),
+        });
+      }
+    }
+
+    // 2) Crew-level extractors.
     for (const crew of agent.crews) {
       const byPluginCount = new Map<string, number>();
       for (const a of crew.addons) {
@@ -95,9 +141,16 @@ export function WireFieldModal({ open, onClose, agentId, field }: Props) {
     return out;
   }, [agent, field]);
 
-  // Map<crewId, crewName>. Every crew is offered even if it has no
-  // extractor — those get a "+ Create" affordance.
-  const allCrews = useMemo(() => agent?.crews ?? [], [agent]);
+  // Groups shown in the modal — Cortex FIRST (agent-level runs first
+  // in the turn), then every crew. Every group offers a "+ Create"
+  // affordance so the user can mint a fresh extractor pre-wired to
+  // this field, in that scope, from here.
+  const allGroups = useMemo(() => {
+    const groups: Array<{ id: ID; name: string }> = [];
+    if (agent) groups.push({ id: AGENT_SCOPE, name: 'Agent (Cortex)' });
+    for (const c of agent?.crews ?? []) groups.push({ id: c.id, name: c.name });
+    return groups;
+  }, [agent]);
 
   const [selected, setSelected] = useState<Set<ID>>(new Set());
   const [createIn, setCreateIn] = useState<Set<ID>>(new Set());
@@ -127,10 +180,26 @@ export function WireFieldModal({ open, onClose, agentId, field }: Props) {
     if (!field || !agent) return;
 
     // 1) Diff each existing extractor against the target selection
-    //    and patch its config when the state changed.
+    //    and patch its config when the state changed. Agent-scope
+    //    rows route to `updateAgentAddonConfig` (walks agent.cortex),
+    //    crew-scope rows to `updateAddonConfig` (walks crew.addons).
     for (const r of allExtractorRows) {
       const should = selected.has(r.instanceId);
       if (should === r.currentlyExtracts) continue;
+
+      if (r.crewId === AGENT_SCOPE) {
+        const addon = (agent.cortex ?? []).find(x => x.instanceId === r.instanceId);
+        if (!addon) continue;
+        const cfg = (addon.config as FieldExtractorConfig) || ({} as FieldExtractorConfig);
+        const list = Array.isArray(cfg.extractsFields) ? cfg.extractsFields : [];
+        const nextList = should
+          ? [...list, field.id]
+          : list.filter(id => id !== field.id);
+        const nextConfig: FieldExtractorConfig = { ...cfg, extractsFields: nextList };
+        updateAgentAddonConfig(agentId, r.instanceId, nextConfig);
+        continue;
+      }
+
       const crew = agent.crews.find(c => c.id === r.crewId);
       const addon = crew?.addons.find(x => x.instanceId === r.instanceId);
       if (!crew || !addon) continue;
@@ -143,10 +212,11 @@ export function WireFieldModal({ open, onClose, agentId, field }: Props) {
       updateAddonConfig(agentId, r.crewId, r.instanceId, nextConfig);
     }
 
-    // 2) Mint a new Field Extractor in each crew the user opted into,
-    //    pre-wired to this field. Same shape as the existing
-    //    auto-create path inside addFieldToScope so they're indistinguishable.
-    for (const crewId of createIn) {
+    // 2) Mint a new Field Extractor in each group the user opted
+    //    into, pre-wired to this field. Agent-scope creates land on
+    //    `agent.cortex` via `addAgentAddon`; crew-scope creates land
+    //    on `crew.addons` via `addAddon`. Same instance shape both ways.
+    for (const groupId of createIn) {
       const instance: AddonInstance<FieldExtractorConfig> = {
         instanceId: newAddonInstanceId(),
         pluginId:   FIELD_EXTRACTOR_PLUGIN_ID,
@@ -157,14 +227,18 @@ export function WireFieldModal({ open, onClose, agentId, field }: Props) {
         outputType: defaultOutputTypeFor(fieldExtractorPlugin),
         promptTemplate: fieldExtractorPlugin.defaultPromptTemplate,
       };
-      addAddon(agentId, crewId, instance as AddonInstance);
+      if (groupId === AGENT_SCOPE) {
+        addAgentAddon(agentId, instance as AddonInstance);
+      } else {
+        addAddon(agentId, groupId, instance as AddonInstance);
+      }
     }
 
     onClose();
   };
 
-  // Group rows by crew for display.
-  const rowsByCrew = useMemo(() => {
+  // Group rows by owner (agent-scope or crew id) for display.
+  const rowsByGroup = useMemo(() => {
     const map = new Map<ID, ExtractorRow[]>();
     for (const r of allExtractorRows) {
       if (!map.has(r.crewId)) map.set(r.crewId, []);
@@ -202,17 +276,17 @@ export function WireFieldModal({ open, onClose, agentId, field }: Props) {
           this field pre-wired.
         </div>
 
-        {allCrews.length === 0 && (
+        {allGroups.length === 0 && (
           <div className={styles.empty}>No crews yet — add a crew first.</div>
         )}
 
-        {allCrews.map(crew => {
-          const rows = rowsByCrew.get(crew.id) ?? [];
-          const willCreate = createIn.has(crew.id);
+        {allGroups.map(group => {
+          const rows = rowsByGroup.get(group.id) ?? [];
+          const willCreate = createIn.has(group.id);
           return (
-            <div key={crew.id}>
+            <div key={group.id}>
               <div className={styles.label} style={{ marginBottom: 6 }}>
-                {crew.name}
+                {group.name}
               </div>
               <div className={styles.chipGrid}>
                 {rows.map(r => {
@@ -239,9 +313,11 @@ export function WireFieldModal({ open, onClose, agentId, field }: Props) {
                 <button
                   type="button"
                   className={styles.chip}
-                  onClick={() => toggleCreate(crew.id)}
+                  onClick={() => toggleCreate(group.id)}
                   style={willCreate ? { background: 'rgba(34, 197, 94, 0.12)', borderColor: 'rgba(34, 197, 94, 0.4)', color: '#15803d' } : undefined}
-                  title="Mint a new Field Extractor in this crew, pre-wired to this field"
+                  title={group.id === AGENT_SCOPE
+                    ? 'Mint a new Field Extractor in the Cortex, pre-wired to this field'
+                    : 'Mint a new Field Extractor in this crew, pre-wired to this field'}
                 >
                   {willCreate ? '✓ new extractor here' : '+ Create extractor'}
                 </button>
