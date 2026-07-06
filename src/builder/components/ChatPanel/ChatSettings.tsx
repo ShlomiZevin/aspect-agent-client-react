@@ -15,6 +15,10 @@ import styles from './ChatSettings.module.css';
 
 export interface ChatSettingsState {
   rtl: boolean;
+  /** Show the per-turn addon timelines in UserChat. Off = plain chat
+   *  (messages only) for distraction-free review. Purely visual —
+   *  runs still stream and persist; they're just not rendered. */
+  showAddonRuns: boolean;
 }
 
 const STORAGE_KEY = 'builder:chatSettings';
@@ -24,11 +28,14 @@ function loadSettings(): ChatSettingsState {
   // left-aligned LTR bubble of Hebrew text is hard to read.
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { rtl: true };
+    if (!raw) return { rtl: true, showAddonRuns: true };
     const parsed = JSON.parse(raw);
-    return { rtl: parsed.rtl !== false };
+    return {
+      rtl: parsed.rtl !== false,
+      showAddonRuns: parsed.showAddonRuns !== false,
+    };
   } catch {
-    return { rtl: true };
+    return { rtl: true, showAddonRuns: true };
   }
 }
 
@@ -72,9 +79,15 @@ interface PopoverProps {
    * a dedicated badge cluttering the chat header row.
    */
   modelLabel?: string;
+  /**
+   * Show the "Addon activity" toggle. Only UserChat passes this —
+   * BuilderChat (Alfred) has no addon timelines, so the row would be
+   * dead weight there.
+   */
+  showAddonRunsToggle?: boolean;
 }
 
-export function ChatSettingsPopover({ open, onClose, triggerRef, settings, onChange, modelLabel }: PopoverProps) {
+export function ChatSettingsPopover({ open, onClose, triggerRef, settings, onChange, modelLabel, showAddonRunsToggle }: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   // Close on click-outside / Escape.
@@ -112,6 +125,14 @@ export function ChatSettingsPopover({ open, onClose, triggerRef, settings, onCha
         value={settings.rtl}
         onChange={v => onChange('rtl', v)}
       />
+      {showAddonRunsToggle && (
+        <ToggleRow
+          label="Addon activity"
+          hint="Per-turn timelines between messages"
+          value={settings.showAddonRuns}
+          onChange={v => onChange('showAddonRuns', v)}
+        />
+      )}
     </div>
   );
 }

@@ -761,6 +761,7 @@ export function UserChat() {
               triggerRef={settingsBtnRef}
               settings={settings}
               onChange={setSetting}
+              showAddonRunsToggle
             />
           </div>
         </div>
@@ -812,6 +813,7 @@ export function UserChat() {
               key={t.id}
               turn={t}
               rtl={settings.rtl}
+              showTimeline={settings.showAddonRuns}
               onExpand={() => loadRunsForTurn(t)}
               onDeleteSelf={() => deleteTurnSelf(t)}
               onDeleteFromHere={() => deleteTurnFromHere(t)}
@@ -863,14 +865,19 @@ export function UserChat() {
 interface TurnProps {
   turn: Turn;
   rtl: boolean;
+  /** When false, the addon-run timeline is not rendered — plain chat
+   *  view. Also skips the lazy runs fetch (TurnTimeline's mount
+   *  effect) until the user toggles activity back on. */
+  showTimeline: boolean;
   onExpand: () => void;
   onDeleteSelf: () => void;
   onDeleteFromHere: () => void;
 }
 
-function Turn({ turn, rtl, onExpand, onDeleteSelf, onDeleteFromHere }: TurnProps) {
+function Turn({ turn, rtl, showTimeline, onExpand, onDeleteSelf, onDeleteFromHere }: TurnProps) {
   const canDelete = turn.userMessageId !== null || turn.assistantMessageId !== null;
-  const showRuns = turn.runs.length > 0 || (turn.assistantMessageId !== null && !turn.runsLoaded);
+  const showRuns = showTimeline
+    && (turn.runs.length > 0 || (turn.assistantMessageId !== null && !turn.runsLoaded));
   return (
     <div className={styles.turn}>
       {turn.userText && (

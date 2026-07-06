@@ -186,15 +186,26 @@ export function EnumDocView({ agentId, enumDef }: Props) {
 
   const orderedSections = useMemo(() => sections, [sections]);
 
+  // Doc view mirrors what the runtime would inject into a prompt:
+  // disabled values are invisible in prompts, so they're invisible
+  // here too. The enable / disable toggle itself lives on the tree
+  // view — flip a value back on there to see it again in this view.
+  const visibleValues = enumDef.values.filter(v => v.enabled !== false);
+  const hiddenCount   = enumDef.values.length - visibleValues.length;
+
   return (
     <div className={styles.layout}>
       <aside className={styles.toc} ref={tocRef}>
         <div className={styles.tocTitle}>Values</div>
-        {enumDef.values.length === 0 ? (
-          <div className={styles.tocEmpty}>No values yet</div>
+        {visibleValues.length === 0 ? (
+          <div className={styles.tocEmpty}>
+            {enumDef.values.length === 0
+              ? 'No values yet'
+              : `All ${enumDef.values.length} values disabled`}
+          </div>
         ) : (
           <ul className={styles.tocList}>
-            {enumDef.values.map(v => (
+            {visibleValues.map(v => (
               <li key={v.id}>
                 <button
                   type="button"
@@ -207,6 +218,19 @@ export function EnumDocView({ agentId, enumDef }: Props) {
               </li>
             ))}
           </ul>
+        )}
+        {hiddenCount > 0 && (
+          <div
+            style={{
+              fontSize: 11,
+              color: '#9ca3af',
+              padding: '4px 8px',
+              fontStyle: 'italic',
+            }}
+            title="Disabled values are hidden here. Flip them back on from the tree view."
+          >
+            {hiddenCount} disabled {hiddenCount === 1 ? 'value' : 'values'} hidden
+          </div>
         )}
         <button type="button" className={styles.tocAddBtn} onClick={addValue}>
           + Add value
@@ -238,8 +262,13 @@ export function EnumDocView({ agentId, enumDef }: Props) {
             No values declared yet. Use <strong>+ Add value</strong> on the left
             to start populating this Targeted KB.
           </div>
+        ) : visibleValues.length === 0 ? (
+          <div className={styles.emptyDoc}>
+            Every value in this KB is currently <strong>disabled</strong>. Switch
+            to the tree view to re-enable one.
+          </div>
         ) : (
-          enumDef.values.map(v => (
+          visibleValues.map(v => (
             <ValueBlock
               key={v.id}
               value={v}

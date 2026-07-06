@@ -152,8 +152,8 @@ export function DynamicContextScreen() {
 
   const handleDeleteEnum = useCallback(async (e: EnumTypeDef) => {
     const ok = await confirm({
-      title:        `Delete enum "${e.name}"?`,
-      message:      `Every value and section authored under this enum is removed. Any field with enumType pointing at this enum will be left unwired.`,
+      title:        `Delete Targeted KB "${e.name}"?`,
+      message:      `Every value and section authored under this Targeted KB is removed. Any field bound to it will be left unwired.`,
       confirmLabel: 'Delete',
       danger:       true,
     });
@@ -232,6 +232,21 @@ export function DynamicContextScreen() {
       ),
     });
   }, [activeEnum, activeValue, upsertEnum]);
+
+  /** Flip the per-value enable flag. Disabled values still exist in
+   *  the KB (so their bodies aren't lost) but drop out of every prompt
+   *  surface — see EnumValueDef.enabled for the full list of surfaces.
+   *  Missing enabled → treated as true; explicit false → hidden. */
+  const handleToggleValueEnabled = useCallback((v: EnumValueDef) => {
+    if (!activeEnum) return;
+    const nextEnabled = v.enabled === false;
+    upsertEnum({
+      ...activeEnum,
+      values: activeEnum.values.map(x =>
+        x.id === v.id ? { ...x, enabled: nextEnabled } : x,
+      ),
+    });
+  }, [activeEnum, upsertEnum]);
 
   // ── Sections (declared on the enum, body per value) ──────────────
   const handleAddSection = useCallback(() => {
@@ -459,7 +474,7 @@ export function DynamicContextScreen() {
         {/* ── Column 1: enums list ──────────────────────────────── */}
         <Column title="Targeted KBs" onAdd={handleCreateEnum} addLabel="+ Add KB">
           {enums.length === 0 ? (
-            <Empty>Declare an enum to start the bible.</Empty>
+            <Empty>Declare a Targeted KB to get started.</Empty>
           ) : (
             <List
               items={enums.map(e => ({
@@ -483,7 +498,7 @@ export function DynamicContextScreen() {
           addLabel="+ Add value"
         >
           {!activeEnum ? (
-            <Empty>Pick an enum on the left.</Empty>
+            <Empty>Pick a Targeted KB on the left.</Empty>
           ) : (
             <>
               {activeEnum.values.length === 0 ? (
@@ -491,10 +506,12 @@ export function DynamicContextScreen() {
               ) : (
                 <List
                   items={activeEnum.values.map(v => ({
-                    key:      v.id,
-                    label:    v.value,
-                    active:   v.id === activeValue?.id,
-                    onDelete: () => handleDeleteValue(v),
+                    key:              v.id,
+                    label:            v.value,
+                    active:           v.id === activeValue?.id,
+                    disabled:         v.enabled === false,
+                    onToggleEnabled:  () => handleToggleValueEnabled(v),
+                    onDelete:         () => handleDeleteValue(v),
                   }))}
                   onPick={({ key }) => {
                     const v = activeEnum.values.find(x => x.id === key);
@@ -541,7 +558,7 @@ export function DynamicContextScreen() {
           boxSizing: 'border-box',
           padding: '0 4px 0 0',
         }}>
-          {!activeEnum && <Hint>Pick an enum on the left, or add one.</Hint>}
+          {!activeEnum && <Hint>Pick a Targeted KB on the left, or add one.</Hint>}
 
           {/* Enum-only — metadata + section schema editor. */}
           {activeEnum && !activeValue && !activeSection && (
@@ -610,11 +627,11 @@ function EnumMetaEditor({
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <SectionHeader>Enum</SectionHeader>
+      <SectionHeader>Targeted KB</SectionHeader>
       <InlineRename label="Name" value={enumDef.name} onCommit={onRename} />
 
       <div style={{ marginTop: 14 }}>
-        <DangerBtn onClick={onDelete}>Delete this enum</DangerBtn>
+        <DangerBtn onClick={onDelete}>Delete this Targeted KB</DangerBtn>
       </div>
     </div>
   );
@@ -1126,6 +1143,13 @@ function List({
     label: string;
     active?: boolean;
     onDelete?: () => void;
+    /** When `false`, the row is greyed and, if `onToggleEnabled` is
+     *  supplied, an eye button appears to flip it back on. Undefined
+     *  means "no enable/disable concept for this row" — used by the
+     *  section list, which never toggles. */
+    disabled?: boolean;
+    /** Present only on rows that support enable/disable (values). */
+    onToggleEnabled?: () => void;
   }>;
   onPick: (item: { key: string }) => void;
 }) {
@@ -1144,8 +1168,49 @@ function List({
             }
           }}
           className={`${styles.bibleListRow} ${item.active ? styles.bibleListRowActive : ''}`}
+          title={item.disabled ? 'Disabled — no prompt will include this value' : undefined}
         >
-          <span className={styles.bibleListRowLabel}>{item.label}</span>
+          <span
+            className={styles.bibleListRowLabel}
+            style={item.disabled ? { textDecoration: 'line-through', opacity: 0.6 } : undefined}
+          >
+            {item.label}
+          </span>
+          {item.onToggleEnabled && (
+            // Pill switch — visually mirrors the addon on/off switch
+            // on the chain canvas (indigo ON hover-only, amber OFF
+            // always visible). Lives in-flex-flow so the absolute-
+            // positioned delete ✕ doesn't stack on top of it.
+            <span
+              role="button"
+              tabIndex={0}
+              aria-pressed={!item.disabled}
+              aria-label={item.disabled ? `Enable ${item.label}` : `Disable ${item.label}`}
+              title={item.disabled
+                ? 'Disabled — click to enable'
+                : 'Enabled — click to disable (hides from every prompt surface)'}
+              className={`${styles.enableSwitch} ${item.disabled ? styles.enableSwitchOff : styles.enableSwitchOn}`}
+              onClick={e => {
+                e.stopPropagation();
+                item.onToggleEnabled!();
+                // Drop focus so an ON pill hides again once the pointer
+                // leaves — same pattern as the addon toggle.
+                (e.currentTarget as HTMLElement).blur();
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  item.onToggleEnabled!();
+                }
+              }}
+            >
+              <span className={styles.enableSwitchThumb} />
+              <span className={styles.enableSwitchLabel}>
+                {item.disabled ? 'OFF' : 'ON'}
+              </span>
+            </span>
+          )}
           {item.onDelete && (
             <button
               type="button"

@@ -860,3 +860,77 @@
   color: #b91c1c;
   background: rgba(220, 38, 38, 0.08);
 }
+
+/* ─── Per-value enable/disable pill switch ───────────────────────
+   Mirrors the addon on/off switch on the chain canvas so the two
+   controls feel like one family:
+     ON  — indigo, thumb on the RIGHT, "ON" label, HOVER-ONLY visible.
+     OFF — amber,  thumb on the LEFT,  "OFF" label, ALWAYS visible.
+   Hover-only for ON keeps rested rows visually quiet; always-visible
+   for OFF makes disabled values unmissable at a glance. */
+.enableSwitch {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 2px 6px 2px 2px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  user-select: none;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  border: 1px solid transparent;
+  transition: background 120ms, color 120ms, border-color 120ms, opacity 120ms;
+}
+
+.enableSwitchOn {
+  opacity: 0;
+  pointer-events: none;
+  background: rgba(99, 102, 241, 0.85);
+  border-color: rgba(99, 102, 241, 0.95);
+  color: #fff;
+}
+
+.bibleListRow:hover .enableSwitchOn,
+.enableSwitchOn:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.enableSwitchOn:hover {
+  background: rgba(79, 82, 221, 0.95);
+}
+
+.enableSwitchOff {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.55);
+  color: #b45309;
+  flex-direction: row-reverse;
+  padding: 2px 2px 2px 6px;
+}
+
+.enableSwitchOff:hover {
+  background: rgba(245, 158, 11, 0.28);
+}
+
+.enableSwitchThumb {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  margin-right: 4px;
+}
+
+.enableSwitchOff .enableSwitchThumb {
+  margin-right: 0;
+  margin-left: 4px;
+  background: #b45309;
+}
+
+.enableSwitchLabel {
+  flex: 0 0 auto;
+  line-height: 1;
+}

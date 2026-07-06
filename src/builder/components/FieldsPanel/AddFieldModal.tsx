@@ -83,7 +83,7 @@ const PRIMITIVE_TYPES: { value: FieldType; label: string }[] = [
 const SOURCE_LABEL: Record<FieldSource, { label: string; hint: string }> = {
   explicit: { label: 'Explicit', hint: 'Only when the user literally says it' },
   inferred: { label: 'Inferred', hint: 'Can be concluded from conversation' },
-  pinned:   { label: 'Pinned',   hint: 'Pre-set value, no collector. Type=enum only.' },
+  pinned:   { label: 'Pinned',   hint: 'Pre-set value, no collector. Type=Targeted KB only.' },
 };
 
 interface Draft {
@@ -357,7 +357,7 @@ export function AddFieldModal({
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
                 {(agent?.enums?.length ?? 0) > 0 && (
-                  <optgroup label="Enums">
+                  <optgroup label="Targeted KBs">
                     {(agent?.enums ?? []).map(en => (
                       <option key={en.id} value={`enum:${en.id}`}>{en.name}</option>
                     ))}
@@ -367,7 +367,7 @@ export function AddFieldModal({
                   && draft.enumType
                   && !(agent?.enums ?? []).some(en => en.id === draft.enumType)
                   && (
-                    <option value={`enum:${draft.enumType}`}>(missing enum)</option>
+                    <option value={`enum:${draft.enumType}`}>(missing Targeted KB)</option>
                   )}
               </select>
             </label>

@@ -23,6 +23,7 @@ import { Link } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { useAgentFields } from '../../state/useAgentFields';
 import { useCrewFields } from '../../state/useCrewFields';
+import { useConfirm } from '../Confirm/Confirm';
 import { AddFieldModal } from './AddFieldModal';
 import { FieldEditorModal } from './FieldEditorModal';
 import { WireToCrewModal } from './WireToCrewModal';
@@ -79,6 +80,22 @@ export function FieldsPanel({ agentId, crewId }: Props) {
   const crewSource = useCrewFields(agentId, crewId ?? '');
   const agentSource = useAgentFields(agentId);
   const { allFields, domains } = crewId ? crewSource : agentSource;
+  // Delete works in both view modes: removeField takes the field's own
+  // scope + owning crew, so the hook's crewId doesn't matter here.
+  const { removeField } = crewSource;
+  const confirm = useConfirm();
+
+  // Same confirm copy + behaviour as the FieldEditorModal's Delete
+  // button — this is just a shortcut to it from the row itself.
+  const onDeleteField = async (cf: CrewField) => {
+    const ok = await confirm({
+      title: `Delete field "${cf.field.name || '(unnamed)'}"?`,
+      message: 'Removes the field definition and unhooks it from every extractor that references it.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (ok) removeField(cf.scope, cf.ownerCrewId, cf.field.id);
+  };
 
   // Split pinned fields out — they render under a small "Pinned"
   // subheader at the bottom of the panel so org-KB defaults read
@@ -248,6 +265,7 @@ export function FieldsPanel({ agentId, crewId }: Props) {
                       key={`${cf.crewId}/${cf.field.id}`}
                       cf={cf}
                       onPick={setEditing}
+                      onDelete={onDeleteField}
                       liveValue={liveValueByField[cf.field.name]}
                       showCrewChip={showCrewChip}
                       enumNameById={enumNameById}
@@ -265,6 +283,7 @@ export function FieldsPanel({ agentId, crewId }: Props) {
                   collapsed={collapsed.has(group.name as string)}
                   onToggle={() => toggleCollapse(group.name as string)}
                   onPick={setEditing}
+                  onDelete={onDeleteField}
                   liveValueByField={liveValueByField}
                   showCrewChip={showCrewChip}
                   enumNameById={enumNameById}
@@ -277,6 +296,7 @@ export function FieldsPanel({ agentId, crewId }: Props) {
                   key="__ungrouped__"
                   group={group}
                   onPick={setEditing}
+                  onDelete={onDeleteField}
                   liveValueByField={liveValueByField}
                   showCrewChip={showCrewChip}
                   enumNameById={enumNameById}
@@ -330,13 +350,14 @@ interface DomainGroupProps {
   collapsed: boolean;
   onToggle: () => void;
   onPick: (cf: CrewField) => void;
+  onDelete: (cf: CrewField) => void;
   liveValueByField: Record<string, unknown>;
   showCrewChip: boolean;
   enumNameById: Map<string, string>;
 }
 
 function DomainGroup({
-  group, collapsed, onToggle, onPick, liveValueByField, showCrewChip, enumNameById,
+  group, collapsed, onToggle, onPick, onDelete, liveValueByField, showCrewChip, enumNameById,
 }: DomainGroupProps) {
   return (
     <div className={styles.group}>
@@ -356,6 +377,7 @@ function DomainGroup({
               key={`${cf.crewId}/${cf.field.id}`}
               cf={cf}
               onPick={onPick}
+              onDelete={onDelete}
               liveValue={liveValueByField[cf.field.name]}
               showCrewChip={showCrewChip}
               enumNameById={enumNameById}
@@ -370,12 +392,13 @@ function DomainGroup({
 interface UngroupedProps {
   group: CrewDomain;
   onPick: (cf: CrewField) => void;
+  onDelete: (cf: CrewField) => void;
   liveValueByField: Record<string, unknown>;
   showCrewChip: boolean;
   enumNameById: Map<string, string>;
 }
 
-function UngroupedFields({ group, onPick, liveValueByField, showCrewChip, enumNameById }: UngroupedProps) {
+function UngroupedFields({ group, onPick, onDelete, liveValueByField, showCrewChip, enumNameById }: UngroupedProps) {
   return (
     <div className={styles.ungrouped}>
       <div className={styles.list}>
@@ -384,6 +407,7 @@ function UngroupedFields({ group, onPick, liveValueByField, showCrewChip, enumNa
             key={`${cf.crewId}/${cf.field.id}`}
             cf={cf}
             onPick={onPick}
+            onDelete={onDelete}
             liveValue={liveValueByField[cf.field.name]}
             showCrewChip={showCrewChip}
             enumNameById={enumNameById}
@@ -397,12 +421,13 @@ function UngroupedFields({ group, onPick, liveValueByField, showCrewChip, enumNa
 interface FieldRowProps {
   cf: CrewField;
   onPick: (cf: CrewField) => void;
+  onDelete: (cf: CrewField) => void;
   liveValue?: unknown;
   showCrewChip: boolean;
   enumNameById: Map<string, string>;
 }
 
-function FieldRow({ cf, onPick, liveValue, showCrewChip, enumNameById }: FieldRowProps) {
+function FieldRow({ cf, onPick, onDelete, liveValue, showCrewChip, enumNameById }: FieldRowProps) {
   const { updateConversationMemoryField, previewConversationId } = useBuilder();
   const src = SOURCE_LABEL[cf.field.source];
   const hasValue = liveValue !== undefined;
@@ -442,20 +467,35 @@ function FieldRow({ cf, onPick, liveValue, showCrewChip, enumNameById }: FieldRo
             ✕
           </button>
         )}
+        <button
+          type="button"
+          className={styles.deleteBtn}
+          onClick={e => {
+            e.stopPropagation();
+            onDelete(cf);
+          }}
+          title="Delete this field"
+        >
+          🗑
+        </button>
       </div>
       <div className={styles.pills}>
         <span
           className={styles.typePill}
+          // Targeted-KB pills opt out of the lowercase transform so
+          // "Targeted KB" reads as its proper capitalisation. Plain
+          // primitives (string/int/bool) stay lowercase.
+          style={cf.field.type === 'enum' ? { textTransform: 'none' } : undefined}
           title={
             cf.field.type === 'enum' && cf.field.enumType
               ? enumNameById.has(cf.field.enumType)
-                ? `Enum type "${enumNameById.get(cf.field.enumType)}"`
-                : `Enum binding "${cf.field.enumType}" is missing from the bible`
+                ? `Targeted KB "${enumNameById.get(cf.field.enumType)}"`
+                : `Targeted KB "${cf.field.enumType}" is missing`
               : undefined
           }
         >
           {cf.field.type === 'enum' && cf.field.enumType
-            ? `enum · ${enumNameById.get(cf.field.enumType) ?? '(missing)'}`
+            ? `Targeted KB · ${enumNameById.get(cf.field.enumType) ?? '(missing)'}`
             : TYPE_LABEL[cf.field.type] ?? cf.field.type}
         </span>
         {/* Source pill suppressed for pinned — the "🎯 PINNED"
