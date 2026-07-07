@@ -1,9 +1,11 @@
 /**
  * BuilderChat — talk to Alfred, the in-builder AI helper.
  *
- * P5.1: brainstorm-only. Real streaming chat with persistent history,
- * but no proposal cards / Apply / spec editing yet (those land in
- * P5.2 + P5.3).
+ * Streaming chat with persistent history. Alfred sees the current
+ * agent JSON every turn and can call read tools (change log, addon
+ * source) — shown as a transient tool-note chip. The ✨ Apply button
+ * consolidates agreed changes and generates them into the working
+ * copy (ApplyPreviewModal).
  *
  * Model is fixed to Claude Sonnet 4.6 (BUILDER_HELPER_MODEL). The
  * server enforces this; the badge in the header just shows it.
@@ -49,6 +51,12 @@ function fromServer(m: AlfredMessage): Msg | null {
   return { id: m.id, role: m.role, text: m.content };
 }
 
+/** Human labels for Alfred's tools, shown while a tool call runs. */
+const TOOL_LABELS: Record<string, string> = {
+  read_change_log: 'Reading the change log…',
+  read_addon_code: 'Reading addon code…',
+};
+
 export function BuilderChat() {
   useModels();
   const { doc } = useBuilder();
@@ -65,6 +73,7 @@ export function BuilderChat() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [applyOpen, setApplyOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [toolNote, setToolNote] = useState<string | null>(null);
   const [settings, setSetting] = useChatSettings();
 
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -148,17 +157,28 @@ export function BuilderChat() {
         setMessages(prev => [...prev, { id: null, role: 'assistant', text: '' }]);
         return;
       case 'alfred.token':
+        setToolNote(null);
         updateLast(m => ({ ...m, text: m.text + e.token }));
+        return;
+      case 'alfred.tool-use':
+        setToolNote(TOOL_LABELS[e.tool] ?? `Running ${e.tool}…`);
+        return;
+      case 'alfred.tool-result':
+        // Keep the note up until the next token arrives — the model is
+        // now reading the result, which still looks like "thinking".
         return;
       case 'alfred.message':
         // Final text (server-side full string) — replaces the streamed
         // accumulation in case anything got dropped.
+        setToolNote(null);
         updateLast(m => ({ ...m, id: e.messageId, text: e.text }));
         return;
       case 'alfred.error':
+        setToolNote(null);
         setErrorMsg(e.error.message || 'Alfred ran into a problem');
         return;
       case 'done':
+        setToolNote(null);
         reloadChatList();
         return;
     }
@@ -168,6 +188,7 @@ export function BuilderChat() {
     const text = input.trim();
     if (!text || busy || !slug) return;
     setErrorMsg(null);
+    setToolNote(null);
     setBusy(true);
     setInput('');
 
@@ -307,8 +328,9 @@ export function BuilderChat() {
           {messages.length === 0 && !busy && (
             <div className={styles.intro}>
               <p>
-                I see your project, persona, crews, and fields. Tell me what you
-                want to design or refine — I'll think out loud with you.
+                I see your full agent — every crew, addon, prompt, field, enum,
+                snippet, and persona. Ask me anything about it, brainstorm with
+                me, or agree on changes and hit ✨ Apply.
               </p>
             </div>
           )}
@@ -324,6 +346,10 @@ export function BuilderChat() {
               </div>
             );
           })}
+
+          {toolNote && (
+            <div className={styles.toolNote}>🔍 {toolNote}</div>
+          )}
         </div>
       </div>
 

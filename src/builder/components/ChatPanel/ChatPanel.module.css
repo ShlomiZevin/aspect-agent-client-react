@@ -398,6 +398,23 @@
   margin: 0;
 }
 
+.toolNote {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-secondary, #6b7280);
+  background: var(--bg-input, #fafafa);
+  border: 1px dashed var(--border-color, #e5e7eb);
+  animation: toolNotePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes toolNotePulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
 .msg {
   max-width: 90%;
   padding: 9px 12px;

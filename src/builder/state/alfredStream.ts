@@ -4,9 +4,6 @@
  * Mirrors `runtimeStream.ts` — posts a user message to
  * `/api/builder/alfred/chats/:chatId/messages` and dispatches each
  * parsed SSE event to the supplied handler.
- *
- * P5.1 event set is intentionally small (no proposals / tool calls
- * yet). P5.2 will add `alfred.proposal` etc.
  */
 
 import { alfredMessageStream } from './builderApi';
@@ -15,6 +12,8 @@ export type AlfredEvent =
   | { type: 'conversation'; chatId: number; messageId: number }
   | { type: 'alfred.start' }
   | { type: 'alfred.token'; token: string }
+  | { type: 'alfred.tool-use'; tool: string; input: unknown; toolUseId: string }
+  | { type: 'alfred.tool-result'; toolUseId: string; preview: string }
   | { type: 'alfred.message'; messageId: number; text: string }
   | { type: 'alfred.error'; error: { code: string; message: string } }
   | { type: 'done'; totalMs: number };
