@@ -159,10 +159,14 @@ export function DataTableModal({
   const handleExport = async () => {
     setExporting(true);
     try {
+      // Send {schema, sql}, not the (potentially 100k+ row) `rows` array —
+      // the server re-runs the query itself. Shipping the full row set back
+      // from the browser as a JSON body was the other half of the prod hang:
+      // a ~29MB POST for the same table that overflowed the live SSE stream.
       const res = await fetch(`${baseURL}/api/data-query/export-excel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayColumns: cols, rows: view, title }),
+        body: JSON.stringify({ schema, sql, displayColumns: cols, title }),
       });
       if (!res.ok) throw new Error(`Export failed (${res.status})`);
       const blob = await res.blob();
