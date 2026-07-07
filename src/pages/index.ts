@@ -17,6 +17,7 @@ export { ForemanPage } from './ForemanPage';
 export { FreedaPage } from './FreedaPage';
 export { FreedaNextPage } from './FreedaNextPage';
 export { HomePage } from './HomePage';
+export { AspectAgentsHomePage } from './AspectAgentsHomePage';
 export { LybiLandingPage } from './LybiLandingPage';
 export { AgentLoginPage } from './AgentLoginPage';
 export { AgentChatPage } from './AgentChatPage';

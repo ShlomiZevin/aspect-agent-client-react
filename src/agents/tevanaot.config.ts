@@ -8,18 +8,18 @@ export const tevanaotConfig: AgentConfig = {
   storagePrefix: 'tevanaot_',
   baseURL: BASE_URL,
 
-  pageTitle: 'Teva Naot - Business Intelligence',
+  pageTitle: 'Teva Naot - C2A',
   favicon: '/img/tevanaot-logo.svg',
-  metaDescription: 'AI-powered business intelligence for Teva Naot footwear retail — sales, products, stores, inventory.',
+  metaDescription: 'AI-powered C2A for Teva Naot footwear retail — sales, products, stores, inventory.',
 
   logo: {
     src: '/img/tevanaot-logo.svg',
     alt: 'Teva Naot Logo',
   },
   headerTitle: 'Teva Naot',
-  headerSubtitle: 'AI-powered business intelligence',
+  headerSubtitle: 'AI-powered C2A',
   welcomeIcon: '/img/tevanaot-logo.svg',
-  welcomeTitle: 'Welcome to Teva Naot BI',
+  welcomeTitle: 'Welcome to Teva Naot C2A',
   welcomeMessage: 'Ask me anything about sales, products, stores, and inventory.',
   inputPlaceholder: 'Ask about your business...',
 

@@ -10,6 +10,7 @@ import { DebugPanel } from '../DebugPanel';
 import { FeedbackPanel } from '../FeedbackPanel';
 import { AgentBugModal } from '../AgentBugModal/AgentBugModal';
 import { DataTableModal } from './DataTableModal';
+import type { DisplayColumn } from './DataTableModal';
 import { parseMarkdownTables } from './parseMarkdownTables';
 import { createTask, getAssignees } from '../../../services/taskService';
 import { useCommenterIdentity } from '../../../hooks/useCommenterIdentity';
@@ -18,6 +19,10 @@ import styles from './Message.module.css';
 
 interface MessageProps {
   message: MessageType;
+  /** True while this specific message is still the live streaming target
+   * (tool call running / more text still to come). Drives whether its
+   * ThinkingIndicator shows as active or already "done". */
+  isStreaming?: boolean;
 }
 
 // Detect if the message's primary direction is RTL (Hebrew, Arabic).
@@ -58,7 +63,7 @@ function getDomainFromUrl(): string {
   return 'general';
 }
 
-export function Message({ message }: MessageProps) {
+export function Message({ message, isStreaming = false }: MessageProps) {
   const { debugMode, deleteMessagesFrom, crewMembers, conversationId, selectedMessageIds, toggleMessageSelect, copyMessages, copyFromMessage, messages, sendMessage, restrictedMode } = useChatContext();
   const { t, language } = useLanguage();
   const config = useAgentConfig();
@@ -80,10 +85,16 @@ export function Message({ message }: MessageProps) {
   const rtl = isRTL(message.content);
 
   // Full structured query results the agent attached to this message (one per
-  // fetch). Each carries the COMPLETE row set so the viewer/export shows every
-  // row, not just the preview the agent rendered in text.
+  // fetch). In the LIVE session these carry the COMPLETE row set; reopened
+  // (historical) conversations only have `sql`/`schema` — rows are never
+  // persisted (see thinking.service.js) — and DataTableModal re-runs the
+  // query itself when it opens.
   const dataTables = (!isUser && !isDeveloper && message.thinkingSteps)
-    ? message.thinkingSteps.filter(s => s.stepType === 'data_table' && Array.isArray((s.metadata as { rows?: unknown[] })?.rows))
+    ? message.thinkingSteps.filter(s => {
+        if (s.stepType !== 'data_table') return false;
+        const meta = s.metadata as { rows?: unknown[]; sql?: string } | null;
+        return Array.isArray(meta?.rows) || typeof meta?.sql === 'string';
+      })
     : [];
   const canFeedback = !restrictedMode && !isUser && !isDeveloper && message.dbId;
   const canReportBug = debugMode && !isUser && !isDeveloper;
@@ -103,20 +114,45 @@ export function Message({ message }: MessageProps) {
   // row set). Fall back to parsing a markdown table out of the reply so agents
   // without a data tool (e.g. Aspect demo crews) still get the viewer/export.
   const toolTables = dataTables.map(step => {
-    const meta = step.metadata as { rowCount?: number; rows?: Record<string, unknown>[]; columns?: unknown; title?: string };
+    const meta = step.metadata as {
+      rowCount?: number;
+      rows?: Record<string, unknown>[];
+      columns?: unknown;
+      displayColumns?: DisplayColumn[];
+      title?: string;
+      sql?: string;
+      schema?: string;
+    };
     return {
       rows: (meta.rows ?? []) as Record<string, unknown>[],
       columns: meta.columns,
+      displayColumns: meta.displayColumns,
       title: meta.title?.trim() || undefined,
       count: meta.rowCount ?? meta.rows?.length ?? 0,
+      sql: meta.sql,
+      schema: meta.schema,
     };
   });
-  const markdownTables = (toolTables.length === 0 && !isUser && !isDeveloper)
+  // A BI data-fetch tool (fetch_hypertoy_data, fetch_zer4u_data, ...) was called
+  // but returned no data_table step — meaning the result was small enough
+  // (≤20 rows) to already be shown IN FULL in the chat text itself. In that
+  // case do NOT fall back to parsing a markdown table out of the reply: the
+  // text already IS the complete data, a second "view full table" button would
+  // be redundant and confusing (nothing more to see than what's already shown).
+  const hasBIDataFetchCall = (message.thinkingSteps ?? []).some(s => {
+    if (s.stepType !== 'function_call') return false;
+    const fn = (s.metadata as { functionName?: string } | null)?.functionName;
+    return typeof fn === 'string' && /^fetch_.*_data$/.test(fn);
+  });
+  const markdownTables = (toolTables.length === 0 && !hasBIDataFetchCall && !isUser && !isDeveloper)
     ? parseMarkdownTables(uiCleanText).map(tbl => ({
         rows: tbl.rows as Record<string, unknown>[],
         columns: tbl.columns,
+        displayColumns: undefined as DisplayColumn[] | undefined,
         title: tbl.title,
         count: tbl.rows.length,
+        sql: undefined as string | undefined,
+        schema: undefined as string | undefined,
       }))
     : [];
   const viewerTables = toolTables.length ? toolTables : markdownTables;
@@ -342,7 +378,7 @@ export function Message({ message }: MessageProps) {
               <ThinkingIndicator
                 currentStep=""
                 steps={message.thinkingSteps}
-                isComplete={true}
+                isComplete={!isStreaming}
               />
             )}
             <div className={styles.markdownContent} dir={rtl ? 'rtl' : undefined}>
@@ -375,10 +411,15 @@ export function Message({ message }: MessageProps) {
               <DataTableModal
                 rows={viewerTables[openTableIdx].rows}
                 columns={viewerTables[openTableIdx].columns}
+                displayColumns={viewerTables[openTableIdx].displayColumns}
+                sql={viewerTables[openTableIdx].sql}
+                schema={viewerTables[openTableIdx].schema}
                 title={viewerTables[openTableIdx].title || t('chat.dataTableTitle')}
+                baseURL={config.baseURL}
                 exportLabel={t('chat.exportToExcel')}
                 filterPlaceholder={t('chat.filterRows')}
                 closeLabel={t('chat.close')}
+                loadingLabel={t('chat.loadingTable')}
                 rowsLabel={(n) => `${n} ${t('chat.rows')}`}
                 onClose={() => setOpenTableIdx(null)}
               />

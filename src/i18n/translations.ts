@@ -139,6 +139,7 @@ export const translations: LanguageConfig = {
     'chat.filterRows': 'Filter rows…',
     'chat.rows': 'rows',
     'chat.close': 'Close',
+    'chat.loadingTable': 'Loading…',
 
     // Thinking step query labels
     'thinking.businessQuestion': 'Business Question',
@@ -546,6 +547,7 @@ export const translations: LanguageConfig = {
     'chat.filterRows': 'סינון שורות…',
     'chat.rows': 'שורות',
     'chat.close': 'סגור',
+    'chat.loadingTable': 'טוען…',
 
     // Thinking step query labels
     'thinking.businessQuestion': 'שאלה עסקית',
