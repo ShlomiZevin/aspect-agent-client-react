@@ -26,6 +26,17 @@
   transition: background .3s, color .3s;
 }
 
+/* Host-only variant: another surface (e.g. the builder) mounting a
+ * lybi component just for its scoped styles. Keeps the vars + scoping
+ * but must NOT become a full-screen fixed layer over the host UI —
+ * that swallows every click on the page. */
+.lybi-chat.lybi-host {
+  position: static;
+  inset: auto;
+  overflow: visible;
+  background: none;
+}
+
 /* Surfaces/borders/text are MIXED from the brand colours (--mag primary,
    --pur tertiary) so changing the palette reshapes the whole scheme, not
    just the accents. color-mix is supported in all current browsers. */
@@ -144,6 +155,10 @@
   font-weight: 800; font-size: 14px; color: #fff; background: var(--grad); margin-top: 2px;
 }
 .lybi-chat .avatar svg { width: 18px; height: 18px; }
+/* Lybi's avatar: the brand spiral on a light chip (the pink spiral
+   would vanish on the gradient background). */
+.lybi-chat .avatar.avatar-spiral { background: var(--surface); border: 1px solid var(--border-2); }
+.lybi-chat .avatar.avatar-spiral img { width: 72%; height: 72%; object-fit: contain; display: block; }
 .lybi-chat .msg.user .avatar { background: var(--surface-3); color: var(--text-2); }
 .lybi-chat .bubble-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 /* Crew title stays on the LEFT (the Lybi/bot side) in both RTL and LTR. */
@@ -165,11 +180,22 @@
 .lybi-chat .bubble-md li { font-size: 16px; line-height: 1.7; }
 .lybi-chat .bubble-md p { margin: 0 0 .5em; }
 .lybi-chat .bubble-md p:last-child { margin-bottom: 0; }
+/* Per Noa (#714): purple = Lybi's messages, the customer in white. */
 .lybi-chat .msg.bot .bubble {
-  background: var(--bot-bub); border: 1px solid var(--bot-bub-border);
-  border-top-left-radius: 5px; box-shadow: var(--shadow); /* sharp corner toward the left avatar */
+  background: var(--grad); color: #fff;
+  border-top-left-radius: 5px; /* sharp corner toward the left avatar */
 }
-.lybi-chat .msg.user .bubble { background: var(--grad); color: #fff; border-top-right-radius: 5px; }
+.lybi-chat .msg.bot .bubble a { color: #fff; text-decoration: underline; }
+.lybi-chat .msg.user .bubble {
+  background: var(--bot-bub); color: var(--text); border: 1px solid var(--bot-bub-border);
+  box-shadow: var(--shadow); border-top-right-radius: 5px;
+}
+/* The typing indicator stays on a light bubble — the magenta dots
+   would disappear on the purple gradient. */
+.lybi-chat .msg.bot .bubble.thinking {
+  background: var(--bot-bub); border: 1px solid var(--bot-bub-border);
+  color: var(--text-2); box-shadow: var(--shadow);
+}
 
 /* markdown inside bot bubbles — keep it tight + RTL-aware */
 .lybi-chat .bubble p { margin: 0 0 .5em; }
@@ -181,6 +207,7 @@
 
 /* welcome / starter questions (no conversation yet) */
 .lybi-chat .welcome { margin: auto 0; padding: 20px 0; animation: lybiFade .4s ease; }
+.lybi-chat .welcome-logo { display: block; height: 88px; margin: 0 auto 22px; }
 .lybi-chat .welcome-title { text-align: center; font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 18px; }
 .lybi-chat .welcome-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
 .lybi-chat .quick-box {
@@ -295,6 +322,69 @@
 .lybi-chat .hist-item { padding: 11px 13px; border-radius: 12px; cursor: pointer; transition: background .15s; margin-bottom: 3px; }
 .lybi-chat .hist-item:hover { background: var(--surface-2); }
 .lybi-chat .hist-item.active { background: var(--surface-2); border: 1px solid var(--border-2); }
+
+/* Hover-reveal row actions (rename + delete) + the inline rename input. */
+.lybi-chat .hist-item { position: relative; }
+.lybi-chat .hist-acts {
+  position: absolute; top: 6px; inset-inline-end: 6px;
+  display: flex; gap: 2px; opacity: 0; transition: .15s;
+}
+.lybi-chat .hist-item:hover .hist-acts, .lybi-chat .hist-acts:focus-within { opacity: 1; }
+.lybi-chat .hist-act {
+  width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center;
+  color: var(--text-2); font-size: 13px;
+}
+.lybi-chat .hist-act:hover { background: var(--surface); }
+.lybi-chat .hist-act.danger:hover { color: #dc2626; }
+.lybi-chat .hist-act svg { width: 13px; height: 13px; }
+.lybi-chat .hist-rename {
+  width: 100%; padding: 6px 9px; border-radius: 9px; border: 1px solid var(--mag);
+  background: var(--surface); color: var(--text); font-family: inherit; font-size: 13.5px; outline: none;
+}
+
+/* Multi-select delete mode. The toggle lives in the drawer head,
+   hugging the close button. */
+.lybi-chat .hist-select-toggle {
+  margin-inline-start: auto; margin-inline-end: 10px; padding: 5px 14px; border-radius: 100px;
+  font-size: 12.5px; font-weight: 600; color: var(--text-2); border: 1px solid var(--border-2);
+  transition: .15s;
+}
+.lybi-chat .hist-select-toggle:hover { color: var(--text); background: var(--surface-2); }
+.lybi-chat .hist-item.selecting { padding-inline-end: 40px; }
+.lybi-chat .hist-tick {
+  position: absolute; top: 50%; transform: translateY(-50%); inset-inline-end: 10px;
+  width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border-2);
+  display: grid; place-items: center; font-size: 11px; color: transparent; transition: .15s;
+}
+.lybi-chat .hist-tick.on { background: var(--grad); border-color: transparent; color: #fff; }
+.lybi-chat .hist-selbar {
+  display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border);
+}
+.lybi-chat .hist-selbar .btn { flex: 1; padding: 8px 12px; font-size: 13px; }
+.lybi-chat .hist-selbar .btn:disabled { opacity: .45; cursor: default; }
+
+/* ── Customer login gate (/:agent/chat) ── */
+.lybi-chat .login-wrap { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; }
+.lybi-chat .login-card {
+  width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--border-2);
+  border-radius: 20px; padding: 30px 28px; box-shadow: 0 18px 60px rgba(10,4,32,.14);
+  display: flex; flex-direction: column; gap: 15px;
+}
+.lybi-chat .login-logo { display: flex; justify-content: center; margin-bottom: 2px; }
+.lybi-chat .login-logo img { height: 34px; }
+.lybi-chat .login-card h2 { font-size: 19px; font-weight: 800; text-align: center; margin-bottom: 4px; }
+.lybi-chat .login-info {
+  display: inline-block; width: 14px; height: 14px; color: var(--text-2); opacity: .75;
+  margin-inline-start: 5px; vertical-align: -2px; cursor: help; transition: .15s;
+}
+.lybi-chat .login-info svg { width: 100%; height: 100%; display: block; }
+.lybi-chat .login-info:hover { color: var(--mag); opacity: 1; }
+.lybi-chat .login-error {
+  font-size: 12.5px; font-weight: 600; color: #dc2626; background: rgba(220,38,38,.08);
+  border-radius: 9px; padding: 8px 12px; text-align: center;
+}
+.lybi-chat .login-btn { margin-top: 2px; padding: 11px; font-size: 14.5px; }
+.lybi-chat .login-btn:disabled { opacity: .5; cursor: default; }
 .lybi-chat .hist-item .ht { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lybi-chat .hist-item .hd { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
 .lybi-chat .hist-group { font-size: 11px; font-weight: 700; color: var(--text-3); padding: 10px 13px 5px; text-transform: uppercase; letter-spacing: .5px; }
@@ -349,6 +439,20 @@
 }
 .lybi-chat .field textarea { resize: vertical; min-height: 78px; }
 .lybi-chat .field input:focus, .lybi-chat .field textarea:focus { border-color: var(--mag); }
+
+/* Report modal: reporter chips (mirrors the task board's assignee pills)
+   + the attach-screenshot row (button and hint share one line). */
+.lybi-chat .name-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.lybi-chat .name-chip {
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px;
+  border-radius: 100px; border: 1px solid var(--border-2); background: var(--surface-2);
+  font-size: 13px; font-weight: 600; color: var(--text-2); cursor: pointer; transition: .15s;
+}
+.lybi-chat .name-chip.on { background: var(--grad); border-color: transparent; color: #fff; }
+.lybi-chat .name-chip .nc-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.lybi-chat .name-chip.static { cursor: default; }
+.lybi-chat .attach-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lybi-chat .attach-hint { font-size: 11.5px; color: var(--text-2); opacity: .75; }
 .lybi-chat .modal-foot { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
 .lybi-chat .btn { padding: 9px 20px; border-radius: 100px; font-weight: 700; font-size: 14px; transition: .15s; }
 .lybi-chat .btn.ghost { color: var(--text-2); border: 1px solid var(--border-2); }
@@ -443,6 +547,7 @@
 .lybi-chat[data-embed="1"] .send-btn svg { width: 16px; height: 16px; }
 .lybi-chat[data-embed="1"] .composer-foot { margin-top: 5px; }
 .lybi-chat[data-embed="1"] .hint { display: none; } /* too cramped for the widget */
+.lybi-chat[data-embed="1"] .welcome-logo { height: 42px; margin-bottom: 12px; }
 .lybi-chat[data-embed="1"] .welcome-title { font-size: 16px; margin-bottom: 12px; }
 .lybi-chat[data-embed="1"] .welcome-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
 .lybi-chat[data-embed="1"] .quick-box { padding: 11px 12px; }

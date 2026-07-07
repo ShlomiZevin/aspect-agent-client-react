@@ -216,6 +216,34 @@
   background: rgba(220, 38, 38, 0.08);
 }
 
+/* Hover-reveal delete on each field row — same shortcut pattern the
+ * sidebar uses for crews. Sits at the row's right edge; invisible
+ * until the row is hovered so the list stays quiet. */
+.deleteBtn {
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  color: var(--text-tertiary, #9ca3af);
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-family: inherit;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+.row:hover .deleteBtn,
+.deleteBtn:focus-visible {
+  opacity: 1;
+}
+
+.deleteBtn:hover {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
 .row:hover {
   border-color: var(--primary-color, #6366f1);
   background: rgba(99, 102, 241, 0.03);

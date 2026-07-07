@@ -18,6 +18,8 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { useAgentFields } from '../../state/useAgentFields';
+import { useCrewFields } from '../../state/useCrewFields';
+import { useConfirm } from '../Confirm/Confirm';
 import { DomainModal } from './DomainModal';
 import { ParameterModal } from './ParameterModal';
 import { WireFieldModal } from './WireFieldModal';
@@ -441,6 +443,22 @@ function FieldsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean 
   const navigate = useNavigate();
   const [wiringField, setWiringField] = useState<FieldDef | null>(null);
 
+  // Delete shortcut on each row. Fields in this section are always
+  // agent-scoped, so removeField gets scope 'agent' (the hook's crewId
+  // is irrelevant — removeField takes the owner explicitly). Same
+  // confirm copy as the field editor's Delete button.
+  const { removeField } = useCrewFields(agentId, '');
+  const confirm = useConfirm();
+  const onDelete = async (f: FieldDef) => {
+    const ok = await confirm({
+      title: `Delete field "${f.name || '(unnamed)'}"?`,
+      message: 'Removes the field definition and unhooks it from every extractor that references it.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (ok) removeField('agent', '', f.id);
+  };
+
   const fieldsPagePath = agent?.slug ? `/${agent.slug}/builder/fields` : null;
   const openAdd = () => {
     // The Fields page hosts its own + Declare button that creates the
@@ -528,6 +546,7 @@ function FieldsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean 
               fields={list}
               onPick={openEdit}
               onWire={openWire}
+              onDelete={onDelete}
               extractorCountFor={extractorCountFor}
               liveValueByField={liveValueByField}
               canClearLive={previewConversationId !== null}
@@ -543,6 +562,7 @@ function FieldsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean 
               fields={grouped.orphan}
               onPick={openEdit}
               onWire={openWire}
+              onDelete={onDelete}
               extractorCountFor={extractorCountFor}
               liveValueByField={liveValueByField}
               canClearLive={previewConversationId !== null}
@@ -571,7 +591,7 @@ function formatLiveValue(v: unknown): string {
 }
 
 function FieldsGroup({
-  label, fields, onPick, onWire, extractorCountFor,
+  label, fields, onPick, onWire, onDelete, extractorCountFor,
   liveValueByField, canClearLive, onClearLive,
   enumByFieldId, reasonerByFieldId, agentSlug,
 }: {
@@ -579,6 +599,7 @@ function FieldsGroup({
   fields: FieldDef[];
   onPick: (f: FieldDef) => void;
   onWire: (f: FieldDef) => void;
+  onDelete: (f: FieldDef) => void;
   extractorCountFor: (id: ID) => number;
   liveValueByField: Record<string, unknown>;
   canClearLive: boolean;
@@ -636,6 +657,14 @@ function FieldsGroup({
                   title="Pick which crew(s) should collect this field"
                 >
                   Wire
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDelete(f)}
+                  className={styles.fieldRowDelete}
+                  title="Delete this field"
+                >
+                  🗑
                 </button>
               </div>
 

@@ -136,9 +136,13 @@ export function PinnedFieldsPanel({ agentId }: Props) {
                 <div className={styles.fieldRowPills}>
                   <span
                     className={styles.typePill}
+                    // Opt this pill out of the lowercase text-transform
+                    // so "Targeted KB" reads correctly. Other type pills
+                    // (string/int/bool) stay lowercased.
+                    style={{ textTransform: 'none' }}
                     title={kb ? `Targeted KB "${kb.name}"` : 'No KB bound'}
                   >
-                    {kb ? `enum · ${kb.name}` : 'enum · (missing)'}
+                    {kb ? `Targeted KB · ${kb.name}` : 'Targeted KB · (missing)'}
                   </span>
                 </div>
               </div>

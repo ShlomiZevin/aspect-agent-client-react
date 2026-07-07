@@ -33,6 +33,13 @@ import type { AddonRunSnapshot } from '../AddonRun/AddonRunCard';
 import { useConfirm } from '../Confirm/Confirm';
 import { HistoryPanel } from './HistoryPanel';
 import { ChatSettingsPopover, useChatSettings } from './ChatSettings';
+// Report-a-bug reuses the live chat's lightweight modal verbatim — same
+// board wiring (assignee chips, screenshots, conversation link). Its CSS
+// is fully scoped under `.lybi-chat`, so we mount it inside a scoped
+// wrapper div and nothing leaks into the builder's styles.
+import { ReportModal } from '../../../live-chat/components/ReportModal';
+import { I18N } from '../../../live-chat/i18n';
+import '../../../live-chat/liveChat.css';
 import styles from './ChatPanel.module.css';
 
 /**
@@ -182,6 +189,14 @@ export function UserChat() {
   const [conversationId, setConversationIdLocal] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [convList, setConvList] = useState<ConversationListItem[]>([]);
+  // Bot-message text a bug report was opened for (null = modal closed).
+  const [reportFor, setReportFor] = useState<string | null>(null);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  useEffect(() => {
+    if (toastMsg === null) return;
+    const id = setTimeout(() => setToastMsg(null), 2500);
+    return () => clearTimeout(id);
+  }, [toastMsg]);
 
   // `currentCrewId` = the crew the next turn will route to. Bound to
   // the dropdown. Updated by:
@@ -665,6 +680,20 @@ export function UserChat() {
     }
   };
 
+  const onDeleteManyFromHistory = async (ids: number[]) => {
+    try {
+      // Sequential — the endpoint is per-conversation; a handful of
+      // rows doesn't justify parallel fan-out.
+      for (const id of ids) {
+        await deleteConversation({ agentSlug: slug, conversationId: id });
+      }
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Delete failed');
+    }
+    setConvList(prev => prev.filter(c => !ids.includes(c.id)));
+    if (conversationId !== null && ids.includes(conversationId)) onNewChat();
+  };
+
   // ── Per-message delete (debug controls) ───────────────────────────
 
   const deleteTurnSelf = async (turn: Turn) => {
@@ -761,6 +790,7 @@ export function UserChat() {
               triggerRef={settingsBtnRef}
               settings={settings}
               onChange={setSetting}
+              showAddonRunsToggle
             />
           </div>
         </div>
@@ -798,6 +828,7 @@ export function UserChat() {
           onNew={onNewChat}
           onRename={onRenameConversation}
           onDelete={onDeleteFromHistory}
+          onDeleteMany={onDeleteManyFromHistory}
         />
 
         <div className={styles.messages} ref={messagesRef} onScroll={onMessagesScroll}>
@@ -807,12 +838,15 @@ export function UserChat() {
             </div>
           )}
 
-          {turns.map(t => (
+          {turns.map((t, i) => (
             <Turn
               key={t.id}
               turn={t}
               rtl={settings.rtl}
+              showTimeline={settings.showAddonRuns}
+              awaiting={awaitingTalker && i === turns.length - 1}
               onExpand={() => loadRunsForTurn(t)}
+              onReport={text => setReportFor(text)}
               onDeleteSelf={() => deleteTurnSelf(t)}
               onDeleteFromHere={() => deleteTurnFromHere(t)}
             />
@@ -827,6 +861,42 @@ export function UserChat() {
       )}
 
       {errorMsg && <div className={styles.errorChip}>{errorMsg}</div>}
+      {toastMsg && <div className={styles.dirtyChip}>{toastMsg}</div>}
+
+      {/* Scoped wrapper so the live chat's `.lybi-chat .modal…` styles
+          apply; `lybi-host` strips the class's fixed full-screen layout
+          so the wrapper is inert in the builder (the modal scrim is
+          position:fixed on its own). */}
+      {/* data-theme is required: every theme var (--surface-2,
+          --border-2, --text…) lives under [data-theme] selectors. The
+          builder is light-only, so pin light. The inline overrides
+          re-derive the whole modal palette from the builder's indigo
+          instead of Lybi magenta (every surface/border/gradient is
+          color-mixed from --mag/--pur on this element), and drop the
+          Assistant font in favour of the builder's. */}
+      <div
+        className="lybi-chat lybi-host"
+        data-theme="light"
+        dir="ltr"
+        style={{
+          '--mag': '#6366f1',
+          '--pur': '#4f46e5',
+          '--pur2': '#6366f1',
+          '--grad': 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+          fontFamily: 'inherit',
+        } as React.CSSProperties}
+      >
+        <ReportModal
+          open={reportFor !== null}
+          t={I18N.en}
+          messageText={reportFor ?? ''}
+          agentSlug={slug}
+          scenario="builder"
+          conversationId={conversationId}
+          onClose={() => setReportFor(null)}
+          onDone={msg => { setReportFor(null); setToastMsg(msg); }}
+        />
+      </div>
 
       <div className={styles.composer}>
         <textarea
@@ -863,14 +933,35 @@ export function UserChat() {
 interface TurnProps {
   turn: Turn;
   rtl: boolean;
+  /** When false, the addon-run timeline is not rendered — plain chat
+   *  view. Also skips the lazy runs fetch (TurnTimeline's mount
+   *  effect) until the user toggles activity back on. */
+  showTimeline: boolean;
+  /** True while this turn is the one currently streaming. Drives the
+   *  minimal "thinking…" line when the timeline is hidden. */
+  awaiting: boolean;
   onExpand: () => void;
+  onReport: (messageText: string) => void;
   onDeleteSelf: () => void;
   onDeleteFromHere: () => void;
 }
 
-function Turn({ turn, rtl, onExpand, onDeleteSelf, onDeleteFromHere }: TurnProps) {
+function Turn({ turn, rtl, showTimeline, awaiting, onExpand, onReport, onDeleteSelf, onDeleteFromHere }: TurnProps) {
   const canDelete = turn.userMessageId !== null || turn.assistantMessageId !== null;
-  const showRuns = turn.runs.length > 0 || (turn.assistantMessageId !== null && !turn.runsLoaded);
+  const showRuns = showTimeline
+    && (turn.runs.length > 0 || (turn.assistantMessageId !== null && !turn.runsLoaded));
+  // Clean-view feedback: with the timeline hidden the user would stare
+  // at nothing until the talker's first token. Show a one-line pulse
+  // with the currently-running addon's name; it disappears the moment
+  // the answer starts streaming.
+  const showThinking = !showTimeline && awaiting && turn.assistantText === '';
+  const runningLabel = (() => {
+    for (let i = turn.runs.length - 1; i >= 0; i--) {
+      const r = turn.runs[i];
+      if (r.status === 'running') return r.label || r.pluginId;
+    }
+    return null;
+  })();
   return (
     <div className={styles.turn}>
       {turn.userText && (
@@ -884,6 +975,12 @@ function Turn({ turn, rtl, onExpand, onDeleteSelf, onDeleteFromHere }: TurnProps
         />
       )}
       {showRuns && <TurnTimeline turn={turn} onExpand={onExpand} />}
+      {showThinking && (
+        <div className={styles.thinkingLine}>
+          <span className={styles.thinkingPulse} />
+          {runningLabel ?? 'Thinking'}…
+        </div>
+      )}
       {/* DC resolutions are surfaced in the BrainPanel — keep them out
           of the chat area to reduce noise. The SSE event + the data on
           `turn.dcResolutions` are still produced and stored; only
@@ -894,6 +991,7 @@ function Turn({ turn, rtl, onExpand, onDeleteSelf, onDeleteFromHere }: TurnProps
           who="bot"
           rtl={rtl}
           deleteControls={canDelete}
+          onReport={() => onReport(turn.assistantText)}
           onDeleteSelf={onDeleteSelf}
           onDeleteFromHere={onDeleteFromHere}
         />
@@ -907,11 +1005,13 @@ interface BubbleProps {
   who: 'user' | 'bot';
   rtl: boolean;
   deleteControls: boolean;
+  /** Bot bubbles only — opens the lightweight bug-report modal. */
+  onReport?: () => void;
   onDeleteSelf: () => void;
   onDeleteFromHere: () => void;
 }
 
-function Bubble({ text, who, rtl, deleteControls, onDeleteSelf, onDeleteFromHere }: BubbleProps) {
+function Bubble({ text, who, rtl, deleteControls, onReport, onDeleteSelf, onDeleteFromHere }: BubbleProps) {
   // Each bubble + its delete row live in a self-contained group so
   // hover state is per-bubble (user-hover doesn't reveal the bot's
   // delete buttons and vice versa). The group is full chat width so
@@ -922,24 +1022,38 @@ function Bubble({ text, who, rtl, deleteControls, onDeleteSelf, onDeleteFromHere
   return (
     <div className={styles.bubbleGroup}>
       <div className={bubbleClass}>{text}</div>
-      {deleteControls && (
+      {(deleteControls || onReport) && (
         <div className={deleteRowClass}>
-          <button
-            type="button"
-            className={styles.deleteIcon}
-            onClick={onDeleteSelf}
-            title="Delete this message"
-          >
-            🗑
-          </button>
-          <button
-            type="button"
-            className={styles.deleteIcon}
-            onClick={onDeleteFromHere}
-            title="Delete from here down"
-          >
-            🗑↓
-          </button>
+          {onReport && (
+            <button
+              type="button"
+              className={styles.deleteIcon}
+              onClick={onReport}
+              title="Report a bug on this message"
+            >
+              🐞
+            </button>
+          )}
+          {deleteControls && (
+            <>
+              <button
+                type="button"
+                className={styles.deleteIcon}
+                onClick={onDeleteSelf}
+                title="Delete this message"
+              >
+                🗑
+              </button>
+              <button
+                type="button"
+                className={styles.deleteIcon}
+                onClick={onDeleteFromHere}
+                title="Delete from here down"
+              >
+                🗑↓
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

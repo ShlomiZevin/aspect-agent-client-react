@@ -398,6 +398,23 @@
   margin: 0;
 }
 
+.toolNote {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-secondary, #6b7280);
+  background: var(--bg-input, #fafafa);
+  border: 1px dashed var(--border-color, #e5e7eb);
+  animation: toolNotePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes toolNotePulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
 .msg {
   max-width: 90%;
   padding: 9px 12px;
@@ -462,6 +479,32 @@
 .dynamicTrailFallback {
   font-style: italic;
   color: var(--text-tertiary, #9ca3af);
+}
+
+/* Minimal in-flight indicator shown when the addon-activity timeline is
+ * hidden — names the addon currently running, disappears the moment the
+ * answer starts streaming. */
+.thinkingLine {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 2px 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.thinkingPulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary-color, #6366f1);
+  animation: thinkingPulse 1.1s ease-in-out infinite;
+}
+
+@keyframes thinkingPulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50%      { opacity: 1;    transform: scale(1); }
 }
 
 .dirtyChip {

@@ -1,0 +1,240 @@
+/*
+ * Aspect BI — self-contained visual system. All BI components inherit these
+ * CSS custom properties from `.shell`, so the tool looks premium regardless of
+ * the surrounding agent theme. Dark-first; light mode via [data-mode="light"].
+ */
+.shell {
+  /* palette — dark (default) */
+  --bi-bg: #07080d;
+  --bi-bg-2: #0c0e16;
+  --bi-surface: rgba(255, 255, 255, 0.035);
+  --bi-surface-2: rgba(255, 255, 255, 0.06);
+  --bi-surface-solid: #12141d;
+  --bi-border: rgba(255, 255, 255, 0.08);
+  --bi-border-strong: rgba(255, 255, 255, 0.16);
+  --bi-text: #eceefb;
+  --bi-text-dim: #a2a7bd;
+  --bi-text-mute: #6a6f86;
+
+  --bi-accent: #8b5cf6;
+  --bi-accent-2: #ec4899;
+  --bi-accent-3: #22d3ee;
+  --bi-accent-soft: rgba(139, 92, 246, 0.16);
+  --bi-grad: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  --bi-grad-cool: linear-gradient(135deg, #6366f1 0%, #22d3ee 100%);
+  --bi-grad-text: linear-gradient(120deg, #c4b5fd 0%, #f9a8d4 55%, #67e8f9 100%);
+
+  --bi-glow: 0 0 24px rgba(139, 92, 246, 0.35);
+  --bi-shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --bi-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.65);
+  --bi-shadow-lg: 0 30px 80px -20px rgba(0, 0, 0, 0.75);
+
+  --bi-r-sm: 10px;
+  --bi-r-md: 14px;
+  --bi-r-lg: 20px;
+  --bi-r-xl: 28px;
+  --bi-blur: saturate(180%) blur(20px);
+
+  --bi-series-1: #a78bfa;
+  --bi-series-2: #f472b6;
+  --bi-series-3: #22d3ee;
+  --bi-series-4: #34d399;
+  --bi-series-5: #fbbf24;
+  --bi-series-6: #fb7185;
+  --bi-series-7: #818cf8;
+  --bi-series-8: #2dd4bf;
+
+  --bi-font: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --bi-mono: 'SF Mono', 'JetBrains Mono', 'Consolas', ui-monospace, monospace;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bi-bg);
+  color: var(--bi-text);
+  font-family: var(--bi-font);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.shell[data-mode='light'] {
+  --bi-bg: #f4f5fb;
+  --bi-bg-2: #eef0f8;
+  --bi-surface: rgba(255, 255, 255, 0.72);
+  --bi-surface-2: rgba(255, 255, 255, 0.9);
+  --bi-surface-solid: #ffffff;
+  --bi-border: rgba(15, 20, 45, 0.09);
+  --bi-border-strong: rgba(15, 20, 45, 0.16);
+  --bi-text: #14162a;
+  --bi-text-dim: #4c5270;
+  --bi-text-mute: #8b90a6;
+  --bi-accent-soft: rgba(139, 92, 246, 0.12);
+  --bi-glow: 0 8px 30px rgba(139, 92, 246, 0.22);
+  --bi-shadow-sm: 0 2px 8px rgba(20, 22, 42, 0.06);
+  --bi-shadow: 0 18px 44px -16px rgba(30, 34, 70, 0.22);
+  --bi-shadow-lg: 0 30px 70px -24px rgba(30, 34, 70, 0.3);
+  --bi-series-1: #7c3aed;
+  --bi-series-2: #db2777;
+  --bi-series-3: #0891b2;
+  --bi-series-4: #059669;
+  --bi-series-5: #d97706;
+  --bi-series-6: #e11d48;
+  --bi-series-7: #4f46e5;
+  --bi-series-8: #0d9488;
+}
+
+/* immersive backdrop — soft aurora glows behind the glass */
+.aurora {
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 120%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(50% 45% at 15% 0%, rgba(139, 92, 246, 0.28), transparent 70%),
+    radial-gradient(45% 40% at 92% 8%, rgba(34, 211, 238, 0.20), transparent 70%),
+    radial-gradient(55% 50% at 70% 100%, rgba(236, 72, 153, 0.18), transparent 70%);
+  filter: blur(20px);
+  opacity: 0.9;
+  animation: bi-float 24s ease-in-out infinite alternate;
+}
+.shell[data-mode='light'] .aurora { opacity: 0.5; }
+
+@keyframes bi-float {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(0, -3%, 0) scale(1.06); }
+}
+
+/* ── header ──────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--bi-r-lg);
+  padding: 14px 26px;
+  background: var(--bi-surface);
+  border-bottom: 1px solid var(--bi-border);
+  backdrop-filter: var(--bi-blur);
+  -webkit-backdrop-filter: var(--bi-blur);
+  flex-shrink: 0;
+  z-index: 5;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: var(--bi-grad);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--bi-glow), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.brandText { display: flex; flex-direction: column; line-height: 1.15; }
+.title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--bi-text);
+}
+.sub { font-size: 11.5px; color: var(--bi-text-mute); font-weight: 500; letter-spacing: 0.02em; }
+
+/* segmented tab control with sliding glider */
+.tabs {
+  position: relative;
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 999px;
+  background: var(--bi-surface);
+  border: 1px solid var(--bi-border);
+}
+.tabGlider {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: calc(50% - 5px);
+  height: calc(100% - 10px);
+  border-radius: 999px;
+  background: var(--bi-grad);
+  box-shadow: var(--bi-glow);
+  transition: transform 0.35s cubic-bezier(0.34, 1.3, 0.5, 1);
+}
+.tabGlider[data-tab='dashboards'] { transform: translateX(100%); }
+.tab {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  background: transparent;
+  color: var(--bi-text-dim);
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--bi-font);
+  transition: color 0.25s;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--bi-text); }
+.tabActive { color: #fff; }
+.shell[data-mode='light'] .tabActive { color: #fff; }
+
+.themeBtn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bi-border);
+  background: var(--bi-surface);
+  color: var(--bi-text-dim);
+  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.themeBtn:hover { color: var(--bi-text); border-color: var(--bi-border-strong); transform: translateY(-1px); }
+
+/* ── body ────────────────────────────────────────────────── */
+.body { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: auto;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 16px 22px;
+  border-radius: var(--bi-r-md);
+}
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin: auto;
+  color: var(--bi-text-mute);
+  font-size: 14px;
+}
+.spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--bi-border);
+  border-top-color: var(--bi-accent);
+  animation: bi-spin 0.8s linear infinite;
+}
+@keyframes bi-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 720px) {
+  .header { gap: 12px; padding: 12px 16px; flex-wrap: wrap; }
+  .sub { display: none; }
+}

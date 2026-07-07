@@ -376,6 +376,32 @@
   color: var(--primary-color, #6366f1);
 }
 
+/* Hover-reveal delete next to Wire — invisible until the row is
+ * hovered so the list stays quiet. */
+.fieldRowDelete {
+  background: transparent;
+  border: 0;
+  color: var(--text-tertiary, #9ca3af);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-family: inherit;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+.fieldRow:hover .fieldRowDelete,
+.fieldRowDelete:focus-visible {
+  opacity: 1;
+}
+
+.fieldRowDelete:hover {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
 .fieldRowMeta {
   display: flex;
   align-items: center;

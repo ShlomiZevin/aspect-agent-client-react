@@ -37,7 +37,21 @@ export interface Dict {
   refresh: string;
   sendCtrlEnter: string;
   viewOnSite: string;
+  openFullChat: string;
   openInBuilder: string;
+  rename: string;
+  loginTitle: string;
+  loginSub: string;
+  loginName: string;
+  loginPass: string;
+  loginBtn: string;
+  loginError: string;
+  logout: string;
+  select: string;
+  deleteChat: string;
+  deleteChatConfirm: string;
+  deleteManyConfirm: string;
+  deleteN: string;
   deleteMsg: string;
   deleteFromHere: string;
   deleteMsgConfirm: string;
@@ -53,6 +67,10 @@ export interface Dict {
   details: string;
   titlePh: string;
   detailsPh: string;
+  yourName: string;
+  yourNamePh: string;
+  attachShot: string;
+  attachShotHint: string;
   createBug: string;
   createTask: string;
   bugCreated: string;
@@ -98,7 +116,21 @@ export const I18N: Record<Lang, Dict> = {
     refresh: 'רענון',
     sendCtrlEnter: 'שליחה עם Ctrl+Enter',
     viewOnSite: 'תצוגה באתר (הטמעה)',
+    openFullChat: 'פתיחת הצ׳אט במסך מלא',
     openInBuilder: 'פתח ב-Builder',
+    rename: 'שינוי שם',
+    loginTitle: 'כניסה ל-{agent}',
+    loginSub: 'הסיסמה היא מספר הטלפון איתו נרשמתם',
+    loginName: 'שם',
+    loginPass: 'סיסמה',
+    loginBtn: 'כניסה',
+    loginError: 'שם או סיסמה שגויים',
+    logout: 'התנתקות',
+    select: 'בחירה',
+    deleteChat: 'מחיקת שיחה',
+    deleteChatConfirm: 'למחוק את השיחה?',
+    deleteManyConfirm: 'למחוק {n} שיחות?',
+    deleteN: 'מחיקה ({n})',
     deleteMsg: 'מחק הודעה',
     deleteFromHere: 'מחק מכאן ומטה',
     deleteMsgConfirm: 'למחוק את ההודעה הזו?',
@@ -114,6 +146,10 @@ export const I18N: Record<Lang, Dict> = {
     details: 'פירוט',
     titlePh: 'תיאור קצר…',
     detailsPh: 'מה קרה / מה צריך לקרות…',
+    yourName: 'השם שלך',
+    yourNamePh: 'מי פותח את הדיווח?',
+    attachShot: '📎 צירוף צילום מסך',
+    attachShotHint: 'אפשר גם להדביק (Ctrl+V) צילום מסך ישירות',
     createBug: 'צור באג',
     createTask: 'צור טאסק',
     bugCreated: 'הבאג נוצר',
@@ -157,7 +193,21 @@ export const I18N: Record<Lang, Dict> = {
     refresh: 'Refresh',
     sendCtrlEnter: 'Send with Ctrl+Enter',
     viewOnSite: 'View on site (embed)',
+    openFullChat: 'Open full chat',
     openInBuilder: 'Open in builder',
+    rename: 'Rename',
+    loginTitle: 'Sign in to {agent}',
+    loginSub: 'Your password is the phone number you registered with',
+    loginName: 'Name',
+    loginPass: 'Password',
+    loginBtn: 'Sign in',
+    loginError: 'Wrong name or password',
+    logout: 'Log out',
+    select: 'Select',
+    deleteChat: 'Delete chat',
+    deleteChatConfirm: 'Delete this chat?',
+    deleteManyConfirm: 'Delete {n} chats?',
+    deleteN: 'Delete ({n})',
     deleteMsg: 'Delete message',
     deleteFromHere: 'Delete from here down',
     deleteMsgConfirm: 'Delete this message?',
@@ -173,6 +223,10 @@ export const I18N: Record<Lang, Dict> = {
     details: 'Details',
     titlePh: 'Short description…',
     detailsPh: 'What happened / what should happen…',
+    yourName: 'Your name',
+    yourNamePh: 'Who is opening this report?',
+    attachShot: '📎 Attach screenshot',
+    attachShotHint: 'You can also paste (Ctrl+V) a screenshot directly',
     createBug: 'Create bug',
     createTask: 'Create task',
     bugCreated: 'Bug created',

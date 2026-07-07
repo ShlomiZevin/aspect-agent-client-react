@@ -7,8 +7,12 @@ const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ defaul
 const BuilderHomePage = lazy(() => import('./pages/BuilderHomePage').then(m => ({ default: m.BuilderHomePage })));
 // Customer-facing Live chat — its own subtree, lazy-loaded.
 const LiveChatPage = lazy(() => import('./pages/LiveChatPage').then(m => ({ default: m.LiveChatPage })));
+const CustomerChatPage = lazy(() => import('./pages/CustomerChatPage').then(m => ({ default: m.CustomerChatPage })));
 // On-site embed demo (Lybi mock site + agent widget iframe).
 const EmbedPage = lazy(() => import('./pages/EmbedPage').then(m => ({ default: m.EmbedPage })));
+// Aspect BI — standalone BI tool over customer data schemas. Lazy so agent
+// routes don't pay for the charting code.
+const BIPage = lazy(() => import('./pages/BIPage').then(m => ({ default: m.BIPage })));
 
 const ZER4U_MAINTENANCE = false;
 
@@ -154,6 +158,24 @@ function AppContent() {
             </Suspense>
           }
         />
+        {/* Login-gated restricted customer chat (V2) — the link sent to
+            business/test users. NOT /:agent/chat: that's the V1 flow. */}
+        <Route
+          path="/:agent/go"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <CustomerChatPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/:agent/go/c/:convId"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <CustomerChatPage />
+            </Suspense>
+          }
+        />
         <Route
           path="/:agent/live/c/:convId"
           element={
@@ -225,6 +247,24 @@ function AppContent() {
         <Route path="/aspect/onezero/dashboard" element={<OneZeroDashboardPage />} />
         <Route path="/aspect/onezero/chat" element={<OneZeroPage />} />
         <Route path="/aspect/onezero/chat/conversations/:conversationId" element={<OneZeroPage />} />
+
+        {/* Aspect BI - standalone BI tool (independent of the agent system) */}
+        <Route
+          path="/bi"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading BI…</div>}>
+              <BIPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/bi/:datasetId"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading BI…</div>}>
+              <BIPage />
+            </Suspense>
+          }
+        />
 
         {/* Task Board - standalone full page */}
         <Route path="/tasks" element={<TaskBoardPage />} />

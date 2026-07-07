@@ -59,6 +59,18 @@ import styles from './DynamicContextScreen.module.css';
 /** Sentinel for "no value picked, but a section is" inside URLs. */
 const NO_VALUE = '-';
 
+/** Shared inline style for the tiny keyboard-hint `<kbd>` chips shown
+ *  next to the Save/Cancel buttons. */
+const kbdStyle: React.CSSProperties = {
+  fontFamily: 'ui-monospace, "Menlo", monospace',
+  fontSize: 10,
+  padding: '1px 4px',
+  border: '1px solid #d1d5db',
+  borderRadius: 4,
+  background: '#f9fafb',
+  color: '#6b7280',
+};
+
 export function DynamicContextScreen() {
   const navigate = useNavigate();
   const {
@@ -152,8 +164,8 @@ export function DynamicContextScreen() {
 
   const handleDeleteEnum = useCallback(async (e: EnumTypeDef) => {
     const ok = await confirm({
-      title:        `Delete enum "${e.name}"?`,
-      message:      `Every value and section authored under this enum is removed. Any field with enumType pointing at this enum will be left unwired.`,
+      title:        `Delete Targeted KB "${e.name}"?`,
+      message:      `Every value and section authored under this Targeted KB is removed. Any field bound to it will be left unwired.`,
       confirmLabel: 'Delete',
       danger:       true,
     });
@@ -232,6 +244,21 @@ export function DynamicContextScreen() {
       ),
     });
   }, [activeEnum, activeValue, upsertEnum]);
+
+  /** Flip the per-value enable flag. Disabled values still exist in
+   *  the KB (so their bodies aren't lost) but drop out of every prompt
+   *  surface — see EnumValueDef.enabled for the full list of surfaces.
+   *  Missing enabled → treated as true; explicit false → hidden. */
+  const handleToggleValueEnabled = useCallback((v: EnumValueDef) => {
+    if (!activeEnum) return;
+    const nextEnabled = v.enabled === false;
+    upsertEnum({
+      ...activeEnum,
+      values: activeEnum.values.map(x =>
+        x.id === v.id ? { ...x, enabled: nextEnabled } : x,
+      ),
+    });
+  }, [activeEnum, upsertEnum]);
 
   // ── Sections (declared on the enum, body per value) ──────────────
   const handleAddSection = useCallback(() => {
@@ -459,7 +486,7 @@ export function DynamicContextScreen() {
         {/* ── Column 1: enums list ──────────────────────────────── */}
         <Column title="Targeted KBs" onAdd={handleCreateEnum} addLabel="+ Add KB">
           {enums.length === 0 ? (
-            <Empty>Declare an enum to start the bible.</Empty>
+            <Empty>Declare a Targeted KB to get started.</Empty>
           ) : (
             <List
               items={enums.map(e => ({
@@ -483,7 +510,7 @@ export function DynamicContextScreen() {
           addLabel="+ Add value"
         >
           {!activeEnum ? (
-            <Empty>Pick an enum on the left.</Empty>
+            <Empty>Pick a Targeted KB on the left.</Empty>
           ) : (
             <>
               {activeEnum.values.length === 0 ? (
@@ -491,10 +518,12 @@ export function DynamicContextScreen() {
               ) : (
                 <List
                   items={activeEnum.values.map(v => ({
-                    key:      v.id,
-                    label:    v.value,
-                    active:   v.id === activeValue?.id,
-                    onDelete: () => handleDeleteValue(v),
+                    key:              v.id,
+                    label:            v.value,
+                    active:           v.id === activeValue?.id,
+                    disabled:         v.enabled === false,
+                    onToggleEnabled:  () => handleToggleValueEnabled(v),
+                    onDelete:         () => handleDeleteValue(v),
                   }))}
                   onPick={({ key }) => {
                     const v = activeEnum.values.find(x => x.id === key);
@@ -541,7 +570,7 @@ export function DynamicContextScreen() {
           boxSizing: 'border-box',
           padding: '0 4px 0 0',
         }}>
-          {!activeEnum && <Hint>Pick an enum on the left, or add one.</Hint>}
+          {!activeEnum && <Hint>Pick a Targeted KB on the left, or add one.</Hint>}
 
           {/* Enum-only — metadata + section schema editor. */}
           {activeEnum && !activeValue && !activeSection && (
@@ -610,11 +639,11 @@ function EnumMetaEditor({
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <SectionHeader>Enum</SectionHeader>
+      <SectionHeader>Targeted KB</SectionHeader>
       <InlineRename label="Name" value={enumDef.name} onCommit={onRename} />
 
       <div style={{ marginTop: 14 }}>
-        <DangerBtn onClick={onDelete}>Delete this enum</DangerBtn>
+        <DangerBtn onClick={onDelete}>Delete this Targeted KB</DangerBtn>
       </div>
     </div>
   );
@@ -878,7 +907,20 @@ function TextareaWithTableInsert(props: {
   //     prop so the textarea's inline style sets it directly (the
   //     `rows` workaround was unreliable when storageKey-restored
   //     `savedHeight` already pinned a value).
-  return (
+    // Commit the draft and leave edit mode. Shared by the Save button
+    // and the Ctrl/Cmd+Enter shortcut.
+    const commit = () => {
+      if (draft !== props.value) props.onChange(draft);
+      setEditing(false);
+    };
+    // Drop the draft and leave edit mode. Shared by the Cancel button
+    // and the Escape shortcut.
+    const cancel = () => {
+      setDraft(props.value);
+      setEditing(false);
+    };
+
+    return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <MentionTextarea
         value={draft}
@@ -890,6 +932,18 @@ function TextareaWithTableInsert(props: {
         minHeight={viewerHeight ?? undefined}
         autoGrow
         autoFocus
+        onKeyDown={(e) => {
+          // Keyboard shortcuts so the user doesn't have to scroll down
+          // to the Save/Cancel buttons on a long body. Only fires when
+          // the mention picker is closed (MentionTextarea guards this).
+          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancel();
+          }
+        }}
         onBlur={() => {
           // Skip blur-commit while the table modal is open so the
           // inserted MD lands in the draft instead of being lost.
@@ -922,12 +976,14 @@ function TextareaWithTableInsert(props: {
           + Table
         </button>
         <span style={{ flex: 1 }} />
+        <span style={{ alignSelf: 'center', fontSize: 11, color: '#9ca3af', marginRight: 4 }}>
+          <kbd style={kbdStyle}>Esc</kbd> cancel · <kbd style={kbdStyle}>⌘/Ctrl</kbd>+<kbd style={kbdStyle}>↵</kbd> save
+        </span>
         <button
           type="button"
           onMouseDown={(e) => {
             e.preventDefault();
-            setDraft(props.value);
-            setEditing(false);
+            cancel();
           }}
           style={{
             fontFamily: 'inherit',
@@ -947,8 +1003,7 @@ function TextareaWithTableInsert(props: {
           type="button"
           onMouseDown={(e) => {
             e.preventDefault();
-            if (draft !== props.value) props.onChange(draft);
-            setEditing(false);
+            commit();
           }}
           style={{
             fontFamily: 'inherit',
@@ -1126,6 +1181,13 @@ function List({
     label: string;
     active?: boolean;
     onDelete?: () => void;
+    /** When `false`, the row is greyed and, if `onToggleEnabled` is
+     *  supplied, an eye button appears to flip it back on. Undefined
+     *  means "no enable/disable concept for this row" — used by the
+     *  section list, which never toggles. */
+    disabled?: boolean;
+    /** Present only on rows that support enable/disable (values). */
+    onToggleEnabled?: () => void;
   }>;
   onPick: (item: { key: string }) => void;
 }) {
@@ -1144,8 +1206,49 @@ function List({
             }
           }}
           className={`${styles.bibleListRow} ${item.active ? styles.bibleListRowActive : ''}`}
+          title={item.disabled ? 'Disabled — no prompt will include this value' : undefined}
         >
-          <span className={styles.bibleListRowLabel}>{item.label}</span>
+          <span
+            className={styles.bibleListRowLabel}
+            style={item.disabled ? { textDecoration: 'line-through', opacity: 0.6 } : undefined}
+          >
+            {item.label}
+          </span>
+          {item.onToggleEnabled && (
+            // Pill switch — visually mirrors the addon on/off switch
+            // on the chain canvas (indigo ON hover-only, amber OFF
+            // always visible). Lives in-flex-flow so the absolute-
+            // positioned delete ✕ doesn't stack on top of it.
+            <span
+              role="button"
+              tabIndex={0}
+              aria-pressed={!item.disabled}
+              aria-label={item.disabled ? `Enable ${item.label}` : `Disable ${item.label}`}
+              title={item.disabled
+                ? 'Disabled — click to enable'
+                : 'Enabled — click to disable (hides from every prompt surface)'}
+              className={`${styles.enableSwitch} ${item.disabled ? styles.enableSwitchOff : styles.enableSwitchOn}`}
+              onClick={e => {
+                e.stopPropagation();
+                item.onToggleEnabled!();
+                // Drop focus so an ON pill hides again once the pointer
+                // leaves — same pattern as the addon toggle.
+                (e.currentTarget as HTMLElement).blur();
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  item.onToggleEnabled!();
+                }
+              }}
+            >
+              <span className={styles.enableSwitchThumb} />
+              <span className={styles.enableSwitchLabel}>
+                {item.disabled ? 'OFF' : 'ON'}
+              </span>
+            </span>
+          )}
           {item.onDelete && (
             <button
               type="button"

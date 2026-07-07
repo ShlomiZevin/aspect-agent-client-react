@@ -328,20 +328,20 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
               {(agent?.enums?.length ?? 0) > 0 && (
-                <optgroup label="Enums">
+                <optgroup label="Targeted KBs">
                   {(agent?.enums ?? []).map(en => (
                     <option key={en.id} value={`enum:${en.id}`}>{en.name}</option>
                   ))}
                 </optgroup>
               )}
-              {/* The currently-bound enum was deleted off the bible.
-                  Surface the orphan so the user sees the broken state
-                  and can re-pick a real one. */}
+              {/* The currently-bound Targeted KB was deleted from the
+                  agent. Surface the orphan so the user sees the broken
+                  state and can re-pick a real one. */}
               {type === 'enum'
                 && enumType
                 && !(agent?.enums ?? []).some(en => en.id === enumType)
                 && (
-                  <option value={`enum:${enumType}`}>(missing enum)</option>
+                  <option value={`enum:${enumType}`}>(missing Targeted KB)</option>
                 )}
             </select>
           </label>

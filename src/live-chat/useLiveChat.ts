@@ -11,10 +11,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   createConversation,
+  deleteConversation as apiDeleteConversation,
   deleteMessage,
   fetchConversationMessages,
   fetchRunsForMessage,
   listConversations,
+  renameConversation as apiRenameConversation,
   type ConversationListItem,
   type ConversationMessage,
 } from '../builder/state/builderApi';
@@ -97,6 +99,8 @@ export interface UseLiveChat {
   busy: boolean;
   error: string | null;
   send: (text: string) => Promise<void>;
+  renameConversation: (id: number, name: string) => Promise<void>;
+  deleteConversations: (ids: number[]) => Promise<void>;
   newChat: () => void;
   refresh: () => Promise<void>;
   loadConversation: (id: number) => Promise<void>;
@@ -273,6 +277,40 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     if (conversationId !== null) await loadConversation(conversationId);
   }, [reloadConvList, conversationId, loadConversation]);
 
+  /** Delete one or more conversations. If the active one is among
+   *  them, the chat resets to a fresh (unsaved) state. */
+  const deleteConversations = useCallback(async (ids: number[]) => {
+    if (!slug || ids.length === 0) return;
+    try {
+      for (const id of ids) {
+        await apiDeleteConversation({ agentSlug: slug, conversationId: id });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed');
+    }
+    setConvList(prev => prev.filter(c => !ids.includes(c.id)));
+    if (conversationId !== null && ids.includes(conversationId)) {
+      setConversationId(null);
+      setTurns([]);
+    }
+    reloadConvList();
+  }, [slug, conversationId, reloadConvList]);
+
+  const renameConversation = useCallback(async (id: number, name: string) => {
+    const trimmed = name.trim();
+    if (!slug || !trimmed) return;
+    // Optimistic — the drawer shows the new name immediately; the
+    // reload afterwards reconciles with the server.
+    setConvList(prev => prev.map(c => (c.id === id ? { ...c, name: trimmed } : c)));
+    try {
+      await apiRenameConversation({ agentSlug: slug, conversationId: id, name: trimmed });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Rename failed');
+    } finally {
+      reloadConvList();
+    }
+  }, [slug, reloadConvList]);
+
   const newChat = useCallback(() => {
     setConversationId(null);
     setTurns([]);
@@ -336,6 +374,6 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
   return {
     turns, convList, conversationId, busy, error,
     send, newChat, refresh, loadConversation, loadThinkRuns,
-    deleteTurn, deleteFromHere, clearError,
+    renameConversation, deleteConversations, deleteTurn, deleteFromHere, clearError,
   };
 }

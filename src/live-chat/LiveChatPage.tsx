@@ -35,14 +35,35 @@ type Gate = 'checking' | 'ready' | 'missing' | 'no-active' | 'error';
 
 interface PendingDelete { turn: LiveTurn; mode: 'self' | 'fromHere'; }
 
-export function LiveChatPage() {
+interface LiveChatPageProps {
+  /** Customer-restricted mode — the login-gated `/:agent/chat` surface.
+   *  Normal chat + "new chat" only: no history, no debug, no settings,
+   *  no brain/profiler, no builder/embed shortcuts. (Task #715.) */
+  restricted?: boolean;
+  /** Conversation owner identity. The restricted surface passes the
+   *  logged-in user's externalId so their chats are theirs (and show up
+   *  under that user in the admin); default is the anonymous browser id. */
+  ownerUserIdOverride?: string;
+  /** Shown as a logout button in the top bar (restricted mode). */
+  onLogout?: () => void;
+}
+
+export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout }: LiveChatPageProps = {}) {
   const { agent, convId: convIdParam } = useParams<{ agent: string; convId: string }>();
   const slug = agent ?? 'lybi';
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // `?embed=1` (set by the on-site widget iframe) renders a compact variant.
   const embed = searchParams.get('embed') === '1';
-  const ownerUserId = useMemo(() => getOwnerUserId(), []);
+  const ownerUserId = useMemo(
+    () => ownerUserIdOverride ?? getOwnerUserId(),
+    [ownerUserIdOverride],
+  );
+  // Route family this page lives under — the restricted surface mounts
+  // at /:agent/go (/:agent/chat is still the V1 authenticated chat),
+  // the full one at /:agent/live. Every internal navigate stays inside
+  // its own family.
+  const base = restricted ? 'go' : 'live';
 
   const [settings, setSetting] = useLiveSettings();
   const t = I18N[settings.lang];
@@ -116,16 +137,27 @@ export function LiveChatPage() {
     }
   }, [gate, convIdParam, chat.conversationId, chat.loadConversation]);
 
-  // Reflect the active conversation in the URL (shareable + refresh-safe).
-  // Only ADD the id here — removing it on "new chat" is done explicitly in
-  // onNewChat, so we never strip a fresh URL during the mount/load race
-  // (conversationId is briefly null before the URL's conversation loads).
+  // Reflect a FRESH conversation in the URL (shareable + refresh-safe).
+  //
+  // The URL is the single source of truth for which conversation is
+  // open: picking from history navigates, and the effect above loads
+  // whatever the URL names. This effect writes state → URL in exactly
+  // one case — a brand-new chat just got its id from the server (the
+  // URL has no /c/ segment yet). It deliberately never fires when the
+  // URL already names a conversation: during the async load after a
+  // pick, `chat.conversationId` still holds the PREVIOUS id, and
+  // navigating to it here is what caused the URL ping-pong + screen
+  // flicker (task #727).
   useEffect(() => {
     const cid = chat.conversationId;
-    if (cid !== null && convIdParam !== String(cid)) {
-      navigate(`/${slug}/live/c/${cid}`, { replace: true });
+    if (cid !== null && convIdParam === undefined) {
+      // Already live in state — mark it loaded so the URL effect
+      // doesn't fetch it again. Keep ?embed=1: dropping it would flip
+      // the widget iframe into the desktop layout mid-conversation.
+      loadedRef.current = cid;
+      navigate(`/${slug}/${base}/c/${cid}${embed ? '?embed=1' : ''}`, { replace: true });
     }
-  }, [chat.conversationId, convIdParam, navigate, slug]);
+  }, [chat.conversationId, convIdParam, navigate, slug, base, embed]);
 
   // ── inject the Assistant font once ───────────────────────────────
   useEffect(() => {
@@ -151,14 +183,14 @@ export function LiveChatPage() {
         setPendingDelete(null);
         setBrandingOpen(false);
       }
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'D' || e.key === 'd') && !restricted) {
         e.preventDefault();
         setSetting({ mode: settings.mode === 'debug' ? 'normal' : 'debug' });
       }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [closeAll, setSetting, settings.mode]);
+  }, [closeAll, setSetting, settings.mode, restricted]);
 
   // ── handlers ─────────────────────────────────────────────────────
   const onSend = useCallback(() => {
@@ -170,20 +202,54 @@ export function LiveChatPage() {
   const onNewChat = useCallback(() => {
     chat.newChat();
     loadedRef.current = null;
-    navigate(`/${slug}/live`, { replace: true });
+    navigate(`/${slug}/${base}${embed ? '?embed=1' : ''}`, { replace: true });
     setDrawerOpen(false);
     showToast(t.newChatStarted);
-  }, [chat, navigate, slug, showToast, t.newChatStarted]);
+  }, [chat, navigate, slug, base, embed, showToast, t.newChatStarted]);
 
+  // Picking from history ONLY navigates — the URL effect above is the
+  // single loader. No direct loadConversation call here, so state and
+  // URL can never race each other.
   const onPickConversation = useCallback((id: number) => {
     setDrawerOpen(false);
-    chat.loadConversation(id);
-  }, [chat]);
+    navigate(`/${slug}/${base}/c/${id}${embed ? '?embed=1' : ''}`);
+  }, [navigate, slug, base, embed]);
+
+  const onDeleteConversations = useCallback(async (ids: number[]) => {
+    const activeDeleted = chat.conversationId !== null && ids.includes(chat.conversationId);
+    await chat.deleteConversations(ids);
+    if (activeDeleted) {
+      // The active chat is gone — reset the URL so a refresh doesn't
+      // try to load a deleted conversation.
+      loadedRef.current = null;
+      navigate(`/${slug}/${base}${embed ? '?embed=1' : ''}`, { replace: true });
+    }
+  }, [chat, navigate, slug, base, embed]);
 
   const onOpenBuilder = useCallback(() => {
     const suffix = chat.conversationId !== null ? `?c=${chat.conversationId}` : '';
     navigate(`/${slug}/builder${suffix}`);
   }, [navigate, slug, chat.conversationId]);
+
+  // Embed mode: break out of the widget iframe back to the full desktop
+  // chat, keeping the current conversation. The widget iframe is
+  // same-origin on our demo page, so navigating window.top works; a
+  // sandboxed / cross-origin host falls back to a new tab.
+  const onOpenFull = useCallback(() => {
+    const path = chat.conversationId !== null
+      ? `/${slug}/live/c/${chat.conversationId}`
+      : `/${slug}/live`;
+    if (window.top !== window.self) {
+      try {
+        window.top!.location.href = path;
+        return;
+      } catch {
+        window.open(path, '_blank', 'noopener');
+        return;
+      }
+    }
+    navigate(path, { replace: true });
+  }, [slug, chat.conversationId, navigate]);
 
   const confirmDelete = useCallback(() => {
     if (!pendingDelete) return;
@@ -193,7 +259,10 @@ export function LiveChatPage() {
     else chat.deleteFromHere(turn);
   }, [pendingDelete, chat]);
 
-  const debug = settings.mode === 'debug';
+  // The floating widget and the restricted customer surface always run
+  // in regular mode — no debug, no builder shortcuts, regardless of
+  // what's stored in settings.
+  const debug = settings.mode === 'debug' && !embed && !restricted;
   const showWelcome = chat.turns.length === 0 && !chat.busy;
 
   return (
@@ -201,23 +270,25 @@ export function LiveChatPage() {
       className="lybi-chat"
       dir={dir}
       data-theme={settings.theme}
-      data-mode={settings.mode}
+      data-mode={embed || restricted ? 'normal' : settings.mode}
       data-client={settings.client}
       data-embed={embed ? '1' : undefined}
       style={brandCssVars(brand.colors) as React.CSSProperties}
     >
       <div className="app">
         {/* Brain — opens from the inline-end (visual left in RTL) */}
-        <SidePanel
-          which="brain"
-          open={brainOpen}
-          onClose={() => setBrainOpen(false)}
-          title={t.brain}
-          icon={<IconBrain />}
-          placeholderTitle={t.brainTitle}
-          placeholderSub={t.brainSub}
-          emoji="🧠"
-        />
+        {!restricted && (
+          <SidePanel
+            which="brain"
+            open={brainOpen}
+            onClose={() => setBrainOpen(false)}
+            title={t.brain}
+            icon={<IconBrain />}
+            placeholderTitle={t.brainTitle}
+            placeholderSub={t.brainSub}
+            emoji="🧠"
+          />
+        )}
 
         <main className="chat-col">
           <TopBar
@@ -227,6 +298,8 @@ export function LiveChatPage() {
             logoFilterable={logoFilterable}
             debug={debug}
             embed={embed}
+            restricted={restricted}
+            onLogout={onLogout}
             brainOpen={brainOpen}
             profilerOpen={profilerOpen}
             onHistory={() => setDrawerOpen(true)}
@@ -236,6 +309,7 @@ export function LiveChatPage() {
             onSettings={e => { e.stopPropagation(); setSettingsOpen(o => !o); }}
             onOpenBuilder={onOpenBuilder}
             onViewEmbed={() => navigate(`/${slug}/embed`)}
+            onOpenFull={onOpenFull}
             settingsBtnRef={settingsBtnRef}
           />
 
@@ -247,6 +321,7 @@ export function LiveChatPage() {
                 lang={settings.lang}
                 debug={debug}
                 showWelcome={showWelcome}
+                logo={logo}
                 crewNames={crewNames}
                 defaultCrewName={defaultCrewName}
                 onPick={text => chat.send(text)}
@@ -280,48 +355,58 @@ export function LiveChatPage() {
         </main>
 
         {/* Profiler — opens from the inline-start (visual right in RTL) */}
-        <SidePanel
-          which="profiler"
-          open={profilerOpen}
-          onClose={() => setProfilerOpen(false)}
-          title={t.profiler}
-          icon={<IconProfiler />}
-          placeholderTitle={t.profTitle}
-          placeholderSub={t.profSub}
-          emoji="👤"
-        />
+        {!restricted && (
+          <SidePanel
+            which="profiler"
+            open={profilerOpen}
+            onClose={() => setProfilerOpen(false)}
+            title={t.profiler}
+            icon={<IconProfiler />}
+            placeholderTitle={t.profTitle}
+            placeholderSub={t.profSub}
+            emoji="👤"
+          />
+        )}
       </div>
 
-      <div className={`scrim ${drawerOpen ? 'show' : ''}`} onClick={closeAll} />
+      {/* History, settings, and branding are internal tools — the
+          restricted customer surface ships without them (#715). */}
+      {!restricted && (
+        <>
+          <div className={`scrim ${drawerOpen ? 'show' : ''}`} onClick={closeAll} />
 
-      <HistoryDrawer
-        open={drawerOpen}
-        t={t}
-        lang={settings.lang}
-        conversations={chat.convList}
-        activeId={chat.conversationId}
-        onClose={() => setDrawerOpen(false)}
-        onPick={onPickConversation}
-        onNew={onNewChat}
-      />
+          <HistoryDrawer
+            open={drawerOpen}
+            t={t}
+            lang={settings.lang}
+            conversations={chat.convList}
+            activeId={chat.conversationId}
+            onClose={() => setDrawerOpen(false)}
+            onPick={onPickConversation}
+            onRename={chat.renameConversation}
+            onDelete={onDeleteConversations}
+            onNew={onNewChat}
+          />
 
-      <SettingsPopover
-        open={settingsOpen}
-        t={t}
-        settings={settings}
-        triggerRef={settingsBtnRef}
-        onClose={() => setSettingsOpen(false)}
-        onChange={setSetting}
-        onOpenBranding={() => { setSettingsOpen(false); setBrandingOpen(true); }}
-      />
+          <SettingsPopover
+            open={settingsOpen}
+            t={t}
+            settings={settings}
+            triggerRef={settingsBtnRef}
+            onClose={() => setSettingsOpen(false)}
+            onChange={setSetting}
+            onOpenBranding={() => { setSettingsOpen(false); setBrandingOpen(true); }}
+          />
 
-      <BrandingModal
-        open={brandingOpen}
-        t={t}
-        lang={settings.lang}
-        branding={branding}
-        onClose={() => setBrandingOpen(false)}
-      />
+          <BrandingModal
+            open={brandingOpen}
+            t={t}
+            lang={settings.lang}
+            branding={branding}
+            onClose={() => setBrandingOpen(false)}
+          />
+        </>
+      )}
 
       <ReportModal
         open={reportFor !== null}
@@ -329,6 +414,7 @@ export function LiveChatPage() {
         messageText={reportFor ?? ''}
         agentSlug={slug}
         scenario={settings.scenario}
+        conversationId={chat.conversationId}
         onClose={() => setReportFor(null)}
         onDone={msg => { setReportFor(null); showToast(msg); }}
       />
