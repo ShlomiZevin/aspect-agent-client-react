@@ -402,6 +402,18 @@ function SectionBlock({
 
 /* ─── EditableBody — click-to-edit textarea with mention support ── */
 
+/** Inline style for the tiny keyboard-hint `<kbd>` chips in the doc
+ *  view's edit footer. Mirrors the tree-view `kbdStyle`. */
+const docKbdStyle: React.CSSProperties = {
+  fontFamily: 'ui-monospace, "Menlo", monospace',
+  fontSize: 10,
+  padding: '1px 4px',
+  border: '1px solid #d1d5db',
+  borderRadius: 4,
+  background: '#f9fafb',
+  color: '#6b7280',
+};
+
 interface EditableBodyProps {
   text: string;
   placeholder: string;
@@ -573,6 +585,21 @@ function EditableBody({ text, placeholder, mentionOptions, onCommit }: EditableB
             minHeight={viewerHeight ?? undefined}
             autoGrow
             autoFocus
+            onKeyDown={e => {
+              // Keyboard shortcuts so the user doesn't have to scroll
+              // down to the Save/Cancel buttons on a long body. Only
+              // fires when the mention picker is closed (guarded inside
+              // MentionTextarea).
+              if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                e.preventDefault();
+                if (draft !== text) onCommit(draft);
+                setEditing(false);
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                setDraft(text);
+                setEditing(false);
+              }
+            }}
             onBlur={() => {
               // Skip blur-commit while the table modal is open — opening
               // the modal naturally blurs the textarea but we want to
@@ -598,6 +625,9 @@ function EditableBody({ text, placeholder, mentionOptions, onCommit }: EditableB
             + Table
           </button>
           <span style={{ flex: 1 }} />
+          <span style={{ alignSelf: 'center', fontSize: 11, color: '#9ca3af', marginRight: 4 }}>
+            <kbd style={docKbdStyle}>Esc</kbd> cancel · <kbd style={docKbdStyle}>⌘/Ctrl</kbd>+<kbd style={docKbdStyle}>↵</kbd> save
+          </span>
           <button
             type="button"
             className={styles.bodyEditCancel}

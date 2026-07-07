@@ -170,6 +170,13 @@ interface Props {
    *  takes over instead. Disables the user's drag-to-resize handle
    *  while active (auto-grow drives the height). */
   autoGrow?: boolean;
+  /** Consumer-level key handler for app shortcuts (e.g. Ctrl/Cmd+Enter
+   *  to save, Escape to cancel). Fires ONLY when the mention picker is
+   *  closed — while the picker is open, arrow/Enter/Esc belong to the
+   *  picker and this handler is intentionally skipped so a shortcut
+   *  can't steal the key mid-mention. Call `e.preventDefault()` in the
+   *  handler if you consumed the key. */
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 }
 
 /** localStorage namespaces for MentionTextarea remembered state.
@@ -326,6 +333,7 @@ export function MentionTextarea({
   storageKey,
   minHeight,
   autoGrow = false,
+  onKeyDown,
 }: Props) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const [picker, setPicker] = useState<PickerState | null>(null);
@@ -563,7 +571,14 @@ export function MentionTextarea({
       }
     }
 
-    if (!picker || visibleOptions.length === 0) return;
+    if (!picker || visibleOptions.length === 0) {
+      // Picker closed → the key belongs to the host. Forward it so
+      // consumer shortcuts (Ctrl/Cmd+Enter save, Escape cancel) can
+      // fire. Guarded behind the picker-closed check so an open picker
+      // keeps ownership of arrow/Enter/Esc.
+      onKeyDown?.(e);
+      return;
+    }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       keyboardOwnsHighlight.current = true;
