@@ -229,16 +229,42 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
             <WelcomeSection />
           ) : (
             <>
-              {messages.filter((msg) => !msg.hidden).map((msg) => (
-                <Message key={msg.id} message={msg} />
-              ))}
+              {(() => {
+                const visibleMessages = messages.filter((msg) => !msg.hidden);
+                const lastVisible = visibleMessages[visibleMessages.length - 1];
+                // isThinking only covers the pre-text phase (tool calls before
+                // any content streams) — useChat.ts's COMPLETE_THINKING fires
+                // the instant the FIRST chunk arrives, well before the reply is
+                // actually done. isLoading stays true for the whole turn (only
+                // COMPLETE_MESSAGE/REPLACE_MESSAGE/SET_ERROR clear it), so it's
+                // the correct signal for "is this message still being worked on".
+                //
+                // Once the streaming assistant message exists in `messages`
+                // (see START_STREAMING in useChat.ts), ITS OWN ThinkingIndicator
+                // (rendered inside <Message>) takes over showing "still
+                // working" — the standalone one below would otherwise show a
+                // second, duplicate indicator while also making the first one
+                // look falsely "done" the instant any text starts streaming.
+                const lastIsStreamingAssistant = isLoading && lastVisible?.role === 'assistant';
+                return (
+                  <>
+                    {visibleMessages.map((msg, idx) => (
+                      <Message
+                        key={msg.id}
+                        message={msg}
+                        isStreaming={isLoading && idx === visibleMessages.length - 1 && msg.role === 'assistant'}
+                      />
+                    ))}
 
-              {isThinking && !restrictedMode && (
-                <ThinkingIndicator
-                  currentStep={currentThinkingStep}
-                  steps={thinkingSteps}
-                />
-              )}
+                    {isThinking && !restrictedMode && !lastIsStreamingAssistant && (
+                      <ThinkingIndicator
+                        currentStep={currentThinkingStep}
+                        steps={thinkingSteps}
+                      />
+                    )}
+                  </>
+                );
+              })()}
 
               {error && !isThinking && (
                 <div className={styles.streamError}>
