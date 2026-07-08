@@ -155,6 +155,30 @@ function agentBodiesEqual(a: AgentBody, b: AgentBody): boolean {
   return stableStringify(a) === stableStringify(b);
 }
 
+/**
+ * Does a stored draft contain UNSAVED work — any agent/crew whose
+ * working copy differs from its own viewing-version snapshot?
+ *
+ * This is the only thing the localStorage draft is for: protecting
+ * in-progress edits across a refresh/crash. A CLEAN draft is just a
+ * stale cache of the server — preferring it over the freshly fetched
+ * doc made the builder blind to changes saved elsewhere (another
+ * browser/user saved; local kept showing the old state with no way
+ * to refetch). Missing snapshots count as dirty — when in doubt,
+ * keep the draft rather than risk dropping someone's edits.
+ */
+function draftHasUnsavedWork(draft: ProjectDoc): boolean {
+  for (const agent of draft.agents) {
+    const viewingA = agent.versions.find(v => v.id === agent.viewingVersionId);
+    if (!viewingA || !agentBodiesEqual(bodyOfAgent(agent), viewingA.body)) return true;
+    for (const crew of agent.crews) {
+      const viewingC = crew.versions.find(v => v.id === crew.viewingVersionId);
+      if (!viewingC || !bodiesEqual(bodyOf(crew), viewingC.body)) return true;
+    }
+  }
+  return false;
+}
+
 function emptyAgent(slug: string): AgentDoc {
   const crew = emptyCrew('Welcome');
   const initialBody: AgentBody = {
@@ -601,7 +625,14 @@ interface ProviderProps {
 }
 
 export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }: ProviderProps) {
-  const [doc, setDoc] = useState<ProjectDoc>(() => loadDraft(agentSlug) ?? initialDoc);
+  // The SERVER doc is the source of truth on load. The local draft is
+  // honored only when it carries unsaved edits (its actual job) — a
+  // clean draft is a stale cache and silently hid saves made from
+  // other browsers/users with no way to refetch.
+  const [doc, setDoc] = useState<ProjectDoc>(() => {
+    const draft = loadDraft(agentSlug);
+    return draft && draftHasUnsavedWork(draft) ? draft : initialDoc;
+  });
 
   // Mirror `doc` in a ref so mutations can compute the next state
   // synchronously from the current state, *before* calling setDoc.

@@ -3,35 +3,33 @@ import { Link, useMatch } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { useAgentVersion, useCrewVersion } from '../../state/useEntityVersion';
 import { useAnyDirty } from '../../hooks/useAutoSave';
+import { useConfirm } from '../Confirm/Confirm';
 import { VersionMenu } from '../VersionMenu/VersionMenu';
 import { BuilderSettingsPopover, useBuilderSettings } from './BuilderSettings';
 import styles from './TopBar.module.css';
 
 export function TopBar() {
-  const { doc, pendingAlfredApply } = useBuilder();
+  const { doc, pendingAlfredApply, resetToServerState } = useBuilder();
   const [settings, setSetting] = useBuilderSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsBtnRef = useRef<HTMLButtonElement>(null);
+  const confirm = useConfirm();
+  const { dirty } = useAnyDirty();
 
-  // "Reset draft" button was retired — its behavior (wipe local doc to a
-  // blank project shell) was a debug-helper footgun next to the
-  // VersionMenu's Reset, which now does the right thing (reload from
-  // server, fall back to empty). The underlying `resetDraft` action
-  // stays available on BuilderContext for any future caller; only the
-  // UI surface is removed. Restore by uncommenting the JSX below and
-  // re-importing `useBuilder` / `useConfirm` for the handler.
-  //
-  // const { resetDraft } = useBuilder();
-  // const confirm = useConfirm();
-  // const handleReset = async () => {
-  //   const ok = await confirm({
-  //     title: 'Reset draft?',
-  //     message: 'Local changes will be lost. The builder will start from a blank project.',
-  //     confirmLabel: 'Reset',
-  //     danger: true,
-  //   });
-  //   if (ok) resetDraft();
-  // };
+  // Always-available "refetch from server". The VersionMenu's Reset
+  // only renders while DIRTY — with a clean (but possibly stale) local
+  // draft there used to be no way to pull the server's latest state.
+  const handleReload = async () => {
+    const ok = await confirm({
+      title: 'Reload from server?',
+      message: dirty
+        ? 'You have unsaved changes — they will be lost. The builder reloads the last saved server state.'
+        : 'The builder reloads the last saved server state.',
+      confirmLabel: 'Reload',
+      danger: dirty,
+    });
+    if (ok) await resetToServerState();
+  };
 
   return (
     <>
@@ -48,9 +46,14 @@ export function TopBar() {
           autoSaveBlocked={!!pendingAlfredApply}
         />
       )}
-      {/* <button type="button" className={styles.resetBtn} onClick={handleReset}>
-        Reset draft
-      </button> */}
+      <button
+        type="button"
+        className={styles.settingsBtn}
+        onClick={handleReload}
+        title="Reload from server (discards the local draft)"
+      >
+        ⟳
+      </button>
       <div className={styles.settingsWrap}>
         <button
           type="button"
