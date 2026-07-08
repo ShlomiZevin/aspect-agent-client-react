@@ -3,12 +3,88 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  /* The layout's chat grid column is `auto` — this is where the open
+   * panel's width actually lives. */
+  width: 380px;
+}
+
+@media (max-width: 1200px) {
+  .wrap {
+    width: 320px;
+  }
+}
+
+/* Collapsed: keep the chats mounted (an in-flight preview turn or the
+ * current conversation must survive collapsing) but render nothing. */
+.wrapHidden {
+  display: none;
+}
+
+/* Thin rail shown instead of the panel when collapsed. */
+.collapsedRail {
+  flex: 1;
+  width: 42px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.railBtn {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  color: var(--text-secondary, #6b7280);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.railBtn:hover {
+  color: var(--primary-color, #6366f1);
+  background: var(--bg-input, #f3f4f6);
+}
+
+.railLabel {
+  writing-mode: vertical-rl;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary, #9ca3af);
+  user-select: none;
 }
 
 .tabs {
   flex: 0 0 auto;
   display: flex;
   border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+/* Collapse chevron at the end of the tabs row. */
+.collapseBtn {
+  flex: 0 0 auto;
+  width: 34px;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  color: var(--text-tertiary, #9ca3af);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.collapseBtn:hover {
+  color: var(--primary-color, #6366f1);
+  background: var(--bg-input, #f3f4f6);
 }
 
 .tab {

@@ -21,7 +21,10 @@
 .body {
   flex: 1;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 380px;
+  /* Chat column is auto — the ChatPanel sets its own width (380px
+   * open, a thin rail when collapsed) so the canvas can take the
+   * whole screen. */
+  grid-template-columns: 280px minmax(0, 1fr) auto;
   min-height: 0;
   overflow: hidden;
 }
@@ -55,6 +58,6 @@
 
 @media (max-width: 1200px) {
   .body {
-    grid-template-columns: 240px minmax(0, 1fr) 320px;
+    grid-template-columns: 240px minmax(0, 1fr) auto;
   }
 }
