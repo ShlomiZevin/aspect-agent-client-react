@@ -31,6 +31,9 @@ export interface AddonMutations {
   updateContext: (instanceId: ID, nextContext: AddonContext) => void;
   setOutputType: (instanceId: ID, nextType: OutputType) => void;
   setEnabled:    (instanceId: ID, enabled: boolean) => void;
+  /** Toggle whether this blocking-lane addon joins the previous
+   *  addon's parallel step (`‖`) or starts a new one (`→`). */
+  setJoinsPreviousStep: (instanceId: ID, joins: boolean) => void;
   remove:        (instanceId: ID) => void;
   reorderInLane: (lane: AddonLane, fromIdx: number, toIdx: number) => void;
 }
@@ -42,6 +45,7 @@ export function useAddonMutations(agentId: ID, crewId: ID | null): AddonMutation
     updateAddonContext,
     setAddonOutputType,
     setAddonEnabled,
+    setAddonJoinsPreviousStep,
     removeAddon,
     reorderAddonInLane,
     addAgentAddon,
@@ -49,6 +53,7 @@ export function useAddonMutations(agentId: ID, crewId: ID | null): AddonMutation
     updateAgentAddonContext,
     setAgentAddonOutputType,
     setAgentAddonEnabled,
+    setAgentAddonJoinsPreviousStep,
     removeAgentAddon,
     reorderAgentAddonInLane,
   } = useBuilder();
@@ -62,6 +67,7 @@ export function useAddonMutations(agentId: ID, crewId: ID | null): AddonMutation
         updateContext: (instanceId, next)          => updateAgentAddonContext(agentId, instanceId, next),
         setOutputType: (instanceId, next)          => setAgentAddonOutputType(agentId, instanceId, next),
         setEnabled:    (instanceId, enabled)       => setAgentAddonEnabled(agentId, instanceId, enabled),
+        setJoinsPreviousStep: (instanceId, joins)  => setAgentAddonJoinsPreviousStep(agentId, instanceId, joins),
         remove:        (instanceId)                => removeAgentAddon(agentId, instanceId),
         reorderInLane: (lane, fromIdx, toIdx)      => reorderAgentAddonInLane(agentId, lane, fromIdx, toIdx),
       };
@@ -73,15 +79,16 @@ export function useAddonMutations(agentId: ID, crewId: ID | null): AddonMutation
       updateContext: (instanceId, next)          => updateAddonContext(agentId, crewId, instanceId, next),
       setOutputType: (instanceId, next)          => setAddonOutputType(agentId, crewId, instanceId, next),
       setEnabled:    (instanceId, enabled)       => setAddonEnabled(agentId, crewId, instanceId, enabled),
+      setJoinsPreviousStep: (instanceId, joins)  => setAddonJoinsPreviousStep(agentId, crewId, instanceId, joins),
       remove:        (instanceId)                => removeAddon(agentId, crewId, instanceId),
       reorderInLane: (lane, fromIdx, toIdx)      => reorderAddonInLane(agentId, crewId, lane, fromIdx, toIdx),
     };
   }, [
     agentId, crewId,
     addAddon, updateAddonConfig, updateAddonContext, setAddonOutputType,
-    setAddonEnabled, removeAddon, reorderAddonInLane,
+    setAddonEnabled, setAddonJoinsPreviousStep, removeAddon, reorderAddonInLane,
     addAgentAddon, updateAgentAddonConfig, updateAgentAddonContext,
-    setAgentAddonOutputType, setAgentAddonEnabled, removeAgentAddon,
-    reorderAgentAddonInLane,
+    setAgentAddonOutputType, setAgentAddonEnabled, setAgentAddonJoinsPreviousStep,
+    removeAgentAddon, reorderAgentAddonInLane,
   ]);
 }

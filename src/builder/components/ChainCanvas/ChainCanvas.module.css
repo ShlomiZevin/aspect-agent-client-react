@@ -96,6 +96,120 @@
   align-self: center;
 }
 
+/* Clickable connector — the link between two Blocking-lane cards is a
+   toggle: click to flip sequence barrier (→) ⇄ parallel join (‖). */
+.arrowToggle {
+  background: transparent;
+  border: 0;
+  padding: 2px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1;
+  transition: background 100ms, color 100ms, transform 80ms;
+}
+
+.arrowToggle:hover {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary-color, #6366f1);
+  transform: scale(1.12);
+}
+
+/* Parallel-join mark — two vertical bars drawn in CSS (unambiguous
+   "parallel", no reliance on a unicode glyph). Sits between two cards
+   inside a group, or as the toggle glyph on a join connector. */
+.joinBars {
+  display: inline-block;
+  position: relative;
+  width: 11px;
+  height: 20px;
+  align-self: center;
+}
+
+.joinBars::before,
+.joinBars::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--primary-color, #6366f1);
+}
+
+.joinBars::before { left: 1px; }
+.joinBars::after  { right: 1px; }
+
+/* Parallel-step group — an OVERLAY box around the cards that run
+   concurrently. Critical property: it must NOT change the track's
+   height when a group forms. So the group element itself carries no
+   padding/border (its height == the cards' height); the tinted box is
+   painted by `::before` with a negative inset, and the label floats —
+   both are out of flow. Turning cards into a group just makes the box
+   appear; the surrounding chain doesn't shift. */
+.parallelGroup {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+/* The tinted, bordered box — negative inset so it hugs just outside
+   the cards. Painted behind them (z-index 0); purely decorative. */
+.parallelGroup::before {
+  content: '';
+  position: absolute;
+  inset: -5px -7px;
+  border: 1.5px solid rgba(99, 102, 241, 0.55);
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.09);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Cards + inner connectors ride above the tint box. */
+.parallelGroup > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Floating "Parallel · N" label — a pill sitting on the box's top
+   border line (out of flow, so no height added). */
+.parallelGroupLabel {
+  position: absolute;
+  top: -9px;
+  left: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--primary-color, #6366f1);
+  border-radius: 999px;
+  padding: 2px 8px;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.4);
+}
+
+.parallelGroupCount {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--primary-color, #6366f1);
+  background: #fff;
+  border-radius: 999px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .card {
   --card-color: #6366f1;
   position: relative;
@@ -145,6 +259,15 @@
 .cardDropTarget {
   border-color: var(--primary-color, #6366f1) !important;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+/* Drop-target that will JOIN the dragged card into a parallel group —
+   stronger, filled indigo cue so "this lands inside the group / runs
+   in parallel" reads differently from a plain reorder drop. */
+.cardDropJoin {
+  border-color: var(--primary-color, #6366f1) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.45);
+  background: rgba(99, 102, 241, 0.12) !important;
 }
 
 /* Post-Talker addons — they exist in the doc but can't influence the

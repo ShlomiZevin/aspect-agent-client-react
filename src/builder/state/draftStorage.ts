@@ -51,6 +51,33 @@ export function draftKey(agentSlug: string): string {
   return `${PREFIX}${agentSlug}`;
 }
 
+/**
+ * Enforce the parallel-step link invariant on a lane's addon array:
+ * the FIRST `main`-lane addon can never carry `joinsPreviousStep: true`.
+ *
+ * `joinsPreviousStep` is a link to the PREVIOUS addon in the same
+ * lane+scope. When the anchor it points at disappears — the addon
+ * before it was deleted, or it moved to the front — the link is
+ * dangling and must collapse the addon back to its own step (solo).
+ * Removing the leader of {A,B,C} thus makes B the new leader (flag
+ * cleared) while C still joins B, so {B,C} stays parallel.
+ *
+ * Idempotent + referentially transparent (returns the same array when
+ * nothing needs fixing). Called on every structural mutation and at
+ * load so a stale flag can never persist or diverge from what the
+ * canvas / runtime derive.
+ */
+export function normalizeMainStepFlags<
+  T extends { lane?: string; joinsPreviousStep?: boolean },
+>(addons: T[]): T[] {
+  const firstMainIdx = addons.findIndex(a => a.lane === 'main');
+  if (firstMainIdx === -1) return addons;
+  if (!addons[firstMainIdx].joinsPreviousStep) return addons;
+  return addons.map((a, i) =>
+    i === firstMainIdx ? { ...a, joinsPreviousStep: false } : a,
+  );
+}
+
 function rand(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -137,7 +164,11 @@ function migrateDraft(raw: unknown): ProjectDoc {
         delete legacy.prompt;
       }
 
-      c.addons = addons;
+      // Step 2b — heal the parallel-step link invariant: a dangling
+      // `joinsPreviousStep: true` on the first main-lane addon (e.g. the
+      // leader it joined was deleted before this migration ran) is
+      // cleared so the addon reads as its own step.
+      c.addons = normalizeMainStepFlags(addons as Array<{ lane?: string; joinsPreviousStep?: boolean }>) as typeof addons;
 
       // Step 3 — give the crew an initial version if it doesn't have one yet.
       const versioned = c as unknown as {
@@ -227,6 +258,13 @@ function migrateDraft(raw: unknown): ProjectDoc {
         content:   typeof personaAny.persona === 'string' ? personaAny.persona : '',
         appliesTo: ['*'],
       }];
+    }
+
+    // Step 9 — heal the parallel-step invariant on the agent cortex too
+    // (same rule as the crew addons above).
+    const cortexAny = a as unknown as { cortex?: Array<{ lane?: string; joinsPreviousStep?: boolean }> };
+    if (Array.isArray(cortexAny.cortex)) {
+      cortexAny.cortex = normalizeMainStepFlags(cortexAny.cortex);
     }
   }
   return doc;

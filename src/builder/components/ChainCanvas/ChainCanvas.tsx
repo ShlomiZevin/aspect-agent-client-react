@@ -67,6 +67,28 @@ const LANES: LaneSpec[] = [
   { id: 'offline', title: 'Offline', hint: "Fires per trigger (every N msgs, on transition) after the reply", enabled: true },
 ];
 
+/** Partition a lane's addons into STEPS (arrays of global indices).
+ *  Mirrors the server's `deriveSteps` (BuilderRunner.js) exactly so
+ *  the canvas shows precisely what will run: a run of adjacent cards
+ *  where each after the first has `joinsPreviousStep === true`
+ *  collapses into one step; the first card and any Talker always start
+ *  a new step. Grouping applies to the Blocking (`main`) lane only —
+ *  every other lane renders one card per step. */
+function groupIntoSteps(items: AddonInstance[], isMainLane: boolean): number[][] {
+  const steps: number[][] = [];
+  items.forEach((inst, i) => {
+    const isTalker = getPlugin(inst.pluginId)?.speaks === true;
+    const joins =
+      isMainLane
+      && inst.joinsPreviousStep === true
+      && !isTalker
+      && steps.length > 0;
+    if (joins) steps[steps.length - 1].push(i);
+    else steps.push([i]);
+  });
+  return steps;
+}
+
 function configModel(config: unknown): ModelRef | null {
   if (
     config &&
@@ -190,6 +212,23 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
           const talkerIdx = lane.id === 'main'
             ? items.findIndex(a => getPlugin(a.pluginId)?.speaks === true)
             : -1;
+          const isMainLane = lane.id === 'main';
+          // Partition into steps so a parallel step (2+ cards) can be
+          // wrapped in a visible panel. Solo steps render as a plain
+          // sequential node (as before).
+          const steps = groupIntoSteps(items, isMainLane);
+          // Indices that count as "inside a group" for drop targeting:
+          // the non-leader members of a 2+ step. Dropping a card ONTO
+          // one of these makes the dragged card JOIN that group (run in
+          // parallel); dropping anywhere else isolates it (solo). The
+          // leader is excluded — dropping onto it lands the card BEFORE
+          // the group, i.e. outside it.
+          const joinTargetIdx = new Set<number>();
+          for (const g of steps) {
+            if (g.length >= 2) {
+              for (let k = 1; k < g.length; k++) joinTargetIdx.add(g[k]);
+            }
+          }
           return (
             <div
               key={lane.id}
@@ -218,7 +257,14 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                     {isAgentScope ? 'No agent-level steps yet.' : 'No steps yet.'}
                   </span>
                 )}
-                {items.map((instance, i) => {
+                {(() => {
+                // Render ONE card chip (the big button) for global index `i`.
+                // Pulled into a helper so the step loop below can place
+                // cards either standalone (solo step) or inside a
+                // parallel panel (multi-card step) without duplicating
+                // the chip markup.
+                const renderCard = (i: number) => {
+                  const instance = items[i];
                   const desc = getPlugin(instance.pluginId);
                   if (!desc) return null;
                   const model = configModel(instance.config);
@@ -234,7 +280,6 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                           return `${c} KB${c === 1 ? '' : 's'}`;
                         })()
                       : '';
-                  const isMainLane = lane.id === 'main';
                   const instanceName =
                     (instance.config && typeof (instance.config as { name?: unknown }).name === 'string'
                       ? ((instance.config as { name?: string }).name || '').trim()
@@ -242,11 +287,15 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                   const draggable = interactiveLane && isMainLane;
                   const isDragging = draggable && draggingIdx === i;
                   const isDropTarget = draggable && overIdx === i && draggingIdx !== null && draggingIdx !== i;
+                  // A drop here will JOIN the dragged card into this
+                  // card's parallel group (vs isolate it). Used to tint
+                  // the drop indicator so the outcome is visible before
+                  // release.
+                  const dropWillJoin = isDropTarget && joinTargetIdx.has(i);
                   // First real addon needs an arrow when the agent
                   // combo chip sits before it (crew scope). Otherwise
                   // arrow logic stays as today (between addon[i-1]
                   // and addon[i]).
-                  const drawLeadingArrow = isMainLane && (i > 0 || (!isAgentScope && i === 0));
                   // Addon sitting after the Talker — flag it so the
                   // user knows it can't shape this turn's reply. It
                   // can still write memory that affects future turns,
@@ -265,13 +314,9 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                     ? "Runs after the Talker has spoken — won't affect this turn's reply. May influence future turns by writing memory. Consider moving to the Background tier (not yet available)."
                     : undefined;
                   return (
-                    <div key={instance.instanceId} className={styles.nodeWrap}>
-                      {drawLeadingArrow && (
-                        <span className={styles.arrow}>→</span>
-                      )}
                       <button
                         type="button"
-                        className={`${styles.card} ${compact ? styles.cardCompact : ''} ${isDragging ? styles.cardDragging : ''} ${isDropTarget ? styles.cardDropTarget : ''} ${isPostTalker ? styles.cardOrphan : ''} ${instance.enabled === false ? styles.cardDisabled : ''}`}
+                        className={`${styles.card} ${compact ? styles.cardCompact : ''} ${isDragging ? styles.cardDragging : ''} ${isDropTarget ? styles.cardDropTarget : ''} ${dropWillJoin ? styles.cardDropJoin : ''} ${isPostTalker ? styles.cardOrphan : ''} ${instance.enabled === false ? styles.cardDisabled : ''}`}
                         style={{ ['--card-color' as string]: desc.color }}
                         onClick={() => setEditingInstanceId(instance.instanceId)}
                         title={postTalkerTitle}
@@ -297,6 +342,15 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                           if (!draggable || draggingIdx === null) return;
                           e.preventDefault();
                           if (draggingIdx !== i) {
+                            // Group-aware drop. The dragged card JOINS a
+                            // parallel group iff it lands ON a non-leader
+                            // member of one (joinTargetIdx); otherwise it
+                            // is isolated (solo). Set the join bit first —
+                            // by instanceId, so it's order-stable — then
+                            // reorder by index. Both are functional setDoc
+                            // updates, so they compose into one render.
+                            const joins = joinTargetIdx.has(i);
+                            muts.setJoinsPreviousStep(items[draggingIdx].instanceId, joins);
                             muts.reorderInLane('main', draggingIdx, i);
                           }
                           setDraggingIdx(null);
@@ -405,9 +459,91 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                           />
                         )}
                       </button>
+                  );
+                };
+
+                // Leading connector for global index `i`: a sequence
+                // barrier (→) or a parallel join (‖). Clicking it flips
+                // the stored `joinsPreviousStep` bit. Offered as a
+                // toggle only on a real boundary between two Blocking-
+                // lane cards whose right card isn't a Talker.
+                const renderConnector = (i: number, joinsPrev: boolean) => {
+                  const instance = items[i];
+                  const drawLeadingArrow = isMainLane && (i > 0 || (!isAgentScope && i === 0));
+                  if (!drawLeadingArrow) return null;
+                  const canToggleJoin = interactiveLane
+                    && i > 0
+                    && getPlugin(instance.pluginId)?.speaks !== true;
+                  // Barrier → drawn as the sequence arrow glyph; join
+                  // drawn as two vertical bars (CSS) so "parallel" is
+                  // unmistakable and doesn't depend on a fussy unicode
+                  // glyph rendering.
+                  const inner = joinsPrev
+                    ? <span className={styles.joinBars} aria-hidden="true" />
+                    : <span aria-hidden="true">→</span>;
+                  if (!canToggleJoin) {
+                    return <span className={styles.arrow}>{inner}</span>;
+                  }
+                  return (
+                    <button
+                      type="button"
+                      className={`${styles.arrow} ${styles.arrowToggle}`}
+                      title={joinsPrev
+                        ? 'Parallel — runs at the same time as the previous step. Click to make it sequential.'
+                        : 'Sequential — runs after the previous step finishes. Click to run it in parallel with the previous step.'}
+                      aria-label={joinsPrev ? 'Make sequential' : 'Run in parallel with previous'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        muts.setJoinsPreviousStep(
+                          instance.instanceId,
+                          !(instance.joinsPreviousStep === true),
+                        );
+                      }}
+                    >
+                      {inner}
+                    </button>
+                  );
+                };
+
+                // Walk the steps. A solo step renders as a plain node
+                // (connector + card). A parallel step (2+ cards) wraps
+                // its members in a labeled panel: the barrier arrow sits
+                // OUTSIDE the panel (the boundary into the group); the
+                // ‖ joins sit INSIDE, between members.
+                return steps.map(group => {
+                  if (group.length === 1) {
+                    const i = group[0];
+                    return (
+                      <div key={items[i].instanceId} className={styles.nodeWrap}>
+                        {renderConnector(i, false)}
+                        {renderCard(i)}
+                      </div>
+                    );
+                  }
+                  const firstIdx = group[0];
+                  return (
+                    <div key={items[firstIdx].instanceId} className={styles.nodeWrap}>
+                      {renderConnector(firstIdx, false)}
+                      {/* Overlay group: the tinted box (::before) and the
+                          floating label are BOTH out of flow, so wrapping
+                          cards in a group doesn't change the track height
+                          — the box just appears around them. */}
+                      <div className={styles.parallelGroup}>
+                        <span className={styles.parallelGroupLabel}>
+                          Parallel
+                          <span className={styles.parallelGroupCount}>{group.length}</span>
+                        </span>
+                        {group.map((i, k) => (
+                          <div key={items[i].instanceId} className={styles.nodeWrap}>
+                            {k > 0 && renderConnector(i, true)}
+                            {renderCard(i)}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   );
-                })}
+                });
+                })()}
 
                 {/* Add button — at the end of the lane, regardless of
                     Talker position. New addons that land after the

@@ -35,7 +35,7 @@ import type {
   ProjectDoc,
   TalkerConfig,
 } from '../types';
-import { clearDraft, loadDraft, saveDraft } from './draftStorage';
+import { clearDraft, loadDraft, saveDraft, normalizeMainStepFlags } from './draftStorage';
 import { talkerPlugin, TALKER_PLUGIN_ID } from '../plugins/talker/addon.talker';
 import { defaultContextFor, defaultOutputTypeFor } from '../registry/plugins';
 import { cascadeFieldRename } from './fieldRenameCascade';
@@ -396,6 +396,15 @@ interface BuilderState {
     instanceId: ID,
     enabled: boolean,
   ) => void;
+  /** Toggle whether this blocking-lane addon joins the previous
+   *  addon's parallel step (`‖`) or starts a new one (`→`). See
+   *  `AddonInstance.joinsPreviousStep`. */
+  setAddonJoinsPreviousStep: (
+    agentId: ID,
+    crewId: ID,
+    instanceId: ID,
+    joins: boolean,
+  ) => void;
   removeAddon: (agentId: ID, crewId: ID, instanceId: ID) => void;
   reorderAddonInLane: (
     agentId: ID,
@@ -430,6 +439,12 @@ interface BuilderState {
     agentId: ID,
     instanceId: ID,
     enabled: boolean,
+  ) => void;
+  /** Agent-cortex counterpart of `setAddonJoinsPreviousStep`. */
+  setAgentAddonJoinsPreviousStep: (
+    agentId: ID,
+    instanceId: ID,
+    joins: boolean,
   ) => void;
   removeAgentAddon: (agentId: ID, instanceId: ID) => void;
   reorderAgentAddonInLane: (
@@ -1064,10 +1079,26 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     [],
   );
 
+  const setAddonJoinsPreviousStep = useCallback(
+    (agentId: ID, crewId: ID, instanceId: ID, joins: boolean) => {
+      mapCrew(agentId, crewId, c => ({
+        ...c,
+        addons: c.addons.map(a =>
+          a.instanceId === instanceId ? { ...a, joinsPreviousStep: joins } : a,
+        ),
+      }));
+    },
+    [],
+  );
+
   const removeAddon = useCallback((agentId: ID, crewId: ID, instanceId: ID) => {
     mapCrew(agentId, crewId, c => ({
       ...c,
-      addons: c.addons.filter(a => a.instanceId !== instanceId),
+      // normalizeMainStepFlags heals the parallel-step invariant: if the
+      // removed addon was the leader of a group, the addon that now sits
+      // first loses its dangling `joinsPreviousStep` (becomes its own
+      // step). See draftStorage.normalizeMainStepFlags.
+      addons: normalizeMainStepFlags(c.addons.filter(a => a.instanceId !== instanceId)),
     }));
   }, []);
 
@@ -1097,7 +1128,10 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
         positions.forEach((globalIdx, k) => {
           next[globalIdx] = c.addons[reorderedPositions[k]];
         });
-        return { ...c, addons: next };
+        // Heal the invariant after a reorder — moving a join-flagged
+        // addon to the front of the lane would otherwise leave it
+        // dangling.
+        return { ...c, addons: normalizeMainStepFlags(next) };
       });
     },
     [],
@@ -1166,10 +1200,22 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     [],
   );
 
+  const setAgentAddonJoinsPreviousStep = useCallback(
+    (agentId: ID, instanceId: ID, joins: boolean) => {
+      mapAgent(agentId, a => ({
+        ...a,
+        cortex: (a.cortex ?? []).map(x =>
+          x.instanceId === instanceId ? { ...x, joinsPreviousStep: joins } : x,
+        ),
+      }));
+    },
+    [],
+  );
+
   const removeAgentAddon = useCallback((agentId: ID, instanceId: ID) => {
     mapAgent(agentId, a => ({
       ...a,
-      cortex: (a.cortex ?? []).filter(x => x.instanceId !== instanceId),
+      cortex: normalizeMainStepFlags((a.cortex ?? []).filter(x => x.instanceId !== instanceId)),
     }));
   }, []);
 
@@ -1189,7 +1235,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
         positions.forEach((globalIdx, k) => {
           next[globalIdx] = cortex[reordered[k]];
         });
-        return { ...a, cortex: next };
+        return { ...a, cortex: normalizeMainStepFlags(next) };
       });
     },
     [],
@@ -1843,6 +1889,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       updateAddonContext,
       setAddonOutputType,
       setAddonEnabled,
+      setAddonJoinsPreviousStep,
       removeAddon,
       reorderAddonInLane,
       addAgentAddon,
@@ -1850,6 +1897,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       updateAgentAddonContext,
       setAgentAddonOutputType,
       setAgentAddonEnabled,
+      setAgentAddonJoinsPreviousStep,
       removeAgentAddon,
       reorderAgentAddonInLane,
       saveCrewVersion,
@@ -1897,6 +1945,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       updateAddonContext,
       setAddonOutputType,
       setAddonEnabled,
+      setAddonJoinsPreviousStep,
       removeAddon,
       reorderAddonInLane,
       addAgentAddon,
@@ -1904,6 +1953,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       updateAgentAddonContext,
       setAgentAddonOutputType,
       setAgentAddonEnabled,
+      setAgentAddonJoinsPreviousStep,
       removeAgentAddon,
       reorderAgentAddonInLane,
       saveCrewVersion,
