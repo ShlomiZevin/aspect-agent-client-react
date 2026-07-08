@@ -16,6 +16,7 @@
 import { useEffect, useState } from 'react';
 import { Modal } from '../Modal/Modal';
 import { TableEditor } from '../../../components/dashboard/DynamicKBPage/TableEditor';
+import { TableCardsEditor } from './TableCardsEditor';
 import { importSpreadsheet } from '../../../services/dynamicKBService';
 import type { TableData } from '../../../types/dynamicKB';
 import {
@@ -112,6 +113,10 @@ function tableDataToBody(td: TableData, format: TableFormat): string {
 export function TableEditorModalV1({ open, initialMarkdown, onCancel, onSave }: Props) {
   const [data, setData] = useState<TableData>(() => bodyToTableData(initialMarkdown));
   const [format, setFormat] = useState<TableFormat>(() => detectFormat(initialMarkdown));
+  // Grid = v1 spreadsheet editor; Cards = record-per-row editor built
+  // for the "one long essay column + many stubs" shape. Both edit the
+  // same `data`.
+  const [view, setView] = useState<'grid' | 'cards'>('grid');
 
   // Re-seat on every open so a re-open with different initial body
   // shows the right table AND the right detected format.
@@ -144,6 +149,20 @@ export function TableEditorModalV1({ open, initialMarkdown, onCancel, onSave }: 
     onSave(tableDataToBody(data, format));
   };
 
+  // Shared Save / Cancel pair. In Grid view it's injected into v1's
+  // action bar via `rightActions`; in Cards view it lives in the card
+  // footer. Same handlers either way.
+  const saveCancel = (
+    <>
+      <button type="button" onClick={onCancel} className={styles.cancelBtn}>
+        Cancel
+      </button>
+      <button type="button" onClick={handleSave} className={styles.saveBtn}>
+        Save
+      </button>
+    </>
+  );
+
   return (
     <Modal
       open={open}
@@ -157,39 +176,63 @@ export function TableEditorModalV1({ open, initialMarkdown, onCancel, onSave }: 
         </span>
       }
       headerExtra={
-        // Segmented switcher in the header — three options visible at
-        // a glance, no click-to-reveal. Reads as "what this table IS"
-        // (a property of the table) rather than another button in the
-        // action bar. The chosen form IS the body string we'll write
-        // on Save.
-        <div
-          className={styles.formatSwitcher}
-          role="tablist"
-          aria-label="Prompt format"
-        >
-          {(['markdown', 'json', 'csv'] as const).map(opt => (
-            <button
-              key={opt}
-              type="button"
-              role="tab"
-              aria-selected={format === opt}
-              className={
-                format === opt
-                  ? `${styles.switchBtn} ${styles.switchBtnActive}`
-                  : styles.switchBtn
-              }
-              onClick={() => setFormat(opt)}
-              title={
-                opt === 'markdown'
-                  ? 'Pipe-table form. Strong "this is a table" signal in mixed prose.'
-                  : opt === 'json'
-                    ? 'Array of {column: value} objects. Robust for wide tables.'
-                    : 'Header + comma rows. Cheapest tokens.'
-              }
-            >
-              {opt === 'markdown' ? 'Markdown' : opt === 'json' ? 'JSON' : 'CSV'}
-            </button>
-          ))}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+          {/* View toggle — how you EDIT (grid vs record cards). */}
+          <div className={styles.formatSwitcher} role="tablist" aria-label="Editor view">
+            {(['grid', 'cards'] as const).map(v => (
+              <button
+                key={v}
+                type="button"
+                role="tab"
+                aria-selected={view === v}
+                className={
+                  view === v
+                    ? `${styles.switchBtn} ${styles.switchBtnActive}`
+                    : styles.switchBtn
+                }
+                onClick={() => setView(v)}
+                title={
+                  v === 'grid'
+                    ? 'Spreadsheet grid — every column at once.'
+                    : 'Card view — one record per row; long columns get a full-width editor. Best for long text.'
+                }
+              >
+                {v === 'grid' ? 'Grid' : 'Cards'}
+              </button>
+            ))}
+          </div>
+
+          {/* Format switcher — what the SAVED string looks like (the
+              body written to the prompt). Orthogonal to the view. */}
+          <div
+            className={styles.formatSwitcher}
+            role="tablist"
+            aria-label="Prompt format"
+          >
+            {(['markdown', 'json', 'csv'] as const).map(opt => (
+              <button
+                key={opt}
+                type="button"
+                role="tab"
+                aria-selected={format === opt}
+                className={
+                  format === opt
+                    ? `${styles.switchBtn} ${styles.switchBtnActive}`
+                    : styles.switchBtn
+                }
+                onClick={() => setFormat(opt)}
+                title={
+                  opt === 'markdown'
+                    ? 'Pipe-table form. Strong "this is a table" signal in mixed prose.'
+                    : opt === 'json'
+                      ? 'Array of {column: value} objects. Robust for wide tables.'
+                      : 'Header + comma rows. Cheapest tokens.'
+                }
+              >
+                {opt === 'markdown' ? 'Markdown' : opt === 'json' ? 'JSON' : 'CSV'}
+              </button>
+            ))}
+          </div>
         </div>
       }
       width={1100}
@@ -208,29 +251,25 @@ export function TableEditorModalV1({ open, initialMarkdown, onCancel, onSave }: 
           box grows symmetrically (the overlay's flex-center keeps
           it centered). */}
       <div className={styles.wrap}>
-        <TableEditor
-          value={data}
-          onChange={setData}
-          onImport={handleImport}
-          rightActions={
-            <>
-              <button
-                type="button"
-                onClick={onCancel}
-                className={styles.cancelBtn}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                className={styles.saveBtn}
-              >
-                Save
-              </button>
-            </>
-          }
-        />
+        {view === 'grid' ? (
+          <TableEditor
+            value={data}
+            onChange={setData}
+            onImport={handleImport}
+            rightActions={saveCancel}
+            multilineLongCells
+          />
+        ) : (
+          <>
+            <TableCardsEditor value={data} onChange={setData} />
+            {/* Cards view has no v1 action bar, so it carries its own
+                footer with Save / Cancel. */}
+            <div className={styles.cardsFooter}>
+              <span style={{ flex: 1 }} />
+              {saveCancel}
+            </div>
+          </>
+        )}
       </div>
     </Modal>
   );

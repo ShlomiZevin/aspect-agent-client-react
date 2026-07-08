@@ -166,6 +166,41 @@
   box-shadow: inset 0 0 0 2px var(--primary-color, #2563eb);
 }
 
+/* Opt-in multiline mode (multilineLongCells). Only applied when the
+   caller turns it on, so the default grid is untouched. */
+.cellTop {
+  vertical-align: top;
+}
+
+.cellTextarea {
+  display: block;
+  width: 100%;
+  min-width: 260px;
+  max-width: 440px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  border: none;
+  background: transparent;
+  color: var(--text-primary, #1e293b);
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  /* Compact preview: ~4 lines, scroll inside for the rest. This keeps
+     grid ROWS uniform and scannable — the grid is for overview, the
+     Cards view is for full reading. Drag the handle to expand one cell. */
+  height: 88px;
+  overflow-y: auto;
+  resize: vertical;
+}
+
+.cellTextarea:focus {
+  outline: none;
+  background: #eff6ff;
+  box-shadow: inset 0 0 0 2px var(--primary-color, #2563eb);
+}
+
 .tableActions {
   display: flex;
   gap: 8px;

@@ -30,12 +30,20 @@
   flex: 1 1 auto;
   min-height: 0;
   padding: 0;
+  /* Scroll BOTH ways: vertical for many rows, horizontal when a wide
+     essay column + many short columns exceed the modal width. Without
+     the horizontal scroll the table would shrink columns to fit and
+     truncate the short ones. */
+  overflow: auto;
 }
 
-/* The v1 grid itself: make sure the rows extend to the modal edges
-   so we don't get a thin white margin around the table. */
+/* The v1 grid itself: fill the modal width when the table is narrow
+   (edge-flush, no side margin), but GROW past it and scroll when the
+   content is wider — so a wide essay column can't steal width from the
+   short columns and squeeze them into truncation. */
 .wrap [class*="tableWrap"] > table {
-  width: 100%;
+  min-width: 100%;
+  width: max-content;
   border-left: 0;
   border-right: 0;
 }
@@ -48,6 +56,16 @@
   gap: 6px;
   flex: 0 0 auto;
   align-items: center;
+}
+
+/* Footer for the Cards view (Grid view uses v1's own action bar). */
+.cardsFooter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-color, #e5e7eb);
 }
 
 .cancelBtn,

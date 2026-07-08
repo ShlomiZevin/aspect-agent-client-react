@@ -1,0 +1,170 @@
+/* TableCardsEditor — record/card layout for editing a table whose
+   shape is "one long essay column + many short columns". */
+
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  box-sizing: border-box;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-tertiary, #9ca3af);
+  font-size: 13px;
+}
+
+.card {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rowBadge {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--primary-color, #6366f1);
+  border-radius: 999px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.deleteBtn {
+  background: transparent;
+  border: 0;
+  color: var(--text-tertiary, #9ca3af);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 7px;
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.deleteBtn:hover {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+/* ── Long-form field: stacked label + full-width textarea ── */
+.longField {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary, #4b5563);
+}
+
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-primary, #111827);
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: #fff;
+  /* Auto-grow to content on supporting browsers; the min/max + resize
+     are the graceful fallback everywhere else. */
+  field-sizing: content;
+  min-height: 96px;
+  max-height: 420px;
+  resize: vertical;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* ── Short fields: compact responsive grid of label + input ── */
+.shortGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px 14px;
+  padding-top: 2px;
+  border-top: 1px dashed var(--border-color, #e5e7eb);
+  margin-top: 2px;
+}
+
+.shortField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-primary, #111827);
+  padding: 6px 9px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.addRow {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border: 1px dashed var(--border-color, #cbd5e1);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+}
+
+.addRow:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.05);
+}

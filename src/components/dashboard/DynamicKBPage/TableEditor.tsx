@@ -11,13 +11,30 @@ interface TableEditorProps {
    *  Used by the modal wrapper to slot Save / Cancel into the same
    *  flex row so all buttons share the same baseline. */
   rightActions?: ReactNode;
+  /** Opt-in: render "long-form" columns (any cell longer than
+   *  `MULTILINE_THRESHOLD`) as wrapping, auto-growing textareas instead
+   *  of single-line inputs, and top-align every cell. Off by default so
+   *  existing callers (the DynamicKB dashboard) keep the exact grid
+   *  behavior; the prompt-table modal turns it on so an essay column is
+   *  readable at a glance. */
+  multilineLongCells?: boolean;
 }
 
-export function TableEditor({ value, onChange, onImport, rightActions }: TableEditorProps) {
+/** A column is "long-form" when any of its cells exceeds this. */
+const MULTILINE_THRESHOLD = 80;
+
+export function TableEditor({ value, onChange, onImport, rightActions, multilineLongCells = false }: TableEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tableWrapRef = useRef<HTMLDivElement>(null);
   const [isRTL, setIsRTL] = useState(false);
   const { headers, rows, indexColumns = [] } = value;
+
+  // Per-column long-form classification (only when opted in). Consistent
+  // across every row so an essay column is a textarea throughout, not
+  // just in the rows that already hold long text.
+  const longCols = multilineLongCells
+    ? headers.map((_, c) => rows.some(r => (r[c] ?? '').length > MULTILINE_THRESHOLD))
+    : [];
 
   useEffect(() => {
     if (tableWrapRef.current) {
@@ -164,15 +181,32 @@ export function TableEditor({ value, onChange, onImport, rightActions }: TableEd
                   </button>
                 </td>
                 {row.map((cell, colIdx) => (
-                  <td key={colIdx} className={styles.cell}>
-                    <input
-                      id={`cell-${rowIdx}-${colIdx}`}
-                      className={styles.cellInput}
-                      value={cell}
-                      size={Math.max(cell.length + 1, 6)}
-                      onChange={e => updateCell(rowIdx, colIdx, e.target.value)}
-                      onKeyDown={e => handleKeyDown(e, rowIdx, colIdx)}
-                    />
+                  <td
+                    key={colIdx}
+                    className={`${styles.cell} ${multilineLongCells ? styles.cellTop : ''}`}
+                  >
+                    {multilineLongCells && longCols[colIdx] ? (
+                      // Long-form column → wrapping, auto-growing textarea
+                      // so the full multi-line value is visible/editable.
+                      // No cell-navigation key handler (arrows move within
+                      // the text); the shared id keeps focus-by-id working.
+                      <textarea
+                        id={`cell-${rowIdx}-${colIdx}`}
+                        className={styles.cellTextarea}
+                        dir="auto"
+                        value={cell}
+                        onChange={e => updateCell(rowIdx, colIdx, e.target.value)}
+                      />
+                    ) : (
+                      <input
+                        id={`cell-${rowIdx}-${colIdx}`}
+                        className={styles.cellInput}
+                        value={cell}
+                        size={Math.max(cell.length + 1, 6)}
+                        onChange={e => updateCell(rowIdx, colIdx, e.target.value)}
+                        onKeyDown={e => handleKeyDown(e, rowIdx, colIdx)}
+                      />
+                    )}
                   </td>
                 ))}
               </tr>

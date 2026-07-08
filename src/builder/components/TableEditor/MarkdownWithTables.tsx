@@ -256,6 +256,9 @@ function RenderedTable({ caption, columns, rows, className, onEdit }: RenderedTa
       {caption && (
         <div style={{ fontWeight: 700, marginBottom: 6 }}>{caption}</div>
       )}
+      {/* Horizontal scroll so a wide / many-column table scrolls inside
+          the card instead of overflowing the panel. */}
+      <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
       <table className={className} style={{ borderCollapse: 'collapse', minWidth: '60%' }}>
         <thead>
           <tr>
@@ -264,6 +267,9 @@ function RenderedTable({ caption, columns, rows, className, onEdit }: RenderedTa
                 key={i}
                 style={{
                   textAlign: c.align ?? 'left',
+                  // Top-align so a header over a tall essay column doesn't
+                  // float in the middle of the row.
+                  verticalAlign: 'top',
                   padding: '6px 10px',
                   background: '#f3f4f6',
                   border: '1px solid #e5e7eb',
@@ -283,19 +289,45 @@ function RenderedTable({ caption, columns, rows, className, onEdit }: RenderedTa
                   key={ci}
                   style={{
                     textAlign: c.align ?? 'left',
+                    // Top-align: the read view often mixes one long essay
+                    // column with many short ("—") columns. Without this,
+                    // the short cells center vertically against the tall
+                    // row and read as stranded.
+                    verticalAlign: 'top',
                     padding: '6px 10px',
                     border: '1px solid #e5e7eb',
                     fontSize: 12.5,
                     background: '#fff',
                   }}
                 >
-                  {r[ci] ?? ''}
+                  {/* Content wrapper caps an essay column's width (so it
+                      can't shove the small columns off-screen) and clamps
+                      the height to a preview (~7 lines). Short cells show
+                      fully — the clamp only truncates cells that overflow.
+                      Full text is one click away in the editor. */}
+                  <div
+                    style={{
+                      maxWidth: 420,
+                      // Wrap at spaces; only break a token if it alone is
+                      // wider than the column (no more mid-word chopping).
+                      overflowWrap: 'break-word',
+                      wordBreak: 'normal',
+                      lineHeight: 1.5,
+                      display: '-webkit-box',
+                      WebkitBoxOrient: 'vertical',
+                      WebkitLineClamp: 7,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {r[ci] ?? ''}
+                  </div>
                 </td>
               ))}
             </tr>
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
