@@ -1,0 +1,198 @@
+/**
+ * Live Brain panels + mock surface. Every selector scoped under `.lybi-chat`
+ * so it inherits the brand tokens (--surface, --text, --border, --grad, --mag)
+ * and never leaks. Semantic mood colors are their own tokens, deliberately
+ * distinct from the magenta brand accent.
+ */
+
+.lybi-chat[data-theme="light"] {
+  --lb-calm: #0d8a7d; --lb-anx: #d98a2b; --lb-hope: #c65a7d; --lb-pos: #2fa36b;
+}
+.lybi-chat[data-theme="dark"] {
+  --lb-calm: #3fbaa9; --lb-anx: #e0a35a; --lb-hope: #e086a4; --lb-pos: #5cc08b;
+}
+
+/* ---------- panel list ---------- */
+.lybi-chat .lb-panels { display: flex; flex-direction: column; gap: 12px; }
+.lybi-chat .lb-panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 13px 14px; box-shadow: var(--shadow);
+}
+.lybi-chat .lb-phead { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.lybi-chat .lb-phead .lb-emoji { font-size: 14px; line-height: 1; }
+.lybi-chat .lb-phead h3 { margin: 0; font-size: 13.5px; font-weight: 700; letter-spacing: -.01em; flex: 1; }
+.lybi-chat .lb-chip {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text-3); background: var(--surface-2); border: 1px solid var(--border);
+  padding: 2.5px 6px; border-radius: 6px; white-space: nowrap;
+}
+.lybi-chat .lb-chip.addon {
+  color: var(--mag); background: color-mix(in srgb, var(--mag) 10%, transparent);
+  border-color: color-mix(in srgb, var(--mag) 28%, transparent);
+}
+.lybi-chat .lb-body { font-size: 13.5px; color: var(--text); }
+.lybi-chat .lb-muted { color: var(--text-2); line-height: 1.55; }
+.lybi-chat .lb-pfoot {
+  margin-top: 10px; font-size: 10.5px; color: var(--text-3);
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.lybi-chat .lb-pfoot code {
+  font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: var(--mag);
+  background: color-mix(in srgb, var(--mag) 10%, transparent); padding: 1px 5px; border-radius: 5px;
+}
+
+/* ---------- key/value ---------- */
+.lybi-chat .lb-kv { display: flex; flex-direction: column; gap: 7px; }
+.lybi-chat .lb-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.lybi-chat .lb-k { color: var(--text-2); }
+.lybi-chat .lb-v { font-weight: 600; text-align: end; font-variant-numeric: tabular-nums; }
+.lybi-chat .lb-tag {
+  display: inline-block; font-size: 11px; font-weight: 600; color: var(--mag);
+  background: color-mix(in srgb, var(--mag) 11%, transparent); padding: 2px 8px; border-radius: 999px;
+}
+
+/* ---------- goals checklist ---------- */
+.lybi-chat .lb-goals { display: flex; flex-direction: column; gap: 9px; }
+.lybi-chat .lb-goal { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; }
+.lybi-chat .lb-mark {
+  width: 16px; height: 16px; border-radius: 6px; flex: none; margin-top: 1px;
+  display: grid; place-items: center; border: 1.5px solid var(--border-2); color: transparent;
+}
+.lybi-chat .lb-goal.on .lb-mark { background: var(--lb-pos); border-color: var(--lb-pos); color: #fff; }
+.lybi-chat .lb-goal.on .lb-mark svg { width: 10px; height: 10px; }
+.lybi-chat .lb-goal-label { flex: 1; }
+.lybi-chat .lb-state {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-3); align-self: center;
+}
+.lybi-chat .lb-goal.on .lb-state { color: var(--lb-pos); }
+
+/* ---------- bars (rich html) ---------- */
+.lybi-chat .lb-bars { display: flex; flex-direction: column; gap: 11px; }
+.lybi-chat .lb-brow { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+.lybi-chat .lb-lab { color: var(--text-2); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.lybi-chat .lb-sw { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
+.lybi-chat .lb-num { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text); }
+.lybi-chat .lb-track { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.lybi-chat .lb-fill { height: 100%; border-radius: 99px; transition: width .9s cubic-bezier(.3,1,.4,1); }
+.lybi-chat .lb-brandfill { background: var(--grad); }
+.lybi-chat .lb-trend { margin-top: 4px; font-size: 11.5px; color: var(--text-2); }
+.lybi-chat .lb-trend b { color: var(--lb-pos); font-weight: 700; }
+
+/* ---------- donut (rich html) ---------- */
+.lybi-chat .lb-needs { display: flex; gap: 14px; align-items: center; }
+.lybi-chat .lb-donut {
+  --v: 0; width: 84px; height: 84px; flex: none; border-radius: 50%;
+  background: conic-gradient(var(--mag) calc(var(--v) * 1%), var(--surface-2) 0);
+  display: grid; place-items: center; position: relative;
+}
+.lybi-chat .lb-donut::before { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: var(--surface); }
+.lybi-chat .lb-dc { position: relative; text-align: center; line-height: 1; }
+.lybi-chat .lb-dc b { font-size: 19px; font-variant-numeric: tabular-nums; color: var(--text); }
+.lybi-chat .lb-dc span {
+  display: block; font-size: 8.5px; color: var(--text-3); text-transform: uppercase;
+  letter-spacing: .05em; margin-top: 3px;
+}
+.lybi-chat .lb-nlist { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.lybi-chat .lb-n { font-size: 12px; }
+
+/* ==========================================================================
+   Mock surface only (the runnable demo page). Not needed once integrated
+   into the real SidePanel.
+   ========================================================================== */
+.lybi-chat.lb-mock { display: flex; flex-direction: column; }
+.lybi-chat .lb-top {
+  height: 60px; flex-shrink: 0; display: flex; align-items: center; gap: 14px;
+  padding: 0 18px; border-bottom: 1px solid var(--border); background: var(--surface);
+}
+.lybi-chat .lb-brand { font-weight: 800; font-size: 20px; letter-spacing: -.02em; }
+.lybi-chat .lb-brand b {
+  background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.lybi-chat .lb-seg { display: flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
+.lybi-chat .lb-seg button { color: var(--text-2); font-size: 13px; font-weight: 600; padding: 6px 15px; border-radius: 999px; transition: .16s; }
+.lybi-chat .lb-seg button[aria-selected="true"] { background: var(--grad); color: #fff; }
+.lybi-chat .lb-grow { flex: 1; }
+.lybi-chat .lb-tbtn {
+  height: 34px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text-2); font-size: 12.5px; font-weight: 600;
+}
+.lybi-chat .lb-tbtn:hover { color: var(--text); }
+.lybi-chat .lb-stage { flex: 1; min-height: 0; display: flex; }
+.lybi-chat .lb-stage > * { flex: 1; min-height: 0; }
+
+/* brain aside head (live + refresh) */
+.lybi-chat .lb-bhead { display: flex; align-items: center; gap: 10px; padding: 16px 18px 12px; }
+.lybi-chat .lb-bglyph { width: 30px; height: 30px; border-radius: 9px; background: var(--grad); color: #fff; display: grid; place-items: center; flex: none; }
+.lybi-chat .lb-bglyph svg { width: 18px; height: 18px; }
+.lybi-chat .lb-btitle { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+.lybi-chat .lb-live { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-3); font-weight: 600; margin-top: 1px; }
+.lybi-chat .lb-pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--lb-pos); position: relative; }
+.lybi-chat .lb-pulse::after {
+  content: ""; position: absolute; inset: -4px; border-radius: 50%; background: var(--lb-pos);
+  opacity: .35; animation: lb-ping 1.9s ease-out infinite;
+}
+@keyframes lb-ping { 0% { transform: scale(.6); opacity: .5; } 80%, 100% { transform: scale(2.1); opacity: 0; } }
+.lybi-chat .lb-refresh {
+  margin-inline-start: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px;
+  font-weight: 600; color: var(--mag); background: color-mix(in srgb, var(--mag) 10%, transparent);
+  padding: 6px 10px; border-radius: 8px;
+}
+.lybi-chat .lb-refresh svg { width: 13px; height: 13px; transition: transform .5s; }
+.lybi-chat .lb-refresh:hover svg { transform: rotate(-180deg); }
+.lybi-chat .lb-scrollcol { flex: 1; min-height: 0; overflow: auto; padding: 0 14px 18px; }
+
+/* chat backdrop */
+.lybi-chat .lb-chat { flex: 1; overflow: auto; padding: 22px 22px 8px; display: flex; flex-direction: column; gap: 14px; }
+.lybi-chat .lb-bubble { max-width: 78%; padding: 11px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5; box-shadow: var(--shadow); }
+.lybi-chat .lb-bubble.bot { align-self: flex-start; background: var(--bot-bub); border: 1px solid var(--bot-bub-border); border-top-left-radius: 5px; }
+.lybi-chat .lb-bubble.user { align-self: flex-end; color: #fff; background: var(--grad); border-top-right-radius: 5px; }
+.lybi-chat[dir="rtl"] .lb-bubble.bot { border-top-left-radius: 16px; border-top-right-radius: 5px; }
+.lybi-chat[dir="rtl"] .lb-bubble.user { border-top-right-radius: 16px; border-top-left-radius: 5px; }
+.lybi-chat .lb-composer { padding: 12px 18px 18px; border-top: 1px solid var(--border); background: var(--surface); }
+.lybi-chat .lb-cbox { display: flex; align-items: center; gap: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 11px 14px; color: var(--text-3); font-size: 14px; }
+
+/* ---------- setup view ---------- */
+.lybi-chat .lb-setup { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 16px; padding: 18px; overflow: auto; align-content: start; }
+.lybi-chat .lb-list { display: flex; flex-direction: column; gap: 8px; }
+.lybi-chat .lb-list h4 { margin: 2px 4px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); }
+.lybi-chat .lb-pitem { display: flex; align-items: center; gap: 9px; padding: 10px 11px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface); font-size: 13px; text-align: start; transition: .14s; }
+.lybi-chat .lb-pitem:hover { border-color: var(--border-2); }
+.lybi-chat .lb-pitem.sel { border-color: var(--mag); background: color-mix(in srgb, var(--mag) 8%, transparent); }
+.lybi-chat .lb-grip { color: var(--text-3); opacity: .6; font-size: 14px; }
+.lybi-chat .lb-pitem .lb-emoji { font-size: 14px; }
+.lybi-chat .lb-nm { flex: 1; font-weight: 600; }
+.lybi-chat .lb-kind { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); }
+.lybi-chat .lb-add { border: 1px dashed var(--border-2); border-radius: 11px; padding: 10px; color: var(--mag); font-size: 13px; font-weight: 600; }
+.lybi-chat .lb-editor { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.lybi-chat .lb-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 16px; min-width: 0; }
+.lybi-chat .lb-card h3 { margin: 0 0 3px; font-size: 14px; letter-spacing: -.01em; }
+.lybi-chat .lb-hint { font-size: 12px; color: var(--text-2); margin: 0 0 12px; }
+.lybi-chat .lb-lab { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); margin-bottom: 6px; }
+.lybi-chat .lb-field { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+.lybi-chat .lb-desc { color: var(--text); }
+.lybi-chat .lb-ph { color: var(--text-3); flex: 1; }
+.lybi-chat .lb-mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; line-height: 1.65; color: var(--text); }
+.lybi-chat .lb-scroll { white-space: pre; overflow-x: auto; margin: 0; }
+.lybi-chat .lb-three { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lybi-chat .lb-schema { display: flex; flex-direction: column; gap: 7px; }
+.lybi-chat .lb-slot { display: flex; gap: 8px; align-items: baseline; font-size: 12px; }
+.lybi-chat .lb-slot code { font-family: ui-monospace, Menlo, monospace; color: var(--mag); font-size: 11px; background: color-mix(in srgb, var(--mag) 10%, transparent); padding: 1px 5px; border-radius: 5px; }
+.lybi-chat .lb-ty { color: var(--text-3); font-size: 10.5px; }
+.lybi-chat .lb-refine { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+.lybi-chat .lb-btn { border-radius: 10px; padding: 9px 14px; font-size: 13px; font-weight: 700; }
+.lybi-chat .lb-btn.pri { background: var(--grad); color: #fff; box-shadow: var(--shadow); }
+.lybi-chat .lb-btn.ghost { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+.lybi-chat .lb-env { display: flex; flex-wrap: wrap; gap: 8px; }
+.lybi-chat .lb-e { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 9px; }
+.lybi-chat .lb-e b { color: var(--text); font-weight: 600; }
+.lybi-chat .lb-actions { display: flex; gap: 8px; margin-top: 14px; }
+
+@media (max-width: 760px) {
+  .lybi-chat .lb-three { grid-template-columns: 1fr; }
+  .lybi-chat .lb-setup { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lybi-chat .lb-fill, .lybi-chat .lb-refresh svg { transition: none; }
+  .lybi-chat .lb-pulse::after { animation: none; }
+}

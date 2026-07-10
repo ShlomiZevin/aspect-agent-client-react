@@ -7,6 +7,8 @@ const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ defaul
 const BuilderHomePage = lazy(() => import('./pages/BuilderHomePage').then(m => ({ default: m.BuilderHomePage })));
 // Customer-facing Live chat — its own subtree, lazy-loaded.
 const LiveChatPage = lazy(() => import('./pages/LiveChatPage').then(m => ({ default: m.LiveChatPage })));
+// Live Brain mockup — standalone demo of the configurable brain panel + setup.
+const LiveBrainMockPage = lazy(() => import('./pages/LiveBrainMockPage').then(m => ({ default: m.LiveBrainMockPage })));
 const CustomerChatPage = lazy(() => import('./pages/CustomerChatPage').then(m => ({ default: m.CustomerChatPage })));
 // On-site embed demo (Lybi mock site + agent widget iframe).
 const EmbedPage = lazy(() => import('./pages/EmbedPage').then(m => ({ default: m.EmbedPage })));
@@ -144,6 +146,15 @@ function AppContent() {
             </Suspense>
           }
         />
+        {/* Live Brain mockup (standalone demo — not wired to a live agent). */}
+        <Route
+          path="/lybi/brain-mock"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <LiveBrainMockPage />
+            </Suspense>
+          }
+        />
         {/* Generic agent-aware authenticated chat (e.g. /lybi/login, /lybi/chat).
             Supported agents are defined in src/agents/agentRegistry.ts. */}
         <Route path="/:agent/login" element={<AgentLoginPage />} />
@@ -189,6 +200,14 @@ function AppContent() {
           element={
             <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
               <EmbedPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/:agent/brain-mock"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <LiveBrainMockPage />
             </Suspense>
           }
         />
