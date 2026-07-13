@@ -19,6 +19,7 @@ import { ExportImageModal } from '../ExportImageModal';
 import { MOCK_CREW_MEMBERS } from '../../../mocks/promptMocks';
 import { CrewTabs } from '../CrewTabs';
 import { DataStatusBar } from '../DataStatusBar';
+import { ImportingBanner } from '../ImportingBanner';
 import styles from './ChatContainer.module.css';
 
 interface ChatContainerProps {
@@ -222,6 +223,10 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
 
         {config.features.showDataStatus && config.database?.schema && (
           <DataStatusBar baseURL={baseURL} schema={config.database.schema} />
+        )}
+
+        {config.database?.schema && (
+          <ImportingBanner baseURL={baseURL} schema={config.database.schema} />
         )}
 
         <div className={styles.messages} ref={messagesContainerRef}>
