@@ -148,6 +148,10 @@ function bodyOfAgent(agent: AgentDoc): AgentBody {
     enums: agent.enums ?? [],
     cortex: agent.cortex ?? [],
     snippets: agent.snippets ?? [],
+    // Only snapshot liveBrain once it has panels, so agents that never
+    // used the feature compare equal to their pre-liveBrain version
+    // bodies (no spurious "dirty" on load). Empty == absent.
+    ...(agent.liveBrain?.panels?.length ? { liveBrain: agent.liveBrain } : {}),
   };
 }
 
@@ -315,7 +319,7 @@ interface BuilderState {
   // Agent-level
   updateAgent: (
     agentId: ID,
-    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets'>>,
+    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets' | 'liveBrain'>>,
   ) => void;
   /**
    * Rename a declared domain. Cascades through `agent.domains`,
@@ -856,7 +860,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
 
   // ── Agent ──
   const updateAgent = useCallback(
-    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets'>>) => {
+    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets' | 'liveBrain'>>) => {
       setDoc(d => ({
         ...d,
         agents: d.agents.map(a => (a.id === agentId ? { ...a, ...patch } : a)),

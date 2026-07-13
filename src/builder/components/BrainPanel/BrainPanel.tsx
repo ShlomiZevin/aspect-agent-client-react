@@ -67,7 +67,7 @@ export function BrainDockSlot() {
               users have actions on both edges of the panel. */}
           <div className={styles.dockHeader}>
             <span className={styles.dockHeaderIcon} aria-hidden>🧠</span>
-            <span className={styles.dockHeaderTitle}>Live Brain</span>
+            <span className={styles.dockHeaderTitle}>Brain Inspector</span>
             {previewConversationId !== null && (
               <span className={styles.dockHeaderConvo}>#{previewConversationId}</span>
             )}
@@ -99,7 +99,7 @@ export function BrainDockSlot() {
         title={isDocked ? 'Collapse the brain panel' : 'Open the live brain panel'}
       >
         <span className={styles.barIcon} aria-hidden>🧠</span>
-        <span className={styles.barTitle}>Live Brain</span>
+        <span className={styles.barTitle}>Brain Inspector</span>
         <BrainBarSummary />
         {!isDocked && hasUnseen && <span className={styles.barDot} aria-label="new activity" />}
         {/* Fullscreen toggle is always present so the user can jump
@@ -158,7 +158,7 @@ export function BrainFullscreenLayer() {
   return (
     <div className={styles.fullscreenLayer} role="dialog" aria-label="Live brain — runtime view for this conversation">
       <div className={styles.fullscreenHeader}>
-        <span className={styles.fullscreenTitle}>🧠 Live Brain</span>
+        <span className={styles.fullscreenTitle}>🔬 Brain Inspector</span>
         {previewConversationId !== null && (
           <span className={styles.fullscreenConvo}>convo #{previewConversationId}</span>
         )}

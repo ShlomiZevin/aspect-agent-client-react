@@ -132,6 +132,20 @@ export function AgentSetupArea({ agent }: Props) {
           </span>
         </button>
 
+        {/* Live Brain — own page; the customer-facing brain panel shown
+            beside the chat at /:agent/live. Agent-level authoring of
+            panels (bind a field, or compute with an addon). */}
+        <button
+          type="button"
+          className={styles.chip}
+          onClick={() => navigate(`/${agent.slug}/builder/live-brain`)}
+          title="Open the Live Brain editor"
+        >
+          <span className={styles.chipIcon}>🧠</span>
+          <span className={styles.chipName}>Live Brain</span>
+          <span className={styles.chipCount}>{(agent.liveBrain?.panels ?? []).length}</span>
+        </button>
+
         {/* Targeted KB — own page; chip navigates instead of opening
             the section modal. The page lists agent KBs + lets the
             author edit each value's umbrella + sections. "Targeted"

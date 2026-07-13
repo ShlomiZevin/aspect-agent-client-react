@@ -48,18 +48,14 @@ export interface SystemFieldDef {
  * reserved-name validation. The server harvest pass picks it up
  * automatically once the server-side mirror gains the same entry.
  */
-export const SYSTEM_FIELDS: SystemFieldDef[] = [
-  {
-    name:        'move_on',
-    type:        'boolean',
-    lifetime:    'crew-transition',
-    description:
-      'Set to true when the current crew has done its job and the user is ready to ' +
-      'hand off. Reset automatically the moment a Transition Router fires, so the ' +
-      'next crew starts with a clean slate.',
-    domain:      '_system',
-  },
-];
+/**
+ * Currently empty. `move_on` was retired — nothing relied on the
+ * auto-harvest + transition-reset behavior and it lingered confusingly
+ * in the condition / autocomplete pickers. All consumers iterate this
+ * array, so they no-op cleanly; re-adding a system field is a
+ * one-entry change (mirror the server registry).
+ */
+export const SYSTEM_FIELDS: SystemFieldDef[] = [];
 
 const SYSTEM_FIELD_NAMES: Set<string> = new Set(SYSTEM_FIELDS.map(f => f.name));
 const SYSTEM_FIELD_BY_NAME: Map<string, SystemFieldDef> =

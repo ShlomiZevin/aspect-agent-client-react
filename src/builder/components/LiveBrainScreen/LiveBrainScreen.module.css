@@ -1,0 +1,257 @@
+.screen {
+  --ink: #1f2430;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --surface: #ffffff;
+  --surface-2: #f7f8fa;
+  --accent: #7c3aed;
+  --accent-soft: #f3ecfe;
+  --magenta: #E0198A;
+  padding: 20px 22px 40px;
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.head { margin-bottom: 16px; }
+.h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+.sub { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+/* ── panel chips (cortex-style) ── */
+.chain { display: flex; flex-direction: column; gap: 10px; }
+.chip {
+  display: flex; align-items: center; gap: 8px; padding: 12px 13px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  box-shadow: var(--shadow); cursor: pointer; transition: border-color .12s, box-shadow .12s;
+}
+.chip:hover { border-color: var(--accent); box-shadow: 0 4px 14px -8px var(--accent); }
+.chipMain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.chipTitle { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chipSummary { font-size: 11px; color: var(--muted); }
+.chipMove { display: flex; flex-direction: column; line-height: .8; opacity: 0; transition: opacity .12s; }
+.chip:hover .chipMove { opacity: 1; }
+.chipMove button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 10px; padding: 0 2px; }
+.chipMove button:disabled { opacity: .25; cursor: default; }
+.addChip {
+  border: 1px dashed #cbd5e1; border-radius: 12px; padding: 12px; color: var(--accent);
+  background: transparent; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.addChip:hover { border-color: var(--accent); }
+
+/* ── list ── */
+.list { display: flex; flex-direction: column; gap: 7px; }
+.listHead { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 2px 2px 4px; }
+.item {
+  display: flex; align-items: center; gap: 8px; padding: 9px 10px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+  cursor: pointer; font-size: 13px; transition: border-color .12s, background .12s;
+}
+.item:hover { border-color: #cbd5e1; }
+.itemSel { border-color: var(--accent); background: var(--accent-soft); }
+.itemEmoji { font-size: 14px; }
+.itemName { flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.itemKind { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.itemMove { display: flex; flex-direction: column; line-height: .8; }
+.itemMove button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 9px; padding: 0 2px; }
+.itemMove button:disabled { opacity: .25; cursor: default; }
+.add {
+  border: 1px dashed #cbd5e1; border-radius: 10px; padding: 9px; color: var(--accent);
+  background: transparent; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.add:hover { border-color: var(--accent); }
+
+/* ── editor ── */
+.editor {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0;
+}
+.empty { color: var(--muted); font-size: 13px; padding: 20px 4px; }
+.row2 { display: flex; gap: 10px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.grow { flex: 1; }
+.lab { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.labHint { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--muted); }
+.input {
+  border: 1px solid #d0d5dd; border-radius: 8px; padding: 9px 11px; font: inherit;
+  font-size: 13px; background: #fff; color: var(--ink);
+}
+.input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.sourceTabs { display: flex; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 2px; }
+.tab, .tabOn {
+  border: 0; background: none; font: inherit; font-size: 13px; font-weight: 600;
+  padding: 7px 10px; border-radius: 8px 8px 0 0; cursor: pointer; color: var(--muted);
+}
+.tabOn { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+
+.note { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+.editorFoot { margin-top: 4px; display: flex; }
+.delete { border: 1px solid var(--line); background: var(--surface); color: #b91c1c; border-radius: 8px; padding: 7px 12px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.delete:hover { border-color: #fca5a5; background: #fef2f2; }
+
+/* modal form + footer */
+.form { display: flex; flex-direction: column; gap: 14px; }
+.footerBar { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.done { border: 0; background: var(--accent); color: #fff; border-radius: 8px; padding: 8px 18px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.done:hover { background: #6d28d9; }
+
+/* "what to return" modal */
+.returnLead { margin: 0 0 12px; font-size: 12.5px; color: var(--muted); }
+/* Wrap long lines instead of scrolling, so the whole shape is visible
+   at a glance — no horizontal (or vertical) scroll inside the modal. */
+.returnPre { margin: 0; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; line-height: 1.7; color: #3a3450; background: #f5f2fd; border: 1px solid #e3d9f7; border-radius: 12px; padding: 14px 16px; white-space: pre-wrap; overflow-wrap: break-word; }
+.returnActions { display: flex; justify-content: flex-end; margin-top: 14px; }
+.copyBtn { border: 0; background: #efe9fc; color: #6d28d9; font: inherit; font-size: 12.5px; font-weight: 700; padding: 9px 20px; border-radius: 9px; cursor: pointer; transition: background .14s; }
+.copyBtn:hover { background: #e5daf9; }
+.copyBtn:active { background: #dbccf5; }
+
+kbd { font-family: ui-monospace, Menlo, monospace; font-size: 10px; padding: 1px 4px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); color: var(--muted); }
+.labHint code { font-family: ui-monospace, Menlo, monospace; font-size: 11px; padding: 0 4px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); color: var(--accent); }
+
+/* icon picker */
+.iconWrap { position: relative; }
+.iconBtn { width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); font-size: 18px; cursor: pointer; display: grid; place-items: center; }
+.iconBtn:hover { border-color: var(--accent); }
+.iconScrim { position: fixed; inset: 0; z-index: 20; }
+.iconPop { position: absolute; top: 44px; left: 0; z-index: 21; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.14); width: 236px; }
+.iconCell { width: 32px; height: 32px; border: 1px solid transparent; border-radius: 8px; background: none; font-size: 18px; cursor: pointer; }
+.iconCell:hover { background: var(--surface-2); }
+.iconCellOn { border-color: var(--accent); background: var(--accent-soft); }
+
+/* when editor + mini inputs */
+.whenRow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.miniInput { width: 72px; border: 1px solid #d0d5dd; border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 13px; background: #fff; color: var(--ink); }
+.miniInput:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* prompt header + return hint */
+.promptHead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.returnToggle { border: 0; background: none; color: var(--accent); font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; padding: 0; white-space: nowrap; }
+.returnToggle:hover { text-decoration: underline; }
+.copyBtn { flex: none; align-self: flex-start; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
+.copyBtn:hover { border-color: var(--accent); }
+
+/* return-shape hint */
+.returnsBox { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; margin: 4px 0 8px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; }
+.returnsBox .returnsCode { flex: 1; }
+.returnsLabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding-top: 2px; flex: none; }
+.returnsCode { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--accent); line-height: 1.5; word-break: break-word; }
+
+/* ── preview ── */
+.preview { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 12px; }
+.previewHeadRow { display: flex; align-items: baseline; gap: 8px; }
+.previewLabel { font-size: 12px; font-weight: 700; color: var(--ink); }
+.previewSample { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.previewEmpty { color: var(--muted); font-size: 13px; padding: 20px; border: 1px dashed var(--line); border-radius: 12px; text-align: center; }
+.previewPanels {
+  display: flex; flex-direction: column; gap: 10px; padding: 14px;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px;
+}
+.previewPanel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.previewPanelSel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.previewHead { display: flex; align-items: center; gap: 8px; margin-bottom: 11px; }
+.previewEmoji { font-size: 14px; }
+.previewTitle { flex: 1; font-size: 13px; font-weight: 700; }
+.previewSourceChip { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); padding: 2px 5px; border-radius: 5px; }
+.previewSourceAddon { color: var(--magenta); border-color: color-mix(in srgb, var(--magenta) 30%, var(--line)); background: color-mix(in srgb, var(--magenta) 8%, transparent); }
+
+.inspector { border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; background: var(--surface); }
+.inspectorHead { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 6px; }
+.inspectorNote { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+
+/* ── renderer bodies ── */
+.bodyText { font-size: 13.5px; color: var(--ink); line-height: 1.62; }
+/* One consistent vertical rhythm: 8px between blocks, list items a
+   touch tighter (5px) so a list reads as a single group. Markdown is
+   rendered directly (no competing chat-bubble stylesheet), so these
+   rules are the single source of truth. */
+.bodyMd { font-size: 13.5px; color: var(--ink); line-height: 1.55; }
+.bodyMd :global(p) { margin: 0 0 8px; }
+.bodyMd :global(ul), .bodyMd :global(ol) { margin: 0 0 8px; padding-left: 20px; }
+.bodyMd :global(li) { margin: 0 0 5px; padding-left: 3px; }
+.bodyMd :global(li:last-child) { margin-bottom: 0; }
+.bodyMd :global(li::marker) { color: var(--muted); }
+.bodyMd :global(strong) { font-weight: 700; }
+.bodyMd :global(em) { color: color-mix(in srgb, var(--ink) 88%, var(--muted)); }
+.bodyMd :global(*:last-child) { margin-bottom: 0; }
+
+.kv { display: flex; flex-direction: column; gap: 6px; }
+.kvRow { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.kvK { color: var(--muted); }
+.kvV { font-weight: 600; text-align: right; }
+.tag { display: inline-block; font-size: 11px; font-weight: 600; color: var(--magenta); background: color-mix(in srgb, var(--magenta) 11%, transparent); padding: 2px 8px; border-radius: 999px; }
+
+.goals { display: flex; flex-direction: column; gap: 8px; }
+.goal { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; }
+.mark { width: 16px; height: 16px; border-radius: 6px; flex: none; margin-top: 1px; display: grid; place-items: center; border: 1.5px solid var(--line); color: transparent; }
+.goalOn .mark { background: #2fa36b; border-color: #2fa36b; color: #fff; }
+.goalOn .mark svg { width: 10px; height: 10px; }
+.goalLabel { flex: 1; }
+.state { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); align-self: center; }
+.goalOn .state { color: #2fa36b; }
+
+.bars { display: flex; flex-direction: column; gap: 10px; }
+.barRow { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+.barLab { color: var(--muted); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.swatch { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
+.barNum { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ink); }
+.track { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.fill { height: 100%; border-radius: 99px; }
+
+.needs { display: flex; gap: 14px; align-items: center; }
+.donut {
+  width: 96px; height: 96px; flex: none; border-radius: 50%;
+  background: conic-gradient(var(--magenta) calc(var(--v) * 1%), #dfe3ec 0);
+  display: grid; place-items: center; position: relative;
+}
+.donut::before { content: ""; position: absolute; inset: 13px; border-radius: 50%; background: var(--surface); }
+.donutC { position: relative; text-align: center; line-height: 1; }
+.donutC b { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink); }
+.donutC span { display: block; font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 3px; }
+.needList { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.need { font-size: 12px; }
+
+/* ── chip badge (makes a panel read as a chip) ── */
+.chipBadge { width: 32px; height: 32px; flex: none; border-radius: 8px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: 15px; }
+
+/* ── full-width control inside an InlineField row ── */
+.inputFull { width: 100%; border: 1px solid #d0d5dd; border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 13px; background: #fff; color: var(--ink); }
+.inputFull:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ── prompt / text section (label above a full-width control) ── */
+.section { display: flex; flex-direction: column; gap: 6px; }
+.sectionLabel { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.sectionHint { font-size: 11px; color: var(--muted); }
+
+/* Header row for the Prompt section — label on the left, the compact
+   "what to return" pill on the right (aligned with the label baseline). */
+.sectionHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 22px; }
+
+/* ── compact "returns X — show me" pill, inline beside the label ── */
+.returnPill { display: inline-flex; align-items: center; gap: 7px; padding: 3px 5px 3px 4px; border: 1px solid transparent; border-radius: 999px; background: transparent; cursor: pointer; font-size: 11px; color: #4a4363; transition: background .12s, border-color .12s; }
+.returnPill:hover { background: #f5f1fd; border-color: #e6ddf8; }
+.returnPill b { color: var(--accent); font-weight: 700; }
+.returnPillIcon { flex: none; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 6px; background: #f0ebfb; color: var(--accent); font-family: ui-monospace, "Menlo", monospace; font-size: 10px; font-weight: 700; letter-spacing: -1px; }
+.returnPillCta { font-weight: 700; color: var(--accent); white-space: nowrap; }
+.returnPill:hover .returnPillCta { text-decoration: underline; }
+
+/* ── preview at the width it has on the client, scrolls when tall ── */
+.deviceFrame { width: 340px; max-width: 100%; max-height: calc(100vh - 175px); overflow-y: auto; }
+.deviceFrame::-webkit-scrollbar { width: 8px; }
+.deviceFrame::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+
+/* ── stable modal body: sized to the TALLER (AI) mode via min-height so
+      switching Text ⇄ AI never resizes the modal — and no scrollbar. ── */
+.stableBody { display: flex; flex-direction: column; gap: 14px; min-height: 690px; }
+
+/* ── segmented Text / AI toggle (visible track, white active pill) ── */
+.seg2 { display: inline-flex; align-self: flex-start; background: #eceef3; border: 1px solid #dfe3ea; border-radius: 10px; padding: 3px; gap: 3px; }
+.seg2 button { border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: #6b7280; padding: 7px 18px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: .14s; }
+.seg2 button:hover { color: #374151; }
+.seg2 button[aria-selected="true"] { background: #fff; color: var(--accent); box-shadow: 0 1px 3px rgba(16,24,40,.14); }

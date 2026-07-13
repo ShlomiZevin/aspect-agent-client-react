@@ -22,6 +22,7 @@ import { PersonasScreen } from './components/PersonasScreen/PersonasScreen';
 import { FieldsScreen } from './components/FieldsScreen/FieldsScreen';
 import { TagsScreen } from './components/TagsScreen/TagsScreen';
 import { PinnedFieldsScreen } from './components/PinnedFieldsScreen/PinnedFieldsScreen';
+import { LiveBrainScreen } from './components/LiveBrainScreen/LiveBrainScreen';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
 import { BrainDockSlot, BrainFullscreenLayer } from './components/BrainPanel/BrainPanel';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
@@ -234,6 +235,10 @@ function BuilderShell() {
                 fields. Same data as Fields page; this is the
                 "thinking in pins" entry point. */}
             <Route path="pinned" element={<PinnedFieldsScreen />} />
+            {/* Live Brain: agent-level authoring of the customer-facing
+                brain panel. The screen reads its own `panelId` param. */}
+            <Route path="live-brain" element={<LiveBrainScreen />} />
+            <Route path="live-brain/:panelId" element={<LiveBrainScreen />} />
           </Routes>
           {/* Brain dock floats at the bottom-right of the canvas (just
               left of the chat column) so the chat column never
