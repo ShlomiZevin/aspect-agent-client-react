@@ -77,9 +77,13 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   const [importMonthsSupported, setImportMonthsSupported] = useState(false);
   const [savingMonths, setSavingMonths] = useState(false);
   const [monthsSaved, setMonthsSaved] = useState(false);
-  const [reloadEnabled, setReloadEnabled] = useState(false);
-  const [reloadEnabledSource, setReloadEnabledSource] = useState<'db' | 'env' | 'default'>('default');
-  const [savingReloadEnabled, setSavingReloadEnabled] = useState(false);
+  const [gcsFolder, setGcsFolder] = useState('');
+  const [gcsFolderSource, setGcsFolderSource] = useState<'db' | 'env' | 'default'>('default');
+  const [driveFolderIdSupported, setDriveFolderIdSupported] = useState(false);
+  const [driveFolderId, setDriveFolderId] = useState('');
+  const [savingFolders, setSavingFolders] = useState(false);
+  const [foldersSaved, setFoldersSaved] = useState(false);
+  const [foldersError, setFoldersError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'loader' | 'configuration'>('loader');
   const [scheduleJobs, setScheduleJobs] = useState<{ driveSync: SchedulerJob; ensureLoaded: SchedulerJob } | null>(null);
   const [scheduleStartTime, setScheduleStartTime] = useState('');
@@ -214,32 +218,41 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
       setImportMonthsSupported(!!data.supported);
       setImportMonthsSource(data.source ?? 'default');
       setImportMonths(data.importMonths != null ? String(data.importMonths) : '0');
-      setReloadEnabled(!!data.reloadEnabled);
-      setReloadEnabledSource(data.reloadEnabledSource ?? 'default');
+      setGcsFolder(data.gcsFolder ?? '');
+      setGcsFolderSource(data.gcsFolderSource ?? 'default');
+      setDriveFolderIdSupported(!!data.driveFolderIdSupported);
+      setDriveFolderId(data.driveFolderId ?? '');
     } catch {
       // settings are optional — ignore failures
     }
   }, [apiBase]);
 
-  async function toggleReloadEnabled() {
-    setSavingReloadEnabled(true);
+  async function saveFolders() {
+    setSavingFolders(true);
+    setFoldersError(null);
+    setFoldersSaved(false);
     try {
+      const body: { gcsFolder: string; driveFolderId?: string } = { gcsFolder };
+      if (driveFolderIdSupported) body.driveFolderId = driveFolderId;
       const res = await fetch(`${apiBase}/settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reloadEnabled: !reloadEnabled }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `HTTP ${res.status}`);
       }
       const data = await res.json();
-      setReloadEnabled(!!data.reloadEnabled);
-      setReloadEnabledSource(data.reloadEnabledSource ?? 'default');
+      setGcsFolder(data.gcsFolder ?? '');
+      setGcsFolderSource(data.gcsFolderSource ?? 'default');
+      setDriveFolderId(data.driveFolderId ?? '');
+      setFoldersSaved(true);
+      setTimeout(() => setFoldersSaved(false), 3000);
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Failed to update reload-enabled');
+      setFoldersError(e instanceof Error ? e.message : 'Failed to save folders');
     } finally {
-      setSavingReloadEnabled(false);
+      setSavingFolders(false);
     }
   }
 
@@ -629,41 +642,6 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
       {activeTab === 'loader' && (
         <div className={styles.twoCol}>
           <div className={styles.leftCol}>
-            {scheduleJobs && (
-              <div className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <h2 className={styles.sectionTitle}>Schedule</h2>
-                  <span className={`${styles.sourceBadge} ${scheduleJobs.driveSync.state === 'ENABLED' ? styles.sourceDb : styles.sourceDefault}`}>
-                    {scheduleJobs.driveSync.state === 'ENABLED' ? 'Enabled' : 'Paused'}
-                  </span>
-                </div>
-                <div className={styles.settingsBody}>
-                  <p className={styles.settingsDesc}>
-                    Nightly sync + import starts at this time. Indexing isn't scheduled here - it always runs on
-                    its own as soon as an import finishes.
-                  </p>
-                  <div className={styles.settingsRow}>
-                    <input
-                      className={`${styles.settingsInput} ${styles.settingsInputTime}`}
-                      type="time"
-                      value={scheduleStartTime}
-                      onChange={e => setScheduleStartTime(e.target.value)}
-                      disabled={savingSchedule}
-                    />
-                    <button className={styles.confirmBtn} onClick={saveSchedule} disabled={savingSchedule}>
-                      {savingSchedule ? 'Saving…' : 'Save'}
-                    </button>
-                    <button className={styles.cancelBtn} onClick={toggleSchedulePaused} disabled={savingSchedule}>
-                      {scheduleJobs.driveSync.state === 'ENABLED' ? 'Pause' : 'Resume'}
-                    </button>
-                    {scheduleSaved && <span className={styles.savedMsg}>Saved</span>}
-                  </div>
-                  {scheduleError && <p className={styles.errorMsg}>{scheduleError}</p>}
-                  <p className={styles.settingsHint}>Current time: {currentTime} (Asia/Jerusalem)</p>
-                </div>
-              </div>
-            )}
-
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>Source Files</h2>
@@ -713,28 +691,46 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
       {activeTab === 'configuration' && (
         <div className={styles.twoCol}>
           <div className={styles.leftCol}>
-            <div className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>Reload Enabled</h2>
-                <span className={`${styles.sourceBadge} ${reloadEnabled ? styles.sourceDb : styles.sourceDefault}`}>
-                  {reloadEnabled ? 'On' : 'Off'}
-                </span>
-              </div>
-              <div className={styles.settingsBody}>
-                <p className={styles.settingsDesc}>
-                  Master switch for this schema's import/index. When off, manual and scheduled reloads both
-                  refuse to run - no code deploy needed to flip this.
-                </p>
-                <div className={styles.settingsRow}>
-                  <button className={styles.confirmBtn} onClick={toggleReloadEnabled} disabled={savingReloadEnabled}>
-                    {savingReloadEnabled ? 'Saving…' : reloadEnabled ? 'Turn off' : 'Turn on'}
-                  </button>
+            {scheduleJobs && (
+              <div className={styles.section}>
+                <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitle}>Scheduled Reload</h2>
+                  <span className={`${styles.sourceBadge} ${scheduleJobs.driveSync.state === 'ENABLED' ? styles.sourceDb : styles.sourceDefault}`}>
+                    {scheduleJobs.driveSync.state === 'ENABLED' ? 'On' : 'Off'}
+                  </span>
                 </div>
-                <p className={styles.settingsHint}>
-                  Source: {reloadEnabledSource === 'db' ? 'set here' : reloadEnabledSource === 'env' ? 'env default' : 'default (off)'}
-                </p>
+                <div className={styles.settingsBody}>
+                  <p className={styles.settingsDesc}>
+                    When on, sync + import run automatically every night at the time below. Indexing isn't
+                    scheduled here - it always runs on its own as soon as an import finishes.
+                  </p>
+                  <div className={styles.settingsRow}>
+                    <button className={styles.confirmBtn} onClick={toggleSchedulePaused} disabled={savingSchedule}>
+                      {savingSchedule ? 'Saving…' : scheduleJobs.driveSync.state === 'ENABLED' ? 'Turn off' : 'Turn on'}
+                    </button>
+                  </div>
+                  {scheduleJobs.driveSync.state === 'ENABLED' && (
+                    <>
+                      <div className={styles.settingsRow} style={{ marginTop: 10 }}>
+                        <input
+                          className={`${styles.settingsInput} ${styles.settingsInputTime}`}
+                          type="time"
+                          value={scheduleStartTime}
+                          onChange={e => setScheduleStartTime(e.target.value)}
+                          disabled={savingSchedule}
+                        />
+                        <button className={styles.confirmBtn} onClick={saveSchedule} disabled={savingSchedule}>
+                          {savingSchedule ? 'Saving…' : 'Save'}
+                        </button>
+                        {scheduleSaved && <span className={styles.savedMsg}>Saved</span>}
+                      </div>
+                      <p className={styles.settingsHint}>Current time: {currentTime} (Asia/Jerusalem)</p>
+                    </>
+                  )}
+                  {scheduleError && <p className={styles.errorMsg}>{scheduleError}</p>}
+                </div>
               </div>
-            </div>
+            )}
 
             {importMonthsSupported && (
               <div className={styles.section}>
@@ -778,6 +774,53 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
                 </div>
               </div>
             )}
+
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>{driveFolderIdSupported ? 'Sync & Import Folder' : 'Import Folder'}</h2>
+                <span className={`${styles.sourceBadge} ${gcsFolderSource === 'db' ? styles.sourceDb : styles.sourceDefault}`}>
+                  {gcsFolderSource === 'db' ? 'set here' : 'default'}
+                </span>
+              </div>
+              <div className={styles.settingsBody}>
+                <p className={styles.settingsDesc}>
+                  {driveFolderIdSupported
+                    ? "The Drive folder synced nightly, and the GCS folder both that sync and every import read from - keep these matched or files won't reach the loader."
+                    : 'The GCS folder this schema\'s import reads CSV files from.'}
+                </p>
+                {driveFolderIdSupported && (
+                  <div className={styles.settingsRow}>
+                    <label className={styles.settingsUnit} style={{ minWidth: 110 }}>Drive folder ID</label>
+                    <input
+                      className={styles.settingsInput}
+                      style={{ width: 320 }}
+                      type="text"
+                      value={driveFolderId}
+                      onChange={e => setDriveFolderId(e.target.value)}
+                      disabled={savingFolders}
+                    />
+                  </div>
+                )}
+                <div className={styles.settingsRow} style={{ marginTop: driveFolderIdSupported ? 8 : 0 }}>
+                  <label className={styles.settingsUnit} style={{ minWidth: 110 }}>GCS folder</label>
+                  <input
+                    className={styles.settingsInput}
+                    style={{ width: 320 }}
+                    type="text"
+                    value={gcsFolder}
+                    onChange={e => setGcsFolder(e.target.value)}
+                    disabled={savingFolders}
+                  />
+                </div>
+                <div className={styles.settingsRow} style={{ marginTop: 10 }}>
+                  <button className={styles.confirmBtn} onClick={saveFolders} disabled={savingFolders}>
+                    {savingFolders ? 'Saving…' : 'Save'}
+                  </button>
+                  {foldersSaved && <span className={styles.savedMsg}>Saved</span>}
+                </div>
+                {foldersError && <p className={styles.errorMsg}>{foldersError}</p>}
+              </div>
+            </div>
           </div>
         </div>
       )}
