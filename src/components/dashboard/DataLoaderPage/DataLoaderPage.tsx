@@ -15,71 +15,31 @@ interface DataLoaderPageProps {
 // server/services/drive-to-gcs.service.js). Only these show the Sync button.
 const DRIVE_SYNC_SCHEMAS = ['zer4u', 'hypertoy'];
 
-interface SchedulerJob {
-  name: string;
-  schedule: string;
-  state: 'ENABLED' | 'PAUSED';
+// A schedule entry is just { enabled, hour, minute } - no cron syntax
+// anywhere on the client. See services/schedule-config.service.js /
+// services/scheduler-tick.service.js on the server: one Cloud Scheduler job
+// ticks every minute and reads these directly.
+interface ScheduleEntry {
+  enabled: boolean;
+  hour: number;
+  minute: number;
 }
 
-// "HH:MM" -> "M H * * *". Only handles single daily-time crons (what
-// drive-sync always uses) - not meant for arbitrary cron strings.
-function parseCronTime(cron: string): string | null {
-  const parts = cron.trim().split(/\s+/);
-  if (parts.length !== 5) return null;
-  const min = parseInt(parts[0], 10);
-  const hour = parseInt(parts[1], 10);
-  if (Number.isNaN(min) || Number.isNaN(hour)) return null;
-  return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+function scheduleToTimeString(s: ScheduleEntry): string {
+  return `${String(s.hour).padStart(2, '0')}:${String(s.minute).padStart(2, '0')}`;
 }
 
-// Reads the start time out of an ensure-loaded retry-window cron, e.g.
-// "10,25,40,55 0-5 * * *" -> "00:10". Minute field is the 4 comma-separated
-// offsets from buildScheduleCrons below (falls back to :00 for the older
-// "*/15 H1-H2 * * *" shape, which didn't preserve minutes).
-function parseCronRangeStart(cron: string): string | null {
-  const parts = cron.trim().split(/\s+/);
-  if (parts.length !== 5) return null;
-  const hour = parseInt(parts[1].split('-')[0], 10);
-  if (Number.isNaN(hour)) return null;
-  const firstMinute = parts[0].split(',')[0];
-  const minute = firstMinute.includes('*') ? 0 : parseInt(firstMinute, 10);
-  return `${String(hour).padStart(2, '0')}:${String(Number.isNaN(minute) ? 0 : minute).padStart(2, '0')}`;
+function timeStringToParts(time: string): { hour: number; minute: number } | null {
+  const m = time.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const hour = parseInt(m[1], 10);
+  const minute = parseInt(m[2], 10);
+  if (hour > 23 || minute > 59) return null;
+  return { hour, minute };
 }
 
 function formatJerusalemTime(d: Date): string {
   return d.toLocaleTimeString('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
-}
-
-function addMinutes(h: number, m: number, deltaMin: number): { h: number; m: number } {
-  const total = (((h * 60 + m + deltaMin) % 1440) + 1440) % 1440;
-  return { h: Math.floor(total / 60), m: total % 60 };
-}
-
-// Derives ensure-loaded's (import retry window) cron from a single "start
-// reload at" time - uniform for every schema. Drive Sync has its own,
-// independently-set time (see the Drive Sync section); the two aren't
-// derived from each other, so keeping them sensibly ordered (sync before
-// import) is on whoever sets them. Indexing isn't part of this either - it
-// always runs on its own continuous check for "import done, not yet indexed".
-function buildScheduleCrons(startTime: string): { ensureLoaded: string } | null {
-  const m = startTime.match(/^(\d{1,2}):(\d{2})$/);
-  if (!m) return null;
-  const h = parseInt(m[1], 10);
-  const min = parseInt(m[2], 10);
-  if (h > 23 || min > 59) return null;
-  const retryEnd = addMinutes(h, min, 5 * 60);
-  const endHour = retryEnd.h >= h ? retryEnd.h : 23;
-  // Explicit minute offsets (not "*/15") so the chosen minute survives a
-  // round-trip through Cloud Scheduler and back - "*/15" always fires on
-  // the hour regardless of what minute was entered. Deliberately NOT sorted:
-  // cron minute-lists are an unordered set as far as execution goes, but
-  // parseCronRangeStart below reads back whichever value comes first in the
-  // string - keeping `min` first is what makes the round-trip correct. (An
-  // earlier version sorted ascending, which silently reordered a wrapped
-  // value like 20+45=65%60=5 to the front, turning 00:20 into 00:05 on
-  // reload - sorting numbers you're using as an ordered record is a trap.)
-  const minutes = [0, 15, 30, 45].map(offset => (min + offset) % 60);
-  return { ensureLoaded: `${minutes.join(',')} ${h}-${endHour} * * *` };
 }
 
 export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
@@ -108,13 +68,13 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   const [savingDriveFolderId, setSavingDriveFolderId] = useState(false);
   const [driveFolderIdSaved, setDriveFolderIdSaved] = useState(false);
   const [driveFolderIdError, setDriveFolderIdError] = useState<string | null>(null);
-  const [driveSyncJob, setDriveSyncJob] = useState<SchedulerJob | null>(null);
+  const [driveSyncSchedule, setDriveSyncSchedule] = useState<ScheduleEntry | null>(null);
   const [driveSyncTime, setDriveSyncTime] = useState('');
   const [savingDriveSync, setSavingDriveSync] = useState(false);
   const [driveSyncSaved, setDriveSyncSaved] = useState(false);
   const [driveSyncError, setDriveSyncError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'loader' | 'configuration'>('loader');
-  const [ensureLoadedJob, setEnsureLoadedJob] = useState<SchedulerJob | null>(null);
+  const [importSchedule, setImportSchedule] = useState<ScheduleEntry | null>(null);
   const [scheduleStartTime, setScheduleStartTime] = useState('');
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [scheduleSaved, setScheduleSaved] = useState(false);
@@ -306,40 +266,34 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
     }
   }
 
-  // Turns the independent (non-zer4u/hypertoy) Drive Sync job on/off - creates
-  // it the first time (Cloud Scheduler has none yet), otherwise just pauses/resumes.
+  async function putSchedule(jobType: 'import' | 'drive_sync', patch: Partial<ScheduleEntry>): Promise<ScheduleEntry> {
+    const base = jobType === 'import' ? importSchedule : driveSyncSchedule;
+    const parts = timeStringToParts(jobType === 'import' ? scheduleStartTime : driveSyncTime);
+    const body = {
+      jobType,
+      enabled: patch.enabled ?? base?.enabled ?? false,
+      hour: patch.hour ?? parts?.hour ?? base?.hour ?? 1,
+      minute: patch.minute ?? parts?.minute ?? base?.minute ?? 0,
+    };
+    const res = await fetch(`${baseURL}/api/admin/data-loader/${schemaName}/schedule`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `HTTP ${res.status}`);
+    }
+    return (await res.json()).schedule as ScheduleEntry;
+  }
+
   async function toggleDriveSync() {
     setSavingDriveSync(true);
     setDriveSyncError(null);
     try {
-      if (!driveSyncJob) {
-        const time = driveSyncTime || '01:00';
-        const m = time.match(/^(\d{1,2}):(\d{2})$/);
-        if (!m) throw new Error('Enter a valid time (HH:MM)');
-        const cron = `${parseInt(m[2], 10)} ${parseInt(m[1], 10)} * * *`;
-        const res = await fetch(`${baseURL}/api/admin/scheduler/jobs`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: `${schemaName}-drive-sync`, schedule: cron, uri: `${apiBase}/drive-sync`, paused: false }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || `HTTP ${res.status}`);
-        }
-        const data = await res.json();
-        setDriveSyncJob(data.job);
-        setDriveSyncTime(time);
-      } else {
-        const paused = driveSyncJob.state === 'ENABLED';
-        const res = await fetch(`${baseURL}/api/admin/scheduler/jobs/${encodeURIComponent(driveSyncJob.name)}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paused }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        setDriveSyncJob(data.job);
-      }
+      const schedule = await putSchedule('drive_sync', { enabled: !driveSyncSchedule?.enabled });
+      setDriveSyncSchedule(schedule);
+      setDriveSyncTime(scheduleToTimeString(schedule));
     } catch (e: unknown) {
       setDriveSyncError(e instanceof Error ? e.message : 'Failed to update Drive sync');
     } finally {
@@ -348,24 +302,16 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   }
 
   async function saveDriveSyncTime() {
-    if (!driveSyncJob) return;
-    const m = driveSyncTime.match(/^(\d{1,2}):(\d{2})$/);
-    if (!m) {
+    const parts = timeStringToParts(driveSyncTime);
+    if (!parts) {
       setDriveSyncError('Enter a valid time (HH:MM)');
       return;
     }
-    const cron = `${parseInt(m[2], 10)} ${parseInt(m[1], 10)} * * *`;
     setSavingDriveSync(true);
     setDriveSyncError(null);
     try {
-      const res = await fetch(`${baseURL}/api/admin/scheduler/jobs/${encodeURIComponent(driveSyncJob.name)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ schedule: cron }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setDriveSyncJob(data.job);
+      const schedule = await putSchedule('drive_sync', parts);
+      setDriveSyncSchedule(schedule);
       setDriveSyncSaved(true);
       setTimeout(() => setDriveSyncSaved(false), 3000);
     } catch (e: unknown) {
@@ -402,30 +348,23 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
 
   const loadSchedule = useCallback(async () => {
     try {
-      const res = await fetch(`${baseURL}/api/admin/scheduler/jobs`);
+      const res = await fetch(`${baseURL}/api/admin/data-loader/${schemaName}/schedule`);
       if (!res.ok) return;
       const data = await res.json();
-      const jobs: SchedulerJob[] = data.jobs || [];
-      const ensureLoaded = jobs.find(j => j.name === `${schemaName}-ensure-loaded`) || null;
-      if (ensureLoaded) {
-        setEnsureLoadedJob(ensureLoaded);
-        setScheduleStartTime(parseCronRangeStart(ensureLoaded.schedule) || '');
-      }
-
-      // Drive Sync is independent of Scheduled Reload for every schema - its
-      // own on/off + time, set from the Drive Sync section below.
-      const driveSyncJobFound = jobs.find(j => j.name === `${schemaName}-drive-sync`) || null;
-      setDriveSyncJob(driveSyncJobFound);
-      if (driveSyncJobFound) setDriveSyncTime(parseCronTime(driveSyncJobFound.schedule) || '');
+      const importSched = data.importSchedule as ScheduleEntry;
+      const driveSched = data.driveSyncSchedule as ScheduleEntry;
+      setImportSchedule(importSched);
+      setScheduleStartTime(scheduleToTimeString(importSched));
+      setDriveSyncSchedule(driveSched);
+      setDriveSyncTime(scheduleToTimeString(driveSched));
     } catch {
       // schedule is optional — ignore failures
     }
   }, [baseURL, schemaName]);
 
   async function saveSchedule() {
-    if (!ensureLoadedJob) return;
-    const crons = buildScheduleCrons(scheduleStartTime);
-    if (!crons) {
+    const parts = timeStringToParts(scheduleStartTime);
+    if (!parts) {
       setScheduleError('Enter a valid time (HH:MM)');
       return;
     }
@@ -433,17 +372,8 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
     setScheduleError(null);
     setScheduleSaved(false);
     try {
-      const res = await fetch(`${baseURL}/api/admin/scheduler/jobs/${encodeURIComponent(ensureLoadedJob.name)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ schedule: crons.ensureLoaded }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `HTTP ${res.status}`);
-      }
-      const data = await res.json();
-      setEnsureLoadedJob(data.job as SchedulerJob);
+      const schedule = await putSchedule('import', parts);
+      setImportSchedule(schedule);
       setScheduleSaved(true);
       setTimeout(() => setScheduleSaved(false), 3000);
     } catch (e: unknown) {
@@ -454,19 +384,12 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   }
 
   async function toggleSchedulePaused() {
-    if (!ensureLoadedJob) return;
-    const paused = ensureLoadedJob.state === 'ENABLED';
     setSavingSchedule(true);
     setScheduleError(null);
     try {
-      const res = await fetch(`${baseURL}/api/admin/scheduler/jobs/${encodeURIComponent(ensureLoadedJob.name)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paused }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setEnsureLoadedJob(data.job as SchedulerJob);
+      const schedule = await putSchedule('import', { enabled: !importSchedule?.enabled });
+      setImportSchedule(schedule);
+      setScheduleStartTime(scheduleToTimeString(schedule));
     } catch (e: unknown) {
       setScheduleError(e instanceof Error ? e.message : 'Failed to update schedule');
     } finally {
@@ -803,12 +726,12 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
       {activeTab === 'configuration' && (
         <div className={styles.twoCol}>
           <div className={styles.leftCol}>
-            {ensureLoadedJob && (
+            {importSchedule && (
               <div className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <h2 className={styles.sectionTitle}>Scheduled Reload</h2>
-                  <span className={`${styles.sourceBadge} ${ensureLoadedJob.state === 'ENABLED' ? styles.sourceDb : styles.sourceDefault}`}>
-                    {ensureLoadedJob.state === 'ENABLED' ? 'On' : 'Off'}
+                  <span className={`${styles.sourceBadge} ${importSchedule.enabled ? styles.sourceDb : styles.sourceDefault}`}>
+                    {importSchedule.enabled ? 'On' : 'Off'}
                   </span>
                 </div>
                 <div className={styles.settingsBody}>
@@ -819,10 +742,10 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
                   </p>
                   <div className={styles.settingsRow}>
                     <button className={styles.confirmBtn} onClick={toggleSchedulePaused} disabled={savingSchedule}>
-                      {savingSchedule ? 'Saving…' : ensureLoadedJob.state === 'ENABLED' ? 'Turn off' : 'Turn on'}
+                      {savingSchedule ? 'Saving…' : importSchedule.enabled ? 'Turn off' : 'Turn on'}
                     </button>
                   </div>
-                  {ensureLoadedJob.state === 'ENABLED' && (
+                  {importSchedule.enabled && (
                     <>
                       <div className={styles.settingsRow} style={{ marginTop: 10 }}>
                         <input
@@ -922,9 +845,9 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>Drive Sync</h2>
-                {driveSyncJob && (
-                  <span className={`${styles.sourceBadge} ${driveSyncJob.state === 'ENABLED' ? styles.sourceDb : styles.sourceDefault}`}>
-                    {driveSyncJob.state === 'ENABLED' ? 'On' : 'Off'}
+                {driveSyncSchedule && (
+                  <span className={`${styles.sourceBadge} ${driveSyncSchedule.enabled ? styles.sourceDb : styles.sourceDefault}`}>
+                    {driveSyncSchedule.enabled ? 'On' : 'Off'}
                   </span>
                 )}
               </div>
@@ -955,10 +878,10 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
                   <>
                     <div className={styles.settingsRow} style={{ marginTop: 10 }}>
                       <button className={styles.confirmBtn} onClick={toggleDriveSync} disabled={savingDriveSync}>
-                        {savingDriveSync ? 'Saving…' : driveSyncJob?.state === 'ENABLED' ? 'Turn off' : 'Turn on'}
+                        {savingDriveSync ? 'Saving…' : driveSyncSchedule?.enabled ? 'Turn off' : 'Turn on'}
                       </button>
                     </div>
-                    {(!driveSyncJob || driveSyncJob.state === 'ENABLED') && (
+                    {driveSyncSchedule?.enabled && (
                       <div className={styles.settingsRow} style={{ marginTop: 10 }}>
                         <input
                           className={`${styles.settingsInput} ${styles.settingsInputTime}`}
@@ -967,11 +890,9 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
                           onChange={e => setDriveSyncTime(e.target.value)}
                           disabled={savingDriveSync}
                         />
-                        {driveSyncJob && (
-                          <button className={styles.confirmBtn} onClick={saveDriveSyncTime} disabled={savingDriveSync}>
-                            {savingDriveSync ? 'Saving…' : 'Save'}
-                          </button>
-                        )}
+                        <button className={styles.confirmBtn} onClick={saveDriveSyncTime} disabled={savingDriveSync}>
+                          {savingDriveSync ? 'Saving…' : 'Save'}
+                        </button>
                         {driveSyncSaved && <span className={styles.savedMsg}>Saved</span>}
                       </div>
                     )}

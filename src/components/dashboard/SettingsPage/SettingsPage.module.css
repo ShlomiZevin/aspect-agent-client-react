@@ -175,3 +175,42 @@
   color: #b91c1c;
   align-self: center;
 }
+
+/* Schedule tab */
+.scheduleTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.scheduleTable th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.scheduleTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #111827;
+}
+
+.scheduleProject {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.scheduleOn {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.scheduleOff {
+  color: #9ca3af;
+  font-weight: 600;
+}
