@@ -71,8 +71,14 @@ function buildScheduleCrons(startTime: string): { ensureLoaded: string } | null 
   const endHour = retryEnd.h >= h ? retryEnd.h : 23;
   // Explicit minute offsets (not "*/15") so the chosen minute survives a
   // round-trip through Cloud Scheduler and back - "*/15" always fires on
-  // the hour regardless of what minute was entered.
-  const minutes = [0, 15, 30, 45].map(offset => (min + offset) % 60).sort((a, b) => a - b);
+  // the hour regardless of what minute was entered. Deliberately NOT sorted:
+  // cron minute-lists are an unordered set as far as execution goes, but
+  // parseCronRangeStart below reads back whichever value comes first in the
+  // string - keeping `min` first is what makes the round-trip correct. (An
+  // earlier version sorted ascending, which silently reordered a wrapped
+  // value like 20+45=65%60=5 to the front, turning 00:20 into 00:05 on
+  // reload - sorting numbers you're using as an ordered record is a trap.)
+  const minutes = [0, 15, 30, 45].map(offset => (min + offset) % 60);
   return { ensureLoaded: `${minutes.join(',')} ${h}-${endHour} * * *` };
 }
 
