@@ -40,12 +40,6 @@ const DATA_LOADER_ITEM = {
   icon: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4 M7 10l5 5 5-5 M12 15V3',
 };
 
-const SCHEDULER_ITEM = {
-  path: 'scheduler',
-  label: 'Scheduler',
-  icon: 'M12 8v4l3 3 M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z',
-};
-
 const CONVERSATION_TRENDS_ITEM = {
   path: 'conversation-trends',
   label: 'Conversation Trends',
@@ -100,7 +94,7 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
 
   const allNavItems = [
     ...BASE_NAV_ITEMS,
-    ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM, DATA_LOADER_ITEM, SCHEDULER_ITEM] : []),
+    ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM, DATA_LOADER_ITEM] : []),
     ...(showPodcast ? [PODCAST_ITEM] : []),
     ...(showConversationTrends || userType === 'business' ? [CONVERSATION_TRENDS_ITEM] : []),
     TEST_RUNNER_ITEM,

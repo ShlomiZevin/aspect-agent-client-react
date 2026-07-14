@@ -558,6 +558,12 @@
 
 .savedMsg { color: #22c55e; font-size: var(--font-size-sm); }
 
+.settingsInputTime {
+  width: 110px;
+}
+
+.errorMsg { color: #dc2626; font-size: var(--font-size-sm); }
+
 /* ── Misc ───────────────────────────────────────────────── */
 
 .loading {

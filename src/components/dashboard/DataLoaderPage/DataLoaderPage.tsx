@@ -15,6 +15,47 @@ interface DataLoaderPageProps {
 // server/services/drive-to-gcs.service.js). Only these show the Sync button.
 const DRIVE_SYNC_SCHEMAS = ['zer4u', 'hypertoy'];
 
+interface SchedulerJob {
+  name: string;
+  schedule: string;
+  state: 'ENABLED' | 'PAUSED';
+}
+
+// "HH:MM" -> "M H * * *". Only handles single daily-time crons (what
+// drive-sync always uses) - not meant for arbitrary cron strings.
+function parseCronTime(cron: string): string | null {
+  const parts = cron.trim().split(/\s+/);
+  if (parts.length !== 5) return null;
+  const min = parseInt(parts[0], 10);
+  const hour = parseInt(parts[1], 10);
+  if (Number.isNaN(min) || Number.isNaN(hour)) return null;
+  return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+
+function addMinutes(h: number, m: number, deltaMin: number): { h: number; m: number } {
+  const total = (((h * 60 + m + deltaMin) % 1440) + 1440) % 1440;
+  return { h: Math.floor(total / 60), m: total % 60 };
+}
+
+// Derives drive-sync + ensure-loaded (import retry window) crons from a
+// single "start reload at" time. Indexing is intentionally not part of this -
+// it always runs on its own continuous check for "import done, not yet indexed".
+function buildScheduleCrons(startTime: string): { driveSync: string; ensureLoaded: string } | null {
+  const m = startTime.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  if (h > 23 || min > 59) return null;
+  const driveSync = `${min} ${h} * * *`;
+  // Import retries start 30 min after sync (time to finish syncing files),
+  // then poll every 15 min for a 5-hour safety window.
+  const retryStart = addMinutes(h, min, 30);
+  const retryEnd = addMinutes(h, min, 30 + 5 * 60);
+  const endHour = retryEnd.h >= retryStart.h ? retryEnd.h : 23;
+  const ensureLoaded = `*/15 ${retryStart.h}-${endHour} * * *`;
+  return { driveSync, ensureLoaded };
+}
+
 export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   const [files, setFiles] = useState<GCSFile[]>([]);
   const [currentRun, setCurrentRun] = useState<RunState | null>(null);
@@ -32,6 +73,11 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   const [importMonthsSupported, setImportMonthsSupported] = useState(false);
   const [savingMonths, setSavingMonths] = useState(false);
   const [monthsSaved, setMonthsSaved] = useState(false);
+  const [scheduleJobs, setScheduleJobs] = useState<{ driveSync: SchedulerJob; ensureLoaded: SchedulerJob } | null>(null);
+  const [scheduleStartTime, setScheduleStartTime] = useState('');
+  const [savingSchedule, setSavingSchedule] = useState(false);
+  const [scheduleSaved, setScheduleSaved] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const currentRunRef = useRef<HTMLDivElement>(null);
 
@@ -189,10 +235,92 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
     }
   }
 
+  const loadSchedule = useCallback(async () => {
+    if (!supportsDriveSync) return;
+    try {
+      const res = await fetch(`${baseURL}/api/admin/scheduler/jobs`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const jobs: SchedulerJob[] = data.jobs || [];
+      const driveSync = jobs.find(j => j.name === `${schemaName}-drive-sync`);
+      const ensureLoaded = jobs.find(j => j.name === `${schemaName}-ensure-loaded`);
+      if (driveSync && ensureLoaded) {
+        setScheduleJobs({ driveSync, ensureLoaded });
+        setScheduleStartTime(parseCronTime(driveSync.schedule) || '');
+      }
+    } catch {
+      // schedule is optional — ignore failures
+    }
+  }, [baseURL, schemaName, supportsDriveSync]);
+
+  async function saveSchedule() {
+    const crons = buildScheduleCrons(scheduleStartTime);
+    if (!crons || !scheduleJobs) {
+      setScheduleError('Enter a valid time (HH:MM)');
+      return;
+    }
+    setSavingSchedule(true);
+    setScheduleError(null);
+    setScheduleSaved(false);
+    try {
+      const patch = async (name: string, body: object) => {
+        const res = await fetch(`${baseURL}/api/admin/scheduler/jobs/${encodeURIComponent(name)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        return (await res.json()).job as SchedulerJob;
+      };
+      const [driveSync, ensureLoaded] = await Promise.all([
+        patch(scheduleJobs.driveSync.name, { schedule: crons.driveSync }),
+        patch(scheduleJobs.ensureLoaded.name, { schedule: crons.ensureLoaded }),
+      ]);
+      setScheduleJobs({ driveSync, ensureLoaded });
+      setScheduleSaved(true);
+      setTimeout(() => setScheduleSaved(false), 3000);
+    } catch (e: unknown) {
+      setScheduleError(e instanceof Error ? e.message : 'Failed to save schedule');
+    } finally {
+      setSavingSchedule(false);
+    }
+  }
+
+  async function toggleSchedulePaused() {
+    if (!scheduleJobs) return;
+    const paused = scheduleJobs.driveSync.state === 'ENABLED';
+    setSavingSchedule(true);
+    setScheduleError(null);
+    try {
+      const patch = async (name: string) => {
+        const res = await fetch(`${baseURL}/api/admin/scheduler/jobs/${encodeURIComponent(name)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paused }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()).job as SchedulerJob;
+      };
+      const [driveSync, ensureLoaded] = await Promise.all([
+        patch(scheduleJobs.driveSync.name),
+        patch(scheduleJobs.ensureLoaded.name),
+      ]);
+      setScheduleJobs({ driveSync, ensureLoaded });
+    } catch (e: unknown) {
+      setScheduleError(e instanceof Error ? e.message : 'Failed to update schedule');
+    } finally {
+      setSavingSchedule(false);
+    }
+  }
+
   useEffect(() => {
     loadData();
     loadSettings();
-  }, [loadData, loadSettings]);
+    loadSchedule();
+  }, [loadData, loadSettings, loadSchedule]);
 
   // Auto-connect SSE if already live on mount
   useEffect(() => {
@@ -447,6 +575,40 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
 
       <div className={styles.twoCol}>
         <div className={styles.leftCol}>
+          {scheduleJobs && (
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Schedule</h2>
+                <span className={scheduleJobs.driveSync.state === 'ENABLED' ? styles.sourceDb : styles.sourceDefault}>
+                  {scheduleJobs.driveSync.state === 'ENABLED' ? 'Enabled' : 'Paused'}
+                </span>
+              </div>
+              <div className={styles.settingsBody}>
+                <p className={styles.settingsDesc}>
+                  Nightly sync + import starts at this time. Indexing isn't scheduled here - it always runs on
+                  its own as soon as an import finishes.
+                </p>
+                <div className={styles.settingsRow}>
+                  <input
+                    className={`${styles.settingsInput} ${styles.settingsInputTime}`}
+                    type="time"
+                    value={scheduleStartTime}
+                    onChange={e => setScheduleStartTime(e.target.value)}
+                    disabled={savingSchedule}
+                  />
+                  <button className={styles.confirmBtn} onClick={saveSchedule} disabled={savingSchedule}>
+                    {savingSchedule ? 'Saving…' : 'Save'}
+                  </button>
+                  <button className={styles.cancelBtn} onClick={toggleSchedulePaused} disabled={savingSchedule}>
+                    {scheduleJobs.driveSync.state === 'ENABLED' ? 'Pause' : 'Resume'}
+                  </button>
+                  {scheduleSaved && <span className={styles.savedMsg}>Saved</span>}
+                </div>
+                {scheduleError && <p className={styles.errorMsg}>{scheduleError}</p>}
+              </div>
+            </div>
+          )}
+
           {importMonthsSupported && (
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
