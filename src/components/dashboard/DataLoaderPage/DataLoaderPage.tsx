@@ -52,32 +52,21 @@ function addMinutes(h: number, m: number, deltaMin: number): { h: number; m: num
   return { h: Math.floor(total / 60), m: total % 60 };
 }
 
-// Derives the drive-sync (if this schema has one) + ensure-loaded (import
-// retry window) crons from a single "start reload at" time. Indexing is
-// intentionally not part of this - it always runs on its own continuous
-// check for "import done, not yet indexed".
-function buildScheduleCrons(startTime: string, hasDriveSync: boolean): { driveSync: string | null; ensureLoaded: string } | null {
+// Derives ensure-loaded's (import retry window) cron from a single "start
+// reload at" time - uniform for every schema. Drive Sync has its own,
+// independently-set time (see the Drive Sync section); the two aren't
+// derived from each other, so keeping them sensibly ordered (sync before
+// import) is on whoever sets them. Indexing isn't part of this either - it
+// always runs on its own continuous check for "import done, not yet indexed".
+function buildScheduleCrons(startTime: string): { ensureLoaded: string } | null {
   const m = startTime.match(/^(\d{1,2}):(\d{2})$/);
   if (!m) return null;
   const h = parseInt(m[1], 10);
   const min = parseInt(m[2], 10);
   if (h > 23 || min > 59) return null;
-
-  if (!hasDriveSync) {
-    // No separate sync step to wait for - the chosen time starts the retry window directly.
-    const retryEnd = addMinutes(h, min, 5 * 60);
-    const endHour = retryEnd.h >= h ? retryEnd.h : 23;
-    return { driveSync: null, ensureLoaded: `*/15 ${h}-${endHour} * * *` };
-  }
-
-  const driveSync = `${min} ${h} * * *`;
-  // Import retries start 30 min after sync (time to finish syncing files),
-  // then poll every 15 min for a 5-hour safety window.
-  const retryStart = addMinutes(h, min, 30);
-  const retryEnd = addMinutes(h, min, 30 + 5 * 60);
-  const endHour = retryEnd.h >= retryStart.h ? retryEnd.h : 23;
-  const ensureLoaded = `*/15 ${retryStart.h}-${endHour} * * *`;
-  return { driveSync, ensureLoaded };
+  const retryEnd = addMinutes(h, min, 5 * 60);
+  const endHour = retryEnd.h >= h ? retryEnd.h : 23;
+  return { ensureLoaded: `*/15 ${h}-${endHour} * * *` };
 }
 
 export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
@@ -112,7 +101,7 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   const [driveSyncSaved, setDriveSyncSaved] = useState(false);
   const [driveSyncError, setDriveSyncError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'loader' | 'configuration'>('loader');
-  const [scheduleJobs, setScheduleJobs] = useState<{ driveSync: SchedulerJob | null; ensureLoaded: SchedulerJob } | null>(null);
+  const [ensureLoadedJob, setEnsureLoadedJob] = useState<SchedulerJob | null>(null);
   const [scheduleStartTime, setScheduleStartTime] = useState('');
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [scheduleSaved, setScheduleSaved] = useState(false);
@@ -404,30 +393,25 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
       if (!res.ok) return;
       const data = await res.json();
       const jobs: SchedulerJob[] = data.jobs || [];
-      const driveSyncJobFound = jobs.find(j => j.name === `${schemaName}-drive-sync`) || null;
-      const ensureLoaded = jobs.find(j => j.name === `${schemaName}-ensure-loaded`);
-
-      // For zer4u/hypertoy, drive-sync's timing is coupled to Scheduled Reload
-      // (sync happens, then import retries 30min later). For every other schema,
-      // drive-sync (if any) is a fully independent job - see the Drive Sync section.
-      const coupledDriveSync = supportsDriveSync ? driveSyncJobFound : null;
+      const ensureLoaded = jobs.find(j => j.name === `${schemaName}-ensure-loaded`) || null;
       if (ensureLoaded) {
-        setScheduleJobs({ driveSync: coupledDriveSync, ensureLoaded });
-        setScheduleStartTime((coupledDriveSync ? parseCronTime(coupledDriveSync.schedule) : parseCronRangeStart(ensureLoaded.schedule)) || '');
+        setEnsureLoadedJob(ensureLoaded);
+        setScheduleStartTime(parseCronRangeStart(ensureLoaded.schedule) || '');
       }
 
-      if (!supportsDriveSync) {
-        setDriveSyncJob(driveSyncJobFound);
-        if (driveSyncJobFound) setDriveSyncTime(parseCronTime(driveSyncJobFound.schedule) || '');
-      }
+      // Drive Sync is independent of Scheduled Reload for every schema - its
+      // own on/off + time, set from the Drive Sync section below.
+      const driveSyncJobFound = jobs.find(j => j.name === `${schemaName}-drive-sync`) || null;
+      setDriveSyncJob(driveSyncJobFound);
+      if (driveSyncJobFound) setDriveSyncTime(parseCronTime(driveSyncJobFound.schedule) || '');
     } catch {
       // schedule is optional — ignore failures
     }
-  }, [baseURL, schemaName, supportsDriveSync]);
+  }, [baseURL, schemaName]);
 
   async function saveSchedule() {
-    if (!scheduleJobs) return;
-    const crons = buildScheduleCrons(scheduleStartTime, !!scheduleJobs.driveSync);
+    if (!ensureLoadedJob) return;
+    const crons = buildScheduleCrons(scheduleStartTime);
     if (!crons) {
       setScheduleError('Enter a valid time (HH:MM)');
       return;
@@ -436,23 +420,17 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
     setScheduleError(null);
     setScheduleSaved(false);
     try {
-      const patch = async (name: string, body: object) => {
-        const res = await fetch(`${baseURL}/api/admin/scheduler/jobs/${encodeURIComponent(name)}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || `HTTP ${res.status}`);
-        }
-        return (await res.json()).job as SchedulerJob;
-      };
-      const ensureLoaded = await patch(scheduleJobs.ensureLoaded.name, { schedule: crons.ensureLoaded });
-      const driveSync = scheduleJobs.driveSync && crons.driveSync
-        ? await patch(scheduleJobs.driveSync.name, { schedule: crons.driveSync })
-        : scheduleJobs.driveSync;
-      setScheduleJobs({ driveSync, ensureLoaded });
+      const res = await fetch(`${baseURL}/api/admin/scheduler/jobs/${encodeURIComponent(ensureLoadedJob.name)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schedule: crons.ensureLoaded }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      setEnsureLoadedJob(data.job as SchedulerJob);
       setScheduleSaved(true);
       setTimeout(() => setScheduleSaved(false), 3000);
     } catch (e: unknown) {
@@ -463,23 +441,19 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   }
 
   async function toggleSchedulePaused() {
-    if (!scheduleJobs) return;
-    const paused = scheduleJobs.ensureLoaded.state === 'ENABLED';
+    if (!ensureLoadedJob) return;
+    const paused = ensureLoadedJob.state === 'ENABLED';
     setSavingSchedule(true);
     setScheduleError(null);
     try {
-      const patch = async (name: string) => {
-        const res = await fetch(`${baseURL}/api/admin/scheduler/jobs/${encodeURIComponent(name)}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paused }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return (await res.json()).job as SchedulerJob;
-      };
-      const ensureLoaded = await patch(scheduleJobs.ensureLoaded.name);
-      const driveSync = scheduleJobs.driveSync ? await patch(scheduleJobs.driveSync.name) : null;
-      setScheduleJobs({ driveSync, ensureLoaded });
+      const res = await fetch(`${baseURL}/api/admin/scheduler/jobs/${encodeURIComponent(ensureLoadedJob.name)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paused }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setEnsureLoadedJob(data.job as SchedulerJob);
     } catch (e: unknown) {
       setScheduleError(e instanceof Error ? e.message : 'Failed to update schedule');
     } finally {
@@ -816,27 +790,26 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
       {activeTab === 'configuration' && (
         <div className={styles.twoCol}>
           <div className={styles.leftCol}>
-            {scheduleJobs && (
+            {ensureLoadedJob && (
               <div className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <h2 className={styles.sectionTitle}>Scheduled Reload</h2>
-                  <span className={`${styles.sourceBadge} ${scheduleJobs.ensureLoaded.state === 'ENABLED' ? styles.sourceDb : styles.sourceDefault}`}>
-                    {scheduleJobs.ensureLoaded.state === 'ENABLED' ? 'On' : 'Off'}
+                  <span className={`${styles.sourceBadge} ${ensureLoadedJob.state === 'ENABLED' ? styles.sourceDb : styles.sourceDefault}`}>
+                    {ensureLoadedJob.state === 'ENABLED' ? 'On' : 'Off'}
                   </span>
                 </div>
                 <div className={styles.settingsBody}>
                   <p className={styles.settingsDesc}>
-                    {scheduleJobs.driveSync
-                      ? "When on, sync + import run automatically every night at the time below."
-                      : 'When on, import runs automatically every night at the time below.'}
-                    {' '}Indexing isn't scheduled here - it always runs on its own as soon as an import finishes.
+                    When on, import runs automatically every night at the time below. This is independent from
+                    Drive Sync's own timing (below) - indexing isn't scheduled at all, it always runs on its
+                    own as soon as an import finishes.
                   </p>
                   <div className={styles.settingsRow}>
                     <button className={styles.confirmBtn} onClick={toggleSchedulePaused} disabled={savingSchedule}>
-                      {savingSchedule ? 'Saving…' : scheduleJobs.ensureLoaded.state === 'ENABLED' ? 'Turn off' : 'Turn on'}
+                      {savingSchedule ? 'Saving…' : ensureLoadedJob.state === 'ENABLED' ? 'Turn off' : 'Turn on'}
                     </button>
                   </div>
-                  {scheduleJobs.ensureLoaded.state === 'ENABLED' && (
+                  {ensureLoadedJob.state === 'ENABLED' && (
                     <>
                       <div className={styles.settingsRow} style={{ marginTop: 10 }}>
                         <input
@@ -936,7 +909,7 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>Drive Sync</h2>
-                {!supportsDriveSync && driveSyncJob && (
+                {driveSyncJob && (
                   <span className={`${styles.sourceBadge} ${driveSyncJob.state === 'ENABLED' ? styles.sourceDb : styles.sourceDefault}`}>
                     {driveSyncJob.state === 'ENABLED' ? 'On' : 'Off'}
                   </span>
@@ -944,8 +917,9 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
               </div>
               <div className={styles.settingsBody}>
                 <p className={styles.settingsDesc}>
-                  Optional - mirrors a Google Drive folder into the Import Folder above. Only useful if this
-                  client delivers files via a shared Drive folder rather than uploading to GCS directly.
+                  Optional - mirrors a Google Drive folder into the Import Folder above, on its own schedule
+                  (independent from Scheduled Reload). Only useful if this client delivers files via a shared
+                  Drive folder rather than uploading to GCS directly.
                 </p>
                 <div className={styles.settingsRow}>
                   <label className={styles.settingsUnit} style={{ minWidth: 110 }}>Drive folder ID</label>
@@ -964,11 +938,7 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
                 </div>
                 {driveFolderIdError && <p className={styles.errorMsg}>{driveFolderIdError}</p>}
 
-                {supportsDriveSync ? (
-                  <p className={styles.settingsHint} style={{ marginTop: 10 }}>
-                    Sync timing is managed together with "Scheduled Reload" above.
-                  </p>
-                ) : driveFolderId ? (
+                {driveFolderId ? (
                   <>
                     <div className={styles.settingsRow} style={{ marginTop: 10 }}>
                       <button className={styles.confirmBtn} onClick={toggleDriveSync} disabled={savingDriveSync}>
