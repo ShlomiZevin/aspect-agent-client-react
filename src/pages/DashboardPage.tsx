@@ -19,6 +19,7 @@ import { TestRunnerPage } from '../components/dashboard/TestRunnerPage';
 import { DynamicKBPage } from '../components/dashboard/DynamicKBPage';
 import { ConversationTrendsPage } from '../components/dashboard/ConversationTrendsPage';
 import { CloudRunLogsPage } from '../components/dashboard/CloudRunLogsPage';
+import { SchedulerPage } from '../components/dashboard/SchedulerPage';
 import { PineconeAdmin } from '../components/pinecone';
 import { TaskBoardContent } from '../components/tasks/TaskBoardModal/TaskBoardContent';
 import dashStyles from './DashboardPage.module.css';
@@ -140,6 +141,12 @@ export function DashboardPage() {
               <Route
                 path="data-loader"
                 element={<DataLoaderPage agentName={config.agentName} baseURL={config.baseURL} schemaName={config.database!.schema} />}
+              />
+            )}
+            {showQueryOptimizer && (
+              <Route
+                path="scheduler"
+                element={<SchedulerPage baseURL={config.baseURL} />}
               />
             )}
             {showPodcast && (
