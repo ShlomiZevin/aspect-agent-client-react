@@ -99,11 +99,18 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   const [monthsSaved, setMonthsSaved] = useState(false);
   const [gcsFolder, setGcsFolder] = useState('');
   const [gcsFolderSource, setGcsFolderSource] = useState<'db' | 'env' | 'default'>('default');
-  const [driveFolderIdSupported, setDriveFolderIdSupported] = useState(false);
-  const [driveFolderId, setDriveFolderId] = useState('');
   const [savingFolders, setSavingFolders] = useState(false);
   const [foldersSaved, setFoldersSaved] = useState(false);
   const [foldersError, setFoldersError] = useState<string | null>(null);
+  const [driveFolderId, setDriveFolderId] = useState('');
+  const [savingDriveFolderId, setSavingDriveFolderId] = useState(false);
+  const [driveFolderIdSaved, setDriveFolderIdSaved] = useState(false);
+  const [driveFolderIdError, setDriveFolderIdError] = useState<string | null>(null);
+  const [driveSyncJob, setDriveSyncJob] = useState<SchedulerJob | null>(null);
+  const [driveSyncTime, setDriveSyncTime] = useState('');
+  const [savingDriveSync, setSavingDriveSync] = useState(false);
+  const [driveSyncSaved, setDriveSyncSaved] = useState(false);
+  const [driveSyncError, setDriveSyncError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'loader' | 'configuration'>('loader');
   const [scheduleJobs, setScheduleJobs] = useState<{ driveSync: SchedulerJob | null; ensureLoaded: SchedulerJob } | null>(null);
   const [scheduleStartTime, setScheduleStartTime] = useState('');
@@ -240,7 +247,6 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
       setImportMonths(data.importMonths != null ? String(data.importMonths) : '0');
       setGcsFolder(data.gcsFolder ?? '');
       setGcsFolderSource(data.gcsFolderSource ?? 'default');
-      setDriveFolderIdSupported(!!data.driveFolderIdSupported);
       setDriveFolderId(data.driveFolderId ?? '');
     } catch {
       // settings are optional — ignore failures
@@ -252,12 +258,10 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
     setFoldersError(null);
     setFoldersSaved(false);
     try {
-      const body: { gcsFolder: string; driveFolderId?: string } = { gcsFolder };
-      if (driveFolderIdSupported) body.driveFolderId = driveFolderId;
       const res = await fetch(`${apiBase}/settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ gcsFolder }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -266,13 +270,106 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
       const data = await res.json();
       setGcsFolder(data.gcsFolder ?? '');
       setGcsFolderSource(data.gcsFolderSource ?? 'default');
-      setDriveFolderId(data.driveFolderId ?? '');
       setFoldersSaved(true);
       setTimeout(() => setFoldersSaved(false), 3000);
     } catch (e: unknown) {
       setFoldersError(e instanceof Error ? e.message : 'Failed to save folders');
     } finally {
       setSavingFolders(false);
+    }
+  }
+
+  async function saveDriveFolderId() {
+    setSavingDriveFolderId(true);
+    setDriveFolderIdError(null);
+    setDriveFolderIdSaved(false);
+    try {
+      const res = await fetch(`${apiBase}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driveFolderId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      setDriveFolderId(data.driveFolderId ?? '');
+      setDriveFolderIdSaved(true);
+      setTimeout(() => setDriveFolderIdSaved(false), 3000);
+    } catch (e: unknown) {
+      setDriveFolderIdError(e instanceof Error ? e.message : 'Failed to save Drive folder ID');
+    } finally {
+      setSavingDriveFolderId(false);
+    }
+  }
+
+  // Turns the independent (non-zer4u/hypertoy) Drive Sync job on/off - creates
+  // it the first time (Cloud Scheduler has none yet), otherwise just pauses/resumes.
+  async function toggleDriveSync() {
+    setSavingDriveSync(true);
+    setDriveSyncError(null);
+    try {
+      if (!driveSyncJob) {
+        const time = driveSyncTime || '01:00';
+        const m = time.match(/^(\d{1,2}):(\d{2})$/);
+        if (!m) throw new Error('Enter a valid time (HH:MM)');
+        const cron = `${parseInt(m[2], 10)} ${parseInt(m[1], 10)} * * *`;
+        const res = await fetch(`${baseURL}/api/admin/scheduler/jobs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: `${schemaName}-drive-sync`, schedule: cron, uri: `${apiBase}/drive-sync`, paused: false }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        setDriveSyncJob(data.job);
+        setDriveSyncTime(time);
+      } else {
+        const paused = driveSyncJob.state === 'ENABLED';
+        const res = await fetch(`${baseURL}/api/admin/scheduler/jobs/${encodeURIComponent(driveSyncJob.name)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paused }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        setDriveSyncJob(data.job);
+      }
+    } catch (e: unknown) {
+      setDriveSyncError(e instanceof Error ? e.message : 'Failed to update Drive sync');
+    } finally {
+      setSavingDriveSync(false);
+    }
+  }
+
+  async function saveDriveSyncTime() {
+    if (!driveSyncJob) return;
+    const m = driveSyncTime.match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) {
+      setDriveSyncError('Enter a valid time (HH:MM)');
+      return;
+    }
+    const cron = `${parseInt(m[2], 10)} ${parseInt(m[1], 10)} * * *`;
+    setSavingDriveSync(true);
+    setDriveSyncError(null);
+    try {
+      const res = await fetch(`${baseURL}/api/admin/scheduler/jobs/${encodeURIComponent(driveSyncJob.name)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schedule: cron }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setDriveSyncJob(data.job);
+      setDriveSyncSaved(true);
+      setTimeout(() => setDriveSyncSaved(false), 3000);
+    } catch (e: unknown) {
+      setDriveSyncError(e instanceof Error ? e.message : 'Failed to save Drive sync time');
+    } finally {
+      setSavingDriveSync(false);
     }
   }
 
@@ -307,16 +404,26 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
       if (!res.ok) return;
       const data = await res.json();
       const jobs: SchedulerJob[] = data.jobs || [];
-      const driveSync = jobs.find(j => j.name === `${schemaName}-drive-sync`) || null;
+      const driveSyncJobFound = jobs.find(j => j.name === `${schemaName}-drive-sync`) || null;
       const ensureLoaded = jobs.find(j => j.name === `${schemaName}-ensure-loaded`);
+
+      // For zer4u/hypertoy, drive-sync's timing is coupled to Scheduled Reload
+      // (sync happens, then import retries 30min later). For every other schema,
+      // drive-sync (if any) is a fully independent job - see the Drive Sync section.
+      const coupledDriveSync = supportsDriveSync ? driveSyncJobFound : null;
       if (ensureLoaded) {
-        setScheduleJobs({ driveSync, ensureLoaded });
-        setScheduleStartTime((driveSync ? parseCronTime(driveSync.schedule) : parseCronRangeStart(ensureLoaded.schedule)) || '');
+        setScheduleJobs({ driveSync: coupledDriveSync, ensureLoaded });
+        setScheduleStartTime((coupledDriveSync ? parseCronTime(coupledDriveSync.schedule) : parseCronRangeStart(ensureLoaded.schedule)) || '');
+      }
+
+      if (!supportsDriveSync) {
+        setDriveSyncJob(driveSyncJobFound);
+        if (driveSyncJobFound) setDriveSyncTime(parseCronTime(driveSyncJobFound.schedule) || '');
       }
     } catch {
       // schedule is optional — ignore failures
     }
-  }, [baseURL, schemaName]);
+  }, [baseURL, schemaName, supportsDriveSync]);
 
   async function saveSchedule() {
     if (!scheduleJobs) return;
@@ -797,31 +904,17 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
 
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>{driveFolderIdSupported ? 'Sync & Import Folder' : 'Import Folder'}</h2>
+                <h2 className={styles.sectionTitle}>Import Folder</h2>
                 <span className={`${styles.sourceBadge} ${gcsFolderSource === 'db' ? styles.sourceDb : styles.sourceDefault}`}>
                   {gcsFolderSource === 'db' ? 'set here' : 'default'}
                 </span>
               </div>
               <div className={styles.settingsBody}>
                 <p className={styles.settingsDesc}>
-                  {driveFolderIdSupported
-                    ? "The Drive folder synced nightly, and the GCS folder both that sync and every import read from - keep these matched or files won't reach the loader."
-                    : 'The GCS folder this schema\'s import reads CSV files from.'}
+                  The GCS folder this schema's import reads CSV files from. If Drive Sync (below) is on, this is
+                  also where it writes files - keep them matched or files won't reach the loader.
                 </p>
-                {driveFolderIdSupported && (
-                  <div className={styles.settingsRow}>
-                    <label className={styles.settingsUnit} style={{ minWidth: 110 }}>Drive folder ID</label>
-                    <input
-                      className={styles.settingsInput}
-                      style={{ width: 320 }}
-                      type="text"
-                      value={driveFolderId}
-                      onChange={e => setDriveFolderId(e.target.value)}
-                      disabled={savingFolders}
-                    />
-                  </div>
-                )}
-                <div className={styles.settingsRow} style={{ marginTop: driveFolderIdSupported ? 8 : 0 }}>
+                <div className={styles.settingsRow}>
                   <label className={styles.settingsUnit} style={{ minWidth: 110 }}>GCS folder</label>
                   <input
                     className={styles.settingsInput}
@@ -831,14 +924,81 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
                     onChange={e => setGcsFolder(e.target.value)}
                     disabled={savingFolders}
                   />
-                </div>
-                <div className={styles.settingsRow} style={{ marginTop: 10 }}>
                   <button className={styles.confirmBtn} onClick={saveFolders} disabled={savingFolders}>
                     {savingFolders ? 'Saving…' : 'Save'}
                   </button>
                   {foldersSaved && <span className={styles.savedMsg}>Saved</span>}
                 </div>
                 {foldersError && <p className={styles.errorMsg}>{foldersError}</p>}
+              </div>
+            </div>
+
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Drive Sync</h2>
+                {!supportsDriveSync && driveSyncJob && (
+                  <span className={`${styles.sourceBadge} ${driveSyncJob.state === 'ENABLED' ? styles.sourceDb : styles.sourceDefault}`}>
+                    {driveSyncJob.state === 'ENABLED' ? 'On' : 'Off'}
+                  </span>
+                )}
+              </div>
+              <div className={styles.settingsBody}>
+                <p className={styles.settingsDesc}>
+                  Optional - mirrors a Google Drive folder into the Import Folder above. Only useful if this
+                  client delivers files via a shared Drive folder rather than uploading to GCS directly.
+                </p>
+                <div className={styles.settingsRow}>
+                  <label className={styles.settingsUnit} style={{ minWidth: 110 }}>Drive folder ID</label>
+                  <input
+                    className={styles.settingsInput}
+                    style={{ width: 320 }}
+                    type="text"
+                    value={driveFolderId}
+                    onChange={e => setDriveFolderId(e.target.value)}
+                    disabled={savingDriveFolderId}
+                  />
+                  <button className={styles.confirmBtn} onClick={saveDriveFolderId} disabled={savingDriveFolderId}>
+                    {savingDriveFolderId ? 'Saving…' : 'Save'}
+                  </button>
+                  {driveFolderIdSaved && <span className={styles.savedMsg}>Saved</span>}
+                </div>
+                {driveFolderIdError && <p className={styles.errorMsg}>{driveFolderIdError}</p>}
+
+                {supportsDriveSync ? (
+                  <p className={styles.settingsHint} style={{ marginTop: 10 }}>
+                    Sync timing is managed together with "Scheduled Reload" above.
+                  </p>
+                ) : driveFolderId ? (
+                  <>
+                    <div className={styles.settingsRow} style={{ marginTop: 10 }}>
+                      <button className={styles.confirmBtn} onClick={toggleDriveSync} disabled={savingDriveSync}>
+                        {savingDriveSync ? 'Saving…' : driveSyncJob?.state === 'ENABLED' ? 'Turn off' : 'Turn on'}
+                      </button>
+                    </div>
+                    {(!driveSyncJob || driveSyncJob.state === 'ENABLED') && (
+                      <div className={styles.settingsRow} style={{ marginTop: 10 }}>
+                        <input
+                          className={`${styles.settingsInput} ${styles.settingsInputTime}`}
+                          type="time"
+                          value={driveSyncTime}
+                          onChange={e => setDriveSyncTime(e.target.value)}
+                          disabled={savingDriveSync}
+                        />
+                        {driveSyncJob && (
+                          <button className={styles.confirmBtn} onClick={saveDriveSyncTime} disabled={savingDriveSync}>
+                            {savingDriveSync ? 'Saving…' : 'Save'}
+                          </button>
+                        )}
+                        {driveSyncSaved && <span className={styles.savedMsg}>Saved</span>}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className={styles.settingsHint} style={{ marginTop: 10 }}>
+                    Set a Drive folder ID above to enable sync.
+                  </p>
+                )}
+                {driveSyncError && <p className={styles.errorMsg}>{driveSyncError}</p>}
               </div>
             </div>
           </div>
