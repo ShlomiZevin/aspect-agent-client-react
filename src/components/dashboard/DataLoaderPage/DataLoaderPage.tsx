@@ -32,6 +32,10 @@ function parseCronTime(cron: string): string | null {
   return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
 }
 
+function formatJerusalemTime(d: Date): string {
+  return d.toLocaleTimeString('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
+}
+
 function addMinutes(h: number, m: number, deltaMin: number): { h: number; m: number } {
   const total = (((h * 60 + m + deltaMin) % 1440) + 1440) % 1440;
   return { h: Math.floor(total / 60), m: total % 60 };
@@ -73,11 +77,16 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   const [importMonthsSupported, setImportMonthsSupported] = useState(false);
   const [savingMonths, setSavingMonths] = useState(false);
   const [monthsSaved, setMonthsSaved] = useState(false);
+  const [reloadEnabled, setReloadEnabled] = useState(false);
+  const [reloadEnabledSource, setReloadEnabledSource] = useState<'db' | 'env' | 'default'>('default');
+  const [savingReloadEnabled, setSavingReloadEnabled] = useState(false);
+  const [activeTab, setActiveTab] = useState<'loader' | 'configuration'>('loader');
   const [scheduleJobs, setScheduleJobs] = useState<{ driveSync: SchedulerJob; ensureLoaded: SchedulerJob } | null>(null);
   const [scheduleStartTime, setScheduleStartTime] = useState('');
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [scheduleSaved, setScheduleSaved] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(() => formatJerusalemTime(new Date()));
   const eventSourceRef = useRef<EventSource | null>(null);
   const currentRunRef = useRef<HTMLDivElement>(null);
 
@@ -205,10 +214,34 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
       setImportMonthsSupported(!!data.supported);
       setImportMonthsSource(data.source ?? 'default');
       setImportMonths(data.importMonths != null ? String(data.importMonths) : '0');
+      setReloadEnabled(!!data.reloadEnabled);
+      setReloadEnabledSource(data.reloadEnabledSource ?? 'default');
     } catch {
       // settings are optional — ignore failures
     }
   }, [apiBase]);
+
+  async function toggleReloadEnabled() {
+    setSavingReloadEnabled(true);
+    try {
+      const res = await fetch(`${apiBase}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reloadEnabled: !reloadEnabled }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      setReloadEnabled(!!data.reloadEnabled);
+      setReloadEnabledSource(data.reloadEnabledSource ?? 'default');
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Failed to update reload-enabled');
+    } finally {
+      setSavingReloadEnabled(false);
+    }
+  }
 
   async function saveImportMonths() {
     setSavingMonths(true);
@@ -321,6 +354,11 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
     loadSettings();
     loadSchedule();
   }, [loadData, loadSettings, loadSchedule]);
+
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(formatJerusalemTime(new Date())), 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Auto-connect SSE if already live on mount
   useEffect(() => {
@@ -573,129 +611,176 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
         </div>
       )}
 
-      <div className={styles.twoCol}>
-        <div className={styles.leftCol}>
-          {scheduleJobs && (
+      <div className={styles.tabBar}>
+        <button
+          className={activeTab === 'loader' ? styles.tabActive : styles.tab}
+          onClick={() => setActiveTab('loader')}
+        >
+          Loader
+        </button>
+        <button
+          className={activeTab === 'configuration' ? styles.tabActive : styles.tab}
+          onClick={() => setActiveTab('configuration')}
+        >
+          Configuration
+        </button>
+      </div>
+
+      {activeTab === 'loader' && (
+        <div className={styles.twoCol}>
+          <div className={styles.leftCol}>
+            {scheduleJobs && (
+              <div className={styles.section}>
+                <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitle}>Schedule</h2>
+                  <span className={`${styles.sourceBadge} ${scheduleJobs.driveSync.state === 'ENABLED' ? styles.sourceDb : styles.sourceDefault}`}>
+                    {scheduleJobs.driveSync.state === 'ENABLED' ? 'Enabled' : 'Paused'}
+                  </span>
+                </div>
+                <div className={styles.settingsBody}>
+                  <p className={styles.settingsDesc}>
+                    Nightly sync + import starts at this time. Indexing isn't scheduled here - it always runs on
+                    its own as soon as an import finishes.
+                  </p>
+                  <div className={styles.settingsRow}>
+                    <input
+                      className={`${styles.settingsInput} ${styles.settingsInputTime}`}
+                      type="time"
+                      value={scheduleStartTime}
+                      onChange={e => setScheduleStartTime(e.target.value)}
+                      disabled={savingSchedule}
+                    />
+                    <button className={styles.confirmBtn} onClick={saveSchedule} disabled={savingSchedule}>
+                      {savingSchedule ? 'Saving…' : 'Save'}
+                    </button>
+                    <button className={styles.cancelBtn} onClick={toggleSchedulePaused} disabled={savingSchedule}>
+                      {scheduleJobs.driveSync.state === 'ENABLED' ? 'Pause' : 'Resume'}
+                    </button>
+                    {scheduleSaved && <span className={styles.savedMsg}>Saved</span>}
+                  </div>
+                  {scheduleError && <p className={styles.errorMsg}>{scheduleError}</p>}
+                  <p className={styles.settingsHint}>Current time: {currentTime} (Asia/Jerusalem)</p>
+                </div>
+              </div>
+            )}
+
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>Schedule</h2>
-                <span className={scheduleJobs.driveSync.state === 'ENABLED' ? styles.sourceDb : styles.sourceDefault}>
-                  {scheduleJobs.driveSync.state === 'ENABLED' ? 'Enabled' : 'Paused'}
-                </span>
+                <h2 className={styles.sectionTitle}>Source Files</h2>
+                <span className={styles.sectionCount}>{files.length} files</span>
               </div>
-              <div className={styles.settingsBody}>
-                <p className={styles.settingsDesc}>
-                  Nightly sync + import starts at this time. Indexing isn't scheduled here - it always runs on
-                  its own as soon as an import finishes.
-                </p>
-                <div className={styles.settingsRow}>
-                  <input
-                    className={`${styles.settingsInput} ${styles.settingsInputTime}`}
-                    type="time"
-                    value={scheduleStartTime}
-                    onChange={e => setScheduleStartTime(e.target.value)}
-                    disabled={savingSchedule}
-                  />
-                  <button className={styles.confirmBtn} onClick={saveSchedule} disabled={savingSchedule}>
-                    {savingSchedule ? 'Saving…' : 'Save'}
-                  </button>
-                  <button className={styles.cancelBtn} onClick={toggleSchedulePaused} disabled={savingSchedule}>
-                    {scheduleJobs.driveSync.state === 'ENABLED' ? 'Pause' : 'Resume'}
-                  </button>
-                  {scheduleSaved && <span className={styles.savedMsg}>Saved</span>}
-                </div>
-                {scheduleError && <p className={styles.errorMsg}>{scheduleError}</p>}
-              </div>
+              <SourceFilesTable
+                files={files}
+                fileProgress={fileProgress}
+                isReloading={isBusy}
+              />
             </div>
-          )}
+          </div>
 
-          {importMonthsSupported && (
-            <div className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>Import Window</h2>
-                <span className={`${styles.sourceBadge} ${
-                  importMonthsSource === 'db' ? styles.sourceDb
-                  : importMonthsSource === 'env' ? styles.sourceEnv
-                  : styles.sourceDefault
-                }`}>
-                  {importMonthsSource === 'db' ? 'DB override' : importMonthsSource === 'env' ? 'env default' : 'default'}
-                </span>
-              </div>
-              <div className={styles.settingsBody}>
-                <p className={styles.settingsDesc}>
-                  Limit how much history is imported. Only the last N months of sales
-                  (relative to the latest sale date in the data) are loaded; <code>0</code> loads everything.
-                </p>
-                <div className={styles.settingsRow}>
-                  <input
-                    className={styles.settingsInput}
-                    type="number"
-                    min={0}
-                    value={importMonths}
-                    onChange={e => setImportMonths(e.target.value)}
-                    disabled={savingMonths}
-                  />
-                  <span className={styles.settingsUnit}>months</span>
-                  <button
-                    className={styles.confirmBtn}
-                    onClick={saveImportMonths}
-                    disabled={savingMonths}
-                  >
-                    {savingMonths ? 'Saving…' : 'Save'}
-                  </button>
-                  {monthsSaved && <span className={styles.savedMsg}>Saved</span>}
+          <div className={styles.rightCol}>
+            {(isLive || currentRun) && (
+              <div className={styles.section} ref={currentRunRef}>
+                <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitle}>
+                    {isLive ? 'Current Run' : 'Last Run'}
+                  </h2>
                 </div>
-                <p className={styles.settingsHint}>
-                  Applies on the next import. Clear the field and save to fall back to the env default.
-                </p>
+                <CurrentRunPanel
+                  run={currentRun}
+                  logs={liveLogs}
+                  filesCompleted={currentRun?.filesLoaded ?? currentRun?.files_loaded}
+                />
               </div>
-            </div>
-          )}
+            )}
 
-          <div className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Source Files</h2>
-              <span className={styles.sectionCount}>{files.length} files</span>
-            </div>
-            <SourceFilesTable
-              files={files}
-              fileProgress={fileProgress}
-              isReloading={isBusy}
-            />
+            {history.length > 0 && (
+              <div className={styles.section}>
+                <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitle}>Run History</h2>
+                  <span className={styles.sectionCount}>{history.length} runs</span>
+                </div>
+                <RunHistoryTable
+                  history={history}
+                  baseURL={baseURL}
+                  schemaName={schemaName}
+                />
+              </div>
+            )}
           </div>
         </div>
+      )}
 
-        <div className={styles.rightCol}>
-          {(isLive || currentRun) && (
-            <div className={styles.section} ref={currentRunRef}>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>
-                  {isLive ? 'Current Run' : 'Last Run'}
-                </h2>
-              </div>
-              <CurrentRunPanel
-                run={currentRun}
-                logs={liveLogs}
-                filesCompleted={currentRun?.filesLoaded ?? currentRun?.files_loaded}
-              />
-            </div>
-          )}
-
-          {history.length > 0 && (
+      {activeTab === 'configuration' && (
+        <div className={styles.twoCol}>
+          <div className={styles.leftCol}>
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>Run History</h2>
-                <span className={styles.sectionCount}>{history.length} runs</span>
+                <h2 className={styles.sectionTitle}>Reload Enabled</h2>
+                <span className={`${styles.sourceBadge} ${reloadEnabled ? styles.sourceDb : styles.sourceDefault}`}>
+                  {reloadEnabled ? 'On' : 'Off'}
+                </span>
               </div>
-              <RunHistoryTable
-                history={history}
-                baseURL={baseURL}
-                schemaName={schemaName}
-              />
+              <div className={styles.settingsBody}>
+                <p className={styles.settingsDesc}>
+                  Master switch for this schema's import/index. When off, manual and scheduled reloads both
+                  refuse to run - no code deploy needed to flip this.
+                </p>
+                <div className={styles.settingsRow}>
+                  <button className={styles.confirmBtn} onClick={toggleReloadEnabled} disabled={savingReloadEnabled}>
+                    {savingReloadEnabled ? 'Saving…' : reloadEnabled ? 'Turn off' : 'Turn on'}
+                  </button>
+                </div>
+                <p className={styles.settingsHint}>
+                  Source: {reloadEnabledSource === 'db' ? 'set here' : reloadEnabledSource === 'env' ? 'env default' : 'default (off)'}
+                </p>
+              </div>
             </div>
-          )}
+
+            {importMonthsSupported && (
+              <div className={styles.section}>
+                <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitle}>Import Window</h2>
+                  <span className={`${styles.sourceBadge} ${
+                    importMonthsSource === 'db' ? styles.sourceDb
+                    : importMonthsSource === 'env' ? styles.sourceEnv
+                    : styles.sourceDefault
+                  }`}>
+                    {importMonthsSource === 'db' ? 'DB override' : importMonthsSource === 'env' ? 'env default' : 'default'}
+                  </span>
+                </div>
+                <div className={styles.settingsBody}>
+                  <p className={styles.settingsDesc}>
+                    Limit how much history is imported. Only the last N months of sales
+                    (relative to the latest sale date in the data) are loaded; <code>0</code> loads everything.
+                  </p>
+                  <div className={styles.settingsRow}>
+                    <input
+                      className={styles.settingsInput}
+                      type="number"
+                      min={0}
+                      value={importMonths}
+                      onChange={e => setImportMonths(e.target.value)}
+                      disabled={savingMonths}
+                    />
+                    <span className={styles.settingsUnit}>months</span>
+                    <button
+                      className={styles.confirmBtn}
+                      onClick={saveImportMonths}
+                      disabled={savingMonths}
+                    >
+                      {savingMonths ? 'Saving…' : 'Save'}
+                    </button>
+                    {monthsSaved && <span className={styles.savedMsg}>Saved</span>}
+                  </div>
+                  <p className={styles.settingsHint}>
+                    Applies on the next import. Clear the field and save to fall back to the env default.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
