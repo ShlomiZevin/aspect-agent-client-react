@@ -32,15 +32,18 @@ function parseCronTime(cron: string): string | null {
   return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
 }
 
-// Reads the start hour out of a "*/15 H1-H2 * * *" retry-window cron (what
-// ensure-loaded uses on its own, with no drive-sync counterpart). Minutes
-// aren't meaningful for a */15 sweep, so displayed as :00.
+// Reads the start time out of an ensure-loaded retry-window cron, e.g.
+// "10,25,40,55 0-5 * * *" -> "00:10". Minute field is the 4 comma-separated
+// offsets from buildScheduleCrons below (falls back to :00 for the older
+// "*/15 H1-H2 * * *" shape, which didn't preserve minutes).
 function parseCronRangeStart(cron: string): string | null {
   const parts = cron.trim().split(/\s+/);
   if (parts.length !== 5) return null;
   const hour = parseInt(parts[1].split('-')[0], 10);
   if (Number.isNaN(hour)) return null;
-  return `${String(hour).padStart(2, '0')}:00`;
+  const firstMinute = parts[0].split(',')[0];
+  const minute = firstMinute.includes('*') ? 0 : parseInt(firstMinute, 10);
+  return `${String(hour).padStart(2, '0')}:${String(Number.isNaN(minute) ? 0 : minute).padStart(2, '0')}`;
 }
 
 function formatJerusalemTime(d: Date): string {
@@ -66,7 +69,11 @@ function buildScheduleCrons(startTime: string): { ensureLoaded: string } | null 
   if (h > 23 || min > 59) return null;
   const retryEnd = addMinutes(h, min, 5 * 60);
   const endHour = retryEnd.h >= h ? retryEnd.h : 23;
-  return { ensureLoaded: `*/15 ${h}-${endHour} * * *` };
+  // Explicit minute offsets (not "*/15") so the chosen minute survives a
+  // round-trip through Cloud Scheduler and back - "*/15" always fires on
+  // the hour regardless of what minute was entered.
+  const minutes = [0, 15, 30, 45].map(offset => (min + offset) % 60).sort((a, b) => a - b);
+  return { ensureLoaded: `${minutes.join(',')} ${h}-${endHour} * * *` };
 }
 
 export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
