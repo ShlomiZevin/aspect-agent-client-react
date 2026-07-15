@@ -769,10 +769,19 @@ export function UserChat() {
               const suffix = conversationId !== null ? `/c/${conversationId}` : '';
               window.open(`/${slug}/live${suffix}`, '_blank', 'noopener');
             }}
-            title="Open the customer-facing Live chat"
+            title="Open the full chat (internal, no login)"
             disabled={!slug}
           >
-            ↗ <span className={styles.headerBtnLabel}>Live</span>
+            ↗ <span className={styles.headerBtnLabel}>Admin</span>
+          </button>
+          <button
+            type="button"
+            className={styles.headerBtn}
+            onClick={() => window.open(`/${slug}/go`, '_blank', 'noopener')}
+            title="Open the limited customer chat (login-gated, /go)"
+            disabled={!slug}
+          >
+            ↗ <span className={styles.headerBtnLabel}>User</span>
           </button>
           <div className={styles.settingsWrap}>
             <button

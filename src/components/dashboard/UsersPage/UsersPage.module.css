@@ -53,6 +53,34 @@
   box-shadow: 0 2px 8px rgba(217, 115, 152, 0.4);
 }
 
+/* Secondary header action — copies the agent's customer-chat link
+   (/:agent/go) so the admin can send it right after adding a user. */
+.linkButton {
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--text-secondary, #6b7280);
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-family);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.linkButton:hover {
+  color: #b8567a;
+  border-color: #d97398;
+}
+
+.headerButtons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .statsBar {
   display: flex;
   gap: var(--spacing-md);

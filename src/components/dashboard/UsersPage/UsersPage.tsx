@@ -155,6 +155,21 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
     }
   };
 
+  // Copy the customer chat link (/:agent/go) — what the admin sends a
+  // freshly created user so they can sign in and try the agent.
+  const [chatLinkCopied, setChatLinkCopied] = useState(false);
+  const copyChatLink = async () => {
+    const url = `${window.location.origin}/${agentName}/go`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setChatLinkCopied(true);
+      setTimeout(() => setChatLinkCopied(false), 1800);
+    } catch {
+      // Clipboard blocked (http / permissions) — at least show the URL.
+      window.prompt('Copy the chat link:', url);
+    }
+  };
+
   // Handle user added
   const handleUserAdded = (newUser: AdminUser) => {
     setUsers(prev => [newUser, ...prev]);
@@ -249,9 +264,20 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
             <h1 className={styles.title}>Users</h1>
             <p className={styles.subtitle}>Manage and configure platform users</p>
           </div>
-          <button className={styles.addButton} onClick={() => setShowAddModal(true)}>
-            + Add User
-          </button>
+          <div className={styles.headerButtons}>
+            {agentName && (
+              <button
+                className={styles.linkButton}
+                onClick={copyChatLink}
+                title={`Copy the customer chat link — ${window.location.origin}/${agentName}/go`}
+              >
+                {chatLinkCopied ? '✓ Copied' : '🔗 Chat link'}
+              </button>
+            )}
+            <button className={styles.addButton} onClick={() => setShowAddModal(true)}>
+              + Add User
+            </button>
+          </div>
         </div>
 
         {stats && (
