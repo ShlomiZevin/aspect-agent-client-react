@@ -27,6 +27,7 @@ export function VersionPill({ state }: Props) {
     versions,
     viewingVersionId,
     activeVersionId,
+    publishedVersionId,
     isDirty,
     setViewing,
     deleteVersion,
@@ -111,6 +112,7 @@ export function VersionPill({ state }: Props) {
             .map(v => {
               const isViewing = v.id === viewingVersionId;
               const isActive = v.id === activeVersionId;
+              const isPublished = v.id === publishedVersionId;
               // Mirror the server-side guards exactly. We show the ×
               // even when it's not actionable so the affordance is
               // discoverable — but disable it and explain *why* via a
@@ -122,7 +124,9 @@ export function VersionPill({ state }: Props) {
                   ? 'Switch to a different version to delete this one'
                   : isActive
                     ? 'Set another version as active to delete this one'
-                    : null;
+                    : isPublished
+                      ? 'Publish another version (or unpublish) to delete this one'
+                      : null;
               return (
                 <div
                   key={v.id}
@@ -138,6 +142,7 @@ export function VersionPill({ state }: Props) {
                       {v.description || (isViewing ? 'Viewing' : 'Untitled')}
                     </span>
                     {isActive && <span className={styles.menuItemActiveTag}>active</span>}
+                    {isPublished && <span className={styles.menuItemPublishedTag}>published</span>}
                   </button>
                   <button
                     type="button"

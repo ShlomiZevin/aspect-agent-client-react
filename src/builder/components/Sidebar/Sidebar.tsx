@@ -113,14 +113,18 @@ export function Sidebar() {
                 <span className={styles.rowSub}>{agent.name}</span>
               </div>
               {(() => {
-                const activeVersion = agent.versions.find(v => v.id === agent.activeVersionId);
+                // Show the VIEWING version — the one loaded into the
+                // working copy and shown in the body's version switcher.
+                // (Not `active`: when active≠viewing, showing active here
+                // made the sidebar disagree with the body/header.)
+                const viewingVersion = agent.versions.find(v => v.id === agent.viewingVersionId);
                 const dirty = isAgentDirty(agent.id);
                 return (
                   <span
                     className={`${styles.versionPill} ${dirty ? styles.versionPillDirty : ''}`}
-                    title={dirty ? 'Unsaved changes' : activeVersion?.description}
+                    title={dirty ? 'Unsaved changes' : viewingVersion?.description}
                   >
-                    v{activeVersion?.number ?? '?'}
+                    v{viewingVersion?.number ?? '?'}
                     {dirty && <span className={styles.versionDot} />}
                   </span>
                 );
@@ -148,7 +152,9 @@ export function Sidebar() {
               {agent.crews.map(c => {
                 const isActive = selection.level === 'crew' && selection.crewId === c.id;
                 const isDefault = agent.defaultCrewId === c.id;
-                const activeVersion = c.versions.find(v => v.id === c.activeVersionId);
+                // Show the VIEWING version (matches the body switcher), not
+                // active — see the agent pill above.
+                const viewingVersion = c.versions.find(v => v.id === c.viewingVersionId);
                 const dirty = isCrewDirty(agent.id, c.id);
                 return (
                   <div
@@ -167,9 +173,9 @@ export function Sidebar() {
                       <span className={styles.crewName}>{c.name}</span>
                       <span
                         className={`${styles.versionPill} ${dirty ? styles.versionPillDirty : ''}`}
-                        title={dirty ? 'Unsaved changes' : activeVersion?.description}
+                        title={dirty ? 'Unsaved changes' : viewingVersion?.description}
                       >
-                        v{activeVersion?.number ?? '?'}
+                        v{viewingVersion?.number ?? '?'}
                         {dirty && <span className={styles.versionDot} />}
                       </span>
                     </button>

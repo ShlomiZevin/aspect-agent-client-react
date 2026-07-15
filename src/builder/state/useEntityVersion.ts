@@ -21,6 +21,9 @@ export interface EntityVersionState {
   versions: VersionMeta[];
   viewingVersionId: ID;
   activeVersionId: ID;
+  /** Customer-facing published version, or null when nothing is
+   *  published yet (runtime falls back to active→viewing). */
+  publishedVersionId: ID | null;
   /** True if EITHER this entity OR a related entity is dirty —
    *  drives the "Save" button enabled state. */
   isDirty: boolean;
@@ -50,6 +53,11 @@ export interface EntityVersionState {
   saveAs: (description?: string, opts?: SaveOpts) => void;
   setViewing: (versionId: ID) => void;
   setActive: (versionId: ID) => void;
+  /** Set the customer-facing published version. Pass `null` to unpublish. */
+  setPublished: (versionId: ID | null) => void;
+  /** Agent-only: publish the agent + every crew to their ACTIVE
+   *  versions in one click. Undefined for crews. */
+  publishAll?: () => void;
   /** Revert the working copy to the viewing version's body. Also
    *  drops any pending Alfred apply target for this entity. */
   discard: () => void;
@@ -66,6 +74,7 @@ export function useCrewVersion(agentId: ID, crewId: ID): EntityVersionState | nu
     saveCrewVersionAs,
     setViewingCrewVersion,
     setActiveCrewVersion,
+    setPublishedCrewVersion,
     discardCrewChanges,
     discardAgentChanges,
     deleteCrewVersion,
@@ -100,6 +109,7 @@ export function useCrewVersion(agentId: ID, crewId: ID): EntityVersionState | nu
     versions: crew.versions,
     viewingVersionId: crew.viewingVersionId,
     activeVersionId: crew.activeVersionId,
+    publishedVersionId: crew.publishedVersionId ?? null,
     isDirty:   crewDirty || agentDirty,
     ownDirty:  crewDirty,
     crossDirtyLabel: agentDirty ? 'agent' : '',
@@ -116,6 +126,7 @@ export function useCrewVersion(agentId: ID, crewId: ID): EntityVersionState | nu
     saveAs:      (d, opts)  => { saveCrewVersionAs(agentId, crewId, d, opts); },
     setViewing:  id => setViewingCrewVersion(agentId, crewId, id),
     setActive:   id => setActiveCrewVersion(agentId, crewId, id),
+    setPublished: id => setPublishedCrewVersion(agentId, crewId, id),
     // Match save's cross-entity scope — discarding only one side
     // when an action touched both would leave the user stranded
     // (e.g. agent has a new field def but the crew that wired it is
@@ -135,6 +146,8 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
     saveAgentVersionAs,
     setViewingAgentVersion,
     setActiveAgentVersion,
+    setPublishedAgentVersion,
+    publishAllVersions,
     discardAgentChanges,
     discardCrewChanges,
     deleteAgentVersion,
@@ -174,6 +187,7 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
     versions: agent.versions,
     viewingVersionId: agent.viewingVersionId,
     activeVersionId: agent.activeVersionId,
+    publishedVersionId: agent.publishedVersionId ?? null,
     isDirty:   agentDirty || dirtyCrewIds.length > 0,
     ownDirty:  agentDirty,
     crossDirtyLabel: crewLabel,
@@ -186,6 +200,8 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
     saveAs:      (d, opts)  => { saveAgentVersionAs(agentId, d, opts); },
     setViewing:  id => setViewingAgentVersion(agentId, id),
     setActive:   id => setActiveAgentVersion(agentId, id),
+    setPublished: id => setPublishedAgentVersion(agentId, id),
+    publishAll:  () => publishAllVersions(agentId),
     discard:     () => {
       if (agentDirty) discardAgentChanges(agentId);
       for (const id of dirtyCrewIds) discardCrewChanges(agentId, id);

@@ -20,6 +20,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Modal } from '../Modal/Modal';
 import { useCrewFields } from '../../state/useCrewFields';
+import { useFieldnameMentions } from '../../state/useFieldMentions';
 import { useBuilder } from '../../state/BuilderContext';
 import { useConfirm } from '../Confirm/Confirm';
 import { DomainInput } from './DomainInput';
@@ -85,6 +86,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
   const { conversationMemory, previewConversationId, updateConversationMemoryField, doc } = useBuilder();
   const agent = doc.agents.find(a => a.id === agentId);
   const confirm = useConfirm();
+  const mentions = useFieldnameMentions(agentId);
 
   const [name, setName] = useState('');
   // True when the user's last Name keystroke contained whitespace we
@@ -438,44 +440,83 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
           />
         </label>
 
-        {/* ── Extracted-by multi-select ─────────────────────────── */}
-        <div className={styles.field}>
-          <span className={styles.label}>Extracted by</span>
-          {agentExtractors.length === 0 ? (
-            <div className={styles.hintBlock}>
-              No Field Extractors anywhere in this agent yet. Add one
-              to a crew's chain before this field can be extracted.
-            </div>
-          ) : (
-            <div className={styles.extractorPickGroups}>
-              {byCrew.map(group => (
-                <div key={group.crewName} className={styles.extractorPickGroup}>
-                  <div className={styles.extractorPickCrew}>{group.crewName}</div>
-                  <div className={styles.extractorPickChips}>
-                    {group.items.map(e => {
-                      const active = selectedExtractors.has(e.instanceId);
-                      return (
-                        <button
-                          key={e.instanceId}
-                          type="button"
-                          className={`${styles.extractorPickChip} ${active ? styles.extractorPickChipActive : ''}`}
-                          onClick={() => toggleExtractor(e.instanceId)}
-                        >
-                          {e.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {selectedExtractors.size > 1 && (
-            <span className={styles.note}>
-              Multiple extractors will write to the same memory slot for "{name}". Last one to fire per turn wins.
+        {/* ── Extracted-by multi-select ─────────────────────────────
+            Solid chips = structured wiring (toggleable). Dashed chips
+            = heuristic writers: addons whose PROMPT references this
+            field via {{fieldname:…}} — almost always "return this
+            attribute" (auto-harvested). Read-only; tooltip explains. */}
+        {(() => {
+          const mentionRefs = (mentions.get(original.name) ?? [])
+            .filter(m => !selectedExtractors.has(m.instanceId));
+          const mentionsByGroup = new Map<string, typeof mentionRefs>();
+          for (const m of mentionRefs) {
+            const key = m.crewName ?? 'Agent';
+            const list = mentionsByGroup.get(key) ?? [];
+            list.push(m);
+            mentionsByGroup.set(key, list);
+          }
+          // Mention-only crews (no extractor there) still get a group row.
+          const extraGroups = [...mentionsByGroup.keys()]
+            .filter(k => !byCrew.some(g => g.crewName === k));
+          const mentionChip = (m: (typeof mentionRefs)[number]) => (
+            <span
+              key={`mention-${m.instanceId}`}
+              className={styles.mentionChip}
+              title={`Prompt references {{fieldname:${original.name}}} — likely returns this field. Heuristic, not wired.`}
+            >
+              <span aria-hidden>{m.icon}</span>
+              {m.label}
             </span>
-          )}
-        </div>
+          );
+          return (
+            <div className={styles.field}>
+              <span className={styles.label}>Extracted by</span>
+              {agentExtractors.length === 0 && mentionRefs.length === 0 ? (
+                <div className={styles.hintBlock}>
+                  No Field Extractors anywhere in this agent yet. Add one
+                  to a crew's chain before this field can be extracted.
+                </div>
+              ) : (
+                <div className={styles.extractorPickGroups}>
+                  {byCrew.map(group => (
+                    <div key={group.crewName} className={styles.extractorPickGroup}>
+                      <div className={styles.extractorPickCrew}>{group.crewName}</div>
+                      <div className={styles.extractorPickChips}>
+                        {group.items.map(e => {
+                          const active = selectedExtractors.has(e.instanceId);
+                          return (
+                            <button
+                              key={e.instanceId}
+                              type="button"
+                              className={`${styles.extractorPickChip} ${active ? styles.extractorPickChipActive : ''}`}
+                              onClick={() => toggleExtractor(e.instanceId)}
+                            >
+                              {e.label}
+                            </button>
+                          );
+                        })}
+                        {(mentionsByGroup.get(group.crewName) ?? []).map(mentionChip)}
+                      </div>
+                    </div>
+                  ))}
+                  {extraGroups.map(k => (
+                    <div key={`mention-group-${k}`} className={styles.extractorPickGroup}>
+                      <div className={styles.extractorPickCrew}>{k}</div>
+                      <div className={styles.extractorPickChips}>
+                        {mentionsByGroup.get(k)!.map(mentionChip)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selectedExtractors.size > 1 && (
+                <span className={styles.note}>
+                  Multiple extractors will write to the same memory slot for "{name}". Last one to fire per turn wins.
+                </span>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </Modal>
   );

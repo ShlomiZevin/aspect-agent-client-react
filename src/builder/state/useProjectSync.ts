@@ -65,6 +65,8 @@ export interface ProjectSyncApi {
   pushSaveAgentVersion: (agent: AgentDoc) => Promise<void>;
   pushSaveAgentVersionAs: (agent: AgentDoc, description?: string) => Promise<void>;
   pushSetAgentActive: (agentId: ID, versionId: ID) => Promise<void>;
+  /** `versionId: null` unpublishes. */
+  pushSetAgentPublished: (agentId: ID, versionId: ID | null) => Promise<void>;
   pushSetAgentViewing: (agentId: ID, versionId: ID) => Promise<void>;
   /** Throws when the server refuses (last/active/viewing) — caller
    *  should NOT mutate local state until this resolves. */
@@ -75,6 +77,8 @@ export interface ProjectSyncApi {
   pushSaveCrewVersion: (crew: CrewDoc) => Promise<void>;
   pushSaveCrewVersionAs: (crew: CrewDoc, description?: string) => Promise<void>;
   pushSetCrewActive: (crewId: ID, versionId: ID) => Promise<void>;
+  /** `versionId: null` unpublishes. */
+  pushSetCrewPublished: (crewId: ID, versionId: ID | null) => Promise<void>;
   pushSetCrewViewing: (crewId: ID, versionId: ID) => Promise<void>;
   /** Same throw-on-refuse contract as the agent variant. */
   pushDeleteCrewVersion: (crewId: ID, versionId: ID) => Promise<void>;
@@ -112,8 +116,9 @@ export function useProjectSync(_args: {
         console.error('[builder] saveAgentVersionAs failed:', err);
       }
     },
-    pushSetAgentActive:  (id, vId) => api.setAgentActiveApi(id, vId).catch(console.error),
-    pushSetAgentViewing: (id, vId) => api.setAgentViewingApi(id, vId).catch(console.error),
+    pushSetAgentActive:    (id, vId) => api.setAgentActiveApi(id, vId).catch(console.error),
+    pushSetAgentPublished: (id, vId) => api.setAgentPublishedApi(id, vId).catch(console.error),
+    pushSetAgentViewing:   (id, vId) => api.setAgentViewingApi(id, vId).catch(console.error),
     pushDeleteAgentVersion: (id, vId) => api.deleteAgentVersionApi(id, vId),
 
     pushCreateCrew: async (agentId, crew) => {
@@ -152,8 +157,9 @@ export function useProjectSync(_args: {
         console.error('[builder] saveCrewVersionAs failed:', err);
       }
     },
-    pushSetCrewActive:  (id, vId) => api.setCrewActiveApi(id, vId).catch(console.error),
-    pushSetCrewViewing: (id, vId) => api.setCrewViewingApi(id, vId).catch(console.error),
+    pushSetCrewActive:    (id, vId) => api.setCrewActiveApi(id, vId).catch(console.error),
+    pushSetCrewPublished: (id, vId) => api.setCrewPublishedApi(id, vId).catch(console.error),
+    pushSetCrewViewing:   (id, vId) => api.setCrewViewingApi(id, vId).catch(console.error),
     pushDeleteCrewVersion: (id, vId) => api.deleteCrewVersionApi(id, vId),
   };
 }

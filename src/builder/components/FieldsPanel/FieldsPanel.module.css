@@ -337,6 +337,24 @@
   line-height: 1;
 }
 
+/* Heuristic "likely written by" chip — an addon's prompt references
+ * this field via {{fieldname:…}} (almost always "return this
+ * attribute"). Dashed + faded so it reads as an indicator, not a
+ * structured guarantee like .locationChip. */
+.mentionChip {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #6d28d9;
+  background: rgba(124, 58, 237, 0.06);
+  border: 1px dashed rgba(124, 58, 237, 0.45);
+}
+
 /* No extractor is wired up to this field — definition exists but
  * nothing extracts it. Amber warning chip so the user notices. */
 .unwired {

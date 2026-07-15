@@ -491,6 +491,8 @@ interface BuilderState {
   setViewingCrewVersion: (agentId: ID, crewId: ID, versionId: ID) => void;
   /** Flip the active-version pointer. Doesn't touch the working state. */
   setActiveCrewVersion: (agentId: ID, crewId: ID, versionId: ID) => void;
+  /** Flip the crew's customer-facing published pointer. `null` unpublishes. */
+  setPublishedCrewVersion: (agentId: ID, crewId: ID, versionId: ID | null) => void;
   /** Revert the working copy to the viewing version's body. Also clears
    *  any pending Alfred apply target for this crew (without logging). */
   discardCrewChanges: (agentId: ID, crewId: ID) => void;
@@ -514,6 +516,10 @@ interface BuilderState {
   saveAllVersionsAs: (agentId: ID, description?: string, opts?: SaveOpts) => void;
   setViewingAgentVersion: (agentId: ID, versionId: ID) => void;
   setActiveAgentVersion: (agentId: ID, versionId: ID) => void;
+  /** Flip the agent's customer-facing published pointer. `null` unpublishes. */
+  setPublishedAgentVersion: (agentId: ID, versionId: ID | null) => void;
+  /** Publish the agent + every crew to their ACTIVE versions in one click. */
+  publishAllVersions: (agentId: ID) => void;
   discardAgentChanges: (agentId: ID) => void;
   /** Permanently delete an agent version. Same refusal semantics as crew. */
   deleteAgentVersion: (agentId: ID, versionId: ID) => Promise<void>;
@@ -1591,6 +1597,30 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     [],
   );
 
+  // Flip the PUBLISHED (customer-facing) pointer for one crew. Pass
+  // versionId === null to unpublish. No effect on working copy, viewing,
+  // or active.
+  const setPublishedCrewVersion = useCallback(
+    (agentId: ID, crewId: ID, versionId: ID | null) => {
+      setDoc(d => ({
+        ...d,
+        agents: d.agents.map(a => {
+          if (a.id !== agentId) return a;
+          return {
+            ...a,
+            crews: a.crews.map(c => {
+              if (c.id !== crewId) return c;
+              if (versionId !== null && !c.versions.find(v => v.id === versionId)) return c;
+              return { ...c, publishedVersionId: versionId };
+            }),
+          };
+        }),
+      }));
+      syncRef.current?.pushSetCrewPublished(crewId, versionId);
+    },
+    [],
+  );
+
   /**
    * Permanently delete a crew version. Server is the authority on
    * what's deletable (last / active / viewing are refused with a
@@ -1813,6 +1843,48 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     [],
   );
 
+  // Flip the agent's PUBLISHED (customer-facing) pointer. `null`
+  // unpublishes (runtime falls back to active→viewing).
+  const setPublishedAgentVersion = useCallback(
+    (agentId: ID, versionId: ID | null) => {
+      setDoc(d => ({
+        ...d,
+        agents: d.agents.map(a => {
+          if (a.id !== agentId) return a;
+          if (versionId !== null && !a.versions.find(v => v.id === versionId)) return a;
+          return { ...a, publishedVersionId: versionId };
+        }),
+      }));
+      syncRef.current?.pushSetAgentPublished(agentId, versionId);
+    },
+    [],
+  );
+
+  // One-click "ship everything to customers": publish the agent's
+  // ACTIVE version and every crew's ACTIVE version. Active is the
+  // builder's canonical selection; this promotes the whole set to live
+  // in a single render + one push per entity.
+  const publishAllVersions = useCallback((agentId: ID) => {
+    const d = docRef.current;
+    const agent = d.agents.find(a => a.id === agentId);
+    if (!agent) return;
+    setDoc(prev => ({
+      ...prev,
+      agents: prev.agents.map(a => {
+        if (a.id !== agentId) return a;
+        return {
+          ...a,
+          publishedVersionId: a.activeVersionId,
+          crews: a.crews.map(c => ({ ...c, publishedVersionId: c.activeVersionId })),
+        };
+      }),
+    }));
+    syncRef.current?.pushSetAgentPublished(agentId, agent.activeVersionId);
+    for (const c of agent.crews) {
+      syncRef.current?.pushSetCrewPublished(c.id, c.activeVersionId);
+    }
+  }, []);
+
   const deleteAgentVersion = useCallback(
     async (agentId: ID, versionId: ID): Promise<void> => {
       await syncRef.current?.pushDeleteAgentVersion(agentId, versionId);
@@ -1939,6 +2011,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       saveCrewVersionAs,
       setViewingCrewVersion,
       setActiveCrewVersion,
+      setPublishedCrewVersion,
       discardCrewChanges,
       deleteCrewVersion,
       isCrewDirty,
@@ -1947,6 +2020,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       saveAllVersionsAs,
       setViewingAgentVersion,
       setActiveAgentVersion,
+      setPublishedAgentVersion,
+      publishAllVersions,
       discardAgentChanges,
       deleteAgentVersion,
       isAgentDirty,
@@ -1995,6 +2070,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       saveCrewVersionAs,
       setViewingCrewVersion,
       setActiveCrewVersion,
+      setPublishedCrewVersion,
       discardCrewChanges,
       deleteCrewVersion,
       isCrewDirty,
@@ -2003,6 +2079,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       saveAllVersionsAs,
       setViewingAgentVersion,
       setActiveAgentVersion,
+      setPublishedAgentVersion,
+      publishAllVersions,
       discardAgentChanges,
       deleteAgentVersion,
       isAgentDirty,

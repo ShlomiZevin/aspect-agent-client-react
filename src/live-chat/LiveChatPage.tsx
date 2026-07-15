@@ -72,7 +72,12 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
   const branding = useBranding();
   const { brand } = branding;
 
-  const chat = useLiveChat({ slug, ownerUserId, version: 'active' });
+  // Customer-facing: run the PUBLISHED version. The runtime falls back
+  // to active→viewing when nothing is published yet, so this is safe
+  // before the first Publish. Applies to both `/:agent/live` and the
+  // login-gated `/:agent/go` (restricted) — customers always get
+  // published, never the builder's in-progress active version.
+  const chat = useLiveChat({ slug, ownerUserId, version: 'published' });
 
   // Logo priority: custom brand logo → selected client's logo → none (name mark).
   const clientLogo = clientById(settings.client).logoUrl ?? null;

@@ -69,6 +69,8 @@ export async function listProjects(args: {
 export interface WorkspaceItem {
   id: string;
   name: string;
+  /** Parent folder; null = top level. */
+  parentId: string | null;
   createdAt: string;
 }
 
@@ -80,11 +82,12 @@ export async function listWorkspaces(): Promise<WorkspaceItem[]> {
 export async function createWorkspace(args: {
   ownerUserId: string;
   name: string;
+  parentId: string | null;
 }): Promise<WorkspaceItem> {
   const id = `ws_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
   const res = await http<{ workspace: WorkspaceItem }>(`/api/builder/workspaces`, {
     method: 'POST',
-    body: JSON.stringify({ id, ownerUserId: args.ownerUserId, name: args.name }),
+    body: JSON.stringify({ id, ownerUserId: args.ownerUserId, name: args.name, parentId: args.parentId }),
   });
   return res.workspace;
 }
@@ -96,10 +99,20 @@ export async function renameWorkspace(args: { id: string; name: string }): Promi
   });
 }
 
-/** cascade: 'orphan' moves the agents to top level; 'agents' deletes them. */
+/** Move a folder under another folder, or to top level (parentId = null).
+ *  Server rejects moving a folder into its own descendant (400). */
+export async function moveWorkspace(args: { id: string; parentId: string | null }): Promise<void> {
+  await http(`/api/builder/workspaces/${args.id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ parentId: args.parentId }),
+  });
+}
+
+/** cascade: 'orphan' moves direct contents up one level; 'hard' deletes
+ *  the folder + every sub-folder + all their agents. */
 export async function deleteWorkspace(args: {
   id: string;
-  cascade: 'orphan' | 'agents';
+  cascade: 'orphan' | 'hard';
 }): Promise<void> {
   await http(`/api/builder/workspaces/${args.id}?cascade=${args.cascade}`, {
     method: 'DELETE',
@@ -251,6 +264,15 @@ export async function setAgentActiveApi(agentId: ID, versionId: ID) {
   });
 }
 
+/** Move the agent's customer-facing published pointer. `versionId:
+ *  null` unpublishes (runtime falls back to active→viewing). */
+export async function setAgentPublishedApi(agentId: ID, versionId: ID | null) {
+  await http(`/api/builder/agents/${agentId}/published`, {
+    method: 'PUT',
+    body: JSON.stringify({ versionId }),
+  });
+}
+
 export async function setAgentViewingApi(agentId: ID, versionId: ID) {
   await http(`/api/builder/agents/${agentId}/viewing`, {
     method: 'PUT',
@@ -328,6 +350,14 @@ export async function saveCrewVersionAsApi(args: {
 
 export async function setCrewActiveApi(crewId: ID, versionId: ID) {
   await http(`/api/builder/crews/${crewId}/active`, {
+    method: 'PUT',
+    body: JSON.stringify({ versionId }),
+  });
+}
+
+/** Crew counterpart of `setAgentPublishedApi`. `versionId: null` unpublishes. */
+export async function setCrewPublishedApi(crewId: ID, versionId: ID | null) {
+  await http(`/api/builder/crews/${crewId}/published`, {
     method: 'PUT',
     body: JSON.stringify({ versionId }),
   });
@@ -631,7 +661,7 @@ export function runtimeMessageStream(args: {
   conversationId: number;
   ownerUserId: string;
   userMessage: string;
-  version?: 'viewing' | 'active';
+  version?: 'viewing' | 'active' | 'published';
   /** Optional explicit crew to route this turn to. When set, takes
    *  precedence over the conversation's saved currentCrewId and is
    *  persisted as the new pointer for subsequent turns. */

@@ -1,15 +1,17 @@
 /**
- * BuilderHomePage — lists agents grouped into workspaces (folders),
- * with a Live / Archived split and per-agent actions (rename, move,
- * archive, delete). Lives at `/builder`.
+ * BuilderHomePage — a file-manager for agents. Agents live in nested
+ * folders (workspaces) of unlimited depth, or at the top level. A
+ * Live / Archived split, per-agent actions (rename, move, duplicate,
+ * archive, delete) and per-folder actions (rename, move, delete).
+ * Lives at `/builder`.
  *
- * Workspaces are shared folders (no per-user scoping yet). Archiving
- * hides an agent from the live grid AND blocks it from running until
- * restored. Renaming changes the display name and the slug/URL.
+ * Folders nest via `workspace.parentId` (null = top). Agents point at a
+ * folder via `agent.workspaceId` (null = top). Every level renders the
+ * same way: that level's sub-folders + its agents.
  */
 
 import {
-  useCallback, useEffect, useRef, useState, type ReactNode,
+  Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode,
 } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -22,6 +24,7 @@ import {
   listProjects,
   listWorkspaces,
   moveAgent,
+  moveWorkspace,
   renameAgent,
   renameWorkspace,
   setAgentArchived,
@@ -69,7 +72,6 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-/** Pull a clean message out of our `${status}: {json}` fetch errors. */
 function cleanErr(err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err);
   const brace = raw.indexOf('{');
@@ -80,6 +82,41 @@ function cleanErr(err: unknown): string {
     } catch { /* fall through */ }
   }
   return raw;
+}
+
+// ─── Folder-tree helpers ────────────────────────────────────────────
+
+/** Root→current chain of folders for the breadcrumb (empty at top). */
+function ancestorChain(workspaces: WorkspaceItem[], id: string | null): WorkspaceItem[] {
+  if (!id) return [];
+  const byId = new Map(workspaces.map(w => [w.id, w]));
+  const chain: WorkspaceItem[] = [];
+  let cur: WorkspaceItem | undefined = byId.get(id);
+  const guard = new Set<string>();
+  while (cur && !guard.has(cur.id)) {
+    guard.add(cur.id);
+    chain.unshift(cur);
+    cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+  }
+  return chain;
+}
+
+/** All descendant folder ids of `id` (for excluding them as move targets). */
+function descendantIds(workspaces: WorkspaceItem[], id: string): Set<string> {
+  const childrenOf = new Map<string | null, WorkspaceItem[]>();
+  for (const w of workspaces) {
+    const p = w.parentId ?? null;
+    if (!childrenOf.has(p)) childrenOf.set(p, []);
+    childrenOf.get(p)!.push(w);
+  }
+  const out = new Set<string>();
+  const stack = [...(childrenOf.get(id) || [])];
+  while (stack.length) {
+    const w = stack.pop()!;
+    out.add(w.id);
+    for (const c of (childrenOf.get(w.id) || [])) stack.push(c);
+  }
+  return out;
 }
 
 export function BuilderHomePage() {
@@ -99,15 +136,13 @@ function HomeContent() {
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
   const [error, setError]           = useState<string | null>(null);
   const [tab, setTab]               = useState<'live' | 'archived'>('live');
-  // Drill-in: when set, we're inside that workspace folder (live tab).
+  // Current folder we're inside (null = top level).
   const [openWorkspaceId, setOpenWorkspaceId] = useState<string | null>(null);
 
-  // Create-agent modal.
   const [createOpen, setCreateOpen] = useState(false);
-
-  // Modal targets.
   const [wsCreateOpen, setWsCreateOpen]         = useState(false);
   const [wsRenameTarget, setWsRenameTarget]     = useState<WorkspaceItem | null>(null);
+  const [wsMoveTarget, setWsMoveTarget]         = useState<WorkspaceItem | null>(null);
   const [wsDeleteTarget, setWsDeleteTarget]     = useState<WorkspaceItem | null>(null);
   const [agentRenameTarget, setAgentRenameTarget] = useState<ProjectListItem | null>(null);
   const [agentMoveTarget, setAgentMoveTarget]     = useState<ProjectListItem | null>(null);
@@ -126,10 +161,6 @@ function HomeContent() {
 
   useEffect(() => { reload(); }, [reload]);
 
-  // Create an agent. When inside a folder, it's filed under that
-  // workspace. `goToBuilder` decides whether we jump into the builder
-  // or stay on the home page (and just refresh the grid). Throws on a
-  // slug already in use so the modal can surface it.
   const handleCreateAgent = async (name: string, slug: string, goToBuilder: boolean) => {
     const existing = await fetchProject({ agentSlug: slug, ownerUserId });
     if (existing) throw new Error(`An agent with the URL “/${slug}” already exists.`);
@@ -187,10 +218,8 @@ function HomeContent() {
       });
       if (!ok) return;
     }
-    try {
-      await setAgentArchived({ agentId: item.agentId, archived });
-      await reload();
-    } catch (err) { setError(cleanErr(err)); }
+    try { await setAgentArchived({ agentId: item.agentId, archived }); await reload(); }
+    catch (err) { setError(cleanErr(err)); }
   };
 
   const doDelete = async (item: ProjectListItem) => {
@@ -201,21 +230,39 @@ function HomeContent() {
       danger: true,
     });
     if (!ok) return;
-    try {
-      await deleteProject({ projectId: item.projectId });
-      await reload();
-    } catch (err) { setError(cleanErr(err)); }
+    try { await deleteProject({ projectId: item.projectId }); await reload(); }
+    catch (err) { setError(cleanErr(err)); }
   };
 
-  // ── Derived lists ──────────────────────────────────────────────
-  const all          = items ?? [];
-  const liveItems    = all.filter(i => !i.archivedAt);
+  // ── Derived (folder-aware) ─────────────────────────────────────
+  const all           = items ?? [];
+  const liveItems     = all.filter(i => !i.archivedAt);
   const archivedItems = all.filter(i => i.archivedAt);
-  const topLevel     = liveItems.filter(i => !i.workspaceId);
-  const inWorkspace  = (wsId: string) => liveItems.filter(i => i.workspaceId === wsId);
-  const countInWs    = (wsId: string) => inWorkspace(wsId).length;
+  const agentsIn  = (folderId: string | null) => liveItems.filter(i => (i.workspaceId ?? null) === folderId);
+  const foldersIn = (folderId: string | null) => workspaces.filter(w => (w.parentId ?? null) === folderId);
+  const folderHasContents = (id: string) => agentsIn(id).length > 0 || foldersIn(id).length > 0;
 
-  // ── Agent tile (files/folders view) ────────────────────────────
+  // ── Folder delete: empty → instant; non-empty → choice modal ───
+  const doDeleteWorkspace = async (ws: WorkspaceItem) => {
+    if (!folderHasContents(ws.id)) {
+      const ok = await confirm({
+        title: `Delete folder “${ws.name}”?`,
+        message: 'This empty folder will be removed.',
+        confirmLabel: 'Delete',
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await deleteWorkspace({ id: ws.id, cascade: 'orphan' });
+        if (openWorkspaceId === ws.id) setOpenWorkspaceId(ws.parentId ?? null);
+        await reload();
+      } catch (err) { setError(cleanErr(err)); }
+      return;
+    }
+    setWsDeleteTarget(ws);
+  };
+
+  // ── Agent tile ─────────────────────────────────────────────────
   const renderAgentTile = (item: ProjectListItem) => (
     <div key={item.projectId} className={styles.tile}>
       <Link to={`/${item.agentSlug}/builder`} className={styles.tileLink}>
@@ -277,9 +324,13 @@ function HomeContent() {
     </div>
   );
 
-  // ── Folder tile (click to open) ────────────────────────────────
+  // ── Folder tile ────────────────────────────────────────────────
   const renderFolderTile = (ws: WorkspaceItem) => {
-    const n = countInWs(ws.id);
+    const aCount = agentsIn(ws.id).length;
+    const fCount = foldersIn(ws.id).length;
+    const parts: string[] = [];
+    if (fCount > 0) parts.push(`${fCount} folder${fCount === 1 ? '' : 's'}`);
+    parts.push(`${aCount} agent${aCount === 1 ? '' : 's'}`);
     return (
       <div key={ws.id} className={`${styles.tile} ${styles.tileFolder}`}
         role="button" tabIndex={0}
@@ -288,7 +339,7 @@ function HomeContent() {
         <div className={styles.tileFolderInner}>
           <span className={styles.tileIcon} aria-hidden>📁</span>
           <span className={styles.tileName}>{ws.name}</span>
-          <span className={styles.tileFolderCount}>{n} agent{n === 1 ? '' : 's'}</span>
+          <span className={styles.tileFolderCount}>{parts.join(' · ')}</span>
         </div>
         <div className={styles.tileKebab} onClick={e => e.stopPropagation()}>
           <KebabMenu>
@@ -298,9 +349,13 @@ function HomeContent() {
                   onClick={() => { close(); setWsRenameTarget(ws); }}>
                   <span className={styles.menuIcon}>✏️</span> Rename
                 </button>
+                <button type="button" className={styles.menuItem}
+                  onClick={() => { close(); setWsMoveTarget(ws); }}>
+                  <span className={styles.menuIcon}>📁</span> Move to…
+                </button>
                 <div className={styles.menuDivider} />
                 <button type="button" className={`${styles.menuItem} ${styles.menuItemDanger}`}
-                  onClick={() => { close(); setWsDeleteTarget(ws); }}>
+                  onClick={() => { close(); doDeleteWorkspace(ws); }}>
                   <span className={styles.menuIcon}>🗑</span> Delete
                 </button>
               </>
@@ -313,6 +368,16 @@ function HomeContent() {
 
   const hasAnything = all.length > 0 || workspaces.length > 0;
   const openWs = openWorkspaceId ? workspaces.find(w => w.id === openWorkspaceId) ?? null : null;
+  // If the open folder vanished (deleted elsewhere), fall back to top.
+  useEffect(() => {
+    if (openWorkspaceId && workspaces.length > 0 && !workspaces.some(w => w.id === openWorkspaceId)) {
+      setOpenWorkspaceId(null);
+    }
+  }, [openWorkspaceId, workspaces]);
+
+  const path = ancestorChain(workspaces, openWorkspaceId);
+  const curFolders = foldersIn(openWorkspaceId);
+  const curAgents  = agentsIn(openWorkspaceId);
 
   return (
     <div className={styles.page}>
@@ -321,7 +386,7 @@ function HomeContent() {
           <h1 className={styles.title}><span aria-hidden>🛠</span> Your agents</h1>
           <div className={styles.headerActions}>
             <button type="button" className={styles.secondaryBtn} onClick={() => setWsCreateOpen(true)}>
-              📁 New workspace
+              📁 New folder
             </button>
             <button type="button" className={styles.primaryBtn} onClick={() => setCreateOpen(true)}>
               + New agent
@@ -343,40 +408,48 @@ function HomeContent() {
         </div>
 
         {error && <div className={styles.errorBox}>⚠ {error}</div>}
-
         {items === null && !error && <div className={styles.empty}>Loading…</div>}
 
         {/* ── LIVE TAB ──────────────────────────────────────────── */}
-        {items !== null && tab === 'live' && openWs && (
+        {items !== null && tab === 'live' && (
           <>
-            <div className={styles.breadcrumb}>
-              <button type="button" className={styles.crumbBack} onClick={() => setOpenWorkspaceId(null)}>
-                ← Your agents
-              </button>
-              <span className={styles.crumbSep}>/</span>
-              <span className={styles.crumbCurrent}><span aria-hidden>📁</span> {openWs.name}</span>
-              <div className={styles.crumbActions}>
-                <button type="button" className={styles.iconBtn} title="Rename workspace"
-                  onClick={() => setWsRenameTarget(openWs)}>✏️</button>
-                <button type="button" className={styles.iconBtn} title="Delete workspace"
-                  onClick={() => setWsDeleteTarget(openWs)}>🗑</button>
+            {openWs && (
+              <div className={styles.breadcrumb}>
+                <button type="button" className={styles.crumbBack} onClick={() => setOpenWorkspaceId(null)}>
+                  🛠 Your agents
+                </button>
+                {path.map((ws, idx) => (
+                  <Fragment key={ws.id}>
+                    <span className={styles.crumbSep}>/</span>
+                    {idx < path.length - 1
+                      ? <button type="button" className={styles.crumb} onClick={() => setOpenWorkspaceId(ws.id)}>{ws.name}</button>
+                      : <span className={styles.crumbCurrent}><span aria-hidden>📁</span> {ws.name}</span>}
+                  </Fragment>
+                ))}
+                <div className={styles.crumbActions}>
+                  <button type="button" className={styles.iconBtn} title="Rename folder"
+                    onClick={() => setWsRenameTarget(openWs)}>✏️</button>
+                  <button type="button" className={styles.iconBtn} title="Move folder"
+                    onClick={() => setWsMoveTarget(openWs)}>📁</button>
+                  <button type="button" className={styles.iconBtn} title="Delete folder"
+                    onClick={() => doDeleteWorkspace(openWs)}>🗑</button>
+                </div>
               </div>
-            </div>
-            {inWorkspace(openWs.id).length > 0
-              ? <div className={styles.grid}>{inWorkspace(openWs.id).map(renderAgentTile)}</div>
-              : <div className={styles.emptyNested}>Empty — move an agent here from its ⋯ menu.</div>}
-          </>
-        )}
+            )}
 
-        {items !== null && tab === 'live' && !openWs && (
-          !hasAnything
-            ? <div className={styles.empty}>No agents yet. Click <strong>+ New agent</strong> to create one.</div>
-            : (
-              <div className={styles.grid}>
-                {workspaces.map(renderFolderTile)}
-                {topLevel.map(renderAgentTile)}
+            {!hasAnything ? (
+              <div className={styles.empty}>No agents yet. Click <strong>+ New agent</strong> to create one.</div>
+            ) : (curFolders.length === 0 && curAgents.length === 0) ? (
+              <div className={styles.emptyNested}>
+                This folder is empty — add an agent or a sub-folder, or move things here from a ⋯ menu.
               </div>
-            )
+            ) : (
+              <div className={styles.grid}>
+                {curFolders.map(renderFolderTile)}
+                {curAgents.map(renderAgentTile)}
+              </div>
+            )}
+          </>
         )}
 
         {/* ── ARCHIVED TAB ──────────────────────────────────────── */}
@@ -403,9 +476,10 @@ function HomeContent() {
         <WorkspaceNameModal
           mode="create"
           initial=""
+          intoWorkspaceName={openWs?.name ?? null}
           onClose={() => setWsCreateOpen(false)}
           onSubmit={async name => {
-            await createWorkspace({ ownerUserId, name });
+            await createWorkspace({ ownerUserId, name, parentId: openWorkspaceId });
             await reload();
             setWsCreateOpen(false);
           }}
@@ -416,6 +490,7 @@ function HomeContent() {
         <WorkspaceNameModal
           mode="rename"
           initial={wsRenameTarget.name}
+          intoWorkspaceName={null}
           onClose={() => setWsRenameTarget(null)}
           onSubmit={async name => {
             await renameWorkspace({ id: wsRenameTarget.id, name });
@@ -425,15 +500,32 @@ function HomeContent() {
         />
       )}
 
+      {wsMoveTarget && (
+        <MoveFolderModal
+          workspace={wsMoveTarget}
+          workspaces={workspaces}
+          onClose={() => setWsMoveTarget(null)}
+          onSubmit={async parentId => {
+            await moveWorkspace({ id: wsMoveTarget.id, parentId });
+            await reload();
+            setWsMoveTarget(null);
+          }}
+        />
+      )}
+
       {wsDeleteTarget && (
         <DeleteWorkspaceModal
           workspace={wsDeleteTarget}
-          agentCount={countInWs(wsDeleteTarget.id)}
+          agentCount={agentsIn(wsDeleteTarget.id).length}
+          folderCount={foldersIn(wsDeleteTarget.id).length}
+          parentName={wsDeleteTarget.parentId
+            ? (workspaces.find(w => w.id === wsDeleteTarget.parentId)?.name ?? 'its parent')
+            : 'the top level'}
           onClose={() => setWsDeleteTarget(null)}
           onChoose={async cascade => {
             await deleteWorkspace({ id: wsDeleteTarget.id, cascade });
+            if (openWorkspaceId === wsDeleteTarget.id) setOpenWorkspaceId(wsDeleteTarget.parentId ?? null);
             await reload();
-            if (openWorkspaceId === wsDeleteTarget.id) setOpenWorkspaceId(null);
             setWsDeleteTarget(null);
           }}
         />
@@ -516,6 +608,45 @@ function KebabMenu({ children }: { children: (close: () => void) => ReactNode })
   );
 }
 
+// ─── Folder tree picker (shared by move-agent / move-folder) ─────────
+
+function FolderTreePicker({
+  workspaces, value, onChange, disabledIds,
+}: {
+  workspaces: WorkspaceItem[];
+  value: string | null;
+  onChange: (id: string | null) => void;
+  disabledIds?: Set<string>;
+}) {
+  const renderRow = (ws: WorkspaceItem, depth: number): ReactNode => {
+    const disabled = disabledIds?.has(ws.id) ?? false;
+    const kids = workspaces.filter(w => (w.parentId ?? null) === ws.id);
+    return (
+      <Fragment key={ws.id}>
+        <button type="button" disabled={disabled}
+          className={`${styles.treeRow} ${value === ws.id ? styles.treeRowActive : ''} ${disabled ? styles.treeRowDisabled : ''}`}
+          style={{ paddingLeft: 10 + depth * 18 }}
+          onClick={() => { if (!disabled) onChange(ws.id); }}>
+          <span aria-hidden>📁</span> <span className={styles.treeLabel}>{ws.name}</span>
+        </button>
+        {kids.map(k => renderRow(k, depth + 1))}
+      </Fragment>
+    );
+  };
+  const roots = workspaces.filter(w => !w.parentId);
+  return (
+    <div className={styles.tree}>
+      <button type="button"
+        className={`${styles.treeRow} ${value === null ? styles.treeRowActive : ''}`}
+        style={{ paddingLeft: 10 }}
+        onClick={() => onChange(null)}>
+        <span aria-hidden>🏠</span> <span className={styles.treeLabel}>Top level</span>
+      </button>
+      {roots.map(r => renderRow(r, 1))}
+    </div>
+  );
+}
+
 // ─── Create-agent modal ─────────────────────────────────────────────
 
 function CreateAgentModal({
@@ -581,13 +712,14 @@ function CreateAgentModal({
   );
 }
 
-// ─── Workspace create / rename modal ────────────────────────────────
+// ─── Folder create / rename modal ───────────────────────────────────
 
 function WorkspaceNameModal({
-  mode, initial, onSubmit, onClose,
+  mode, initial, intoWorkspaceName, onSubmit, onClose,
 }: {
   mode: 'create' | 'rename';
   initial: string;
+  intoWorkspaceName: string | null;
   onSubmit: (name: string) => Promise<void>;
   onClose: () => void;
 }) {
@@ -605,7 +737,7 @@ function WorkspaceNameModal({
 
   return (
     <Modal open onClose={onClose} width={440}
-      title={mode === 'create' ? '📁 New workspace' : '✏️ Rename workspace'}
+      title={mode === 'create' ? '📁 New folder' : '✏️ Rename folder'}
       footer={
         <div className={styles.modalFooter}>
           <button type="button" className={styles.secondaryBtn} onClick={onClose}>Cancel</button>
@@ -615,12 +747,15 @@ function WorkspaceNameModal({
         </div>
       }>
       <div className={styles.modalBody}>
+        {mode === 'create' && intoWorkspaceName && (
+          <div className={styles.modalNote}>Inside <strong>📁 {intoWorkspaceName}</strong>.</div>
+        )}
         <label className={styles.fieldLabel}>
-          Workspace name
+          Folder name
           <input type="text" autoFocus value={name}
             onChange={e => setName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') submit(); }}
-            placeholder="e.g. ShlomisAgents" className={styles.fieldInput} />
+            placeholder="e.g. Banking" className={styles.fieldInput} />
         </label>
         {err && <div className={styles.modalError}>{err}</div>}
       </div>
@@ -628,52 +763,100 @@ function WorkspaceNameModal({
   );
 }
 
-// ─── Delete-workspace choice modal ──────────────────────────────────
+// ─── Move-folder modal ──────────────────────────────────────────────
+
+function MoveFolderModal({
+  workspace, workspaces, onSubmit, onClose,
+}: {
+  workspace: WorkspaceItem;
+  workspaces: WorkspaceItem[];
+  onSubmit: (parentId: string | null) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [target, setTarget] = useState<string | null>(workspace.parentId ?? null);
+  const [busy, setBusy]     = useState(false);
+  const [err, setErr]       = useState<string | null>(null);
+  const changed = target !== (workspace.parentId ?? null);
+  // Can't move a folder into itself or any of its own descendants.
+  const disabled = useMemo(
+    () => new Set([workspace.id, ...descendantIds(workspaces, workspace.id)]),
+    [workspace, workspaces],
+  );
+
+  const submit = async () => {
+    if (!changed || busy) return;
+    setBusy(true); setErr(null);
+    try { await onSubmit(target); }
+    catch (e) { setErr(cleanErr(e)); setBusy(false); }
+  };
+
+  return (
+    <Modal open onClose={onClose} width={460}
+      title="📁 Move folder"
+      footer={
+        <div className={styles.modalFooter}>
+          <button type="button" className={styles.secondaryBtn} onClick={onClose}>Cancel</button>
+          <button type="button" className={styles.primaryBtn} disabled={!changed || busy} onClick={submit}>
+            {busy ? 'Moving…' : 'Move here'}
+          </button>
+        </div>
+      }>
+      <div className={styles.modalBody}>
+        <div className={styles.modalNote}>Move <strong>“{workspace.name}”</strong> into:</div>
+        <FolderTreePicker workspaces={workspaces} value={target} onChange={setTarget} disabledIds={disabled} />
+        {err && <div className={styles.modalError}>{err}</div>}
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Delete-folder choice modal (non-empty) ─────────────────────────
 
 function DeleteWorkspaceModal({
-  workspace, agentCount, onChoose, onClose,
+  workspace, agentCount, folderCount, parentName, onChoose, onClose,
 }: {
   workspace: WorkspaceItem;
   agentCount: number;
-  onChoose: (cascade: 'orphan' | 'agents') => Promise<void>;
+  folderCount: number;
+  parentName: string;
+  onChoose: (cascade: 'orphan' | 'hard') => Promise<void>;
   onClose: () => void;
 }) {
-  const [busy, setBusy] = useState<null | 'orphan' | 'agents'>(null);
-  const run = async (cascade: 'orphan' | 'agents') => {
+  const [busy, setBusy] = useState<null | 'orphan' | 'hard'>(null);
+  const run = async (cascade: 'orphan' | 'hard') => {
     setBusy(cascade);
     try { await onChoose(cascade); }
     catch { setBusy(null); }
   };
 
+  const contents: string[] = [];
+  if (folderCount > 0) contents.push(`${folderCount} sub-folder${folderCount === 1 ? '' : 's'}`);
+  if (agentCount > 0)  contents.push(`${agentCount} agent${agentCount === 1 ? '' : 's'}`);
+
   return (
-    <Modal open onClose={onClose} width={480}
-      title="🗑 Delete workspace"
+    <Modal open onClose={onClose} width={500}
+      title="🗑 Delete folder"
       footer={
         <div className={styles.modalFooterSplit}>
           <button type="button" className={styles.secondaryBtn} onClick={onClose} disabled={busy !== null}>Cancel</button>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" className={styles.secondaryBtn} disabled={busy !== null} onClick={() => run('orphan')}>
-              {busy === 'orphan' ? 'Working…' : 'Keep agents (move to top)'}
+              {busy === 'orphan' ? 'Working…' : 'Move contents up & delete'}
             </button>
-            <button type="button" className={styles.dangerBtn} disabled={busy !== null} onClick={() => run('agents')}>
-              {busy === 'agents' ? 'Deleting…' : 'Delete agents too'}
+            <button type="button" className={styles.dangerBtn} disabled={busy !== null} onClick={() => run('hard')}>
+              {busy === 'hard' ? 'Deleting…' : 'Delete everything inside'}
             </button>
           </div>
         </div>
       }>
       <div className={styles.modalBody}>
         <div className={styles.modalNote}>
-          Delete <strong>“{workspace.name}”</strong>?
-          {agentCount > 0
-            ? <> It holds <strong>{agentCount}</strong> agent{agentCount === 1 ? '' : 's'}. Choose what happens to {agentCount === 1 ? 'it' : 'them'}:</>
-            : <> It’s empty, so this just removes the folder.</>}
+          <strong>“{workspace.name}”</strong> holds <strong>{contents.join(' and ')}</strong>. Choose what happens:
         </div>
-        {agentCount > 0 && (
-          <div className={styles.modalNote}>
-            <strong>Keep agents</strong> moves them back to the top level.<br />
-            <strong>Delete agents too</strong> permanently removes them and all their crews/versions.
-          </div>
-        )}
+        <div className={styles.modalNote}>
+          <strong>Move contents up</strong> keeps everything — its agents and sub-folders move to <strong>{parentName}</strong>, then the folder is removed.<br />
+          <strong>Delete everything inside</strong> permanently removes this folder, every sub-folder under it, and all their agents. This cannot be undone.
+        </div>
       </div>
     </Modal>
   );
@@ -828,13 +1011,8 @@ function MoveAgentModal({
     catch (e) { setErr(cleanErr(e)); setBusy(false); }
   };
 
-  const options: Array<{ id: string | null; name: string }> = [
-    { id: null, name: 'Top level' },
-    ...workspaces.map(w => ({ id: w.id, name: w.name })),
-  ];
-
   return (
-    <Modal open onClose={onClose} width={440}
+    <Modal open onClose={onClose} width={460}
       title="📁 Move agent"
       footer={
         <div className={styles.modalFooter}>
@@ -846,24 +1024,7 @@ function MoveAgentModal({
       }>
       <div className={styles.modalBody}>
         <div className={styles.modalNote}>Move <strong>“{item.agentName}”</strong> to:</div>
-        <div className={styles.radioList}>
-          {options.map(opt => {
-            const active = target === opt.id;
-            const isCurrent = item.workspaceId === opt.id;
-            return (
-              <button key={opt.id ?? '__top'} type="button"
-                className={`${styles.radioRow} ${active ? styles.radioRowActive : ''}`}
-                onClick={() => setTarget(opt.id)}>
-                <span aria-hidden>{opt.id === null ? '🏠' : '📁'}</span>
-                <span>{opt.name}</span>
-                {isCurrent && <span className={styles.radioCurrent}>current</span>}
-              </button>
-            );
-          })}
-        </div>
-        {workspaces.length === 0 && (
-          <div className={styles.modalNote}>No workspaces yet — create one from “📁 New workspace”.</div>
-        )}
+        <FolderTreePicker workspaces={workspaces} value={target} onChange={setTarget} />
         {err && <div className={styles.modalError}>{err}</div>}
       </div>
     </Modal>

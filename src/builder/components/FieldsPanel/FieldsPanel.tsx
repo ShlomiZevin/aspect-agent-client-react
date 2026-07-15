@@ -23,6 +23,7 @@ import { Link } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { useAgentFields } from '../../state/useAgentFields';
 import { useCrewFields } from '../../state/useCrewFields';
+import { useFieldnameMentions, type FieldMentionRef } from '../../state/useFieldMentions';
 import { useConfirm } from '../Confirm/Confirm';
 import { AddFieldModal } from './AddFieldModal';
 import { FieldEditorModal } from './FieldEditorModal';
@@ -84,6 +85,9 @@ export function FieldsPanel({ agentId, crewId }: Props) {
   // scope + owning crew, so the hook's crewId doesn't matter here.
   const { removeField } = crewSource;
   const confirm = useConfirm();
+  // Heuristic {{fieldname:X}} refs — "this addon's prompt likely
+  // returns this field" chips next to the structured extractor chips.
+  const mentions = useFieldnameMentions(agentId);
 
   // Same confirm copy + behaviour as the FieldEditorModal's Delete
   // button — this is just a shortcut to it from the row itself.
@@ -269,6 +273,7 @@ export function FieldsPanel({ agentId, crewId }: Props) {
                       liveValue={liveValueByField[cf.field.name]}
                       showCrewChip={showCrewChip}
                       enumNameById={enumNameById}
+                      mentions={mentions}
                     />
                   ))}
                 </div>
@@ -287,6 +292,7 @@ export function FieldsPanel({ agentId, crewId }: Props) {
                   liveValueByField={liveValueByField}
                   showCrewChip={showCrewChip}
                   enumNameById={enumNameById}
+                  mentions={mentions}
                 />
               ))}
             {collectedDomains
@@ -300,6 +306,7 @@ export function FieldsPanel({ agentId, crewId }: Props) {
                   liveValueByField={liveValueByField}
                   showCrewChip={showCrewChip}
                   enumNameById={enumNameById}
+                  mentions={mentions}
                 />
               ))}
           </div>
@@ -354,10 +361,11 @@ interface DomainGroupProps {
   liveValueByField: Record<string, unknown>;
   showCrewChip: boolean;
   enumNameById: Map<string, string>;
+  mentions: Map<string, FieldMentionRef[]>;
 }
 
 function DomainGroup({
-  group, collapsed, onToggle, onPick, onDelete, liveValueByField, showCrewChip, enumNameById,
+  group, collapsed, onToggle, onPick, onDelete, liveValueByField, showCrewChip, enumNameById, mentions,
 }: DomainGroupProps) {
   return (
     <div className={styles.group}>
@@ -381,6 +389,7 @@ function DomainGroup({
               liveValue={liveValueByField[cf.field.name]}
               showCrewChip={showCrewChip}
               enumNameById={enumNameById}
+              mentions={mentions}
             />
           ))}
         </div>
@@ -396,9 +405,10 @@ interface UngroupedProps {
   liveValueByField: Record<string, unknown>;
   showCrewChip: boolean;
   enumNameById: Map<string, string>;
+  mentions: Map<string, FieldMentionRef[]>;
 }
 
-function UngroupedFields({ group, onPick, onDelete, liveValueByField, showCrewChip, enumNameById }: UngroupedProps) {
+function UngroupedFields({ group, onPick, onDelete, liveValueByField, showCrewChip, enumNameById, mentions }: UngroupedProps) {
   return (
     <div className={styles.ungrouped}>
       <div className={styles.list}>
@@ -411,6 +421,7 @@ function UngroupedFields({ group, onPick, onDelete, liveValueByField, showCrewCh
             liveValue={liveValueByField[cf.field.name]}
             showCrewChip={showCrewChip}
             enumNameById={enumNameById}
+            mentions={mentions}
           />
         ))}
       </div>
@@ -425,15 +436,22 @@ interface FieldRowProps {
   liveValue?: unknown;
   showCrewChip: boolean;
   enumNameById: Map<string, string>;
+  mentions: Map<string, FieldMentionRef[]>;
 }
 
-function FieldRow({ cf, onPick, onDelete, liveValue, showCrewChip, enumNameById }: FieldRowProps) {
+function FieldRow({ cf, onPick, onDelete, liveValue, showCrewChip, enumNameById, mentions }: FieldRowProps) {
   const { updateConversationMemoryField, previewConversationId } = useBuilder();
   const src = SOURCE_LABEL[cf.field.source];
   const hasValue = liveValue !== undefined;
   const canClear = hasValue && previewConversationId !== null;
   const isCrewScoped = cf.scope === 'crew';
   const extractorCount = cf.extractors.length;
+
+  // Heuristic writers: addons whose prompt references this field via
+  // {{fieldname:…}} but that don't already extract it structurally.
+  const mentionRefs = (mentions.get(cf.field.name) ?? []).filter(
+    m => !cf.extractors.some(e => e.instanceId === m.instanceId),
+  );
 
   const onClear = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -482,20 +500,16 @@ function FieldRow({ cf, onPick, onDelete, liveValue, showCrewChip, enumNameById 
       <div className={styles.pills}>
         <span
           className={styles.typePill}
-          // Targeted-KB pills opt out of the lowercase transform so
-          // "Targeted KB" reads as its proper capitalisation. Plain
-          // primitives (string/int/bool) stay lowercase.
-          style={cf.field.type === 'enum' ? { textTransform: 'none' } : undefined}
           title={
             cf.field.type === 'enum' && cf.field.enumType
               ? enumNameById.has(cf.field.enumType)
-                ? `Targeted KB "${enumNameById.get(cf.field.enumType)}"`
-                : `Targeted KB "${cf.field.enumType}" is missing`
+                ? `Enum type "${enumNameById.get(cf.field.enumType)}"`
+                : `Enum binding "${cf.field.enumType}" is missing from the bible`
               : undefined
           }
         >
           {cf.field.type === 'enum' && cf.field.enumType
-            ? `Targeted KB · ${enumNameById.get(cf.field.enumType) ?? '(missing)'}`
+            ? `enum · ${enumNameById.get(cf.field.enumType) ?? '(missing)'}`
             : TYPE_LABEL[cf.field.type] ?? cf.field.type}
         </span>
         {/* Source pill suppressed for pinned — the "🎯 PINNED"
@@ -512,7 +526,7 @@ function FieldRow({ cf, onPick, onDelete, liveValue, showCrewChip, enumNameById 
           // is expected. Skip the "no extractor" warning so the row
           // doesn't carry a false-positive error chip.
           null
-        ) : extractorCount === 0 ? (
+        ) : extractorCount === 0 && mentionRefs.length === 0 ? (
           <span
             className={styles.unwired}
             title="No Field Extractor references this field — open the editor to wire one"
@@ -536,6 +550,20 @@ function FieldRow({ cf, onPick, onDelete, liveValue, showCrewChip, enumNameById 
             </span>
           ))
         )}
+        {/* Softer "likely written by" chips — the addon's prompt
+            references {{fieldname:X}}, which almost always means it
+            was asked to RETURN that attribute (auto-harvested into
+            this field). Heuristic, hence the dashed styling. */}
+        {cf.field.source !== 'pinned' && mentionRefs.map(m => (
+          <span
+            key={`mention-${m.instanceId}`}
+            className={styles.mentionChip}
+            title={`Prompt references {{fieldname:${cf.field.name}}} — likely returns this field. (${m.crewName ? `${m.crewName} → ` : ''}${m.label})`}
+          >
+            <span className={styles.locationChipIcon} aria-hidden>{m.icon}</span>
+            {showCrewChip && m.crewName ? `${m.crewName} → ${m.label}` : m.label}
+          </span>
+        ))}
       </div>
       {cf.field.howToExtract && (
         <span className={styles.desc}>{cf.field.howToExtract}</span>

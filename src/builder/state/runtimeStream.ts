@@ -145,7 +145,7 @@ export interface SendArgs {
   conversationId: number;
   ownerUserId: string;
   userMessage: string;
-  version?: 'viewing' | 'active';
+  version?: 'viewing' | 'active' | 'published';
   /** Optional crew override (e.g. picked by the user in the chat header
    *  dropdown). When set, the server routes this turn to that crew and
    *  persists it as the new conversation pointer. */

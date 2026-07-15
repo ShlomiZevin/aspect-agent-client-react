@@ -19,6 +19,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { useAgentFields } from '../../state/useAgentFields';
 import { useCrewFields } from '../../state/useCrewFields';
+import { useFieldnameMentions, type FieldMentionRef } from '../../state/useFieldMentions';
 import { useConfirm } from '../Confirm/Confirm';
 import { DomainModal } from './DomainModal';
 import { ParameterModal } from './ParameterModal';
@@ -517,6 +518,17 @@ function FieldsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean 
     return cf?.extractors.length ?? 0;
   };
 
+  // Heuristic {{fieldname:X}} writers — soft "likely returns this
+  // field" chips for free-prompt addons (Thinker et al.), excluding
+  // addons that already extract the field structurally.
+  const mentions = useFieldnameMentions(agentId);
+  const mentionsFor = (f: FieldDef): FieldMentionRef[] => {
+    const refs = mentions.get(f.name);
+    if (!refs || refs.length === 0) return [];
+    const cf = allFields.find(x => x.field.id === f.id);
+    return refs.filter(m => !cf?.extractors.some(e => e.instanceId === m.instanceId));
+  };
+
   return (
     <div className={`${styles.panel} ${embedded ? styles.panelEmbedded : ''}`}>
       <div className={`${styles.header} ${embedded ? styles.headerEmbedded : ''}`}>
@@ -548,6 +560,7 @@ function FieldsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean 
               onWire={openWire}
               onDelete={onDelete}
               extractorCountFor={extractorCountFor}
+              mentionsFor={mentionsFor}
               liveValueByField={liveValueByField}
               canClearLive={previewConversationId !== null}
               onClearLive={onClearLive}
@@ -564,6 +577,7 @@ function FieldsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean 
               onWire={openWire}
               onDelete={onDelete}
               extractorCountFor={extractorCountFor}
+              mentionsFor={mentionsFor}
               liveValueByField={liveValueByField}
               canClearLive={previewConversationId !== null}
               enumByFieldId={enumByFieldId}
@@ -591,7 +605,7 @@ function formatLiveValue(v: unknown): string {
 }
 
 function FieldsGroup({
-  label, fields, onPick, onWire, onDelete, extractorCountFor,
+  label, fields, onPick, onWire, onDelete, extractorCountFor, mentionsFor,
   liveValueByField, canClearLive, onClearLive,
   enumByFieldId, reasonerByFieldId, agentSlug,
 }: {
@@ -601,6 +615,7 @@ function FieldsGroup({
   onWire: (f: FieldDef) => void;
   onDelete: (f: FieldDef) => void;
   extractorCountFor: (id: ID) => number;
+  mentionsFor: (f: FieldDef) => FieldMentionRef[];
   liveValueByField: Record<string, unknown>;
   canClearLive: boolean;
   onClearLive: (name: string) => Promise<void> | void;
@@ -614,6 +629,7 @@ function FieldsGroup({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {fields.map(f => {
           const n = extractorCountFor(f.id);
+          const mentionRefs = mentionsFor(f);
           const live = liveValueByField[f.name];
           const hasValue = live !== undefined;
           const boundEnum = enumByFieldId.get(f.id) ?? null;
@@ -673,21 +689,34 @@ function FieldsGroup({
                 * compete with the field name for attention. */}
               <div className={styles.fieldRowMeta}>
                 <span className={styles.fieldTypePill}>{f.type}</span>
-                {n === 0 ? (
+                {n === 0 && mentionRefs.length === 0 ? (
                   <span
                     className={styles.fieldStatusUnwired}
                     title="Declared but not collected by any crew yet"
                   >
                     ⚠ unwired
                   </span>
-                ) : (
+                ) : n > 0 ? (
                   <span
                     className={styles.fieldStatusWired}
                     title={`Collected by ${n} extractor${n === 1 ? '' : 's'}`}
                   >
                     ✓ wired · {n}
                   </span>
-                )}
+                ) : null}
+                {/* Soft "likely written by" chips — the addon's prompt
+                    references {{fieldname:X}}; almost always it was
+                    asked to RETURN that attribute (auto-harvested into
+                    this field). Heuristic → dashed styling. */}
+                {mentionRefs.map(m => (
+                  <span
+                    key={`mention-${m.instanceId}`}
+                    className={styles.mentionChip}
+                    title={`Prompt references {{fieldname:${f.name}}} — likely returns this field. (${m.crewName ? `${m.crewName} → ` : ''}${m.label})`}
+                  >
+                    <span aria-hidden>{m.icon}</span> {m.crewName ? `${m.crewName} → ${m.label}` : m.label}
+                  </span>
+                ))}
                 {boundEnum && (
                   <Link
                     to={`/${agentSlug}/builder/enums/${encodeURIComponent(boundEnum.name)}`}

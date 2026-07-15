@@ -5,7 +5,8 @@
  * message with the assistant response, streams tokens into the bubble,
  * and collects every NON-talker addon output as the turn's "thinking
  * process" (surfaced only in DEBUG mode). No crew UI, no working-copy
- * overrides, no memory panel — it runs the agent's `active` version.
+ * overrides, no memory panel — it runs the agent's version chosen by
+ * the caller (customer surfaces pass `'published'`).
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -113,7 +114,7 @@ export interface UseLiveChat {
 interface Args {
   slug: string;
   ownerUserId: string;
-  version: 'viewing' | 'active';
+  version: 'viewing' | 'active' | 'published';
 }
 
 export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {

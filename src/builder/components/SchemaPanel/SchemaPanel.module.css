@@ -409,6 +409,23 @@
   flex-wrap: wrap;
 }
 
+/* Heuristic "likely written by" chip — an addon's prompt references
+ * this field via {{fieldname:…}}. Dashed + faded: an indicator, not
+ * a structured guarantee. */
+.mentionChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: #6d28d9;
+  background: rgba(124, 58, 237, 0.06);
+  border: 1px dashed rgba(124, 58, 237, 0.45);
+}
+
 .fieldTypePill {
   font-size: 10px;
   font-weight: 600;

@@ -308,6 +308,28 @@
   font-weight: 600;
 }
 
+/* Heuristic "likely written by" chips — read-only, dashed so they
+ * can't be confused with the toggleable Extracted-by picker chips. */
+.mentionChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mentionChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: #6d28d9;
+  background: rgba(124, 58, 237, 0.06);
+  border: 1px dashed rgba(124, 58, 237, 0.45);
+}
+
 /* "Extracted by" picker in the Add/Edit modal. Grouped by crew so
  * the user sees `Crew → Extractor` structure. Each chip toggles
  * membership in the field's extractor list. */

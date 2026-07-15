@@ -47,6 +47,7 @@ export function VersionMenu({ state }: Props) {
     versions,
     viewingVersionId,
     activeVersionId,
+    publishedVersionId,
     isDirty,
     crossDirtyLabel,
     nextNumber,
@@ -54,6 +55,8 @@ export function VersionMenu({ state }: Props) {
     save,
     saveAs,
     setActive,
+    setPublished,
+    publishAll,
   } = state;
   // Note: `state.discard` (in-memory revert to the cached version body)
   // is intentionally unused. The Reset button below calls
@@ -62,6 +65,7 @@ export function VersionMenu({ state }: Props) {
 
   const viewing = versions.find(v => v.id === viewingVersionId);
   const viewingIsActive = viewingVersionId === activeVersionId;
+  const viewingIsPublished = viewingVersionId === publishedVersionId;
   const saveTooltip = !isDirty
     ? 'No changes to save'
     : crossDirtyLabel
@@ -84,7 +88,7 @@ export function VersionMenu({ state }: Props) {
       <span className={styles.spacer} />
 
       {viewingIsActive ? (
-        <span className={styles.activeBadge} title={`This is the active ${entityLabel}’s version`}>
+        <span className={styles.activeBadge} title={`This is the active ${entityLabel}’s version — what the builder chat runs`}>
           ⭐ Active
         </span>
       ) : (
@@ -92,9 +96,69 @@ export function VersionMenu({ state }: Props) {
           type="button"
           className={styles.setActiveBtn}
           onClick={() => setActive(viewingVersionId)}
-          title="Make this the version the runtime uses"
+          title="Make this the active version (the builder / admin marker)"
         >
           ⭐ Set as active
+        </button>
+      )}
+
+      {/* Publish — the CUSTOMER-facing pointer, decoupled from active.
+          Publishing a version is what live users actually run; it's an
+          outward-facing action, so it's confirmed. */}
+      {viewingIsPublished ? (
+        <button
+          type="button"
+          className={styles.publishedBadge}
+          onClick={async () => {
+            const ok = await confirm({
+              title:        'Unpublish this version?',
+              message:      `Customers will fall back to the active ${entityLabel} version until you publish again.`,
+              confirmLabel: 'Unpublish',
+              danger:       true,
+            });
+            if (ok) setPublished(null);
+          }}
+          title="Customers run this version — click to unpublish"
+        >
+          🚀 Published
+        </button>
+      ) : (
+        <button
+          type="button"
+          className={styles.publishBtn}
+          onClick={async () => {
+            const ok = await confirm({
+              title:        'Publish this version to customers?',
+              message:      isDirty
+                ? `This publishes the last SAVED state of this ${entityLabel} version to live customers. Unsaved edits are NOT included — Save first if you want them live.`
+                : `Live customers will run this ${entityLabel} version. It stays put until you publish another.`,
+              confirmLabel: 'Publish',
+            });
+            if (ok) setPublished(viewingVersionId);
+          }}
+          title="Make this the version live customers run"
+        >
+          🚀 Publish
+        </button>
+      )}
+
+      {/* Agent-only convenience: publish the agent + every crew to
+          their ACTIVE versions in one click. */}
+      {publishAll && (
+        <button
+          type="button"
+          className={styles.publishBtn}
+          onClick={async () => {
+            const ok = await confirm({
+              title:        'Publish everything to customers?',
+              message:      'Publishes the agent AND every crew to their current active versions. Live customers will run this whole set.',
+              confirmLabel: 'Publish all',
+            });
+            if (ok) publishAll();
+          }}
+          title="Publish the agent and all crews (their active versions) to customers"
+        >
+          🚀 Publish all
         </button>
       )}
 
