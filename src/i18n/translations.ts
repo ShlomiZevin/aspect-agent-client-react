@@ -132,6 +132,9 @@ export const translations: LanguageConfig = {
     'dataStatusBar.dataThrough': 'Data through',
     'dataStatusBar.na': 'N/A',
 
+    // ImportingBanner — shown while a data import/index job is running
+    'importingBanner.message': 'Data is updating now - answers may be temporarily unstable',
+
     // Chat table export + full-data viewer
     'chat.exportToExcel': 'Export to Excel',
     'chat.viewFullTable': 'View full table',
@@ -539,6 +542,9 @@ export const translations: LanguageConfig = {
     'dataStatusBar.dataFrom': 'נתונים מ-',
     'dataStatusBar.dataThrough': 'נתונים עד',
     'dataStatusBar.na': 'לא זמין',
+
+    // ImportingBanner — shown while a data import/index job is running
+    'importingBanner.message': 'הנתונים מתעדכנים כעת - התשובות עשויות להיות לא יציבות זמנית',
 
     // Chat table export + full-data viewer
     'chat.exportToExcel': 'ייצוא לאקסל',
