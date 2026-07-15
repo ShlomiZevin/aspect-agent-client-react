@@ -29,7 +29,7 @@ const STEP_COLORS: Record<string, string> = {
 
 function formatTime(ts: string) {
   try {
-    return new Date(ts).toLocaleTimeString('en-GB', { hour12: false });
+    return new Date(ts).toLocaleTimeString('en-GB', { hour12: false, timeZone: 'Asia/Jerusalem' });
   } catch {
     return ts;
   }

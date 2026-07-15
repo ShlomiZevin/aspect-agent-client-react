@@ -105,7 +105,7 @@ export function CurrentRunPanel({ run, logs, filesCompleted }: CurrentRunPanelPr
         {startedAt && (
           <div className={styles.runMetaRow}>
             <span className={styles.metaLabel}>Started</span>
-            <span>{new Date(startedAt).toLocaleDateString('en-GB')} {new Date(startedAt).toLocaleTimeString('en-GB', { hour12: false })}</span>
+            <span>{new Date(startedAt).toLocaleDateString('en-GB', { timeZone: 'Asia/Jerusalem' })} {new Date(startedAt).toLocaleTimeString('en-GB', { hour12: false, timeZone: 'Asia/Jerusalem' })}</span>
           </div>
         )}
         {isRunning && elapsed && (
