@@ -261,7 +261,11 @@ function classify(
     if (!f) return { kind: 'prose', text: token };
     return staticNode(token, f.name, ctx, deps, depth);
   }
-  if (prefix === 'enum') {
+  // `enum` is the legacy prefix; `targetedkb` is the new vocabulary the
+  // UI has migrated to. The server routes BOTH to the same resolver
+  // (promptAssembler.js), so the preview must resolve both too —
+  // otherwise `{{targetedkb:…}}` renders as literal, unresolved text.
+  if (prefix === 'enum' || prefix === 'targetedkb') {
     const resolved = resolveEnumAggregate(arg ?? '', ctx.enums);
     // Unknown enum → leave the token literal as prose so the typo shows.
     if (resolved === null) return { kind: 'prose', text: token };
