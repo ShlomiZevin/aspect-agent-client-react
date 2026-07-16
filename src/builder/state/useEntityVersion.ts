@@ -24,19 +24,19 @@ export interface EntityVersionState {
   /** Customer-facing published version, or null when nothing is
    *  published yet (runtime falls back to active→viewing). */
   publishedVersionId: ID | null;
-  /** True if EITHER this entity OR a related entity is dirty —
-   *  drives the "Save" button enabled state. */
+  /** True when THIS entity has unsaved changes — drives the "Save"
+   *  button enabled state. Each entity is self-contained: a dirty crew
+   *  never makes its agent dirty, or vice versa. Equal to `ownDirty`. */
   isDirty: boolean;
-  /** True specifically for the *primary* entity (this crew / this agent).
-   *  Used by surfaces that care about the local-only state, like the
-   *  Sidebar's version pill. */
+  /** Same as `isDirty` — the entity's own local dirty state. Kept as a
+   *  distinct field for the surfaces (Sidebar pill, VersionPill dot)
+   *  that read it explicitly. */
   ownDirty: boolean;
   /**
-   * If non-empty, the user-facing description of what else `save()`
-   * will save besides the primary entity. Examples: "agent" (when a
-   * crew save also persists the agent) or "2 crews" (when an agent
-   * save also persists dirty crews). Empty string when only the
-   * primary entity is dirty.
+   * Deprecated: always empty. Saves are now per-entity (a crew save
+   * never also persists the agent, and vice versa), so there is nothing
+   * cross-entity to announce. Retained so consumers compile unchanged;
+   * the "+ N crew" Save suffix simply never renders.
    */
   crossDirtyLabel: string;
   /** Next version number for Save As ("Save as v4"). */
@@ -58,6 +58,19 @@ export interface EntityVersionState {
   /** Agent-only: publish the agent + every crew to their ACTIVE
    *  versions in one click. Undefined for crews. */
   publishAll?: () => void;
+
+  // ── Read-only preview (browse a non-active version) ──
+  /** The version being previewed read-only for THIS entity, or null. */
+  previewVersionId: ID | null;
+  /** Whether the active line had unsaved edits when preview began —
+   *  drives the Edit-this-version Save/Discard guard. */
+  previewStashDirty: boolean;
+  /** Enter a read-only preview of a version for this entity. */
+  enterPreview: (versionId: ID) => void;
+  /** Leave preview back to the editable line ("Back to active"). */
+  exitPreview: () => void;
+  /** Make the previewed version this entity's editable line. */
+  editThisVersion: () => void;
   /** Revert the working copy to the viewing version's body. Also
    *  drops any pending Alfred apply target for this entity. */
   discard: () => void;
@@ -75,10 +88,12 @@ export function useCrewVersion(agentId: ID, crewId: ID): EntityVersionState | nu
     setViewingCrewVersion,
     setActiveCrewVersion,
     setPublishedCrewVersion,
+    previewVersion,
+    enterPreview: ctxEnterPreview,
+    exitPreview,
+    editThisVersion,
     discardCrewChanges,
-    discardAgentChanges,
     deleteCrewVersion,
-    saveAgentVersion,
     isCrewDirty,
     isAgentDirty,
     pendingAlfredApply,
@@ -110,30 +125,35 @@ export function useCrewVersion(agentId: ID, crewId: ID): EntityVersionState | nu
     viewingVersionId: crew.viewingVersionId,
     activeVersionId: crew.activeVersionId,
     publishedVersionId: crew.publishedVersionId ?? null,
-    isDirty:   crewDirty || agentDirty,
+    // Each entity's Save reflects and persists ONLY its own changes.
+    // Editing a crew is the crew's business; it never marks the agent
+    // dirty or saves it as a side effect (and vice versa). Use the
+    // agent-level "Save all as…" to snapshot everything at once.
+    isDirty:   crewDirty,
     ownDirty:  crewDirty,
-    crossDirtyLabel: agentDirty ? 'agent' : '',
+    crossDirtyLabel: '',
     nextNumber,
     hasPendingAlfred,
     save: (opts) => {
-      // Order doesn't matter — both saves are idempotent. Saving
-      // both in one click is the point of the cross-dirty handling.
-      // Same attribution applies to both because it's one logical
-      // commit; the user picked it once.
-      if (crewDirty)  saveCrewVersion(agentId, crewId, opts);
-      if (agentDirty) saveAgentVersion(agentId, opts);
+      if (crewDirty) saveCrewVersion(agentId, crewId, opts);
     },
     saveAs:      (d, opts)  => { saveCrewVersionAs(agentId, crewId, d, opts); },
     setViewing:  id => setViewingCrewVersion(agentId, crewId, id),
     setActive:   id => setActiveCrewVersion(agentId, crewId, id),
     setPublished: id => setPublishedCrewVersion(agentId, crewId, id),
-    // Match save's cross-entity scope — discarding only one side
-    // when an action touched both would leave the user stranded
-    // (e.g. agent has a new field def but the crew that wired it is
-    // reverted, or vice versa).
+    previewVersionId:
+      previewVersion && previewVersion.agentId === agentId && previewVersion.crewId === crewId
+        ? previewVersion.versionId
+        : null,
+    previewStashDirty:
+      previewVersion && previewVersion.agentId === agentId && previewVersion.crewId === crewId
+        ? previewVersion.stashDirty
+        : false,
+    enterPreview: id => ctxEnterPreview(agentId, crewId, id, crewDirty),
+    exitPreview,
+    editThisVersion,
     discard:     () => {
-      if (crewDirty)  discardCrewChanges(agentId, crewId);
-      if (agentDirty) discardAgentChanges(agentId);
+      if (crewDirty) discardCrewChanges(agentId, crewId);
     },
     deleteVersion: vId => deleteCrewVersion(agentId, crewId, vId),
   };
@@ -148,10 +168,12 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
     setActiveAgentVersion,
     setPublishedAgentVersion,
     publishAllVersions,
+    previewVersion,
+    enterPreview: ctxEnterPreview,
+    exitPreview,
+    editThisVersion,
     discardAgentChanges,
-    discardCrewChanges,
     deleteAgentVersion,
-    saveCrewVersion,
     isAgentDirty,
     isCrewDirty,
     pendingAlfredApply,
@@ -170,11 +192,6 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
   const nextNumber =
     agent.versions.reduce((max, v) => Math.max(max, v.number), 0) + 1;
 
-  const crewLabel =
-    dirtyCrewIds.length === 0 ? '' :
-    dirtyCrewIds.length === 1 ? '1 crew'  :
-    `${dirtyCrewIds.length} crews`;
-
   const hasPendingAlfred = !!pendingAlfredApply?.targets.some(
     t => !t.applied && (
       (t.entity === 'agent' && t.entityId === agentId) ||
@@ -188,23 +205,36 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
     viewingVersionId: agent.viewingVersionId,
     activeVersionId: agent.activeVersionId,
     publishedVersionId: agent.publishedVersionId ?? null,
-    isDirty:   agentDirty || dirtyCrewIds.length > 0,
+    // The agent's Save reflects and persists ONLY the agent's own body.
+    // A dirty crew under it no longer marks the agent dirty or gets
+    // saved as a side effect — save each entity from its own view, or
+    // use "Save all as…" for a synchronised snapshot across all.
+    isDirty:   agentDirty,
     ownDirty:  agentDirty,
-    crossDirtyLabel: crewLabel,
+    crossDirtyLabel: '',
     nextNumber,
     hasPendingAlfred,
     save: (opts) => {
       if (agentDirty) saveAgentVersion(agentId, opts);
-      for (const id of dirtyCrewIds) saveCrewVersion(agentId, id, opts);
     },
     saveAs:      (d, opts)  => { saveAgentVersionAs(agentId, d, opts); },
     setViewing:  id => setViewingAgentVersion(agentId, id),
     setActive:   id => setActiveAgentVersion(agentId, id),
     setPublished: id => setPublishedAgentVersion(agentId, id),
     publishAll:  () => publishAllVersions(agentId),
+    previewVersionId:
+      previewVersion && previewVersion.agentId === agentId && previewVersion.crewId === null
+        ? previewVersion.versionId
+        : null,
+    previewStashDirty:
+      previewVersion && previewVersion.agentId === agentId && previewVersion.crewId === null
+        ? previewVersion.stashDirty
+        : false,
+    enterPreview: id => ctxEnterPreview(agentId, null, id, agentDirty),
+    exitPreview,
+    editThisVersion,
     discard:     () => {
       if (agentDirty) discardAgentChanges(agentId);
-      for (const id of dirtyCrewIds) discardCrewChanges(agentId, id);
     },
     deleteVersion: vId => deleteAgentVersion(agentId, vId),
   };

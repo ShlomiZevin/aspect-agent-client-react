@@ -363,6 +363,14 @@ export async function setCrewPublishedApi(crewId: ID, versionId: ID | null) {
   });
 }
 
+/** Persist the author-chosen crew order (sidebar drag-reorder). */
+export async function reorderCrewsApi(agentId: ID, crewIds: ID[]) {
+  await http(`/api/builder/agents/${agentId}/crew-order`, {
+    method: 'PUT',
+    body: JSON.stringify({ crewIds }),
+  });
+}
+
 export async function setCrewViewingApi(crewId: ID, versionId: ID) {
   await http(`/api/builder/crews/${crewId}/viewing`, {
     method: 'PUT',

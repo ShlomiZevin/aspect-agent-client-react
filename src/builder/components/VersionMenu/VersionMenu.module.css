@@ -1,8 +1,13 @@
+/* Compact, right-aligned cluster. The TopBar already has its own
+   flex:1 spacer BEFORE us, which pushes this whole group to the right
+   edge (next to ⟳ / ⚙). We must NOT grow too — otherwise the meta text
+   gets stranded in the middle of the bar. `0 1 auto` lets us shrink on
+   narrow windows (meta ellipsis) but never expand to fill. */
 .wrap {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
 }
 
@@ -103,20 +108,38 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  height: 28px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  padding: 5px 10px;
+  padding: 0 10px;
   border-radius: 999px;
   background: rgba(99, 102, 241, 0.1);
   color: #4f46e5;
+}
+
+/* Amber "previewing … read-only" badge — signals you're browsing a
+   non-active version and can't edit it here. */
+.previewBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
 }
 
 .setActiveBtn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 5px 10px;
+  height: 28px;
+  padding: 0 10px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -140,10 +163,11 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  height: 28px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  padding: 5px 10px;
+  padding: 0 10px;
   border-radius: 999px;
   background: rgba(16, 185, 129, 0.12);
   border: 1px solid rgba(16, 185, 129, 0.35);
@@ -160,12 +184,13 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 5px 10px;
+  height: 28px;
+  padding: 0 10px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
   background: var(--bg-surface, #fff);
-  border: 1px dashed rgba(16, 185, 129, 0.5);
+  border: 1px solid rgba(16, 185, 129, 0.5);
   border-radius: 999px;
   color: #047857;
   cursor: pointer;
@@ -173,7 +198,131 @@
 }
 
 .publishBtn:hover {
-  border-style: solid;
   border-color: #059669;
   background: rgba(16, 185, 129, 0.06);
+}
+
+/* ── Logical clusters + split buttons ──────────────────────────────
+   The action row is grouped: [status] · [Publish ▾] | [Save ▾].
+   Each split button is a primary action fused to a caret that opens a
+   small menu of its own variants (Save → Save all / Save as… / …). */
+
+/* Thin vertical rule separating the publish cluster from the save
+   cluster so the bar reads as groups, not a flat run of buttons. */
+.divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-color, #e5e7eb);
+  flex: 0 0 auto;
+  margin: 0 3px;
+}
+
+.split {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+}
+
+/* Primary half of a split button: square off the right edge and zero
+   its right border WIDTH so it fuses seamlessly with the caret. We zero
+   the width (not `border-right: none`, which resets width to medium and
+   makes a hover style-change re-reveal ~3px and shift the button). */
+.splitPrimary {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right-width: 0;
+}
+
+/* Caret half: square off the left edge; its own left border becomes
+   the hairline divider between the two halves. */
+.splitCaret {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding: 0 7px;
+  font-size: 10px;
+}
+
+/* When the primary half is emphasised (filled indigo Save), tint the
+   caret to match and soften the divider to a translucent white. */
+.splitCaretPrimary {
+  background: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
+  border-left-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+
+.splitCaretPrimary:hover:not(:disabled) {
+  filter: brightness(1.05);
+  color: #fff;
+}
+
+/* Dropdown of variants hanging off a caret. */
+.splitMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 172px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+  padding: 5px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.menuItem:hover:not(:disabled) {
+  background: var(--bg-input, #f3f4f6);
+  color: var(--primary-color, #6366f1);
+}
+
+.menuItem:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.menuItemSub {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-tertiary, #9ca3af);
+  margin-top: 1px;
+}
+
+.menuItem:hover:not(:disabled) .menuItemSub {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.menuDivider {
+  height: 1px;
+  background: var(--border-color, #e5e7eb);
+  margin: 4px 2px;
+}
+
+.menuItemDanger:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.06);
+  color: #b91c1c;
 }

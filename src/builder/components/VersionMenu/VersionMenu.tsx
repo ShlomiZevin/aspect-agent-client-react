@@ -12,6 +12,7 @@ import { SaveAsModal } from '../SaveAsModal/SaveAsModal';
 import { SaveAttributionModal } from '../SaveAttributionModal/SaveAttributionModal';
 import { useConfirm } from '../Confirm/Confirm';
 import { useBuilder } from '../../state/BuilderContext';
+import { useAnyDirty } from '../../hooks/useAutoSave';
 import type { EntityVersionState } from '../../state/useEntityVersion';
 import styles from './VersionMenu.module.css';
 
@@ -39,8 +40,13 @@ export function VersionMenu({ state }: Props) {
   const [attributionOpen, setAttributionOpen]         = useState(false);
   const [attributionVariant, setAttributionVariant]   = useState<'save' | 'save-as'>('save');
   const [pendingDescription, setPendingDescription]   = useState<string | undefined>(undefined);
+  // Which split-button dropdown is open (Save▾ or Publish▾), if any.
+  const [openMenu, setOpenMenu] = useState<null | 'save' | 'publish'>(null);
   const confirm = useConfirm();
-  const { pendingAlfredApply, resetToServerState, doc, saveAllVersionsAs, selection } = useBuilder();
+  const { pendingAlfredApply, resetToServerState, doc, saveAllVersionsAs, saveAllVersions, selection } = useBuilder();
+  // Global dirty flag (whole doc) — drives "Save all", which commits every
+  // unsaved agent + crew, independent of which entity is on screen.
+  const { dirty: anyDirty } = useAnyDirty();
 
   const {
     entityLabel,
@@ -48,8 +54,9 @@ export function VersionMenu({ state }: Props) {
     viewingVersionId,
     activeVersionId,
     publishedVersionId,
+    previewVersionId,
+    previewStashDirty,
     isDirty,
-    crossDirtyLabel,
     nextNumber,
     hasPendingAlfred,
     save,
@@ -57,6 +64,8 @@ export function VersionMenu({ state }: Props) {
     setActive,
     setPublished,
     publishAll,
+    exitPreview,
+    editThisVersion,
   } = state;
   // Note: `state.discard` (in-memory revert to the cached version body)
   // is intentionally unused. The Reset button below calls
@@ -66,11 +75,46 @@ export function VersionMenu({ state }: Props) {
   const viewing = versions.find(v => v.id === viewingVersionId);
   const viewingIsActive = viewingVersionId === activeVersionId;
   const viewingIsPublished = viewingVersionId === publishedVersionId;
-  const saveTooltip = !isDirty
-    ? 'No changes to save'
-    : crossDirtyLabel
-      ? `Saves the ${entityLabel} and the ${crossDirtyLabel} — this edit touched both.`
-      : 'Save changes into the viewing version';
+  const saveTooltip = isDirty
+    ? `Save changes into this ${entityLabel}'s version`
+    : 'No changes to save';
+
+  const agentId = selection.agentId;
+  const agentForRow = agentId ? doc.agents.find(a => a.id === agentId) : undefined;
+  const hasCrews = (agentForRow?.crews?.length ?? 0) > 0;
+
+  // Fire the primary Save (routing through the Alfred-attribution modal
+  // when a matching apply target is pending).
+  const runSave = () => {
+    if (hasPendingAlfred) {
+      setAttributionVariant('save');
+      setAttributionOpen(true);
+    } else {
+      save();
+    }
+  };
+
+  const runReset = async () => {
+    const ok = await confirm({
+      title:    'Reset to last saved state?',
+      message:  hasPendingAlfred
+        ? 'Reloads the latest version from the server, drops your unsaved edits, and drops the pending Alfred apply (no log entry). If nothing is saved yet, you\'ll get a blank agent.'
+        : 'Reloads the latest version from the server and drops your unsaved edits. If nothing is saved yet, you\'ll get a blank agent.',
+      confirmLabel: 'Reset',
+      danger:   true,
+    });
+    if (ok) await resetToServerState();
+  };
+
+  const runPublishAll = async () => {
+    if (!publishAll) return;
+    const ok = await confirm({
+      title:        'Publish everything to customers?',
+      message:      'Publishes the agent AND every crew to their current active versions. Live customers will run this whole set.',
+      confirmLabel: 'Publish all',
+    });
+    if (ok) publishAll();
+  };
 
   return (
     <div className={styles.wrap}>
@@ -85,8 +129,46 @@ export function VersionMenu({ state }: Props) {
         )}
       </span>
 
-      <span className={styles.spacer} />
-
+      {previewVersionId ? (
+        // ── Read-only preview bar ──
+        // You're browsing a non-active version. Your editable draft is
+        // stashed and safe. Return to it, or make THIS version your
+        // editable line.
+        <>
+          <span className={styles.previewBadge} title="You're viewing this version read-only — your editable work is safe">
+            👁 Previewing v{viewing?.number ?? '?'} · read-only
+          </span>
+          <button
+            type="button"
+            className={styles.btn}
+            onClick={() => exitPreview()}
+            title="Return to your editable version"
+          >
+            ↩ Back to active
+          </button>
+          <button
+            type="button"
+            className={`${styles.btn} ${styles.btnPrimary}`}
+            onClick={async () => {
+              if (previewStashDirty) {
+                const ok = await confirm({
+                  title:        'Discard unsaved changes?',
+                  message:      `Editing v${viewing?.number} makes it your working version and discards the unsaved changes on your current active ${entityLabel}. Save those first if you want to keep them.`,
+                  confirmLabel: 'Discard & edit',
+                  danger:       true,
+                });
+                if (!ok) return;
+              }
+              editThisVersion();
+            }}
+            title="Make this version your editable working line"
+          >
+            ✎ Edit this version
+          </button>
+        </>
+      ) : (
+      <>
+      {/* ── Status cluster: which version the builder chat runs ── */}
       {viewingIsActive ? (
         <span className={styles.activeBadge} title={`This is the active ${entityLabel}’s version — what the builder chat runs`}>
           ⭐ Active
@@ -102,141 +184,145 @@ export function VersionMenu({ state }: Props) {
         </button>
       )}
 
-      {/* Publish — the CUSTOMER-facing pointer, decoupled from active.
-          Publishing a version is what live users actually run; it's an
-          outward-facing action, so it's confirmed. */}
-      {viewingIsPublished ? (
-        <button
-          type="button"
-          className={styles.publishedBadge}
-          onClick={async () => {
-            const ok = await confirm({
-              title:        'Unpublish this version?',
-              message:      `Customers will fall back to the active ${entityLabel} version until you publish again.`,
-              confirmLabel: 'Unpublish',
-              danger:       true,
-            });
-            if (ok) setPublished(null);
-          }}
-          title="Customers run this version — click to unpublish"
-        >
-          🚀 Published
-        </button>
-      ) : (
-        <button
-          type="button"
-          className={styles.publishBtn}
-          onClick={async () => {
-            const ok = await confirm({
-              title:        'Publish this version to customers?',
-              message:      isDirty
-                ? `This publishes the last SAVED state of this ${entityLabel} version to live customers. Unsaved edits are NOT included — Save first if you want them live.`
-                : `Live customers will run this ${entityLabel} version. It stays put until you publish another.`,
-              confirmLabel: 'Publish',
-            });
-            if (ok) setPublished(viewingVersionId);
-          }}
-          title="Make this the version live customers run"
-        >
-          🚀 Publish
-        </button>
-      )}
-
-      {/* Agent-only convenience: publish the agent + every crew to
-          their ACTIVE versions in one click. */}
-      {publishAll && (
-        <button
-          type="button"
-          className={styles.publishBtn}
-          onClick={async () => {
-            const ok = await confirm({
-              title:        'Publish everything to customers?',
-              message:      'Publishes the agent AND every crew to their current active versions. Live customers will run this whole set.',
-              confirmLabel: 'Publish all',
-            });
-            if (ok) publishAll();
-          }}
-          title="Publish the agent and all crews (their active versions) to customers"
-        >
-          🚀 Publish all
-        </button>
-      )}
-
-      <button
-        type="button"
-        className={`${styles.btn} ${isDirty ? styles.btnPrimary : ''}`}
-        onClick={() => {
-          // If a pending Alfred apply target matches this entity, ask
-          // the user how to log this save before firing it.
-          if (hasPendingAlfred) {
-            setAttributionVariant('save');
-            setAttributionOpen(true);
-          } else {
-            save();
-          }
-        }}
-        disabled={!isDirty}
-        title={saveTooltip}
-      >
-        Save
-        {crossDirtyLabel && (
-          // Small suffix when this Save will also persist a sibling
-          // entity (e.g. crew save also saving agent). Visual signal
-          // that one click does both — keeps the user from wondering
-          // "but did the agent save too?".
-          <span className={styles.saveCross}> + {crossDirtyLabel}</span>
-        )}
-      </button>
-
-      <button
-        type="button"
-        className={styles.btn}
-        onClick={() => setSaveAsOpen(true)}
-      >
-        Save as…
-      </button>
-
-      {/* "Save all as" — create a NEW version row on the agent and on
-          every crew, all sharing one description. Author picks a single
-          name; the whole agent gets a synchronised snapshot. Only
-          meaningful when crews exist (otherwise it'd be identical to
-          plain Save as). */}
-      {(() => {
-        const agentId = selection.agentId;
-        if (!agentId) return null;
-        const agent = doc.agents.find(a => a.id === agentId);
-        if (!agent || (agent.crews?.length ?? 0) === 0) return null;
-        return (
+      {/* ── Publish cluster (customer-facing) ──
+          Primary = publish/unpublish THIS version; the caret holds the
+          agent-wide "Publish all". */}
+      <div className={styles.split}>
+        {viewingIsPublished ? (
           <button
             type="button"
-            className={styles.btn}
-            onClick={() => setSaveAllAsOpen(true)}
-            title={`Create a new version on the agent and on all ${agent.crews.length} crew${agent.crews.length === 1 ? '' : 's'}, all sharing one description.`}
+            className={`${styles.publishedBadge} ${publishAll ? styles.splitPrimary : ''}`}
+            onClick={async () => {
+              const ok = await confirm({
+                title:        'Unpublish this version?',
+                message:      `Customers will fall back to the active ${entityLabel} version until you publish again.`,
+                confirmLabel: 'Unpublish',
+                danger:       true,
+              });
+              if (ok) setPublished(null);
+            }}
+            title="Customers run this version — click to unpublish"
           >
-            Save all as…
+            🚀 Published
           </button>
-        );
-      })()}
+        ) : (
+          <button
+            type="button"
+            className={`${styles.publishBtn} ${publishAll ? styles.splitPrimary : ''}`}
+            onClick={async () => {
+              const ok = await confirm({
+                title:        'Publish this version to customers?',
+                message:      isDirty
+                  ? `This publishes the last SAVED state of this ${entityLabel} version to live customers. Unsaved edits are NOT included — Save first if you want them live.`
+                  : `Live customers will run this ${entityLabel} version. It stays put until you publish another.`,
+                confirmLabel: 'Publish',
+              });
+              if (ok) setPublished(viewingVersionId);
+            }}
+            title="Make this the version live customers run"
+          >
+            🚀 Publish
+          </button>
+        )}
+        {publishAll && (
+          <>
+            <button
+              type="button"
+              className={`${styles.publishBtn} ${styles.splitCaret}`}
+              onClick={() => setOpenMenu(m => (m === 'publish' ? null : 'publish'))}
+              title="More publish options"
+              aria-label="More publish options"
+            >
+              ▾
+            </button>
+            {openMenu === 'publish' && (
+              <div className={styles.splitMenu} onMouseLeave={() => setOpenMenu(null)}>
+                <button
+                  type="button"
+                  className={styles.menuItem}
+                  onClick={() => { setOpenMenu(null); runPublishAll(); }}
+                >
+                  🚀 Publish all
+                  <span className={styles.menuItemSub}>Agent + every crew, to customers</span>
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
-      {isDirty && (
+      <span className={styles.divider} aria-hidden="true" />
+
+      {/* ── Save cluster ──
+          Primary = save THIS entity in place; the caret holds Save all,
+          Save as…, Save all as…, and Reset. */}
+      <div className={styles.split}>
         <button
           type="button"
-          className={`${styles.btn} ${styles.btnDanger}`}
-          onClick={async () => {
-            const ok = await confirm({
-              title:    'Reset to last saved state?',
-              message:  hasPendingAlfred
-                ? 'Reloads the latest version from the server, drops your unsaved edits, and drops the pending Alfred apply (no log entry). If nothing is saved yet, you\'ll get a blank agent.'
-                : 'Reloads the latest version from the server and drops your unsaved edits. If nothing is saved yet, you\'ll get a blank agent.',
-              confirmLabel: 'Reset',
-              danger:   true,
-            });
-            if (ok) await resetToServerState();
-          }}
-          title="Reload the last saved version from the server (blank if nothing saved)"
+          className={`${styles.btn} ${styles.splitPrimary} ${isDirty ? styles.btnPrimary : ''}`}
+          onClick={runSave}
+          disabled={!isDirty}
+          title={saveTooltip}
         >
-          ↶ Reset
+          Save
         </button>
+        <button
+          type="button"
+          className={`${styles.btn} ${styles.splitCaret} ${isDirty ? styles.splitCaretPrimary : ''}`}
+          onClick={() => setOpenMenu(m => (m === 'save' ? null : 'save'))}
+          title="More save options"
+          aria-label="More save options"
+        >
+          ▾
+        </button>
+        {openMenu === 'save' && (
+          <div className={styles.splitMenu} onMouseLeave={() => setOpenMenu(null)}>
+            {hasCrews && (
+              <button
+                type="button"
+                className={styles.menuItem}
+                disabled={!anyDirty}
+                onClick={() => { setOpenMenu(null); if (agentId) saveAllVersions(agentId); }}
+              >
+                Save all
+                <span className={styles.menuItemSub}>Every unsaved agent + crew change</span>
+              </button>
+            )}
+            <button
+              type="button"
+              className={styles.menuItem}
+              onClick={() => { setOpenMenu(null); setSaveAsOpen(true); }}
+            >
+              Save as…
+              <span className={styles.menuItemSub}>New version of this {entityLabel}</span>
+            </button>
+            {hasCrews && (
+              <button
+                type="button"
+                className={styles.menuItem}
+                onClick={() => { setOpenMenu(null); setSaveAllAsOpen(true); }}
+              >
+                Save all as…
+                <span className={styles.menuItemSub}>New version across agent + crews</span>
+              </button>
+            )}
+            {isDirty && (
+              <>
+                <div className={styles.menuDivider} />
+                <button
+                  type="button"
+                  className={`${styles.menuItem} ${styles.menuItemDanger}`}
+                  onClick={() => { setOpenMenu(null); runReset(); }}
+                  title="Reload the last saved version from the server (blank if nothing saved)"
+                >
+                  ↶ Reset
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+      </>
       )}
 
       <SaveAsModal

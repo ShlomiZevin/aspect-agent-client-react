@@ -28,33 +28,24 @@ export function VersionPill({ state }: Props) {
     viewingVersionId,
     activeVersionId,
     publishedVersionId,
-    isDirty,
-    setViewing,
+    ownDirty,
     deleteVersion,
     entityLabel,
+    enterPreview,
+    exitPreview,
   } = state;
   const viewing = versions.find(v => v.id === viewingVersionId);
   const canDeleteAny = versions.length > 1;
 
-  const handleSwitch = async (target: VersionMeta) => {
+  // Switching versions from the pill is now non-destructive: clicking a
+  // non-active version PREVIEWS it read-only (your editable draft is
+  // stashed, untouched — no prompt). Clicking the active version leaves
+  // preview and returns you to your editable line.
+  const handleSwitch = (target: VersionMeta) => {
     setOpen(false);
-    if (target.id === viewingVersionId) return;
-    if (isDirty) {
-      const ok = await confirm({
-        title: 'Discard unsaved changes?',
-        message: (
-          <>
-            You have unsaved edits on <strong>v{viewing?.number}</strong>.
-            Switching to <strong>v{target.number}</strong> will discard them.
-          </>
-        ),
-        confirmLabel: 'Discard & switch',
-        cancelLabel: 'Cancel',
-        danger: true,
-      });
-      if (!ok) return;
-    }
-    setViewing(target.id);
+    if (target.id === activeVersionId) { exitPreview(); return; }
+    if (target.id === viewingVersionId) return; // already showing it
+    enterPreview(target.id);
   };
 
   const handleDelete = async (target: VersionMeta) => {
@@ -94,12 +85,12 @@ export function VersionPill({ state }: Props) {
     <div className={styles.wrap}>
       <button
         type="button"
-        className={`${styles.pill} ${isDirty ? styles.pillDirty : ''}`}
+        className={`${styles.pill} ${ownDirty ? styles.pillDirty : ''}`}
         onClick={() => setOpen(o => !o)}
         title="Switch version"
       >
         <span className={styles.label}>v{viewing?.number ?? '?'}</span>
-        {isDirty && <span className={styles.dot} />}
+        {ownDirty && <span className={styles.dot} />}
         <span className={styles.caret}>▾</span>
       </button>
 

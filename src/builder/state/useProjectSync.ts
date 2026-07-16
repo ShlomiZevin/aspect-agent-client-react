@@ -74,6 +74,8 @@ export interface ProjectSyncApi {
 
   pushCreateCrew: (agentId: ID, crew: CrewDoc) => Promise<void>;
   pushDeleteCrew: (crewId: ID) => Promise<void>;
+  /** Persist the sidebar crew order. */
+  pushReorderCrews: (agentId: ID, crewIds: ID[]) => Promise<void>;
   pushSaveCrewVersion: (crew: CrewDoc) => Promise<void>;
   pushSaveCrewVersionAs: (crew: CrewDoc, description?: string) => Promise<void>;
   pushSetCrewActive: (crewId: ID, versionId: ID) => Promise<void>;
@@ -134,6 +136,7 @@ export function useProjectSync(_args: {
       }
     },
     pushDeleteCrew: id => api.deleteCrewApi(id).catch(console.error),
+    pushReorderCrews: (agentId, crewIds) => api.reorderCrewsApi(agentId, crewIds).catch(console.error),
     pushSaveCrewVersion: async crew => {
       try {
         await api.saveCrewVersionApi({

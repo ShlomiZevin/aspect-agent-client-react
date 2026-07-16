@@ -392,6 +392,8 @@ interface BuilderState {
   // Crew CRUD + edit
   addCrew: (agentId: ID) => CrewDoc;
   removeCrew: (agentId: ID, crewId: ID) => void;
+  /** Reorder the crew list (sidebar drag). Visual only. */
+  reorderCrews: (agentId: ID, orderedCrewIds: ID[]) => void;
   updateCrew: (
     agentId: ID,
     crewId: ID,
@@ -514,12 +516,29 @@ interface BuilderState {
    * still gets its own version row + sync push (no batch endpoint).
    */
   saveAllVersionsAs: (agentId: ID, description?: string, opts?: SaveOpts) => void;
+  /** Commit every unsaved entity (agent + dirty crews) into their current
+   *  versions in one click. Clean entities are skipped. */
+  saveAllVersions: (agentId: ID, opts?: SaveOpts) => void;
   setViewingAgentVersion: (agentId: ID, versionId: ID) => void;
   setActiveAgentVersion: (agentId: ID, versionId: ID) => void;
   /** Flip the agent's customer-facing published pointer. `null` unpublishes. */
   setPublishedAgentVersion: (agentId: ID, versionId: ID | null) => void;
   /** Publish the agent + every crew to their ACTIVE versions in one click. */
   publishAllVersions: (agentId: ID) => void;
+
+  // ── Read-only version preview ──
+  /** Transient preview state — non-null while browsing a non-active
+   *  version read-only. `stashDirty` = whether the active line had
+   *  unsaved edits when preview began (drives the Edit-this-version
+   *  Save/Discard guard). */
+  previewVersion: { agentId: ID; crewId: ID | null; versionId: ID; stashDirty: boolean } | null;
+  /** Enter a read-only preview of a version (crew when crewId set, else agent). */
+  enterPreview: (agentId: ID, crewId: ID | null, versionId: ID, stashDirty: boolean) => void;
+  /** Leave preview, restoring the editable draft ("Back to active"). */
+  exitPreview: () => void;
+  /** Make the previewed version the editable line. Guard Save/Discard first. */
+  editThisVersion: () => void;
+
   discardAgentChanges: (agentId: ID) => void;
   /** Permanently delete an agent version. Same refusal semantics as crew. */
   deleteAgentVersion: (agentId: ID, versionId: ID) => Promise<void>;
@@ -659,6 +678,18 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   const docRef = useRef<ProjectDoc>(doc);
   docRef.current = doc;
 
+  // ── Read-only version preview ──────────────────────────────────
+  // Browsing a NON-active version shows it read-only WITHOUT disturbing
+  // your editable draft: we stash the current doc, load the previewed
+  // body into the working copy (so the canvas + test chat reflect it),
+  // and FREEZE the localStorage autosave so your active-line draft is
+  // preserved. Exiting restores the stash. Everything here is transient
+  // client state — nothing about preview is persisted to the server.
+  const previewStashRef = useRef<ProjectDoc | null>(null);
+  const [previewVersion, setPreviewVersion] = useState<
+    { agentId: ID; crewId: ID | null; versionId: ID; stashDirty: boolean } | null
+  >(null);
+
   // Bridge to server-side persistence. The provider receives the
   // already-loaded doc as a prop, so this hook only owns the push
   // helpers used by mutations below.
@@ -683,10 +714,14 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     crewId: initialCrewId,
   });
 
-  // Persist every change.
+  // Persist every change — EXCEPT while previewing a read-only version.
+  // Freezing here keeps localStorage holding the active-line draft, so a
+  // reload during preview restores your work (preview is transient), and
+  // "Back to active" can restore the stashed draft cleanly.
   useEffect(() => {
+    if (previewVersion) return;
     saveDraft(agentSlug, doc);
-  }, [agentSlug, doc]);
+  }, [agentSlug, doc, previewVersion]);
 
   // Preview-chat conversation id, shared so the prompt-preview view
   // can fetch the real transcript instead of showing a placeholder.
@@ -1033,6 +1068,27 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       ),
     }));
     syncRef.current?.pushDeleteCrew(crewId);
+  }, []);
+
+  // Reorder the crew list (sidebar drag). `orderedCrewIds` is the full
+  // new order; we reindex the crews array to match and persist the
+  // positions. Visual only — doesn't affect the running/starting crew.
+  const reorderCrews = useCallback((agentId: ID, orderedCrewIds: ID[]) => {
+    setDoc(d => ({
+      ...d,
+      agents: d.agents.map(a => {
+        if (a.id !== agentId) return a;
+        const byId = new Map(a.crews.map(c => [c.id, c]));
+        const reordered = orderedCrewIds
+          .map(id => byId.get(id))
+          .filter((c): c is CrewDoc => !!c);
+        // Append any crew not in the provided list (defensive — keeps
+        // every crew even if the caller's list is stale).
+        for (const c of a.crews) if (!orderedCrewIds.includes(c.id)) reordered.push(c);
+        return { ...a, crews: reordered };
+      }),
+    }));
+    syncRef.current?.pushReorderCrews(agentId, orderedCrewIds);
   }, []);
 
   const updateCrew = useCallback(
@@ -1811,6 +1867,96 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     [],
   );
 
+  // ── Preview actions ────────────────────────────────────────────
+  // Enter a read-only preview of `versionId` on an entity (crew when
+  // crewId set, else the agent). Stash the current doc, load the
+  // previewed body into the working copy for display + test chat.
+  const enterPreview = useCallback(
+    (agentId: ID, crewId: ID | null, versionId: ID, stashDirty: boolean) => {
+      // Stash the editable draft ONLY on the first entry — switching
+      // between previewed versions must not clobber it with a preview
+      // body. Keep the original `stashDirty` across such switches.
+      let firstEntry = false;
+      if (!previewStashRef.current) {
+        previewStashRef.current = docRef.current;
+        firstEntry = true;
+      }
+      setPreviewVersion(prev =>
+        prev && !firstEntry
+          ? { ...prev, agentId, crewId, versionId }
+          : { agentId, crewId, versionId, stashDirty },
+      );
+      setDoc(d => ({
+        ...d,
+        agents: d.agents.map(a => {
+          if (a.id !== agentId) return a;
+          if (crewId) {
+            return {
+              ...a,
+              crews: a.crews.map(c => {
+                if (c.id !== crewId) return c;
+                const target = c.versions.find(v => v.id === versionId);
+                if (!target) return c;
+                return { ...c, ...target.body, viewingVersionId: versionId };
+              }),
+            };
+          }
+          const target = a.versions.find(v => v.id === versionId);
+          if (!target) return a;
+          return { ...a, ...target.body, viewingVersionId: versionId };
+        }),
+      }));
+    },
+    [],
+  );
+
+  // Leave preview and restore the stashed editable draft. "Back to active".
+  const exitPreview = useCallback(() => {
+    const stash = previewStashRef.current;
+    previewStashRef.current = null;
+    setPreviewVersion(null);
+    if (stash) setDoc(stash);
+  }, []);
+
+  // "Edit this version": make the previewed version your editable line.
+  // The working copy already holds the previewed body (loaded on enter),
+  // so we just move the ACTIVE pointer to it, drop the stash, and leave
+  // preview — autosave resumes and persists the new active-line draft.
+  // Caller is responsible for the Save/Discard guard when the old active
+  // line had unsaved edits (see `previewVersion.stashDirty`).
+  const editThisVersion = useCallback(() => {
+    const p = previewVersion;
+    if (!p) return;
+    previewStashRef.current = null;
+    setPreviewVersion(null);
+    setDoc(d => ({
+      ...d,
+      agents: d.agents.map(a => {
+        if (a.id !== p.agentId) return a;
+        if (p.crewId) {
+          return {
+            ...a,
+            crews: a.crews.map(c =>
+              c.id === p.crewId ? { ...c, activeVersionId: p.versionId } : c,
+            ),
+          };
+        }
+        return { ...a, activeVersionId: p.versionId };
+      }),
+    }));
+    if (p.crewId) syncRef.current?.pushSetCrewActive(p.crewId, p.versionId);
+    else syncRef.current?.pushSetAgentActive(p.agentId, p.versionId);
+  }, [previewVersion]);
+
+  // Navigating to a different entity leaves any read-only preview and
+  // restores the editable draft. Keyed on selection only (checks the
+  // stash ref, not `previewVersion`, so entering preview doesn't
+  // immediately fire this and self-cancel).
+  useEffect(() => {
+    if (previewStashRef.current) exitPreview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selection.level, selection.agentId, selection.crewId]);
+
   /** "Save all as" — create a brand-new version row on the agent
    *  AND on every crew with the same description. One shared
    *  snapshot name across every entity so the version log reads as
@@ -1913,6 +2059,21 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     [doc],
   );
 
+  // Commit-in-place counterpart of saveAllVersionsAs: save every UNSAVED
+  // entity (the agent + each dirty crew) into its current version, in one
+  // click. Only dirty entities are touched — clean ones are skipped so we
+  // don't churn timestamps or write no-op versions. Declared after
+  // isAgentDirty/isCrewDirty so its dependency array doesn't hit their TDZ.
+  const saveAllVersions = useCallback((agentId: ID, opts?: SaveOpts) => {
+    const d = docRef.current;
+    const agent = d.agents.find(a => a.id === agentId);
+    if (!agent) return;
+    if (isAgentDirty(agentId)) saveAgentVersion(agentId, opts);
+    for (const c of agent.crews ?? []) {
+      if (isCrewDirty(agentId, c.id)) saveCrewVersion(agentId, c.id, opts);
+    }
+  }, [isAgentDirty, isCrewDirty, saveAgentVersion, saveCrewVersion]);
+
   /**
    * Revert the agent's working copy (shell fields only — crews live
    * elsewhere) to the viewing version's body. Also drops any pending
@@ -1990,6 +2151,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       removeAgentTag,
       addCrew,
       removeCrew,
+      reorderCrews,
       updateCrew,
       addAddon,
       updateAddonConfig,
@@ -2018,10 +2180,15 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       saveAgentVersion,
       saveAgentVersionAs,
       saveAllVersionsAs,
+      saveAllVersions,
       setViewingAgentVersion,
       setActiveAgentVersion,
       setPublishedAgentVersion,
       publishAllVersions,
+      previewVersion,
+      enterPreview,
+      exitPreview,
+      editThisVersion,
       discardAgentChanges,
       deleteAgentVersion,
       isAgentDirty,
@@ -2049,6 +2216,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       removeAgentTag,
       addCrew,
       removeCrew,
+      reorderCrews,
       updateCrew,
       addAddon,
       updateAddonConfig,
@@ -2077,10 +2245,15 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       saveAgentVersion,
       saveAgentVersionAs,
       saveAllVersionsAs,
+      saveAllVersions,
       setViewingAgentVersion,
       setActiveAgentVersion,
       setPublishedAgentVersion,
       publishAllVersions,
+      previewVersion,
+      enterPreview,
+      exitPreview,
+      editThisVersion,
       discardAgentChanges,
       deleteAgentVersion,
       isAgentDirty,

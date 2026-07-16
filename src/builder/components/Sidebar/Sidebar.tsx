@@ -5,14 +5,18 @@
  * what the center canvas renders.
  */
 
+import { useState } from 'react';
 import { useMatch, useNavigate, useParams } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { useConfirm } from '../Confirm/Confirm';
 import styles from './Sidebar.module.css';
 
 export function Sidebar() {
-  const { doc, selection, setSelection, addCrew, removeCrew, isCrewDirty, isAgentDirty } = useBuilder();
+  const { doc, selection, setSelection, addCrew, removeCrew, reorderCrews, isCrewDirty, isAgentDirty } = useBuilder();
   const confirm = useConfirm();
+  // Sidebar crew drag-reorder.
+  const [dragCrewId, setDragCrewId] = useState<string | null>(null);
+  const [overCrewId, setOverCrewId] = useState<string | null>(null);
   const navigate = useNavigate();
   // Read the agent slug from the URL — that's the source of truth for
   // the builder route. Going through the URL avoids races with the
@@ -113,18 +117,18 @@ export function Sidebar() {
                 <span className={styles.rowSub}>{agent.name}</span>
               </div>
               {(() => {
-                // Show the VIEWING version — the one loaded into the
-                // working copy and shown in the body's version switcher.
-                // (Not `active`: when active≠viewing, showing active here
-                // made the sidebar disagree with the body/header.)
-                const viewingVersion = agent.versions.find(v => v.id === agent.viewingVersionId);
+                // Show the ACTIVE version — your editable working line (the
+                // anchor). While previewing a different version, the body's
+                // switcher shows the previewed one; this stays on active so
+                // you always see "the version I'm working on" here.
+                const activeVersion = agent.versions.find(v => v.id === agent.activeVersionId);
                 const dirty = isAgentDirty(agent.id);
                 return (
                   <span
                     className={`${styles.versionPill} ${dirty ? styles.versionPillDirty : ''}`}
-                    title={dirty ? 'Unsaved changes' : viewingVersion?.description}
+                    title={dirty ? 'Unsaved changes' : activeVersion?.description}
                   >
-                    v{viewingVersion?.number ?? '?'}
+                    v{activeVersion?.number ?? '?'}
                     {dirty && <span className={styles.versionDot} />}
                   </span>
                 );
@@ -152,15 +156,48 @@ export function Sidebar() {
               {agent.crews.map(c => {
                 const isActive = selection.level === 'crew' && selection.crewId === c.id;
                 const isDefault = agent.defaultCrewId === c.id;
-                // Show the VIEWING version (matches the body switcher), not
-                // active — see the agent pill above.
-                const viewingVersion = c.versions.find(v => v.id === c.viewingVersionId);
+                // Show the ACTIVE version (the editable anchor) — see the
+                // agent pill above.
+                const activeVersion = c.versions.find(v => v.id === c.activeVersionId);
                 const dirty = isCrewDirty(agent.id, c.id);
+                const isDragging = dragCrewId === c.id;
+                const isDropTarget = overCrewId === c.id && dragCrewId !== null && dragCrewId !== c.id;
                 return (
                   <div
                     key={c.id}
-                    className={`${styles.crewRow} ${isActive ? styles.crewRowActive : ''}`}
+                    className={`${styles.crewRow} ${isActive ? styles.crewRowActive : ''} ${isDragging ? styles.crewRowDragging : ''} ${isDropTarget ? styles.crewRowDropTarget : ''}`}
+                    draggable
+                    onDragStart={(e) => {
+                      setDragCrewId(c.id);
+                      e.dataTransfer.effectAllowed = 'move';
+                      e.dataTransfer.setData('text/plain', c.id);
+                    }}
+                    onDragOver={(e) => {
+                      if (!dragCrewId || dragCrewId === c.id) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'move';
+                      if (overCrewId !== c.id) setOverCrewId(c.id);
+                    }}
+                    onDragLeave={() => { if (overCrewId === c.id) setOverCrewId(null); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (dragCrewId && dragCrewId !== c.id) {
+                        const ids = agent.crews.map(x => x.id);
+                        const from = ids.indexOf(dragCrewId);
+                        const to = ids.indexOf(c.id);
+                        if (from >= 0 && to >= 0) {
+                          const next = [...ids];
+                          const [moved] = next.splice(from, 1);
+                          next.splice(to, 0, moved);
+                          reorderCrews(agent.id, next);
+                        }
+                      }
+                      setDragCrewId(null);
+                      setOverCrewId(null);
+                    }}
+                    onDragEnd={() => { setDragCrewId(null); setOverCrewId(null); }}
                   >
+                    <span className={styles.crewDragHandle} aria-hidden="true" title="Drag to reorder">⋮⋮</span>
                     <button
                       type="button"
                       className={styles.crewRowMain}
@@ -173,9 +210,9 @@ export function Sidebar() {
                       <span className={styles.crewName}>{c.name}</span>
                       <span
                         className={`${styles.versionPill} ${dirty ? styles.versionPillDirty : ''}`}
-                        title={dirty ? 'Unsaved changes' : viewingVersion?.description}
+                        title={dirty ? 'Unsaved changes' : activeVersion?.description}
                       >
-                        v{viewingVersion?.number ?? '?'}
+                        v{activeVersion?.number ?? '?'}
                         {dirty && <span className={styles.versionDot} />}
                       </span>
                     </button>
