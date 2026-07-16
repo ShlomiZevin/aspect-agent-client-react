@@ -1,0 +1,133 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary, #4b5563);
+}
+
+.input {
+  width: 100%;
+  padding: 9px 10px;
+  font-size: 13.5px;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  background: var(--bg-surface, #fff);
+  font-family: inherit;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--primary-color, #6366f1);
+}
+
+.laneRow {
+  display: flex;
+  gap: 6px;
+}
+
+.laneBtn {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary, #6b7280);
+  background: var(--bg-input, #f3f4f6);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.laneBtnActive {
+  color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.08);
+  border-color: var(--primary-color, #6366f1);
+}
+
+.hint {
+  font-size: 11.5px;
+  color: var(--text-tertiary, #9ca3af);
+  line-height: 1.4;
+}
+
+/* Fixed-height slot the hint/warning render INTO — reserving the
+ * space keeps the modal size rock-stable as notices come and go. */
+.noticeSlot {
+  min-height: 58px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.warn {
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 9px 11px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #92400e;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.footerSpacer {
+  flex: 1;
+}
+
+.duplicateBtn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.cancelBtn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary, #4b5563);
+  background: transparent;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.moveBtn {
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary-color, #6366f1);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.moveBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

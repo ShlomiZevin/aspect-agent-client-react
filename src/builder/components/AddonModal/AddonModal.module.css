@@ -153,6 +153,15 @@
   flex: 1;
 }
 
+/* Thin vertical rule isolating the destructive Remove from the addon
+ * utility cluster (ON / Move / Repo) in the modal footer. */
+.footerDivider {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 6px;
+  background: var(--border-color, #e5e7eb);
+}
+
 /* ── Enable / disable track switch ──────────────────────────────────
    Mirrors the chip-corner switch palette so the same affordance reads
    the same across surfaces. Height + box-sizing match the modal-footer

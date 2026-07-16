@@ -35,8 +35,9 @@ interface Props {
   scope?: 'agent' | 'crew';
 }
 
-/** Plugin IDs hidden from the picker when `scope === 'agent'`. */
-const AGENT_FORBIDDEN_PLUGINS: ReadonlySet<string> = new Set([
+/** Plugin IDs hidden from the picker when `scope === 'agent'`.
+ *  Exported — MoveAddonModal applies the same rule to move targets. */
+export const AGENT_FORBIDDEN_PLUGINS: ReadonlySet<string> = new Set([
   'talker',
   'transition-router',
 ]);

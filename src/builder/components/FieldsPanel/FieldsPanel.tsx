@@ -165,13 +165,14 @@ export function FieldsPanel({ agentId, crewId }: Props) {
     return (agent?.crews.length ?? 0) > 1;
   }, [doc, agentId]);
 
-  // Enum id → name lookup so each FieldRow can label an enum-typed
-  // field's pill as `enum · <name>` without having to walk doc itself.
-  // Computed once at the panel level — list is short and stable per render.
+  // Enum id → {name, owner} lookup so each FieldRow can label an
+  // enum-typed field's pill (`enum · <name>`, or `choice · <name>` for
+  // a field-owned quick list) without walking doc itself. Computed once
+  // at the panel level — list is short and stable per render.
   const enumNameById = useMemo(() => {
     const agent = doc.agents.find(a => a.id === agentId);
-    const m = new Map<string, string>();
-    for (const en of agent?.enums ?? []) m.set(en.id, en.name);
+    const m = new Map<string, { name: string; ownedBy?: ID }>();
+    for (const en of agent?.enums ?? []) m.set(en.id, { name: en.name, ownedBy: en.ownedByFieldId });
     return m;
   }, [doc, agentId]);
 
@@ -360,7 +361,7 @@ interface DomainGroupProps {
   onDelete: (cf: CrewField) => void;
   liveValueByField: Record<string, unknown>;
   showCrewChip: boolean;
-  enumNameById: Map<string, string>;
+  enumNameById: Map<string, { name: string; ownedBy?: ID }>;
   mentions: Map<string, FieldMentionRef[]>;
 }
 
@@ -404,7 +405,7 @@ interface UngroupedProps {
   onDelete: (cf: CrewField) => void;
   liveValueByField: Record<string, unknown>;
   showCrewChip: boolean;
-  enumNameById: Map<string, string>;
+  enumNameById: Map<string, { name: string; ownedBy?: ID }>;
   mentions: Map<string, FieldMentionRef[]>;
 }
 
@@ -435,7 +436,7 @@ interface FieldRowProps {
   onDelete: (cf: CrewField) => void;
   liveValue?: unknown;
   showCrewChip: boolean;
-  enumNameById: Map<string, string>;
+  enumNameById: Map<string, { name: string; ownedBy?: ID }>;
   mentions: Map<string, FieldMentionRef[]>;
 }
 
@@ -500,17 +501,23 @@ function FieldRow({ cf, onPick, onDelete, liveValue, showCrewChip, enumNameById,
       <div className={styles.pills}>
         <span
           className={styles.typePill}
-          title={
-            cf.field.type === 'enum' && cf.field.enumType
-              ? enumNameById.has(cf.field.enumType)
-                ? `Enum type "${enumNameById.get(cf.field.enumType)}"`
-                : `Enum binding "${cf.field.enumType}" is missing from the bible`
-              : undefined
-          }
+          title={(() => {
+            if (cf.field.type !== 'enum' || !cf.field.enumType) return undefined;
+            const meta = enumNameById.get(cf.field.enumType);
+            if (!meta) return `Enum binding "${cf.field.enumType}" is missing from the bible`;
+            return meta.ownedBy === cf.field.id
+              ? `Quick value list "${meta.name}" (created inline on this field)`
+              : `Enum type "${meta.name}"`;
+          })()}
         >
-          {cf.field.type === 'enum' && cf.field.enumType
-            ? `enum · ${enumNameById.get(cf.field.enumType) ?? '(missing)'}`
-            : TYPE_LABEL[cf.field.type] ?? cf.field.type}
+          {(() => {
+            if (cf.field.type !== 'enum' || !cf.field.enumType) {
+              return TYPE_LABEL[cf.field.type] ?? cf.field.type;
+            }
+            const meta = enumNameById.get(cf.field.enumType);
+            if (!meta) return 'enum · (missing)';
+            return `${meta.ownedBy === cf.field.id ? 'choice' : 'enum'} · ${meta.name}`;
+          })()}
         </span>
         {/* Source pill suppressed for pinned — the "🎯 PINNED"
             section header above already says it; repeating it here

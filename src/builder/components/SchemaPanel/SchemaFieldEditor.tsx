@@ -23,6 +23,15 @@ import { useBuilder } from '../../state/BuilderContext';
 import { useAgentFields } from '../../state/useAgentFields';
 import { useCrewFields } from '../../state/useCrewFields';
 import { useConfirm } from '../Confirm/Confirm';
+import {
+  autoChoiceName,
+  buildChoiceEnum,
+  choiceValuesOf,
+  isEnumSharedBeyond,
+  ownedChoiceEnum,
+  withChoiceValues,
+} from '../../state/choiceList';
+import { ChoiceValuesInput } from '../FieldsPanel/ChoiceValuesInput';
 import { DomainInput } from '../FieldsPanel/DomainInput';
 import { TagsInput } from '../FieldsPanel/TagsInput';
 import {
@@ -67,7 +76,7 @@ const SOURCE_LABEL: Record<FieldSource, string> = {
 export function SchemaFieldEditor({
   agentId, initial, onAfterRename, onAfterDelete,
 }: Props) {
-  const { doc, updateAgent, applyFieldRenameCascade } = useBuilder();
+  const { doc, updateAgent, applyFieldRenameCascade, applyTokenRenameCascade } = useBuilder();
   const { domainNames, tagNames } = useAgentFields(agentId);
   // `removeField` lives on useCrewFields but only needs agent context —
   // safe to call with crewId='' for agent-scoped deletion.
@@ -116,6 +125,20 @@ export function SchemaFieldEditor({
     const renamed = patch.name !== undefined && patch.name !== initial.name;
     if (renamed) {
       applyFieldRenameCascade(agentId, initial.name, next.name);
+      // The field's owned Choice list follows the field name
+      // (`gender` → `gender_choices`) — cascade the {{enum:…}} tokens
+      // BEFORE swapping the enum's own name, same order the Targeted
+      // KB page's rename uses.
+      const owned = ownedChoiceEnum(agent, initial);
+      if (owned) {
+        const nextEnumName = autoChoiceName(agent, next.name, owned.id);
+        if (nextEnumName !== owned.name) {
+          applyTokenRenameCascade(agentId, 'enum', owned.name, nextEnumName);
+          updateAgent(agentId, {
+            enums: (agent.enums ?? []).map(e => (e.id === owned.id ? { ...e, name: nextEnumName } : e)),
+          });
+        }
+      }
     }
     const fields = agent.fields.map(f => f.id === next.id ? next : f);
     updateAgent(agentId, { fields });
@@ -176,7 +199,38 @@ export function SchemaFieldEditor({
     writePatch(next.length > 0 ? { tags: next } : { tags: undefined });
   };
 
-  const commitTypeChange = (raw: string) => {
+  // The field's owned Choice list, if its type is "Choice" (an enum
+  // auto-created for this one field, values edited inline below).
+  const ownedEnum = ownedChoiceEnum(agent, initial);
+
+  const commitChoiceValues = (values: string[]) => {
+    if (!agent || !ownedEnum) return;
+    updateAgent(agentId, {
+      enums: (agent.enums ?? []).map(e => (e.id === ownedEnum.id ? withChoiceValues(e, values) : e)),
+    });
+  };
+
+  const commitTypeChange = async (raw: string) => {
+    if (raw === '__choice__') {
+      if (ownedEnum) return; // already Choice
+      // Mint the owned list (empty — values typed right below) and bind.
+      const en = buildChoiceEnum(autoChoiceName(agent, initial.name), initial.id, []);
+      updateAgent(agentId, { enums: [...(agent?.enums ?? []), en] });
+      writePatch({ type: 'enum', enumType: en.id });
+      return;
+    }
+    // Leaving Choice deletes the owned list — unless another field
+    // has since bound to it (then it graduated to a shared enum).
+    if (ownedEnum && !isEnumSharedBeyond(agent, ownedEnum.id, initial.id)) {
+      const ok = await confirm({
+        title: 'Delete this field\'s value list?',
+        message: `The list "${ownedEnum.name}" was created for this field and nothing else uses it. Changing the type deletes it.`,
+        confirmLabel: 'Delete list',
+        danger: true,
+      });
+      if (!ok) return;
+      updateAgent(agentId, { enums: (agent?.enums ?? []).filter(e => e.id !== ownedEnum.id) });
+    }
     if (raw.startsWith('enum:')) {
       const enumId = raw.slice('enum:'.length) as ID;
       if (initial.type === 'enum' && initial.enumType === enumId) return;
@@ -291,12 +345,17 @@ export function SchemaFieldEditor({
           <div className={styles.label}>Type</div>
           <select
             className={styles.input}
-            value={initial.type === 'enum' && initial.enumType ? `enum:${initial.enumType}` : initial.type}
-            onChange={e => commitTypeChange(e.target.value)}
+            value={
+              ownedEnum
+                ? '__choice__'
+                : initial.type === 'enum' && initial.enumType ? `enum:${initial.enumType}` : initial.type
+            }
+            onChange={e => void commitTypeChange(e.target.value)}
           >
             {PRIMITIVE_TYPES.map(t => (
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
+            <option value="__choice__">Choice — one of a list</option>
             {(agent?.enums?.length ?? 0) > 0 && (
               <optgroup label="Enums">
                 {(agent?.enums ?? []).map(en => (
@@ -304,7 +363,8 @@ export function SchemaFieldEditor({
                 ))}
               </optgroup>
             )}
-            {initial.type === 'enum'
+            {!ownedEnum
+              && initial.type === 'enum'
               && initial.enumType
               && !(agent?.enums ?? []).some(en => en.id === initial.enumType)
               && (
@@ -328,7 +388,22 @@ export function SchemaFieldEditor({
         </div>
       </div>
 
-      {initial.type === 'enum' && initial.enumType && agent && (() => {
+      {/* Choice values — inline editor, auto-commits like the rest of
+          this page (each change writes through to the owned enum). */}
+      {ownedEnum && (
+        <div>
+          <div className={styles.label}>Values</div>
+          <ChoiceValuesInput
+            values={choiceValuesOf(ownedEnum)}
+            onChange={commitChoiceValues}
+          />
+          <div className={styles.hint}>
+            In prompts: <code>{`{{enum:${ownedEnum.name}}}`}</code>
+          </div>
+        </div>
+      )}
+
+      {!ownedEnum && initial.type === 'enum' && initial.enumType && agent && (() => {
         const en = (agent.enums ?? []).find(e => e.id === initial.enumType);
         if (!en) {
           return (

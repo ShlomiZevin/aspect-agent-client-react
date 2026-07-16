@@ -96,6 +96,14 @@ function EnumsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean }
             >
               <div className={styles.paramHead}>
                 <span className={styles.paramName}>{en.name}</span>
+                {en.ownedByFieldId && (
+                  <span
+                    className={styles.ownedChip}
+                    title="Quick value list created inline on a field (Choice type). Edit it there or here — same data."
+                  >
+                    field list
+                  </span>
+                )}
                 <span className={styles.spacerInline} />
                 <span className={styles.paramSigil}>
                   {en.values.length} value{en.values.length === 1 ? '' : 's'}
@@ -688,7 +696,9 @@ function FieldsGroup({
                 * font, muted colour — secondary information that doesn't
                 * compete with the field name for attention. */}
               <div className={styles.fieldRowMeta}>
-                <span className={styles.fieldTypePill}>{f.type}</span>
+                <span className={styles.fieldTypePill}>
+                  {boundEnum && boundEnum.ownedByFieldId === f.id ? 'choice' : f.type}
+                </span>
                 {n === 0 && mentionRefs.length === 0 ? (
                   <span
                     className={styles.fieldStatusUnwired}

@@ -409,6 +409,21 @@
   flex-wrap: wrap;
 }
 
+/* "field list" chip on Targeted KB entries that were auto-created by
+ * a field's Choice type — same data, just born inline on the field. */
+.ownedChip {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: #0e7490;
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  white-space: nowrap;
+}
+
 /* Heuristic "likely written by" chip — an addon's prompt references
  * this field via {{fieldname:…}}. Dashed + faded: an indicator, not
  * a structured guarantee. */

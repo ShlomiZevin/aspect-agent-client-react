@@ -443,6 +443,23 @@ interface BuilderState {
     fromIdx: number,
     toIdx: number,
   ) => void;
+  /** Move an addon between containers (crew ↔ crew ↔ agent cortex,
+   *  `crewId: null` = cortex) and/or lanes, appended at the end of
+   *  the destination. Atomic; both touched entities go dirty. */
+  moveAddon: (
+    agentId: ID,
+    instanceId: ID,
+    from: { crewId: ID | null },
+    to: { crewId: ID | null; lane: 'main' | 'offline' },
+  ) => void;
+  /** Same picker as moveAddon but the original stays — a clone with a
+   *  fresh instanceId (+" copy" name) lands at the destination's end. */
+  duplicateAddon: (
+    agentId: ID,
+    instanceId: ID,
+    from: { crewId: ID | null },
+    to: { crewId: ID | null; lane: 'main' | 'offline' },
+  ) => void;
 
   // ── Agent-level cortex (parallel surface to the crew chain) ──
   // Same shape as the crew mutations above with `crewId` removed.
@@ -1338,6 +1355,139 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     [],
   );
 
+  /**
+   * Move an addon to another container (crew or agent cortex, `null`
+   * crewId = cortex) and/or lane, in ONE atomic doc update:
+   *   - removed from its source (parallel-step flags healed there),
+   *   - appended at the END of the destination container,
+   *   - lane set; `joinsPreviousStep` reset (it arrives as its own step),
+   *   - moving to the offline lane seeds a default "every 1 message"
+   *     trigger when none is set — offline addons without a trigger
+   *     never fire.
+   * The caller (MoveAddonModal) enforces destination rules: only
+   * main/offline lanes (background never runs), and no talker /
+   * transition-router into the agent cortex (runtime forbids them).
+   */
+  const moveAddon = useCallback(
+    (
+      agentId: ID,
+      instanceId: ID,
+      from: { crewId: ID | null },
+      to: { crewId: ID | null; lane: 'main' | 'offline' },
+    ) => {
+      setDoc(d => ({
+        ...d,
+        agents: d.agents.map(a => {
+          if (a.id !== agentId) return a;
+          const sourceList = from.crewId === null
+            ? (a.cortex ?? [])
+            : (a.crews.find(c => c.id === from.crewId)?.addons ?? []);
+          const inst = sourceList.find(x => x.instanceId === instanceId);
+          if (!inst) return a;
+
+          const needsTrigger = to.lane === 'offline' && !inst.context?.trigger;
+          const moved: AddonInstance = {
+            ...inst,
+            lane: to.lane,
+            joinsPreviousStep: undefined,
+            context: needsTrigger
+              ? { ...inst.context, trigger: { kind: 'every_n_messages', n: 1 } }
+              : inst.context,
+          };
+
+          let next: AgentDoc = a;
+          // 1. Pluck from the source container.
+          if (from.crewId === null) {
+            next = {
+              ...next,
+              cortex: normalizeMainStepFlags((next.cortex ?? []).filter(x => x.instanceId !== instanceId)),
+            };
+          } else {
+            next = {
+              ...next,
+              crews: next.crews.map(c => c.id === from.crewId
+                ? { ...c, addons: normalizeMainStepFlags(c.addons.filter(x => x.instanceId !== instanceId)) }
+                : c),
+            };
+          }
+          // 2. Append to the destination container.
+          if (to.crewId === null) {
+            next = { ...next, cortex: [...(next.cortex ?? []), moved] };
+          } else {
+            next = {
+              ...next,
+              crews: next.crews.map(c => c.id === to.crewId
+                ? { ...c, addons: [...c.addons, moved] }
+                : c),
+            };
+          }
+          return next;
+        }),
+      }));
+    },
+    [],
+  );
+
+  /**
+   * Duplicate an addon into a destination container/lane — the same
+   * picker as `moveAddon`, except the original stays put. The clone
+   * gets a fresh instanceId, a " copy" suffix when the config carries
+   * a user-visible name, and lands at the END of the destination
+   * chain. Field Reasoner clones drop their `extractsFields` binding —
+   * one field has ONE reasoner; the copy is re-bound deliberately.
+   */
+  const duplicateAddon = useCallback(
+    (
+      agentId: ID,
+      instanceId: ID,
+      from: { crewId: ID | null },
+      to: { crewId: ID | null; lane: 'main' | 'offline' },
+    ) => {
+      setDoc(d => ({
+        ...d,
+        agents: d.agents.map(a => {
+          if (a.id !== agentId) return a;
+          const sourceList = from.crewId === null
+            ? (a.cortex ?? [])
+            : (a.crews.find(c => c.id === from.crewId)?.addons ?? []);
+          const inst = sourceList.find(x => x.instanceId === instanceId);
+          if (!inst) return a;
+
+          const cfg = structuredClone(inst.config) as Record<string, unknown>;
+          if (cfg && typeof cfg.name === 'string' && cfg.name.trim()) {
+            cfg.name = `${cfg.name} copy`;
+          }
+          if (inst.pluginId === 'field-reasoner' && cfg && Array.isArray(cfg.extractsFields)) {
+            cfg.extractsFields = [];
+          }
+          const context = structuredClone(inst.context);
+          if (to.lane === 'offline' && !context?.trigger) {
+            context.trigger = { kind: 'every_n_messages', n: 1 };
+          }
+          const clone: AddonInstance = {
+            ...inst,
+            instanceId: newAddonInstanceId(),
+            lane: to.lane,
+            joinsPreviousStep: undefined,
+            config: cfg,
+            context,
+          };
+
+          if (to.crewId === null) {
+            return { ...a, cortex: [...(a.cortex ?? []), clone] };
+          }
+          return {
+            ...a,
+            crews: a.crews.map(c => c.id === to.crewId
+              ? { ...c, addons: [...c.addons, clone] }
+              : c),
+          };
+        }),
+      }));
+    },
+    [],
+  );
+
   // ─── Pending Alfred Apply ─────────────────────────────────────────
   // Must be defined BEFORE the save callbacks below because they
   // reference `fireApplyLogIfPending` in their useCallback deps array
@@ -2161,6 +2311,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       setAddonJoinsPreviousStep,
       removeAddon,
       reorderAddonInLane,
+      moveAddon,
+      duplicateAddon,
       addAgentAddon,
       updateAgentAddonConfig,
       updateAgentAddonContext,
@@ -2226,6 +2378,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       setAddonJoinsPreviousStep,
       removeAddon,
       reorderAddonInLane,
+      moveAddon,
+      duplicateAddon,
       addAgentAddon,
       updateAgentAddonConfig,
       updateAgentAddonContext,

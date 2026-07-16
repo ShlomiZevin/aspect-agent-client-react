@@ -26,6 +26,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { useBuilder, newAddonInstanceId } from './BuilderContext';
+import { isEnumSharedBeyond } from './choiceList';
 import { FIELD_EXTRACTOR_PLUGIN_ID, fieldExtractorPlugin } from '../plugins/fieldExtractor/addon.fieldExtractor';
 import { defaultContextFor, defaultOutputTypeFor, getPlugin } from '../registry/plugins';
 import type {
@@ -544,6 +545,15 @@ export function useCrewFields(agentId: ID, crewId: ID) {
         } else {
           updateAddonConfig(agentId, ownerCrewId, a.instanceId, nextConfig);
         }
+      }
+      // Drop the field's owned Choice list (the enum auto-created for
+      // it) — unless another field has since bound to that enum, in
+      // which case it graduated to a shared Targeted KB and stays.
+      const enums = agent.enums ?? [];
+      const keep = enums.filter(e =>
+        e.ownedByFieldId !== fieldId || isEnumSharedBeyond(agent, e.id, fieldId));
+      if (keep.length !== enums.length) {
+        updateAgent(agentId, { enums: keep } as Partial<AgentDoc>);
       }
     },
     [agent, agentId, updateAgent, updateCrew, updateAddonConfig, updateAgentAddonConfig],

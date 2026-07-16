@@ -34,7 +34,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { EnumDocView } from './EnumDocView';
 import { useConfirm } from '../Confirm/Confirm';
@@ -163,9 +163,14 @@ export function DynamicContextScreen() {
   }, [agent, agentSlug, navigate, writeEnums]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDeleteEnum = useCallback(async (e: EnumTypeDef) => {
+    const ownedField = e.ownedByFieldId
+      ? agent?.fields.find(f => f.id === e.ownedByFieldId)
+      : undefined;
     const ok = await confirm({
-      title:        `Delete Targeted KB "${e.name}"?`,
-      message:      `Every value and section authored under this Targeted KB is removed. Any field bound to it will be left unwired.`,
+      title:        e.ownedByFieldId ? `Delete the value list "${e.name}"?` : `Delete Targeted KB "${e.name}"?`,
+      message:      ownedField
+        ? `This list belongs to the field "${ownedField.name}" (Choice type) — deleting it leaves that field without values. Usually you'd delete or retype the field instead.`
+        : `Every value and section authored under this Targeted KB is removed. Any field bound to it will be left unwired.`,
       confirmLabel: 'Delete',
       danger:       true,
     });
@@ -175,6 +180,9 @@ export function DynamicContextScreen() {
   }, [agent, agentSlug, confirm, navigate, writeEnums]);
 
   const handleRenameEnum = useCallback((e: EnumTypeDef, rawNext: string): boolean => {
+    // Field-owned Choice lists are named after their field — rename the
+    // FIELD to rename the list (the editor hides the rename input too).
+    if (e.ownedByFieldId) return false;
     const next = sanitiseName(rawNext);
     if (!next || next === e.name) return false;
     if ((agent?.enums ?? []).some(x => x.name === next)) return false;
@@ -415,49 +423,61 @@ export function DynamicContextScreen() {
               the author can flip into the doc-style read+edit view
               without losing breadcrumb context. Stays URL-persisted
               via `?view=doc`. */}
-          {activeEnum && (
-            <div
-              style={{
-                marginLeft: 'auto',
-                display: 'inline-flex',
-                border: '1px solid #e5e7eb',
-                borderRadius: 6,
-                overflow: 'hidden',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setViewMode('tree')}
+          {activeEnum && (() => {
+            // Field-owned Choice lists are values-only — no doc view.
+            // The toggle stays RENDERED (disabled) so the header keeps
+            // the exact same height/width and never jumps when
+            // switching between a Targeted KB and a Choice list.
+            const owned = !!activeEnum.ownedByFieldId;
+            const effMode = owned ? 'tree' : viewMode;
+            return (
+              <div
                 style={{
-                  background: viewMode === 'tree' ? '#6366f1' : '#fff',
-                  color:      viewMode === 'tree' ? '#fff'    : '#4b5563',
-                  border:     0,
-                  padding:    '4px 12px',
-                  fontFamily: 'inherit',
-                  cursor:     'pointer',
+                  marginLeft: 'auto',
+                  display: 'inline-flex',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: 6,
+                  overflow: 'hidden',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  opacity: owned ? 0.45 : 1,
                 }}
+                title={owned ? 'Field lists are values-only — no doc view' : undefined}
               >
-                Tree
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('doc')}
-                style={{
-                  background: viewMode === 'doc' ? '#6366f1' : '#fff',
-                  color:      viewMode === 'doc' ? '#fff'    : '#4b5563',
-                  border:     0,
-                  padding:    '4px 12px',
-                  fontFamily: 'inherit',
-                  cursor:     'pointer',
-                  borderLeft: '1px solid #e5e7eb',
-                }}
-              >
-                Doc
-              </button>
-            </div>
-          )}
+                <button
+                  type="button"
+                  disabled={owned}
+                  onClick={() => setViewMode('tree')}
+                  style={{
+                    background: effMode === 'tree' ? '#6366f1' : '#fff',
+                    color:      effMode === 'tree' ? '#fff'    : '#4b5563',
+                    border:     0,
+                    padding:    '4px 12px',
+                    fontFamily: 'inherit',
+                    cursor:     owned ? 'default' : 'pointer',
+                  }}
+                >
+                  Tree
+                </button>
+                <button
+                  type="button"
+                  disabled={owned}
+                  onClick={() => setViewMode('doc')}
+                  style={{
+                    background: effMode === 'doc' ? '#6366f1' : '#fff',
+                    color:      effMode === 'doc' ? '#fff'    : '#4b5563',
+                    border:     0,
+                    padding:    '4px 12px',
+                    fontFamily: 'inherit',
+                    cursor:     owned ? 'default' : 'pointer',
+                    borderLeft: '1px solid #e5e7eb',
+                  }}
+                >
+                  Doc
+                </button>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -470,11 +490,13 @@ export function DynamicContextScreen() {
       {/* Doc view: same data, second renderer. Activated by `?view=doc`
           in the URL. The toggle above flips it; everything else on
           the page (cascades, helpers, mention picker) is reused. */}
-      {viewMode === 'doc' && activeEnum && (
+      {/* Field-owned Choice lists never doc-render (they're values-only)
+          — a stale ?view=doc URL falls through to the tree. */}
+      {viewMode === 'doc' && activeEnum && !activeEnum.ownedByFieldId && (
         <EnumDocView agentId={agent.id} enumDef={activeEnum} />
       )}
 
-      {viewMode === 'tree' && (
+      {(viewMode === 'tree' || (activeEnum?.ownedByFieldId ?? false)) && (
       <div style={{
         display: 'grid',
         gridTemplateColumns: '220px 240px 1fr',
@@ -483,23 +505,48 @@ export function DynamicContextScreen() {
         height: '100%',
         minHeight: 0,
       }}>
-        {/* ── Column 1: enums list ──────────────────────────────── */}
+        {/* ── Column 1: enums list — real Targeted KBs first, then the
+            field-owned Choice lists in their own group so the two
+            concepts never blur (same data behind the scenes). ── */}
         <Column title="Targeted KBs" onAdd={handleCreateEnum} addLabel="+ Add KB">
           {enums.length === 0 ? (
             <Empty>Declare a Targeted KB to get started.</Empty>
           ) : (
-            <List
-              items={enums.map(e => ({
-                key:      e.id,
-                label:    e.name,
-                active:   e.id === activeEnum?.id,
-                onDelete: () => handleDeleteEnum(e),
-              }))}
-              onPick={({ key }) => {
-                const e = enums.find(x => x.id === key)!;
-                navigate(urlEnum(e.name));
-              }}
-            />
+            <>
+              {enums.some(e => !e.ownedByFieldId) ? (
+                <List
+                  items={enums.filter(e => !e.ownedByFieldId).map(e => ({
+                    key:      e.id,
+                    label:    e.name,
+                    active:   e.id === activeEnum?.id,
+                    onDelete: () => handleDeleteEnum(e),
+                  }))}
+                  onPick={({ key }) => {
+                    const e = enums.find(x => x.id === key)!;
+                    navigate(urlEnum(e.name));
+                  }}
+                />
+              ) : (
+                <Empty>Declare a Targeted KB to get started.</Empty>
+              )}
+              {enums.some(e => e.ownedByFieldId) && (
+                <div style={{ marginTop: 16 }}>
+                  <ColumnSubtitle title="Field lists (Choice)" />
+                  <List
+                    items={enums.filter(e => e.ownedByFieldId).map(e => ({
+                      key:      e.id,
+                      label:    e.name,
+                      active:   e.id === activeEnum?.id,
+                      onDelete: () => handleDeleteEnum(e),
+                    }))}
+                    onPick={({ key }) => {
+                      const e = enums.find(x => x.id === key)!;
+                      navigate(urlEnum(e.name));
+                    }}
+                  />
+                </div>
+              )}
+            </>
           )}
         </Column>
 
@@ -535,26 +582,29 @@ export function DynamicContextScreen() {
               {/* Sections schema — declared on the enum, shared across values.
                   Sections are clickable regardless of whether a value is
                   selected: comparing the same section across values is one
-                  click each. */}
-              <div style={{ marginTop: 16 }}>
-                <ColumnSubtitle title="Sections" onAdd={handleAddSection} addLabel="+ Add section" />
-                {(activeEnum.sections ?? []).length === 0 ? (
-                  <Empty>No sections yet.</Empty>
-                ) : (
-                  <List
-                    items={(activeEnum.sections ?? []).map(s => ({
-                      key:      s.name,
-                      label:    s.name,
-                      active:   s.name === activeSection?.name,
-                      onDelete: () => handleDeleteSection(s.name),
-                    }))}
-                    onPick={({ key }) => {
-                      const s = (activeEnum.sections ?? []).find(x => x.name === key);
-                      if (s) pickSection(s);
-                    }}
-                  />
-                )}
-              </div>
+                  click each. Field-owned Choice lists are JUST values —
+                  sections/prompts are Targeted-KB concepts, hidden here. */}
+              {!activeEnum.ownedByFieldId && (
+                <div style={{ marginTop: 16 }}>
+                  <ColumnSubtitle title="Sections" onAdd={handleAddSection} addLabel="+ Add section" />
+                  {(activeEnum.sections ?? []).length === 0 ? (
+                    <Empty>No sections yet.</Empty>
+                  ) : (
+                    <List
+                      items={(activeEnum.sections ?? []).map(s => ({
+                        key:      s.name,
+                        label:    s.name,
+                        active:   s.name === activeSection?.name,
+                        onDelete: () => handleDeleteSection(s.name),
+                      }))}
+                      onPick={({ key }) => {
+                        const s = (activeEnum.sections ?? []).find(x => x.name === key);
+                        if (s) pickSection(s);
+                      }}
+                    />
+                  )}
+                </div>
+              )}
             </>
           )}
         </Column>
@@ -576,17 +626,25 @@ export function DynamicContextScreen() {
           {activeEnum && !activeValue && !activeSection && (
             <EnumMetaEditor
               enumDef={activeEnum}
+              ownedFieldName={
+                activeEnum.ownedByFieldId
+                  ? agent?.fields.find(f => f.id === activeEnum.ownedByFieldId)?.name ?? null
+                  : null
+              }
+              agentSlug={agentSlug}
               onRename={(next) => handleRenameEnum(activeEnum, next)}
               onDelete={() => handleDeleteEnum(activeEnum)}
             />
           )}
 
-          {/* Value-only — umbrella editor. */}
+          {/* Value-only — umbrella editor. Field-owned Choice lists show
+              just the value name/delete — no umbrella prompt. */}
           {activeEnum && activeValue && !activeSection && (
             <ValueUmbrellaEditor
               key={`${activeEnum.id}/${activeValue.id}`}
               enumDef={activeEnum}
               value={activeValue}
+              hidePrompt={!!activeEnum.ownedByFieldId}
               mentionOptions={mentionOptions}
               onRename={(next) => handleRenameValue(activeValue, next)}
               onDelete={() => handleDeleteValue(activeValue)}
@@ -631,29 +689,59 @@ export function DynamicContextScreen() {
 // ────────────────────────────────────────────────────────────────────
 
 function EnumMetaEditor({
-  enumDef, onRename, onDelete,
+  enumDef, ownedFieldName, agentSlug, onRename, onDelete,
 }: {
   enumDef: EnumTypeDef;
+  /** Set when this is a field-owned Choice list — the name follows the
+   *  field (`<field>_choices`) and isn't editable here. */
+  ownedFieldName: string | null;
+  agentSlug: string;
   onRename: (next: string) => boolean;
   onDelete: () => void;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <SectionHeader>Targeted KB</SectionHeader>
-      <InlineRename label="Name" value={enumDef.name} onCommit={onRename} />
+      <SectionHeader>{ownedFieldName ? 'Field list (Choice)' : 'Targeted KB'}</SectionHeader>
+      {ownedFieldName ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{
+            fontSize: 10.5, fontWeight: 700, color: '#6b7280',
+            textTransform: 'uppercase', letterSpacing: '0.05em',
+          }}>Name</span>
+          <div style={{
+            padding: '9px 11px', border: '1px solid #e5e7eb', borderRadius: 8,
+            background: '#f9fafb', fontSize: 13.5, fontFamily: 'ui-monospace, Menlo, monospace',
+            color: '#374151',
+          }}>{enumDef.name}</div>
+          <span style={{ fontSize: 11.5, color: '#9ca3af', lineHeight: 1.4 }}>
+            Named after its field{' '}
+            <Link to={`/${agentSlug}/builder/fields/${encodeURIComponent(ownedFieldName)}`} style={{ color: '#4f46e5', fontWeight: 600 }}>
+              {ownedFieldName}
+            </Link>
+            {' '}— rename the field to rename this list.
+          </span>
+        </div>
+      ) : (
+        <InlineRename label="Name" value={enumDef.name} onCommit={onRename} />
+      )}
 
       <div style={{ marginTop: 14 }}>
-        <DangerBtn onClick={onDelete}>Delete this Targeted KB</DangerBtn>
+        <DangerBtn onClick={onDelete}>
+          {ownedFieldName ? 'Delete this value list' : 'Delete this Targeted KB'}
+        </DangerBtn>
       </div>
     </div>
   );
 }
 
 function ValueUmbrellaEditor({
-  enumDef, value, mentionOptions, onRename, onDelete, onChange,
+  enumDef, value, hidePrompt, mentionOptions, onRename, onDelete, onChange,
 }: {
   enumDef: EnumTypeDef;
   value: EnumValueDef;
+  /** Field-owned Choice lists: value name + delete only — umbrella
+   *  prompts are a Targeted-KB concept. */
+  hidePrompt?: boolean;
   mentionOptions: ReturnType<typeof useMentionOptions>;
   onRename: (next: string) => boolean;
   onDelete: () => void;
@@ -664,15 +752,19 @@ function ValueUmbrellaEditor({
       <SectionHeader>Value</SectionHeader>
       <InlineRename label="Name" value={value.value} onCommit={onRename} />
 
-      <SectionHeader>Umbrella prompt</SectionHeader>
-      <TextareaWithTableInsert
-        value={value.umbrellaText ?? ''}
-        onChange={onChange}
-        options={mentionOptions}
-        placeholder="Umbrella briefing for this value — what the LLM should understand when this is what it's reasoning about."
-        rows={18}
-        storageKey={`enum:${enumDef.id}:val:${value.id}:umbrella`}
-      />
+      {!hidePrompt && (
+        <>
+          <SectionHeader>Umbrella prompt</SectionHeader>
+          <TextareaWithTableInsert
+            value={value.umbrellaText ?? ''}
+            onChange={onChange}
+            options={mentionOptions}
+            placeholder="Umbrella briefing for this value — what the LLM should understand when this is what it's reasoning about."
+            rows={18}
+            storageKey={`enum:${enumDef.id}:val:${value.id}:umbrella`}
+          />
+        </>
+      )}
 
       <div style={{ marginTop: 14 }}>
         <DangerBtn onClick={onDelete}>Delete this value</DangerBtn>

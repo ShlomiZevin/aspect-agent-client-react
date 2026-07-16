@@ -398,6 +398,21 @@
   line-height: 1.4;
 }
 
+/* One-line token hint under the Choice values input. */
+.choiceTokenHint {
+  font-size: 11.5px;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.choiceTokenHint code {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 11px;
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: #4f46e5;
+}
+
 /* Enum preview strip — confirms what value vocabulary the user just
    bound. Sits below the Type/Source row. Layout: enum name (bold) ·
    comma-separated values · "Edit enum ↗" pushed to the right. Indigo

@@ -23,6 +23,15 @@ import { useCrewFields } from '../../state/useCrewFields';
 import { useFieldnameMentions } from '../../state/useFieldMentions';
 import { useBuilder } from '../../state/BuilderContext';
 import { useConfirm } from '../Confirm/Confirm';
+import {
+  autoChoiceName,
+  buildChoiceEnum,
+  choiceValuesOf,
+  isEnumSharedBeyond,
+  ownedChoiceEnum,
+  withChoiceValues,
+} from '../../state/choiceList';
+import { ChoiceValuesInput } from './ChoiceValuesInput';
 import { DomainInput } from './DomainInput';
 import {
   validateFieldName,
@@ -31,7 +40,7 @@ import {
   SPACE_BLOCKED_MESSAGE,
 } from './fieldNameValidation';
 import type { CrewField } from '../../state/useCrewFields';
-import type { FieldSource, FieldType, ID } from '../../types';
+import type { EnumTypeDef, FieldSource, FieldType, ID } from '../../types';
 import { autoDir } from '../../../utils/textDirection';
 import styles from './AddFieldModal.module.css';
 
@@ -83,7 +92,7 @@ const SOURCE_LABEL: Record<FieldSource, { label: string }> = {
 export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props) {
   const { agentExtractors, domainNames, updateField, removeField, setFieldExtractors } =
     useCrewFields(agentId, crewId);
-  const { conversationMemory, previewConversationId, updateConversationMemoryField, doc } = useBuilder();
+  const { conversationMemory, previewConversationId, updateConversationMemoryField, doc, updateAgent, applyTokenRenameCascade } = useBuilder();
   const agent = doc.agents.find(a => a.id === agentId);
   const confirm = useConfirm();
   const mentions = useFieldnameMentions(agentId);
@@ -97,6 +106,11 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
   const [howToExtract, setHowToExtract] = useState('');
   const [definition, setDefinition] = useState('');
   const [enumType, setEnumType] = useState<ID | ''>('');
+  // "Choice" mode — the field owns a quick inline value list (a real
+  // enum on the agent marked ownedByFieldId). Values staged here and
+  // written through to the owned enum on Save.
+  const [isChoice, setIsChoice] = useState(false);
+  const [choiceValues, setChoiceValues] = useState<string[]>([]);
   const [domain, setDomain] = useState('');
   const [selectedExtractors, setSelectedExtractors] = useState<Set<ID>>(new Set());
   const [editingLive, setEditingLive] = useState(false);
@@ -111,9 +125,13 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
     setHowToExtract(f.howToExtract);
     setDefinition(f.definition ?? '');
     setEnumType((f.enumType ?? '') as ID | '');
+    const owned = ownedChoiceEnum(agent, f);
+    setIsChoice(!!owned);
+    setChoiceValues(owned ? choiceValuesOf(owned) : []);
     setDomain(f.domain ?? '');
     setSelectedExtractors(new Set(crewField.extractors.map(e => e.instanceId)));
     setEditingLive(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [crewField]);
 
   // Group extractors by crew for the multi-select layout.
@@ -170,7 +188,53 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
     });
   };
 
-  const save = () => {
+  // Patch just agent.enums — enums are untouched by the field/extractor
+  // mutations in this modal, so a render-time read is safe per save.
+  const updateAgentEnums = (fn: (enums: EnumTypeDef[]) => EnumTypeDef[]) => {
+    updateAgent(agentId, { enums: fn(agent?.enums ?? []) });
+  };
+
+  const save = async () => {
+    // 0. Reconcile the owned Choice list (a real enum on the agent).
+    //    Three cases: still Choice (write values through), became
+    //    Choice (mint the owned enum), left Choice (drop the owned
+    //    enum unless another field bound to it — with a confirm).
+    const owned = ownedChoiceEnum(agent, original);
+    let effectiveEnumType: ID | undefined =
+      type === 'enum' && enumType ? (enumType as ID) : undefined;
+    if (isChoice) {
+      if (owned) {
+        // Values write-through + name-follow in one enum update. The
+        // owned list is named after the field (`gender_choices`), so a
+        // field rename renames it too — {{enum:…}} tokens cascaded
+        // BEFORE the swap, same order the Targeted KB page uses.
+        const nextFieldName = name.trim() || original.name;
+        const nextEnumName = autoChoiceName(agent, nextFieldName, owned.id);
+        if (nextEnumName !== owned.name) {
+          applyTokenRenameCascade(agentId, 'enum', owned.name, nextEnumName);
+        }
+        updateAgentEnums(enums => enums.map(e =>
+          e.id === owned.id ? { ...withChoiceValues(e, choiceValues), name: nextEnumName } : e));
+        effectiveEnumType = owned.id;
+      } else {
+        const en = buildChoiceEnum(autoChoiceName(agent, name.trim() || original.name), original.id, choiceValues);
+        updateAgentEnums(enums => [...enums, en]);
+        effectiveEnumType = en.id;
+      }
+    } else if (owned) {
+      if (isEnumSharedBeyond(agent, owned.id, original.id)) {
+        // Someone else binds it — it graduated to a shared enum; leave it.
+      } else {
+        const ok = await confirm({
+          title: 'Delete this field\'s value list?',
+          message: `The list "${owned.name}" was created for this field and nothing else uses it. Changing the type deletes it.`,
+          confirmLabel: 'Delete list',
+          danger: true,
+        });
+        if (!ok) return;
+        updateAgentEnums(enums => enums.filter(e => e.id !== owned.id));
+      }
+    }
     // 1. Patch the FieldDef in place. Scope moves are no longer
     //    user-controllable from this modal — the "declare at agent
     //    level + wire to crews" model removed the choice. Legacy
@@ -181,12 +245,12 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
       original.id,
       {
         name: name.trim(),
-        type,
+        type: isChoice ? 'enum' : type,
         source,
         howToExtract: howToExtract.trim(),
         definition:   definition.trim() || undefined,
         domain: domain.trim() || undefined,
-        enumType: type === 'enum' && enumType ? enumType : undefined,
+        enumType: isChoice ? effectiveEnumType : (type === 'enum' && enumType ? enumType : undefined),
       },
     );
     // 2. Sync the "extracted by" set.
@@ -314,13 +378,20 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
               // Encoded value: primitives use their plain name; enums are
               // "enum:<id>" so a single change handler can set both type
               // AND enumType without a separate dropdown below.
-              value={type === 'enum' && enumType ? `enum:${enumType}` : type}
+              // "__choice__" = quick inline value list (field-owned enum).
+              value={isChoice ? '__choice__' : type === 'enum' && enumType ? `enum:${enumType}` : type}
               onChange={e => {
                 const v = e.target.value;
-                if (v.startsWith('enum:')) {
+                if (v === '__choice__') {
+                  setIsChoice(true);
+                  setType('enum');
+                  setEnumType('');
+                } else if (v.startsWith('enum:')) {
+                  setIsChoice(false);
                   setType('enum');
                   setEnumType(v.slice('enum:'.length) as ID);
                 } else {
+                  setIsChoice(false);
                   setType(v as FieldType);
                   setEnumType('');
                 }
@@ -329,6 +400,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
               {PRIMITIVE_TYPES.map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
+              <option value="__choice__">Choice — one of a list</option>
               {(agent?.enums?.length ?? 0) > 0 && (
                 <optgroup label="Targeted KBs">
                   {(agent?.enums ?? []).map(en => (
@@ -339,7 +411,8 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
               {/* The currently-bound Targeted KB was deleted from the
                   agent. Surface the orphan so the user sees the broken
                   state and can re-pick a real one. */}
-              {type === 'enum'
+              {!isChoice
+                && type === 'enum'
                 && enumType
                 && !(agent?.enums ?? []).some(en => en.id === enumType)
                 && (
@@ -363,11 +436,26 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
 
         </div>
 
+        {/* Choice values — inline editor for the field-owned list.
+            Written through to the owned enum on Save. */}
+        {isChoice && (
+          <label className={styles.field}>
+            <span className={styles.label}>Values</span>
+            <ChoiceValuesInput
+              values={choiceValues}
+              onChange={setChoiceValues}
+            />
+            <span className={styles.choiceTokenHint}>
+              In prompts: <code>{`{{enum:${ownedChoiceEnum(agent, original)?.name ?? autoChoiceName(agent, name.trim() || original.name)}}}`}</code>
+            </span>
+          </label>
+        )}
+
         {/* Enum preview strip — shows the value vocabulary the user
             just bound, with a shortcut to edit the enum bible. The
             unified Type select above already wires both type and
             enumType together; this block is purely informative. */}
-        {type === 'enum' && enumType && agent && (() => {
+        {!isChoice && type === 'enum' && enumType && agent && (() => {
           const en = (agent.enums ?? []).find(e => e.id === enumType);
           if (!en) {
             return (

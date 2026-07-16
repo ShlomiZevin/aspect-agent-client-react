@@ -29,6 +29,7 @@ import { useCrewFields } from '../../state/useCrewFields';
 import { useConfirm } from '../Confirm/Confirm';
 import { useBuilderSettings } from '../TopBar/BuilderSettings';
 import { PromptRepoModal } from '../PromptRepo/PromptRepoModal';
+import { MoveAddonModal } from './MoveAddonModal';
 import { AddonContextSection } from '../AddonContext/AddonContextSection';
 import { AddonOutputSection } from '../AddonOutput/AddonOutputSection';
 import { AddonTriggerSection } from '../Trigger/AddonTriggerSection';
@@ -73,6 +74,8 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
   // Filter editor lives in its own focused modal — see the comment on
   // the launcher button below for why we don't inline the section.
   const [filterOpen, setFilterOpen] = useState(false);
+  // Move-to-another-lane/crew modal (footer "Move…" button).
+  const [moveOpen, setMoveOpen] = useState(false);
   // For Field Reasoner cascade-delete — the linked field is owned by
   // this addon, so removing the addon also removes the field. Pulled
   // unconditionally; the helpers no-op when the plugin isn't a
@@ -220,16 +223,20 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
             </>
           ) : (
             <>
+              {/* Footer grammar: [destructive] | [addon utilities] … [dismiss].
+                  Remove stands alone behind a divider so it can't be
+                  fat-fingered from the utility cluster; ON / Move / Repo
+                  are "manage this addon" utilities grouped together;
+                  the right edge is exit-only (Cancel + primary Done). */}
               <button type="button" className={styles.dangerBtn} onClick={handleRemove}>
                 Remove
               </button>
+              <span className={styles.footerDivider} aria-hidden />
               {/* Enable / disable toggle — track-style switch matching
                   the chip-corner affordance, so authors can flip the
                   addon off without closing the modal first. Same
                   `setEnabled` mutator; disabled addons are skipped by
-                  the engine. The earlier ⏼ / ⏻ glyph variant
-                  rendered as missing-glyph squares on most fonts;
-                  this one carries its own visual state. */}
+                  the engine. */}
               <button
                 type="button"
                 aria-pressed={instance.enabled !== false}
@@ -247,15 +254,17 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
                   {instance.enabled === false ? 'OFF' : 'ON'}
                 </span>
               </button>
-              <span className={styles.spacer} />
-              {/* Prompt-template viewer retired — the per-prompt
-                  "👁 Preview" toggle (PromptPreviewView) shows the full
-                  assembled prompt with every token opened, which the
-                  flat template modal couldn't do usefully. */}
+              <button
+                type="button"
+                className={styles.secondaryBtn}
+                onClick={() => setMoveOpen(true)}
+                title="Move or duplicate this addon to another lane or crew"
+              >
+                Move / Copy…
+              </button>
               {/* Repo button — shown when this addon's config has a
                   prompt the user could browse / save. Transition
-                  Router has none → hidden. The modal does both
-                  directions (browse + save) in one place. */}
+                  Router has none → hidden. */}
               {typeof (instance.config as { prompt?: unknown })?.prompt === 'string' && (
                 <button
                   type="button"
@@ -266,6 +275,7 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
                   📚 Repo
                 </button>
               )}
+              <span className={styles.spacer} />
               <button type="button" className={styles.secondaryBtn} onClick={handleCancel}>
                 Cancel
               </button>
@@ -382,6 +392,27 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
         agentId={agentId}
         crewId={crewId}
         instance={instance}
+      />
+
+      <MoveAddonModal
+        open={moveOpen}
+        onClose={() => setMoveOpen(false)}
+        agentId={agentId}
+        fromCrewId={crewId}
+        instance={instance}
+        onMoved={() => {
+          // The addon left this container — drop the snapshot (a
+          // Cancel-restore would write into the old home) and close
+          // both modals. It's now at the end of the destination chain.
+          snapshotRef.current = null;
+          setMoveOpen(false);
+          onClose();
+        }}
+        onDuplicated={() => {
+          // Original untouched — just close the picker; the copy sits
+          // at the end of the destination chain.
+          setMoveOpen(false);
+        }}
       />
     </>
   );

@@ -20,8 +20,10 @@ import { Link } from 'react-router-dom';
 import { Modal } from '../Modal/Modal';
 import { useBuilder } from '../../state/BuilderContext';
 import { useCrewFields } from '../../state/useCrewFields';
+import { autoChoiceName, buildChoiceEnum } from '../../state/choiceList';
 import { DomainInput } from './DomainInput';
 import { TagsInput } from './TagsInput';
+import { ChoiceValuesInput } from './ChoiceValuesInput';
 import {
   validateFieldName,
   stripInvalid,
@@ -94,6 +96,11 @@ interface Draft {
   howToExtract: string;
   definition: string;
   enumType: ID | '';
+  /** "Choice" mode — a quick one-field value list. Saved as a real
+   *  enum (type 'enum') auto-created on the agent and owned by this
+   *  field; `choiceValues` are the list entries typed inline. */
+  isChoice: boolean;
+  choiceValues: string[];
   tags: string[];
 }
 
@@ -110,6 +117,8 @@ const emptyDraft = (source: FieldSource = 'explicit', type: FieldType = 'string'
   howToExtract: '',
   definition: '',
   enumType: '',
+  isChoice: false,
+  choiceValues: [],
   tags: [],
 });
 
@@ -192,6 +201,7 @@ export function AddFieldModal({
   // only break extraction for THIS field; user can decide.
   const canSubmit = trimmedName.length > 0
     && !collidesWith
+    && (!draft.isChoice || draft.choiceValues.length > 0)
     && (lockedType !== undefined || noExtractorsAnywhere || selectedExtractors.size > 0);
 
   const toggleExtractor = (id: ID) => {
@@ -224,14 +234,23 @@ export function AddFieldModal({
         updateAgent(agentId, { tags: [...(agent.tags ?? []), ...fresh] });
       }
     }
+    // Choice mode: mint the backing enum FIRST so the field can bind
+    // to its id, then persist it (with ownership) after the field
+    // exists. The enum is a real Targeted KB entry — every {{enum:…}}
+    // capability works on it from birth.
+    const choiceEnum = draft.isChoice
+      ? buildChoiceEnum(autoChoiceName(agent, draft.name.trim()), '', draft.choiceValues)
+      : null;
     const draftField: Omit<FieldDef, 'id'> = {
       name: draft.name.trim(),
-      type: draft.type,
+      type: draft.isChoice ? 'enum' : draft.type,
       source: draft.source,
       howToExtract: draft.howToExtract.trim(),
       definition:   draft.definition.trim() || undefined,
       domain: draft.domain.trim() || undefined,
-      ...(draft.type === 'enum' && draft.enumType ? { enumType: draft.enumType } : {}),
+      ...(choiceEnum
+        ? { enumType: choiceEnum.id }
+        : draft.type === 'enum' && draft.enumType ? { enumType: draft.enumType } : {}),
       ...(draft.tags.length > 0 ? { tags: draft.tags } : {}),
     };
     const created = addFieldToScope(
@@ -244,6 +263,13 @@ export function AddFieldModal({
       // explicitly wants a naked declaration and will wire it later.
       { createDefaultExtractor: noExtractorsAnywhere && lockedType === undefined },
     );
+    if (choiceEnum && agent) {
+      // enums untouched by addFieldToScope, so appending onto the
+      // render-time list is safe within this tick.
+      updateAgent(agentId, {
+        enums: [...(agent.enums ?? []), { ...choiceEnum, ownedByFieldId: created.id }],
+      });
+    }
     onCreated?.(created);
     onClose();
   };
@@ -342,20 +368,28 @@ export function AddFieldModal({
                 className={styles.input}
                 // Encoded value: primitives use their plain name; enums
                 // are "enum:<id>" so one change sets both type and
-                // enumType — no separate dropdown below.
-                value={draft.type === 'enum' && draft.enumType ? `enum:${draft.enumType}` : draft.type}
+                // enumType — no separate dropdown below. "__choice__" is
+                // the quick inline value list (a field-owned enum).
+                value={
+                  draft.isChoice
+                    ? '__choice__'
+                    : draft.type === 'enum' && draft.enumType ? `enum:${draft.enumType}` : draft.type
+                }
                 onChange={e => {
                   const v = e.target.value;
-                  if (v.startsWith('enum:')) {
-                    setDraft(d => ({ ...d, type: 'enum', enumType: v.slice('enum:'.length) as ID }));
+                  if (v === '__choice__') {
+                    setDraft(d => ({ ...d, type: 'enum', enumType: '', isChoice: true }));
+                  } else if (v.startsWith('enum:')) {
+                    setDraft(d => ({ ...d, type: 'enum', enumType: v.slice('enum:'.length) as ID, isChoice: false }));
                   } else {
-                    setDraft(d => ({ ...d, type: v as FieldType, enumType: '' }));
+                    setDraft(d => ({ ...d, type: v as FieldType, enumType: '', isChoice: false }));
                   }
                 }}
               >
                 {PRIMITIVE_TYPES.map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
+                <option value="__choice__">Choice — one of a list</option>
                 {(agent?.enums?.length ?? 0) > 0 && (
                   <optgroup label="Targeted KBs">
                     {(agent?.enums ?? []).map(en => (
@@ -389,6 +423,23 @@ export function AddFieldModal({
           </label>
 
         </div>
+
+        {/* Choice values — the quick inline list. Saved as a real
+            field-owned Targeted KB entry named after the field. */}
+        {draft.isChoice && (
+          <label className={styles.field}>
+            <span className={styles.label}>Values</span>
+            <ChoiceValuesInput
+              values={draft.choiceValues}
+              onChange={values => setDraft(d => ({ ...d, choiceValues: values }))}
+            />
+            {trimmedName && (
+              <span className={styles.choiceTokenHint}>
+                In prompts: <code>{`{{enum:${autoChoiceName(agent, trimmedName)}}}`}</code>
+              </span>
+            )}
+          </label>
+        )}
 
         {/* Enum preview strip — confirms what value vocabulary the
             user just bound, with a shortcut to edit the bible. */}
