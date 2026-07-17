@@ -21,12 +21,37 @@
   color: var(--text-secondary, #4b5563);
 }
 
+.headActions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .langToggle {
   flex: 0 0 auto;
   display: inline-flex;
   border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 8px;
   overflow: hidden;
+}
+
+.pdfBtn {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--bg-surface, #fff);
+  color: var(--text-secondary, #6b7280);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.pdfBtn:hover {
+  color: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
 }
 
 .langBtn {

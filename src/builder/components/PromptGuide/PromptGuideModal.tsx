@@ -20,6 +20,7 @@ import {
   GUIDE_UI,
   type GuideLang,
 } from './promptGuideContent';
+import { openGuidePrintWindow } from './promptGuidePrint';
 import styles from './PromptGuideModal.module.css';
 
 const LANG_KEY = 'builder:promptGuideLang';
@@ -75,20 +76,32 @@ export function PromptGuideModal({ open, onClose }: Props) {
       <div className={styles.body} dir={he ? 'rtl' : 'ltr'}>
         <div className={styles.headRow}>
           <p className={styles.subtitle}>{GUIDE_UI.subtitle[lang]}</p>
-          <div className={styles.langToggle} dir="ltr">
+          <div className={styles.headActions} dir="ltr">
+            <div className={styles.langToggle}>
+              <button
+                type="button"
+                className={`${styles.langBtn} ${!he ? styles.langBtnActive : ''}`}
+                onClick={() => pickLang('en')}
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                className={`${styles.langBtn} ${he ? styles.langBtnActive : ''}`}
+                onClick={() => pickLang('he')}
+              >
+                עברית
+              </button>
+            </div>
             <button
               type="button"
-              className={`${styles.langBtn} ${!he ? styles.langBtnActive : ''}`}
-              onClick={() => pickLang('en')}
+              className={styles.pdfBtn}
+              onClick={() => openGuidePrintWindow(lang)}
+              title={he
+                ? 'פותח עמוד הדפסה — שם בוחרים "שמירה כ-PDF"'
+                : 'Opens a print page — choose "Save as PDF" there'}
             >
-              EN
-            </button>
-            <button
-              type="button"
-              className={`${styles.langBtn} ${he ? styles.langBtnActive : ''}`}
-              onClick={() => pickLang('he')}
-            >
-              עברית
+              🖨️ PDF
             </button>
           </div>
         </div>
