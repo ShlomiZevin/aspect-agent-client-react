@@ -6,12 +6,14 @@ import { useAnyDirty } from '../../hooks/useAutoSave';
 import { useConfirm } from '../Confirm/Confirm';
 import { VersionMenu } from '../VersionMenu/VersionMenu';
 import { BuilderSettingsPopover, useBuilderSettings } from './BuilderSettings';
+import { PromptGuideModal } from '../PromptGuide/PromptGuideModal';
 import styles from './TopBar.module.css';
 
 export function TopBar() {
   const { doc, pendingAlfredApply, resetToServerState } = useBuilder();
   const [settings, setSetting] = useBuilderSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const settingsBtnRef = useRef<HTMLButtonElement>(null);
   const confirm = useConfirm();
   const { dirty } = useAnyDirty();
@@ -49,6 +51,14 @@ export function TopBar() {
       <button
         type="button"
         className={styles.settingsBtn}
+        onClick={() => setGuideOpen(true)}
+        title="Prompt guide — every token and shortcut, explained simply (EN/HE)"
+      >
+        📖
+      </button>
+      <button
+        type="button"
+        className={styles.settingsBtn}
         onClick={handleReload}
         title="Reload from server (discards the local draft)"
       >
@@ -73,6 +83,7 @@ export function TopBar() {
           onChange={setSetting}
         />
       </div>
+      <PromptGuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
     </>
   );
 }

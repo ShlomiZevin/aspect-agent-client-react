@@ -1,0 +1,334 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 72vh;
+  overflow-y: auto;
+  padding-inline-end: 4px;
+}
+
+.headRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.subtitle {
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary, #4b5563);
+}
+
+.langToggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.langBtn {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--bg-surface, #fff);
+  color: var(--text-secondary, #6b7280);
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.langBtnActive {
+  background: var(--primary-color, #6366f1);
+  color: #fff;
+}
+
+.golden {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 10px 13px;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.07);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: #4338ca;
+  font-weight: 500;
+}
+
+.search {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 13.5px;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 8px;
+  background: var(--bg-surface, #fff);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.search:focus {
+  border-color: var(--primary-color, #6366f1);
+}
+
+/* ── Sigil cheat sheet ── */
+
+.sigils {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--bg-input, #fafafa);
+}
+
+.sigilsTitle {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #4b5563);
+  margin-bottom: 4px;
+}
+
+.sigilsIntro {
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+  margin-bottom: 10px;
+}
+
+.sigilGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 18px;
+}
+
+.sigilRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.sigilKey {
+  flex: none;
+  min-width: 26px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 6px;
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4f46e5;
+  background: #fff;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+}
+
+.sigilWhat {
+  font-size: 12.5px;
+  color: var(--text-secondary, #4b5563);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Running-example scenario card ── */
+
+.scenario {
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: rgba(6, 182, 212, 0.05);
+}
+
+.scenarioTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0e7490;
+  margin-bottom: 8px;
+}
+
+.scenarioList {
+  margin: 0;
+  padding-inline-start: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-primary, #1f2937);
+}
+
+/* Numbered step-by-step (Targeted KB walkthrough). */
+.walkthrough {
+  margin: 0;
+  padding-inline-start: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-primary, #1f2937);
+  border: 1px dashed var(--border-color, #d1d5db);
+  border-radius: 10px;
+  padding-block: 10px;
+  padding-inline-end: 12px;
+  background: var(--bg-input, #fafafa);
+}
+
+.walkthrough li::marker {
+  font-weight: 800;
+  color: var(--primary-color, #6366f1);
+}
+
+/* ── Groups & entries ── */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.groupTitle {
+  margin: 6px 0 0;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--text-primary, #111827);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.groupIntro {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-secondary, #4b5563);
+}
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.entry {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--bg-surface, #fff);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.entryHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tokenChip {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #4f46e5;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 6px;
+  padding: 3px 9px;
+  cursor: copy;
+}
+
+.tokenChip:hover {
+  background: rgba(99, 102, 241, 0.14);
+}
+
+.sigilBadge {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary, #6b7280);
+  background: var(--bg-input, #f3f4f6);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 1px 7px;
+}
+
+.entryBadge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #92400e;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.entryWhat {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-primary, #1f2937);
+}
+
+/* "You write" / "The model gets" pair — side by side when there's
+ * room, stacked when narrow. */
+.exampleRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .exampleRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.example {
+  margin: 0;
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-secondary, #374151);
+  background: var(--bg-input, #f8fafc);
+  border: 1px solid var(--border-color, #eef2f7);
+  border-radius: 6px;
+  padding: 7px 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: left;
+  min-width: 0;
+}
+
+/* The rendered-output box — green tint so input vs output reads
+ * instantly, even without reading the labels. */
+.exampleOut {
+  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.exampleLabel {
+  display: block;
+  font-family: inherit;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary, #9ca3af);
+  margin-bottom: 3px;
+}
+
+.noResults {
+  font-size: 13px;
+  color: var(--text-tertiary, #9ca3af);
+  text-align: center;
+  padding: 18px 0;
+}
