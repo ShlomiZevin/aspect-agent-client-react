@@ -41,8 +41,8 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
 export interface LiveBrainPanelData {
   id: string;
   title: string;
-  render: 'text' | 'keyvalue' | 'goals' | 'bars' | 'donut';
-  /** Present for `text` render. */
+  render: 'text' | 'html' | 'keyvalue' | 'goals' | 'bars' | 'donut';
+  /** Present for `text` (Markdown) and `html` (sanitized HTML) renders. */
   text?: string;
   /** Present for structured renders — shape matches the render type. */
   values?: {

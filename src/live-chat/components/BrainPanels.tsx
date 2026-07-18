@@ -5,7 +5,7 @@
  * `.lybi-chat`-scoped `.lb-*` styles.
  */
 
-import { MarkdownBody } from '../../builder/components/ChatPanel/MarkdownBody';
+import { PanelMarkdown } from '../../builder/components/LiveBrainScreen/PanelMarkdown';
 import type { LiveBrainPanelData } from '../../builder/state/builderApi';
 import '../live-brain/liveBrain.css';
 
@@ -77,7 +77,9 @@ function Donut({ donut }: { donut: NonNullable<NonNullable<LiveBrainPanelData['v
 function PanelBody({ panel }: { panel: LiveBrainPanelData }) {
   switch (panel.render) {
     case 'text':
-      return <div className="lb-body"><MarkdownBody text={panel.text ?? ''} /></div>;
+      return <PanelMarkdown text={panel.text ?? ''} className="lb-body" />;
+    case 'html':
+      return <PanelMarkdown text={panel.text ?? ''} className="lb-body" html />;
     case 'keyvalue':
       return <KeyValue pairs={panel.values?.pairs} />;
     case 'goals':

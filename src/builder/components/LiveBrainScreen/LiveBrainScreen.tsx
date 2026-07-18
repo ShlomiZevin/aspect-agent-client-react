@@ -105,7 +105,7 @@ function histFromValue(v: string): HistoryMode {
   return DEFAULT_HISTORY;
 }
 
-const VALID_RENDERS: PanelRender[] = ['text', 'keyvalue', 'goals', 'bars', 'donut'];
+const VALID_RENDERS: PanelRender[] = ['text', 'html', 'keyvalue', 'goals', 'bars', 'donut'];
 function normalizeRender(r: unknown): PanelRender {
   return VALID_RENDERS.includes(r as PanelRender) ? (r as PanelRender) : 'text';
 }

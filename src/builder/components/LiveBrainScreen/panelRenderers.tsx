@@ -9,10 +9,9 @@
  */
 
 import { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import type { BrainPanel, PanelRender } from '../../types';
 import { AddonRunCard, type AddonRunSnapshot } from '../AddonRun/AddonRunCard';
+import { PanelMarkdown } from './PanelMarkdown';
 import styles from './LiveBrainScreen.module.css';
 
 // ── Runtime value shapes, one per render type ──────────────────────
@@ -32,8 +31,12 @@ export const RENDER_OPTIONS: {
   returns: string;
 }[] = [
   {
-    value: 'text', label: 'Text / Markdown', hint: 'Plain or rich text — bold, lists, tables.',
+    value: 'text', label: 'Text / Markdown', hint: 'Plain text or Markdown — bold, lists, tables.',
     returns: 'Return a plain string. Markdown is rendered (bold, lists, tables).',
+  },
+  {
+    value: 'html', label: 'HTML', hint: 'Safe HTML — styled cards, custom layout.',
+    returns: 'Return an HTML FRAGMENT — no <!DOCTYPE>/<html>/<head>/<body>/<style> and no code fences. Style with INLINE style="…" attributes (a <style> block is stripped). e.g. <div style="padding:12px;border-radius:12px;background:#fce7f3">…</div>. Scripts / event handlers are stripped for safety.',
   },
   {
     value: 'keyvalue', label: 'Key / value', hint: 'A labelled list of facts.',
@@ -86,6 +89,8 @@ export function sampleRuntime(render: PanelRender): PanelRuntime {
   switch (render) {
     case 'text':
       return { text: '**Right now:** build trust first.\n\n- Hold off on tools\n- Reflect her worry back\n- Offer to log *with* her, not *at* her' };
+    case 'html':
+      return { text: '<div style="padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,#fce7f3,#ede9fe);color:#6b21a8">\n  <div style="font-weight:700;margin-bottom:4px">Focus right now</div>\n  <div style="font-size:13px;opacity:.85">Build trust first — hold off on tools.</div>\n</div>' };
     case 'keyvalue':
       return { pairs: [
         { k: 'Stage', v: 'perimenopause', tag: true },
@@ -164,14 +169,11 @@ function Donut({ donut }: { donut: NonNullable<PanelRuntime['donut']> }) {
 export function PanelBody({ panel, runtime }: { panel: BrainPanel; runtime: PanelRuntime }) {
   switch (panel.render) {
     case 'text':
-      // Render markdown directly here (not via the chat MarkdownBody,
-      // which hard-codes tight chat-bubble spacing) so `.bodyMd` fully
-      // owns the panel's typographic rhythm.
-      return (
-        <div className={styles.bodyMd}>
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{runtime.text ?? ''}</ReactMarkdown>
-        </div>
-      );
+      // Markdown only — `.bodyMd` owns the panel's typographic rhythm.
+      return <PanelMarkdown text={runtime.text ?? ''} className={styles.bodyMd} />;
+    case 'html':
+      // Sanitized raw HTML — styled cards, custom layout.
+      return <PanelMarkdown text={runtime.text ?? ''} className={styles.bodyMd} html />;
     case 'keyvalue':
       return (
         <div className={styles.kv}>
