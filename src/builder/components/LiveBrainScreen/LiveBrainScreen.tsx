@@ -16,8 +16,11 @@
  * docs/guides/BUILDER_V2_LIVE_BRAIN.md.
  */
 
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
+import { fetchLiveBrain, fetchLiveBrainRuns } from '../../state/builderApi';
+import type { LiveBrainPanelData, LiveBrainPanelEntry, LiveBrainRun } from '../../state/builderApi';
+import type { AddonRunSnapshot } from '../AddonRun/AddonRunCard';
 import { useConfirm } from '../Confirm/Confirm';
 import { Modal } from '../Modal/Modal';
 import { InlineField } from '../AddonModal/InlineField';
@@ -40,6 +43,41 @@ const DEFAULT_MODEL: ModelRef = { providerId: 'openai', modelId: 'gpt-4o-mini' }
 const DEFAULT_HISTORY: HistoryMode = { mode: 'last_n', n: 10 };
 const DEFAULT_TRIGGER: OfflineTrigger = { kind: 'every_n_messages', n: 3 };
 const EMPTY_FILTER: AddonFilter = { conditions: [], mode: 'include' };
+
+/** Render-ready panel list (from the snapshot / initial fetch) → the
+ *  by-id value map the preview renders. */
+function panelListToMap(list: LiveBrainPanelData[]): Record<string, LiveBrainPanelEntry> {
+  const map: Record<string, LiveBrainPanelEntry> = {};
+  for (const p of list) {
+    map[p.id] = {
+      render: p.render,
+      ...(p.text   !== undefined ? { text:   p.text }   : {}),
+      ...(p.values !== undefined ? { values: p.values } : {}),
+      ranAt: p.ranAt,
+    };
+  }
+  return map;
+}
+
+/** A persisted / live Live-Brain run → the SAME snapshot the chat's
+ *  AddonRunCard renders, so a panel's log looks identical to a chat
+ *  addon's card (input prompt, output, parse error, model, timing). */
+function runToSnapshot(r: LiveBrainRun): AddonRunSnapshot {
+  const d = r.runData || {};
+  return {
+    instanceId: r.instanceId,
+    pluginId:   'live-brain-panel',
+    label:      d.label,
+    modelLabel: d.modelLabel ?? null,
+    status:     (r.status as AddonRunSnapshot['status']) || 'success',
+    lane:       'offline',
+    prompt:     d.prompt,
+    rawOutput:  d.rawOutput,
+    parsedOutput: d.parsedOutput,
+    parseError: d.parseError,
+    durationMs: r.durationMs ?? undefined,
+  };
+}
 
 function renderLabel(r: PanelRender): string {
   return RENDER_OPTIONS.find(o => o.value === r)?.label ?? r;
@@ -126,14 +164,68 @@ function TriggerSelect({ trigger, onChange }: { trigger: OfflineTrigger; onChang
 }
 
 export function LiveBrainScreen() {
-  const { doc, updateAgent } = useBuilder();
+  const { doc, updateAgent, previewConversationId, liveBrainSnapshot } = useBuilder();
   const confirm = useConfirm();
   const agent = doc.agents[0];
+  const slug = agent?.slug;
   const mentionOptions = useMentionOptions(agent?.id ?? '');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [returnOpen, setReturnOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // ── Live values + runs for the builder's preview conversation. The
+  // creator authors on the left and watches panels compute LIVE (from the
+  // User Chat on the right) — values arrive on the chat stream
+  // (`brain.snapshot` → context), the run logs are pulled alongside.
+  const [liveValues, setLiveValues] = useState<Record<string, LiveBrainPanelEntry>>({});
+  const [runSnapshots, setRunSnapshots] = useState<AddonRunSnapshot[]>([]);
+  const [showLogs, setShowLogs] = useState(true);
+  const ownerUserId = (typeof localStorage !== 'undefined' && localStorage.getItem('builder:ownerUserId')) || 'anon';
+
+  // Group runs by the panel they belong to, so each panel shows its own log.
+  const runsByPanel = useMemo(() => {
+    const map: Record<string, AddonRunSnapshot[]> = {};
+    for (const r of runSnapshots) { (map[r.instanceId] ??= []).push(r); }
+    return map;
+  }, [runSnapshots]);
+
+  const loadRuns = useCallback(async () => {
+    if (!slug || !previewConversationId) return;
+    try {
+      const res = await fetchLiveBrainRuns({ agentSlug: slug, conversationId: previewConversationId });
+      setRunSnapshots((res?.runs || []).map(runToSnapshot));
+    } catch { /* best-effort — keep the last logs */ }
+  }, [slug, previewConversationId]);
+
+  // Initial hydration: opening an existing conversation pulls its stored
+  // values + runs ONCE (past turns didn't stream to this screen). New
+  // turns then update everything live via the snapshot effect below.
+  useEffect(() => {
+    let cancelled = false;
+    if (!slug || !previewConversationId) { setLiveValues({}); setRunSnapshots([]); return; }
+    (async () => {
+      try {
+        const [brainRes, runsRes] = await Promise.all([
+          fetchLiveBrain({ agentSlug: slug, conversationId: previewConversationId, ownerUserId, version: 'viewing' }),
+          fetchLiveBrainRuns({ agentSlug: slug, conversationId: previewConversationId }),
+        ]);
+        if (cancelled) return;
+        setLiveValues(panelListToMap(brainRes?.panels || []));
+        setRunSnapshots((runsRes?.runs || []).map(runToSnapshot));
+      } catch { /* best-effort */ }
+    })();
+    return () => { cancelled = true; };
+  }, [slug, previewConversationId, ownerUserId]);
+
+  // Live: each turn's `brain.snapshot` swaps the values instantly (no
+  // refetch); the persisted run logs are pulled on the same beat.
+  useEffect(() => {
+    if (!liveBrainSnapshot) return;
+    setLiveValues(panelListToMap(liveBrainSnapshot.panels));
+    void loadRuns();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveBrainSnapshot]);
 
   if (!agent) return <div className={styles.screen}>No agent loaded.</div>;
 
@@ -164,11 +256,19 @@ export function LiveBrainScreen() {
     writePanels(next);
   };
 
+  // Remember the config for the source kind you're leaving, so toggling
+  // Text ↔ AI prompt and back doesn't wipe what you typed. Keyed by panel
+  // id; survives re-renders (a ref, not state — it's a scratch cache).
+  const sourceStash = useRef<Record<string, Partial<Record<PanelSource['kind'], PanelSource>>>>({});
   const setSourceKind = (kind: PanelSource['kind']) => {
     if (!editing || editing.source.kind === kind) return;
-    const source: PanelSource = kind === 'text'
-      ? { kind: 'text', text: '' }
-      : { kind: 'prompt', prompt: '', model: DEFAULT_MODEL, history: DEFAULT_HISTORY, trigger: DEFAULT_TRIGGER };
+    const stash = (sourceStash.current[editing.id] ??= {});
+    stash[editing.source.kind] = editing.source; // park what we're leaving
+    const restored = stash[kind];
+    const source: PanelSource = restored
+      ?? (kind === 'text'
+        ? { kind: 'text', text: '' }
+        : { kind: 'prompt', prompt: '', model: DEFAULT_MODEL, history: DEFAULT_HISTORY, trigger: DEFAULT_TRIGGER });
     patchPanel(editing.id, { source });
   };
   const patchText = (text: string) => editing && patchPanel(editing.id, { source: { kind: 'text', text } });
@@ -210,14 +310,25 @@ export function LiveBrainScreen() {
           <button className={styles.addChip} onClick={addPanel}>+ Add panel</button>
         </aside>
 
-        {/* ── preview (client width) ── */}
+        {/* ── preview (client width); each panel carries its own run log ── */}
         <section className={styles.preview}>
           <div className={styles.previewHeadRow}>
             <span className={styles.previewLabel}>Customer view</span>
-            <span className={styles.previewSample}>sample data · client width</span>
+            <span className={styles.previewSample}>{previewConversationId ? 'live · client width' : 'sample · client width'}</span>
+            <button
+              className={`${styles.logToggle} ${showLogs ? styles.logToggleOn : ''}`}
+              onClick={() => setShowLogs(s => !s)}
+              title={showLogs ? 'Hide the run logs (clean customer view)' : 'Show each panel’s run log'}
+            >🔍 Logs</button>
           </div>
-          <div className={styles.deviceFrame}>
-            <LiveBrainPreview panels={panels} selectedId={editingId ?? undefined} />
+          <div className={`${styles.deviceFrame} ${showLogs && previewConversationId ? styles.deviceFrameWide : ''}`}>
+            <LiveBrainPreview
+              panels={panels}
+              selectedId={editingId ?? undefined}
+              liveValues={liveValues}
+              runsByPanel={runsByPanel}
+              showLogs={showLogs}
+            />
           </div>
         </section>
       </div>

@@ -33,6 +33,95 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// ─── Live Brain (customer surface + builder preview) ──────────────
+
+/** One resolved Live Brain panel from
+ *  `GET /api/agents/:slug/conversations/:convId/live-brain`. Only panels
+ *  that currently hold a valid value + pass their filter are returned. */
+export interface LiveBrainPanelData {
+  id: string;
+  title: string;
+  render: 'text' | 'keyvalue' | 'goals' | 'bars' | 'donut';
+  /** Present for `text` render. */
+  text?: string;
+  /** Present for structured renders — shape matches the render type. */
+  values?: {
+    pairs?: { k: string; v: string; tag?: boolean }[];
+    goals?: { label: string; state: string; done: boolean }[];
+    bars?: { label: string; value: number; color?: string }[];
+    donut?: { value: number; label: string; items: { label: string; value: number }[] };
+  };
+  ranAt?: number;
+}
+
+export async function fetchLiveBrain(args: {
+  agentSlug: string;
+  conversationId: number;
+  ownerUserId: string;
+  version?: string;
+}): Promise<{ panels: LiveBrainPanelData[] }> {
+  const q = new URLSearchParams({
+    ownerUserId: args.ownerUserId,
+    version: args.version || 'active',
+  });
+  return http(
+    `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/live-brain?${q.toString()}`,
+  );
+}
+
+/** One stored panel value (raw, keyed by panel id) from the conversation
+ *  brain — used by the builder preview to show real values while authoring. */
+export interface LiveBrainPanelEntry {
+  render: string;
+  text?: string;
+  values?: LiveBrainPanelData['values'];
+  ranAt?: number;
+}
+
+/** Raw panel values for a conversation, keyed by panel id. Pulled from the
+ *  memory endpoint; the builder joins them with its working-copy config. */
+export async function fetchLiveBrainValues(args: {
+  agentSlug: string;
+  conversationId: number;
+  ownerUserId: string;
+}): Promise<Record<string, LiveBrainPanelEntry>> {
+  const q = new URLSearchParams({ ownerUserId: args.ownerUserId });
+  const res = await http<{ panels?: Record<string, LiveBrainPanelEntry> }>(
+    `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/memory?${q.toString()}`,
+  );
+  return res.panels || {};
+}
+
+export interface LiveBrainRun {
+  id: string;
+  instanceId: string;
+  status: string;
+  durationMs: number | null;
+  runData: {
+    label?: string;
+    /** 'text' for a token-resolved text panel; absent for an AI panel. */
+    kind?: string;
+    modelLabel?: { providerName: string; modelName: string } | null;
+    prompt?: string;
+    rawOutput?: string;
+    parsedOutput?: unknown;
+    parseError?: string;
+    hidden?: boolean;
+  } | null;
+  startedAt?: string;
+  endedAt?: string;
+}
+
+/** Recent Live Brain panel runs for a conversation (newest first). */
+export async function fetchLiveBrainRuns(args: {
+  agentSlug: string;
+  conversationId: number;
+}): Promise<{ runs: LiveBrainRun[] }> {
+  return http(
+    `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/live-brain/runs`,
+  );
+}
+
 // ─── Project list (BuilderHomePage) ───────────────────────────────
 
 /**

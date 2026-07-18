@@ -46,6 +46,10 @@ export function bodyOfAgent(agent: AgentDoc): AgentBody {
     enums: agent.enums ?? [],
     cortex: agent.cortex ?? [],
     snippets: agent.snippets ?? [],
+    // Snapshot liveBrain only when it has panels — keeps this in lockstep
+    // with BuilderContext.bodyOfAgent so the save body and the dirty-check
+    // body match. (This is what actually persists panels to the server.)
+    ...(agent.liveBrain?.panels?.length ? { liveBrain: agent.liveBrain } : {}),
   };
 }
 

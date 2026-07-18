@@ -25,6 +25,7 @@ import { Composer } from './components/Composer';
 import { HistoryDrawer } from './components/HistoryDrawer';
 import { SettingsPopover } from './components/SettingsPopover';
 import { SidePanel } from './components/SidePanel';
+import { BrainPanels } from './components/BrainPanels';
 import { ReportModal } from './components/ReportModal';
 import { ConfirmDelete } from './components/ConfirmDelete';
 import { AgentNotReady } from './components/AgentNotReady';
@@ -78,6 +79,11 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
   // login-gated `/:agent/go` (restricted) — customers always get
   // published, never the builder's in-progress active version.
   const chat = useLiveChat({ slug, ownerUserId, version: 'published' });
+
+  // Live Brain — the customer-facing panels for this conversation. They
+  // arrive live on the chat stream (`brain.snapshot`) and hydrate once
+  // when an existing conversation is opened. No refetch, no polling.
+  const brainPanels = chat.livePanels;
 
   // Logo priority: custom brand logo → selected client's logo → none (name mark).
   const clientLogo = clientById(settings.client).logoUrl ?? null;
@@ -292,7 +298,9 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
             placeholderTitle={t.brainTitle}
             placeholderSub={t.brainSub}
             emoji="🧠"
-          />
+          >
+            {brainPanels.length > 0 ? <BrainPanels panels={brainPanels} /> : null}
+          </SidePanel>
         )}
 
         <main className="chat-col">

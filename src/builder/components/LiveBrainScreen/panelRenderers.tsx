@@ -8,9 +8,11 @@
  * by real runtime values instead of the sample values used here.
  */
 
+import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { BrainPanel, PanelRender } from '../../types';
+import { AddonRunCard, type AddonRunSnapshot } from '../AddonRun/AddonRunCard';
 import styles from './LiveBrainScreen.module.css';
 
 // ── Runtime value shapes, one per render type ──────────────────────
@@ -204,26 +206,68 @@ export function PanelBody({ panel, runtime }: { panel: BrainPanel; runtime: Pane
   }
 }
 
-function sourceChip(panel: BrainPanel): string {
-  return panel.source.kind === 'text' ? 'text' : 'addon';
+/** A stored panel value from the live conversation (raw shape). */
+export interface LivePanelValue { render?: string; text?: string; values?: PanelRuntime }
+
+/**
+ * A panel's attached run log. Runs arrive newest-first, so by default we
+ * show only the latest run (the one that produced what's on screen) and
+ * tuck the rest behind a tiny "+N more" toggle — the log stays compact in
+ * the narrow panel column until you want the history.
+ */
+function PanelLogs({ runs }: { runs: AddonRunSnapshot[] }) {
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? runs : runs.slice(0, 1);
+  return (
+    <div className={styles.panelLogs}>
+      {visible.map((r, i) => <AddonRunCard key={`${r.instanceId}_${i}`} run={r} />)}
+      {runs.length > 1 && (
+        <button type="button" className={styles.moreRuns} onClick={() => setShowAll(s => !s)}>
+          {showAll ? 'Show less' : `+${runs.length - 1} more`}
+        </button>
+      )}
+    </div>
+  );
 }
 
-/** The whole customer-facing brain, rendered with sample values. */
-export function LiveBrainPreview({ panels, selectedId }: { panels: BrainPanel[]; selectedId?: string }) {
+/**
+ * The whole customer-facing brain. When `liveValues[panel.id]` exists it
+ * renders the REAL computed value (with a "live" chip); otherwise sample
+ * data. When `showLogs` is on, each panel gets its own run log attached
+ * beneath it — rendered with the SAME AddonRunCard as the chat's addon
+ * runs, so a panel's log is identical to a chat addon's (input prompt,
+ * output, parse error, model, timing). Toggle off for a clean,
+ * customer-like view.
+ */
+export function LiveBrainPreview({ panels, selectedId, liveValues, runsByPanel, showLogs }: {
+  panels: BrainPanel[];
+  selectedId?: string;
+  liveValues?: Record<string, LivePanelValue>;
+  runsByPanel?: Record<string, AddonRunSnapshot[]>;
+  showLogs?: boolean;
+}) {
   if (panels.length === 0) {
     return <div className={styles.previewEmpty}>No panels yet. Add one to see it here.</div>;
   }
   return (
     <div className={styles.previewPanels}>
-      {panels.map((panel) => (
-        <div className={`${styles.previewPanel} ${panel.id === selectedId ? styles.previewPanelSel : ''}`} key={panel.id}>
-          <div className={styles.previewHead}>
-            <span className={styles.previewTitle}>{panel.title || 'Untitled'}</span>
-            <span className={`${styles.previewSourceChip} ${panel.source.kind === 'prompt' ? styles.previewSourceAddon : ''}`}>{sourceChip(panel)}</span>
+      {panels.map((panel) => {
+        const live = liveValues?.[panel.id];
+        const runtime: PanelRuntime = live
+          ? (live.text !== undefined ? { text: live.text } : (live.values || {}))
+          : sampleRuntime(panel.render);
+        const runs = runsByPanel?.[panel.id] ?? [];
+        return (
+          <div className={`${styles.previewPanel} ${panel.id === selectedId ? styles.previewPanelSel : ''}`} key={panel.id}>
+            <div className={styles.previewHead}>
+              <span className={styles.previewTitle}>{panel.title || 'Untitled'}</span>
+              <span className={`${styles.previewSourceChip} ${live ? styles.previewLive : ''}`}>{live ? '● live' : 'sample'}</span>
+            </div>
+            <PanelBody panel={panel} runtime={runtime} />
+            {showLogs && runs.length > 0 && <PanelLogs runs={runs} />}
           </div>
-          <PanelBody panel={panel} runtime={sampleRuntime(panel.render)} />
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

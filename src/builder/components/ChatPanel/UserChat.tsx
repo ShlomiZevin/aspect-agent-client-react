@@ -163,6 +163,7 @@ export function UserChat() {
     setPreviewConversationId,
     refreshConversationMemory,
     applyLocalMemoryWrites,
+    applyLiveBrainSnapshot,
   } = useBuilder();
   const agent = useCurrentAgent();
   const crew = useCurrentCrew();
@@ -438,8 +439,13 @@ export function UserChat() {
         // different brain section (refreshed via the post-`done`
         // memory refetch, not via the optimistic local merge).
         const domainWrites = (e.memoryWrites ?? []).filter(
-          (w): w is { kind?: 'memory' | 'thinking'; domain: string | null; field: string; value: unknown } =>
-            !w || (w as { kind?: string }).kind !== 'summary',
+          (w): w is { kind?: 'memory' | 'thinking'; domain: string | null; field: string; value: unknown } => {
+            const k = (w as { kind?: string } | null)?.kind;
+            // Summary writes live on a different section; Live Brain
+            // panel writes ({ kind: 'panel', panelId, entry }) have no
+            // domain/field and must never reach the memory cache.
+            return !w || (k !== 'summary' && k !== 'panel');
+          },
         );
         updateTurn(turnId, t => upsertRun(t, {
           instanceId:   e.instanceId,
@@ -540,6 +546,12 @@ export function UserChat() {
         // them in the per-turn trail (the trail is still wired only
         // to `dcResolutions`); pass through so the SSE switch stays
         // exhaustive and TS doesn't complain.
+        return;
+      case 'brain.snapshot':
+        // Live Brain panels finished computing for this turn — push the
+        // render-ready list into context so the Live Brain screen updates
+        // live off this stream (no refetch, no Refresh button).
+        applyLiveBrainSnapshot(e.panels);
         return;
       case 'done':
         refreshConversationMemory();

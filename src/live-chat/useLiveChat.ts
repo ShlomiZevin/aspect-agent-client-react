@@ -15,11 +15,13 @@ import {
   deleteConversation as apiDeleteConversation,
   deleteMessage,
   fetchConversationMessages,
+  fetchLiveBrain,
   fetchRunsForMessage,
   listConversations,
   renameConversation as apiRenameConversation,
   type ConversationListItem,
   type ConversationMessage,
+  type LiveBrainPanelData,
 } from '../builder/state/builderApi';
 import { sendRuntimeMessage, type RuntimeEvent } from '../builder/state/runtimeStream';
 
@@ -99,6 +101,10 @@ export interface UseLiveChat {
   conversationId: number | null;
   busy: boolean;
   error: string | null;
+  /** Render-ready Live Brain panels for the open conversation. Pushed
+   *  live off the chat stream (`brain.snapshot`) and hydrated once when
+   *  an existing conversation is opened — no polling, no refetch. */
+  livePanels: LiveBrainPanelData[];
   send: (text: string) => Promise<void>;
   renameConversation: (id: number, name: string) => Promise<void>;
   deleteConversations: (ids: number[]) => Promise<void>;
@@ -123,6 +129,7 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [livePanels, setLivePanels] = useState<LiveBrainPanelData[]>([]);
 
   const updateLastTurn = useCallback((mut: (t: LiveTurn) => LiveTurn) => {
     setTurns(prev => {
@@ -147,6 +154,7 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     setTurns([]);
     setConvList([]);
     setError(null);
+    setLivePanels([]);
     reloadConvList();
   }, [slug, reloadConvList]);
 
@@ -179,6 +187,10 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
           const crewId = e.transition?.to ?? t.crewId;
           const pluginId = t.runMap[e.instanceId] ?? 'unknown';
           if (pluginId === 'talker') return { ...t, crewId }; // talker IS the response, not "thinking"
+          // Live Brain panels compute here (offline lane) but they're not
+          // part of the reply's "thinking process" — they belong to the
+          // brain panel, surfaced live via `brain.snapshot` below.
+          if (pluginId === 'live-brain-panel') return { ...t, crewId };
           const run: ThinkRun = {
             instanceId: e.instanceId,
             pluginId,
@@ -209,6 +221,11 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
           thinkLoaded: true,
           thinkingLabel: null,
         }));
+        return;
+      case 'brain.snapshot':
+        // The whole Live Brain, render-ready, for this turn — swap to it
+        // live (exactly like a chat message). Hidden panels are absent.
+        setLivePanels(e.panels);
         return;
       case 'done':
         updateLastTurn(t => ({ ...t, thinkingLabel: null }));
@@ -266,12 +283,21 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
       const msgs = await fetchConversationMessages({ agentSlug: slug, conversationId: id });
       setTurns(pairMessagesToTurns(msgs));
       setConversationId(id);
+      // Hydrate the Live Brain from stored state — the ONE fetch this
+      // feature needs (past turns didn't stream to this client). New
+      // turns update it live via `brain.snapshot`. Best-effort.
+      try {
+        const res = await fetchLiveBrain({ agentSlug: slug, conversationId: id, ownerUserId, version });
+        setLivePanels(Array.isArray(res?.panels) ? res.panels : []);
+      } catch {
+        setLivePanels([]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load conversation');
     } finally {
       setBusy(false);
     }
-  }, [slug]);
+  }, [slug, ownerUserId, version]);
 
   const refresh = useCallback(async () => {
     await reloadConvList();
@@ -293,6 +319,7 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     if (conversationId !== null && ids.includes(conversationId)) {
       setConversationId(null);
       setTurns([]);
+      setLivePanels([]);
     }
     reloadConvList();
   }, [slug, conversationId, reloadConvList]);
@@ -316,6 +343,7 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     setConversationId(null);
     setTurns([]);
     setError(null);
+    setLivePanels([]);
   }, []);
 
   const loadThinkRuns = useCallback(async (turn: LiveTurn) => {
@@ -373,7 +401,7 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
   const clearError = useCallback(() => setError(null), []);
 
   return {
-    turns, convList, conversationId, busy, error,
+    turns, convList, conversationId, busy, error, livePanels,
     send, newChat, refresh, loadConversation, loadThinkRuns,
     renameConversation, deleteConversations, deleteTurn, deleteFromHere, clearError,
   };

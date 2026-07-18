@@ -165,6 +165,33 @@ kbd { font-family: ui-monospace, Menlo, monospace; font-size: 10px; padding: 1px
 .inspectorHead { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 6px; }
 .inspectorNote { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.5; }
 
+/* preview refresh + live chip + logs toggle */
+.logToggle { margin-inline-start: auto; border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 7px; padding: 4px 9px; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
+.logToggle:hover { color: var(--accent); border-color: var(--accent); }
+.logToggleOn { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); background: var(--accent-soft); }
+.previewHint { margin: 0 0 10px; font-size: 11.5px; color: var(--muted); }
+.panelLogs { margin-top: 10px; padding-top: 9px; border-top: 1px dashed var(--line); display: flex; flex-direction: column; gap: 6px; }
+.moreRuns { align-self: flex-start; margin-top: 1px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 11px; font-weight: 600; padding: 2px 2px; cursor: pointer; }
+.moreRuns:hover { color: var(--accent); text-decoration: underline; }
+.previewRefresh { border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 7px; width: 26px; height: 24px; font-size: 13px; cursor: pointer; line-height: 1; }
+.previewRefresh:hover { color: var(--accent); border-color: var(--accent); }
+.previewLive { color: #2fa36b !important; border-color: color-mix(in srgb, #2fa36b 30%, var(--line)) !important; background: color-mix(in srgb, #2fa36b 8%, transparent) !important; }
+
+/* run inspector */
+.runList { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+.runCard { border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); overflow: hidden; }
+.runHead { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 8px 10px; background: none; border: 0; cursor: pointer; font: inherit; }
+.runDot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.runDotOk { background: #2fa36b; }
+.runDotBad { background: #d98a2b; }
+.runLabel { font-size: 12px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.runMeta { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; margin-inline-start: auto; }
+.runCaret { color: var(--muted); font-size: 10px; flex: none; }
+.runBody { padding: 4px 10px 10px; border-top: 1px solid var(--line); }
+.runSub { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 8px 0 4px; }
+.runPre { margin: 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; line-height: 1.5; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 7px; padding: 8px 9px; white-space: pre-wrap; overflow-wrap: break-word; max-height: 180px; overflow-y: auto; }
+.runErr { font-size: 11px; color: #b45309; margin-top: 6px; }
+
 /* ── renderer bodies ── */
 .bodyText { font-size: 13.5px; color: var(--ink); line-height: 1.62; }
 /* One consistent vertical rhythm: 8px between blocks, list items a
@@ -242,7 +269,12 @@ kbd { font-family: ui-monospace, Menlo, monospace; font-size: 10px; padding: 1px
 .returnPill:hover .returnPillCta { text-decoration: underline; }
 
 /* ── preview at the width it has on the client, scrolls when tall ── */
-.deviceFrame { width: 340px; max-width: 100%; max-height: calc(100vh - 175px); overflow-y: auto; }
+.deviceFrame { width: 340px; max-width: 100%; max-height: calc(100vh - 175px); overflow-y: auto; transition: width .18s ease; }
+/* The panel must read as a real Live Brain panel first — keep the frame
+   near client width even with logs on; just a small bump so the run
+   cards aren't cramped. The AddonRunCards wrap/scroll their own long
+   content, so they don't need a wide frame. */
+.deviceFrameWide { width: 380px; }
 .deviceFrame::-webkit-scrollbar { width: 8px; }
 .deviceFrame::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
 

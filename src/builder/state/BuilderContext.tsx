@@ -19,7 +19,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useProjectSync, type ProjectSyncApi } from './useProjectSync';
-import { fetchProject, writeApplyLog } from './builderApi';
+import { fetchProject, writeApplyLog, type LiveBrainPanelData } from './builderApi';
 import type {
   AddonContext,
   AddonInstance,
@@ -606,6 +606,16 @@ interface BuilderState {
   previewConversationId: number | null;
   setPreviewConversationId: (id: number | null) => void;
 
+  // Live Brain — the render-ready panel list for the preview
+  // conversation, pushed live off the chat stream. UserChat calls
+  // `applyLiveBrainSnapshot` on each `brain.snapshot` SSE event; the
+  // Live Brain screen reads `liveBrainSnapshot` to update its panels
+  // the instant they compute (no refetch). `seq` bumps every push so
+  // consumers can react even when the panel array is deep-equal. Reset
+  // to null whenever the preview conversation changes.
+  liveBrainSnapshot: { panels: LiveBrainPanelData[]; seq: number } | null;
+  applyLiveBrainSnapshot: (panels: LiveBrainPanelData[]) => void;
+
   // Live brain state for the preview conversation. Two parallel
   // sections: `memory` (facts the brain remembers) and `thinking`
   // (the current strategic plan). FieldsPanel renders memory values
@@ -755,6 +765,17 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   // surfaced extractor values.
   const previewConvIdRef = useRef<number | null>(previewConversationId);
   previewConvIdRef.current = previewConversationId;
+
+  // Live Brain snapshot — the latest render-ready panel list pushed by
+  // the chat stream (see `applyLiveBrainSnapshot`). Cleared when the
+  // preview conversation changes so a newly-opened chat doesn't briefly
+  // show the previous one's panels before its own first snapshot.
+  const [liveBrainSnapshot, setLiveBrainSnapshot] =
+    useState<{ panels: LiveBrainPanelData[]; seq: number } | null>(null);
+  const applyLiveBrainSnapshot = useCallback((panels: LiveBrainPanelData[]) => {
+    setLiveBrainSnapshot(prev => ({ panels, seq: (prev?.seq ?? 0) + 1 }));
+  }, []);
+  useEffect(() => { setLiveBrainSnapshot(null); }, [previewConversationId]);
 
   // Live brain state for the preview conversation. The chat panel
   // calls refreshConversationMemory after each turn, and the
@@ -2351,6 +2372,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       applyAlfredBodies,
       previewConversationId,
       setPreviewConversationId,
+      liveBrainSnapshot,
+      applyLiveBrainSnapshot,
       conversationMemory,
       refreshConversationMemory,
       updateConversationMemoryField,
@@ -2417,6 +2440,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       pendingAlfredApply,
       applyAlfredBodies,
       previewConversationId,
+      liveBrainSnapshot,
+      applyLiveBrainSnapshot,
       conversationMemory,
       refreshConversationMemory,
       updateConversationMemoryField,
