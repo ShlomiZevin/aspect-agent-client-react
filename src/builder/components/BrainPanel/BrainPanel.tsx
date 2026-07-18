@@ -22,7 +22,7 @@
  * turn. Activity-detection (the unseen dot) lives in BrainContext.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
 import { useBrain } from '../../state/BrainContext';
 import {
@@ -210,13 +210,22 @@ function MemorySection({
 }: { groups: BrainMemoryGroup[]; staleRows: BrainStaleRow[] }) {
   const totalDeclared = groups.reduce((n, g) => n + g.rows.length, 0);
   const isEmpty = totalDeclared === 0 && staleRows.length === 0;
-  const { doc, updateConversationMemoryField } = useBuilder();
+  const {
+    doc, updateConversationMemoryField, previewConversationId,
+    pendingSeeds, setPendingSeed, clearPendingSeed,
+  } = useBuilder();
   const agent = doc.agents[0];
   const enumsById = useMemo(() => {
     const map = new Map<string, EnumTypeDef>();
     for (const e of agent?.enums ?? []) map.set(e.id, e);
     return map;
   }, [agent?.enums]);
+
+  // Starting-value staging (#765) — active while NO conversation
+  // exists. One inline editor open at a time (keyed by field name).
+  const noConversation = previewConversationId === null;
+  const [editingSeedFor, setEditingSeedFor] = useState<string | null>(null);
+  const [seedDraft, setSeedDraft] = useState('');
 
   const writePinned = async (
     field: FieldDef,
@@ -294,10 +303,17 @@ function MemorySection({
                       return (
                         <select
                           value={selected}
+                          // Before the first message the pinned value is
+                          // the config default, full stop — the dropdown
+                          // is locked (per Shlomi); swapping is a
+                          // mid-conversation action.
+                          disabled={noConversation}
                           onChange={e => writePinned(r.fieldDef!, e.target.value)}
-                          title={showingDefault
-                            ? `Default value (will be seeded into memory on the first turn). Pick another to override before sending.`
-                            : undefined}
+                          title={noConversation
+                            ? 'Pinned default — swappable once the conversation starts.'
+                            : showingDefault
+                              ? `Default value (will be seeded into memory on the first turn). Pick another to override before sending.`
+                              : undefined}
                           style={{
                             fontFamily: 'inherit',
                             fontSize:   11.5,
@@ -307,6 +323,8 @@ function MemorySection({
                             background: '#fff',
                             color:      showingDefault ? '#6b7280' : '#111827',
                             fontStyle:  showingDefault ? 'italic' : 'normal',
+                            opacity:    noConversation ? 0.6 : 1,
+                            cursor:     noConversation ? 'not-allowed' : 'pointer',
                           }}
                         >
                           {!selected && <option value="">— pick —</option>}
@@ -325,7 +343,130 @@ function MemorySection({
                       <span className={styles.memoryRowValue} title={formatBrainValue(r.value)}>
                         {formatBrainValue(r.value)}
                       </span>
-                    ) : (
+                    ) : noConversation && r.fieldDef ? (() => {
+                      // Starting-value staging (#765): before the first
+                      // message, any empty field can be given the value
+                      // the next chat is BORN with.
+                      const fd = r.fieldDef;
+                      const seed = pendingSeeds[r.name];
+                      const en = fd.type === 'enum' && fd.enumType ? enumsById.get(fd.enumType) : undefined;
+                      const values = (en?.values ?? [])
+                        .map(v => v?.value)
+                        .filter((v): v is string => typeof v === 'string' && v.length > 0);
+                      const commitText = () => {
+                        setEditingSeedFor(null);
+                        const raw = seedDraft.trim();
+                        if (!raw) return;
+                        let v: unknown = raw;
+                        if (fd.type === 'int') {
+                          const n = Number(raw);
+                          v = Number.isFinite(n) ? n : raw;
+                        } else if (fd.type === 'boolean') {
+                          v = /^(true|1|yes)$/i.test(raw);
+                        }
+                        setPendingSeed(fd.name, v, fd.domain);
+                      };
+                      const inputStyle: React.CSSProperties = {
+                        fontFamily: 'inherit', fontSize: 11.5, padding: '2px 6px',
+                        border: '1px solid #6366f1', borderRadius: 4,
+                        background: '#fff', maxWidth: 150,
+                      };
+                      if (editingSeedFor === r.name) {
+                        if (fd.type === 'enum' && values.length > 0) {
+                          return (
+                            <select
+                              style={inputStyle}
+                              autoFocus
+                              value=""
+                              onChange={e => {
+                                if (e.target.value) setPendingSeed(fd.name, e.target.value, fd.domain);
+                                setEditingSeedFor(null);
+                              }}
+                              onBlur={() => setEditingSeedFor(null)}
+                            >
+                              <option value="">— pick —</option>
+                              {values.map(v => <option key={v} value={v}>{v}</option>)}
+                            </select>
+                          );
+                        }
+                        if (fd.type === 'boolean') {
+                          return (
+                            <select
+                              style={inputStyle}
+                              autoFocus
+                              value=""
+                              onChange={e => {
+                                if (e.target.value) setPendingSeed(fd.name, e.target.value === 'true', fd.domain);
+                                setEditingSeedFor(null);
+                              }}
+                              onBlur={() => setEditingSeedFor(null)}
+                            >
+                              <option value="">— pick —</option>
+                              <option value="true">true</option>
+                              <option value="false">false</option>
+                            </select>
+                          );
+                        }
+                        return (
+                          <input
+                            style={inputStyle}
+                            autoFocus
+                            value={seedDraft}
+                            placeholder="starting value…"
+                            onChange={e => setSeedDraft(e.target.value)}
+                            onBlur={commitText}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') commitText();
+                              else if (e.key === 'Escape') setEditingSeedFor(null);
+                            }}
+                          />
+                        );
+                      }
+                      if (seed !== undefined) {
+                        return (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <button
+                              type="button"
+                              onClick={() => { setSeedDraft(String(seed.value ?? '')); setEditingSeedFor(r.name); }}
+                              title="The next chat starts with this value — click to change"
+                              style={{
+                                fontFamily: 'inherit', fontSize: 10.5, fontWeight: 600,
+                                padding: '1px 8px', borderRadius: 999, cursor: 'pointer',
+                                color: '#4f46e5', background: 'rgba(99,102,241,0.06)',
+                                border: '1px dashed rgba(99,102,241,0.45)',
+                                maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                              }}
+                            >
+                              ▶ starts: {formatBrainValue(seed.value)}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => clearPendingSeed(r.name)}
+                              title="Remove the starting value"
+                              style={{
+                                border: 0, background: 'transparent', cursor: 'pointer',
+                                color: '#9ca3af', fontSize: 11, padding: '0 3px',
+                              }}
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        );
+                      }
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => { setSeedDraft(''); setEditingSeedFor(r.name); }}
+                          title="Set a starting value — the next chat begins with it already filled"
+                          style={{
+                            border: 0, background: 'transparent', cursor: 'pointer',
+                            color: '#c7cbd1', fontSize: 11, padding: '0 4px', fontFamily: 'inherit',
+                          }}
+                        >
+                          — ▶
+                        </button>
+                      );
+                    })() : (
                       <span className={styles.memoryRowValueEmpty}>—</span>
                     )}
                   </div>

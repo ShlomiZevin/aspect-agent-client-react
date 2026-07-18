@@ -485,15 +485,28 @@ export async function deleteCrewVersionApi(crewId: ID, versionId: ID): Promise<v
 
 // ─── Runtime conversations ────────────────────────────────────────
 
+export interface SeedMemoryEntry {
+  field: string;
+  value: unknown;
+  domain?: string;
+}
+
 export async function createConversation(args: {
   agentSlug: string;
   ownerUserId: string;
+  /** Starting field values the conversation is born with — written by
+   *  the server as part of creation, so the very first turn already
+   *  sees them (builder "enter data before the chat starts", #765). */
+  seedMemory?: SeedMemoryEntry[];
 }): Promise<{ conversationId: number }> {
   return http<{ conversationId: number }>(
     `/api/agents/${args.agentSlug}/conversations`,
     {
       method: 'POST',
-      body: JSON.stringify({ ownerUserId: args.ownerUserId }),
+      body: JSON.stringify({
+        ownerUserId: args.ownerUserId,
+        ...(args.seedMemory && args.seedMemory.length > 0 ? { seedMemory: args.seedMemory } : {}),
+      }),
     },
   );
 }

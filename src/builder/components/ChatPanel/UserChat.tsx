@@ -164,6 +164,7 @@ export function UserChat() {
     refreshConversationMemory,
     applyLocalMemoryWrites,
     applyLiveBrainSnapshot,
+    pendingSeeds,
   } = useBuilder();
   const agent = useCurrentAgent();
   const crew = useCurrentCrew();
@@ -595,7 +596,15 @@ export function UserChat() {
     try {
       let convId = conversationId;
       if (convId === null) {
-        const created = await createConversation({ agentSlug: slug, ownerUserId });
+        // Starting values (#765): the new conversation is born with the
+        // staged Memory-panel values (server writes them atomically as
+        // part of creation, so the first turn already sees them).
+        const seedMemory = Object.entries(pendingSeeds).map(([field, s]) => ({
+          field,
+          value: s.value,
+          domain: s.domain,
+        }));
+        const created = await createConversation({ agentSlug: slug, ownerUserId, seedMemory });
         convId = created.conversationId;
         setConversationId(convId);
       }

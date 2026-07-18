@@ -165,14 +165,21 @@ export function FieldsPanel({ agentId, crewId }: Props) {
     return (agent?.crews.length ?? 0) > 1;
   }, [doc, agentId]);
 
-  // Enum id → {name, owner} lookup so each FieldRow can label an
-  // enum-typed field's pill (`enum · <name>`, or `choice · <name>` for
-  // a field-owned quick list) without walking doc itself. Computed once
+  // Enum id → {name, owner, values} lookup so each FieldRow can label
+  // an enum-typed field's pill (`enum · <name>`, or `choice · <name>`
+  // for a field-owned quick list) and offer the value list in the
+  // starting-value editor — without walking doc itself. Computed once
   // at the panel level — list is short and stable per render.
   const enumNameById = useMemo(() => {
     const agent = doc.agents.find(a => a.id === agentId);
-    const m = new Map<string, { name: string; ownedBy?: ID }>();
-    for (const en of agent?.enums ?? []) m.set(en.id, { name: en.name, ownedBy: en.ownedByFieldId });
+    const m = new Map<string, { name: string; ownedBy?: ID; values: string[] }>();
+    for (const en of agent?.enums ?? []) {
+      m.set(en.id, {
+        name: en.name,
+        ownedBy: en.ownedByFieldId,
+        values: (en.values ?? []).map(v => v?.value).filter((v): v is string => typeof v === 'string' && v.length > 0),
+      });
+    }
     return m;
   }, [doc, agentId]);
 
@@ -361,7 +368,7 @@ interface DomainGroupProps {
   onDelete: (cf: CrewField) => void;
   liveValueByField: Record<string, unknown>;
   showCrewChip: boolean;
-  enumNameById: Map<string, { name: string; ownedBy?: ID }>;
+  enumNameById: Map<string, { name: string; ownedBy?: ID; values: string[] }>;
   mentions: Map<string, FieldMentionRef[]>;
 }
 
@@ -405,7 +412,7 @@ interface UngroupedProps {
   onDelete: (cf: CrewField) => void;
   liveValueByField: Record<string, unknown>;
   showCrewChip: boolean;
-  enumNameById: Map<string, { name: string; ownedBy?: ID }>;
+  enumNameById: Map<string, { name: string; ownedBy?: ID; values: string[] }>;
   mentions: Map<string, FieldMentionRef[]>;
 }
 
@@ -436,17 +443,47 @@ interface FieldRowProps {
   onDelete: (cf: CrewField) => void;
   liveValue?: unknown;
   showCrewChip: boolean;
-  enumNameById: Map<string, { name: string; ownedBy?: ID }>;
+  enumNameById: Map<string, { name: string; ownedBy?: ID; values: string[] }>;
   mentions: Map<string, FieldMentionRef[]>;
 }
 
 function FieldRow({ cf, onPick, onDelete, liveValue, showCrewChip, enumNameById, mentions }: FieldRowProps) {
-  const { updateConversationMemoryField, previewConversationId } = useBuilder();
+  const {
+    updateConversationMemoryField, previewConversationId,
+    pendingSeeds, setPendingSeed, clearPendingSeed,
+  } = useBuilder();
   const src = SOURCE_LABEL[cf.field.source];
   const hasValue = liveValue !== undefined;
   const canClear = hasValue && previewConversationId !== null;
   const isCrewScoped = cf.scope === 'crew';
   const extractorCount = cf.extractors.length;
+
+  // Starting-value staging (#765): editable only while NO preview
+  // conversation is active — these are the values the NEXT chat is
+  // born with (passed as seedMemory on conversation create). Pinned
+  // fields are excluded: their pre-chat value IS the config default
+  // (locked until the conversation starts).
+  const canSeed = previewConversationId === null && cf.field.source !== 'pinned';
+  const seed = canSeed ? pendingSeeds[cf.field.name] : undefined;
+  const [editingSeed, setEditingSeed] = useState(false);
+  const [seedDraft, setSeedDraft] = useState('');
+  const enumValues = cf.field.type === 'enum' && cf.field.enumType
+    ? (enumNameById.get(cf.field.enumType)?.values ?? [])
+    : [];
+
+  const commitSeedText = () => {
+    setEditingSeed(false);
+    const raw = seedDraft.trim();
+    if (!raw) return;
+    let v: unknown = raw;
+    if (cf.field.type === 'int') {
+      const n = Number(raw);
+      v = Number.isFinite(n) ? n : raw;
+    } else if (cf.field.type === 'boolean') {
+      v = /^(true|1|yes)$/i.test(raw);
+    }
+    setPendingSeed(cf.field.name, v, cf.field.domain);
+  };
 
   // Heuristic writers: addons whose prompt references this field via
   // {{fieldname:…}} but that don't already extract it structurally.
@@ -484,6 +521,93 @@ function FieldRow({ cf, onPick, onDelete, liveValue, showCrewChip, enumNameById,
             title="Clear current value"
           >
             ✕
+          </button>
+        )}
+        {/* Starting value (#765): staged chip / inline editor while no
+            conversation is active. The next chat is born with these. */}
+        {canSeed && editingSeed && (
+          <span onClick={e => e.stopPropagation()}>
+            {cf.field.type === 'enum' && enumValues.length > 0 ? (
+              <select
+                className={styles.seedInput}
+                autoFocus
+                value=""
+                onChange={e => {
+                  if (e.target.value) setPendingSeed(cf.field.name, e.target.value, cf.field.domain);
+                  setEditingSeed(false);
+                }}
+                onBlur={() => setEditingSeed(false)}
+              >
+                <option value="">pick…</option>
+                {enumValues.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+            ) : cf.field.type === 'boolean' ? (
+              <select
+                className={styles.seedInput}
+                autoFocus
+                value=""
+                onChange={e => {
+                  if (e.target.value) setPendingSeed(cf.field.name, e.target.value === 'true', cf.field.domain);
+                  setEditingSeed(false);
+                }}
+                onBlur={() => setEditingSeed(false)}
+              >
+                <option value="">pick…</option>
+                <option value="true">true</option>
+                <option value="false">false</option>
+              </select>
+            ) : (
+              <input
+                className={styles.seedInput}
+                autoFocus
+                value={seedDraft}
+                placeholder="starting value…"
+                onChange={e => setSeedDraft(e.target.value)}
+                onBlur={commitSeedText}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') commitSeedText();
+                  else if (e.key === 'Escape') setEditingSeed(false);
+                }}
+              />
+            )}
+          </span>
+        )}
+        {canSeed && !editingSeed && seed !== undefined && (
+          <>
+            <button
+              type="button"
+              className={styles.seedChip}
+              onClick={e => {
+                e.stopPropagation();
+                setSeedDraft(String(seed.value ?? ''));
+                setEditingSeed(true);
+              }}
+              title="The next chat starts with this value — click to change"
+            >
+              ▶ starts: {formatLiveValue(seed.value)}
+            </button>
+            <button
+              type="button"
+              className={styles.clearBtn}
+              onClick={e => { e.stopPropagation(); clearPendingSeed(cf.field.name); }}
+              title="Remove the starting value"
+            >
+              ✕
+            </button>
+          </>
+        )}
+        {canSeed && !editingSeed && seed === undefined && (
+          <button
+            type="button"
+            className={styles.seedBtn}
+            onClick={e => {
+              e.stopPropagation();
+              setSeedDraft('');
+              setEditingSeed(true);
+            }}
+            title="Set a starting value — the next chat begins with it already filled"
+          >
+            ▶
           </button>
         )}
         <button

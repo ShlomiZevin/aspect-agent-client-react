@@ -606,6 +606,15 @@ interface BuilderState {
   previewConversationId: number | null;
   setPreviewConversationId: (id: number | null) => void;
 
+  // Staged "starting values" (#765): field values the NEXT preview
+  // conversation is born with. Edited in the Memory panel while no
+  // conversation is active; UserChat passes them as `seedMemory` on
+  // conversation create. Kept after use so replaying the same test
+  // scenario is zero-effort (persist-until-changed).
+  pendingSeeds: Record<string, { value: unknown; domain?: string }>;
+  setPendingSeed: (field: string, value: unknown, domain?: string) => void;
+  clearPendingSeed: (field: string) => void;
+
   // Live Brain — the render-ready panel list for the preview
   // conversation, pushed live off the chat stream. UserChat calls
   // `applyLiveBrainSnapshot` on each `brain.snapshot` SSE event; the
@@ -754,6 +763,21 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   // can fetch the real transcript instead of showing a placeholder.
   const [previewConversationId, setPreviewConversationId] = useState<number | null>(null);
   useEffect(() => { setPreviewConversationId(null); }, [agentSlug]);
+
+  // Staged starting values for the NEXT preview conversation (#765).
+  const [pendingSeeds, setPendingSeeds] = useState<Record<string, { value: unknown; domain?: string }>>({});
+  useEffect(() => { setPendingSeeds({}); }, [agentSlug]);
+  const setPendingSeed = useCallback((field: string, value: unknown, domain?: string) => {
+    setPendingSeeds(prev => ({ ...prev, [field]: { value, domain } }));
+  }, []);
+  const clearPendingSeed = useCallback((field: string) => {
+    setPendingSeeds(prev => {
+      if (!(field in prev)) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }, []);
 
   // Mirror in a ref so `refreshConversationMemory` always sees the
   // current id, not the one that was current at the render that
@@ -2372,6 +2396,9 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       applyAlfredBodies,
       previewConversationId,
       setPreviewConversationId,
+      pendingSeeds,
+      setPendingSeed,
+      clearPendingSeed,
       liveBrainSnapshot,
       applyLiveBrainSnapshot,
       conversationMemory,
@@ -2440,6 +2467,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       pendingAlfredApply,
       applyAlfredBodies,
       previewConversationId,
+      pendingSeeds,
       liveBrainSnapshot,
       applyLiveBrainSnapshot,
       conversationMemory,

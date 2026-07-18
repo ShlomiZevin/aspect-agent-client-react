@@ -36,7 +36,9 @@ type TriggerKind = OfflineTrigger['kind'];
  *  OfflineTrigger so the persisted state is always valid. */
 function defaultsForKind(kind: TriggerKind): OfflineTrigger {
   switch (kind) {
-    case 'every_n_messages': return { kind: 'every_n_messages', n: 8 };
+    // Default n = 1 — "react to every message" is the expected fresh
+    // behaviour (task #763); widening the window is the deliberate act.
+    case 'every_n_messages': return { kind: 'every_n_messages', n: 1 };
     case 'on_transition':    return { kind: 'on_transition' };
   }
 }
