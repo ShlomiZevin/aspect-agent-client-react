@@ -116,7 +116,13 @@ export function HyperToyChatWidgetPage() {
                   - crewHeader: hides the "Hyper Toy" + online-dot pill,
                     redundant since the widget's own header shows "Data Chat".
                   - _bot_: assistant reply bubble recolored to the design's
-                    light-lavender card (#F8F5FC) instead of plain white.
+                    light-lavender card (#F8F5FC) instead of plain white — but
+                    the descendant text-color override only reaches PLAIN
+                    prose, not table headers or the "view/download table"
+                    button, both of which keep their own purple background
+                    from the real chat's styles and need white text for
+                    contrast (the blanket `*` selector was overriding those
+                    too, leaving near-black text on a purple background).
                   - _crewLabel_: hides the "HYPER TOY" text above replies,
                     not present in the design.
                   - _bar_dz658_ (DataStatusBar's own hashed class, exact
@@ -131,6 +137,14 @@ export function HyperToyChatWidgetPage() {
                 [class*="crewHeader"] { display: none !important; }
                 [class*="_bot_"] { background: #F8F5FC !important; border: none !important; border-radius: 4px 14px 14px 14px !important; }
                 [class*="_bot_"], [class*="_bot_"] * { color: #241A38 !important; }
+                /* ...except anything that carries its own colored
+                   background (table headers, the download/view-table
+                   button) — those still need white text for contrast, the
+                   line above was clobbering them too. */
+                [class*="_bot_"] th, [class*="_bot_"] th *,
+                [class*="_bot_"] button, [class*="_bot_"] button * {
+                  color: #fff !important;
+                }
                 [class*="_crewLabel_"] { display: none !important; }
                 [class^="_bar_dz658_"] { display: none !important; }
               `}</style>

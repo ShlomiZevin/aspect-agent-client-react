@@ -61,7 +61,7 @@ export function InsightsList({ datasetId, onOpenInsight, onAskInChat }: Props) {
         <JobStrip datasetId={datasetId} onOpenInsight={onOpenInsight} />
       </div>
 
-      <TrackedStrip datasetId={datasetId} tracked={tracked} loading={trackedLoading} error={trackedError} onChanged={refetchTracked} />
+      <TrackedStrip datasetId={datasetId} tracked={tracked} loading={trackedLoading} error={trackedError} onChanged={refetchTracked} onOpenInsight={onOpenInsight} />
 
       <div className={styles.section}>
         <div className={styles.head}>

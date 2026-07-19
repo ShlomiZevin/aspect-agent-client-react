@@ -12,9 +12,10 @@ interface Props {
   error: string | null;
   /** Refetches the tracked list — called after Manage Tracking closes, so reorders/untracks show up here too. */
   onChanged: () => void;
+  onOpenInsight: (id: string) => void;
 }
 
-export function TrackedStrip({ datasetId, tracked, loading, error, onChanged }: Props) {
+export function TrackedStrip({ datasetId, tracked, loading, error, onChanged, onOpenInsight }: Props) {
   const [managing, setManaging] = useState(false);
   return (
     <div className={styles.wrap}>
@@ -50,7 +51,7 @@ export function TrackedStrip({ datasetId, tracked, loading, error, onChanged }: 
       {!loading && !error && tracked && tracked.length > 0 && (
         <div className={styles.grid}>
           {tracked.map(t => (
-            <div key={t.id} className={styles.item}>
+            <div key={t.id} className={styles.item} onClick={() => onOpenInsight(t.id)} role="button" tabIndex={0}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="#C026D3" className={styles.flag}><path d="M6 3.5h12V21l-6-4.6L6 21z" /></svg>
               <div className={styles.body}>
                 <div className={styles.label}>{t.label}</div>

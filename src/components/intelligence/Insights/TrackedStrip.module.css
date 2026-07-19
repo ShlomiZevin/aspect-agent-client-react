@@ -25,7 +25,10 @@
   display: flex;
   align-items: center;
   gap: 14px;
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease;
 }
+.item:hover { transform: translateY(-2px); box-shadow: var(--ai-shadow); }
 .flag { flex-shrink: 0; }
 .body { flex: 1; min-width: 0; }
 .label { font-size: 13.5px; font-weight: 600; color: var(--ai-text); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
@@ -43,7 +46,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  cursor: default;
 }
 .up { color: var(--ai-success); }
 .down { color: var(--ai-negative); }
