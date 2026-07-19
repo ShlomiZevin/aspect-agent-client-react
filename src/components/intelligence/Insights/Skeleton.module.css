@@ -1,0 +1,8 @@
+.shimmer {
+  background: var(--ai-accent-soft);
+  animation: ai-pulse 1.1s ease-in-out infinite;
+}
+@keyframes ai-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}

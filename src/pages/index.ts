@@ -34,6 +34,7 @@ export { Zer4UPage } from './Zer4UPage';
 export { NewDeliPage } from './NewDeliPage';
 export { TheStockPage } from './TheStockPage';
 export { HyperToyPage } from './HyperToyPage';
+export { HyperToyChatWidgetPage } from './HyperToyChatWidgetPage';
 export { ZolStockPage } from './ZolStockPage';
 export { TevaNaotPage } from './TevaNaotPage';
 export { CrewBuilderMockupPage } from './CrewBuilderMockupPage';

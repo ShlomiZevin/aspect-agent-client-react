@@ -1,0 +1,26 @@
+.card {
+  background: var(--ai-panel-dark);
+  border-radius: 16px;
+  padding: 24px 26px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.title { font: 700 16px var(--ai-font-head); margin-bottom: 16px; }
+
+.top { display: flex; align-items: center; gap: 18px; }
+.gaugeWrap { position: relative; width: 110px; height: 110px; flex-shrink: 0; }
+.gaugeText { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.gaugeScore { font: 800 26px var(--ai-font-head); }
+.gaugeLabel { font-size: 9.5px; color: #C7BBDF; letter-spacing: .08em; }
+.basis { font-size: 12.5px; color: #C7BBDF; line-height: 1.6; }
+.basis b { color: #fff; }
+
+.checks { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; font-size: 12.5px; line-height: 1.5; }
+.check { display: flex; gap: 9px; }
+.checkPos { color: #7CF0BD; }
+.checkNeg { color: #F0ABFC; }
+.checkText { color: #D8CCEF; }
+
+.footer { margin-top: auto; padding-top: 18px; font-size: 11.5px; color: #A79BC4; }

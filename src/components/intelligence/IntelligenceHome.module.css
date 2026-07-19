@@ -1,0 +1,130 @@
+/* Same design tokens as IntelligenceShell.module.css — this page is the top
+ * of the same product, so it must look like it, not like a separate mini-app. */
+.shell {
+  --ai-bg: #EFEAF5;
+  --ai-shell-bg: #F8F5FC;
+  --ai-surface: #ffffff;
+  --ai-border: #EAE3F3;
+  --ai-border-soft: #F3EDFA;
+  --ai-text: #241A38;
+  --ai-text-dim: #6E6584;
+  --ai-text-mute: #8B80A0;
+  --ai-accent: #7C3AED;
+  --ai-accent-soft: #F1EAFA;
+  --ai-grad: linear-gradient(135deg, #7C3AED, #C026D3);
+  --ai-grad-mark: linear-gradient(135deg, #8B5CF6, #D946EF);
+  --ai-shadow: 0 18px 44px -16px rgba(30, 34, 70, 0.16);
+  --ai-font-head: 'Schibsted Grotesk', system-ui, sans-serif;
+  --ai-font-body: 'Public Sans', system-ui, sans-serif;
+
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ai-bg);
+  color: var(--ai-text);
+  font-family: var(--ai-font-body);
+  /* html/body/#root are `overflow: hidden` globally — see the matching note in IntelligenceShell.module.css. */
+  overflow: hidden;
+}
+
+.shell[data-mode='dark'] {
+  --ai-bg: #100b1c;
+  --ai-shell-bg: #17111f;
+  --ai-surface: #1e1730;
+  --ai-border: rgba(255, 255, 255, 0.09);
+  --ai-border-soft: rgba(255, 255, 255, 0.05);
+  --ai-text: #EDE7F6;
+  --ai-text-dim: #B9AECB;
+  --ai-text-mute: #8B80A0;
+  --ai-accent-soft: rgba(139, 92, 246, 0.16);
+  --ai-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.55);
+}
+
+/* ── header — mirrors IntelligenceShell's header exactly ────────────── */
+.header { background: var(--ai-surface); border-bottom: 1px solid var(--ai-border); flex-shrink: 0; }
+.headerRow { display: flex; align-items: center; gap: 26px; padding: 0 32px; height: 64px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.mark {
+  width: 36px; height: 36px; border-radius: 10px; background: var(--ai-grad-mark); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0;
+}
+.brandText { line-height: 1.15; }
+.brandName { font: 700 15px var(--ai-font-head); color: var(--ai-text); }
+.brandSub { font-size: 11px; color: var(--ai-text-mute); }
+
+.nav { display: flex; gap: 4px; font-size: 13.5px; font-weight: 600; }
+.navBtn { padding: 8px 14px; border-radius: 8px; color: var(--ai-text-dim); font: 600 13.5px var(--ai-font-body); }
+.navActive { background: var(--ai-accent-soft); color: var(--ai-accent); }
+
+.headerRight { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.iconBtn {
+  width: 38px; height: 38px; border: 1px solid var(--ai-border); border-radius: 10px;
+  background: var(--ai-shell-bg); color: var(--ai-text-dim);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.iconBtn:hover { color: var(--ai-text); }
+
+/* ── body ─────────────────────────────────────────────────────────── */
+.body { flex: 1; min-height: 0; overflow-y: auto; background: var(--ai-shell-bg); }
+
+.hero { text-align: center; padding: 64px 24px 12px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.heroMark {
+  width: 52px; height: 52px; border-radius: 15px; background: var(--ai-grad-mark); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+  box-shadow: 0 10px 30px rgba(124, 58, 237, .28);
+}
+.title { font: 700 32px var(--ai-font-head); color: var(--ai-text); max-width: 640px; line-height: 1.25; }
+.subtitle { font-size: 15px; color: var(--ai-text-mute); max-width: 480px; line-height: 1.55; }
+
+.grid {
+  max-width: 980px;
+  margin: 40px auto 60px;
+  padding: 0 32px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background: var(--ai-surface);
+  border: 1px solid var(--ai-border);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  transition: transform .15s, box-shadow .15s;
+}
+.card:hover { transform: translateY(-3px); box-shadow: var(--ai-shadow); }
+
+.cardTop { height: 5px; width: 100%; flex-shrink: 0; }
+
+.cardBody { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 22px 22px 18px; }
+.cardMark {
+  width: 46px; height: 46px; border-radius: 13px; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font: 800 14px var(--ai-font-head); flex-shrink: 0;
+}
+.cardName { display: block; font: 700 16px var(--ai-font-head); color: var(--ai-text); }
+.cardDesc { display: block; font-size: 13px; color: var(--ai-text-mute); line-height: 1.55; }
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--ai-border-soft);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ai-accent);
+}
+.arrow { transition: transform .15s; }
+.card:hover .arrow { transform: translateX(3px); }
+
+.state { text-align: center; padding: 60px; color: var(--ai-text-mute); }
+
+@media (max-width: 700px) {
+  .grid { grid-template-columns: 1fr; }
+  .headerRow { padding: 12px 16px; height: auto; flex-wrap: wrap; gap: 12px; }
+}

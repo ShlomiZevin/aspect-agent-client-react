@@ -1,0 +1,108 @@
+.badge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 40px;
+  padding: 0 13px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-sizing: border-box;
+  /* Tinted purple, not the plain white card surface — a running job badge
+     is a distinct "live" state, not just another neutral chip. */
+  border: 1px solid #E2D6F5;
+  background: #F8F5FC;
+  color: var(--ai-text);
+  max-width: 220px;
+  overflow: hidden;
+}
+:global([data-mode='dark']) .badge { background: rgba(139, 92, 246, 0.12); border-color: rgba(196, 181, 253, 0.28); }
+
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ai-accent); flex-shrink: 0; animation: ai-badge-pulse 1.6s infinite; }
+@keyframes ai-badge-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pct { color: var(--ai-accent); font-weight: 700; flex-shrink: 0; }
+
+.progressBar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--ai-accent-soft); }
+/* Flowing diagonal stripes, not a flat fill — the width stops changing once
+   the fake ramp hits its 96% cap (a real investigation runs far longer than
+   the ramp), so without this motion the bar reads as completely frozen for
+   the whole remaining wait, not "still working, just slow". */
+.progressBarFill {
+  /* Without this, the width/height below are no-ops — a <span> is
+     display:inline by default and inline elements ignore explicit sizing
+     entirely, so the fill never actually rendered regardless of the
+     animation (this was broken before the flowing-stripe change too). */
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(45deg, #8B5CF6 0 12px, #A78BFA 12px 24px);
+  background-size: 48px 100%;
+  animation: ai-badge-flow 1.2s linear infinite;
+  transition: width .3s linear;
+}
+@keyframes ai-badge-flow { 0% { background-position: 0 0; } 100% { background-position: 48px 0; } }
+
+.completed {
+  border: 1.5px solid #BFE8D5;
+  background: #F0FBF6;
+  color: #12996B;
+  animation: ai-done-ring 2.4s ease-out infinite;
+}
+:global([data-mode='dark']) .completed { background: rgba(18, 153, 107, 0.14); border-color: rgba(18, 153, 107, 0.4); }
+@keyframes ai-done-ring {
+  0% { box-shadow: 0 0 0 0 rgba(18, 153, 107, .35); }
+  70% { box-shadow: 0 0 0 9px rgba(18, 153, 107, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(18, 153, 107, 0); }
+}
+.checkIcon { width: 16px; height: 16px; border-radius: 50%; background: #12996B; color: #fff; font-size: 9.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.reviewLink { flex-shrink: 0; }
+.doneBar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: #12996B; }
+
+.error {
+  border: 1.5px solid #F3CBC2;
+  background: #FDF3F1;
+  color: #9A2C1B;
+  animation: ai-err-ring 2.4s ease-out infinite;
+}
+:global([data-mode='dark']) .error { background: rgba(220, 38, 38, 0.14); border-color: rgba(220, 38, 38, 0.4); }
+@keyframes ai-err-ring {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, .3); }
+  70% { box-shadow: 0 0 0 9px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+.errIcon { width: 16px; height: 16px; border-radius: 50%; background: #DC2626; color: #fff; font-size: 9.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.restartLink { flex-shrink: 0; color: #DC2626; font-weight: 700; }
+.errBar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: #DC2626; }
+
+.overflowBtn {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 13px;
+  border: 1.5px dashed #D3C6E8;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ai-accent);
+  background: transparent;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.overflowPopover {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  width: 260px;
+  background: var(--ai-surface);
+  border: 1px solid var(--ai-border);
+  border-radius: 12px;
+  box-shadow: var(--ai-shadow);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 40;
+}

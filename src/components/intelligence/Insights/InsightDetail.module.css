@@ -1,0 +1,49 @@
+.page { padding: 28px 40px 60px; display: flex; flex-direction: column; gap: 22px; max-width: 1200px; margin: 0 auto; }
+
+.titleRow { display: flex; align-items: flex-start; gap: 20px; }
+.titleBody { flex: 1; }
+.badgeRow { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+.tagBadge { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; color: #fff; padding: 4px 10px; border-radius: 6px; }
+.foundInfo { font-size: 12px; color: var(--ai-text-mute); }
+.title { font: 700 28px var(--ai-font-head); color: var(--ai-text); line-height: 1.25; }
+
+.actions { display: flex; gap: 10px; padding-top: 26px; flex-shrink: 0; }
+.trackBtn {
+  display: flex; align-items: center; gap: 9px; padding: 11px 18px; border-radius: 11px;
+  background: linear-gradient(135deg, var(--ai-accent-soft), var(--ai-accent-soft-2));
+  border: 1.5px solid #E2D6F5; color: var(--ai-accent);
+  font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.openBtn { padding: 11px 20px; border-radius: 11px; border: none; background: var(--ai-grad); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+.deleteBtn {
+  width: 40px; height: 40px; border-radius: 11px; border: 1.5px solid var(--ai-border);
+  background: var(--ai-surface); color: var(--ai-text-mute); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.deleteBtn:hover { color: #DC2626; border-color: #F5C6C2; background: #FDF1F0; }
+
+.scenariosTitle { font: 700 18px var(--ai-font-head); color: var(--ai-text); margin-bottom: 13px; }
+.scenarioGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.scenarioCard { background: var(--ai-surface); border: 1px solid var(--ai-border); border-top: 3px solid var(--ai-text-mute); border-radius: 14px; padding: 18px; }
+.scenarioCard.good { border-top-color: var(--ai-success); }
+.scenarioCard.negative { border-top-color: var(--ai-negative); }
+.scenarioLabel { font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--ai-text-mute); }
+.scenarioLabel.good { color: var(--ai-success); }
+.scenarioLabel.negative { color: var(--ai-negative); }
+.scenarioValue { font: 700 26px var(--ai-font-head); color: var(--ai-text); margin-top: 8px; }
+.scenarioValue.good { color: var(--ai-success); }
+.scenarioValue.negative { color: var(--ai-negative); }
+.scenarioDesc { font-size: 12px; color: var(--ai-text-dim); line-height: 1.55; margin-top: 8px; }
+
+.bottomGrid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; align-items: stretch; }
+
+.state { padding: 40px; text-align: center; color: var(--ai-text-mute); }
+
+.backBtn { background: none; border: none; color: var(--ai-accent); font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; }
+
+@media (max-width: 1000px) {
+  .scenarioGrid { grid-template-columns: repeat(2, 1fr); }
+  .bottomGrid { grid-template-columns: 1fr; }
+  .titleRow { flex-direction: column; }
+  .actions { padding-top: 0; }
+}
