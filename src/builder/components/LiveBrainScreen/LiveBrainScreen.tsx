@@ -29,7 +29,7 @@ import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../MentionTextarea/useMentionOptions';
 import { FilterEditor } from '../Filter/FilterEditor';
 import { filterShortSummary, filterTooltip, isFilterActive } from '../Filter/filterFormat';
-import { LiveBrainPreview, RENDER_OPTIONS, returnsFor } from './panelRenderers';
+import { LiveBrainPreview, RENDER_OPTIONS, returnsFor, snippetFor } from './panelRenderers';
 import type {
   BrainPanel, PanelRender, PanelSource, HistoryMode, ModelRef, OfflineTrigger, AddonFilter,
 } from '../../types';
@@ -105,9 +105,23 @@ function histFromValue(v: string): HistoryMode {
   return DEFAULT_HISTORY;
 }
 
-const VALID_RENDERS: PanelRender[] = ['text', 'html', 'keyvalue', 'goals', 'bars', 'donut'];
+const VALID_RENDERS: PanelRender[] = ['text', 'html', 'tags', 'fields', 'bars', 'cards'];
 function normalizeRender(r: unknown): PanelRender {
   return VALID_RENDERS.includes(r as PanelRender) ? (r as PanelRender) : 'text';
+}
+function normalizeTags(t: unknown): { mode: 'predefined' | 'generated'; labels: string[] } {
+  const s = t as { mode?: string; labels?: unknown } | undefined;
+  // Default to generated — the simplest path (no labels to author).
+  const mode = s?.mode === 'predefined' ? 'predefined' : 'generated';
+  const labels = Array.isArray(s?.labels) ? s!.labels.filter((x): x is string => typeof x === 'string') : [];
+  return { mode, labels };
+}
+function normalizeFields(f: unknown): { mode: 'predefined' | 'generated'; keys: string[] } {
+  const s = f as { mode?: string; keys?: unknown } | undefined;
+  // Default predefined — you decide the rows (Noa's Fields spec).
+  const mode = s?.mode === 'generated' ? 'generated' : 'predefined';
+  const keys = Array.isArray(s?.keys) ? s!.keys.filter((x): x is string => typeof x === 'string') : [];
+  return { mode, keys };
 }
 function normalizeSource(src: unknown): PanelSource {
   const s = src as Record<string, unknown> | null | undefined;
@@ -129,13 +143,93 @@ function normalizePanel(p: BrainPanel): BrainPanel {
   // the panel (where it now belongs — filter is addon-level).
   const legacyFilter = (p.source as { filter?: AddonFilter } | undefined)?.filter;
   const filter = p.filter ?? legacyFilter;
+  const render = normalizeRender(p.render);
   return {
     id: p.id,
     title: p.title,
-    render: normalizeRender(p.render),
+    render,
     source: normalizeSource(p.source),
     ...(filter ? { filter } : {}),
+    ...(render === 'tags' ? { tags: normalizeTags(p.tags) } : {}),
+    ...(render === 'fields' ? { fields: normalizeFields(p.fields) } : {}),
   };
+}
+
+/** Compact tag input — type a word, press Enter (or comma) to add it as a
+ *  chip; Backspace on an empty field removes the last. Reused for Tags
+ *  labels and Fields keys. Looks like the modal's other inputs. */
+function TagInput({ items, onChange, placeholder }: {
+  items: string[];
+  onChange: (next: string[]) => void;
+  placeholder: string;
+}) {
+  const [draft, setDraft] = useState('');
+  const add = (raw: string) => {
+    const t = raw.trim();
+    if (t && !items.includes(t)) onChange([...items, t]);
+    setDraft('');
+  };
+  return (
+    <div className={styles.tagInput}>
+      {items.map((it, i) => (
+        <span key={i} className={styles.tagChip}>
+          {it}
+          <button type="button" className={styles.tagChipX} title="Remove"
+            onClick={() => onChange(items.filter((_, j) => j !== i))}>✕</button>
+        </span>
+      ))}
+      <input
+        className={styles.tagInputField}
+        value={draft}
+        placeholder={items.length ? 'Add another…' : placeholder}
+        onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(draft); }
+          else if (e.key === 'Backspace' && !draft && items.length) onChange(items.slice(0, -1));
+        }}
+        onBlur={() => add(draft)}
+      />
+    </div>
+  );
+}
+
+/** Build the example shape shown at the top of the "what to return" modal,
+ *  matching the panel's actual mode (so generated Tags show `tags` too,
+ *  predefined Fields show the real keys, etc). */
+function buildReturns(p: BrainPanel): string {
+  if (p.render === 'tags') {
+    if (p.tags?.mode === 'generated') {
+      return 'Return the labels + which fit (one or more):\n\n{ "tags": ["Curious", "Worried"], "active": ["Worried"] }';
+    }
+    return 'Return the label(s) that fit (one or more):\n\n{ "active": ["Worried"] }';
+  }
+  if (p.render === 'fields') {
+    const keys = (p.fields?.keys ?? []).filter(Boolean);
+    if (p.fields?.mode !== 'generated' && keys.length) {
+      return `Return a value for each field:\n\n{ ${keys.map(k => `"${k}": "…"`).join(', ')} }`;
+    }
+    return 'Return the fields you find:\n\n{ "Stage": "perimenopause", "Top need": "Sleep" }';
+  }
+  return returnsFor(p.render);
+}
+
+/** Build the ready-to-paste "return this" snippet, filled with the panel's
+ *  own predefined labels/keys when it has them. */
+function buildSnippet(p: BrainPanel): string {
+  if (p.render === 'tags') {
+    const labels = (p.tags?.labels ?? []).filter(Boolean);
+    if (p.tags?.mode === 'predefined' && labels.length) {
+      return `Return only this: {"active":["<any that fit, from: ${labels.join(', ')}>"]}`;
+    }
+    return 'Return only this: {"tags":["your","labels"],"active":["the fitting ones"]}';
+  }
+  if (p.render === 'fields') {
+    const keys = (p.fields?.keys ?? []).filter(Boolean);
+    if (p.fields?.mode !== 'generated' && keys.length) {
+      return `Return only this: {${keys.map(k => `"${k}":"…"`).join(', ')}}`;
+    }
+  }
+  return snippetFor(p.render);
 }
 
 function TriggerSelect({ trigger, onChange }: { trigger: OfflineTrigger; onChange: (t: OfflineTrigger) => void }) {
@@ -229,12 +323,22 @@ export function LiveBrainScreen() {
 
   if (!agent) return <div className={styles.screen}>No agent loaded.</div>;
 
-  const panels = (agent.liveBrain?.panels ?? []).map(normalizePanel);
+  const liveBrain = agent.liveBrain;
+  const panels = (liveBrain?.panels ?? []).map(normalizePanel);
   const editing = panels.find(p => p.id === editingId) ?? null;
+  const arrangement = liveBrain?.frame?.arrangement ?? 'stack';
+  const openMode = liveBrain?.frame?.openMode ?? 'half';
 
-  const writePanels = (next: BrainPanel[]) => updateAgent(agent.id, { liveBrain: { panels: next } });
+  const writePanels = (next: BrainPanel[]) =>
+    updateAgent(agent.id, { liveBrain: { ...(liveBrain ?? {}), panels: next } });
+  const writeFrame = (patch: { arrangement?: 'stack' | 'grid'; openMode?: 'half' | 'full' }) =>
+    updateAgent(agent.id, { liveBrain: { panels: liveBrain?.panels ?? [], ...(liveBrain ?? {}), frame: { ...(liveBrain?.frame ?? {}), ...patch } } });
   const patchPanel = (id: string, patch: Partial<BrainPanel>) =>
     writePanels(panels.map(p => (p.id === id ? { ...p, ...patch } : p)));
+  const patchTags = (patch: Partial<NonNullable<BrainPanel['tags']>>) =>
+    editing && patchPanel(editing.id, { tags: { mode: 'predefined', labels: [], ...(editing.tags ?? {}), ...patch } });
+  const patchFields = (patch: Partial<NonNullable<BrainPanel['fields']>>) =>
+    editing && patchPanel(editing.id, { fields: { mode: 'predefined', keys: [], ...(editing.fields ?? {}), ...patch } });
 
   const addPanel = () => {
     const p: BrainPanel = { id: newPanelId(), title: '🧠 New panel', render: 'text', source: { kind: 'text', text: '' } };
@@ -276,7 +380,7 @@ export function LiveBrainScreen() {
     if (!editing || editing.source.kind !== 'prompt') return;
     patchPanel(editing.id, { source: { ...editing.source, ...patch } });
   };
-  const copyReturn = () => { if (editing) { navigator.clipboard?.writeText(returnsFor(editing.render)); setCopied(true); } };
+  const copyReturn = () => { if (editing) { navigator.clipboard?.writeText(buildSnippet(editing)); setCopied(true); } };
 
   const panelFilter = editing?.filter ?? EMPTY_FILTER;
 
@@ -314,7 +418,18 @@ export function LiveBrainScreen() {
         <section className={styles.preview}>
           <div className={styles.previewHeadRow}>
             <span className={styles.previewLabel}>Customer view</span>
-            <span className={styles.previewSample}>{previewConversationId ? 'live · client width' : 'sample · client width'}</span>
+            <span className={styles.previewSample}>{previewConversationId ? 'live' : 'sample'}</span>
+            <span className={styles.previewSpacer} />
+            <button
+              className={styles.logToggle}
+              onClick={() => writeFrame({ arrangement: arrangement === 'grid' ? 'stack' : 'grid' })}
+              title="Toggle stack / grid layout"
+            >{arrangement === 'grid' ? '▦ Grid' : '▤ Stack'}</button>
+            <button
+              className={styles.logToggle}
+              onClick={() => writeFrame({ openMode: openMode === 'full' ? 'half' : 'full' })}
+              title="How the panel opens for the customer (half drawer / full screen)"
+            >{openMode === 'full' ? '⛶ Full' : '◧ Half'}</button>
             <button
               className={`${styles.logToggle} ${showLogs ? styles.logToggleOn : ''}`}
               onClick={() => setShowLogs(s => !s)}
@@ -328,6 +443,7 @@ export function LiveBrainScreen() {
               liveValues={liveValues}
               runsByPanel={runsByPanel}
               showLogs={showLogs}
+              arrangement={arrangement}
             />
           </div>
         </section>
@@ -377,6 +493,46 @@ export function LiveBrainScreen() {
                   {RENDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label} — {o.hint}</option>)}
                 </select>
               </InlineField>
+
+              {/* Tags: predefined labels (author sets, AI picks active) or generated. */}
+              {editing.render === 'tags' && (
+                <InlineField label="Labels" hint="Predefined: you set them, the AI picks which is active. Generated: the AI invents them.">
+                  <div className={styles.seg2} role="tablist" aria-label="Tag mode">
+                    <button role="tab" aria-selected={editing.tags?.mode === 'predefined'} onClick={() => patchTags({ mode: 'predefined' })}>Predefined</button>
+                    <button role="tab" aria-selected={editing.tags?.mode !== 'predefined'} onClick={() => patchTags({ mode: 'generated' })}>Generated</button>
+                  </div>
+                  {editing.tags?.mode === 'predefined' && (
+                    <div className={styles.nested}>
+                      <TagInput
+                        items={editing.tags?.labels ?? []}
+                        onChange={labels => patchTags({ labels })}
+                        placeholder="Type a label, press Enter"
+                      />
+                      <span className={styles.nestedHint}>These labels always show; the AI just highlights whichever fits (e.g. Curious, Worried, Ready).</span>
+                    </div>
+                  )}
+                </InlineField>
+              )}
+
+              {/* Fields: predefined keys (author sets, AI fills values) or generated. */}
+              {editing.render === 'fields' && (
+                <InlineField label="Keys" hint="Predefined: you set the keys, the AI fills each value. Generated: the AI invents the keys too.">
+                  <div className={styles.seg2} role="tablist" aria-label="Field mode">
+                    <button role="tab" aria-selected={editing.fields?.mode === 'predefined'} onClick={() => patchFields({ mode: 'predefined' })}>Predefined</button>
+                    <button role="tab" aria-selected={editing.fields?.mode !== 'predefined'} onClick={() => patchFields({ mode: 'generated' })}>Generated</button>
+                  </div>
+                  {editing.fields?.mode !== 'generated' && (
+                    <div className={styles.nested}>
+                      <TagInput
+                        items={editing.fields?.keys ?? []}
+                        onChange={keys => patchFields({ keys })}
+                        placeholder="Type a key, press Enter"
+                      />
+                      <span className={styles.nestedHint}>These rows always show; the AI fills a value for each (e.g. Stage, Top need).</span>
+                    </div>
+                  )}
+                </InlineField>
+              )}
 
               <InlineField label="Source" hint="Compose from your text, or compute with an AI prompt.">
                 <div className={styles.seg2} role="tablist" aria-label="Panel source">
@@ -477,10 +633,12 @@ export function LiveBrainScreen() {
       {/* ── "what to return" modal ── */}
       {editing && returnOpen && (
         <Modal open onClose={() => setReturnOpen(false)} width={540} title={`What to return · ${renderLabel(editing.render)}`}>
-          <p className={styles.returnLead}>Have the prompt output exactly this, then adjust:</p>
-          <pre className={styles.returnPre}>{returnsFor(editing.render)}</pre>
+          <p className={styles.returnLead}>The AI must return exactly this shape:</p>
+          <pre className={styles.returnPre}>{buildReturns(editing)}</pre>
+          <p className={styles.returnLead}>Paste this line into your prompt — it tells the AI exactly what to return:</p>
+          <pre className={styles.returnPre}>{buildSnippet(editing)}</pre>
           <div className={styles.returnActions}>
-            <button className={styles.copyBtn} onClick={copyReturn}>{copied ? 'Copied ✓' : 'Copy'}</button>
+            <button className={styles.copyBtn} onClick={copyReturn}>{copied ? 'Copied ✓' : 'Copy prompt line'}</button>
           </div>
         </Modal>
       )}

@@ -49,7 +49,7 @@ export function bodyOfAgent(agent: AgentDoc): AgentBody {
     // Snapshot liveBrain only when it has panels — keeps this in lockstep
     // with BuilderContext.bodyOfAgent so the save body and the dirty-check
     // body match. (This is what actually persists panels to the server.)
-    ...(agent.liveBrain?.panels?.length ? { liveBrain: agent.liveBrain } : {}),
+    ...((agent.liveBrain?.panels?.length || agent.liveBrain?.frame) ? { liveBrain: agent.liveBrain } : {}),
   };
 }
 

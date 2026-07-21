@@ -15,6 +15,11 @@ interface Props {
   /** When provided, shows a Refresh button in the header. */
   onRefresh?: () => void;
   refreshing?: boolean;
+  /** Drop the panel's own title bar (just the close button) — the content
+   *  provides its own header (the Live Brain surface's branded strip). */
+  bareHead?: boolean;
+  /** Full-screen open mode (vs the default half-screen drawer). */
+  full?: boolean;
 }
 
 /**
@@ -25,13 +30,13 @@ interface Props {
  */
 export function SidePanel({
   which, open, onClose, title, icon, placeholderTitle, placeholderSub, emoji,
-  children, onRefresh, refreshing,
+  children, onRefresh, refreshing, bareHead, full,
 }: Props) {
   return (
-    <aside className={`side ${which} ${open ? 'open' : ''}`}>
+    <aside className={`side ${which} ${open ? 'open' : ''} ${full ? 'full' : ''}`}>
       <div className="panel-inner">
-        <div className="panel-head">
-          <h3><span className="ph-icn">{icon}</span><span>{title}</span></h3>
+        <div className={`panel-head ${bareHead ? 'bare' : ''}`}>
+          {!bareHead && <h3><span className="ph-icn">{icon}</span><span>{title}</span></h3>}
           {onRefresh && (
             <button
               className={`icon-btn ${refreshing ? 'spinning' : ''}`}

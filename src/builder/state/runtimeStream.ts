@@ -6,7 +6,7 @@
  * the supplied handler.
  */
 
-import { runtimeMessageStream, type LiveBrainPanelData } from './builderApi';
+import { runtimeMessageStream, type LiveBrainPanelData, type LiveBrainFrame } from './builderApi';
 
 export type RuntimeEvent =
   | { type: 'conversation'; conversationId: number; messageId: number; currentCrewId?: string | null }
@@ -17,7 +17,7 @@ export type RuntimeEvent =
    * arrives on the stream. Hidden panels are simply absent. This is what
    * lets the panels update live off the chat stream with no refetch.
    */
-  | { type: 'brain.snapshot'; panels: LiveBrainPanelData[] }
+  | { type: 'brain.snapshot'; panels: LiveBrainPanelData[]; frame?: LiveBrainFrame | null }
   | { type: 'addon.start'; instanceId: string; pluginId: string; lane: string; label?: string;
       model?: unknown;
       modelLabel?: { providerName: string; modelName: string } | null }

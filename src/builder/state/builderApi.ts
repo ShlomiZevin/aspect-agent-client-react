@@ -41,17 +41,24 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
 export interface LiveBrainPanelData {
   id: string;
   title: string;
-  render: 'text' | 'html' | 'keyvalue' | 'goals' | 'bars' | 'donut';
+  render: 'text' | 'html' | 'tags' | 'fields' | 'bars' | 'cards';
   /** Present for `text` (Markdown) and `html` (sanitized HTML) renders. */
   text?: string;
   /** Present for structured renders — shape matches the render type. */
   values?: {
-    pairs?: { k: string; v: string; tag?: boolean }[];
-    goals?: { label: string; state: string; done: boolean }[];
-    bars?: { label: string; value: number; color?: string }[];
-    donut?: { value: number; label: string; items: { label: string; value: number }[] };
+    tags?: string[];                                             // tags
+    active?: string[];                                           // tags
+    pairs?: { k: string; v: string; tag?: boolean }[];           // fields
+    bars?: { label: string; value: number; color?: string }[];   // bars
+    cards?: { title: string; body: string }[];                   // cards
   };
   ranAt?: number;
+}
+
+/** Presentation frame for the Live Brain surface (arrangement / open mode). */
+export interface LiveBrainFrame {
+  arrangement?: 'stack' | 'grid';
+  openMode?: 'half' | 'full';
 }
 
 export async function fetchLiveBrain(args: {
@@ -59,7 +66,7 @@ export async function fetchLiveBrain(args: {
   conversationId: number;
   ownerUserId: string;
   version?: string;
-}): Promise<{ panels: LiveBrainPanelData[] }> {
+}): Promise<{ panels: LiveBrainPanelData[]; frame?: LiveBrainFrame | null }> {
   const q = new URLSearchParams({
     ownerUserId: args.ownerUserId,
     version: args.version || 'active',

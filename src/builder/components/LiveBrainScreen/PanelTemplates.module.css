@@ -1,0 +1,67 @@
+/**
+ * Shared Live Brain template styles. Themed via CSS vars set by the host:
+ *   --lb-accent  highlight / brand colour
+ *   --lb-ink     primary text
+ *   --lb-muted   secondary text
+ *   --lb-line    hairline borders
+ *   --lb-surface soft inner surface (chips, tracks)
+ * Fallbacks keep it legible if a host forgets to set them.
+ */
+
+.body { color: var(--lb-ink, #1f2937); font-size: 13px; line-height: 1.5; }
+
+/* ── tags ── */
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+  background: var(--lb-surface, #f3f4f6); color: var(--lb-muted, #6b7280);
+  border: 1px solid transparent;
+  transition: background-color .25s ease, color .25s ease, border-color .25s ease, transform .2s ease;
+}
+.tagOn {
+  background: color-mix(in srgb, var(--lb-accent, #6366f1) 16%, transparent);
+  color: var(--lb-accent, #6366f1);
+  border-color: color-mix(in srgb, var(--lb-accent, #6366f1) 35%, transparent);
+  transform: translateY(-1px);
+}
+
+/* ── fields ── */
+.fields { display: flex; flex-direction: column; gap: 8px; }
+.fieldRow { display: flex; align-items: baseline; gap: 10px; justify-content: space-between; }
+.fieldK { font-size: 12px; color: var(--lb-muted, #6b7280); flex: none; }
+.fieldV { font-size: 13px; font-weight: 600; color: var(--lb-ink, #1f2937); text-align: end; border-radius: 5px; padding: 1px 4px; }
+.pill { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  background: color-mix(in srgb, var(--lb-accent, #6366f1) 14%, transparent); color: var(--lb-accent, #6366f1); }
+.flash { animation: lbFlash .9s ease; }
+@keyframes lbFlash {
+  0%   { background: color-mix(in srgb, var(--lb-accent, #6366f1) 34%, transparent); }
+  100% { background: transparent; }
+}
+
+/* ── bars ── */
+.bars { display: flex; flex-direction: column; gap: 10px; }
+.bar { display: flex; flex-direction: column; gap: 4px; }
+.barRow { display: flex; align-items: center; justify-content: space-between; }
+.barLab { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--lb-ink, #1f2937); }
+.swatch { width: 8px; height: 8px; border-radius: 3px; display: inline-block; flex: none; }
+.barNum { font-size: 12px; font-weight: 700; color: var(--lb-muted, #6b7280); font-variant-numeric: tabular-nums; }
+.track { height: 8px; border-radius: 999px; background: var(--lb-surface, #eef0f4); overflow: hidden; }
+.fill { height: 100%; border-radius: 999px; transition: width .5s cubic-bezier(.4,0,.2,1); }
+
+/* ── cards ── */
+.cards { display: flex; flex-direction: column; gap: 8px; }
+.card {
+  border: 1px solid var(--lb-line, #e5e7eb); border-radius: 10px; padding: 10px 12px;
+  background: var(--lb-surface, #fafafa); animation: lbCardIn .35s ease both;
+}
+.cardTitle { font-size: 13px; font-weight: 700; color: var(--lb-ink, #1f2937); margin-bottom: 3px; }
+.cardBody { font-size: 12px; line-height: 1.5; color: var(--lb-muted, #4b5563); }
+@keyframes lbCardIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tag, .fill { transition: none; }
+  .flash, .card { animation: none; }
+}

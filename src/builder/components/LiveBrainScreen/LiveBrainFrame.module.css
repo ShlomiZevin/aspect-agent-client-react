@@ -1,0 +1,40 @@
+/**
+ * Shared Live Brain wrapper chrome (header + panel frame + surface).
+ * Themed via the same --lb-* vars as PanelTemplates.
+ */
+
+.surface { display: flex; flex-direction: column; gap: 12px; }
+
+/* ── fixed header strip ── */
+.header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-bottom: 1px solid var(--lb-line, #e5e7eb);
+}
+.hMark { flex: 1; min-width: 0; }
+.hTitle { font-size: 12px; font-weight: 800; letter-spacing: .08em; color: var(--lb-ink, #1f2937); }
+.hSub { font-size: 11px; color: var(--lb-muted, #6b7280); margin-top: 1px; }
+.hIcon {
+  width: 30px; height: 30px; flex: none; border-radius: 9px; display: grid; place-items: center;
+  font-size: 16px; background: color-mix(in srgb, var(--lb-accent, #6366f1) 12%, transparent);
+}
+
+/* ── panels surface ── */
+.panels { display: flex; flex-direction: column; gap: 10px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.empty { color: var(--lb-muted, #6b7280); font-size: 13px; padding: 18px; text-align: center;
+  border: 1px dashed var(--lb-line, #e5e7eb); border-radius: 12px; }
+
+/* ── panel frame (one family) ── */
+.panel { background: var(--lb-panel, #fff); border: 1px solid var(--lb-line, #e5e7eb); border-radius: 12px; padding: 12px 14px; }
+.panelSel { border-color: var(--lb-accent, #6366f1); box-shadow: 0 0 0 2px color-mix(in srgb, var(--lb-accent, #6366f1) 20%, transparent); }
+.phead { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.meta {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  padding: 2px 7px; border-radius: 999px; background: var(--lb-surface, #f3f4f6); color: var(--lb-muted, #6b7280);
+}
+.spacer { flex: 1; }
+.collapse { border: 0; background: none; color: var(--lb-muted, #9ca3af); cursor: pointer; font-size: 11px; padding: 2px; line-height: 1; }
+.picon { font-size: 14px; }
+.ptitle { margin: 0; font-size: 13px; font-weight: 700; color: var(--lb-ink, #1f2937); }
+.pidx { font-family: ui-monospace, Menlo, monospace; font-size: 11px; font-weight: 700; color: var(--lb-muted, #c4c8d0); font-variant-numeric: tabular-nums; }
+.pbody { min-width: 0; }

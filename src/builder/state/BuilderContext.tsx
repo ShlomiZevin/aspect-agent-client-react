@@ -151,7 +151,7 @@ function bodyOfAgent(agent: AgentDoc): AgentBody {
     // Only snapshot liveBrain once it has panels, so agents that never
     // used the feature compare equal to their pre-liveBrain version
     // bodies (no spurious "dirty" on load). Empty == absent.
-    ...(agent.liveBrain?.panels?.length ? { liveBrain: agent.liveBrain } : {}),
+    ...((agent.liveBrain?.panels?.length || agent.liveBrain?.frame) ? { liveBrain: agent.liveBrain } : {}),
   };
 }
 

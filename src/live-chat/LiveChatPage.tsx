@@ -84,6 +84,8 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
   // arrive live on the chat stream (`brain.snapshot`) and hydrate once
   // when an existing conversation is opened. No refetch, no polling.
   const brainPanels = chat.livePanels;
+  const brainArrangement = chat.liveFrame?.arrangement ?? 'stack';
+  const brainFull = chat.liveFrame?.openMode === 'full';
 
   // Logo priority: custom brand logo → selected client's logo → none (name mark).
   const clientLogo = clientById(settings.client).logoUrl ?? null;
@@ -298,8 +300,10 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
             placeholderTitle={t.brainTitle}
             placeholderSub={t.brainSub}
             emoji="🧠"
+            bareHead
+            full={brainFull}
           >
-            {brainPanels.length > 0 ? <BrainPanels panels={brainPanels} /> : null}
+            {brainPanels.length > 0 ? <BrainPanels panels={brainPanels} arrangement={brainArrangement} /> : null}
           </SidePanel>
         )}
 

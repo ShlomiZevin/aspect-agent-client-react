@@ -1,221 +1,103 @@
 /**
- * Built-in Live Brain panel renderers.
- *
- * Each render type has a FIXED data shape (see `returns` below). A
- * `prompt` source is told to return that shape; a `text` source composes
- * it from free text + `{{tokens}}`. This is the reuse target for the
- * customer surface later — `/:agent/live` renders the same components fed
- * by real runtime values instead of the sample values used here.
+ * Builder-side helpers for the Live Brain screen: the render library
+ * (options + samples + "what to return" copy snippets) and the preview,
+ * which reuses the SHARED surface/templates so the builder preview and
+ * the customer chat render identically.
  */
 
 import { useState } from 'react';
 import type { BrainPanel, PanelRender } from '../../types';
+import { type PanelValues } from './PanelTemplates';
+import { LiveBrainSurface, type DisplayPanel } from './LiveBrainFrame';
 import { AddonRunCard, type AddonRunSnapshot } from '../AddonRun/AddonRunCard';
-import { PanelMarkdown } from './PanelMarkdown';
 import styles from './LiveBrainScreen.module.css';
 
-// ── Runtime value shapes, one per render type ──────────────────────
-export interface PanelRuntime {
-  text?: string;
-  pairs?: { k: string; v: string; tag?: boolean }[];
-  goals?: { label: string; state: string; done: boolean }[];
-  bars?: { label: string; value: number; color?: string }[];
-  donut?: { value: number; label: string; items: { label: string; value: number }[] };
-}
-
+// ── Render library ─────────────────────────────────────────────────
 export const RENDER_OPTIONS: {
   value: PanelRender;
   label: string;
   hint: string;
-  /** What a prompt must return to fill this renderer (pretty). */
+  /** The exact shape the LLM must return (shown as an example). */
   returns: string;
+  /** A ready-to-paste instruction block for the author's prompt. */
+  snippet: string;
 }[] = [
   {
-    value: 'text', label: 'Text / Markdown', hint: 'Plain text or Markdown — bold, lists, tables.',
-    returns: 'Return a plain string. Markdown is rendered (bold, lists, tables).',
+    value: 'text', label: 'Text / Markdown', hint: 'Free-form prose — bold, lists, tables.',
+    returns: 'Just write the text:\n\nBuild trust first — hold off on tools.',
+    snippet: 'Write a short line or two. Output only the text.',
   },
   {
     value: 'html', label: 'HTML', hint: 'Safe HTML — styled cards, custom layout.',
-    returns: 'Return an HTML FRAGMENT — no <!DOCTYPE>/<html>/<head>/<body>/<style> and no code fences. Style with INLINE style="…" attributes (a <style> block is stripped). e.g. <div style="padding:12px;border-radius:12px;background:#fce7f3">…</div>. Scripts / event handlers are stripped for safety.',
+    returns: 'Return a small HTML snippet:\n\n<div style="padding:10px">Build trust first</div>',
+    snippet: 'Return one small HTML snippet using inline style="…". No <html>, <head> or <style>, and no code fences.',
   },
   {
-    value: 'keyvalue', label: 'Key / value', hint: 'A labelled list of facts.',
-    returns: `{
-  "pairs": [
-    { "k": "Stage", "v": "perimenopause", "tag": true },
-    { "k": "Top symptom", "v": "Insomnia" }
-  ]
-}`,
+    value: 'tags', label: 'Tags', hint: 'Labels; the fitting one(s) highlight.',
+    returns: 'Return the label(s) that fit (one or more):\n\n{ "active": ["Worried"] }',
+    snippet: 'Return only this: {"active":["the fitting label(s)"]}',
   },
   {
-    value: 'goals', label: 'Checklist', hint: 'Items with a done state + status.',
-    returns: `{
-  "goals": [
-    { "label": "Sleep through the night", "state": "active", "done": true },
-    { "label": "Avoid medication", "state": "noted", "done": false }
-  ]
-}`,
+    value: 'fields', label: 'Fields', hint: 'Key→value rows; values fill in.',
+    returns: 'Return a value for each field:\n\n{ "Stage": "perimenopause", "Top need": "Sleep" }',
+    snippet: 'Return only a JSON object with a short value for each field, like: {"Stage":"…","Top need":"…"}',
   },
   {
-    value: 'bars', label: 'Bars', hint: 'Labelled 0–100 bars (e.g. mood).',
-    returns: `{
-  "bars": [
-    { "label": "Calm", "value": 62 },
-    { "label": "Anxious", "value": 34 }
-  ]
-}`,
+    value: 'bars', label: 'Bars', hint: 'Labelled 0–100 meters.',
+    returns: 'Return a number 0–100 for each:\n\n{ "Calm": 62, "Anxious": 34 }',
+    snippet: 'Return only a JSON object mapping each label to a number from 0 to 100, like: {"Calm":62,"Anxious":34}',
   },
   {
-    value: 'donut', label: 'Donut + bars', hint: 'A headline ring + a few bars.',
-    returns: `{
-  "donut": {
-    "value": 68,
-    "label": "reassurance",
-    "items": [
-      { "label": "Reassurance", "value": 68 },
-      { "label": "Symptom relief", "value": 52 }
-    ]
-  }
-}`,
+    value: 'cards', label: 'Cards', hint: 'Title + body blocks.',
+    returns: 'Return a short note for each card:\n\n{ "Sleep": "Waking at 3am, wants natural options.", "Mood": "Anxious but hopeful." }',
+    snippet: 'Return only a JSON object mapping each card title to a short note, like: {"Sleep":"…","Mood":"…"}',
   },
 ];
 
 export function returnsFor(render: PanelRender): string {
   return RENDER_OPTIONS.find(o => o.value === render)?.returns ?? '';
 }
+export function snippetFor(render: PanelRender): string {
+  return RENDER_OPTIONS.find(o => o.value === render)?.snippet ?? '';
+}
 
-/** Sample data so the author sees each render type's look in the preview. */
-export function sampleRuntime(render: PanelRender): PanelRuntime {
+/** Sample data so the author sees each template's look before any run. */
+export function sampleRuntime(render: PanelRender): PanelValues {
   switch (render) {
     case 'text':
-      return { text: '**Right now:** build trust first.\n\n- Hold off on tools\n- Reflect her worry back\n- Offer to log *with* her, not *at* her' };
+      return { text: '**Right now:** build trust first.\n\n- Hold off on tools\n- Reflect her worry back' };
     case 'html':
-      return { text: '<div style="padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,#fce7f3,#ede9fe);color:#6b21a8">\n  <div style="font-weight:700;margin-bottom:4px">Focus right now</div>\n  <div style="font-size:13px;opacity:.85">Build trust first — hold off on tools.</div>\n</div>' };
-    case 'keyvalue':
+      return { text: '<div style="padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,#fce7f3,#ede9fe);color:#6b21a8"><b>Focus right now</b><br/>Build trust first — hold off on tools.</div>' };
+    case 'tags':
+      return { tags: ['Curious', 'Worried', 'Ready', 'Confused'], active: ['Worried'] };
+    case 'fields':
       return { pairs: [
         { k: 'Stage', v: 'perimenopause', tag: true },
-        { k: 'Top symptom', v: 'Insomnia' },
+        { k: 'Top need', v: 'Sleep' },
         { k: 'Prefers', v: 'Natural approaches' },
-        { k: 'Wants me to be', v: 'Reassuring' },
-      ] };
-    case 'goals':
-      return { goals: [
-        { label: 'Sleep through the night', state: 'active', done: true },
-        { label: "Understand what's normal", state: 'active', done: true },
-        { label: 'Avoid medication if possible', state: 'noted', done: false },
       ] };
     case 'bars':
       return { bars: [
-        { label: 'Calm', value: 62, color: '#0d8a7d' },
-        { label: 'Anxious', value: 34, color: '#d98a2b' },
-        { label: 'Hopeful', value: 71, color: '#c65a7d' },
+        { label: 'Calm', value: 62 },
+        { label: 'Anxious', value: 34 },
+        { label: 'Hopeful', value: 71 },
       ] };
-    case 'donut':
-      return { donut: {
-        value: 68, label: 'reassurance',
-        items: [
-          { label: 'Reassurance', value: 68 },
-          { label: 'Symptom relief', value: 52 },
-          { label: 'Information', value: 30 },
-        ],
-      } };
+    case 'cards':
+      return { cards: [
+        { title: 'Sleep', body: 'Waking at 3am; wants natural options before medication.' },
+        { title: 'Mood', body: 'Anxious but hopeful — responds well to reassurance.' },
+      ] };
     default:
       return {};
   }
 }
 
-function Bars({ bars }: { bars: NonNullable<PanelRuntime['bars']> }) {
-  return (
-    <div className={styles.bars}>
-      {bars.map((b, i) => (
-        <div className={styles.bar} key={i}>
-          <div className={styles.barRow}>
-            <span className={styles.barLab}>
-              <i className={styles.swatch} style={{ background: b.color ?? '#6d28d9' }} />
-              {b.label}
-            </span>
-            <span className={styles.barNum}>{b.value}</span>
-          </div>
-          <div className={styles.track}>
-            <div className={styles.fill} style={{ width: `${Math.max(0, Math.min(100, b.value))}%`, background: b.color ?? '#6d28d9' }} />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Donut({ donut }: { donut: NonNullable<PanelRuntime['donut']> }) {
-  return (
-    <div className={styles.needs}>
-      <div className={styles.donut} style={{ ['--v' as string]: String(donut.value) } as React.CSSProperties}>
-        <div className={styles.donutC}><b>{donut.value}%</b><span>{donut.label}</span></div>
-      </div>
-      <div className={styles.needList}>
-        {donut.items.map((n, i) => (
-          <div className={styles.need} key={i}>
-            <div className={styles.barRow}>
-              <span className={styles.barLab}>{n.label}</span>
-              <span className={styles.barNum}>{n.value}%</span>
-            </div>
-            <div className={styles.track}><div className={styles.fill} style={{ width: `${n.value}%`, background: '#E0198A' }} /></div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export function PanelBody({ panel, runtime }: { panel: BrainPanel; runtime: PanelRuntime }) {
-  switch (panel.render) {
-    case 'text':
-      // Markdown only — `.bodyMd` owns the panel's typographic rhythm.
-      return <PanelMarkdown text={runtime.text ?? ''} className={styles.bodyMd} />;
-    case 'html':
-      // Sanitized raw HTML — styled cards, custom layout.
-      return <PanelMarkdown text={runtime.text ?? ''} className={styles.bodyMd} html />;
-    case 'keyvalue':
-      return (
-        <div className={styles.kv}>
-          {(runtime.pairs ?? []).map((p, i) => (
-            <div className={styles.kvRow} key={i}>
-              <span className={styles.kvK}>{p.k}</span>
-              <span className={styles.kvV}>{p.tag ? <span className={styles.tag}>{p.v}</span> : p.v}</span>
-            </div>
-          ))}
-        </div>
-      );
-    case 'goals':
-      return (
-        <div className={styles.goals}>
-          {(runtime.goals ?? []).map((g, i) => (
-            <div className={`${styles.goal} ${g.done ? styles.goalOn : ''}`} key={i}>
-              <span className={styles.mark} aria-hidden="true">
-                {g.done ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12l5 5 9-11" /></svg> : null}
-              </span>
-              <span className={styles.goalLabel}>{g.label}</span>
-              <span className={styles.state}>{g.state}</span>
-            </div>
-          ))}
-        </div>
-      );
-    case 'bars':
-      return <Bars bars={runtime.bars ?? []} />;
-    case 'donut':
-      return runtime.donut ? <Donut donut={runtime.donut} /> : null;
-    default:
-      return null;
-  }
-}
-
-/** A stored panel value from the live conversation (raw shape). */
-export interface LivePanelValue { render?: string; text?: string; values?: PanelRuntime }
+/** A stored panel value from the live conversation. */
+export interface LivePanelValue { render?: string; text?: string; values?: PanelValues }
 
 /**
- * A panel's attached run log. Runs arrive newest-first, so by default we
- * show only the latest run (the one that produced what's on screen) and
- * tuck the rest behind a tiny "+N more" toggle — the log stays compact in
- * the narrow panel column until you want the history.
+ * A panel's attached run log. Newest-first; shows only the latest run by
+ * default with a tiny "+N more", using the SAME AddonRunCard as the chat.
  */
 function PanelLogs({ runs }: { runs: AddonRunSnapshot[] }) {
   const [showAll, setShowAll] = useState(false);
@@ -233,43 +115,43 @@ function PanelLogs({ runs }: { runs: AddonRunSnapshot[] }) {
 }
 
 /**
- * The whole customer-facing brain. When `liveValues[panel.id]` exists it
- * renders the REAL computed value (with a "live" chip); otherwise sample
- * data. When `showLogs` is on, each panel gets its own run log attached
- * beneath it — rendered with the SAME AddonRunCard as the chat's addon
- * runs, so a panel's log is identical to a chat addon's (input prompt,
- * output, parse error, model, timing). Toggle off for a clean,
- * customer-like view.
+ * The builder preview — the customer surface, fed by the working-copy
+ * panels + live values (falling back to sample data), with an optional
+ * per-panel run log attached beneath each panel.
  */
-export function LiveBrainPreview({ panels, selectedId, liveValues, runsByPanel, showLogs }: {
+export function LiveBrainPreview({ panels, selectedId, liveValues, runsByPanel, showLogs, arrangement }: {
   panels: BrainPanel[];
   selectedId?: string;
   liveValues?: Record<string, LivePanelValue>;
   runsByPanel?: Record<string, AddonRunSnapshot[]>;
   showLogs?: boolean;
+  arrangement?: 'stack' | 'grid';
 }) {
-  if (panels.length === 0) {
-    return <div className={styles.previewEmpty}>No panels yet. Add one to see it here.</div>;
-  }
+  const display: DisplayPanel[] = panels.map(p => {
+    const live = liveValues?.[p.id];
+    const isString = p.render === 'text' || p.render === 'html';
+    const sample = sampleRuntime(p.render);
+    return {
+      id: p.id,
+      title: p.title,
+      render: p.render,
+      text: live ? live.text : (isString ? sample.text : undefined),
+      values: live ? (live.values as PanelValues) : (isString ? undefined : sample),
+      meta: live ? undefined : 'sample',
+    };
+  });
   return (
-    <div className={styles.previewPanels}>
-      {panels.map((panel) => {
-        const live = liveValues?.[panel.id];
-        const runtime: PanelRuntime = live
-          ? (live.text !== undefined ? { text: live.text } : (live.values || {}))
-          : sampleRuntime(panel.render);
-        const runs = runsByPanel?.[panel.id] ?? [];
-        return (
-          <div className={`${styles.previewPanel} ${panel.id === selectedId ? styles.previewPanelSel : ''}`} key={panel.id}>
-            <div className={styles.previewHead}>
-              <span className={styles.previewTitle}>{panel.title || 'Untitled'}</span>
-              <span className={`${styles.previewSourceChip} ${live ? styles.previewLive : ''}`}>{live ? '● live' : 'sample'}</span>
-            </div>
-            <PanelBody panel={panel} runtime={runtime} />
-            {showLogs && runs.length > 0 && <PanelLogs runs={runs} />}
-          </div>
-        );
-      })}
-    </div>
+    <LiveBrainSurface
+      panels={display}
+      arrangement={arrangement}
+      selectedId={selectedId}
+      emptyLabel="No panels yet. Add one to see it here."
+      footerFor={showLogs
+        ? (p) => {
+            const runs = runsByPanel?.[p.id] ?? [];
+            return runs.length ? <PanelLogs runs={runs} /> : null;
+          }
+        : undefined}
+    />
   );
 }
