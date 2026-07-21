@@ -1,0 +1,28 @@
+.card {
+  background: var(--ai-surface);
+  border: 1px solid var(--ai-border);
+  border-radius: 16px;
+  padding: 22px 26px;
+}
+.title { font: 700 16px var(--ai-font-head); color: var(--ai-text); margin-bottom: 14px; }
+
+.step { display: flex; gap: 14px; }
+.railCol { display: flex; flex-direction: column; align-items: center; }
+.num {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--ai-accent-soft); color: var(--ai-accent);
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.line { width: 2px; flex: 1; background: var(--ai-accent-soft); }
+.stepBody { padding-bottom: 16px; }
+.stepTitle { font-size: 13.5px; font-weight: 600; color: var(--ai-text); }
+.stepDesc { font-size: 12.5px; color: var(--ai-text-dim); line-height: 1.55; margin-top: 3px; }
+
+.actions { display: flex; gap: 8px; margin-top: 16px; border-top: 1px solid var(--ai-border-soft); padding-top: 14px; }
+.actionBtn {
+  font-size: 12px; font-weight: 600; color: var(--ai-accent);
+  border: 1px solid #E2D6F5; border-radius: 999px; padding: 6px 13px;
+  background: transparent; cursor: pointer;
+}

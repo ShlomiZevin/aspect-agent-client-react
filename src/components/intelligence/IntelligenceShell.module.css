@@ -1,0 +1,202 @@
+/*
+ * Aspect Intelligence — self-contained visual system, separate from Aspect BI
+ * (BIShell.module.css). Light-first (the approved design is light/lavender);
+ * dark mode is a reasonable inversion, not separately designed.
+ */
+.shell {
+  --ai-bg: #EFEAF5;
+  --ai-shell-bg: #F8F5FC;
+  --ai-surface: #ffffff;
+  --ai-border: #EAE3F3;
+  --ai-border-soft: #F3EDFA;
+  --ai-text: #241A38;
+  --ai-text-dim: #6E6584;
+  --ai-text-mute: #8B80A0;
+  --ai-accent: #7C3AED;
+  --ai-accent-2: #C026D3;
+  --ai-accent-soft: #F1EAFA;
+  --ai-accent-soft-2: #FBEDFA;
+  --ai-grad: linear-gradient(135deg, #7C3AED, #C026D3);
+  --ai-grad-mark: linear-gradient(135deg, #8B5CF6, #D946EF);
+  --ai-success: #12996B;
+  --ai-success-2: #22C55E;
+  --ai-negative: #C2410C;
+  --ai-negative-2: #E0752E;
+  --ai-panel-dark: #241A38;
+  --ai-panel-dark-text: #D8CCEF;
+  --ai-shadow-sm: 0 2px 8px rgba(20, 22, 42, 0.06);
+  --ai-shadow: 0 18px 44px -16px rgba(30, 34, 70, 0.16);
+  --ai-font-head: 'Schibsted Grotesk', system-ui, sans-serif;
+  --ai-font-body: 'Public Sans', system-ui, sans-serif;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--ai-bg);
+  color: var(--ai-text);
+  font-family: var(--ai-font-body);
+  /* html/body/#root are `overflow: hidden` globally (styles/global.css) for
+   * the main chat app's fixed-height layout — this page scrolls internally
+   * instead of relying on page scroll, which that global rule blocks. */
+  overflow: hidden;
+}
+
+.shell[data-mode='dark'] {
+  --ai-bg: #100b1c;
+  --ai-shell-bg: #17111f;
+  --ai-surface: #1e1730;
+  --ai-border: rgba(255, 255, 255, 0.09);
+  --ai-border-soft: rgba(255, 255, 255, 0.05);
+  --ai-text: #EDE7F6;
+  --ai-text-dim: #B9AECB;
+  --ai-text-mute: #8B80A0;
+  --ai-accent-soft: rgba(139, 92, 246, 0.16);
+  --ai-accent-soft-2: rgba(192, 38, 211, 0.14);
+  --ai-panel-dark: #0c0816;
+  --ai-shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --ai-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.55);
+}
+
+/* ── header ──────────────────────────────────────────────── */
+.header {
+  background: var(--ai-surface);
+  border-bottom: 1px solid var(--ai-border);
+  flex-shrink: 0;
+}
+.headerRow {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  padding: 0 32px;
+  height: 64px;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--ai-grad-mark);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 800 13px var(--ai-font-head);
+  flex-shrink: 0;
+}
+.brandText { line-height: 1.15; }
+.brandName { font: 700 15px var(--ai-font-head); color: var(--ai-text); }
+.brandSub { font-size: 11px; color: var(--ai-text-mute); }
+
+.nav { display: flex; gap: 4px; font-size: 13.5px; font-weight: 600; }
+.navBtn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  color: var(--ai-text-dim);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font: 600 13.5px var(--ai-font-body);
+}
+.navBtn:hover { color: var(--ai-text); }
+.navActive { background: var(--ai-accent-soft); color: var(--ai-accent); }
+
+.headerRight { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.langBadge {
+  height: 38px;
+  padding: 0 13px;
+  border: 1px solid var(--ai-border);
+  border-radius: 10px;
+  background: var(--ai-shell-bg);
+  display: flex;
+  align-items: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ai-text);
+  font-family: var(--ai-font-body);
+  cursor: pointer;
+}
+.langBadge:hover { border-color: var(--ai-border); background: var(--ai-accent-soft); }
+.iconBtn {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--ai-border);
+  border-radius: 10px;
+  background: var(--ai-shell-bg);
+  color: var(--ai-text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.iconBtn:hover { color: var(--ai-text); }
+.onlineDot { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ai-text); font-weight: 600; padding-left: 4px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ai-success-2); }
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #C4B5FD, #F0ABFC);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 12px var(--ai-font-body);
+  color: #4C1D95;
+}
+
+.breadcrumbRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 32px;
+  border-top: 1px solid var(--ai-border-soft);
+  font-size: 12px;
+  color: var(--ai-text-mute);
+}
+.crumb { font-weight: 600; }
+.crumbActive { color: var(--ai-accent); }
+.crumbSep { color: #D3C6E8; }
+.syncInfo { margin-left: auto; }
+.syncInfo b { color: var(--ai-text); font-weight: 600; }
+
+/* ── body ────────────────────────────────────────────────── */
+.body { flex: 1; min-height: 0; overflow-y: auto; background: var(--ai-shell-bg); }
+
+/* ── floating chat launcher (persistent across all internal pages) ── */
+.launcherWrap { position: fixed; right: 36px; bottom: 24px; display: flex; align-items: center; gap: 12px; z-index: 20; }
+.teaser {
+  background: var(--ai-surface);
+  border: 1px solid var(--ai-border);
+  border-radius: 12px;
+  padding: 11px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ai-text);
+  box-shadow: 0 6px 24px rgba(76, 29, 149, .14);
+}
+.teaser span { color: var(--ai-text-mute); font-weight: 500; }
+.orb {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--ai-grad-mark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 24px;
+  border: none;
+  cursor: pointer;
+  animation: ai-ring 2.6s ease-out infinite;
+}
+@keyframes ai-ring {
+  0% { box-shadow: 0 10px 30px rgba(192, 38, 211, .35), 0 0 0 0 rgba(192, 38, 211, .4); }
+  70% { box-shadow: 0 10px 30px rgba(192, 38, 211, .35), 0 0 0 16px rgba(192, 38, 211, 0); }
+  100% { box-shadow: 0 10px 30px rgba(192, 38, 211, .35), 0 0 0 0 rgba(192, 38, 211, 0); }
+}
+
+@media (max-width: 900px) {
+  .headerRow { flex-wrap: wrap; height: auto; padding: 12px 16px; gap: 12px; }
+  .nav { order: 3; width: 100%; overflow-x: auto; }
+  .breadcrumbRow { padding: 8px 16px; }
+}

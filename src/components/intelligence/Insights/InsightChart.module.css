@@ -1,0 +1,55 @@
+.card {
+  background: var(--ai-surface);
+  border: 1px solid var(--ai-border);
+  border-radius: 16px;
+  padding: 22px 26px;
+}
+.head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.title { font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--ai-text-mute); }
+
+.switcher { margin-left: auto; display: flex; border: 1px solid var(--ai-border); border-radius: 9px; overflow: hidden; }
+.switchBtn {
+  display: flex; align-items: center; gap: 6px; padding: 8px 14px;
+  font-size: 12px; font-weight: 600; color: var(--ai-text-mute);
+  background: transparent; border: none; border-left: 1px solid var(--ai-border); cursor: pointer;
+}
+.switchBtn:first-child { border-left: none; }
+.switchActive { background: var(--ai-accent-soft); color: var(--ai-accent); }
+
+.chartArea { min-height: 240px; display: flex; align-items: stretch; }
+
+/* X-axis category labels — plain HTML below the SVG, not text drawn inside
+ * it: the chart's viewBox uses preserveAspectRatio="none" so it can stretch
+ * to fill the card width, which would distort/skew real SVG <text>. */
+.categoryLabels { display: flex; margin-top: 6px; padding: 0 2px; }
+.categoryLabels span {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--ai-text-mute);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+}
+
+.legend { display: flex; gap: 20px; font-size: 12px; color: var(--ai-text-dim); margin-top: 10px; flex-wrap: wrap; }
+.legendItem { font-weight: 600; }
+.sourceNote { margin-left: auto; color: var(--ai-text-mute); font-weight: 400; }
+
+/* Pie gets its own legend (see PieLegend in InsightChart.tsx) — a list, not
+ * inline chips, since it needs to carry a swatch + label + value + % per
+ * slice, which won't fit as one-line chips once there are more than 2-3. */
+.pieLegend { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; max-width: 380px; margin-left: auto; margin-right: auto; }
+.pieLegendRow { display: flex; align-items: center; gap: 10px; padding: 6px 4px; font-size: 12.5px; }
+.pieLegendRow + .pieLegendRow { border-top: 1px solid var(--ai-border-soft); }
+.pieLegendSwatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.pieLegendLabel { flex: 1; min-width: 0; color: var(--ai-text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pieLegendValue { color: var(--ai-text-dim); white-space: nowrap; }
+.pieLegendPct { color: var(--ai-text-mute); font-weight: 700; width: 38px; text-align: right; flex-shrink: 0; }
+
+.table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.table th, .table td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--ai-border-soft); }
+.table th { color: var(--ai-text-mute); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+.table td { color: var(--ai-text); }

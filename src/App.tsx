@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, AspectAgentsHomePage, ArchitecturePage, AspectBattleCardPage, AspectMarketingSalesPage, AspectPage, AspectLandingPage, AspectPlatformLandingPage, AspectPlatformSalesPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaNextPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiBrainPage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage, ZolStockPage, TevaNaotPage } from './pages';
+import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, AspectAgentsHomePage, ArchitecturePage, AspectBattleCardPage, AspectMarketingSalesPage, AspectPage, AspectLandingPage, AspectPlatformLandingPage, AspectPlatformSalesPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaNextPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiBrainPage, LybiKnowledgePage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage, HyperToyChatWidgetPage, ZolStockPage, TevaNaotPage } from './pages';
 
 // Builder lives in its own subtree — lazy so end-user routes don't pay for it.
 const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ default: m.BuilderPage })));
@@ -15,6 +15,11 @@ const EmbedPage = lazy(() => import('./pages/EmbedPage').then(m => ({ default: m
 // Aspect BI — standalone BI tool over customer data schemas. Lazy so agent
 // routes don't pay for the charting code.
 const BIPage = lazy(() => import('./pages/BIPage').then(m => ({ default: m.BIPage })));
+
+// Aspect Intelligence — proactive AI-investigation insights product, separate
+// from Aspect BI. Lazy for the same reason (own chart/rendering code).
+const IntelligencePage = lazy(() => import('./pages/IntelligencePage').then(m => ({ default: m.IntelligencePage })));
+const IntelligenceHomePage = lazy(() => import('./pages/IntelligenceHomePage').then(m => ({ default: m.IntelligenceHomePage })));
 
 const ZER4U_MAINTENANCE = false;
 
@@ -256,6 +261,10 @@ function AppContent() {
         <Route path="/thestock/conversations/:conversationId" element={<TheStockPage />} />
         <Route path="/hypertoy" element={<HyperToyPage />} />
         <Route path="/hypertoy/conversations/:conversationId" element={<HyperToyPage />} />
+        {/* Compact chat for the Aspect Intelligence floating widget iframe — same
+            conversation/history as /hypertoy, no header/sidebar chrome. */}
+        <Route path="/hypertoy/chat-widget" element={<HyperToyChatWidgetPage />} />
+        <Route path="/hypertoy/chat-widget/conversations/:conversationId" element={<HyperToyChatWidgetPage />} />
         <Route path="/zolstock" element={<ZolStockPage />} />
         <Route path="/zolstock/conversations/:conversationId" element={<ZolStockPage />} />
         <Route path="/tevanaot" element={<TevaNaotPage />} />
@@ -281,6 +290,40 @@ function AppContent() {
           element={
             <Suspense fallback={<div style={{ padding: 40 }}>Loading BI…</div>}>
               <BIPage />
+            </Suspense>
+          }
+        />
+
+        {/* Aspect Intelligence - proactive AI-investigation insights (separate from Aspect BI) */}
+        <Route
+          path="/intelligence"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <IntelligenceHomePage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/intelligence/:datasetId"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <IntelligencePage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/intelligence/:datasetId/insight/:insightId"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <IntelligencePage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/intelligence/:datasetId/chat"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <IntelligencePage />
             </Suspense>
           }
         />

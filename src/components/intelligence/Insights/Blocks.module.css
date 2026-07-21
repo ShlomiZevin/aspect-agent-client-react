@@ -1,0 +1,47 @@
+/* Shared card look for the new dynamic block types — same visual language
+ * as InsightDetail's scenario cards (white surface, 14px radius, top-border
+ * accent), reused here so ranked_list/stat_callout/comparison read as part
+ * of the same system even though they're new components. */
+.card {
+  background: var(--ai-surface);
+  border: 1px solid var(--ai-border);
+  border-radius: 14px;
+  padding: 20px 22px;
+}
+.blockTitle { font: 700 15px var(--ai-font-head); color: var(--ai-text); margin-bottom: 14px; }
+
+/* ── ranked list ─────────────────────────────────────────── */
+.rankRow { display: flex; align-items: center; gap: 12px; padding: 9px 0; }
+.rankRow + .rankRow { border-top: 1px solid var(--ai-border-soft); }
+.rankNum {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  background: var(--ai-accent-soft); color: var(--ai-accent);
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.rankBody { flex: 1; min-width: 0; }
+.rankLabel { font-size: 13px; font-weight: 600; color: var(--ai-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rankBarTrack { height: 5px; border-radius: 3px; background: var(--ai-border-soft); margin-top: 6px; overflow: hidden; }
+.rankBarFill { height: 100%; border-radius: 3px; background: var(--ai-grad); }
+.rankValue { font: 700 13.5px var(--ai-font-head); color: var(--ai-text); flex-shrink: 0; white-space: nowrap; }
+
+/* ── stat callout ────────────────────────────────────────── */
+.statCallout { display: flex; flex-direction: column; gap: 6px; }
+.statValue { font: 700 40px var(--ai-font-head); color: var(--ai-text); line-height: 1.1; }
+.statLabel { font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--ai-text-mute); text-transform: uppercase; }
+.statDesc { font-size: 13.5px; color: var(--ai-text-dim); line-height: 1.6; margin-top: 4px; }
+
+/* ── comparison ──────────────────────────────────────────── */
+.comparisonGrid { display: grid; gap: 14px; grid-template-columns: repeat(var(--ai-cmp-cols, 3), 1fr); }
+.comparisonCard { background: var(--ai-surface); border: 1px solid var(--ai-border); border-top: 3px solid var(--ai-text-mute); border-radius: 14px; padding: 18px; }
+.comparisonCard.positive { border-top-color: var(--ai-success); }
+.comparisonCard.negative { border-top-color: var(--ai-negative); }
+.comparisonLabel { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--ai-text-mute); text-transform: uppercase; }
+.comparisonValue { font: 700 24px var(--ai-font-head); color: var(--ai-text); margin-top: 8px; }
+.comparisonValue.positive { color: var(--ai-success); }
+.comparisonValue.negative { color: var(--ai-negative); }
+.comparisonSub { font-size: 12px; color: var(--ai-text-dim); margin-top: 6px; line-height: 1.5; }
+
+@media (max-width: 1000px) {
+  .comparisonGrid { grid-template-columns: 1fr; }
+}

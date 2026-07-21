@@ -1,0 +1,115 @@
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 14, 34, 0.28);
+  z-index: 50;
+}
+.panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 440px;
+  max-width: 90vw;
+  background: var(--ai-surface);
+  border-left: 1px solid #E2D6F5;
+  box-shadow: -24px 0 60px -12px rgba(30, 34, 70, 0.35);
+  z-index: 51;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+:global([data-mode='dark']) .panel { border-left-color: rgba(196, 181, 253, 0.28); }
+
+.head { display: flex; align-items: center; gap: 10px; padding: 20px 24px 0; }
+.kicker {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .08em; color: var(--ai-accent);
+  background: var(--ai-accent-soft); border: 1px solid #E2D6F5; padding: 4px 10px; border-radius: 999px;
+}
+:global([data-mode='dark']) .kicker { border-color: rgba(196, 181, 253, 0.28); }
+.statusRunning, .statusError, .statusDone {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--ai-text-mute);
+}
+.statusError { color: #DC2626; }
+.statusDone { color: #12996B; }
+.statusDot { width: 6px; height: 6px; border-radius: 50%; background: var(--ai-accent); }
+.statusError .statusDot { background: #DC2626; }
+.statusDone .statusDot { background: #12996B; animation: none; }
+.closeBtn { margin-left: auto; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--ai-border); background: var(--ai-surface); color: var(--ai-text-dim); cursor: pointer; }
+
+.title { font: 700 20px var(--ai-font-head); color: var(--ai-text); padding: 12px 22px 0; line-height: 1.35; }
+.meta { font-size: 12px; color: var(--ai-text-mute); padding: 8px 22px 0; }
+
+.progressBlock { margin: 18px 24px 0; padding: 14px 16px; border-radius: 12px; background: #F8F5FC; border: 1px solid #EEE7F6; }
+:global([data-mode='dark']) .progressBlock { background: rgba(139, 92, 246, 0.08); border-color: rgba(255, 255, 255, 0.06); }
+.progressLabelRow { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ai-text); margin-bottom: 9px; font-weight: 700; }
+.progressLabelRow b { color: var(--ai-accent); font: 700 16px var(--ai-font-head); }
+.progressTrack { height: 7px; border-radius: 4px; background: #EEE7F6; overflow: hidden; }
+:global([data-mode='dark']) .progressTrack { background: rgba(255, 255, 255, 0.08); }
+/* Flowing diagonal stripes, not a flat fill — the width stops changing once
+   the fake ramp hits its cap, long before the real investigation finishes,
+   so without this motion the bar reads as frozen for the whole remaining wait. */
+.progressFill {
+  height: 100%;
+  border-radius: 4px;
+  background: repeating-linear-gradient(45deg, #8B5CF6 0 12px, #A78BFA 12px 24px);
+  background-size: 48px 100%;
+  animation: ai-sidebar-flow 1.2s linear infinite;
+  transition: width .3s linear;
+}
+@keyframes ai-sidebar-flow { 0% { background-position: 0 0; } 100% { background-position: 48px 0; } }
+.progressSub { font-size: 11.5px; color: var(--ai-text-mute); margin-top: 8px; }
+
+/* Completed: same block, all green, fill solid (not the "still working"
+   flowing stripes — that motion is exactly wrong once it's actually done). */
+.progressBlockDone { background: #F0FBF6; border-color: #BFE8D5; }
+:global([data-mode='dark']) .progressBlockDone { background: rgba(18, 153, 107, 0.12); border-color: rgba(18, 153, 107, 0.35); }
+.progressPctDone { color: #12996B !important; }
+.progressFillDone { background: #12996B; animation: none; }
+
+.stepsTitle { font-size: 11px; font-weight: 700; letter-spacing: .1em; color: #B9AECB; padding: 22px 24px 14px; }
+:global([data-mode='dark']) .stepsTitle { color: var(--ai-text-mute); }
+.steps { padding: 0 24px; display: flex; flex-direction: column; }
+.step { display: flex; gap: 14px; }
+.stepCol { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+/* The connecting line between step circles — without it this is just a list
+   with numbers, not the timeline the mockup shows connecting each step to
+   the next. */
+.stepLine { width: 2px; flex: 1; min-height: 18px; background: #EEE7F6; }
+:global([data-mode='dark']) .stepLine { background: rgba(255, 255, 255, 0.08); }
+.stepDone .stepLine { background: #BFE8D5; }
+.stepIcon {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800;
+}
+.stepDone .stepIcon { background: #12996B; color: #fff; }
+.stepActive .stepIcon { background: var(--ai-accent); color: #fff; }
+.stepActive .stepIcon::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: ai-badge-pulse 1.2s infinite; }
+.stepPending .stepIcon { background: var(--ai-accent-soft); color: var(--ai-text-mute); }
+.stepBody { flex: 1; padding-bottom: 18px; }
+.stepLabel { font-size: 13.5px; font-weight: 600; color: var(--ai-text); }
+.stepActive .stepLabel { font-weight: 700; color: var(--ai-accent); }
+.stepPending .stepLabel { color: var(--ai-text-mute); }
+.stepDesc { font-size: 12px; color: var(--ai-text-mute); margin-top: 2px; line-height: 1.5; }
+.stepActive .stepDesc { color: var(--ai-text-dim); }
+.stepTime { font-size: 11px; color: var(--ai-text-mute); margin-left: 8px; }
+
+.errorBox { margin: 18px 24px 0; padding: 14px 16px; border-radius: 12px; background: #FDF3F1; border: 1px solid #F3CBC2; color: #9A2C1B; font-size: 13px; }
+:global([data-mode='dark']) .errorBox { background: rgba(220, 38, 38, 0.12); border-color: rgba(220, 38, 38, 0.35); }
+
+.footer { margin-top: auto; padding: 16px 24px; border-top: 1px solid #F1EAFA; display: flex; gap: 10px; }
+:global([data-mode='dark']) .footer { border-top-color: var(--ai-border-soft); }
+.cancelBtn {
+  flex: 1; padding: 11px; border-radius: 10px; border: 1px solid var(--ai-border);
+  background: transparent; color: var(--ai-text-mute); font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.restartBtn {
+  flex: 1; padding: 11px; border-radius: 10px; border: none;
+  background: var(--ai-grad); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.reviewBtn {
+  flex: 1; padding: 11px; border-radius: 10px; border: none;
+  background: #12996B; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+}

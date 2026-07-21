@@ -1,0 +1,92 @@
+.wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--ai-surface);
+}
+
+.hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 30px 8px; }
+.mark {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--ai-grad-mark, var(--ai-grad));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 10px 26px rgba(139, 92, 246, .35);
+  margin-bottom: 16px;
+}
+.title { font: 700 21px var(--ai-font-head); color: var(--ai-text); }
+.subtitle { font-size: 13px; color: var(--ai-text-mute); margin-top: 8px; max-width: 380px; }
+
+.questionsLabel { font: 700 11px var(--ai-font-head); letter-spacing: .08em; color: var(--ai-text-mute); text-align: center; margin: 26px 0 14px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 0 24px;
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--ai-border);
+  background: var(--ai-shell-bg, var(--ai-accent-soft));
+  color: var(--ai-text);
+  cursor: pointer;
+  font-family: var(--ai-font-body);
+}
+.tile:hover { border-color: var(--ai-accent); background: var(--ai-accent-soft); }
+.tileIcon { color: var(--ai-accent); }
+.tileLabel { font-size: 12px; font-weight: 600; text-align: center; line-height: 1.3; }
+
+.spacer { flex: 1; min-height: 20px; }
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 24px 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--ai-border);
+  background: var(--ai-surface);
+}
+.input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13.5px;
+  color: var(--ai-text);
+  font-family: var(--ai-font-body);
+}
+.input::placeholder { color: var(--ai-text-mute); }
+.micIcon { color: var(--ai-text-mute); flex-shrink: 0; }
+.sendBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: var(--ai-grad);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sendBtn:disabled { opacity: .5; cursor: default; }
+
+.hint { font-size: 10.5px; color: var(--ai-text-mute); text-align: right; margin: 0 24px 14px; }
+
+@media (max-width: 640px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+}
