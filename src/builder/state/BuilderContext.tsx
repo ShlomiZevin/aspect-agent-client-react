@@ -615,15 +615,14 @@ interface BuilderState {
   setPendingSeed: (field: string, value: unknown, domain?: string) => void;
   clearPendingSeed: (field: string) => void;
 
-  // Live Brain — the render-ready panel list for the preview
-  // conversation, pushed live off the chat stream. UserChat calls
-  // `applyLiveBrainSnapshot` on each `brain.snapshot` SSE event; the
-  // Live Brain screen reads `liveBrainSnapshot` to update its panels
-  // the instant they compute (no refetch). `seq` bumps every push so
-  // consumers can react even when the panel array is deep-equal. Reset
-  // to null whenever the preview conversation changes.
-  liveBrainSnapshot: { panels: LiveBrainPanelData[]; seq: number } | null;
-  applyLiveBrainSnapshot: (panels: LiveBrainPanelData[]) => void;
+  // Live Brain — per-panel updates pushed live off the chat stream.
+  // UserChat calls `applyLiveBrainPanel` on each `brain.panel` SSE event;
+  // the Live Brain screen reads `liveBrainPanelEvent` and merges that one
+  // panel into its preview (with its own animation). `seq` bumps every
+  // push so the effect fires even for a repeat value. `panel: null`
+  // clears/hides the panel. Reset when the preview conversation changes.
+  liveBrainPanelEvent: { panelId: string; panel: LiveBrainPanelData | null; seq: number } | null;
+  applyLiveBrainPanel: (panelId: string, panel: LiveBrainPanelData | null) => void;
 
   // Live brain state for the preview conversation. Two parallel
   // sections: `memory` (facts the brain remembers) and `thinking`
@@ -794,12 +793,12 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   // the chat stream (see `applyLiveBrainSnapshot`). Cleared when the
   // preview conversation changes so a newly-opened chat doesn't briefly
   // show the previous one's panels before its own first snapshot.
-  const [liveBrainSnapshot, setLiveBrainSnapshot] =
-    useState<{ panels: LiveBrainPanelData[]; seq: number } | null>(null);
-  const applyLiveBrainSnapshot = useCallback((panels: LiveBrainPanelData[]) => {
-    setLiveBrainSnapshot(prev => ({ panels, seq: (prev?.seq ?? 0) + 1 }));
+  const [liveBrainPanelEvent, setLiveBrainPanelEvent] =
+    useState<{ panelId: string; panel: LiveBrainPanelData | null; seq: number } | null>(null);
+  const applyLiveBrainPanel = useCallback((panelId: string, panel: LiveBrainPanelData | null) => {
+    setLiveBrainPanelEvent(prev => ({ panelId, panel, seq: (prev?.seq ?? 0) + 1 }));
   }, []);
-  useEffect(() => { setLiveBrainSnapshot(null); }, [previewConversationId]);
+  useEffect(() => { setLiveBrainPanelEvent(null); }, [previewConversationId]);
 
   // Live brain state for the preview conversation. The chat panel
   // calls refreshConversationMemory after each turn, and the
@@ -2399,8 +2398,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       pendingSeeds,
       setPendingSeed,
       clearPendingSeed,
-      liveBrainSnapshot,
-      applyLiveBrainSnapshot,
+      liveBrainPanelEvent,
+      applyLiveBrainPanel,
       conversationMemory,
       refreshConversationMemory,
       updateConversationMemoryField,
@@ -2468,8 +2467,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       applyAlfredBodies,
       previewConversationId,
       pendingSeeds,
-      liveBrainSnapshot,
-      applyLiveBrainSnapshot,
+      liveBrainPanelEvent,
+      applyLiveBrainPanel,
       conversationMemory,
       refreshConversationMemory,
       updateConversationMemoryField,

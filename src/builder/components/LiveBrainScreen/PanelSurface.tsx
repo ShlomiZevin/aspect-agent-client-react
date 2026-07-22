@@ -12,7 +12,7 @@
  * --lb-* vars set on .surface.
  */
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { PanelRender } from '../../types';
 import { PanelBody, type PanelValues } from './PanelTemplates';
 import s from './PanelSurface.module.css';
@@ -45,24 +45,44 @@ function splitIcon(title: string, render: PanelRender): { icon: string; label: s
 function Card({ panel, selected, footer }: { panel: DisplayPanel; selected?: boolean; footer?: ReactNode }) {
   const [open, setOpen] = useState(true);
   const { icon, label } = splitIcon(panel.title, panel.render);
+
+  // "Just updated" cue — when the panel's content changes, replay a
+  // one-shot magenta ring pulse (Noa's softPulse) so the eye is drawn to
+  // what changed. `pulseKey` bumps to restart the animation each time.
+  const [pulseKey, setPulseKey] = useState(0);
+  const prevContent = useRef<string | undefined>(undefined);
+  const content = JSON.stringify(panel.text ?? panel.values ?? null);
+  useEffect(() => {
+    if (prevContent.current === undefined) { prevContent.current = content; return; }
+    if (prevContent.current !== content) {
+      prevContent.current = content;
+      setPulseKey(k => k + 1);
+    }
+  }, [content]);
+
   return (
-    <section className={`${s.card} ${selected ? s.cardSel : ''}`}>
-      <button type="button" className={s.cardHead} onClick={() => setOpen(o => !o)}>
-        <span className={s.cardIcon} aria-hidden>{icon}</span>
-        <span className={s.cardTitle}>{label}</span>
-        <span className={s.spacer} />
-        <span className={s.typePill}>{TYPE_LABEL[panel.render] ?? panel.render}</span>
-        <span className={s.chev}>{open ? '▾' : '▸'}</span>
-      </button>
-      {open && (
-        <>
-          <div className={`${s.cardBody} ${panel.render === 'text' ? s.narrative : ''}`}>
-            <PanelBody render={panel.render} text={panel.text} values={panel.values} />
-          </div>
-          {footer}
-        </>
-      )}
-    </section>
+    <div className={s.cardWrap}>
+      {/* Gentle "just updated" blink — a soft tint that fades in/out over
+          the card body. Sibling overlay; remounting via key replays it. */}
+      {pulseKey > 0 && <span key={pulseKey} className={s.pulse} aria-hidden />}
+      <section className={`${s.card} ${selected ? s.cardSel : ''}`}>
+        <button type="button" className={s.cardHead} onClick={() => setOpen(o => !o)}>
+          <span className={s.cardIcon} aria-hidden>{icon}</span>
+          <span className={s.cardTitle}>{label}</span>
+          <span className={s.spacer} />
+          <span className={s.typePill}>{TYPE_LABEL[panel.render] ?? panel.render}</span>
+          <span className={s.chev}>{open ? '▾' : '▸'}</span>
+        </button>
+        {open && (
+          <>
+            <div className={`${s.cardBody} ${panel.render === 'text' ? s.narrative : ''}`}>
+              <PanelBody render={panel.render} text={panel.text} values={panel.values} />
+            </div>
+            {footer}
+          </>
+        )}
+      </section>
+    </div>
   );
 }
 

@@ -6,18 +6,17 @@
  * the supplied handler.
  */
 
-import { runtimeMessageStream, type LiveBrainPanelData, type LiveBrainFrame } from './builderApi';
+import { runtimeMessageStream, type LiveBrainPanelData } from './builderApi';
 
 export type RuntimeEvent =
   | { type: 'conversation'; conversationId: number; messageId: number; currentCrewId?: string | null }
   /**
-   * Live Brain update — emitted once at the end of a turn (offline
-   * phase) with the render-ready, filter-applied panel list. The client
-   * swaps its Live Brain panels to this, exactly like a chat message
-   * arrives on the stream. Hidden panels are simply absent. This is what
-   * lets the panels update live off the chat stream with no refetch.
+   * Live Brain update — emitted PER PANEL the moment its value is ready
+   * (not one batched snapshot), so the client can pop/animate panels one
+   * by one. `panel: null` clears/hides that panel; `index` is its stable
+   * position for ordering.
    */
-  | { type: 'brain.snapshot'; panels: LiveBrainPanelData[]; frame?: LiveBrainFrame | null }
+  | { type: 'brain.panel'; panelId: string; index: number; panel: LiveBrainPanelData | null }
   | { type: 'addon.start'; instanceId: string; pluginId: string; lane: string; label?: string;
       model?: unknown;
       modelLabel?: { providerName: string; modelName: string } | null }

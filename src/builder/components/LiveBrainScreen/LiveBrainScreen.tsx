@@ -45,18 +45,20 @@ const DEFAULT_HISTORY: HistoryMode = { mode: 'last_n', n: 10 };
 const DEFAULT_TRIGGER: OfflineTrigger = { kind: 'every_n_messages', n: 3 };
 const EMPTY_FILTER: AddonFilter = { conditions: [], mode: 'include' };
 
-/** Render-ready panel list (from the snapshot / initial fetch) → the
- *  by-id value map the preview renders. */
+/** One render-ready panel → its by-id value entry. */
+function panelToEntry(p: LiveBrainPanelData): LiveBrainPanelEntry {
+  return {
+    render: p.render,
+    ...(p.text   !== undefined ? { text:   p.text }   : {}),
+    ...(p.values !== undefined ? { values: p.values } : {}),
+    ranAt: p.ranAt,
+  };
+}
+
+/** Render-ready panel list (from the initial fetch) → the by-id value map. */
 function panelListToMap(list: LiveBrainPanelData[]): Record<string, LiveBrainPanelEntry> {
   const map: Record<string, LiveBrainPanelEntry> = {};
-  for (const p of list) {
-    map[p.id] = {
-      render: p.render,
-      ...(p.text   !== undefined ? { text:   p.text }   : {}),
-      ...(p.values !== undefined ? { values: p.values } : {}),
-      ranAt: p.ranAt,
-    };
-  }
+  for (const p of list) map[p.id] = panelToEntry(p);
   return map;
 }
 
@@ -259,7 +261,7 @@ function TriggerSelect({ trigger, onChange }: { trigger: OfflineTrigger; onChang
 }
 
 export function LiveBrainScreen() {
-  const { doc, updateAgent, previewConversationId, liveBrainSnapshot } = useBuilder();
+  const { doc, updateAgent, previewConversationId, liveBrainPanelEvent } = useBuilder();
   const confirm = useConfirm();
   const agent = doc.agents[0];
   const slug = agent?.slug;
@@ -314,14 +316,21 @@ export function LiveBrainScreen() {
     return () => { cancelled = true; };
   }, [slug, previewConversationId, ownerUserId]);
 
-  // Live: each turn's `brain.snapshot` swaps the values instantly (no
-  // refetch); the persisted run logs are pulled on the same beat.
+  // Live: each `brain.panel` event merges ONE panel (panel by panel, so
+  // its card animates on its own); the persisted run logs are pulled on
+  // the same beat.
   useEffect(() => {
-    if (!liveBrainSnapshot) return;
-    setLiveValues(panelListToMap(liveBrainSnapshot.panels));
+    if (!liveBrainPanelEvent) return;
+    const { panelId, panel } = liveBrainPanelEvent;
+    setLiveValues(prev => {
+      const next = { ...prev };
+      if (panel) next[panelId] = panelToEntry(panel);
+      else delete next[panelId];
+      return next;
+    });
     void loadRuns();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveBrainSnapshot]);
+  }, [liveBrainPanelEvent]);
 
   if (!agent) return <div className={styles.screen}>No agent loaded.</div>;
 

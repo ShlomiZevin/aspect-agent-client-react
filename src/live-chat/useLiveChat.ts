@@ -9,7 +9,7 @@
  * the caller (customer surfaces pass `'published'`).
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   createConversation,
   deleteConversation as apiDeleteConversation,
@@ -134,6 +134,14 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
   const [error, setError] = useState<string | null>(null);
   const [livePanels, setLivePanels] = useState<LiveBrainPanelData[]>([]);
   const [liveFrame, setLiveFrame] = useState<LiveBrainFrame | null>(null);
+  // Panels merged by id (per-panel live updates); derived into the sorted
+  // `livePanels` array. A ref so the SSE handler always sees the latest.
+  const livePanelsRef = useRef<Map<string, { index: number; panel: LiveBrainPanelData }>>(new Map());
+  const resetLivePanels = useCallback(() => {
+    livePanelsRef.current = new Map();
+    setLivePanels([]);
+    setLiveFrame(null);
+  }, []);
 
   const updateLastTurn = useCallback((mut: (t: LiveTurn) => LiveTurn) => {
     setTurns(prev => {
@@ -158,10 +166,9 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     setTurns([]);
     setConvList([]);
     setError(null);
-    setLivePanels([]);
-    setLiveFrame(null);
+    resetLivePanels();
     reloadConvList();
-  }, [slug, reloadConvList]);
+  }, [slug, reloadConvList, resetLivePanels]);
 
   const handleEvent = useCallback((e: RuntimeEvent) => {
     switch (e.type) {
@@ -192,10 +199,8 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
           const crewId = e.transition?.to ?? t.crewId;
           const pluginId = t.runMap[e.instanceId] ?? 'unknown';
           if (pluginId === 'talker') return { ...t, crewId }; // talker IS the response, not "thinking"
-          // Live Brain panels compute here (offline lane) but they're not
-          // part of the reply's "thinking process" — they belong to the
-          // brain panel, surfaced live via `brain.snapshot` below.
-          if (pluginId === 'live-brain-panel') return { ...t, crewId };
+          // Everything else — including Live Brain panels — is agent
+          // activity worth surfacing in the reasoning trail (live).
           const run: ThinkRun = {
             instanceId: e.instanceId,
             pluginId,
@@ -227,12 +232,16 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
           thinkingLabel: null,
         }));
         return;
-      case 'brain.snapshot':
-        // The whole Live Brain, render-ready, for this turn — swap to it
-        // live (exactly like a chat message). Hidden panels are absent.
-        setLivePanels(e.panels);
-        setLiveFrame(e.frame ?? null);
+      case 'brain.panel': {
+        // Merge one panel as it arrives (panel-by-panel). Hidden/cleared
+        // → remove it. Re-derive the sorted array so the UI updates just
+        // that card (with its own animation).
+        const map = livePanelsRef.current;
+        if (e.panel) map.set(e.panelId, { index: e.index, panel: e.panel });
+        else map.delete(e.panelId);
+        setLivePanels([...map.values()].sort((a, b) => a.index - b.index).map(x => x.panel));
         return;
+      }
       case 'done':
         updateLastTurn(t => ({ ...t, thinkingLabel: null }));
         reloadConvList();
@@ -291,14 +300,17 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
       setConversationId(id);
       // Hydrate the Live Brain from stored state — the ONE fetch this
       // feature needs (past turns didn't stream to this client). New
-      // turns update it live via `brain.snapshot`. Best-effort.
+      // turns update it live, panel by panel, via `brain.panel`.
       try {
         const res = await fetchLiveBrain({ agentSlug: slug, conversationId: id, ownerUserId, version });
-        setLivePanels(Array.isArray(res?.panels) ? res.panels : []);
+        const list = Array.isArray(res?.panels) ? res.panels : [];
+        const map = new Map<string, { index: number; panel: LiveBrainPanelData }>();
+        list.forEach((panel, index) => map.set(panel.id, { index, panel }));
+        livePanelsRef.current = map;
+        setLivePanels(list);
         setLiveFrame(res?.frame ?? null);
       } catch {
-        setLivePanels([]);
-        setLiveFrame(null);
+        resetLivePanels();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load conversation');
@@ -327,8 +339,7 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     if (conversationId !== null && ids.includes(conversationId)) {
       setConversationId(null);
       setTurns([]);
-      setLivePanels([]);
-      setLiveFrame(null);
+      resetLivePanels();
     }
     reloadConvList();
   }, [slug, conversationId, reloadConvList]);
@@ -352,15 +363,16 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     setConversationId(null);
     setTurns([]);
     setError(null);
-    setLivePanels([]);
-    setLiveFrame(null);
-  }, []);
+    resetLivePanels();
+  }, [resetLivePanels]);
 
   const loadThinkRuns = useCallback(async (turn: LiveTurn) => {
     if (turn.thinkLoaded || turn.assistantMessageId === null || !slug) return;
     try {
       const runs = await fetchRunsForMessage({ agentSlug: slug, messageId: turn.assistantMessageId });
       const thinkRuns: ThinkRun[] = runs
+        // Only the talker is excluded (it IS the reply). Everything else,
+        // Live Brain panels included, is agent activity worth showing.
         .filter(r => r.pluginId !== 'talker')
         .map(r => ({
           instanceId: r.instanceId,

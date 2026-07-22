@@ -163,7 +163,7 @@ export function UserChat() {
     setPreviewConversationId,
     refreshConversationMemory,
     applyLocalMemoryWrites,
-    applyLiveBrainSnapshot,
+    applyLiveBrainPanel,
     pendingSeeds,
   } = useBuilder();
   const agent = useCurrentAgent();
@@ -548,11 +548,10 @@ export function UserChat() {
         // to `dcResolutions`); pass through so the SSE switch stays
         // exhaustive and TS doesn't complain.
         return;
-      case 'brain.snapshot':
-        // Live Brain panels finished computing for this turn — push the
-        // render-ready list into context so the Live Brain screen updates
-        // live off this stream (no refetch, no Refresh button).
-        applyLiveBrainSnapshot(e.panels);
+      case 'brain.panel':
+        // One Live Brain panel finished — push it into context so the
+        // Live Brain screen updates just that card (panel by panel).
+        applyLiveBrainPanel(e.panelId, e.panel);
         return;
       case 'done':
         refreshConversationMemory();

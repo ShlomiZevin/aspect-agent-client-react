@@ -55,7 +55,24 @@
 .emptyEmoji { font-size: 30px; opacity: .75; }
 
 /* ── card (Noa's section card) ── */
-.card { background: #fff; border: 1px solid #EAE4F2; border-radius: 14px; box-shadow: 0 1px 3px rgba(26, 10, 56, .05), 0 14px 30px -22px rgba(26, 10, 56, .4); overflow: hidden; }
+.cardWrap { position: relative; }
+/* Gentle "just updated" blink — a soft magenta tint fading in then out
+   over the card body. Sibling overlay so it isn't clipped; replays on key. */
+.pulse { position: absolute; inset: 0; border-radius: 14px; pointer-events: none; z-index: 2; background: rgba(224, 25, 138, .09); animation: lbBlink 1.3s ease forwards; }
+@keyframes lbBlink { 0% { opacity: 0 } 22% { opacity: 1 } 100% { opacity: 0 } }
+/* "Born" — the card materializes: blur-in + a clear scale-up + rise +
+   fade, on a smooth decelerating curve (no bounce). Noticeable but elegant. */
+.card {
+  background: #fff; border: 1px solid #EAE4F2; border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(26, 10, 56, .05), 0 14px 30px -22px rgba(26, 10, 56, .4);
+  overflow: hidden; transform-origin: center top;
+  animation: lbReveal .72s cubic-bezier(.16, 1, .3, 1) both;
+}
+@keyframes lbReveal {
+  0%   { opacity: 0; transform: translateY(16px) scale(.9); filter: blur(6px); }
+  55%  { opacity: 1; }
+  100% { opacity: 1; transform: none; filter: blur(0); }
+}
 .cardSel { border-color: rgba(224, 25, 138, .55); box-shadow: 0 0 0 2px rgba(224, 25, 138, .18); }
 .cardHead { display: flex; align-items: center; gap: 10px; width: 100%; text-align: start; background: none; border: 0; cursor: pointer; padding: 13px 15px; font: inherit; }
 .cardIcon {
@@ -69,3 +86,7 @@
 .cardBody { padding: 2px 15px 15px; }
 /* Noa's narrative card — a magenta accent rail on the inline-start. */
 .narrative { margin: 2px 15px 15px; padding: 0 0 0 13px; border-inline-start: 3px solid #E0198A; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse, .card { animation: none; }
+}
