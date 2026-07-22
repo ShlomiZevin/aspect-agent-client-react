@@ -1,0 +1,71 @@
+/**
+ * PanelSurface — Noa's Profiler look (exact tokens from the file). Sticky
+ * header + card list; the CONTAINER (frame / scrim / drawer) provides the
+ * scroll, border-radius and shadow.
+ *   accent #E0198A · purple #5B1E8A · ink #1A0A38 · muted #9A8FAA
+ *   surface #F2EAF9 · border #EAE4F2 · bar grad 90deg · icon grad 135deg
+ */
+
+.surface {
+  /* Noa palette → the shared PanelBody templates pick these up. */
+  --lb-accent: #E0198A; --lb-accent-2: #5B1E8A;
+  --lb-grad: linear-gradient(90deg, #E0198A, #5B1E8A);
+  --lb-ink: #1A0A38; --lb-muted: #9A8FAA;
+  --lb-line: #EAE4F2; --lb-surface: #F2EAF9; --lb-panel: #fff;
+
+  background: #FBF8FE;
+  height: 100%; min-height: 0;
+  display: flex; flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ── FIXED header — outside the scroll region, so the scrollbar only runs
+   alongside the panels below it (not up next to the title). ── */
+.head {
+  flex: none; box-sizing: border-box; min-height: 70px; /* match the chat top bar */
+  display: flex; align-items: center; gap: 11px;
+  padding: 10px 16px; background: #fff; border-bottom: 1px solid #EAE4F2;
+}
+.logo {
+  width: 38px; height: 38px; flex: none; border-radius: 11px; display: grid; place-items: center;
+  font-size: 19px; color: #fff;
+  background: linear-gradient(135deg, #E0198A, #9A2295 50%, #5B1E8A);
+  box-shadow: 0 7px 16px -7px rgba(224, 25, 138, .6);
+}
+.mark { flex: 1; min-width: 0; }
+.title { font-size: 14px; font-weight: 800; letter-spacing: .05em; color: #1A0A38; }
+.sub { font-size: 11.5px; color: #9A8FAA; margin-top: 2px; }
+.headRight { flex: none; display: flex; align-items: center; gap: 6px; }
+.close {
+  width: 30px; height: 30px; flex: none; border-radius: 100px; border: 1px solid #EAE4F2;
+  background: #fff; color: #9A8FAA; cursor: pointer; font-size: 17px; line-height: 1;
+  display: grid; place-items: center; transition: color .15s, border-color .15s;
+}
+.close:hover { color: #E0198A; border-color: rgba(224, 25, 138, .5); }
+
+/* ── body — the ONLY scroll region ── */
+.body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 14px 14px 22px; }
+.body::-webkit-scrollbar { width: 8px; }
+.body::-webkit-scrollbar-track { background: transparent; }
+.body::-webkit-scrollbar-thumb { background: #E3D7F0; border-radius: 100px; }
+.body::-webkit-scrollbar-thumb:hover { background: #C3B8D4; }
+.sectionLabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .15em; color: #9A8FAA; padding: 2px 2px 11px; }
+.cards { display: flex; flex-direction: column; gap: 11px; }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; color: #9A8FAA; font-size: 13px; line-height: 1.5; padding: 48px 26px; }
+.emptyEmoji { font-size: 30px; opacity: .75; }
+
+/* ── card (Noa's section card) ── */
+.card { background: #fff; border: 1px solid #EAE4F2; border-radius: 14px; box-shadow: 0 1px 3px rgba(26, 10, 56, .05), 0 14px 30px -22px rgba(26, 10, 56, .4); overflow: hidden; }
+.cardSel { border-color: rgba(224, 25, 138, .55); box-shadow: 0 0 0 2px rgba(224, 25, 138, .18); }
+.cardHead { display: flex; align-items: center; gap: 10px; width: 100%; text-align: start; background: none; border: 0; cursor: pointer; padding: 13px 15px; font: inherit; }
+.cardIcon {
+  width: 30px; height: 30px; flex: none; border-radius: 9px; display: grid; place-items: center; font-size: 15px;
+  background: linear-gradient(135deg, rgba(224, 25, 138, .12), rgba(91, 30, 138, .12));
+}
+.cardTitle { font-size: 13px; font-weight: 700; color: #1A0A38; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spacer { flex: 1; }
+.typePill { flex: none; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: #9A8FAA; background: #F2EAF9; border-radius: 100px; padding: 4px 9px; }
+.chev { flex: none; color: #C3B8D4; font-size: 11px; width: 12px; text-align: center; }
+.cardBody { padding: 2px 15px 15px; }
+/* Noa's narrative card — a magenta accent rail on the inline-start. */
+.narrative { margin: 2px 15px 15px; padding: 0 0 0 13px; border-inline-start: 3px solid #E0198A; }

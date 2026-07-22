@@ -7,12 +7,12 @@
   --accent: #7c3aed;
   --accent-soft: #f3ecfe;
   --magenta: #E0198A;
-  padding: 20px 22px 40px;
+  padding: 14px 22px 40px;
   color: var(--ink);
   font-family: inherit;
 }
 
-.head { margin-bottom: 16px; }
+.head { margin-bottom: 10px; }
 .h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
 .sub { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
 
@@ -144,10 +144,11 @@ kbd { font-family: ui-monospace, Menlo, monospace; font-size: 10px; padding: 1px
 .returnsCode { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--accent); line-height: 1.5; word-break: break-word; }
 
 /* ── preview ── */
-.preview { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 12px; }
-.previewHeadRow { display: flex; align-items: baseline; gap: 8px; }
-.previewLabel { font-size: 12px; font-weight: 700; color: var(--ink); }
-.previewSample { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+/* Not sticky itself — the deviceFrame is a fixed-height internal scroll
+   box, so PanelSurface's sticky header can pin cleanly inside it. */
+.preview { display: flex; flex-direction: column; gap: 8px; }
+/* Small sample/live chip that sits in the LYBI header top-right. */
+.sampleChip { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--surface-2); border-radius: 999px; padding: 3px 8px; }
 .previewEmpty { color: var(--muted); font-size: 13px; padding: 20px; border: 1px dashed var(--line); border-radius: 12px; text-align: center; }
 .previewPanels {
   display: flex; flex-direction: column; gap: 10px; padding: 14px;
@@ -300,14 +301,19 @@ kbd { font-family: ui-monospace, Menlo, monospace; font-size: 10px; padding: 1px
 .returnPill:hover .returnPillCta { text-decoration: underline; }
 
 /* ── preview at the width it has on the client, scrolls when tall ── */
-.deviceFrame { width: 340px; max-width: 100%; max-height: calc(100vh - 175px); overflow-y: auto; transition: width .18s ease; }
-/* The panel must read as a real Live Brain panel first — keep the frame
-   near client width even with logs on; just a small bump so the run
-   cards aren't cramped. The AddonRunCards wrap/scroll their own long
-   content, so they don't need a wide frame. */
-.deviceFrameWide { width: 380px; }
-.deviceFrame::-webkit-scrollbar { width: 8px; }
-.deviceFrame::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+/* The preview is a self-contained COMPONENT, not cards printed on the
+   canvas: a soft tinted surface (so the white cards read as a panel), a
+   border, radius + shadow — mirroring the customer's brain drawer. Extra
+   right padding keeps the scrollbar off the cards. */
+/* The inline preview is the SAME PanelSurface as the overlay/customer,
+   just placed in a contained, scrollable frame. PanelSurface owns the
+   header + padding; the frame only sizes + clips + scrolls it. */
+.deviceFrame {
+  width: 500px; max-width: 100%; height: calc(100vh - 84px);
+  overflow: hidden; /* PanelSurface's body scrolls, not the frame */
+  background: #FBF8FE; border: 1px solid var(--line); border-radius: 22px;
+  box-shadow: 0 14px 40px -26px rgba(20, 10, 40, .55);
+}
 
 /* ── stable modal body: sized to the TALLER (AI) mode via min-height so
       switching Text ⇄ AI never resizes the modal — and no scrollbar. ── */

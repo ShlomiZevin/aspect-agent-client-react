@@ -29,7 +29,8 @@ import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../MentionTextarea/useMentionOptions';
 import { FilterEditor } from '../Filter/FilterEditor';
 import { filterShortSummary, filterTooltip, isFilterActive } from '../Filter/filterFormat';
-import { LiveBrainPreview, RENDER_OPTIONS, returnsFor, snippetFor } from './panelRenderers';
+import { LiveBrainPreview, RENDER_OPTIONS, returnsFor, snippetFor, buildDisplayPanels } from './panelRenderers';
+import { LiveBrainSheet } from './LiveBrainSheet';
 import type {
   BrainPanel, PanelRender, PanelSource, HistoryMode, ModelRef, OfflineTrigger, AddonFilter,
 } from '../../types';
@@ -264,6 +265,7 @@ export function LiveBrainScreen() {
   const slug = agent?.slug;
   const mentionOptions = useMentionOptions(agent?.id ?? '');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -326,13 +328,8 @@ export function LiveBrainScreen() {
   const liveBrain = agent.liveBrain;
   const panels = (liveBrain?.panels ?? []).map(normalizePanel);
   const editing = panels.find(p => p.id === editingId) ?? null;
-  const arrangement = liveBrain?.frame?.arrangement ?? 'stack';
-  const openMode = liveBrain?.frame?.openMode ?? 'half';
-
   const writePanels = (next: BrainPanel[]) =>
     updateAgent(agent.id, { liveBrain: { ...(liveBrain ?? {}), panels: next } });
-  const writeFrame = (patch: { arrangement?: 'stack' | 'grid'; openMode?: 'half' | 'full' }) =>
-    updateAgent(agent.id, { liveBrain: { panels: liveBrain?.panels ?? [], ...(liveBrain ?? {}), frame: { ...(liveBrain?.frame ?? {}), ...patch } } });
   const patchPanel = (id: string, patch: Partial<BrainPanel>) =>
     writePanels(panels.map(p => (p.id === id ? { ...p, ...patch } : p)));
   const patchTags = (patch: Partial<NonNullable<BrainPanel['tags']>>) =>
@@ -386,16 +383,14 @@ export function LiveBrainScreen() {
 
   return (
     <div className={styles.screen}>
-      <div className={styles.head}>
-        <div>
-          <h1 className={styles.h1}>🧠 Live Brain</h1>
-          <p className={styles.sub}>The customer-facing brain shown beside the chat. Agent-level — applies to every crew.</p>
-        </div>
-      </div>
-
       <div className={styles.grid}>
-        {/* ── panel chips ── */}
+        {/* ── panel chips (title lives here so the preview can start at
+             the very top, like the real chat drawer) ── */}
         <aside className={styles.chain}>
+          <div className={styles.head}>
+            <h1 className={styles.h1}>🧠 Live Brain</h1>
+            <p className={styles.sub}>The customer-facing brain — shown beside the chat. Applies to every crew.</p>
+          </div>
           <div className={styles.listHead}>Panels</div>
           {panels.map((p, i) => (
             <div key={p.id} className={styles.chip} onClick={() => setEditingId(p.id)} role="button" tabIndex={0}
@@ -416,34 +411,29 @@ export function LiveBrainScreen() {
 
         {/* ── preview (client width); each panel carries its own run log ── */}
         <section className={styles.preview}>
-          <div className={styles.previewHeadRow}>
-            <span className={styles.previewLabel}>Customer view</span>
-            <span className={styles.previewSample}>{previewConversationId ? 'live' : 'sample'}</span>
-            <span className={styles.previewSpacer} />
-            <button
-              className={styles.logToggle}
-              onClick={() => writeFrame({ arrangement: arrangement === 'grid' ? 'stack' : 'grid' })}
-              title="Toggle stack / grid layout"
-            >{arrangement === 'grid' ? '▦ Grid' : '▤ Stack'}</button>
-            <button
-              className={styles.logToggle}
-              onClick={() => writeFrame({ openMode: openMode === 'full' ? 'half' : 'full' })}
-              title="How the panel opens for the customer (half drawer / full screen)"
-            >{openMode === 'full' ? '⛶ Full' : '◧ Half'}</button>
-            <button
-              className={`${styles.logToggle} ${showLogs ? styles.logToggleOn : ''}`}
-              onClick={() => setShowLogs(s => !s)}
-              title={showLogs ? 'Hide the run logs (clean customer view)' : 'Show each panel’s run log'}
-            >🔍 Logs</button>
-          </div>
-          <div className={`${styles.deviceFrame} ${showLogs && previewConversationId ? styles.deviceFrameWide : ''}`}>
+          <div className={styles.deviceFrame}>
             <LiveBrainPreview
               panels={panels}
               selectedId={editingId ?? undefined}
               liveValues={liveValues}
               runsByPanel={runsByPanel}
               showLogs={showLogs}
-              arrangement={arrangement}
+              headerAccessory={
+                <>
+                  <button
+                    type="button"
+                    className={styles.logToggle}
+                    onClick={() => setSheetOpen(true)}
+                    title="Open the full Live Brain overlay — exactly how the customer sees it"
+                  >⛶ Open</button>
+                  <button
+                    type="button"
+                    className={`${styles.logToggle} ${showLogs ? styles.logToggleOn : ''}`}
+                    onClick={() => setShowLogs(s => !s)}
+                    title={showLogs ? 'Hide the run logs (clean customer view)' : 'Show each panel’s run log'}
+                  >🔍 Logs</button>
+                </>
+              }
             />
           </div>
         </section>
@@ -642,6 +632,13 @@ export function LiveBrainScreen() {
           </div>
         </Modal>
       )}
+
+      {/* ── NEW: full-screen Noa-styled overlay (opens on top of the page) ── */}
+      <LiveBrainSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        panels={buildDisplayPanels(panels, liveValues)}
+      />
     </div>
   );
 }

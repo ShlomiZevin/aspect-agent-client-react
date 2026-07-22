@@ -81,14 +81,13 @@ function Bars({ bars }: { bars: NonNullable<PanelValues['bars']> }) {
       {bars.map((b, i) => (
         <div className={styles.bar} key={`${b.label}_${i}`}>
           <div className={styles.barRow}>
-            <span className={styles.barLab}>
-              <i className={styles.swatch} style={{ background: b.color ?? 'var(--lb-accent)' }} />
-              {b.label}
-            </span>
+            <span className={styles.barLab}>{b.label}</span>
             <span className={styles.barNum}>{clamp(b.value)}</span>
           </div>
           <div className={styles.track}>
-            <div className={styles.fill} style={{ width: `${clamp(b.value)}%`, background: b.color ?? 'var(--lb-accent)' }} />
+            {/* No inline background → the CSS gradient shows. Only an
+                explicit author colour overrides it. */}
+            <div className={styles.fill} style={{ width: `${clamp(b.value)}%`, ...(b.color ? { background: b.color } : {}) }} />
           </div>
         </div>
       ))}

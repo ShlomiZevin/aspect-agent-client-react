@@ -5,10 +5,10 @@
  * the customer chat render identically.
  */
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { BrainPanel, PanelRender } from '../../types';
 import { type PanelValues } from './PanelTemplates';
-import { LiveBrainSurface, type DisplayPanel } from './LiveBrainFrame';
+import { PanelSurface, type DisplayPanel } from './PanelSurface';
 import { AddonRunCard, type AddonRunSnapshot } from '../AddonRun/AddonRunCard';
 import styles from './LiveBrainScreen.module.css';
 
@@ -95,6 +95,27 @@ export function sampleRuntime(render: PanelRender): PanelValues {
 /** A stored panel value from the live conversation. */
 export interface LivePanelValue { render?: string; text?: string; values?: PanelValues }
 
+/** Map authoring panels + live values (falling back to sample data) into
+ *  the render-ready DisplayPanel[] the surfaces consume. Shared by the
+ *  inline preview and the full-screen sheet. */
+export function buildDisplayPanels(
+  panels: BrainPanel[],
+  liveValues?: Record<string, LivePanelValue>,
+): DisplayPanel[] {
+  return panels.map(p => {
+    const live = liveValues?.[p.id];
+    const isString = p.render === 'text' || p.render === 'html';
+    const sample = sampleRuntime(p.render);
+    return {
+      id: p.id,
+      title: p.title,
+      render: p.render,
+      text: live ? live.text : (isString ? sample.text : undefined),
+      values: live ? (live.values as PanelValues) : (isString ? undefined : sample),
+    };
+  });
+}
+
 /**
  * A panel's attached run log. Newest-first; shows only the latest run by
  * default with a tiny "+N more", using the SAME AddonRunCard as the chat.
@@ -119,32 +140,20 @@ function PanelLogs({ runs }: { runs: AddonRunSnapshot[] }) {
  * panels + live values (falling back to sample data), with an optional
  * per-panel run log attached beneath each panel.
  */
-export function LiveBrainPreview({ panels, selectedId, liveValues, runsByPanel, showLogs, arrangement }: {
+export function LiveBrainPreview({ panels, selectedId, liveValues, runsByPanel, showLogs, headerAccessory }: {
   panels: BrainPanel[];
   selectedId?: string;
   liveValues?: Record<string, LivePanelValue>;
   runsByPanel?: Record<string, AddonRunSnapshot[]>;
   showLogs?: boolean;
-  arrangement?: 'stack' | 'grid';
+  headerAccessory?: ReactNode;
 }) {
-  const display: DisplayPanel[] = panels.map(p => {
-    const live = liveValues?.[p.id];
-    const isString = p.render === 'text' || p.render === 'html';
-    const sample = sampleRuntime(p.render);
-    return {
-      id: p.id,
-      title: p.title,
-      render: p.render,
-      text: live ? live.text : (isString ? sample.text : undefined),
-      values: live ? (live.values as PanelValues) : (isString ? undefined : sample),
-      meta: live ? undefined : 'sample',
-    };
-  });
+  const display = buildDisplayPanels(panels, liveValues);
   return (
-    <LiveBrainSurface
+    <PanelSurface
       panels={display}
-      arrangement={arrangement}
       selectedId={selectedId}
+      headerRight={headerAccessory}
       emptyLabel="No panels yet. Add one to see it here."
       footerFor={showLogs
         ? (p) => {

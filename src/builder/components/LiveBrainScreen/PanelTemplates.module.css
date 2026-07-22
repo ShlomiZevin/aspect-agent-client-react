@@ -1,61 +1,73 @@
 /**
- * Shared Live Brain template styles. Themed via CSS vars set by the host:
- *   --lb-accent  highlight / brand colour
- *   --lb-ink     primary text
- *   --lb-muted   secondary text
- *   --lb-line    hairline borders
- *   --lb-surface soft inner surface (chips, tracks)
- * Fallbacks keep it legible if a host forgets to set them.
+ * Shared Live Brain template styles. Design follows Noa's Profiler:
+ * magenta→purple brand, gradient level bars, soft pills + cards.
+ * Themed via --lb-* vars; the fallbacks ARE the brand look so the builder
+ * preview matches the customer chat.
  */
 
-.body { color: var(--lb-ink, #1f2937); font-size: 13px; line-height: 1.5; }
+.body { color: var(--lb-ink, #1e1633); font-size: 13px; line-height: 1.55; }
+/* The markdown renders plain <p>/<ul>/<li>… — reset browser margins so
+   the text isn't spaced out / broken-looking. */
+.body :global(p) { margin: 0 0 7px; }
+.body :global(p:last-child) { margin-bottom: 0; }
+.body :global(ul), .body :global(ol) { margin: 5px 0; padding-inline-start: 18px; }
+.body :global(ul:last-child), .body :global(ol:last-child) { margin-bottom: 0; }
+.body :global(li) { margin: 2px 0; }
+.body :global(li)::marker { color: var(--lb-muted, #7b7490); }
+.body :global(strong) { font-weight: 700; color: var(--lb-ink, #1e1633); }
+.body :global(h1), .body :global(h2), .body :global(h3) { font-size: 13px; font-weight: 700; margin: 8px 0 4px; }
+.body :global(h1:first-child), .body :global(h2:first-child), .body :global(h3:first-child) { margin-top: 0; }
+.body :global(a) { color: var(--lb-accent, #E0198A); }
+.body :global(code) { font-size: 12px; background: var(--lb-surface, #f4f2f9); padding: 1px 5px; border-radius: 5px; }
+.body :global(table) { width: 100%; border-collapse: collapse; font-size: 12px; }
+.body :global(th), .body :global(td) { border: 1px solid var(--lb-line, #ece9f2); padding: 4px 7px; text-align: start; }
 
 /* ── tags ── */
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag {
-  font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
-  background: var(--lb-surface, #f3f4f6); color: var(--lb-muted, #6b7280);
+  font-size: 12px; font-weight: 600; padding: 4px 11px; border-radius: 999px;
+  background: var(--lb-surface, #f4f2f9); color: var(--lb-muted, #7b7490);
   border: 1px solid transparent;
   transition: background-color .25s ease, color .25s ease, border-color .25s ease, transform .2s ease;
 }
 .tagOn {
-  background: color-mix(in srgb, var(--lb-accent, #6366f1) 16%, transparent);
-  color: var(--lb-accent, #6366f1);
-  border-color: color-mix(in srgb, var(--lb-accent, #6366f1) 35%, transparent);
+  background: color-mix(in srgb, var(--lb-accent, #E0198A) 13%, transparent);
+  color: var(--lb-accent, #E0198A);
+  border-color: color-mix(in srgb, var(--lb-accent, #E0198A) 32%, transparent);
   transform: translateY(-1px);
 }
 
 /* ── fields ── */
-.fields { display: flex; flex-direction: column; gap: 8px; }
+.fields { display: flex; flex-direction: column; gap: 9px; }
 .fieldRow { display: flex; align-items: baseline; gap: 10px; justify-content: space-between; }
-.fieldK { font-size: 12px; color: var(--lb-muted, #6b7280); flex: none; }
-.fieldV { font-size: 13px; font-weight: 600; color: var(--lb-ink, #1f2937); text-align: end; border-radius: 5px; padding: 1px 4px; }
-.pill { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
-  background: color-mix(in srgb, var(--lb-accent, #6366f1) 14%, transparent); color: var(--lb-accent, #6366f1); }
+.fieldK { font-size: 12px; color: var(--lb-muted, #7b7490); flex: none; }
+.fieldV { font-size: 13px; font-weight: 700; color: var(--lb-ink, #1e1633); text-align: end; border-radius: 5px; padding: 1px 4px; }
+.pill { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+  background: color-mix(in srgb, var(--lb-accent, #E0198A) 12%, transparent); color: var(--lb-accent, #E0198A); }
 .flash { animation: lbFlash .9s ease; }
 @keyframes lbFlash {
-  0%   { background: color-mix(in srgb, var(--lb-accent, #6366f1) 34%, transparent); }
+  0%   { background: color-mix(in srgb, var(--lb-accent, #E0198A) 30%, transparent); }
   100% { background: transparent; }
 }
 
-/* ── bars ── */
-.bars { display: flex; flex-direction: column; gap: 10px; }
-.bar { display: flex; flex-direction: column; gap: 4px; }
+/* ── bars (Noa's health bars — gradient fill, accent number) ── */
+.bars { display: flex; flex-direction: column; gap: 11px; }
+.bar { display: flex; flex-direction: column; gap: 5px; }
 .barRow { display: flex; align-items: center; justify-content: space-between; }
-.barLab { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--lb-ink, #1f2937); }
-.swatch { width: 8px; height: 8px; border-radius: 3px; display: inline-block; flex: none; }
-.barNum { font-size: 12px; font-weight: 700; color: var(--lb-muted, #6b7280); font-variant-numeric: tabular-nums; }
-.track { height: 8px; border-radius: 999px; background: var(--lb-surface, #eef0f4); overflow: hidden; }
-.fill { height: 100%; border-radius: 999px; transition: width .5s cubic-bezier(.4,0,.2,1); }
+.barLab { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--lb-ink, #1e1633); }
+.swatch { display: none; }
+.barNum { font-size: 13px; font-weight: 800; color: var(--lb-accent, #E0198A); font-variant-numeric: tabular-nums; }
+.track { height: 7px; border-radius: 999px; background: var(--lb-surface, #efecf6); overflow: hidden; }
+.fill { height: 100%; border-radius: 999px; background: var(--lb-grad, linear-gradient(90deg, #E0198A, #7C3AED)); transition: width .55s cubic-bezier(.4,0,.2,1); }
 
 /* ── cards ── */
 .cards { display: flex; flex-direction: column; gap: 8px; }
 .card {
-  border: 1px solid var(--lb-line, #e5e7eb); border-radius: 10px; padding: 10px 12px;
-  background: var(--lb-surface, #fafafa); animation: lbCardIn .35s ease both;
+  border: 1px solid var(--lb-line, #ece9f2); border-radius: 12px; padding: 11px 13px;
+  background: var(--lb-surface, #faf9fd); animation: lbCardIn .35s ease both;
 }
-.cardTitle { font-size: 13px; font-weight: 700; color: var(--lb-ink, #1f2937); margin-bottom: 3px; }
-.cardBody { font-size: 12px; line-height: 1.5; color: var(--lb-muted, #4b5563); }
+.cardTitle { font-size: 13px; font-weight: 700; color: var(--lb-ink, #1e1633); margin-bottom: 3px; }
+.cardBody { font-size: 12px; line-height: 1.5; color: var(--lb-muted, #6a6380); }
 @keyframes lbCardIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: none; }

@@ -303,7 +303,7 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
             bareHead
             full={brainFull}
           >
-            {brainPanels.length > 0 ? <BrainPanels panels={brainPanels} arrangement={brainArrangement} /> : null}
+            <BrainPanels panels={brainPanels} arrangement={brainArrangement} onClose={() => setBrainOpen(false)} />
           </SidePanel>
         )}
 

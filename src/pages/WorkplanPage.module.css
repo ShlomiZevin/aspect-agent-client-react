@@ -1,0 +1,91 @@
+/* Aspect — the simple "where we'll be in 3 months" plan. Light, English. */
+
+.page {
+  height: 100vh;
+  overflow-y: auto;
+  background: #f5f7fb;
+  color: #0f172a;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Arial, sans-serif;
+  padding: 48px 24px 64px;
+  box-sizing: border-box;
+}
+.page * { box-sizing: border-box; }
+
+.wrap { max-width: 1040px; margin: 0 auto; }
+
+/* ── Hero ── */
+.hero { text-align: center; margin-bottom: 40px; }
+.eyebrow {
+  display: inline-block;
+  font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em;
+  color: #0891b2; background: #e6f7fb; border: 1px solid #bfeaf3;
+  padding: 6px 16px; border-radius: 999px; margin-bottom: 18px;
+}
+.h1 { font-size: 2.9rem; font-weight: 800; letter-spacing: -0.03em; margin: 0 0 14px; line-height: 1.1; }
+.lead { font-size: 1.2rem; color: #475569; max-width: 720px; margin: 0 auto; line-height: 1.55; }
+.lead strong { color: #0f172a; }
+
+/* ── Destination ── */
+.blockLabel {
+  text-align: center;
+  font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+  color: #64748b; margin: 0 0 18px;
+}
+.destGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 46px; }
+.destCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-top: 5px solid;
+  border-radius: 18px;
+  padding: 30px 30px 28px;
+  box-shadow: 0 6px 20px rgba(15,23,42,0.05);
+}
+.destCard.blue { border-top-color: #2563eb; }
+.destCard.purple { border-top-color: #7c3aed; }
+.destIcon { font-size: 2.6rem; line-height: 1; margin-bottom: 14px; display: block; }
+.destTitle { font-size: 1.5rem; font-weight: 800; margin: 0 0 8px; letter-spacing: -0.01em; }
+.destText { font-size: 1.02rem; color: #475569; line-height: 1.55; margin: 0; }
+.destTag {
+  display: inline-block; margin-top: 16px;
+  font-size: 0.82rem; font-weight: 700;
+  color: #16a34a; background: #e9f9ef; border: 1px solid #bfe9cd;
+  padding: 5px 12px; border-radius: 999px;
+}
+
+/* ── Steps ── */
+.steps { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: stretch; }
+.step {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+  padding: 22px 22px 24px; position: relative;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.stepMonth {
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em;
+  color: #fff; background: #0f172a;
+  align-self: flex-start; padding: 4px 12px; border-radius: 999px;
+}
+.stepTitle { font-size: 1.2rem; font-weight: 800; margin: 4px 0 0; }
+.stepText { font-size: 0.96rem; color: #475569; line-height: 1.5; margin: 0; }
+.stepFinal { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.12); }
+.stepFinal .stepMonth { background: linear-gradient(135deg, #16a34a, #0891b2); }
+
+/* ── Team footer ── */
+.teamBar {
+  margin-top: 46px;
+  background: #0f172a; color: #fff;
+  border-radius: 18px;
+  padding: 24px 30px;
+  display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+}
+.teamLeft { display: flex; flex-direction: column; gap: 6px; }
+.teamTitle { font-size: 1.05rem; font-weight: 800; }
+.teamPeople { font-size: 0.92rem; opacity: 0.8; }
+.teamCost { text-align: right; }
+.teamCostNum { font-family: 'JetBrains Mono', 'Consolas', monospace; font-size: 1.9rem; font-weight: 900; line-height: 1; }
+.teamCostSub { font-size: 0.82rem; opacity: 0.75; margin-top: 4px; }
+
+@media (max-width: 780px) {
+  .destGrid, .steps { grid-template-columns: 1fr; }
+  .h1 { font-size: 2.2rem; }
+}

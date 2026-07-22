@@ -84,8 +84,10 @@
 }
 .lybi-chat .brain { border-inline-end: 1px solid var(--border); }
 .lybi-chat .profiler { border-inline-start: 1px solid var(--border); }
-.lybi-chat .brain.open, .lybi-chat .profiler.open { width: 340px; }
+.lybi-chat .profiler.open { width: 340px; }
+.lybi-chat .brain.open { width: 460px; }
 .lybi-chat .panel-inner { width: 340px; flex-shrink: 0; height: 100%; display: flex; flex-direction: column; }
+.lybi-chat .brain .panel-inner { width: 460px; }
 .lybi-chat .panel-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 18px 20px; border-bottom: 1px solid var(--border); gap: 10px;
@@ -101,6 +103,9 @@
 .lybi-chat .side.full.brain.open, .lybi-chat .side.full.profiler.open { width: min(620px, 80vw); }
 .lybi-chat .side.full .panel-inner { width: min(620px, 80vw); }
 .lybi-chat .panel-body { flex: 1; overflow-y: auto; padding: 22px 20px; display: flex; flex-direction: column; gap: 14px; }
+/* Bare (Live Brain) — PanelSurface owns the header + its own scroll, so
+   the drawer body just gives it full height and doesn't scroll itself. */
+.lybi-chat .panel-body.bare { padding: 0; gap: 0; overflow: hidden; }
 .lybi-chat .placeholder-card {
   border: 1.5px dashed var(--border-2); border-radius: 16px; padding: 26px 18px; text-align: center;
   color: var(--text-2); background: var(--surface-2);
