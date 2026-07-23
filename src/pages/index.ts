@@ -44,6 +44,7 @@ export { HowWeBuildPage } from './HowWeBuildPage';
 export { ChainArchitecturePage } from './ChainArchitecturePage';
 export { InfrastructurePage } from './InfrastructurePage';
 export { EnterpriseReadinessPage } from './EnterpriseReadinessPage';
+export { LybiArchitecturePage } from './LybiArchitecturePage';
 export { KBvsTriggeredPage } from './KBvsTriggeredPage';
 export { LybiKnowledgePage } from './LybiKnowledgePage';
 export { LybiBrainPage } from './LybiBrainPage';

@@ -9,7 +9,8 @@ const PAGES = [
   { path: '/lybi/chain', icon: '⛓️', title: 'Chain Architecture', desc: 'The full message pipeline — every step, timing, and where issues happen' },
   { path: '/lybi/crew-builder', icon: '🛠️', title: 'Agent Builder', desc: 'Interactive mockup — chain, fields, memory, triggered context' },
   { path: '/lybi/infrastructure', icon: '☁️', title: 'Infrastructure', desc: 'Cloud, database, LLM providers, DevOps, AI-powered development' },
-  { path: '/lybi/readiness', icon: '🛡️', title: 'Enterprise & Compliance Readiness', desc: 'Prepared answers to health-fund & bank due-diligence — security, architecture, integration, SLA' },
+  { path: '/lybi/readiness', icon: '🛡️', title: 'שאלון בדיקת נאותות — מענה טכני', desc: 'מענה לשאלון קופת חולים / בנק — ארכיטקטורה, אבטחת מידע, אינטגרציה, יתירות ולוגים' },
+  { path: '/lybi/architecture', icon: '🏗️', title: 'ארכיטקטורה', desc: 'תרשים מערכת + מנוע השיחה (Builder v2.0) — קליינט, שרת, מסדי נתונים וספקי LLM' },
   { path: '/lybi/backlog', icon: '📋', title: 'Tech Backlog', desc: '14 items to production-ready — DevOps, security, architecture, integrations' },
   { path: '/lybi/about/shlomi', icon: '👤', title: 'About Shlomi Zevin', desc: 'CTO — 20+ years in tech, AI agents, startup speed' },
 ];

@@ -162,11 +162,16 @@ export async function listProjects(args: {
 
 // ─── Workspaces (folders on the builder home page) ────────────────
 
+export type WorkspaceKind = 'domain' | 'project' | 'folder';
+
 export interface WorkspaceItem {
   id: string;
   name: string;
   /** Parent folder; null = top level. */
   parentId: string | null;
+  /** 'domain' (top, holds projects) · 'project' (holds agents) ·
+   *  'folder' (generic, free-form below a project). */
+  kind: WorkspaceKind;
   createdAt: string;
 }
 
@@ -179,11 +184,12 @@ export async function createWorkspace(args: {
   ownerUserId: string;
   name: string;
   parentId: string | null;
+  kind: WorkspaceKind;
 }): Promise<WorkspaceItem> {
   const id = `ws_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
   const res = await http<{ workspace: WorkspaceItem }>(`/api/builder/workspaces`, {
     method: 'POST',
-    body: JSON.stringify({ id, ownerUserId: args.ownerUserId, name: args.name, parentId: args.parentId }),
+    body: JSON.stringify({ id, ownerUserId: args.ownerUserId, name: args.name, parentId: args.parentId, kind: args.kind }),
   });
   return res.workspace;
 }

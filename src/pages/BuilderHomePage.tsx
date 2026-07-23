@@ -30,6 +30,7 @@ import {
   setAgentArchived,
   type ProjectListItem,
   type WorkspaceItem,
+  type WorkspaceKind,
 } from '../builder/state/builderApi';
 import { emptyProject } from '../builder/state/BuilderContext';
 import { Modal } from '../builder/components/Modal/Modal';
@@ -83,6 +84,13 @@ function cleanErr(err: unknown): string {
   }
   return raw;
 }
+
+/** Distinct icon + label per folder kind. Domain (cabinet) holds
+ *  projects; Project (folder) holds agents; Folder (generic) is free-form
+ *  below a project. Kept visually distinct on purpose. */
+const KIND_ICON: Record<WorkspaceKind, string> = { domain: '🗄️', project: '📦', folder: '📁' };
+const KIND_LABEL: Record<WorkspaceKind, string> = { domain: 'Domain', project: 'Project', folder: 'Folder' };
+const KIND_TILE: Record<WorkspaceKind, string> = { domain: styles.tileDomain, project: styles.tileProject, folder: styles.tileFolderGeneric };
 
 // ─── Folder-tree helpers ────────────────────────────────────────────
 
@@ -161,7 +169,7 @@ function HomeContent() {
 
   useEffect(() => { reload(); }, [reload]);
 
-  const handleCreateAgent = async (name: string, slug: string, goToBuilder: boolean) => {
+  const handleCreateAgent = async (name: string, slug: string, goToBuilder: boolean, locationWorkspaceId: string | null) => {
     const existing = await fetchProject({ agentSlug: slug, ownerUserId });
     if (existing) throw new Error(`An agent with the URL “/${slug}” already exists.`);
 
@@ -198,9 +206,10 @@ function HomeContent() {
       },
     });
 
-    // Inside a folder → file the new agent there.
-    if (openWorkspaceId) {
-      await moveAgent({ agentId: agent.id, workspaceId: openWorkspaceId });
+    // File the new agent at the chosen location (agents may live
+    // anywhere — top level, a domain, or a project).
+    if (locationWorkspaceId) {
+      await moveAgent({ agentId: agent.id, workspaceId: locationWorkspaceId });
     }
 
     if (goToBuilder) navigate(`/${slug}/builder`);
@@ -329,15 +338,19 @@ function HomeContent() {
     const aCount = agentsIn(ws.id).length;
     const fCount = foldersIn(ws.id).length;
     const parts: string[] = [];
-    if (fCount > 0) parts.push(`${fCount} folder${fCount === 1 ? '' : 's'}`);
+    // A domain's sub-folders are projects; a project has no sub-folders.
+    if (fCount > 0) parts.push(`${fCount} project${fCount === 1 ? '' : 's'}`);
     parts.push(`${aCount} agent${aCount === 1 ? '' : 's'}`);
     return (
-      <div key={ws.id} className={`${styles.tile} ${styles.tileFolder}`}
+      <div key={ws.id} className={`${styles.tile} ${styles.tileFolder} ${KIND_TILE[ws.kind]}`}
         role="button" tabIndex={0}
         onClick={() => setOpenWorkspaceId(ws.id)}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenWorkspaceId(ws.id); } }}>
         <div className={styles.tileFolderInner}>
-          <span className={styles.tileIcon} aria-hidden>📁</span>
+          <span className={styles.tileTopRow}>
+            <span className={styles.tileIcon} aria-hidden>{KIND_ICON[ws.kind]}</span>
+            <span className={styles.kindChip}>{KIND_LABEL[ws.kind]}</span>
+          </span>
           <span className={styles.tileName}>{ws.name}</span>
           <span className={styles.tileFolderCount}>{parts.join(' · ')}</span>
         </div>
@@ -378,6 +391,10 @@ function HomeContent() {
   const path = ancestorChain(workspaces, openWorkspaceId);
   const curFolders = foldersIn(openWorkspaceId);
   const curAgents  = agentsIn(openWorkspaceId);
+  // What "New folder" creates here: Domain at top → Project inside a
+  // Domain → Folder inside a Project or Folder (free-form below a project).
+  const createFolderKind: WorkspaceKind =
+    !openWs ? 'domain' : openWs.kind === 'domain' ? 'project' : 'folder';
 
   return (
     <div className={styles.page}>
@@ -385,9 +402,11 @@ function HomeContent() {
         <header className={styles.header}>
           <h1 className={styles.title}><span aria-hidden>🛠</span> Your agents</h1>
           <div className={styles.headerActions}>
-            <button type="button" className={styles.secondaryBtn} onClick={() => setWsCreateOpen(true)}>
-              📁 New folder
-            </button>
+            {tab === 'live' && (
+              <button type="button" className={styles.secondaryBtn} onClick={() => setWsCreateOpen(true)}>
+                {KIND_ICON[createFolderKind]} New {KIND_LABEL[createFolderKind].toLowerCase()}
+              </button>
+            )}
             <button type="button" className={styles.primaryBtn} onClick={() => setCreateOpen(true)}>
               + New agent
             </button>
@@ -413,35 +432,50 @@ function HomeContent() {
         {/* ── LIVE TAB ──────────────────────────────────────────── */}
         {items !== null && tab === 'live' && (
           <>
-            {openWs && (
-              <div className={styles.breadcrumb}>
-                <button type="button" className={styles.crumbBack} onClick={() => setOpenWorkspaceId(null)}>
-                  🛠 Your agents
-                </button>
-                {path.map((ws, idx) => (
-                  <Fragment key={ws.id}>
-                    <span className={styles.crumbSep}>/</span>
-                    {idx < path.length - 1
-                      ? <button type="button" className={styles.crumb} onClick={() => setOpenWorkspaceId(ws.id)}>{ws.name}</button>
-                      : <span className={styles.crumbCurrent}><span aria-hidden>📁</span> {ws.name}</span>}
-                  </Fragment>
-                ))}
-                <div className={styles.crumbActions}>
-                  <button type="button" className={styles.iconBtn} title="Rename folder"
-                    onClick={() => setWsRenameTarget(openWs)}>✏️</button>
-                  <button type="button" className={styles.iconBtn} title="Move folder"
-                    onClick={() => setWsMoveTarget(openWs)}>📁</button>
-                  <button type="button" className={styles.iconBtn} title="Delete folder"
-                    onClick={() => doDeleteWorkspace(openWs)}>🗑</button>
-                </div>
+            {/* Always render this row (root included) so navigating into a
+                folder never shifts the grid down. At root the folder
+                actions are present-but-inert to hold the same space. */}
+            <div className={styles.breadcrumb}>
+              {openWs ? (
+                <>
+                  <button type="button" className={styles.crumbBack} onClick={() => setOpenWorkspaceId(null)}>
+                    🛠 Your agents
+                  </button>
+                  {path.map((ws, idx) => (
+                    <Fragment key={ws.id}>
+                      <span className={styles.crumbSep}>/</span>
+                      {idx < path.length - 1
+                        ? <button type="button" className={styles.crumb} onClick={() => setOpenWorkspaceId(ws.id)}>
+                            <span aria-hidden>{KIND_ICON[ws.kind]}</span> {ws.name}
+                          </button>
+                        : <span className={styles.crumbCurrent}><span aria-hidden>{KIND_ICON[ws.kind]}</span> {ws.name}</span>}
+                    </Fragment>
+                  ))}
+                </>
+              ) : (
+                <span className={styles.crumbCurrent}><span aria-hidden>🛠</span> Your agents</span>
+              )}
+              <div className={`${styles.crumbActions} ${openWs ? '' : styles.crumbActionsHidden}`} aria-hidden={!openWs}>
+                <button type="button" className={styles.iconBtn} title="Rename folder" tabIndex={openWs ? 0 : -1}
+                  onClick={() => openWs && setWsRenameTarget(openWs)}>✏️</button>
+                <button type="button" className={styles.iconBtn} title="Move folder" tabIndex={openWs ? 0 : -1}
+                  onClick={() => openWs && setWsMoveTarget(openWs)}>📁</button>
+                <button type="button" className={styles.iconBtn} title="Delete folder" tabIndex={openWs ? 0 : -1}
+                  onClick={() => openWs && doDeleteWorkspace(openWs)}>🗑</button>
               </div>
-            )}
+            </div>
 
             {!hasAnything ? (
               <div className={styles.empty}>No agents yet. Click <strong>+ New agent</strong> to create one.</div>
             ) : (curFolders.length === 0 && curAgents.length === 0) ? (
               <div className={styles.emptyNested}>
-                This folder is empty — add an agent or a sub-folder, or move things here from a ⋯ menu.
+                {openWs?.kind === 'project'
+                  ? 'This project has no agents yet — add one with “+ New agent”.'
+                  : openWs?.kind === 'folder'
+                    ? 'This folder is empty — add an agent, or a sub-folder.'
+                    : openWs
+                      ? 'This domain is empty — add a project, or an agent with “+ New agent”.'
+                      : 'Nothing here yet — create a domain, or an agent with “+ New agent”.'}
               </div>
             ) : (
               <div className={styles.grid}>
@@ -463,10 +497,11 @@ function HomeContent() {
       {/* ── Modals ──────────────────────────────────────────────── */}
       {createOpen && (
         <CreateAgentModal
-          intoWorkspaceName={openWs?.name ?? null}
+          workspaces={workspaces}
+          defaultLocation={openWorkspaceId}
           onClose={() => setCreateOpen(false)}
-          onCreate={async (name, slug, goToBuilder) => {
-            await handleCreateAgent(name, slug, goToBuilder);
+          onCreate={async (name, slug, goToBuilder, location) => {
+            await handleCreateAgent(name, slug, goToBuilder, location);
             setCreateOpen(false);
           }}
         />
@@ -475,11 +510,17 @@ function HomeContent() {
       {wsCreateOpen && (
         <WorkspaceNameModal
           mode="create"
+          kind={createFolderKind}
           initial=""
-          intoWorkspaceName={openWs?.name ?? null}
+          intoWorkspaceName={createFolderKind === 'domain' ? null : (openWs?.name ?? null)}
           onClose={() => setWsCreateOpen(false)}
           onSubmit={async name => {
-            await createWorkspace({ ownerUserId, name, parentId: openWorkspaceId });
+            await createWorkspace({
+              ownerUserId,
+              name,
+              parentId: createFolderKind === 'domain' ? null : openWorkspaceId,
+              kind: createFolderKind,
+            });
             await reload();
             setWsCreateOpen(false);
           }}
@@ -489,6 +530,7 @@ function HomeContent() {
       {wsRenameTarget && (
         <WorkspaceNameModal
           mode="rename"
+          kind={wsRenameTarget.kind}
           initial={wsRenameTarget.name}
           intoWorkspaceName={null}
           onClose={() => setWsRenameTarget(null)}
@@ -611,15 +653,22 @@ function KebabMenu({ children }: { children: (close: () => void) => ReactNode })
 // ─── Folder tree picker (shared by move-agent / move-folder) ─────────
 
 function FolderTreePicker({
-  workspaces, value, onChange, disabledIds,
+  workspaces, value, onChange, disabledIds, selectable, allowTop = true,
 }: {
   workspaces: WorkspaceItem[];
   value: string | null;
   onChange: (id: string | null) => void;
   disabledIds?: Set<string>;
+  /** When provided, only folders passing this predicate are selectable
+   *  (others render greyed for context). */
+  selectable?: (ws: WorkspaceItem) => boolean;
+  /** Show the "Top level" row as a target. Default true. */
+  allowTop?: boolean;
 }) {
+  const canSelect = (ws: WorkspaceItem) =>
+    !(disabledIds?.has(ws.id) ?? false) && (selectable ? selectable(ws) : true);
   const renderRow = (ws: WorkspaceItem, depth: number): ReactNode => {
-    const disabled = disabledIds?.has(ws.id) ?? false;
+    const disabled = !canSelect(ws);
     const kids = workspaces.filter(w => (w.parentId ?? null) === ws.id);
     return (
       <Fragment key={ws.id}>
@@ -627,7 +676,9 @@ function FolderTreePicker({
           className={`${styles.treeRow} ${value === ws.id ? styles.treeRowActive : ''} ${disabled ? styles.treeRowDisabled : ''}`}
           style={{ paddingLeft: 10 + depth * 18 }}
           onClick={() => { if (!disabled) onChange(ws.id); }}>
-          <span aria-hidden>📁</span> <span className={styles.treeLabel}>{ws.name}</span>
+          <span aria-hidden>{KIND_ICON[ws.kind]}</span>
+          <span className={styles.treeLabel}>{ws.name}</span>
+          <span className={styles.treeKind}>{KIND_LABEL[ws.kind]}</span>
         </button>
         {kids.map(k => renderRow(k, depth + 1))}
       </Fragment>
@@ -636,13 +687,15 @@ function FolderTreePicker({
   const roots = workspaces.filter(w => !w.parentId);
   return (
     <div className={styles.tree}>
-      <button type="button"
-        className={`${styles.treeRow} ${value === null ? styles.treeRowActive : ''}`}
-        style={{ paddingLeft: 10 }}
-        onClick={() => onChange(null)}>
-        <span aria-hidden>🏠</span> <span className={styles.treeLabel}>Top level</span>
-      </button>
-      {roots.map(r => renderRow(r, 1))}
+      {allowTop && (
+        <button type="button"
+          className={`${styles.treeRow} ${value === null ? styles.treeRowActive : ''}`}
+          style={{ paddingLeft: 10 }}
+          onClick={() => onChange(null)}>
+          <span aria-hidden>🏠</span> <span className={styles.treeLabel}>Top level</span>
+        </button>
+      )}
+      {roots.map(r => renderRow(r, allowTop ? 1 : 0))}
     </div>
   );
 }
@@ -650,15 +703,17 @@ function FolderTreePicker({
 // ─── Create-agent modal ─────────────────────────────────────────────
 
 function CreateAgentModal({
-  intoWorkspaceName, onCreate, onClose,
+  workspaces, defaultLocation, onCreate, onClose,
 }: {
-  intoWorkspaceName: string | null;
-  onCreate: (name: string, slug: string, goToBuilder: boolean) => Promise<void>;
+  workspaces: WorkspaceItem[];
+  defaultLocation: string | null;
+  onCreate: (name: string, slug: string, goToBuilder: boolean, location: string | null) => Promise<void>;
   onClose: () => void;
 }) {
   const [name, setName]   = useState('');
   const [slug, setSlug]   = useState('');
   const [slugDirty, setSlugDirty] = useState(false);
+  const [location, setLocation]   = useState<string | null>(defaultLocation);
   const [busy, setBusy]   = useState<null | 'stay' | 'go'>(null);
   const [err, setErr]     = useState<string | null>(null);
 
@@ -668,12 +723,12 @@ function CreateAgentModal({
   const submit = async (goToBuilder: boolean) => {
     if (!valid || busy) return;
     setBusy(goToBuilder ? 'go' : 'stay'); setErr(null);
-    try { await onCreate(name.trim() || trimmedSlug, trimmedSlug, goToBuilder); }
+    try { await onCreate(name.trim() || trimmedSlug, trimmedSlug, goToBuilder, location); }
     catch (e) { setErr(cleanErr(e)); setBusy(null); }
   };
 
   return (
-    <Modal open onClose={onClose} width={480}
+    <Modal open onClose={onClose} width={520}
       title="🤖 New agent"
       footer={
         <div className={styles.modalFooterSplit}>
@@ -689,9 +744,6 @@ function CreateAgentModal({
         </div>
       }>
       <div className={styles.modalBody}>
-        {intoWorkspaceName && (
-          <div className={styles.modalNote}>Creating in <strong>📁 {intoWorkspaceName}</strong>.</div>
-        )}
         <label className={styles.fieldLabel}>
           Display name
           <input type="text" autoFocus value={name}
@@ -706,6 +758,10 @@ function CreateAgentModal({
             placeholder="support-bot" className={styles.fieldInput} />
           <small className={styles.hint}>URL: <code>/{trimmedSlug || 'your-slug'}/builder</code></small>
         </label>
+        <div className={styles.fieldLabel}>
+          Location <span className={styles.hint}>— an agent can live anywhere, but usually inside a project.</span>
+          <FolderTreePicker workspaces={workspaces} value={location} onChange={setLocation} />
+        </div>
         {err && <div className={styles.modalError}>{err}</div>}
       </div>
     </Modal>
@@ -715,9 +771,10 @@ function CreateAgentModal({
 // ─── Folder create / rename modal ───────────────────────────────────
 
 function WorkspaceNameModal({
-  mode, initial, intoWorkspaceName, onSubmit, onClose,
+  mode, kind, initial, intoWorkspaceName, onSubmit, onClose,
 }: {
   mode: 'create' | 'rename';
+  kind: WorkspaceKind;
   initial: string;
   intoWorkspaceName: string | null;
   onSubmit: (name: string) => Promise<void>;
@@ -727,6 +784,7 @@ function WorkspaceNameModal({
   const [busy, setBusy] = useState(false);
   const [err, setErr]   = useState<string | null>(null);
   const trimmed = name.trim();
+  const label = KIND_LABEL[kind];
 
   const submit = async () => {
     if (!trimmed || busy) return;
@@ -737,7 +795,9 @@ function WorkspaceNameModal({
 
   return (
     <Modal open onClose={onClose} width={440}
-      title={mode === 'create' ? '📁 New folder' : '✏️ Rename folder'}
+      title={mode === 'create'
+        ? `${KIND_ICON[kind]} New ${label.toLowerCase()}`
+        : `✏️ Rename ${label.toLowerCase()}`}
       footer={
         <div className={styles.modalFooter}>
           <button type="button" className={styles.secondaryBtn} onClick={onClose}>Cancel</button>
@@ -748,14 +808,20 @@ function WorkspaceNameModal({
       }>
       <div className={styles.modalBody}>
         {mode === 'create' && intoWorkspaceName && (
-          <div className={styles.modalNote}>Inside <strong>📁 {intoWorkspaceName}</strong>.</div>
+          <div className={styles.modalNote}>Inside <strong>{intoWorkspaceName}</strong>.</div>
+        )}
+        {mode === 'create' && kind === 'project' && (
+          <div className={styles.modalNote}>A project holds agents. It lives inside a domain.</div>
+        )}
+        {mode === 'create' && kind === 'domain' && (
+          <div className={styles.modalNote}>A domain is a top-level group that holds projects.</div>
         )}
         <label className={styles.fieldLabel}>
-          Folder name
+          {label} name
           <input type="text" autoFocus value={name}
             onChange={e => setName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') submit(); }}
-            placeholder="e.g. Banking" className={styles.fieldInput} />
+            placeholder={kind === 'domain' ? 'e.g. Banking' : 'e.g. Credit Cards'} className={styles.fieldInput} />
         </label>
         {err && <div className={styles.modalError}>{err}</div>}
       </div>
@@ -783,6 +849,18 @@ function MoveFolderModal({
     [workspace, workspaces],
   );
 
+  // Where each kind may move: a domain → top or another domain; a project
+  // → a domain; a folder → a project or another folder.
+  const validParentKinds: WorkspaceKind[] =
+    workspace.kind === 'domain'  ? ['domain']
+    : workspace.kind === 'project' ? ['domain']
+    : ['project', 'folder'];
+  const allowTop  = workspace.kind === 'domain';
+  const intoLabel =
+    workspace.kind === 'domain'  ? 'top level or another domain'
+    : workspace.kind === 'project' ? 'a domain'
+    : 'a project or another folder';
+
   const submit = async () => {
     if (!changed || busy) return;
     setBusy(true); setErr(null);
@@ -792,7 +870,7 @@ function MoveFolderModal({
 
   return (
     <Modal open onClose={onClose} width={460}
-      title="📁 Move folder"
+      title={`${KIND_ICON[workspace.kind]} Move ${KIND_LABEL[workspace.kind].toLowerCase()}`}
       footer={
         <div className={styles.modalFooter}>
           <button type="button" className={styles.secondaryBtn} onClick={onClose}>Cancel</button>
@@ -802,8 +880,10 @@ function MoveFolderModal({
         </div>
       }>
       <div className={styles.modalBody}>
-        <div className={styles.modalNote}>Move <strong>“{workspace.name}”</strong> into:</div>
-        <FolderTreePicker workspaces={workspaces} value={target} onChange={setTarget} disabledIds={disabled} />
+        <div className={styles.modalNote}>Move <strong>“{workspace.name}”</strong> into {intoLabel}:</div>
+        <FolderTreePicker workspaces={workspaces} value={target} onChange={setTarget}
+          disabledIds={disabled} allowTop={allowTop}
+          selectable={ws => validParentKinds.includes(ws.kind)} />
         {err && <div className={styles.modalError}>{err}</div>}
       </div>
     </Modal>

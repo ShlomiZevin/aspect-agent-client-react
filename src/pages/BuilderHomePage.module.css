@@ -256,22 +256,61 @@
 
 .tileTime { font-size: 10.5px; color: #9ca3af; }
 
-/* Folder tile — a clickable rect you open. */
-.tileFolder {
-  cursor: pointer;
-  background: linear-gradient(180deg, #fbfbfe 0%, #fff 60%);
-}
-
+/* Folder tile — a clickable rect you open. Domain vs Project get a
+   distinct tint + accent bar so the two "shapes" read at a glance. */
+.tileFolder { cursor: pointer; }
 .tileFolder:hover { border-color: #c7d2fe; }
+
+/* Domain = indigo organiser; Project = amber container. */
+.tileDomain {
+  background: linear-gradient(180deg, #f5f3ff 0%, #fff 62%);
+  border-color: #ddd6fe;
+}
+.tileDomain:hover { border-color: #a78bfa; }
+.tileProject {
+  background: linear-gradient(180deg, #fffbeb 0%, #fff 62%);
+  border-color: #fde68a;
+}
+.tileProject:hover { border-color: #fbbf24; }
+/* Generic sub-folder below a project — neutral slate. */
+.tileFolderGeneric {
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 62%);
+  border-color: #e2e8f0;
+}
+.tileFolderGeneric:hover { border-color: #94a3b8; }
 
 .tileFolderInner {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  padding: 16px 14px 12px;
+  padding: 14px 14px 12px;
   height: 100%;
   box-sizing: border-box;
 }
+
+.tileTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  /* Reserve space for the ⋯ kebab (absolute, top-right) so the kind
+     chip never sits under it. */
+  padding-right: 26px;
+  margin-bottom: 2px;
+}
+
+.kindChip {
+  flex: 0 0 auto;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.tileDomain .kindChip { color: #6d28d9; background: #ede9fe; }
+.tileProject .kindChip { color: #b45309; background: #fef3c7; }
+.tileFolderGeneric .kindChip { color: #475569; background: #e2e8f0; }
 
 .tileFolderCount {
   margin-top: auto;
@@ -320,6 +359,9 @@
 }
 
 .crumbActions { margin-left: auto; display: flex; gap: 2px; }
+/* At root there's no folder to act on — keep the buttons' space so the
+   grid never shifts, but make them invisible and inert. */
+.crumbActionsHidden { visibility: hidden; pointer-events: none; }
 
 /* ── Empty / loading / error ───────────────────────────────────── */
 .empty {
@@ -521,7 +563,15 @@
 }
 .treeRowDisabled:hover { background: transparent; }
 
-.treeLabel { overflow: hidden; text-overflow: ellipsis; }
+.treeLabel { overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.treeKind {
+  margin-left: auto;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9ca3af;
+}
 
 .modalFooter {
   display: flex;
