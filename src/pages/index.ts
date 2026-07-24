@@ -49,6 +49,7 @@ export { KBvsTriggeredPage } from './KBvsTriggeredPage';
 export { LybiKnowledgePage } from './LybiKnowledgePage';
 export { LybiCostPage } from './LybiCostPage';
 export { LybiInstallPage } from './LybiInstallPage';
+export { LybiSupportPage } from './LybiSupportPage';
 export { LybiBrainPage } from './LybiBrainPage';
 export { LLMGuidePage } from './LLMGuidePage';
 export { PitchDeckPage } from './PitchDeckPage';
