@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 // INTERNAL: the ready answer for "how do we support this?".
-// On-demand developer by the hour instead of a full-time hire.
+// Two options — 12/6 is the one to lead with.
 
 const PURPLE = '#680662';
 const INK = '#1C1917';
@@ -11,13 +11,6 @@ const FAINT = '#A8A29E';
 const LINE = '#E7E5E4';
 const GREEN = '#3E7A5E';
 const RED = '#A33B3B';
-
-const TERMS = [
-  { label: 'Rate', value: '$70 / hour', note: 'A full-time developer runs $6,800/month (≈ $40/h). On-demand hourly always costs more — no idle salary.' },
-  { label: 'Minimum', value: '10 hours / month', note: 'Fixed monthly bank. Used less — still 10. Used more — 10 + actual hours.' },
-  { label: 'Coverage', value: '12 / 6, Israel time', note: 'e.g. 08:00–20:00, Sunday–Friday. Matches our customers — all Israeli.' },
-  { label: 'SLA', value: '2-hour response', note: 'Response within coverage hours, not resolution. Critical issues first.' },
-];
 
 const COVERED = [
   'Incidents & outages',
@@ -28,7 +21,6 @@ const COVERED = [
 
 const NOT_COVERED = [
   'New features or changes — scoped and priced separately',
-  '24/6 coverage (see below)',
 ];
 
 export function LybiSupportPage() {
@@ -60,27 +52,42 @@ export function LybiSupportPage() {
         </h1>
 
         {/* THE answer */}
-        <div style={{ background: '#fff', border: `2px solid ${PURPLE}`, borderRadius: 14, padding: '24px 28px', marginBottom: 28 }}>
+        <div style={{ background: '#fff', border: `2px solid ${PURPLE}`, borderRadius: 14, padding: '24px 28px', marginBottom: 24 }}>
           <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: PURPLE, marginBottom: 8 }}>
             The answer
           </div>
           <div style={{ fontSize: 19, lineHeight: 1.55 }}>
-            A dedicated developer on call, by the hour: <b style={{ color: PURPLE }}>$70/hour,
-            minimum bank of 10 hours a month</b>. Coverage <b>12/6 Israel time</b>,
-            <b> 2-hour response SLA</b>. No full-time hire needed —
-            that's <b style={{ color: PURPLE }}>$700/month minimum</b> instead of $6,800 for a full-timer.
+            A dedicated developer on call, by the hour:
+            <b style={{ color: PURPLE }}> $80/hour, minimum bank of 10 hours a month ($800)</b>.
+            Coverage <b>12/6</b>. SLA: <b>2-hour response</b> to start, reduced to <b>1 hour</b> over time.
           </div>
         </div>
 
-        {/* Terms */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, marginBottom: 24 }}>
-          {TERMS.map(t => (
-            <div key={t.label} style={{ background: '#fff', border: `1px solid ${LINE}`, borderRadius: 10, padding: '14px 18px' }}>
-              <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: FAINT, marginBottom: 4 }}>{t.label}</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: PURPLE, marginBottom: 4 }}>{t.value}</div>
-              <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.5 }}>{t.note}</div>
+        {/* Two options */}
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' as const, marginBottom: 24 }}>
+          <div style={{ flex: '1 1 300px', background: '#fff', border: `2px solid ${PURPLE}`, borderRadius: 12, padding: '18px 20px' }}>
+            <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: '#fff', background: PURPLE, padding: '3px 10px', borderRadius: 99 }}>
+              12/6 — the offer
+            </span>
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column' as const, gap: 8, fontSize: 14.5 }}>
+              <div><b style={{ color: PURPLE }}>$80 / hour</b></div>
+              <div>Minimum bank: <b>10 hours / month ($800)</b></div>
+              <div>Above the bank: 10 + actual hours</div>
+              <div>Coverage: <b>12 hours × 6 days</b>, Israel time</div>
+              <div>SLA: <b>2-hour response</b> to start, reduced to 1 hour over time</div>
             </div>
-          ))}
+          </div>
+          <div style={{ flex: '1 1 300px', background: '#fff', border: `1px solid ${LINE}`, borderRadius: 12, padding: '18px 20px' }}>
+            <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: MUTED, background: '#FAF7F7', padding: '3px 10px', borderRadius: 99 }}>
+              24/7 — if demanded
+            </span>
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column' as const, gap: 8, fontSize: 14.5, color: MUTED }}>
+              <div><b style={{ color: INK }}>$1,500 / month</b> minimum</div>
+              <div>Same bank structure, $80/hour above it</div>
+              <div>Coverage: around the clock, every day</div>
+              <div>SLA: 2-hour response to start, reduced to 1 hour over time</div>
+            </div>
+          </div>
         </div>
 
         {/* Covered / not */}
@@ -109,24 +116,10 @@ export function LybiSupportPage() {
           </div>
         </div>
 
-        {/* 24/6 */}
-        <div style={{ background: '#fff', border: `1px solid ${LINE}`, borderRadius: 10, padding: '14px 18px', marginBottom: 24 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: FAINT, marginBottom: 6 }}>
-            If a customer insists on 24/6
-          </div>
-          <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.6 }}>
-            Offer 24/6 with a tiered SLA: <b style={{ color: INK }}>2-hour response during the day,
-            up to 10 hours at night</b> — a night issue is handled first thing in the morning.
-            Nights are quiet anyway (Israeli customers), and the cloud platform self-heals and is
-            monitored automatically. Only if a customer contractually demands a fast night
-            response do we add a developer in a second timezone — possible, priced separately.
-          </div>
-        </div>
-
         <p style={{ fontSize: 12.5, color: FAINT, lineHeight: 1.7, margin: 0 }}>
-          For us: SLA is response time, not resolution — never promise resolution times. Escalation
-          beyond the support developer goes to Shlomi. Before selling support, set up basic uptime
-          monitoring so we detect problems before the customer does.
+          For us: SLA is response time, not resolution. Escalation beyond the support developer
+          goes to Shlomi. Don't sign a 24/7 commitment before confirming with Shlomi that it can
+          be staffed.
         </p>
       </div>
     </div>
