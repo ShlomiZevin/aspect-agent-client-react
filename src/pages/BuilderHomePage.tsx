@@ -88,7 +88,7 @@ function cleanErr(err: unknown): string {
 /** Distinct icon + label per folder kind. Domain (cabinet) holds
  *  projects; Project (folder) holds agents; Folder (generic) is free-form
  *  below a project. Kept visually distinct on purpose. */
-const KIND_ICON: Record<WorkspaceKind, string> = { domain: '🗄️', project: '📦', folder: '📁' };
+const KIND_ICON: Record<WorkspaceKind, string> = { domain: '🌐', project: '📦', folder: '📁' };
 const KIND_LABEL: Record<WorkspaceKind, string> = { domain: 'Domain', project: 'Project', folder: 'Folder' };
 const KIND_TILE: Record<WorkspaceKind, string> = { domain: styles.tileDomain, project: styles.tileProject, folder: styles.tileFolderGeneric };
 

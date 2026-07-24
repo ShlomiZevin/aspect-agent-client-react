@@ -1,10 +1,12 @@
 .wrap {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   /* The layout's chat grid column is `auto` — this is where the open
-   * panel's width actually lives. */
+   * panel's width actually lives. 380px is only the FALLBACK: once the
+   * user drags the panel, ChatPanel sets an inline width that wins. */
   width: 380px;
 }
 
@@ -12,6 +14,61 @@
   .wrap {
     width: 320px;
   }
+}
+
+/* Drag handle straddling the panel's left border. Invisible until
+ * hovered/dragged, then a 2px primary rule shows the seam is grabbable.
+ * col-resize cursor advertises it. Double-click resets to default. */
+.resizeHandle {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  z-index: 6;
+  cursor: col-resize;
+  display: flex;
+  justify-content: center;
+  touch-action: none;
+}
+
+.resizeHandle::before {
+  content: '';
+  width: 2px;
+  height: 100%;
+  background: transparent;
+  transition: background 120ms ease;
+}
+
+.resizeHandle:hover::before,
+.resizeHandleActive::before {
+  background: var(--primary-color, #6366f1);
+}
+
+/* Small "reset width" chip in the tabs row — only shown once the panel
+ * has been dragged off its default width. */
+.resetWidthBtn {
+  flex: 0 0 auto;
+  align-self: center;
+  /* Negative margin tucks it up against the collapse chevron (whose
+   * glyph is centered in a wider box) so the two read as one cluster. */
+  margin-right: -6px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  color: var(--text-tertiary, #9ca3af);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.resetWidthBtn:hover {
+  color: var(--primary-color, #6366f1);
+  background: var(--bg-input, #f3f4f6);
 }
 
 /* Collapsed: keep the chats mounted (an in-flight preview turn or the

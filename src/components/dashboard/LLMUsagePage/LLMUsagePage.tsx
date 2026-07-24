@@ -62,6 +62,12 @@ const COST_PER_M: Record<string, { input: number; output: number }> = {
   'gemini-2.5-pro': { input: 1.25, output: 10 },
 };
 
+// Alfred (builder assistant) usage is internal — not part of customer
+// usage, so it must be separable for pricing views. All its processes
+// are logged with an 'alfred-' prefix (alfred-brainstorm, alfred-apply-*).
+type AlfredFilter = 'all' | 'without' | 'only';
+const isAlfredProcess = (p: string) => (p || '').toLowerCase().startsWith('alfred');
+
 function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
   const rates = COST_PER_M[model];
   if (!rates) return 0;
@@ -114,6 +120,7 @@ export function LLMUsagePage({ baseURL, agentName, agentSlug }: Props) {
   const [byProcess, setByProcess] = useState<ProcessSummary[]>([]);
   const [byModel, setByModel] = useState<ModelSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [alfredFilter, setAlfredFilter] = useState<AlfredFilter>('all');
 
   // Default: today
   const today = new Date().toISOString().slice(0, 10);
@@ -132,7 +139,7 @@ export function LLMUsagePage({ baseURL, agentName, agentSlug }: Props) {
       const slugParam = agentSlug ? `&slug=${encodeURIComponent(agentSlug)}` : '';
 
       const [rowsRes, summaryRes] = await Promise.all([
-        fetch(`${apiBase}/api/admin/usage?from=${from}&to=${to}&limit=200${agentParam}${slugParam}`),
+        fetch(`${apiBase}/api/admin/usage?from=${from}&to=${to}&limit=1000${agentParam}${slugParam}`),
         fetch(`${apiBase}/api/admin/usage/summary?from=${from}&to=${to}${agentParam}${slugParam}`),
       ]);
 
@@ -154,17 +161,47 @@ export function LLMUsagePage({ baseURL, agentName, agentSlug }: Props) {
     fetchData();
   }, [fetchData]);
 
+  // Apply the Alfred filter. Per-process aggregates come from the
+  // server per process, so filtering them is exact. By-model (and the
+  // cost card in filtered mode) is recomputed from the loaded rows —
+  // the server aggregates it across all processes.
+  const matchesFilter = (p: string) =>
+    alfredFilter === 'all' || (alfredFilter === 'without' ? !isAlfredProcess(p) : isAlfredProcess(p));
+
+  const viewByProcess = byProcess.filter(p => matchesFilter(p.process));
+  const viewRows = rows.filter(r => matchesFilter(r.process));
+
+  const viewByModel: ModelSummary[] = alfredFilter === 'all' ? byModel : (() => {
+    const acc: Record<string, ModelSummary & { durSum: number; durCount: number }> = {};
+    for (const r of viewRows) {
+      const key = `${r.model}|${r.provider}`;
+      if (!acc[key]) acc[key] = { model: r.model, provider: r.provider, count: 0, totalInput: 0, totalOutput: 0, avgDurationMs: 0, durSum: 0, durCount: 0 };
+      const a = acc[key];
+      a.count += 1;
+      a.totalInput += r.inputTokens;
+      a.totalOutput += r.outputTokens;
+      if (r.durationMs) { a.durSum += r.durationMs; a.durCount += 1; }
+    }
+    return Object.values(acc)
+      .map(a => ({ model: a.model, provider: a.provider, count: a.count, totalInput: a.totalInput, totalOutput: a.totalOutput, avgDurationMs: a.durCount ? Math.round(a.durSum / a.durCount) : 0 }))
+      .sort((a, b) => b.totalInput + b.totalOutput - (a.totalInput + a.totalOutput));
+  })();
+
   // Compute totals
-  const totalInput = byProcess.reduce((s, p) => s + p.totalInput, 0);
-  const totalOutput = byProcess.reduce((s, p) => s + p.totalOutput, 0);
-  const totalEstCost = byModel.reduce((s, m) => s + estimateCost(m.model, m.totalInput, m.totalOutput), 0);
-  const totalCalls = byProcess.reduce((s, p) => s + p.count, 0);
+  const totalInput = viewByProcess.reduce((s, p) => s + p.totalInput, 0);
+  const totalOutput = viewByProcess.reduce((s, p) => s + p.totalOutput, 0);
+  const totalEstCost = viewByModel.reduce((s, m) => s + estimateCost(m.model, m.totalInput, m.totalOutput), 0);
+  const totalCalls = viewByProcess.reduce((s, p) => s + p.count, 0);
 
   // Compute cost per process from individual rows
   const costByProcess: Record<string, number> = {};
-  for (const r of rows) {
+  for (const r of viewRows) {
     costByProcess[r.process] = (costByProcess[r.process] || 0) + estimateCost(r.model, r.inputTokens, r.outputTokens);
   }
+
+  // In filtered mode the by-model table is built from the loaded rows;
+  // flag it when the period has more rows than we loaded.
+  const filteredApprox = alfredFilter !== 'all' && total > rows.length;
 
   const showCalculator = DATA_INCLUDED_AGENTS.has((agentName || '').toLowerCase());
 
@@ -173,6 +210,26 @@ export function LLMUsagePage({ baseURL, agentName, agentSlug }: Props) {
       <div className={styles.mainColumn}>
       <div className={styles.header}>
         <h1 className={styles.title}>LLM Usage</h1>
+        <div style={{ display: 'inline-flex', border: '1px solid #d1d5db', borderRadius: 8, overflow: 'hidden' }}>
+          {([
+            ['all', 'All'],
+            ['without', 'Without Alfred'],
+            ['only', 'Only Alfred'],
+          ] as Array<[AlfredFilter, string]>).map(([value, label]) => (
+            <button
+              key={value}
+              onClick={() => setAlfredFilter(value)}
+              style={{
+                fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+                padding: '6px 12px', border: 'none',
+                background: alfredFilter === value ? '#4338ca' : '#fff',
+                color: alfredFilter === value ? '#fff' : '#6b7280',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <div className={styles.dateRange}>
           <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
           <span>-</span>
@@ -222,7 +279,7 @@ export function LLMUsagePage({ baseURL, agentName, agentSlug }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {byProcess.map(p => (
+                {viewByProcess.map(p => (
                   <tr key={p.process}>
                     <td><span className={styles.processBadge} style={getProcessStyle(p.process)}>{p.process}</span></td>
                     <td>{p.count}</td>
@@ -241,6 +298,11 @@ export function LLMUsagePage({ baseURL, agentName, agentSlug }: Props) {
           {/* By Model */}
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>By Model</h2>
+            {filteredApprox && (
+              <div style={{ fontSize: 12, color: '#9ca3af', margin: '-4px 0 8px' }}>
+                Filtered view — computed from the {rows.length.toLocaleString()} most recent calls of {total.toLocaleString()} in this period.
+              </div>
+            )}
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -256,7 +318,7 @@ export function LLMUsagePage({ baseURL, agentName, agentSlug }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {byModel.map(m => (
+                {viewByModel.map(m => (
                   <tr key={`${m.model}-${m.provider}`}>
                     <td>{m.model}</td>
                     <td>{m.provider}</td>
@@ -275,8 +337,10 @@ export function LLMUsagePage({ baseURL, agentName, agentSlug }: Props) {
 
           {/* Recent calls */}
           <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Recent Calls ({total} total)</h2>
-            {rows.length === 0 ? (
+            <h2 className={styles.sectionTitle}>
+              Recent Calls ({alfredFilter === 'all' ? `${total} total` : `${viewRows.length} shown`})
+            </h2>
+            {viewRows.length === 0 ? (
               <div className={styles.empty}>No usage data for this period</div>
             ) : (
               <table className={styles.table}>
@@ -293,7 +357,7 @@ export function LLMUsagePage({ baseURL, agentName, agentSlug }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map(r => (
+                  {viewRows.map(r => (
                     <tr key={r.id}>
                       <td>{new Date(r.createdAt).toLocaleTimeString()}</td>
                       <td><span className={styles.processBadge} style={getProcessStyle(r.process)}>{r.process}</span></td>
@@ -313,7 +377,7 @@ export function LLMUsagePage({ baseURL, agentName, agentSlug }: Props) {
       )}
       </div>
       {showCalculator && (
-        <CostCalculatorPanel byProcess={byProcess} byModel={byModel} />
+        <CostCalculatorPanel byProcess={viewByProcess} byModel={viewByModel} />
       )}
     </div>
   );
