@@ -144,6 +144,9 @@ function bodyOfAgent(agent: AgentDoc): AgentBody {
     defaultCrewId: agent.defaultCrewId,
     fields: agent.fields,
     domains: agent.domains ?? [],
+    // Same empty==absent trick as liveBrain below — agents that never
+    // declared tags keep comparing equal to their pre-tags version bodies.
+    ...((agent.tags?.length) ? { tags: agent.tags } : {}),
     parameters: agent.parameters ?? [],
     enums: agent.enums ?? [],
     cortex: agent.cortex ?? [],
@@ -1561,6 +1564,10 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
           let agent = a;
           if (agentTarget) {
             const ab = agentTarget.newBody as Partial<AgentDoc>;
+            // Merge EVERY AgentBody key — keep this list in sync with the
+            // AgentBody Pick in types/index.ts. A key missing here means
+            // Alfred's generated change for it is silently dropped (that's
+            // exactly how liveBrain edits vanished before).
             agent = {
               ...a,
               ...(ab.name          !== undefined && { name: ab.name as string }),
@@ -1568,7 +1575,15 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
               ...(ab.spec          !== undefined && { spec: ab.spec as string }),
               ...(ab.persona       !== undefined && { persona: ab.persona as string }),
               ...(ab.defaultCrewId !== undefined && { defaultCrewId: ab.defaultCrewId as ID | undefined }),
-              ...(Array.isArray(ab.fields) && { fields: ab.fields as AgentDoc['fields'] }),
+              ...(Array.isArray(ab.fields)     && { fields: ab.fields as AgentDoc['fields'] }),
+              ...(Array.isArray(ab.domains)    && { domains: ab.domains as AgentDoc['domains'] }),
+              ...(Array.isArray(ab.tags)       && { tags: ab.tags as AgentDoc['tags'] }),
+              ...(Array.isArray(ab.parameters) && { parameters: ab.parameters as AgentDoc['parameters'] }),
+              ...(Array.isArray(ab.enums)      && { enums: ab.enums as AgentDoc['enums'] }),
+              ...(Array.isArray(ab.cortex)     && { cortex: ab.cortex as AgentDoc['cortex'] }),
+              ...(Array.isArray(ab.snippets)   && { snippets: ab.snippets as AgentDoc['snippets'] }),
+              ...(Array.isArray(ab.personas)   && { personas: ab.personas as AgentDoc['personas'] }),
+              ...(ab.liveBrain !== undefined   && { liveBrain: ab.liveBrain as AgentDoc['liveBrain'] }),
             };
           }
           agent = {

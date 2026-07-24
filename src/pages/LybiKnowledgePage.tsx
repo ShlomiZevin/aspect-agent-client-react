@@ -12,6 +12,7 @@ const PAGES = [
   { path: '/lybi/readiness', icon: '🛡️', title: 'שאלון בדיקת נאותות — מענה טכני', desc: 'מענה לשאלון קופת חולים / בנק — ארכיטקטורה, אבטחת מידע, אינטגרציה, יתירות ולוגים' },
   { path: '/lybi/architecture', icon: '🏗️', title: 'ארכיטקטורה', desc: 'תרשים מערכת + מנוע השיחה (Builder v2.0) — קליינט, שרת, מסדי נתונים וספקי LLM' },
   { path: '/lybi/cost', icon: '🧮', title: 'Cost per Interaction', desc: 'Pricing tool — LLM cost per interaction by agent complexity' },
+  { path: '/lybi/installation', icon: '🚀', title: 'Effortless Installation', desc: 'Standalone deployment — what it includes, what it doesn\'t, 5 days to live' },
   { path: '/lybi/backlog', icon: '📋', title: 'Tech Backlog', desc: '14 items to production-ready — DevOps, security, architecture, integrations' },
   { path: '/lybi/about/shlomi', icon: '👤', title: 'About Shlomi Zevin', desc: 'CTO — 20+ years in tech, AI agents, startup speed' },
 ];
