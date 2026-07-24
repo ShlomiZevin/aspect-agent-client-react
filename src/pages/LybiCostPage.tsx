@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 // Token prices are USD list prices per 1M tokens (verified July 2026).
 
 interface ModelPrice { id: string; name: string; prov: string; pin: number; pout: number }
-interface Row { name: string; desc: string; model: string; read: string; write: string; runs: number }
+interface Row { kind: string; name: string; desc: string; model: string; read: string; write: string; runs: number }
 interface Tier { key: string; badge: string; title: string; tagline: string; rows: Row[] }
 
 const MODELS: ModelPrice[] = [
@@ -24,6 +24,26 @@ const MODELS: ModelPrice[] = [
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', prov: 'Google', pin: 0.3, pout: 2.5 },
 ];
 const MODEL_BY_ID = Object.fromEntries(MODELS.map(m => [m.id, m]));
+
+// Component types: what can be in an agent, which models fit each,
+// and sensible defaults when adding one.
+interface ComponentType {
+  base: string; desc: string; models: string[];
+  model: string; read: string; write: string; runs: number;
+  addable: boolean;
+}
+const GPT_MODELS = ['gpt-5.6', 'gpt-5.5', 'gpt-4o', 'gpt-5.4-mini', 'gpt-4o-mini'];
+const ALL_MODELS = MODELS.map(m => m.id);
+const CHEAP_MODELS = ['gpt-4o-mini', 'gpt-5.4-mini', 'claude-haiku-4-5', 'gemini-2.5-flash'];
+
+const COMPONENT_TYPES: Record<string, ComponentType> = {
+  talker: { base: 'Talker', desc: 'prompt + history + KB + message', models: GPT_MODELS, model: 'gpt-5.5', read: 'alot', write: 'normal', runs: 1, addable: false },
+  thinker: { base: 'Thinker', desc: 'plans before the reply', models: ALL_MODELS, model: 'claude-sonnet-4-6', read: 'medium', write: 'detailed', runs: 1, addable: true },
+  fieldExtractor: { base: 'Field extractor', desc: 'pulls structured data', models: CHEAP_MODELS, model: 'gpt-4o-mini', read: 'little', write: 'short', runs: 1, addable: true },
+  vibeExtractor: { base: 'Vibe extractor', desc: 'reads tone & emotion', models: CHEAP_MODELS, model: 'gpt-4o-mini', read: 'little', write: 'short', runs: 1, addable: true },
+  liveBrain: { base: 'Live brain', desc: 'live analysis per message', models: ALL_MODELS, model: 'claude-sonnet-4-6', read: 'medium', write: 'normal', runs: 1, addable: true },
+  profiler: { base: 'Profiler', desc: 'background, every 5th message', models: GPT_MODELS, model: 'gpt-5.5', read: 'alot', write: 'long', runs: 0.2, addable: true },
+};
 
 // How much the component READS per run (prompt + history + KB + message).
 const READ_LEVELS = [
@@ -42,6 +62,11 @@ const WRITE_LEVELS = [
 const DEFAULT_READ_WORDS: Record<string, number> = { little: 600, medium: 1500, alot: 2700, everything: 4100 };
 const DEFAULT_WRITE_WORDS: Record<string, number> = { short: 60, normal: 150, detailed: 220, long: 400 };
 
+const row = (kind: string, patch: Partial<Row> = {}): Row => {
+  const t = COMPONENT_TYPES[kind];
+  return { kind, name: t.base, desc: t.desc, model: t.model, read: t.read, write: t.write, runs: t.runs, ...patch };
+};
+
 const DEFAULT_TIERS: Tier[] = [
   {
     key: 'talker',
@@ -49,7 +74,7 @@ const DEFAULT_TIERS: Tier[] = [
     title: 'Talker only',
     tagline: 'One model answers. No addons.',
     rows: [
-      { name: 'Talker', desc: 'prompt + history + message', model: 'gpt-5.5', read: 'medium', write: 'normal', runs: 1 },
+      row('talker', { desc: 'prompt + history + message', read: 'medium' }),
     ],
   },
   {
@@ -58,9 +83,10 @@ const DEFAULT_TIERS: Tier[] = [
     title: 'Talker + Brain',
     tagline: 'A few simple addons.',
     rows: [
-      { name: 'Talker', desc: 'prompt + history + KB + message', model: 'claude-sonnet-4-6', read: 'alot', write: 'normal', runs: 1 },
-      { name: 'Thinking addon', desc: 'plans before the reply', model: 'claude-sonnet-4-6', read: 'medium', write: 'detailed', runs: 1 },
-      { name: 'Field extractor', desc: 'pulls structured data', model: 'gpt-4o-mini', read: 'little', write: 'short', runs: 1 },
+      row('talker'),
+      row('thinker'),
+      row('fieldExtractor'),
+      row('vibeExtractor'),
     ],
   },
   {
@@ -69,11 +95,14 @@ const DEFAULT_TIERS: Tier[] = [
     title: 'Full Crew',
     tagline: 'Lots of thinking addons + live brain + profiler.',
     rows: [
-      { name: 'Talker', desc: 'long prompt + history + big KB', model: 'gpt-5.6', read: 'everything', write: 'detailed', runs: 1 },
-      { name: 'Thinking addons', desc: 'counted ×3 addons', model: 'claude-sonnet-4-6', read: 'medium', write: 'detailed', runs: 3 },
-      { name: 'Field extractor', desc: 'pulls structured data', model: 'gpt-4o-mini', read: 'little', write: 'short', runs: 1 },
-      { name: 'Live brain', desc: 'live analysis per message', model: 'claude-sonnet-4-6', read: 'medium', write: 'normal', runs: 1 },
-      { name: 'Profiler', desc: 'background, every 5th message', model: 'gpt-5.5', read: 'alot', write: 'long', runs: 0.2 },
+      row('talker', { model: 'gpt-5.6', desc: 'long prompt + history + big KB', read: 'everything', write: 'detailed' }),
+      row('thinker', { name: 'Thinker 1' }),
+      row('thinker', { name: 'Thinker 2' }),
+      row('thinker', { name: 'Thinker 3' }),
+      row('fieldExtractor'),
+      row('vibeExtractor'),
+      row('liveBrain'),
+      row('profiler'),
     ],
   },
 ];
@@ -143,6 +172,23 @@ export function LybiCostPage() {
     setTiers(prev => prev.map((t, i) => i !== ti ? t : {
       ...t,
       rows: t.rows.map((r, j) => j !== ri ? r : { ...r, ...patch }),
+    }));
+  };
+
+  const addComponent = (ti: number, kind: string) => {
+    setTiers(prev => prev.map((t, i) => {
+      if (i !== ti) return t;
+      const sameKind = t.rows.filter(r => r.kind === kind).length;
+      const base = COMPONENT_TYPES[kind].base;
+      const name = sameKind === 0 ? base : `${base} ${sameKind + 1}`;
+      return { ...t, rows: [...t.rows, row(kind, { name })] };
+    }));
+  };
+
+  const removeRow = (ti: number, ri: number) => {
+    setTiers(prev => prev.map((t, i) => i !== ti ? t : {
+      ...t,
+      rows: t.rows.filter((_, j) => j !== ri),
     }));
   };
 
@@ -270,7 +316,7 @@ export function LybiCostPage() {
                 </div>
 
                 {/* Right: the assumptions table */}
-                <div style={{ flex: '1 1 480px', overflowX: 'auto' as const }}>
+                <div style={{ flex: '1 1 480px', overflowX: 'auto' as const, display: 'flex', flexDirection: 'column' as const }}>
                   <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13.5 }}>
                     <thead>
                       <tr>
@@ -278,26 +324,32 @@ export function LybiCostPage() {
                         <th style={thStyle('left')}>Model</th>
                         <th style={thStyle('left')}>Reads</th>
                         <th style={thStyle('left')}>Writes</th>
-                        <th style={{ ...thStyle('right'), paddingRight: 24 }}>Cost</th>
+                        <th style={{ ...thStyle('right') }}>Cost</th>
+                        <th style={{ ...thStyle('right'), paddingRight: 18, width: 28 }}></th>
                       </tr>
                     </thead>
                     <tbody>
                       {t.rows.map((r, ri) => {
                         const last = ri === t.rows.length - 1;
+                        const choices = COMPONENT_TYPES[r.kind]?.models ?? MODELS.map(m => m.id);
                         return (
-                          <tr key={r.name}>
+                          <tr key={`${r.kind}-${ri}`}>
                             <td style={{ ...tdStyle(last), paddingLeft: 24 }}>
                               <div style={{ fontWeight: 600, whiteSpace: 'nowrap' as const }}>{r.name}</div>
                               <div style={{ fontSize: 11.5, color: FAINT, whiteSpace: 'nowrap' as const }}>{r.desc}</div>
                             </td>
                             <td style={tdStyle(last)}>
-                              <select
-                                value={r.model}
-                                onChange={e => updateRow(ti, ri, { model: e.target.value })}
-                                style={{ ...selectStyle, maxWidth: 160 }}
-                              >
-                                {MODELS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                              </select>
+                              {choices.length === 1 ? (
+                                <span style={{ fontSize: 13, color: MUTED, whiteSpace: 'nowrap' as const }}>{MODEL_BY_ID[choices[0]].name}</span>
+                              ) : (
+                                <select
+                                  value={r.model}
+                                  onChange={e => updateRow(ti, ri, { model: e.target.value })}
+                                  style={{ ...selectStyle, maxWidth: 160 }}
+                                >
+                                  {choices.map(id => <option key={id} value={id}>{MODEL_BY_ID[id].name}</option>)}
+                                </select>
+                              )}
                             </td>
                             <td style={tdStyle(last)}>
                               <select
@@ -317,14 +369,37 @@ export function LybiCostPage() {
                                 {WRITE_LEVELS.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
                               </select>
                             </td>
-                            <td style={{ ...tdStyle(last), textAlign: 'right' as const, paddingRight: 24, fontFamily: MONO, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const, color: MUTED }}>
+                            <td style={{ ...tdStyle(last), textAlign: 'right' as const, fontFamily: MONO, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const, color: MUTED }}>
                               ${rowCost(r).toFixed(4)}
+                            </td>
+                            <td style={{ ...tdStyle(last), textAlign: 'right' as const, paddingRight: 18 }}>
+                              {r.kind !== 'talker' && (
+                                <button
+                                  onClick={() => removeRow(ti, ri)}
+                                  title={`Remove ${r.name}`}
+                                  style={{ background: 'none', border: 'none', color: FAINT, fontSize: 15, cursor: 'pointer', padding: '2px 6px', lineHeight: 1 }}
+                                >
+                                  ×
+                                </button>
+                              )}
                             </td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
+                  <div style={{ marginTop: 'auto', padding: '10px 24px 14px', borderTop: `1px solid ${LINE}` }}>
+                    <select
+                      value=""
+                      onChange={e => { if (e.target.value) addComponent(ti, e.target.value); }}
+                      style={{ ...selectStyle, background: 'rgba(104,6,98,0.06)', color: PURPLE, fontWeight: 600, border: 'none', padding: '7px 10px' }}
+                    >
+                      <option value="">+ Add component</option>
+                      {Object.entries(COMPONENT_TYPES).filter(([, c]) => c.addable).map(([kind, c]) => (
+                        <option key={kind} value={kind}>{c.base}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             );
