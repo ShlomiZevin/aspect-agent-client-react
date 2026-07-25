@@ -72,7 +72,7 @@ function defaultTalker(): AddonInstance<TalkerConfig> {
   };
 }
 
-function bodyOf(crew: CrewDoc): CrewBody {
+export function bodyOf(crew: CrewDoc): CrewBody {
   return {
     name: crew.name,
     description: crew.description,
@@ -134,7 +134,7 @@ function bodiesEqual(a: CrewBody, b: CrewBody): boolean {
   return stableStringify(a) === stableStringify(b);
 }
 
-function bodyOfAgent(agent: AgentDoc): AgentBody {
+export function bodyOfAgent(agent: AgentDoc): AgentBody {
   return {
     name: agent.name,
     slug: agent.slug,

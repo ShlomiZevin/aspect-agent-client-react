@@ -18,12 +18,13 @@
 
 import { useEffect, useState } from 'react';
 import { Modal } from '../Modal/Modal';
-import { useBuilder } from '../../state/BuilderContext';
+import { bodyOf, bodyOfAgent, useBuilder } from '../../state/BuilderContext';
 import {
   applyGenerate,
   applyPreview,
   type ApplyGenerateResponse,
   type ApplyTarget,
+  type ApplyWorkingBodies,
 } from '../../state/builderApi';
 import styles from './ApplyPreviewModal.module.css';
 
@@ -42,7 +43,7 @@ type Phase = 'loading' | 'review' | 'applying' | 'success' | 'error';
 export function ApplyPreviewModal({
   open, onClose, chatId, agentSlug, ownerUserId, onApplied,
 }: Props) {
-  const { applyAlfredBodies } = useBuilder();
+  const { doc, applyAlfredBodies } = useBuilder();
 
   const [phase, setPhase]             = useState<Phase>('loading');
   const [summary, setSummary]         = useState('');
@@ -90,11 +91,24 @@ export function ApplyPreviewModal({
     setErrorMsg(null);
     setErrorDetails([]);
     try {
+      // Alfred works on the VISIBLE version — send the working copies
+      // so generation bases on exactly what's on screen (chained
+      // applies stack; unsaved edits are respected). The server falls
+      // back to the saved viewing version if this is absent.
+      const agent = doc.agents.find(a => a.slug === agentSlug) ?? doc.agents[0];
+      const workingBodies: ApplyWorkingBodies | undefined = agent
+        ? {
+            agent: { id: agent.id, body: bodyOfAgent(agent) },
+            crews: agent.crews.map(c => ({ id: c.id, body: bodyOf(c) })),
+          }
+        : undefined;
+
       const out = await applyGenerate({
         chatId,
         agentSlug,
         ownerUserId,
         targets,
+        workingBodies,
       });
 
       // Drop the generated bodies into the working copy. The

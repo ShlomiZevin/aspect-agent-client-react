@@ -18,6 +18,7 @@ import { useModels } from '../../registry/useModels';
 import {
   createAlfredChat,
   deleteAlfredChat,
+  deleteAlfredMarker,
   fetchAlfredMessages,
   listAlfredChats,
   renameAlfredChat,
@@ -25,6 +26,7 @@ import {
   type AlfredMessage,
 } from '../../state/builderApi';
 import { sendAlfredMessage, type AlfredEvent } from '../../state/alfredStream';
+import { useConfirm } from '../Confirm/Confirm';
 import { HistoryPanel } from './HistoryPanel';
 import { ChatSettingsPopover, useChatSettings } from './ChatSettings';
 import { MarkdownBody } from './MarkdownBody';
@@ -36,6 +38,9 @@ interface Msg {
   id: number | null;
   role: 'user' | 'assistant';
   text: string;
+  /** Apply-boundary row — rendered as a divider chip with a ✕, not a
+   *  bubble. The consolidator only reads messages after the last one. */
+  marker?: boolean;
 }
 
 function findOwnerUserId(): string {
@@ -48,6 +53,9 @@ function findOwnerUserId(): string {
 
 function fromServer(m: AlfredMessage): Msg | null {
   if (m.role !== 'user' && m.role !== 'assistant') return null;
+  if (m.metadata?.kind === 'apply-marker') {
+    return { id: m.id, role: m.role, text: m.content, marker: true };
+  }
   return { id: m.id, role: m.role, text: m.content };
 }
 
@@ -59,7 +67,8 @@ const TOOL_LABELS: Record<string, string> = {
 
 export function BuilderChat() {
   useModels();
-  const { doc } = useBuilder();
+  const { doc, isAgentDirty, isCrewDirty, pendingAlfredApply } = useBuilder();
+  const confirm = useConfirm();
 
   const slug = doc.agents[0]?.slug ?? '';
   const ownerUserId = findOwnerUserId();
@@ -255,6 +264,43 @@ export function BuilderChat() {
     }
   };
 
+  const onApplyClick = async () => {
+    // Alfred applies on the VISIBLE version — that always works. The
+    // warning is about the escape route: without a save there's no
+    // restore point if the user ends up disliking the result. Warn,
+    // never block.
+    const agent = doc.agents.find(a => a.slug === slug) ?? doc.agents[0];
+    const hasUnsaved = !!agent && (
+      isAgentDirty(agent.id) ||
+      agent.crews.some(c => isCrewDirty(agent.id, c.id)) ||
+      pendingAlfredApply !== null
+    );
+    if (hasUnsaved) {
+      const ok = await confirm({
+        title: 'Unsaved changes',
+        message:
+          'Alfred will work on the version you see — including your unsaved '
+          + 'changes. But without a save there\'s no restore point: if you '
+          + 'don\'t like the result, there\'s nothing to revert to. '
+          + 'Recommended: save first, then Apply.',
+        confirmLabel: 'Apply anyway',
+        cancelLabel: 'I\'ll save first',
+      });
+      if (!ok) return;
+    }
+    setApplyOpen(true);
+  };
+
+  const onRemoveMarker = async (messageId: number | null) => {
+    if (messageId === null || chatId === null) return;
+    try {
+      await deleteAlfredMarker({ chatId, messageId });
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to remove marker');
+    }
+  };
+
   return (
     <div className={styles.chat}>
       <div className={styles.userChatHeader}>
@@ -280,7 +326,7 @@ export function BuilderChat() {
           <button
             type="button"
             className={styles.applyBtn}
-            onClick={() => setApplyOpen(true)}
+            onClick={onApplyClick}
             disabled={!chatId || messages.length === 0 || busy}
             title={
               !chatId || messages.length === 0
@@ -336,6 +382,21 @@ export function BuilderChat() {
           )}
 
           {messages.map((m, i) => {
+            if (m.marker) {
+              return (
+                <div key={m.id ?? `local_${i}`} className={styles.applyMarker}>
+                  <span className={styles.applyMarkerText}>{m.text}</span>
+                  <button
+                    type="button"
+                    className={styles.applyMarkerRemove}
+                    title="Remove this marker — the next Apply will also collect the conversation before it"
+                    onClick={() => onRemoveMarker(m.id)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            }
             const cls = `${styles.msg} ${m.role === 'user' ? styles.msgUser : styles.msgBot} ${settings.rtl ? styles.msgRtl : ''}`;
             const placeholder = m.role === 'assistant' && busy ? '…' : '';
             return (
@@ -362,6 +423,8 @@ export function BuilderChat() {
           chatId={chatId}
           agentSlug={slug}
           ownerUserId={ownerUserId}
+          // Reload so the fresh ✅ Applied marker shows immediately.
+          onApplied={() => loadChat(chatId)}
         />
       )}
 

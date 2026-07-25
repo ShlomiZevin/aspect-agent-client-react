@@ -841,6 +841,14 @@ export interface AlfredMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   createdAt: string;
+  /** Server-side extras. `kind: 'apply-marker'` rows are the apply
+   *  boundary — rendered as a divider chip in BuilderChat; deleting
+   *  one (deleteAlfredMarker) re-opens the consolidator's window. */
+  metadata?: {
+    kind?: string;
+    applyGroupId?: string;
+    targets?: Array<{ entity: 'agent' | 'crew'; entityName: string }>;
+  } | null;
 }
 
 export async function createAlfredChat(args: {
@@ -886,6 +894,18 @@ export async function fetchAlfredMessages(chatId: number): Promise<AlfredMessage
     `/api/builder/alfred/chats/${chatId}/messages`,
   );
   return res.messages;
+}
+
+/** Delete an apply-marker row (markers only — the server rejects
+ *  regular messages). Re-opens the Apply window back to the previous
+ *  marker. */
+export async function deleteAlfredMarker(args: {
+  chatId: number;
+  messageId: number;
+}): Promise<void> {
+  await http(`/api/builder/alfred/chats/${args.chatId}/messages/${args.messageId}`, {
+    method: 'DELETE',
+  });
 }
 
 /**
@@ -966,20 +986,32 @@ export interface ApplyGenerateResponse {
  * Does NOT save and does NOT write log rows — that's the client's job
  * via `writeApplyLog` after each Save.
  */
+
+/** The client's visible working copies, sent with apply/generate so
+ *  Alfred works on exactly what the user sees (chained applies stack;
+ *  unsaved edits are respected). Server falls back to the saved
+ *  viewing version for any entity not present here. */
+export interface ApplyWorkingBodies {
+  agent?: { id: string; body: unknown };
+  crews?: Array<{ id: string; body: unknown }>;
+}
+
 export async function applyGenerate(args: {
   chatId:      number;
   agentSlug:   string;
   ownerUserId: string;
   targets:     ApplyTarget[];
+  workingBodies?: ApplyWorkingBodies;
 }): Promise<ApplyGenerateResponse> {
   return http<ApplyGenerateResponse>(
     `/api/builder/alfred/chats/${args.chatId}/apply/generate`,
     {
       method: 'POST',
       body:   JSON.stringify({
-        agentSlug:   args.agentSlug,
-        ownerUserId: args.ownerUserId,
-        targets:     args.targets,
+        agentSlug:     args.agentSlug,
+        ownerUserId:   args.ownerUserId,
+        targets:       args.targets,
+        workingBodies: args.workingBodies,
       }),
     },
   );
