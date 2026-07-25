@@ -50,6 +50,7 @@ export function ApplyPreviewModal({
   const [description, setDescription] = useState('');
   const [reason, setReason]           = useState('');
   const [targets, setTargets]         = useState<ApplyTarget[]>([]);
+  const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [errorMsg, setErrorMsg]       = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string[]>([]);
   const [result, setResult]           = useState<ApplyGenerateResponse | null>(null);
@@ -64,6 +65,7 @@ export function ApplyPreviewModal({
     setDescription('');
     setReason('');
     setTargets([]);
+    setAlreadyApplied(false);
     setErrorMsg(null);
     setErrorDetails([]);
     setResult(null);
@@ -76,6 +78,7 @@ export function ApplyPreviewModal({
         setSummary(plan.summary);
         setDescription(plan.description);
         setTargets(plan.targets);
+        setAlreadyApplied(plan.alreadyApplied === true);
         setPhase('review');
       } catch (err) {
         if (cancelled) return;
@@ -231,9 +234,20 @@ export function ApplyPreviewModal({
 
           {targets.length === 0 ? (
             <div className={styles.empty}>
-              I couldn't pin down anything concrete to apply from this conversation yet.
-              Keep brainstorming with me, or click Cancel and come back when you've
-              agreed on something specific.
+              {alreadyApplied ? (
+                <>
+                  ✅ All caught up — everything in this conversation was already
+                  applied. Keep chatting with Alfred about the next change, or
+                  remove the "Applied" marker in the chat (✕ on hover) if you
+                  want to re-collect earlier changes.
+                </>
+              ) : (
+                <>
+                  I couldn't pin down anything concrete to apply from this conversation yet.
+                  Keep brainstorming with me, or click Cancel and come back when you've
+                  agreed on something specific.
+                </>
+              )}
               {description && (
                 <>
                   <br /><br />

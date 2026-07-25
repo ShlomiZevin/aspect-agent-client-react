@@ -945,6 +945,10 @@ export interface ApplyPreviewResponse {
   summary:     string;
   description: string;
   targets:     ApplyTarget[];
+  /** True when the whole conversation sits behind an ✅ Applied marker —
+   *  nothing new to collect. Normal outcome, rendered as a friendly
+   *  empty state (never an error). */
+  alreadyApplied?: boolean;
 }
 
 export async function applyPreview(args: {
