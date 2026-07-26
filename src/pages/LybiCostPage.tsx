@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 // Token prices are USD list prices per 1M tokens (verified July 2026).
 
 interface ModelPrice { id: string; name: string; prov: string; pin: number; pout: number }
-interface Row { kind: string; name: string; desc: string; model: string; read: string; write: string; runs: number }
+interface Row { kind: string; name: string; desc: string; model: string; read: string; write: string; runs: number; count: number }
 interface Tier { key: string; badge: string; title: string; tagline: string; rows: Row[] }
 
 const MODELS: ModelPrice[] = [
@@ -64,7 +64,7 @@ const DEFAULT_WRITE_WORDS: Record<string, number> = { short: 60, normal: 150, de
 
 const row = (kind: string, patch: Partial<Row> = {}): Row => {
   const t = COMPONENT_TYPES[kind];
-  return { kind, name: t.base, desc: t.desc, model: t.model, read: t.read, write: t.write, runs: t.runs, ...patch };
+  return { kind, name: t.base, desc: t.desc, model: t.model, read: t.read, write: t.write, runs: t.runs, count: 1, ...patch };
 };
 
 const DEFAULT_TIERS: Tier[] = [
@@ -96,9 +96,7 @@ const DEFAULT_TIERS: Tier[] = [
     tagline: 'Lots of thinking addons + live brain + profiler.',
     rows: [
       row('talker', { model: 'gpt-5.6', desc: 'long prompt + history + big KB', read: 'everything', write: 'detailed' }),
-      row('thinker', { name: 'Thinker 1' }),
-      row('thinker', { name: 'Thinker 2' }),
-      row('thinker', { name: 'Thinker 3' }),
+      row('thinker', { name: 'Thinkers', count: 3 }),
       row('fieldExtractor'),
       row('vibeExtractor'),
       row('liveBrain'),
@@ -113,6 +111,8 @@ const DEFAULT_TPW = 2.0;
 const DEFAULT_FX = 3.0;
 // Safety factor: extra buffer on the actual cost, ×1 = no buffer.
 const DEFAULT_SAFE = 1.0;
+// Headline figure is per this many interactions.
+const DEFAULT_INTERACTIONS = 1000;
 
 const PURPLE = '#680662';
 const INK = '#1C1917';
@@ -149,6 +149,7 @@ export function LybiCostPage() {
   const [tiers, setTiers] = useState<Tier[]>(() => structuredClone(DEFAULT_TIERS));
   const [fx, setFx] = useState(DEFAULT_FX);
   const [safe, setSafe] = useState(DEFAULT_SAFE);
+  const [interactions, setInteractions] = useState(DEFAULT_INTERACTIONS);
   const [tpw, setTpw] = useState(DEFAULT_TPW);
   const [readWords, setReadWords] = useState<Record<string, number>>({ ...DEFAULT_READ_WORDS });
   const [writeWords, setWriteWords] = useState<Record<string, number>>({ ...DEFAULT_WRITE_WORDS });
@@ -165,7 +166,7 @@ export function LybiCostPage() {
     const m = MODEL_BY_ID[r.model];
     const win = readWords[r.read] ?? 0;
     const wout = writeWords[r.write] ?? 0;
-    return ((win * tpw / 1e6) * m.pin + (wout * tpw / 1e6) * m.pout) * r.runs;
+    return ((win * tpw / 1e6) * m.pin + (wout * tpw / 1e6) * m.pout) * r.runs * r.count;
   };
 
   const updateRow = (ti: number, ri: number, patch: Partial<Row>) => {
@@ -204,6 +205,7 @@ export function LybiCostPage() {
     setTiers(structuredClone(DEFAULT_TIERS));
     setFx(DEFAULT_FX);
     setSafe(DEFAULT_SAFE);
+    setInteractions(DEFAULT_INTERACTIONS);
     setTpw(DEFAULT_TPW);
     setReadWords({ ...DEFAULT_READ_WORDS });
     setWriteWords({ ...DEFAULT_WRITE_WORDS });
@@ -260,6 +262,14 @@ export function LybiCostPage() {
               style={{ ...numInput, width: 62, background: '#fff' }}
             />
           </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: MUTED }}>
+            Interactions
+            <input
+              type="number" step={100} min={1} value={interactions}
+              onChange={e => setInteractions(Math.max(1, Math.round(+e.target.value || DEFAULT_INTERACTIONS)))}
+              style={{ ...numInput, width: 82, background: '#fff' }}
+            />
+          </label>
           <div style={{ flex: 1 }} />
           <button
             onClick={() => setShowAdvanced(v => !v)}
@@ -278,8 +288,9 @@ export function LybiCostPage() {
         <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 18 }}>
           {tiers.map((t, ti) => {
             const total = t.rows.reduce((s, r) => s + rowCost(r), 0) * safe;
-            const winTot = Math.round(t.rows.reduce((s, r) => s + (readWords[r.read] ?? 0) * r.runs, 0));
-            const woutTot = Math.round(t.rows.reduce((s, r) => s + (writeWords[r.write] ?? 0) * r.runs, 0));
+            const winTot = Math.round(t.rows.reduce((s, r) => s + (readWords[r.read] ?? 0) * r.runs * r.count, 0));
+            const woutTot = Math.round(t.rows.reduce((s, r) => s + (writeWords[r.write] ?? 0) * r.runs * r.count, 0));
+            const perN = total * interactions;
             return (
               <div key={t.key} style={{ background: '#fff', border: `1px solid ${LINE}`, borderRadius: 14, overflow: 'hidden', display: 'flex', flexWrap: 'wrap' as const }}>
 
@@ -292,15 +303,27 @@ export function LybiCostPage() {
                   <p style={{ fontSize: 13, color: MUTED, margin: '0 0 18px' }}>{t.tagline}</p>
 
                   <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: FAINT, marginBottom: 4 }}>
-                    Cost per interaction
+                    Per {interactions.toLocaleString()} interactions
                   </div>
                   <div style={{ fontFamily: MONO, fontVariantNumeric: 'tabular-nums', fontSize: 38, fontWeight: 700, letterSpacing: '-0.02em', color: PURPLE, lineHeight: 1.1 }}>
-                    {usd(total)}
+                    ${perN.toFixed(perN < 100 ? 1 : 0)}
                   </div>
                   <div style={{ fontFamily: MONO, fontVariantNumeric: 'tabular-nums', fontSize: 19, color: MUTED, margin: '2px 0 12px' }}>
-                    {ils(total * fx)}
+                    ₪{(perN * fx).toFixed(0)}
                   </div>
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                    {copyBtn(`${t.key}-usd1k`, perN.toFixed(2), 'Copy $')}
+                    {copyBtn(`${t.key}-ils1k`, (perN * fx).toFixed(2), 'Copy ₪')}
+                  </div>
+
+                  <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: FAINT, marginBottom: 4 }}>
+                    Per interaction
+                  </div>
+                  <div style={{ fontFamily: MONO, fontVariantNumeric: 'tabular-nums', fontSize: 22, fontWeight: 700, color: INK, lineHeight: 1.2 }}>
+                    {usd(total)}
+                    <span style={{ fontSize: 15, color: MUTED, fontWeight: 400 }}> · {ils(total * fx)}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, margin: '8px 0 16px' }}>
                     {copyBtn(`${t.key}-usd`, total.toFixed(4), 'Copy $')}
                     {copyBtn(`${t.key}-ils`, (total * fx).toFixed(4), 'Copy ₪')}
                   </div>
@@ -321,6 +344,7 @@ export function LybiCostPage() {
                     <thead>
                       <tr>
                         <th style={{ ...thStyle('left'), paddingLeft: 24 }}>Component</th>
+                        <th style={thStyle('right')}>Count</th>
                         <th style={thStyle('left')}>Model</th>
                         <th style={thStyle('left')}>Reads</th>
                         <th style={thStyle('left')}>Writes</th>
@@ -337,6 +361,13 @@ export function LybiCostPage() {
                             <td style={{ ...tdStyle(last), paddingLeft: 24 }}>
                               <div style={{ fontWeight: 600, whiteSpace: 'nowrap' as const }}>{r.name}</div>
                               <div style={{ fontSize: 11.5, color: FAINT, whiteSpace: 'nowrap' as const }}>{r.desc}</div>
+                            </td>
+                            <td style={{ ...tdStyle(last), textAlign: 'right' as const }}>
+                              <input
+                                type="number" min={1} step={1} value={r.count}
+                                onChange={e => updateRow(ti, ri, { count: Math.max(1, Math.round(+e.target.value || 1)) })}
+                                style={{ ...numInput, width: 52 }}
+                              />
                             </td>
                             <td style={tdStyle(last)}>
                               {choices.length === 1 ? (
