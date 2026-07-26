@@ -12,7 +12,9 @@ interface Row { kind: string; name: string; desc: string; model: string; read: s
 interface Tier { key: string; badge: string; title: string; tagline: string; rows: Row[] }
 
 const MODELS: ModelPrice[] = [
-  { id: 'gpt-5.6', name: 'GPT-5.6 (Sol)', prov: 'OpenAI', pin: 5.0, pout: 30.0 },
+  { id: 'gpt-5.6', name: 'GPT-5.6 Sol', prov: 'OpenAI', pin: 5.0, pout: 30.0 },
+  { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra', prov: 'OpenAI', pin: 2.5, pout: 15.0 },
+  { id: 'gpt-5.6-luna', name: 'GPT-5.6 Luna', prov: 'OpenAI', pin: 1.0, pout: 6.0 },
   { id: 'gpt-5.5', name: 'GPT-5.5', prov: 'OpenAI', pin: 5.0, pout: 30.0 },
   { id: 'gpt-4o', name: 'GPT-4o', prov: 'OpenAI', pin: 2.5, pout: 10.0 },
   { id: 'gpt-5.4-mini', name: 'GPT-5.4 mini', prov: 'OpenAI', pin: 0.75, pout: 4.5 },
@@ -32,9 +34,9 @@ interface ComponentType {
   model: string; read: string; write: string; runs: number;
   addable: boolean;
 }
-const GPT_MODELS = ['gpt-5.6', 'gpt-5.5', 'gpt-4o', 'gpt-5.4-mini', 'gpt-4o-mini'];
+const GPT_MODELS = ['gpt-5.6', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-4o', 'gpt-5.4-mini', 'gpt-4o-mini'];
 const ALL_MODELS = MODELS.map(m => m.id);
-const CHEAP_MODELS = ['gpt-4o-mini', 'gpt-5.4-mini', 'claude-haiku-4-5', 'gemini-2.5-flash'];
+const CHEAP_MODELS = ['gpt-4o-mini', 'gpt-5.4-mini', 'gpt-5.6-luna', 'claude-haiku-4-5', 'gemini-2.5-flash'];
 
 const COMPONENT_TYPES: Record<string, ComponentType> = {
   talker: { base: 'Talker', desc: 'prompt + history + KB + message', models: GPT_MODELS, model: 'gpt-5.5', read: 'alot', write: 'normal', runs: 1, addable: false },

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import styles from './LLMUsagePage.module.css';
 import { CostCalculatorPanel } from './CostCalculatorPanel';
+import { estimateCost } from './llmCosts';
 
 interface Props {
   baseURL?: string;
@@ -50,29 +51,11 @@ interface ModelSummary {
   avgDurationMs: number;
 }
 
-// Client-side cost estimation ($/M tokens)
-const COST_PER_M: Record<string, { input: number; output: number }> = {
-  'claude-sonnet-4-6': { input: 3, output: 15 },
-  'claude-sonnet-4-20250514': { input: 3, output: 15 },
-  'claude-haiku-4-5-20251001': { input: 0.8, output: 4 },
-  'claude-opus-4-6': { input: 15, output: 75 },
-  'gpt-4o': { input: 2.5, output: 10 },
-  'gpt-4o-mini': { input: 0.15, output: 0.6 },
-  'gemini-2.5-flash': { input: 0.15, output: 0.6 },
-  'gemini-2.5-pro': { input: 1.25, output: 10 },
-};
-
 // Alfred (builder assistant) usage is internal — not part of customer
 // usage, so it must be separable for pricing views. All its processes
 // are logged with an 'alfred-' prefix (alfred-brainstorm, alfred-apply-*).
 type AlfredFilter = 'all' | 'without' | 'only';
 const isAlfredProcess = (p: string) => (p || '').toLowerCase().startsWith('alfred');
-
-function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
-  const rates = COST_PER_M[model];
-  if (!rates) return 0;
-  return (inputTokens * rates.input + outputTokens * rates.output) / 1_000_000;
-}
 
 function formatCost(cost: number): string {
   if (cost < 0.01) return `$${cost.toFixed(4)}`;

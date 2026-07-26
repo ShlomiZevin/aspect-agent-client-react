@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import styles from './CostCalculatorPanel.module.css';
+import { estimateCost } from './llmCosts';
 
 interface ByProcessRow {
   process: string;
@@ -21,19 +22,6 @@ interface Props {
   byModel: ByModelRow[];
 }
 
-// Same pricing table used on the main LLM Usage page. Kept in sync manually.
-const COST_PER_M: Record<string, { input: number; output: number }> = {
-  'claude-sonnet-4-6': { input: 3, output: 15 },
-  'claude-sonnet-4-20250514': { input: 3, output: 15 },
-  'claude-haiku-4-5-20251001': { input: 0.8, output: 4 },
-  'claude-opus-4-6': { input: 15, output: 75 },
-  'gpt-4o': { input: 2.5, output: 10 },
-  'gpt-4o-mini': { input: 0.15, output: 0.6 },
-  'gpt-5': { input: 5, output: 15 },
-  'gemini-2.5-flash': { input: 0.15, output: 0.6 },
-  'gemini-2.5-pro': { input: 1.25, output: 10 },
-};
-
 const WHISPER_USD_PER_MIN = 0.006;
 
 // Fallback per-call cost when there's no real usage data in the selected
@@ -44,12 +32,6 @@ const FALLBACK_PER_CALL = {
   conversation: 0.005,   // ~avg GPT answer call
   sqlGeneration: 0.015,  // ~avg Claude SQL-translation call
 };
-
-function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
-  const rates = COST_PER_M[model];
-  if (!rates) return 0;
-  return (inputTokens * rates.input + outputTokens * rates.output) / 1_000_000;
-}
 
 function fmtUsd(v: number): string {
   if (v < 0.01) return `$${v.toFixed(4)}`;
