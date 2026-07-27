@@ -15,10 +15,10 @@
  *  1. No conversation yet — bespoke ChatWelcome (hero + quick-question tiles
  *     + input), built fresh to match the mockup exactly.
  *  2. A message was sent — switches to an iframe of
- *     /hypertoy/chat-widget/conversations/:id (HyperToyChatWidgetPage: same
- *     provider stack/storagePrefix as the real /hypertoy page, so the same
- *     conversation/history). The clicked/typed question is handed off via
- *     sessionStorage (see PREFILL_STORAGE_KEY in HyperToyChatWidgetPage) so
+ *     /:datasetId/chat-widget/conversations/:id (AgentChatWidgetPage: same
+ *     provider stack/storagePrefix as the dataset's own real page, so the
+ *     same conversation/history). The clicked/typed question is handed off
+ *     via sessionStorage (see PREFILL_STORAGE_KEY in AgentChatWidgetPage) so
  *     it gets auto-sent into the real conversation instead of making the
  *     user re-click the same question again inside the iframe.
  *
@@ -28,7 +28,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChatWelcome } from './ChatWelcome';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
-import { PREFILL_STORAGE_KEY } from '../../pages/HyperToyChatWidgetPage';
+import { PREFILL_STORAGE_KEY } from '../../pages/AgentChatWidgetPage';
 import styles from './ChatWidget.module.css';
 
 interface Props {
@@ -139,6 +139,7 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
       <div className={styles.body}>
         {historyOpen && (
           <ChatHistoryPanel
+            datasetId={datasetId}
             activeConversationId={conversationId}
             onSelect={selectConversation}
             onNew={newConversation}
@@ -180,7 +181,7 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
           )}
           {started
             ? <iframe className={styles.frame} src={src} title="Data chat" />
-            : <ChatWelcome onSend={send} />}
+            : <ChatWelcome datasetId={datasetId} onSend={send} />}
         </div>
       </div>
     </div>

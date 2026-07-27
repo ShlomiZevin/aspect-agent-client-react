@@ -13,7 +13,8 @@ import { ensureIntelligenceFontsLoaded } from './fonts';
 import { JobsProvider, useJobs, type Job } from './jobs/JobsContext';
 import { JobBadges } from './jobs/JobBadges';
 import { JobSidebar } from './jobs/JobSidebar';
-import { hypertoyConfig } from '../../agents';
+import { insightsService } from '../../services/insightsService';
+import { getAgentConfig } from '../../agents/agentRegistry';
 import styles from './IntelligenceShell.module.css';
 
 type Mode = 'light' | 'dark';
@@ -22,7 +23,6 @@ const MODE_KEY = 'aspect_intelligence_mode';
 
 interface Props {
   datasetId: string;
-  title: string;
   /** Insight id from the URL (/intelligence/:datasetId/insight/:insightId) — undefined means the list view. */
   insightId?: string;
   /** True on /intelligence/:datasetId/chat — the chat widget's open/expanded state and the nav's active item both follow this. */
@@ -37,8 +37,23 @@ export function IntelligenceShell(props: Props) {
   );
 }
 
-function IntelligenceShellInner({ datasetId, title, insightId, chatRoute }: Props) {
+function IntelligenceShellInner({ datasetId, insightId, chatRoute }: Props) {
   const navigate = useNavigate();
+  // Dataset branding (name/logo mark) resolved from the API rather than a
+  // hardcoded prop, so this shell works for any enabled dataset, not just
+  // whichever one it was originally built against.
+  const [meta, setMeta] = useState<{ name: string; logoText: string } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    insightsService.listDatasets()
+      .then(datasets => {
+        if (cancelled) return;
+        const found = datasets.find(d => d.id === datasetId);
+        setMeta(found ? { name: found.name, logoText: found.logoText } : null);
+      })
+      .catch(() => { if (!cancelled) setMeta(null); });
+    return () => { cancelled = true; };
+  }, [datasetId]);
   const { selectedJobId, cancelJob } = useJobs();
   // The insight open/closed state is the URL (insightId prop, driven by the
   // route) — a real per-insight URL that can be linked/bookmarked/shared,
@@ -63,13 +78,17 @@ function IntelligenceShellInner({ datasetId, title, insightId, chatRoute }: Prop
   }, [chatRoute]);
   // Real data-freshness info, not a hardcoded placeholder string — same
   // /api/admin/data-loader/:schema/data-info endpoint DataStatusBar already
-  // uses on the real /hypertoy chat page, so this always agrees with what
-  // that page shows instead of drifting into a stale guess (caught by Kosta
-  // comparing this header directly against the real chat's own bar).
+  // uses on the dataset's own real chat page, so this always agrees with
+  // what that page shows instead of drifting into a stale guess (caught by
+  // Kosta comparing this header directly against the real chat's own bar).
+  // Every dataset's own agent config points at the same backend, so its
+  // baseURL is used here rather than one specific dataset's config.
+  const baseURL = getAgentConfig(datasetId)?.baseURL;
   const [syncInfo, setSyncInfo] = useState<{ lastSync: string; dataFrom: string | null; dataThrough: string } | null>(null);
   useEffect(() => {
+    if (!baseURL) return;
     let cancelled = false;
-    fetch(`${hypertoyConfig.baseURL}/api/admin/data-loader/${datasetId}/data-info`)
+    fetch(`${baseURL}/api/admin/data-loader/${datasetId}/data-info`)
       .then(r => r.json())
       .then(data => {
         if (cancelled) return;
@@ -89,7 +108,7 @@ function IntelligenceShellInner({ datasetId, title, insightId, chatRoute }: Prop
       })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [datasetId]);
+  }, [datasetId, baseURL]);
 
   const [mode, setMode] = useState<Mode>(() => (localStorage.getItem(MODE_KEY) as Mode) || 'light');
   // Measured so the expanded chat widget can sit flush "under the header"
@@ -176,9 +195,9 @@ function IntelligenceShellInner({ datasetId, title, insightId, chatRoute }: Prop
       <header className={styles.header} ref={headerRef}>
         <div className={styles.headerRow}>
           <div className={styles.brand}>
-            <span className={styles.mark}>HT</span>
+            <span className={styles.mark}>{meta?.logoText || '··'}</span>
             <div className={styles.brandText}>
-              <div className={styles.brandName}>{title}</div>
+              <div className={styles.brandName}>{meta?.name || '…'}</div>
               <div className={styles.brandSub}>AI-powered business intelligence</div>
             </div>
           </div>

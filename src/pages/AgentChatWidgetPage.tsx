@@ -1,9 +1,11 @@
 /**
- * Compact hypertoy chat for embedding in the Aspect Intelligence floating
+ * Compact per-agent chat for embedding in the Aspect Intelligence floating
  * widget (see components/intelligence/ChatWidget.tsx). Same provider stack,
  * same storagePrefix, and therefore the exact same conversation/history as
- * the full /hypertoy page — just without the AppLayout chrome (top header,
- * conversation-history sidebar) around it. HyperToyPage itself is untouched.
+ * the agent's own full page — just without the AppLayout chrome (top header,
+ * conversation-history sidebar) around it. Generic over `:agent` (the URL
+ * slug from agentRegistry.ts) rather than hardcoded to one dataset, so any
+ * agent's Aspect Intelligence chat can open this same widget page.
  *
  * PrefillSender: the widget's own bespoke welcome tiles (ChatWelcome.tsx)
  * hand off the clicked question via sessionStorage (set right before
@@ -19,13 +21,14 @@
  * before sending fixes that at the source.
  */
 import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { ChatProvider, useChatContext } from '../context';
 import { ThemeProvider } from '../context/ThemeContext';
 import { UserProvider, useUserContext } from '../context/UserContext';
 import { AgentProvider } from '../context/AgentContext';
 import { LanguageProvider } from '../context/LanguageContext';
 import { ChatContainer } from '../components/chat';
-import { hypertoyConfig } from '../agents';
+import { getAgentConfig } from '../agents/agentRegistry';
 import { useDocumentMeta } from '../hooks';
 import { ensureIntelligenceFontsLoaded } from '../components/intelligence/fonts';
 
@@ -73,21 +76,24 @@ function PrefillLoading() {
   );
 }
 
-export function HyperToyChatWidgetPage() {
+export function AgentChatWidgetPage() {
+  const { agent } = useParams<{ agent: string }>();
+  const config = getAgentConfig(agent);
+
   useDocumentMeta({
-    title: hypertoyConfig.pageTitle,
-    favicon: hypertoyConfig.favicon,
-    description: hypertoyConfig.metaDescription,
+    title: config?.pageTitle || 'Aspect Intelligence',
+    favicon: config?.favicon,
+    description: config?.metaDescription,
   });
 
   // A prefilled question (see PrefillSender above) is about to be sent into
   // this brand-new, still-empty conversation — until then, ChatContainer
-  // would render the REAL hypertoy chat's own native welcome screen (Hebrew
-  // "היפר טוי" branding, its own colored icon set), visibly different from
-  // this widget's bespoke ChatWelcome the user just saw a moment ago. That
-  // mismatched flash is exactly what a brief loading state avoids. Read
-  // once, synchronously, at mount — before PrefillSender's effect has had a
-  // chance to remove the key — so this is true for the very first paint.
+  // would render the REAL chat's own native welcome screen (the agent's own
+  // branding/icon set), visibly different from this widget's bespoke
+  // ChatWelcome the user just saw a moment ago. That mismatched flash is
+  // exactly what a brief loading state avoids. Read once, synchronously, at
+  // mount — before PrefillSender's effect has had a chance to remove the key
+  // — so this is true for the very first paint.
   const [pendingPrefill, setPendingPrefill] = useState(() => !!sessionStorage.getItem(PREFILL_STORAGE_KEY));
 
   // This page is its own document (loaded in an iframe) — it does NOT
@@ -97,23 +103,26 @@ export function HyperToyChatWidgetPage() {
   // here too, same as IntelligenceShell does for the parent page.
   useEffect(() => { ensureIntelligenceFontsLoaded(); }, []);
 
+  if (!config) return null;
+
   return (
-    <ThemeProvider storagePrefix={hypertoyConfig.storagePrefix}>
-      <LanguageProvider storagePrefix={hypertoyConfig.storagePrefix}>
-        <UserProvider storagePrefix={hypertoyConfig.storagePrefix} baseURL={hypertoyConfig.baseURL}>
-          <AgentProvider config={hypertoyConfig}>
+    <ThemeProvider storagePrefix={config.storagePrefix}>
+      <LanguageProvider storagePrefix={config.storagePrefix}>
+        <UserProvider storagePrefix={config.storagePrefix} baseURL={config.baseURL}>
+          <AgentProvider config={config}>
             <ChatProvider>
               <PrefillSender onSent={() => setPendingPrefill(false)} />
               {/* Scoped visual tweaks to match the design, without touching
                   ChatContainer/Message's own CSS modules — substring class
                   matches on their hashed module classnames, only in effect
-                  on this page:
+                  on this page. Shared across every agent (same compiled
+                  component/module names regardless of dataset):
                   - body font/color: the real chat's native stack is Heebo /
                     #1a1a1a; overridden to the design's Public Sans + #241A38
                     so this page's text matches the rest of the widget
                     (ChatWelcome, ChatHistoryPanel) instead of visibly
                     switching fonts once a conversation starts.
-                  - crewHeader: hides the "Hyper Toy" + online-dot pill,
+                  - crewHeader: hides the agent name + online-dot pill,
                     redundant since the widget's own header shows "Data Chat".
                   - _bot_: assistant reply bubble recolored to the design's
                     light-lavender card (#F8F5FC) instead of plain white — but
@@ -123,7 +132,7 @@ export function HyperToyChatWidgetPage() {
                     from the real chat's styles and need white text for
                     contrast (the blanket `*` selector was overriding those
                     too, leaving near-black text on a purple background).
-                  - _crewLabel_: hides the "HYPER TOY" text above replies,
+                  - _crewLabel_: hides the agent-name text above replies,
                     not present in the design.
                   - _bar_dz658_ (DataStatusBar's own hashed class, exact
                     match not a substring — ImportingBanner uses the same

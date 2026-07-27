@@ -43,6 +43,10 @@ export const insightsService = {
       body: JSON.stringify({ prompt }),
     }),
 
+  /** Runs the dataset's curated bootstrap prompt set (admin panel "Run bootstrap now"). */
+  bootstrap: (datasetId: string) =>
+    request<{ created: number; insightIds: string[] }>(`/${datasetId}/bootstrap`, { method: 'POST' }),
+
   /** "Gentle helper" — is this typed prompt a quick lookup (suggest Data Chat) or a real investigation? */
   classifyPrompt: (datasetId: string, prompt: string) =>
     request<{ isSimpleQuery: boolean }>(`/${datasetId}/classify-prompt`, {
