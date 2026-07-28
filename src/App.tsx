@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, AspectAgentsHomePage, ArchitecturePage, AspectBattleCardPage, AspectMarketingSalesPage, AspectPage, AspectLandingPage, AspectPlatformLandingPage, AspectPlatformSalesPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaNextPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, EnterpriseReadinessPage, LybiArchitecturePage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiBrainPage, LybiKnowledgePage, LybiCostPage, LybiInstallPage, LybiSupportPage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TeamPlanPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage, HyperToyChatWidgetPage, ZolStockPage, TevaNaotPage } from './pages';
+import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, AspectAgentsHomePage, ArchitecturePage, AspectBattleCardPage, AspectMarketingSalesPage, AspectPage, AspectLandingPage, AspectPlatformLandingPage, AspectPlatformSalesPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaNextPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, EnterpriseReadinessPage, LybiArchitecturePage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiBrainPage, LybiKnowledgePage, LybiCostPage, LybiInstallPage, LybiSupportPage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TeamPlanPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage, AgentChatWidgetPage, IntelligenceAdminPage, ZolStockPage, TevaNaotPage } from './pages';
 
 // Builder lives in its own subtree — lazy so end-user routes don't pay for it.
 const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ default: m.BuilderPage })));
@@ -268,9 +268,10 @@ function AppContent() {
         <Route path="/hypertoy" element={<HyperToyPage />} />
         <Route path="/hypertoy/conversations/:conversationId" element={<HyperToyPage />} />
         {/* Compact chat for the Aspect Intelligence floating widget iframe — same
-            conversation/history as /hypertoy, no header/sidebar chrome. */}
-        <Route path="/hypertoy/chat-widget" element={<HyperToyChatWidgetPage />} />
-        <Route path="/hypertoy/chat-widget/conversations/:conversationId" element={<HyperToyChatWidgetPage />} />
+            conversation/history as the agent's own full page, no header/sidebar
+            chrome. Generic over :agent so any dataset's Intelligence chat can use it. */}
+        <Route path="/:agent/chat-widget" element={<AgentChatWidgetPage />} />
+        <Route path="/:agent/chat-widget/conversations/:conversationId" element={<AgentChatWidgetPage />} />
         <Route path="/zolstock" element={<ZolStockPage />} />
         <Route path="/zolstock/conversations/:conversationId" element={<ZolStockPage />} />
         <Route path="/tevanaot" element={<TevaNaotPage />} />
@@ -340,6 +341,9 @@ function AppContent() {
 
         {/* Hidden super-admin users page (code-gated; sees all tenants) */}
         <Route path="/users/*" element={<SuperAdminUsersPage />} />
+
+        {/* Hidden Aspect Intelligence admin (login-gated; cross-dataset enable/config/monitor) */}
+        <Route path="/intelligence/admin/*" element={<IntelligenceAdminPage />} />
 
         {/* Dashboard routes */}
         <Route path="/:agent/dashboard/*" element={<MaybeDashboard />} />

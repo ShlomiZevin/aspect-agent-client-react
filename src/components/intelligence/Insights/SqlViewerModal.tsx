@@ -11,7 +11,7 @@ interface Props {
 /**
  * Proof this insight is a real computed result, not a fabricated number:
  * shows the exact investigation prompt -> derived data question -> SQL that
- * actually ran against hypertoy (see investigation.service.js's `evidence`
+ * actually ran against the dataset (see investigation.service.js's `evidence`
  * field). Bespoke modal (not the app-wide Modal component) to stay
  * self-contained in Aspect Intelligence's own design system, same as every
  * other component in this feature.
@@ -32,7 +32,7 @@ export function SqlViewerModal({ prompt, dataQuestion, sql, onClose }: Props) {
         <div className={styles.header}>
           <div className={styles.headerText}>
             <div className={styles.title}>View SQL queries</div>
-            <div className={styles.subtitle}>The real query Aspect ran against hypertoy to produce this insight.</div>
+            <div className={styles.subtitle}>The real query Aspect ran to produce this insight.</div>
           </div>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>

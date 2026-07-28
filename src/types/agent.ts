@@ -1,3 +1,5 @@
+import type { Language } from './language';
+
 export interface QuickQuestion {
   icon: string;
   text?: string;
@@ -21,6 +23,9 @@ export interface AgentConfig {
   agentName: string;
   displayName: string;
   storagePrefix: string;
+
+  // Languages the language toggle should offer. Defaults to ['en', 'he'] when omitted.
+  supportedLanguages?: Language[];
 
   // Server
   baseURL: string;

@@ -2,12 +2,13 @@
  * Bespoke "Data Chat" welcome/empty state — built fresh to match the design
  * exactly (turn 2b), not reused from the real chat's WelcomeSection (whose
  * CSS/markup we don't control pixel-for-pixel and must not modify). Content
- * (quick-question labels + the question each one sends) is still sourced
- * from hypertoyConfig.quickQuestions + the real i18n strings, so it can't
- * drift out of sync with the actual chat agent's configured questions.
+ * (quick-question labels + the question each one sends) is sourced from the
+ * selected dataset's own agent config (getAgentConfig(datasetId)) + the real
+ * i18n strings, so it can't drift out of sync with the actual chat agent's
+ * configured questions, for whichever dataset is currently selected.
  */
 import { useState, type ReactElement } from 'react';
-import { hypertoyConfig } from '../../agents';
+import { getAgentConfig } from '../../agents/agentRegistry';
 import { translations } from '../../i18n/translations';
 import styles from './ChatWelcome.module.css';
 
@@ -33,11 +34,13 @@ function toSentenceCase(label: string): string {
 }
 
 interface Props {
+  datasetId: string;
   onSend: (question: string) => void;
 }
 
-export function ChatWelcome({ onSend }: Props) {
+export function ChatWelcome({ datasetId, onSend }: Props) {
   const [text, setText] = useState('');
+  const config = getAgentConfig(datasetId);
 
   const submit = () => {
     const q = text.trim();
@@ -49,13 +52,13 @@ export function ChatWelcome({ onSend }: Props) {
     <div className={styles.wrap}>
       <div className={styles.hero}>
         <span className={styles.mark}>✦</span>
-        <div className={styles.title}>Welcome to Hyper Toy BI</div>
+        <div className={styles.title}>Welcome to {config?.headerTitle || config?.agentName || 'your'} BI</div>
         <div className={styles.subtitle}>Ask me about sales, profit, products, stores, and inventory.</div>
       </div>
 
       <div className={styles.questionsLabel}>QUICK QUESTIONS</div>
       <div className={styles.grid}>
-        {hypertoyConfig.quickQuestions.map((q, i) => {
+        {(config?.quickQuestions || []).map((q, i) => {
           const label = q.textKey ? translations.en[q.textKey] : q.text || '';
           const question = q.questionKey ? translations.en[q.questionKey] : q.question || '';
           const iconKey = KEY_TO_ICON[i] || 'revenue';

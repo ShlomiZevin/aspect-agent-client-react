@@ -7,6 +7,7 @@ export const aspectConfig: AgentConfig = {
   displayName: 'Aspect Insight',
   storagePrefix: 'aspect_',
   baseURL: BASE_URL,
+  supportedLanguages: ['en', 'he', 'es'],
 
   pageTitle: 'Aspect Insight - AI Business Intelligence',
   favicon: '/img/aspect-logo-regular.png',
