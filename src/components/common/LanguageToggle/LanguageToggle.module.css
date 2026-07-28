@@ -25,3 +25,42 @@
   font-weight: 600;
   line-height: 1;
 }
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-light);
+}
+
+.groupButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: calc(var(--radius-md) - 2px);
+  background-color: transparent;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  border: none;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.groupButton:hover {
+  color: var(--primary-color);
+}
+
+.groupButtonActive {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+.groupButtonActive:hover {
+  color: #fff;
+}

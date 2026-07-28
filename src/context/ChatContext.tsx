@@ -1,6 +1,7 @@
 import { createContext, useContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useChat, useConversation, useCrew, useDebugShortcut, useLocalStorageString, type UseChatReturn, type UseConversationReturn } from '../hooks';
 import { useAgentContext } from './AgentContext';
+import { useLanguage } from './LanguageContext';
 import type { AgentTheme } from '../types';
 import { useUserContext } from './UserContext';
 import type { CrewMember, CrewJourneyStep } from '../types/crew';
@@ -98,6 +99,7 @@ interface ChatProviderProps {
 
 export function ChatProvider({ children, restrictedMode = false, storagePrefix }: ChatProviderProps) {
   const { config, selectedTheme, setSelectedTheme } = useAgentContext();
+  const { language } = useLanguage();
   const { userId, switchUser } = useUserContext();
   const effectivePrefix = storagePrefix ?? config.storagePrefix;
   // Phone linking state (persisted in localStorage)
@@ -304,6 +306,7 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix }
     config,
     conversationId: conversation.conversationId,
     userId,
+    language,
     overrideCrewMember: crew.selectedOverride,
     debug: debugMode,
     promptOverrides: debugMode ? promptOverrides : undefined, // Only use in debug mode

@@ -1,7 +1,7 @@
 import { useReducer, useCallback, useEffect } from 'react';
 import { streamChat } from '../services/chatService';
 import { getConversationHistory, deleteMessage as deleteMessageApi, deleteMessagesFrom as deleteMessagesFromApi, injectDeveloperMessage as injectDeveloperMessageApi } from '../services/conversationService';
-import type { Message, ChatState, ChatAction, AgentConfig, ThinkingStep } from '../types';
+import type { Message, ChatState, ChatAction, AgentConfig, ThinkingStep, Language } from '../types';
 import type { CrewMember } from '../types/crew';
 import type { CrewTransition } from '../services/chatService';
 
@@ -300,6 +300,7 @@ export interface UseChatOptions {
   config: AgentConfig;
   conversationId: string;
   userId: string | null;
+  language?: Language;
   overrideCrewMember?: string | null;
   debug?: boolean;
   promptOverrides?: Record<string, string>; // Session overrides: { crewName: prompt }
@@ -344,7 +345,7 @@ export interface UseChatReturn {
  * Main chat hook - handles messaging, streaming, and thinking indicators
  */
 export function useChat(options: UseChatOptions): UseChatReturn {
-  const { config, conversationId, userId, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, onCrewInfo, onCrewTransition, onFieldExtracted, onProfileUpdate, onProfilerRaw, profilerFreshStart, profilerEnabled, restrictedMode } = options;
+  const { config, conversationId, userId, language, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, onCrewInfo, onCrewTransition, onFieldExtracted, onProfileUpdate, onProfilerRaw, profilerFreshStart, profilerEnabled, restrictedMode } = options;
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
     conversationId,
@@ -379,6 +380,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             agentName: config.agentName,
             userId,
             baseURL: config.baseURL,
+            language,
             overrideCrewMember,
             debug,
             promptOverrides,

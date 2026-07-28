@@ -14,7 +14,7 @@ export function LanguageProvider({ children, storagePrefix = '' }: LanguageProvi
   // Initialize language from localStorage or default to Hebrew
   const [language, setLanguageState] = useState<Language>(() => {
     const stored = localStorage.getItem(`${storagePrefix}language`);
-    return (stored === 'en' || stored === 'he') ? stored : 'he';
+    return (stored === 'en' || stored === 'he' || stored === 'es') ? stored : 'he';
   });
 
   // Compute direction based on language

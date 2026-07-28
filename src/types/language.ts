@@ -1,4 +1,4 @@
-export type Language = 'en' | 'he';
+export type Language = 'en' | 'he' | 'es';
 
 export type Direction = 'ltr' | 'rtl';
 
@@ -16,4 +16,5 @@ export interface Translations {
 export interface LanguageConfig {
   en: Translations;
   he: Translations;
+  es: Translations;
 }

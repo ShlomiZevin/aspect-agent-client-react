@@ -77,6 +77,12 @@ export const translations: LanguageConfig = {
     'common.no': 'No',
     'common.confirm': 'Confirm',
 
+    // Logo Upload (Aspect)
+    'logoUpload.upload': 'Upload Logo',
+    'logoUpload.remove': 'Remove logo',
+    'logoUpload.clientLogo': 'Client Logo',
+    'logoUpload.fileTooLarge': 'Logo file size should be less than 2MB',
+
     // Agent-specific: Freeda
     'agent.freeda.headerTitle': 'Freeda',
     'agent.freeda.headerSubtitle': 'Your supportive menopause companion',
@@ -488,6 +494,12 @@ export const translations: LanguageConfig = {
     'common.no': 'לא',
     'common.confirm': 'אישור',
 
+    // Logo Upload (Aspect)
+    'logoUpload.upload': 'העלה לוגו',
+    'logoUpload.remove': 'הסר לוגו',
+    'logoUpload.clientLogo': 'לוגו הלקוח',
+    'logoUpload.fileTooLarge': 'גודל קובץ הלוגו צריך להיות פחות מ-2MB',
+
     // Agent-specific: Freeda
     'agent.freeda.headerTitle': 'Freeda',
     'agent.freeda.headerSubtitle': 'הליווי התומך שלך לגיל המעבר',
@@ -822,5 +834,185 @@ export const translations: LanguageConfig = {
     'crew.banking.finalConfirmationsDescription': 'אישור סופי והפעלת פתיחת חשבון',
     'crew.banking.completion': 'החשבון נפתח',
     'crew.banking.completionDescription': 'השלמת תהליך ושלבים הבאים',
+  },
+  // Spanish (Latin America) — currently scoped to the Aspect demo agent only.
+  // Covers the shared chat chrome plus Aspect-specific agent/quick-question/crew keys.
+  es: {
+    // Header
+    'header.newChat': 'Nuevo chat',
+    'header.fieldsEditor': 'Editor de campos',
+    'header.contextViewer': 'Visor de contexto',
+    'header.online': 'En línea',
+    'header.offline': 'Desconectado',
+    'header.toggleMenu': 'Mostrar/ocultar menú',
+
+    // Sidebar/History
+    'sidebar.history': 'Historial de chats',
+    'sidebar.deleteAll': 'Eliminar todo',
+    'sidebar.confirmDeleteAll': '¿Estás seguro de que deseas eliminar todas las conversaciones?',
+    'sidebar.cancel': 'Cancelar',
+    'sidebar.delete': 'Eliminar',
+    'sidebar.noChats': 'Aún no hay historial de chats',
+    'sidebar.selectAll': 'Seleccionar todo',
+    'sidebar.newConversation': 'Nueva conversación',
+    'sidebar.editName': 'Editar nombre de la conversación',
+    'sidebar.duplicate': 'Duplicar',
+    'sidebar.deleteConversation': 'Eliminar conversación',
+    'sidebar.duplicateTitle': 'Duplicar conversación',
+    'sidebar.duplicateMessage': 'Ingresa un nombre para la conversación duplicada:',
+    'sidebar.copyOf': 'Copia de',
+    'sidebar.confirmDeleteSelected': '¿Estás seguro de que deseas eliminar {count} conversación(es) seleccionada(s)?',
+
+    // Chat
+    'chat.thinking': 'Pensando',
+    'chat.send': 'Enviar',
+    'chat.typeMessage': 'Escribe tu mensaje...',
+    'chat.uploading': 'Subiendo',
+    'chat.attachFile': 'Adjuntar archivo',
+    'chat.startRecording': 'Iniciar grabación de voz',
+    'chat.stopRecording': 'Detener grabación',
+    'chat.sendWithCtrlEnter': 'Enviar con Ctrl+Enter',
+    'chat.exportToExcel': 'Exportar a Excel',
+    'chat.viewFullTable': 'Ver tabla completa',
+    'chat.dataTableTitle': 'Tabla de datos',
+    'chat.filterRows': 'Filtrar filas…',
+    'chat.rows': 'filas',
+    'chat.close': 'Cerrar',
+    'chat.loadingTable': 'Cargando…',
+    'chat.openProfilePanel': 'Abrir panel de perfil',
+
+    // Message Actions
+    'message.delete': 'Eliminar',
+    'message.confirmDelete': '¿Estás seguro de que deseas eliminar este mensaje?',
+    'message.feedback': 'Comentarios',
+    'message.helpful': 'Útil',
+    'message.notHelpful': 'No útil',
+    'message.reportBug': 'Reportar error',
+
+    // Crew/Journey
+    'crew.selectMember': 'Seleccionar miembro del equipo',
+    'crew.journey': 'Recorrido',
+    'crew.journey.modalTitle': 'Recorrido del equipo',
+    'crew.journey.statusCompleted': 'Completado',
+    'crew.journey.statusInProgress': 'En progreso',
+    'crew.journey.statusUpcoming': 'Próximo',
+    'crew.currentStep': 'Paso actual',
+    'crew.nextStep': 'Siguiente paso',
+    'crew.previousStep': 'Paso anterior',
+
+    // Thinking Process
+    'thinking.analyzing': 'Analizando',
+    'thinking.processing': 'Procesando',
+    'thinking.searching': 'Buscando en la base de conocimientos',
+    'thinking.foundSources': 'Se encontraron fuentes relevantes',
+    'thinking.generating': 'Generando respuesta',
+    'thinking.businessQuestion': 'Pregunta de negocio',
+    'thinking.sqlQuery': 'Consulta SQL',
+    'thinking.explanation': 'Explicación',
+    'thinking.thinking': 'Pensando',
+    'thinking.viewProcess': 'Ver proceso de pensamiento',
+    'thinking.messageReceived': 'Mensaje recibido',
+    'thinking.routingTo': 'Enrutando a',
+    'thinking.callingFunction': 'Llamando función',
+    'thinking.fetchingData': 'Obteniendo datos',
+    'thinking.accessingKB': 'Accediendo a la base de conocimientos',
+    'thinking.accessingKBNamed': 'Accediendo a la base de conocimientos',
+
+    // Welcome Section
+    'welcome.quickQuestions': 'Preguntas rápidas',
+    'welcome.getStarted': 'Comenzar',
+
+    // Debug Mode
+    'debug.mode': 'Modo de depuración',
+    'debug.promptEditor': 'Editor de prompt',
+    'debug.fieldsEditor': 'Editor de campos',
+    'debug.contextViewer': 'Visor de contexto',
+    'debug.savePrompt': 'Guardar prompt',
+    'debug.reset': 'Restablecer',
+
+    // Common
+    'common.loading': 'Cargando',
+    'common.error': 'Error',
+    'common.success': 'Éxito',
+    'common.save': 'Guardar',
+    'common.cancel': 'Cancelar',
+    'common.close': 'Cerrar',
+    'common.delete': 'Eliminar',
+    'common.yes': 'Sí',
+    'common.no': 'No',
+    'common.confirm': 'Confirmar',
+
+    // Agent-specific: Aspect
+    'agent.aspect.headerTitle': 'Aspect Insight',
+    'agent.aspect.headerSubtitle': 'Inteligencia de negocios impulsada por IA al alcance de tu mano',
+    'agent.aspect.welcomeTitle': 'Bienvenido a Aspect',
+    'agent.aspect.welcomeMessage': 'Tu asistente inteligente de análisis de negocios',
+    'agent.aspect.inputPlaceholder': 'Pregunta sobre los datos de tu negocio...',
+
+    // Logo Upload (Aspect)
+    'logoUpload.upload': 'Subir logo',
+    'logoUpload.remove': 'Eliminar logo',
+    'logoUpload.clientLogo': 'Logo del cliente',
+    'logoUpload.fileTooLarge': 'El archivo del logo debe pesar menos de 2MB',
+
+    // DataStatusBar
+    'dataStatusBar.lastSync': 'Última sincronización',
+    'dataStatusBar.dataFrom': 'Datos desde',
+    'dataStatusBar.dataThrough': 'Datos hasta',
+    'dataStatusBar.na': 'N/D',
+
+    // ImportingBanner
+    'importingBanner.message': 'Los datos se están actualizando - las respuestas pueden ser temporalmente inestables',
+
+    // Crew selector / journey
+    'crewSelector.crew': 'Equipo',
+    'crewSelector.currently': 'actualmente',
+    'crewSelector.none': 'ninguno',
+    'crewSelector.default': 'Predeterminado',
+    'crewSelector.viewJourney': 'Ver detalles del recorrido del equipo',
+
+    // Feedback panel
+    'feedback.title': 'Comentarios',
+    'feedback.placeholder': 'Agrega comentarios sobre esta respuesta...',
+    'feedback.addTags': 'Agregar etiquetas...',
+    'feedback.deleting': 'Eliminando',
+    'feedback.saving': 'Guardando',
+    'feedback.update': 'Actualizar',
+
+    // Quick Questions - Aspect
+    'quick.aspect.salesOverview.text': 'Resumen de ventas',
+    'quick.aspect.salesOverview.question': '¿Cuáles son mis ventas totales este mes?',
+    'quick.aspect.topProducts.text': 'Productos principales',
+    'quick.aspect.topProducts.question': '¿Qué producto se vende más?',
+    'quick.aspect.branchAnalysis.text': 'Análisis de sucursales',
+    'quick.aspect.branchAnalysis.question': 'Muéstrame el desempeño de las sucursales',
+    'quick.aspect.inventoryCheck.text': 'Estado del inventario',
+    'quick.aspect.inventoryCheck.question': 'Informe de estado del inventario',
+    'quick.aspect.inventoryIssues.text': 'Problemas de inventario',
+    'quick.aspect.inventoryIssues.question': 'Muéstrame los problemas de inventario',
+    'quick.aspect.customerChurn.text': 'Riesgo de pérdida de clientes',
+    'quick.aspect.customerChurn.question': '¿Qué clientes están en riesgo de dejar de comprarnos?',
+    'quick.aspect.inventoryPromotions.text': 'Inventario → Promociones',
+    'quick.aspect.inventoryPromotions.question': '¿Qué artículos con inventario problemático podemos ofrecer como promociones a los miembros del club de lealtad?',
+    'quick.aspect.urgentReorders.text': 'Reórdenes urgentes',
+    'quick.aspect.urgentReorders.question': '¿Qué productos debo reordenar con urgencia?',
+    'quick.aspect.yoyComparison.text': 'Comparación interanual',
+    'quick.aspect.yoyComparison.question': 'Compara este mes con el año pasado',
+    'quick.aspect.topCustomers.text': 'Mejores clientes',
+    'quick.aspect.topCustomers.question': '¿Quiénes son mis mejores clientes?',
+    'quick.aspect.transferRecommendations.text': 'Recomendaciones de transferencia',
+    'quick.aspect.transferRecommendations.question': '¿Qué productos debería mover entre sucursales?',
+    'quick.aspect.slowMovers.text': 'Productos de baja rotación',
+    'quick.aspect.slowMovers.question': 'Muéstrame el inventario de baja rotación',
+
+    // Crew Members - Aspect
+    'crew.aspect.zer4u': 'Zer4U',
+    'crew.aspect.zer4uDescription': 'Asesor financiero con datos reales de la floristería Zer4U',
+    'crew.aspect.fmcg': 'Consumo masivo',
+    'crew.aspect.fmcgDescription': 'BI para el comercio minorista de bienes de consumo',
+    'crew.aspect.fashion': 'Moda',
+    'crew.aspect.fashionDescription': 'BI para el comercio minorista de moda y vestimenta',
+    'crew.aspect.technology': 'Tecnología',
+    'crew.aspect.technologyDescription': 'BI para el comercio minorista de tecnología y electrónica',
   },
 };

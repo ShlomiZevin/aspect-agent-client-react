@@ -1,5 +1,5 @@
 import { getBaseURL } from './api';
-import type { ThinkingStep, DebugPromptData, PostExtractionContext } from '../types';
+import type { ThinkingStep, DebugPromptData, PostExtractionContext, Language } from '../types';
 import type { CrewMember } from '../types/crew';
 
 export interface StreamChatOptions {
@@ -8,6 +8,7 @@ export interface StreamChatOptions {
   agentName: string;
   userId: string | null;
   baseURL?: string;
+  language?: Language;
   overrideCrewMember?: string | null;
   debug?: boolean;
   promptOverrides?: Record<string, string>; // Session overrides: { crewName: prompt }
@@ -68,7 +69,7 @@ export async function streamChat(
   options: StreamChatOptions,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const { message, conversationId, agentName, userId, baseURL, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, profilerFreshStart, profilerEnabled, restrictedMode } = options;
+  const { message, conversationId, agentName, userId, baseURL, language, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, profilerFreshStart, profilerEnabled, restrictedMode } = options;
   const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onModelUsed, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onReplaceMessage, onFieldExtracted, onProfileUpdate, onProfilerRaw } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
@@ -82,6 +83,7 @@ export async function streamChat(
         conversationId,
         userId,
         agentName,
+        ...(language && { language }),
         ...(overrideCrewMember && { overrideCrewMember }),
         ...(debug && { debug: true }),
         ...(promptOverrides && Object.keys(promptOverrides).length > 0 && { promptOverrides }),
