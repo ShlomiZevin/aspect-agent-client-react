@@ -23,6 +23,7 @@ import { FieldsScreen } from './components/FieldsScreen/FieldsScreen';
 import { TagsScreen } from './components/TagsScreen/TagsScreen';
 import { PinnedFieldsScreen } from './components/PinnedFieldsScreen/PinnedFieldsScreen';
 import { LiveBrainScreen } from './components/LiveBrainScreen/LiveBrainScreen';
+import { ProfilerScreen } from './components/ProfilerScreen/ProfilerScreen';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
 import { BrainDockSlot, BrainFullscreenLayer } from './components/BrainPanel/BrainPanel';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
@@ -239,6 +240,10 @@ function BuilderShell() {
                 brain panel. The screen reads its own `panelId` param. */}
             <Route path="live-brain" element={<LiveBrainScreen />} />
             <Route path="live-brain/:panelId" element={<LiveBrainScreen />} />
+            {/* Profiler: agent-level authoring of the second customer
+                surface — a live, LLM-built customer profile. */}
+            <Route path="profiler" element={<ProfilerScreen />} />
+            <Route path="profiler/:panelId" element={<ProfilerScreen />} />
           </Routes>
           {/* Brain dock floats at the bottom-right of the canvas (just
               left of the chat column) so the chat column never

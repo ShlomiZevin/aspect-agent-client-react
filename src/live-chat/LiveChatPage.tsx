@@ -26,6 +26,7 @@ import { HistoryDrawer } from './components/HistoryDrawer';
 import { SettingsPopover } from './components/SettingsPopover';
 import { SidePanel } from './components/SidePanel';
 import { BrainPanels } from './components/BrainPanels';
+import { ProfilerPanels } from './components/ProfilerPanels';
 import { ReportModal } from './components/ReportModal';
 import { ConfirmDelete } from './components/ConfirmDelete';
 import { AgentNotReady } from './components/AgentNotReady';
@@ -86,6 +87,9 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
   const brainPanels = chat.livePanels;
   const brainArrangement = chat.liveFrame?.arrangement ?? 'stack';
   const brainFull = chat.liveFrame?.openMode === 'full';
+  // Profiler surface — same live/hydrate model as the Brain.
+  const profilerPanels = chat.profilerPanels;
+  const profilerFull = chat.profilerFrame?.openMode === 'full';
 
   // Logo priority: custom brand logo → selected client's logo → none (name mark).
   const clientLogo = clientById(settings.client).logoUrl ?? null;
@@ -382,7 +386,18 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
             placeholderTitle={t.profTitle}
             placeholderSub={t.profSub}
             emoji="👤"
-          />
+            bareHead
+            full={profilerFull}
+          >
+            <ProfilerPanels
+              panels={profilerPanels}
+              ask={chat.profilerAsk}
+              onAsk={chat.askProfiler}
+              onRefresh={chat.refreshProfiler}
+              refreshing={chat.profilerRefreshing}
+              onClose={() => setProfilerOpen(false)}
+            />
+          </SidePanel>
         )}
       </div>
 

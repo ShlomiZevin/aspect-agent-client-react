@@ -146,6 +146,19 @@ export function AgentSetupArea({ agent }: Props) {
           <span className={styles.chipCount}>{(agent.liveBrain?.panels ?? []).length}</span>
         </button>
 
+        {/* Profiler — own page; the second customer surface, a live
+            LLM-built customer profile shown beside the chat. */}
+        <button
+          type="button"
+          className={styles.chip}
+          onClick={() => navigate(`/${agent.slug}/builder/profiler`)}
+          title="Open the Profiler editor"
+        >
+          <span className={styles.chipIcon}>👤</span>
+          <span className={styles.chipName}>Profiler</span>
+          <span className={styles.chipCount}>{(agent.profiler?.panels ?? []).length}</span>
+        </button>
+
         {/* Targeted KB — own page; chip navigates instead of opening
             the section modal. The page lists agent KBs + lets the
             author edit each value's umbrella + sections. "Targeted"

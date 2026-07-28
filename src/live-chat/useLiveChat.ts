@@ -16,6 +16,9 @@ import {
   deleteMessage,
   fetchConversationMessages,
   fetchLiveBrain,
+  fetchProfiler,
+  refreshProfiler as apiRefreshProfiler,
+  askProfiler as apiAskProfiler,
   fetchRunsForMessage,
   listConversations,
   renameConversation as apiRenameConversation,
@@ -23,6 +26,9 @@ import {
   type ConversationMessage,
   type LiveBrainPanelData,
   type LiveBrainFrame,
+  type ProfilerPanelData,
+  type ProfilerFrame,
+  type ProfilerAskConfig,
 } from '../builder/state/builderApi';
 import { sendRuntimeMessage, type RuntimeEvent } from '../builder/state/runtimeStream';
 
@@ -108,6 +114,21 @@ export interface UseLiveChat {
   livePanels: LiveBrainPanelData[];
   /** Presentation frame (arrangement / open mode) for the surface. */
   liveFrame: LiveBrainFrame | null;
+  /** Render-ready Profiler panels for the open conversation. Pushed live
+   *  off the chat stream (`profiler.panel`) + hydrated on open, exactly
+   *  like `livePanels`. */
+  profilerPanels: ProfilerPanelData[];
+  /** Presentation frame (open mode) for the Profiler surface. */
+  profilerFrame: ProfilerFrame | null;
+  /** Ask-Profiler config for this agent (enabled + preset chips), or null
+   *  when the agent has no Profiler / Ask disabled. */
+  profilerAsk: ProfilerAskConfig | null;
+  /** Ask the profile a question about itself. Resolves to the answer. */
+  askProfiler: (question: string) => Promise<string>;
+  /** Hard-refresh the whole Profiler now (recompute every panel). */
+  refreshProfiler: () => Promise<void>;
+  /** True while a Profiler hard-refresh is running. */
+  profilerRefreshing: boolean;
   send: (text: string) => Promise<void>;
   renameConversation: (id: number, name: string) => Promise<void>;
   deleteConversations: (ids: number[]) => Promise<void>;
@@ -143,6 +164,19 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     setLiveFrame(null);
   }, []);
 
+  // Profiler surface — same machinery as Live Brain, separate state.
+  const [profilerPanels, setProfilerPanels] = useState<ProfilerPanelData[]>([]);
+  const [profilerFrame, setProfilerFrame] = useState<ProfilerFrame | null>(null);
+  const [profilerAsk, setProfilerAsk] = useState<ProfilerAskConfig | null>(null);
+  const [profilerRefreshing, setProfilerRefreshing] = useState(false);
+  const profilerPanelsRef = useRef<Map<string, { index: number; panel: ProfilerPanelData }>>(new Map());
+  const resetProfilerPanels = useCallback(() => {
+    profilerPanelsRef.current = new Map();
+    setProfilerPanels([]);
+    setProfilerFrame(null);
+    setProfilerAsk(null);
+  }, []);
+
   const updateLastTurn = useCallback((mut: (t: LiveTurn) => LiveTurn) => {
     setTurns(prev => {
       if (prev.length === 0) return prev;
@@ -167,8 +201,9 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     setConvList([]);
     setError(null);
     resetLivePanels();
+    resetProfilerPanels();
     reloadConvList();
-  }, [slug, reloadConvList, resetLivePanels]);
+  }, [slug, reloadConvList, resetLivePanels, resetProfilerPanels]);
 
   const handleEvent = useCallback((e: RuntimeEvent) => {
     switch (e.type) {
@@ -242,6 +277,14 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
         setLivePanels([...map.values()].sort((a, b) => a.index - b.index).map(x => x.panel));
         return;
       }
+      case 'profiler.panel': {
+        // Same per-panel merge as brain.panel, for the Profiler surface.
+        const map = profilerPanelsRef.current;
+        if (e.panel) map.set(e.panelId, { index: e.index, panel: e.panel });
+        else map.delete(e.panelId);
+        setProfilerPanels([...map.values()].sort((a, b) => a.index - b.index).map(x => x.panel));
+        return;
+      }
       case 'done':
         updateLastTurn(t => ({ ...t, thinkingLabel: null }));
         reloadConvList();
@@ -262,6 +305,12 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
         const created = await createConversation({ agentSlug: slug, ownerUserId });
         convId = created.conversationId;
         setConversationId(convId);
+        // Fresh conversation: pull the Profiler meta (Ask config + frame)
+        // once so the Ask button/chips appear; the panels themselves
+        // arrive live via `profiler.panel` (don't overwrite them here).
+        fetchProfiler({ agentSlug: slug, conversationId: convId, ownerUserId, version })
+          .then(res => { setProfilerFrame(res?.frame ?? null); setProfilerAsk(res?.ask ?? null); })
+          .catch(() => {});
       }
       setTurns(prev => [...prev, {
         id: `turn_${Date.now()}`,
@@ -312,12 +361,25 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
       } catch {
         resetLivePanels();
       }
+      // Hydrate the Profiler too (same one-fetch-on-open pattern).
+      try {
+        const res = await fetchProfiler({ agentSlug: slug, conversationId: id, ownerUserId, version });
+        const list = Array.isArray(res?.panels) ? res.panels : [];
+        const map = new Map<string, { index: number; panel: ProfilerPanelData }>();
+        list.forEach((panel, index) => map.set(panel.id, { index, panel }));
+        profilerPanelsRef.current = map;
+        setProfilerPanels(list);
+        setProfilerFrame(res?.frame ?? null);
+        setProfilerAsk(res?.ask ?? null);
+      } catch {
+        resetProfilerPanels();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load conversation');
     } finally {
       setBusy(false);
     }
-  }, [slug, ownerUserId, version]);
+  }, [slug, ownerUserId, version, resetLivePanels, resetProfilerPanels]);
 
   const refresh = useCallback(async () => {
     await reloadConvList();
@@ -340,9 +402,10 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
       setConversationId(null);
       setTurns([]);
       resetLivePanels();
+      resetProfilerPanels();
     }
     reloadConvList();
-  }, [slug, conversationId, reloadConvList]);
+  }, [slug, conversationId, reloadConvList, resetLivePanels, resetProfilerPanels]);
 
   const renameConversation = useCallback(async (id: number, name: string) => {
     const trimmed = name.trim();
@@ -364,7 +427,32 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     setTurns([]);
     setError(null);
     resetLivePanels();
-  }, [resetLivePanels]);
+    resetProfilerPanels();
+  }, [resetLivePanels, resetProfilerPanels]);
+
+  const askProfiler = useCallback(async (question: string): Promise<string> => {
+    const q = question.trim();
+    if (!q || !slug || conversationId === null) return '';
+    const res = await apiAskProfiler({ agentSlug: slug, conversationId, ownerUserId, question: q, version });
+    return res?.answer || '';
+  }, [slug, conversationId, ownerUserId, version]);
+
+  const refreshProfiler = useCallback(async (): Promise<void> => {
+    if (!slug || conversationId === null || profilerRefreshing) return;
+    setProfilerRefreshing(true);
+    try {
+      const res = await apiRefreshProfiler({ agentSlug: slug, conversationId, ownerUserId, version });
+      const list = Array.isArray(res?.panels) ? res.panels : [];
+      const map = new Map<string, { index: number; panel: ProfilerPanelData }>();
+      list.forEach((panel, index) => map.set(panel.id, { index, panel }));
+      profilerPanelsRef.current = map;
+      setProfilerPanels(list);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Profiler refresh failed');
+    } finally {
+      setProfilerRefreshing(false);
+    }
+  }, [slug, conversationId, ownerUserId, version, profilerRefreshing]);
 
   const loadThinkRuns = useCallback(async (turn: LiveTurn) => {
     if (turn.thinkLoaded || turn.assistantMessageId === null || !slug) return;
@@ -424,6 +512,7 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
 
   return {
     turns, convList, conversationId, busy, error, livePanels, liveFrame,
+    profilerPanels, profilerFrame, profilerAsk, askProfiler, refreshProfiler, profilerRefreshing,
     send, newChat, refresh, loadConversation, loadThinkRuns,
     renameConversation, deleteConversations, deleteTurn, deleteFromHere, clearError,
   };

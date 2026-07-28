@@ -84,7 +84,8 @@
 }
 .lybi-chat .brain { border-inline-end: 1px solid var(--border); }
 .lybi-chat .profiler { border-inline-start: 1px solid var(--border); }
-.lybi-chat .profiler.open { width: 340px; }
+.lybi-chat .profiler.open { width: clamp(388px, 34vw, 478px); }
+.lybi-chat .profiler .panel-inner { width: clamp(388px, 34vw, 478px); }
 .lybi-chat .brain.open { width: 460px; }
 .lybi-chat .panel-inner { width: 340px; flex-shrink: 0; height: 100%; display: flex; flex-direction: column; }
 .lybi-chat .brain .panel-inner { width: 460px; }

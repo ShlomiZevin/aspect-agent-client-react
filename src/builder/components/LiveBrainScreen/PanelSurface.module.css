@@ -12,19 +12,33 @@
   --lb-grad: linear-gradient(90deg, #E0198A, #5B1E8A);
   --lb-ink: #1A0A38; --lb-muted: #9A8FAA;
   --lb-line: #EAE4F2; --lb-surface: #F2EAF9; --lb-panel: #fff;
+  --lb-mono: "JetBrains Mono", ui-monospace, "SF Mono", "Roboto Mono", Menlo, monospace;
 
-  background: #FBF8FE;
+  background: #FAFAFF;
   height: 100%; min-height: 0;
   display: flex; flex-direction: column;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Assistant", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ── FIXED header — outside the scroll region, so the scrollbar only runs
    alongside the panels below it (not up next to the title). ── */
 .head {
+  position: relative;
   flex: none; box-sizing: border-box; min-height: 70px; /* match the chat top bar */
-  display: flex; align-items: center; gap: 11px;
-  padding: 10px 16px; background: #fff; border-bottom: 1px solid #EAE4F2;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 12px 18px; background: #fff; border-bottom: 1px solid #EAE4F2;
+}
+.headTwo { justify-content: flex-start; padding-top: 16px; padding-bottom: 14px; }
+/* Title row (logo + title + close). */
+.headTop { display: flex; align-items: center; gap: 11px; }
+/* Second row — "Updated N ago" on the left, Refresh/Ask on the right. */
+.headMeta { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 15px; }
+.updated { font-family: var(--lb-mono); font-size: 10px; letter-spacing: .5px; color: #9A8FAA; }
+.headActions { display: flex; align-items: center; gap: 8px; }
+/* Noa's 3px brand accent line across the top of the header. */
+.head::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(135deg, #E0198A, #9A2295 50%, #5B1E8A);
 }
 .logo {
   width: 38px; height: 38px; flex: none; border-radius: 11px; display: grid; place-items: center;
@@ -32,13 +46,18 @@
   background: linear-gradient(135deg, #E0198A, #9A2295 50%, #5B1E8A);
   box-shadow: 0 7px 16px -7px rgba(224, 25, 138, .6);
 }
+/* Noa's Profiler mark — line-art on a SOFT tinted tile. */
+.logoSoft {
+  width: 34px; height: 34px; border-radius: 9px; box-shadow: none;
+  background: linear-gradient(135deg, rgba(224, 25, 138, .12), rgba(91, 30, 138, .14));
+}
 .mark { flex: 1; min-width: 0; }
-.title { font-size: 14px; font-weight: 800; letter-spacing: .05em; color: #1A0A38; }
-.sub { font-size: 11.5px; color: #9A8FAA; margin-top: 2px; }
+.title { font-size: 16px; font-weight: 800; letter-spacing: -.01em; color: #1A0A38; line-height: 1.1; }
+.sub { font-size: 11.5px; color: #5C5070; margin-top: 2px; }
 .headRight { flex: none; display: flex; align-items: center; gap: 6px; }
 .close {
-  width: 30px; height: 30px; flex: none; border-radius: 100px; border: 1px solid #EAE4F2;
-  background: #fff; color: #9A8FAA; cursor: pointer; font-size: 17px; line-height: 1;
+  width: 30px; height: 30px; flex: none; border-radius: 8px; border: 1px solid #EAE4F2;
+  background: #fff; color: #9A8FAA; cursor: pointer; line-height: 1;
   display: grid; place-items: center; transition: color .15s, border-color .15s;
 }
 .close:hover { color: #E0198A; border-color: rgba(224, 25, 138, .5); }
@@ -49,7 +68,7 @@
 .body::-webkit-scrollbar-track { background: transparent; }
 .body::-webkit-scrollbar-thumb { background: #E3D7F0; border-radius: 100px; }
 .body::-webkit-scrollbar-thumb:hover { background: #C3B8D4; }
-.sectionLabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .15em; color: #9A8FAA; padding: 2px 2px 11px; }
+.sectionLabel { font-family: var(--lb-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #9A8FAA; padding: 2px 2px 11px; }
 .cards { display: flex; flex-direction: column; gap: 11px; }
 .empty { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; color: #9A8FAA; font-size: 13px; line-height: 1.5; padding: 48px 26px; }
 .emptyEmoji { font-size: 30px; opacity: .75; }
@@ -76,17 +95,27 @@
 .cardSel { border-color: rgba(224, 25, 138, .55); box-shadow: 0 0 0 2px rgba(224, 25, 138, .18); }
 .cardHead { display: flex; align-items: center; gap: 10px; width: 100%; text-align: start; background: none; border: 0; cursor: pointer; padding: 13px 15px; font: inherit; }
 .cardIcon {
-  width: 30px; height: 30px; flex: none; border-radius: 9px; display: grid; place-items: center; font-size: 15px;
-  background: linear-gradient(135deg, rgba(224, 25, 138, .12), rgba(91, 30, 138, .12));
+  width: 30px; height: 30px; flex: none; border-radius: 8px; display: grid; place-items: center;
+  background: linear-gradient(135deg, rgba(224, 25, 138, .12), rgba(91, 30, 138, .14));
 }
-.cardTitle { font-size: 13px; font-weight: 700; color: #1A0A38; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cardTitle { font-size: 13.5px; font-weight: 700; color: #1A0A38; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .spacer { flex: 1; }
-.typePill { flex: none; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: #9A8FAA; background: #F2EAF9; border-radius: 100px; padding: 4px 9px; }
-.chev { flex: none; color: #C3B8D4; font-size: 11px; width: 12px; text-align: center; }
+.typePill { flex: none; font-family: var(--lb-mono); font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #9A2295; background: rgba(154, 34, 149, .10); border-radius: 5px; padding: 3px 7px; }
+.chev { flex: none; color: #C3B8D4; display: grid; place-items: center; transition: transform .2s; }
+.chevOpen { transform: rotate(180deg); }
 .cardBody { padding: 2px 15px 15px; }
-/* Noa's narrative card — a magenta accent rail on the inline-start. */
-.narrative { margin: 2px 15px 15px; padding: 0 0 0 13px; border-inline-start: 3px solid #E0198A; }
+/* Noa's narrative summary — a soft lilac box with a gradient rail. */
+.narrative { position: relative; margin: 0 15px 15px; padding: 13px 14px 13px 17px; background: #FBF5FF; border-radius: 11px; overflow: hidden; }
+.narrative::before { content: ''; position: absolute; top: 0; bottom: 0; inset-inline-start: 0; width: 3px; background: linear-gradient(#E0198A, #5B1E8A); }
 
 @media (prefers-reduced-motion: reduce) {
   .pulse, .card { animation: none; }
+}
+
+/* Collapsed section — a one-line compact summary of the panel's content
+   (Noa's collapsed sections show a summary, not an empty header). */
+.cardCompact {
+  padding: 0 15px 13px; margin-top: -2px;
+  font-size: 11.5px; color: #9A8FAA; line-height: 1.4;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }

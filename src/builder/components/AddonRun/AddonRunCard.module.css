@@ -3,7 +3,9 @@
   border: 1px solid var(--border-color, #e5e7eb);
   border-left: 3px solid var(--accent);
   border-radius: 8px;
-  background: var(--bg-surface, #fff);
+  /* Very gentle tint of the family accent (Live Brain magenta, Profiler
+     violet, chain indigo) so runs read as their family at a glance. */
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg-surface, #fff));
   overflow: hidden;
 }
 
