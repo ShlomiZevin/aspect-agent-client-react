@@ -120,6 +120,8 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
   const [gate, setGate] = useState<Gate>('checking');
   const [crewNames, setCrewNames] = useState<Record<string, string>>({});
   const [defaultCrewName, setDefaultCrewName] = useState('');
+  // Each chat is bound to one agent — surfaced minimally in the top bar (#781).
+  const [agentDisplayName, setAgentDisplayName] = useState('');
   useEffect(() => {
     let cancelled = false;
     setGate('checking');
@@ -135,6 +137,7 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
         setDefaultCrewName(
           (a?.defaultCrewId && names[a.defaultCrewId]) || Object.values(names)[0] || '',
         );
+        setAgentDisplayName(a?.name || slug);
         setGate(a && a.activeVersionId ? 'ready' : 'no-active');
       })
       .catch(() => { if (!cancelled) setGate('error'); });
@@ -307,7 +310,7 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
             bareHead
             full={brainFull}
           >
-            <BrainPanels panels={brainPanels} arrangement={brainArrangement} onClose={() => setBrainOpen(false)} />
+            <BrainPanels panels={brainPanels} arrangement={brainArrangement} dockSide={dir === 'rtl' ? 'right' : 'left'} onClose={() => setBrainOpen(false)} />
           </SidePanel>
         )}
 
@@ -316,6 +319,7 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
             t={t}
             logo={logo}
             brandName={brandName}
+            agentName={agentDisplayName}
             logoFilterable={logoFilterable}
             debug={debug}
             embed={embed}
@@ -395,6 +399,7 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
               onAsk={chat.askProfiler}
               onRefresh={chat.refreshProfiler}
               refreshing={chat.profilerRefreshing}
+              dockSide={dir === 'rtl' ? 'left' : 'right'}
               onClose={() => setProfilerOpen(false)}
             />
           </SidePanel>

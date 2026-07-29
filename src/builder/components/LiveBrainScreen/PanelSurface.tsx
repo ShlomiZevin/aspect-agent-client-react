@@ -133,6 +133,12 @@ export interface PanelSurfaceProps {
    *  the overlay and the customer drawer, so the surface owns its header
    *  entirely (no separate close bar). */
   onClose?: () => void;
+  /** Which wall the drawer is docked against — the close chevron sits on
+   *  that side and points toward it ("collapse back to the wall"). So a
+   *  right-docked panel closes with `›` on the right, a left-docked one
+   *  with `‹` on the left. Keeps Live Brain + Profiler consistent whatever
+   *  side each ends up on. Default 'right'. */
+  dockSide?: 'left' | 'right';
   /** Optional label above the BODY cards (e.g. "Sections"). Omitted for a
    *  single flat list (Live Brain) with no header group, where it's noise. */
   sectionLabel?: string;
@@ -147,10 +153,18 @@ export interface PanelSurfaceProps {
 
 export function PanelSurface({
   panels, headerRight, headerActions, updatedLabel, onClose, footerFor, selectedId, emptyLabel, sectionLabel, headerLabel,
-  icon = '🧠', iconSvg, title = 'LYBI · LIVE BRAIN',
+  icon = '🧠', iconSvg, title = 'LYBI · LIVE BRAIN', dockSide = 'right',
   subtitle = 'why I’m saying what I’m saying',
 }: PanelSurfaceProps) {
   const twoRow = !!(headerActions || updatedLabel);
+  const closeOnLeft = dockSide === 'left';
+  const closeBtn = onClose ? (
+    <button type="button" className={s.close} onClick={onClose} aria-label="Close">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <path d={closeOnLeft ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'} />
+      </svg>
+    </button>
+  ) : null;
   const headerPanels = panels.filter(p => p.placement === 'header');
   const bodyPanels = panels.filter(p => p.placement !== 'header');
   const cards = (list: DisplayPanel[]) => (
@@ -163,9 +177,10 @@ export function PanelSurface({
   const bodyLabel = sectionLabel ?? (headerPanels.length > 0 ? 'Profile sections' : null);
 
   return (
-    <div className={s.surface}>
+    <div className={s.surface} dir="ltr">
       <header className={`${s.head} ${twoRow ? s.headTwo : ''}`}>
         <div className={s.headTop}>
+          {closeOnLeft && closeBtn}
           <span className={`${s.logo} ${iconSvg ? s.logoSoft : ''}`} aria-hidden>
             {iconSvg
               ? <svg viewBox="0 0 60 60" width="22" height="22" fill="none" stroke="#9A2295" strokeWidth="2.4" strokeLinecap="round"><path d={iconSvg} /></svg>
@@ -175,14 +190,10 @@ export function PanelSurface({
             <div className={s.title}>{title}</div>
             <div className={s.sub}>{subtitle}</div>
           </div>
-          {(headerRight || onClose) && (
+          {(headerRight || (onClose && !closeOnLeft)) && (
             <div className={s.headRight}>
               {headerRight}
-              {onClose && (
-                <button type="button" className={s.close} onClick={onClose} aria-label="Close">
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 6l6 6-6 6" /></svg>
-                </button>
-              )}
+              {!closeOnLeft && closeBtn}
             </div>
           )}
         </div>

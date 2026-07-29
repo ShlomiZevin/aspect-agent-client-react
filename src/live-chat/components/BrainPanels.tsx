@@ -7,12 +7,14 @@
 import { PanelSurface, type DisplayPanel } from '../../builder/components/LiveBrainScreen/PanelSurface';
 import type { LiveBrainPanelData } from '../../builder/state/builderApi';
 
-export function BrainPanels({ panels, onClose }: {
+export function BrainPanels({ panels, onClose, dockSide }: {
   panels: LiveBrainPanelData[];
   /** Closes the drawer — rendered as the surface's own header close. */
   onClose?: () => void;
   /** Accepted for compat; layout is handled by PanelSurface. */
   arrangement?: 'stack' | 'grid';
+  /** Which wall the drawer is docked against (close chevron side). */
+  dockSide?: 'left' | 'right';
 }) {
   const display: DisplayPanel[] = panels.map(p => ({
     id: p.id,
@@ -25,6 +27,7 @@ export function BrainPanels({ panels, onClose }: {
     <PanelSurface
       panels={display}
       onClose={onClose}
+      dockSide={dockSide}
       emptyLabel="Your live brain fills in as the conversation unfolds."
     />
   );

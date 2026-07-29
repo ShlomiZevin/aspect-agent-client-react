@@ -29,6 +29,8 @@ interface Props {
   footerFor?: (panel: DisplayPanel) => ReactNode;
   /** Builder-only: highlight the panel being edited. */
   selectedId?: string;
+  /** Which wall the drawer is docked against (close chevron side). */
+  dockSide?: 'left' | 'right';
 }
 
 /** Relative "Updated N ago" label from a timestamp (ms). */
@@ -42,7 +44,7 @@ function relUpdated(ms: number): string {
   return `Updated ${Math.round(hrs / 24)}d ago`;
 }
 
-export function ProfilerPanels({ panels, ask, onAsk, onRefresh, refreshing, onClose, headerRight, footerFor, selectedId }: Props) {
+export function ProfilerPanels({ panels, ask, onAsk, onRefresh, refreshing, onClose, headerRight, footerFor, selectedId, dockSide }: Props) {
   const [askOpen, setAskOpen] = useState(false);
 
   const display: DisplayPanel[] = panels.map(p => ({
@@ -86,7 +88,7 @@ export function ProfilerPanels({ panels, ask, onAsk, onRefresh, refreshing, onCl
   );
 
   return (
-    <div className={s.wrap}>
+    <div className={s.wrap} dir="ltr">
       <PanelSurface
         panels={display}
         icon="👤"
@@ -98,6 +100,7 @@ export function ProfilerPanels({ panels, ask, onAsk, onRefresh, refreshing, onCl
         headerRight={headerRight}
         footerFor={footerFor}
         selectedId={selectedId}
+        dockSide={dockSide}
         onClose={onClose}
         emptyLabel="The profile fills in as the conversation unfolds."
       />

@@ -86,9 +86,11 @@
 .lybi-chat .profiler { border-inline-start: 1px solid var(--border); }
 .lybi-chat .profiler.open { width: clamp(388px, 34vw, 478px); }
 .lybi-chat .profiler .panel-inner { width: clamp(388px, 34vw, 478px); }
-.lybi-chat .brain.open { width: 460px; }
+/* Live Brain opens on HALF the screen (task 780) — with a floor so it
+   stays usable on narrow screens. Profiler keeps its own ~third width. */
+.lybi-chat .brain.open { width: max(460px, 50vw); }
 .lybi-chat .panel-inner { width: 340px; flex-shrink: 0; height: 100%; display: flex; flex-direction: column; }
-.lybi-chat .brain .panel-inner { width: 460px; }
+.lybi-chat .brain .panel-inner { width: max(460px, 50vw); }
 .lybi-chat .panel-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 18px 20px; border-bottom: 1px solid var(--border); gap: 10px;
@@ -144,6 +146,11 @@
 .lybi-chat .icon-btn.active { background: var(--grad); color: #fff; }
 .lybi-chat .icon-btn svg { width: 21px; height: 21px; }
 .lybi-chat .divider { width: 1px; height: 26px; background: var(--border); margin: 0 4px; }
+.lybi-chat .agent-tag {
+  font-size: 14px; font-weight: 600; color: var(--text-2);
+  max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding: 0 10px; direction: ltr;
+}
 .lybi-chat .mode-tag {
   font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px;
   background: #E0198A1a; color: var(--mag); border: 1px solid var(--mag); display: none;
