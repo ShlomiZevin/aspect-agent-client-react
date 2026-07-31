@@ -129,6 +129,92 @@ export async function fetchLiveBrainRuns(args: {
   );
 }
 
+// ─── Profiler (second customer surface) ───────────────────────────
+
+/** One resolved Profiler panel. Same shape as a Live Brain panel plus
+ *  `placement` — `header` panels render in the compact indicators strip,
+ *  `body` panels as section cards. */
+export interface ProfilerPanelData extends LiveBrainPanelData {
+  placement?: 'header' | 'body';
+}
+
+/** Presentation frame for the Profiler surface (opens ~1/3 screen). */
+export interface ProfilerFrame {
+  openMode?: 'third' | 'half' | 'full';
+}
+
+/** Ask-Profiler surface config returned to the client (the prompt/model
+ *  stay server-side; the client only needs whether it's on + the chips). */
+export interface ProfilerAskConfig {
+  enabled: boolean;
+  chips: string[];
+}
+
+export async function fetchProfiler(args: {
+  agentSlug: string;
+  conversationId: number;
+  ownerUserId: string;
+  version?: string;
+}): Promise<{ panels: ProfilerPanelData[]; frame?: ProfilerFrame | null; ask?: ProfilerAskConfig | null }> {
+  const q = new URLSearchParams({
+    ownerUserId: args.ownerUserId,
+    version: args.version || 'active',
+  });
+  return http(
+    `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/profiler?${q.toString()}`,
+  );
+}
+
+/** Ask the profile a natural-language question about itself. */
+export async function askProfiler(args: {
+  agentSlug: string;
+  conversationId: number;
+  ownerUserId: string;
+  question: string;
+  version?: string;
+}): Promise<{ answer: string }> {
+  return http(
+    `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/profiler/ask`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ownerUserId: args.ownerUserId,
+        question: args.question,
+        version: args.version || 'active',
+      }),
+    },
+  );
+}
+
+/** Hard-refresh the whole Profiler now (recompute every panel). Returns
+ *  the fresh render-ready panels. */
+export async function refreshProfiler(args: {
+  agentSlug: string;
+  conversationId: number;
+  ownerUserId: string;
+  version?: string;
+}): Promise<{ panels: ProfilerPanelData[] }> {
+  return http(
+    `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/profiler/refresh`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ownerUserId: args.ownerUserId, version: args.version || 'active' }),
+    },
+  );
+}
+
+/** Recent Profiler panel runs for a conversation (newest first). */
+export async function fetchProfilerRuns(args: {
+  agentSlug: string;
+  conversationId: number;
+}): Promise<{ runs: LiveBrainRun[] }> {
+  return http(
+    `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/profiler/runs`,
+  );
+}
+
 // ─── Project list (BuilderHomePage) ───────────────────────────────
 
 /**

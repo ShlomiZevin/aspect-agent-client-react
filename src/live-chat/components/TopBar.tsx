@@ -8,6 +8,9 @@ interface Props {
   /** Logo image (brand data URL or client logo); null → show the name mark. */
   logo: string | null;
   brandName: string;
+  /** Display name of the agent this chat is bound to — shown minimally
+   *  next to the shortcut icons (#781). */
+  agentName?: string;
   /** True for the built-in Lybi logo (gets a dark-mode colour filter). */
   logoFilterable: boolean;
   debug: boolean;
@@ -33,7 +36,7 @@ interface Props {
 }
 
 export function TopBar({
-  t, logo, brandName, logoFilterable, debug, embed, restricted, brainOpen, profilerOpen,
+  t, logo, brandName, agentName, logoFilterable, debug, embed, restricted, brainOpen, profilerOpen,
   onHistory, onNewChat, onToggleBrain, onToggleProfiler, onSettings, onOpenBuilder, onViewEmbed, onOpenFull, onLogout,
   settingsBtnRef,
 }: Props) {
@@ -51,6 +54,9 @@ export function TopBar({
       </div>
       <span className="mode-tag">DEBUG</span>
       <div className="spacer" />
+      {!embed && agentName && (
+        <span className="agent-tag" title={agentName}>{agentName}</span>
+      )}
 
       {debug && (
         <button className="icon-btn" onClick={onOpenBuilder} aria-label="builder" title={t.openInBuilder}>

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import type { LiveTurn } from '../useLiveChat';
 import type { Dict, Lang } from '../i18n';
 import { MessageBubble } from './MessageBubble';
@@ -10,8 +10,10 @@ interface Props {
   lang: Lang;
   debug: boolean;
   showWelcome: boolean;
-  /** Brand logo for the welcome header (same value the TopBar shows). */
-  logo?: string | null;
+  /** The composer card rendered inside the welcome (empty state only). */
+  welcomeComposer?: ReactNode;
+  /** Brand/agent name for the bot eyebrow. */
+  botLabel: string;
   crewNames: Record<string, string>;
   defaultCrewName: string;
   onPick: (text: string) => void;
@@ -22,7 +24,7 @@ interface Props {
 }
 
 export function MessageStream({
-  turns, t, lang, debug, showWelcome, logo, crewNames, defaultCrewName, onPick, onExpandThink, onReport, onDelete, onDeleteFromHere,
+  turns, t, lang, debug, showWelcome, welcomeComposer, botLabel, crewNames, defaultCrewName, onPick, onExpandThink, onReport, onDelete, onDeleteFromHere,
 }: Props) {
   const streamRef = useRef<HTMLDivElement>(null);
   const wasAtBottom = useRef(true);
@@ -43,13 +45,14 @@ export function MessageStream({
   return (
     <div className="stream" ref={streamRef} onScroll={onScroll}>
       <div className="stream-inner">
-        {showWelcome && <WelcomeBoxes t={t} lang={lang} logo={logo} onPick={onPick} />}
+        {showWelcome && <WelcomeBoxes t={t} lang={lang} composer={welcomeComposer} onPick={onPick} />}
         {turns.map(turn => (
           <MessageBubble
             key={turn.id}
             turn={turn}
             t={t}
             debug={debug}
+            botLabel={botLabel}
             crewNames={crewNames}
             defaultCrewName={defaultCrewName}
             onExpandThink={() => onExpandThink(turn)}

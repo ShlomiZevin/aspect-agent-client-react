@@ -1,25 +1,18 @@
 /**
- * LiveBrainScreen — agent-level authoring of the customer-facing Live
- * Brain (`/:agent/builder/live-brain`).
- *
- * Modelled on the builder's cortex: panels are CHIPS you click to open a
- * config MODAL built from the SAME pieces as the addon modal (InlineField
- * rows, the filter launcher → focused filter modal, the AddonModal footer
- * styling). The screen stays roomy — chip chain + a client-width preview.
- *
- * A panel is a title + a render type + a SOURCE:
- *   - `text`   — free text with `{{...}}` tokens. Plain substitution; NO LLM.
- *   - `prompt` — a non-blocking Live-Brain addon computes it, authored with
- *                the SAME pieces as a regular addon.
- *
- * Agent-level → applies to all crews. Stored on `agent.liveBrain`. See
- * docs/guides/BUILDER_V2_LIVE_BRAIN.md.
+ * ProfilerScreen — agent-level authoring of the Profiler (the SECOND
+ * customer surface): a live, LLM-built customer profile shown beside the
+ * chat (`/:agent/builder/profiler`). Sibling of the Live Brain screen and
+ * built from the SAME pieces — panels are chips you open into a config
+ * modal. Profiler adds two things over the Live Brain: a per-panel
+ * PLACEMENT (header indicators vs body section) and an ASK PROFILER config
+ * (talk to the profile). Stored on `agent.profiler`.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
-import { fetchLiveBrain, fetchLiveBrainRuns } from '../../state/builderApi';
-import type { LiveBrainPanelData, LiveBrainPanelEntry, LiveBrainRun } from '../../state/builderApi';
+import { fetchProfiler, fetchProfilerRuns, askProfiler, refreshProfiler } from '../../state/builderApi';
+import type { LiveBrainPanelData, LiveBrainPanelEntry, LiveBrainRun, ProfilerPanelData } from '../../state/builderApi';
+import { ProfilerPanels } from '../../../live-chat/components/ProfilerPanels';
 import type { AddonRunSnapshot } from '../AddonRun/AddonRunCard';
 import { useConfirm } from '../Confirm/Confirm';
 import { Modal } from '../Modal/Modal';
@@ -29,23 +22,45 @@ import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../MentionTextarea/useMentionOptions';
 import { FilterEditor } from '../Filter/FilterEditor';
 import { filterShortSummary, filterTooltip, isFilterActive } from '../Filter/filterFormat';
-import { LiveBrainPreview, RENDER_OPTIONS, returnsFor, snippetFor, buildDisplayPanels } from './panelRenderers';
-import { LiveBrainSheet } from './LiveBrainSheet';
+import { RENDER_OPTIONS, returnsFor, snippetFor, buildDisplayPanels, PanelLogs } from '../LiveBrainScreen/panelRenderers';
+import { ICON_PATH, cleanLabel, type DisplayPanel } from '../LiveBrainScreen/PanelSurface';
+import { PanelSheet } from '../LiveBrainScreen/LiveBrainSheet';
 import type {
-  BrainPanel, PanelRender, PanelSource, HistoryMode, ModelRef, OfflineTrigger, AddonFilter,
+  ProfilerPanel, ProfilerDef, PanelRender, PanelSource, HistoryMode, ModelRef, OfflineTrigger, AddonFilter,
 } from '../../types';
-import styles from './LiveBrainScreen.module.css';
+import styles from '../LiveBrainScreen/LiveBrainScreen.module.css';
+import pstyles from './ProfilerScreen.module.css';
 import addon from '../AddonModal/AddonModal.module.css';
 
 let panelSeq = 0;
 const newPanelId = () => `panel_${Date.now().toString(36)}_${(panelSeq++).toString(36)}`;
 
 const DEFAULT_MODEL: ModelRef = { providerId: 'openai', modelId: 'gpt-4o-mini' };
-const DEFAULT_HISTORY: HistoryMode = { mode: 'last_n', n: 10 };
+const DEFAULT_ASK_MODEL: ModelRef = { providerId: 'openai', modelId: 'gpt-4o' };
+/** The built-in Ask-Profiler system prompt, shown verbatim in the editor
+ *  (WYSIWYG). MUST match the server default in runtimeRoute.js — if left
+ *  unedited the panel stays empty and the server falls back to the same
+ *  text; editing it here overrides. */
+const CLIENT_DEFAULT_ASK_PROMPT =
+  'You ARE this customer profile — the live understanding the assistant has built of the customer from the conversation. ' +
+  'Answer the question about yourself using ONLY the profile JSON and the conversation provided: why something was inferred or classified, ' +
+  "what's still missing, what to ask next, how the profile affects the next step. Be concise, specific and grounded in the data. " +
+  'Never invent facts that are not supported by the profile or the conversation. Answer in the same language as the question. ' +
+  "If the data doesn't support an answer, say so plainly.";
+/** Default one-tap chips shown in the Ask drawer. Shown + editable here;
+ *  the server falls back to the SAME list when none are set, so an
+ *  untouched agent still shows them to the customer. Keep in sync with
+ *  DEFAULT_ASK_CHIPS in runtimeRoute.js. */
+const DEFAULT_ASK_CHIPS = [
+  'What do we know about this customer so far?',
+  'What is still missing from the profile?',
+  'Why was the customer classified this way?',
+  'What should we ask next?',
+];
+const DEFAULT_HISTORY: HistoryMode = { mode: 'last_n', n: 12 };
 const DEFAULT_TRIGGER: OfflineTrigger = { kind: 'every_n_messages', n: 3 };
 const EMPTY_FILTER: AddonFilter = { conditions: [], mode: 'include' };
 
-/** One render-ready panel → its by-id value entry. */
 function panelToEntry(p: LiveBrainPanelData): LiveBrainPanelEntry {
   return {
     render: p.render,
@@ -54,22 +69,16 @@ function panelToEntry(p: LiveBrainPanelData): LiveBrainPanelEntry {
     ranAt: p.ranAt,
   };
 }
-
-/** Render-ready panel list (from the initial fetch) → the by-id value map. */
 function panelListToMap(list: LiveBrainPanelData[]): Record<string, LiveBrainPanelEntry> {
   const map: Record<string, LiveBrainPanelEntry> = {};
   for (const p of list) map[p.id] = panelToEntry(p);
   return map;
 }
-
-/** A persisted / live Live-Brain run → the SAME snapshot the chat's
- *  AddonRunCard renders, so a panel's log looks identical to a chat
- *  addon's card (input prompt, output, parse error, model, timing). */
 function runToSnapshot(r: LiveBrainRun): AddonRunSnapshot {
   const d = r.runData || {};
   return {
     instanceId: r.instanceId,
-    pluginId:   'live-brain-panel',
+    pluginId:   'profiler-panel',
     label:      d.label,
     modelLabel: d.modelLabel ?? null,
     status:     (r.status as AddonRunSnapshot['status']) || 'success',
@@ -85,16 +94,17 @@ function runToSnapshot(r: LiveBrainRun): AddonRunSnapshot {
 function renderLabel(r: PanelRender): string {
   return RENDER_OPTIONS.find(o => o.value === r)?.label ?? r;
 }
-function panelSummary(p: BrainPanel): string {
+function panelSummary(p: ProfilerPanel): string {
   const r = renderLabel(p.render);
-  if (p.source.kind === 'text') return `${r} · Text`;
+  const where = p.placement === 'header' ? 'Header' : 'Section';
+  if (p.source.kind === 'text') return `${r} · ${where} · Text`;
   const t = p.source.trigger;
   const cadence = t.kind === 'on_transition' ? 'on transition' : `every ${t.n} msg${t.n === 1 ? '' : 's'}`;
-  return `${r} · AI · ${cadence}`;
+  return `${r} · ${where} · AI · ${cadence}`;
 }
 
 function histValue(h: HistoryMode | undefined): string {
-  if (!h) return 'last_n:10';
+  if (!h) return 'last_n:12';
   if (h.mode === 'last_n') return `last_n:${h.n}`;
   if (h.mode === 'all' || h.mode === 'full') return 'all';
   if (h.mode === 'since_transition') return 'since_transition';
@@ -104,7 +114,7 @@ function histFromValue(v: string): HistoryMode {
   if (v === 'none') return { mode: 'none' };
   if (v === 'all') return { mode: 'all' };
   if (v === 'since_transition') return { mode: 'since_transition' };
-  if (v.startsWith('last_n:')) return { mode: 'last_n', n: Number(v.slice('last_n:'.length)) || 10 };
+  if (v.startsWith('last_n:')) return { mode: 'last_n', n: Number(v.slice('last_n:'.length)) || 12 };
   return DEFAULT_HISTORY;
 }
 
@@ -114,14 +124,12 @@ function normalizeRender(r: unknown): PanelRender {
 }
 function normalizeTags(t: unknown): { mode: 'predefined' | 'generated'; labels: string[] } {
   const s = t as { mode?: string; labels?: unknown } | undefined;
-  // Default to generated — the simplest path (no labels to author).
   const mode = s?.mode === 'predefined' ? 'predefined' : 'generated';
   const labels = Array.isArray(s?.labels) ? s!.labels.filter((x): x is string => typeof x === 'string') : [];
   return { mode, labels };
 }
 function normalizeFields(f: unknown): { mode: 'predefined' | 'generated'; keys: string[] } {
   const s = f as { mode?: string; keys?: unknown } | undefined;
-  // Default predefined — you decide the rows (Noa's Fields spec).
   const mode = s?.mode === 'generated' ? 'generated' : 'predefined';
   const keys = Array.isArray(s?.keys) ? s!.keys.filter((x): x is string => typeof x === 'string') : [];
   return { mode, keys };
@@ -138,12 +146,10 @@ function normalizeSource(src: unknown): PanelSource {
       trigger: (s.trigger as OfflineTrigger) ?? DEFAULT_TRIGGER,
     };
   }
-  const text = typeof s.text === 'string' ? s.text : typeof s.token === 'string' ? s.token : '';
+  const text = typeof s.text === 'string' ? s.text : '';
   return { kind: 'text', text };
 }
-function normalizePanel(p: BrainPanel): BrainPanel {
-  // Migrate a legacy filter that used to live on the prompt source up to
-  // the panel (where it now belongs — filter is addon-level).
+function normalizePanel(p: ProfilerPanel): ProfilerPanel {
   const legacyFilter = (p.source as { filter?: AddonFilter } | undefined)?.filter;
   const filter = p.filter ?? legacyFilter;
   const render = normalizeRender(p.render);
@@ -152,15 +158,17 @@ function normalizePanel(p: BrainPanel): BrainPanel {
     title: p.title,
     render,
     source: normalizeSource(p.source),
+    placement: p.placement === 'header' ? 'header' : 'body',
+    ...(p.description ? { description: p.description } : {}),
     ...(filter ? { filter } : {}),
     ...(render === 'tags' ? { tags: normalizeTags(p.tags) } : {}),
     ...(render === 'fields' ? { fields: normalizeFields(p.fields) } : {}),
   };
 }
 
-/** Compact tag input — type a word, press Enter (or comma) to add it as a
- *  chip; Backspace on an empty field removes the last. Reused for Tags
- *  labels and Fields keys. Looks like the modal's other inputs. */
+/** Compact tag/chip input — type, Enter (or comma) to add; Backspace on an
+ *  empty field removes the last. Reused for Tags labels, Fields keys, and
+ *  the Ask preset chips. */
 function TagInput({ items, onChange, placeholder }: {
   items: string[];
   onChange: (next: string[]) => void;
@@ -196,29 +204,23 @@ function TagInput({ items, onChange, placeholder }: {
   );
 }
 
-/** Build the example shape shown at the top of the "what to return" modal,
- *  matching the panel's actual mode (so generated Tags show `tags` too,
- *  predefined Fields show the real keys, etc). */
-function buildReturns(p: BrainPanel): string {
+function buildReturns(p: ProfilerPanel): string {
   if (p.render === 'tags') {
     if (p.tags?.mode === 'generated') {
-      return 'Return the labels + which fit (one or more):\n\n{ "tags": ["Curious", "Worried"], "active": ["Worried"] }';
+      return 'Return the labels + which fit (one or more):\n\n{ "tags": ["Needs control", "Fee sensitive"], "active": ["Fee sensitive"] }';
     }
-    return 'Return the label(s) that fit (one or more):\n\n{ "active": ["Worried"] }';
+    return 'Return the label(s) that fit (one or more):\n\n{ "active": ["Fee sensitive"] }';
   }
   if (p.render === 'fields') {
     const keys = (p.fields?.keys ?? []).filter(Boolean);
     if (p.fields?.mode !== 'generated' && keys.length) {
       return `Return a value for each field:\n\n{ ${keys.map(k => `"${k}": "…"`).join(', ')} }`;
     }
-    return 'Return the fields you find:\n\n{ "Stage": "perimenopause", "Top need": "Sleep" }';
+    return 'Return the fields you find:\n\n{ "Employment": "Self-employed", "Main goal": "…" }';
   }
   return returnsFor(p.render);
 }
-
-/** Build the ready-to-paste "return this" snippet, filled with the panel's
- *  own predefined labels/keys when it has them. */
-function buildSnippet(p: BrainPanel): string {
+function buildSnippet(p: ProfilerPanel): string {
   if (p.render === 'tags') {
     const labels = (p.tags?.labels ?? []).filter(Boolean);
     if (p.tags?.mode === 'predefined' && labels.length) {
@@ -260,28 +262,26 @@ function TriggerSelect({ trigger, onChange }: { trigger: OfflineTrigger; onChang
   );
 }
 
-export function LiveBrainScreen() {
-  const { doc, updateAgent, previewConversationId, liveBrainPanelEvent } = useBuilder();
+export function ProfilerScreen() {
+  const { doc, updateAgent, previewConversationId, profilerPanelEvent } = useBuilder();
   const confirm = useConfirm();
   const agent = doc.agents[0];
   const slug = agent?.slug;
   const mentionOptions = useMentionOptions(agent?.id ?? '');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [askOpen, setAskOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showLogs, setShowLogs] = useState(true);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [previewRefreshing, setPreviewRefreshing] = useState(false);
 
-  // ── Live values + runs for the builder's preview conversation. The
-  // creator authors on the left and watches panels compute LIVE (from the
-  // User Chat on the right) — values arrive on the chat stream
-  // (`brain.snapshot` → context), the run logs are pulled alongside.
   const [liveValues, setLiveValues] = useState<Record<string, LiveBrainPanelEntry>>({});
   const [runSnapshots, setRunSnapshots] = useState<AddonRunSnapshot[]>([]);
-  const [showLogs, setShowLogs] = useState(true);
   const ownerUserId = (typeof localStorage !== 'undefined' && localStorage.getItem('builder:ownerUserId')) || 'anon';
 
-  // Group runs by the panel they belong to, so each panel shows its own log.
+  // Group runs by the panel they belong to — each panel shows its own log.
   const runsByPanel = useMemo(() => {
     const map: Record<string, AddonRunSnapshot[]> = {};
     for (const r of runSnapshots) { (map[r.instanceId] ??= []).push(r); }
@@ -291,37 +291,46 @@ export function LiveBrainScreen() {
   const loadRuns = useCallback(async () => {
     if (!slug || !previewConversationId) return;
     try {
-      const res = await fetchLiveBrainRuns({ agentSlug: slug, conversationId: previewConversationId });
+      const res = await fetchProfilerRuns({ agentSlug: slug, conversationId: previewConversationId });
       setRunSnapshots((res?.runs || []).map(runToSnapshot));
     } catch { /* best-effort — keep the last logs */ }
   }, [slug, previewConversationId]);
 
-  // Initial hydration: opening an existing conversation pulls its stored
-  // values + runs ONCE (past turns didn't stream to this screen). New
-  // turns then update everything live via the snapshot effect below.
+  // Builder Refresh — recompute the whole profiler for the preview
+  // conversation now (real, same as the customer button).
+  const previewRefresh = useCallback(async () => {
+    if (!slug || !previewConversationId || previewRefreshing) return;
+    setPreviewRefreshing(true);
+    try {
+      const res = await refreshProfiler({ agentSlug: slug, conversationId: previewConversationId, ownerUserId, version: 'viewing' });
+      setLiveValues(panelListToMap(res?.panels || []));
+      await loadRuns();
+    } catch { /* best-effort */ }
+    finally { setPreviewRefreshing(false); }
+  }, [slug, previewConversationId, ownerUserId, previewRefreshing, loadRuns]);
+
+  // Initial hydration of the preview from stored values + runs (one fetch).
   useEffect(() => {
     let cancelled = false;
     if (!slug || !previewConversationId) { setLiveValues({}); setRunSnapshots([]); return; }
     (async () => {
       try {
-        const [brainRes, runsRes] = await Promise.all([
-          fetchLiveBrain({ agentSlug: slug, conversationId: previewConversationId, ownerUserId, version: 'viewing' }),
-          fetchLiveBrainRuns({ agentSlug: slug, conversationId: previewConversationId }),
+        const [valRes, runsRes] = await Promise.all([
+          fetchProfiler({ agentSlug: slug, conversationId: previewConversationId, ownerUserId, version: 'viewing' }),
+          fetchProfilerRuns({ agentSlug: slug, conversationId: previewConversationId }),
         ]);
         if (cancelled) return;
-        setLiveValues(panelListToMap(brainRes?.panels || []));
+        setLiveValues(panelListToMap(valRes?.panels || []));
         setRunSnapshots((runsRes?.runs || []).map(runToSnapshot));
       } catch { /* best-effort */ }
     })();
     return () => { cancelled = true; };
   }, [slug, previewConversationId, ownerUserId]);
 
-  // Live: each `brain.panel` event merges ONE panel (panel by panel, so
-  // its card animates on its own); the persisted run logs are pulled on
-  // the same beat.
+  // Live: merge one panel per `profiler.panel` event + refresh its logs.
   useEffect(() => {
-    if (!liveBrainPanelEvent) return;
-    const { panelId, panel } = liveBrainPanelEvent;
+    if (!profilerPanelEvent) return;
+    const { panelId, panel } = profilerPanelEvent;
     setLiveValues(prev => {
       const next = { ...prev };
       if (panel) next[panelId] = panelToEntry(panel);
@@ -330,29 +339,31 @@ export function LiveBrainScreen() {
     });
     void loadRuns();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveBrainPanelEvent]);
+  }, [profilerPanelEvent]);
 
   if (!agent) return <div className={styles.screen}>No agent loaded.</div>;
 
-  const liveBrain = agent.liveBrain;
-  const panels = (liveBrain?.panels ?? []).map(normalizePanel);
+  const profiler = agent.profiler;
+  const panels = (profiler?.panels ?? []).map(normalizePanel);
   const editing = panels.find(p => p.id === editingId) ?? null;
-  const writePanels = (next: BrainPanel[]) =>
-    updateAgent(agent.id, { liveBrain: { ...(liveBrain ?? {}), panels: next } });
-  const patchPanel = (id: string, patch: Partial<BrainPanel>) =>
+
+  const writeProfiler = (patch: Partial<ProfilerDef>) =>
+    updateAgent(agent.id, { profiler: { panels: [], ...(profiler ?? {}), ...patch } });
+  const writePanels = (next: ProfilerPanel[]) => writeProfiler({ panels: next });
+  const patchPanel = (id: string, patch: Partial<ProfilerPanel>) =>
     writePanels(panels.map(p => (p.id === id ? { ...p, ...patch } : p)));
-  const patchTags = (patch: Partial<NonNullable<BrainPanel['tags']>>) =>
-    editing && patchPanel(editing.id, { tags: { mode: 'predefined', labels: [], ...(editing.tags ?? {}), ...patch } });
-  const patchFields = (patch: Partial<NonNullable<BrainPanel['fields']>>) =>
-    editing && patchPanel(editing.id, { fields: { mode: 'predefined', keys: [], ...(editing.fields ?? {}), ...patch } });
+  const patchTags = (patch: Partial<NonNullable<ProfilerPanel['tags']>>) =>
+    editing && patchPanel(editing.id, { tags: { mode: 'generated', labels: [], ...(editing.tags ?? {}), ...patch } });
+  const patchFields = (patch: Partial<NonNullable<ProfilerPanel['fields']>>) =>
+    editing && patchPanel(editing.id, { fields: { mode: 'generated', keys: [], ...(editing.fields ?? {}), ...patch } });
 
   const addPanel = () => {
-    const p: BrainPanel = { id: newPanelId(), title: '🧠 New panel', render: 'text', source: { kind: 'text', text: '' } };
+    const p: ProfilerPanel = { id: newPanelId(), title: '👤 New section', render: 'fields', placement: 'body', source: { kind: 'prompt', prompt: '', model: DEFAULT_MODEL, history: DEFAULT_HISTORY, trigger: DEFAULT_TRIGGER }, fields: { mode: 'generated', keys: [] } };
     writePanels([...panels, p]);
     setEditingId(p.id);
   };
   const deletePanel = async (id: string) => {
-    const ok = await confirm({ title: 'Delete panel?', message: 'This removes the panel from the Live Brain.', confirmLabel: 'Delete', danger: true });
+    const ok = await confirm({ title: 'Delete panel?', message: 'This removes the panel from the Profiler.', confirmLabel: 'Delete', danger: true });
     if (!ok) return;
     writePanels(panels.filter(p => p.id !== id));
     setEditingId(null);
@@ -366,14 +377,11 @@ export function LiveBrainScreen() {
     writePanels(next);
   };
 
-  // Remember the config for the source kind you're leaving, so toggling
-  // Text ↔ AI prompt and back doesn't wipe what you typed. Keyed by panel
-  // id; survives re-renders (a ref, not state — it's a scratch cache).
   const sourceStash = useRef<Record<string, Partial<Record<PanelSource['kind'], PanelSource>>>>({});
   const setSourceKind = (kind: PanelSource['kind']) => {
     if (!editing || editing.source.kind === kind) return;
     const stash = (sourceStash.current[editing.id] ??= {});
-    stash[editing.source.kind] = editing.source; // park what we're leaving
+    stash[editing.source.kind] = editing.source;
     const restored = stash[kind];
     const source: PanelSource = restored
       ?? (kind === 'text'
@@ -390,23 +398,49 @@ export function LiveBrainScreen() {
 
   const panelFilter = editing?.filter ?? EMPTY_FILTER;
 
+  // Ask config (with defaults).
+  const ask = profiler?.ask ?? { enabled: false, model: DEFAULT_ASK_MODEL, prompt: '', chips: [] as string[] };
+  const patchAsk = (patch: Partial<NonNullable<ProfilerDef['ask']>>) =>
+    writeProfiler({ ask: { enabled: false, model: DEFAULT_ASK_MODEL, prompt: '', chips: [], ...ask, ...patch } });
+
+  const display = buildDisplayPanels(panels, liveValues);
+  const placeById = new Map(panels.map(p => [p.id, p.placement]));
+  const previewPanels: ProfilerPanelData[] = display.map(p => ({ id: p.id, title: p.title, render: p.render, text: p.text, values: p.values, placement: placeById.get(p.id) }));
+  const previewAskConfig = ask.enabled
+    ? { enabled: true, chips: (ask.chips && ask.chips.length ? ask.chips : DEFAULT_ASK_CHIPS) }
+    : null;
+  // Ask, live from the preview conversation on the right (uses the saved
+  // 'viewing' version — save your edits to see them reflected).
+  const previewAsk = async (question: string): Promise<string> => {
+    const q = question.trim();
+    if (!q) return '';
+    if (!slug || !previewConversationId) return 'Start a preview chat on the right first, then ask the profile.';
+    try {
+      const res = await askProfiler({ agentSlug: slug, conversationId: previewConversationId, ownerUserId, question: q, version: 'viewing' });
+      return res?.answer || '';
+    } catch (e) { return e instanceof Error ? `Ask failed: ${e.message}` : 'Ask failed'; }
+  };
+
+
   return (
     <div className={styles.screen}>
       <div className={styles.grid}>
-        {/* ── panel chips (title lives here so the preview can start at
-             the very top, like the real chat drawer) ── */}
-        <aside className={styles.chain}>
+        <aside className={`${styles.chain} ${pstyles.chainScroll}`}>
           <div className={styles.head}>
-            <h1 className={styles.h1}>🧠 Live Brain</h1>
-            <p className={styles.sub}>The customer-facing brain — shown beside the chat. Applies to every crew.</p>
+            <h1 className={styles.h1}>👤 Profiler</h1>
+            <p className={styles.sub}>A live customer profile built from the conversation — shown beside the chat. Applies to every crew.</p>
           </div>
-          <div className={styles.listHead}>Panels</div>
+          <div className={styles.listHead}>Profile Sections</div>
           {panels.map((p, i) => (
             <div key={p.id} className={styles.chip} onClick={() => setEditingId(p.id)} role="button" tabIndex={0}
               onKeyDown={e => { if (e.key === 'Enter') setEditingId(p.id); }}>
-              <span className={styles.chipBadge}>{p.source.kind === 'text' ? '📝' : '🤖'}</span>
+              <span className={styles.chipBadge} aria-hidden>
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#9A2295" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={ICON_PATH[p.render] ?? ICON_PATH.text} />
+                </svg>
+              </span>
               <div className={styles.chipMain}>
-                <span className={styles.chipTitle}>{p.title || 'Untitled'}</span>
+                <span className={styles.chipTitle}>{cleanLabel(p.title, p.render) || 'Untitled'}</span>
                 <span className={styles.chipSummary}>{panelSummary(p)}</span>
               </div>
               <span className={styles.chipMove}>
@@ -415,46 +449,64 @@ export function LiveBrainScreen() {
               </span>
             </div>
           ))}
-          <button className={styles.addChip} onClick={addPanel}>+ Add panel</button>
+          <button className={styles.addChip} onClick={addPanel}>+ Add section</button>
+
+          <div className={styles.listHead} style={{ marginTop: 18 }}>Ask Profiler</div>
+          <button className={styles.chip} onClick={() => setAskOpen(true)} role="button" tabIndex={0}>
+            <span className={styles.chipBadge}>💬</span>
+            <div className={styles.chipMain}>
+              <span className={styles.chipTitle}>Ask Profiler</span>
+              <span className={styles.chipSummary}>{ask.enabled ? `On · ${(ask.chips ?? []).length} chips` : 'Off'}</span>
+            </div>
+          </button>
         </aside>
 
-        {/* ── preview (client width); each panel carries its own run log ── */}
         <section className={styles.preview}>
           <div className={styles.deviceFrame}>
-            <LiveBrainPreview
-              panels={panels}
+            {/* The REAL customer surface — so the preview shows exactly what
+                the customer sees, plus builder-only Open / Logs controls and
+                a per-section run log beneath each panel. */}
+            <ProfilerPanels
+              panels={previewPanels}
+              ask={previewAskConfig}
+              onAsk={previewAsk}
+              onRefresh={previewConversationId ? previewRefresh : undefined}
+              refreshing={previewRefreshing}
               selectedId={editingId ?? undefined}
-              liveValues={liveValues}
-              runsByPanel={runsByPanel}
-              showLogs={showLogs}
-              headerAccessory={
+              headerRight={
                 <>
                   <button
                     type="button"
                     className={styles.logToggle}
                     onClick={() => setSheetOpen(true)}
-                    title="Open the full Live Brain overlay — exactly how the customer sees it"
+                    title="Open the full Profiler overlay — exactly how the customer sees it"
                   >⛶ Open</button>
                   <button
                     type="button"
                     className={`${styles.logToggle} ${showLogs ? styles.logToggleOn : ''}`}
                     onClick={() => setShowLogs(s => !s)}
-                    title={showLogs ? 'Hide the run logs (clean customer view)' : 'Show each panel’s run log'}
+                    title={showLogs ? 'Hide the run logs (clean customer view)' : 'Show each section’s run log'}
                   >🔍 Logs</button>
                 </>
               }
+              footerFor={showLogs
+                ? (p: DisplayPanel) => {
+                    const runs = runsByPanel[p.id] ?? [];
+                    return runs.length ? <PanelLogs runs={runs} /> : null;
+                  }
+                : undefined}
             />
           </div>
         </section>
       </div>
 
-      {/* ── panel config modal (addon-modal styling) ── */}
+      {/* ── panel config modal ── */}
       {editing && (
         <Modal
           open
           onClose={() => setEditingId(null)}
           width={640}
-          title={editing.title || 'Panel'}
+          title={editing.title || 'Section'}
           badge={editing.source.kind === 'prompt' ? 'AI' : 'text'}
           footer={
             <>
@@ -466,8 +518,6 @@ export function LiveBrainScreen() {
         >
           <div className={addon.body}>
             <div className={styles.stableBody}>
-              {/* Filter — belongs to the panel (addon), shown for BOTH Text
-                  and AI. Same top launcher as the addon modal. */}
               <div className={addon.filterLauncherRow}>
                 <button
                   type="button"
@@ -483,17 +533,23 @@ export function LiveBrainScreen() {
 
               <InlineField label="Title" hint="Paste an emoji, a label, or both.">
                 <input className={styles.inputFull} value={editing.title}
-                  onChange={e => patchPanel(editing.id, { title: e.target.value })} placeholder="🧠 Panel title" />
+                  onChange={e => patchPanel(editing.id, { title: e.target.value })} placeholder="👤 Section title" />
               </InlineField>
 
-              <InlineField label="Show as" hint="How this panel is drawn on the customer brain.">
+              <InlineField label="Placement" hint="Header = the compact indicators strip up top (e.g. progress bars). Section = a normal card in the body.">
+                <div className={styles.seg2} role="tablist" aria-label="Placement">
+                  <button role="tab" aria-selected={editing.placement !== 'header'} onClick={() => patchPanel(editing.id, { placement: 'body' })}>Section</button>
+                  <button role="tab" aria-selected={editing.placement === 'header'} onClick={() => patchPanel(editing.id, { placement: 'header' })}>Header</button>
+                </div>
+              </InlineField>
+
+              <InlineField label="Show as" hint="How this section is drawn on the profile.">
                 <select className={styles.inputFull} value={editing.render}
                   onChange={e => patchPanel(editing.id, { render: e.target.value as PanelRender })}>
                   {RENDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label} — {o.hint}</option>)}
                 </select>
               </InlineField>
 
-              {/* Tags: predefined labels (author sets, AI picks active) or generated. */}
               {editing.render === 'tags' && (
                 <InlineField label="Labels" hint="Predefined: you set them, the AI picks which is active. Generated: the AI invents them.">
                   <div className={styles.seg2} role="tablist" aria-label="Tag mode">
@@ -502,18 +558,13 @@ export function LiveBrainScreen() {
                   </div>
                   {editing.tags?.mode === 'predefined' && (
                     <div className={styles.nested}>
-                      <TagInput
-                        items={editing.tags?.labels ?? []}
-                        onChange={labels => patchTags({ labels })}
-                        placeholder="Type a label, press Enter"
-                      />
-                      <span className={styles.nestedHint}>These labels always show; the AI just highlights whichever fits (e.g. Curious, Worried, Ready).</span>
+                      <TagInput items={editing.tags?.labels ?? []} onChange={labels => patchTags({ labels })} placeholder="Type a label, press Enter" />
+                      <span className={styles.nestedHint}>These labels always show; the AI just highlights whichever fits.</span>
                     </div>
                   )}
                 </InlineField>
               )}
 
-              {/* Fields: predefined keys (author sets, AI fills values) or generated. */}
               {editing.render === 'fields' && (
                 <InlineField label="Keys" hint="Predefined: you set the keys, the AI fills each value. Generated: the AI invents the keys too.">
                   <div className={styles.seg2} role="tablist" aria-label="Field mode">
@@ -522,12 +573,8 @@ export function LiveBrainScreen() {
                   </div>
                   {editing.fields?.mode !== 'generated' && (
                     <div className={styles.nested}>
-                      <TagInput
-                        items={editing.fields?.keys ?? []}
-                        onChange={keys => patchFields({ keys })}
-                        placeholder="Type a key, press Enter"
-                      />
-                      <span className={styles.nestedHint}>These rows always show; the AI fills a value for each (e.g. Stage, Top need).</span>
+                      <TagInput items={editing.fields?.keys ?? []} onChange={keys => patchFields({ keys })} placeholder="Type a key, press Enter" />
+                      <span className={styles.nestedHint}>These rows always show; the AI fills a value for each.</span>
                     </div>
                   )}
                 </InlineField>
@@ -549,20 +596,17 @@ export function LiveBrainScreen() {
                     options={mentionOptions}
                     placeholder={"The customer is in {{field:stage}} and mostly wants {{field:top_need}}."}
                     rows={8}
-                    storageKey={`livebrain:${editing.id}:text`}
+                    storageKey={`profiler:${editing.id}:text`}
                   />
                   <span className={styles.sectionHint}>Write anything; type <kbd>/</kbd> to drop in a live value like a field or memory.</span>
                 </div>
               ) : (
                 <>
-                  <InlineField label="Model" hint="LLM used for this panel's run.">
+                  <InlineField label="Model" hint="LLM used for this section's run.">
                     <ModelPicker value={editing.source.model} onChange={model => patchPrompt({ model })} />
                   </InlineField>
 
                   <div className={styles.section}>
-                    {/* Header row: label on the left, a compact "what to
-                        return" affordance on the right — inline with the
-                        label instead of a bulky card below the prompt. */}
                     <div className={styles.sectionHeader}>
                       <span className={styles.sectionLabel}>Prompt</span>
                       <button
@@ -580,9 +624,9 @@ export function LiveBrainScreen() {
                       value={editing.source.prompt}
                       onChange={prompt => patchPrompt({ prompt })}
                       options={mentionOptions}
-                      placeholder="Read the conversation and produce this panel's content…"
+                      placeholder="Read the conversation and produce this section's content…"
                       rows={5}
-                      storageKey={`livebrain:${editing.id}:prompt`}
+                      storageKey={`profiler:${editing.id}:prompt`}
                     />
                   </div>
 
@@ -609,10 +653,10 @@ export function LiveBrainScreen() {
         </Modal>
       )}
 
-      {/* ── filter modal (controlled FilterEditor, addon look) ── */}
+      {/* ── filter modal ── */}
       {editing && filterOpen && (
         <Modal open onClose={() => setFilterOpen(false)} width={720} title="Filter"
-          badge={editing.title || 'Panel'}
+          badge={editing.title || 'Section'}
           footer={<><span className={addon.spacer} /><button type="button" className={addon.primaryBtn} onClick={() => setFilterOpen(false)}>Done</button></>}
         >
           <div className={addon.body}>
@@ -622,12 +666,22 @@ export function LiveBrainScreen() {
               filter={panelFilter}
               onChange={filter => patchPanel(editing.id, { filter })}
               verb="render" verbs="renders"
-              skippedSentence="When skipped, the panel is hidden this turn."
-              emptyMessage="No conditions — the panel always shows."
+              skippedSentence="When skipped, the section is hidden this turn."
+              emptyMessage="No conditions — the section always shows."
             />
           </div>
         </Modal>
       )}
+
+      {/* ── full-screen overlay ("Open" — how the customer sees it) ── */}
+      <PanelSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        panels={previewPanels as DisplayPanel[]}
+        icon="👤"
+        title="Customer Profiler"
+        subtitle="Live profile built from the conversation"
+      />
 
       {/* ── "what to return" modal ── */}
       {editing && returnOpen && (
@@ -642,12 +696,51 @@ export function LiveBrainScreen() {
         </Modal>
       )}
 
-      {/* ── NEW: full-screen Noa-styled overlay (opens on top of the page) ── */}
-      <LiveBrainSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        panels={buildDisplayPanels(panels, liveValues)}
-      />
+      {/* ── Ask Profiler config modal ── */}
+      {askOpen && (
+        <Modal open onClose={() => setAskOpen(false)} width={620} title="Ask Profiler" badge="talk to the profile"
+          footer={<><span className={addon.spacer} /><button type="button" className={addon.primaryBtn} onClick={() => setAskOpen(false)}>Done</button></>}
+        >
+          <div className={addon.body}>
+            <div className={styles.stableBody}>
+              <InlineField label="Enabled" hint="Let users ask the profile questions about itself (why it inferred something, what's missing, what to ask next).">
+                <div className={styles.seg2} role="tablist" aria-label="Ask enabled">
+                  <button role="tab" aria-selected={!ask.enabled} onClick={() => patchAsk({ enabled: false })}>Off</button>
+                  <button role="tab" aria-selected={ask.enabled} onClick={() => patchAsk({ enabled: true })}>On</button>
+                </div>
+              </InlineField>
+
+              {ask.enabled && (
+                <>
+                  <InlineField label="Model" hint="LLM that answers Ask-Profiler questions.">
+                    <ModelPicker value={ask.model ?? DEFAULT_ASK_MODEL} onChange={model => patchAsk({ model })} />
+                  </InlineField>
+
+                  <div className={styles.section}>
+                    <span className={styles.sectionLabel}>Prompt</span>
+                    <MentionTextarea
+                      value={ask.prompt || CLIENT_DEFAULT_ASK_PROMPT}
+                      onChange={prompt => patchAsk({ prompt })}
+                      options={mentionOptions}
+                      placeholder="How the profile should answer questions about itself…"
+                      rows={7}
+                      storageKey={`profiler:ask:prompt`}
+                    />
+                  </div>
+
+                  <InlineField label="Preset questions" hint="Ready-made questions shown as one-tap buttons at the top of the Ask drawer, so the user doesn't have to think one up.">
+                    <TagInput
+                      items={(ask.chips && ask.chips.length) ? ask.chips : DEFAULT_ASK_CHIPS}
+                      onChange={chips => patchAsk({ chips })}
+                      placeholder="Type a question, press Enter"
+                    />
+                  </InlineField>
+                </>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

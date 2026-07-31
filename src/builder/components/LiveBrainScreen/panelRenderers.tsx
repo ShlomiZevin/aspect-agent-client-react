@@ -52,6 +52,11 @@ export const RENDER_OPTIONS: {
     returns: 'Return a short note for each card:\n\n{ "Sleep": "Waking at 3am, wants natural options.", "Mood": "Anxious but hopeful." }',
     snippet: 'Return only a JSON object mapping each card title to a short note, like: {"Sleep":"…","Mood":"…"}',
   },
+  {
+    value: 'journey', label: 'Journey / Status', hint: 'Stage rows + a readiness bar + next step.',
+    returns: 'Return your status labels as key→value, plus a readiness % and a next step:\n\n{ "Current stage": "Trust building", "Missing": "Eligibility confirmation", "readiness": 60, "next": "Confirm eligibility" }',
+    snippet: 'Return only a JSON object: your status labels as key→value, plus "readiness" (0–100) and "next" (one sentence). Like: {"Current stage":"…","Missing":"…","readiness":60,"next":"…"}',
+  },
 ];
 
 export function returnsFor(render: PanelRender): string {
@@ -78,15 +83,25 @@ export function sampleRuntime(render: PanelRender): PanelValues {
       ] };
     case 'bars':
       return { bars: [
-        { label: 'Calm', value: 62 },
-        { label: 'Anxious', value: 34 },
-        { label: 'Hopeful', value: 71 },
+        { label: 'Current Profile Depth', value: 45, caption: 'Basic profile · still forming' },
+        { label: 'Conversation Engagement', value: 70, caption: 'Warming up' },
+        { label: 'Information Quality', value: 50, caption: 'Partial · needs validation' },
       ] };
     case 'cards':
       return { cards: [
         { title: 'Sleep', body: 'Waking at 3am; wants natural options before medication.' },
         { title: 'Mood', body: 'Anxious but hopeful — responds well to reassurance.' },
       ] };
+    case 'journey':
+      return { journey: {
+        rows: [
+          { k: 'Current stage', v: 'Trust building' },
+          { k: 'Profile status', v: 'Functional profile built', pill: true },
+          { k: 'Missing', v: 'Eligibility confirmation' },
+        ],
+        readiness: { value: 60 },
+        next: 'Continue with a short personalization question.',
+      } };
     default:
       return {};
   }
@@ -120,7 +135,7 @@ export function buildDisplayPanels(
  * A panel's attached run log. Newest-first; shows only the latest run by
  * default with a tiny "+N more", using the SAME AddonRunCard as the chat.
  */
-function PanelLogs({ runs }: { runs: AddonRunSnapshot[] }) {
+export function PanelLogs({ runs }: { runs: AddonRunSnapshot[] }) {
   const [showAll, setShowAll] = useState(false);
   const visible = showAll ? runs : runs.slice(0, 1);
   return (

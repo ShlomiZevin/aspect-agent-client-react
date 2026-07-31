@@ -26,6 +26,7 @@ import { HistoryDrawer } from './components/HistoryDrawer';
 import { SettingsPopover } from './components/SettingsPopover';
 import { SidePanel } from './components/SidePanel';
 import { BrainPanels } from './components/BrainPanels';
+import { ProfilerPanels } from './components/ProfilerPanels';
 import { ReportModal } from './components/ReportModal';
 import { ConfirmDelete } from './components/ConfirmDelete';
 import { AgentNotReady } from './components/AgentNotReady';
@@ -86,6 +87,9 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
   const brainPanels = chat.livePanels;
   const brainArrangement = chat.liveFrame?.arrangement ?? 'stack';
   const brainFull = chat.liveFrame?.openMode === 'full';
+  // Profiler surface — same live/hydrate model as the Brain.
+  const profilerPanels = chat.profilerPanels;
+  const profilerFull = chat.profilerFrame?.openMode === 'full';
 
   // Logo priority: custom brand logo → selected client's logo → none (name mark).
   const clientLogo = clientById(settings.client).logoUrl ?? null;
@@ -116,6 +120,8 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
   const [gate, setGate] = useState<Gate>('checking');
   const [crewNames, setCrewNames] = useState<Record<string, string>>({});
   const [defaultCrewName, setDefaultCrewName] = useState('');
+  // Each chat is bound to one agent — surfaced minimally in the top bar (#781).
+  const [agentDisplayName, setAgentDisplayName] = useState('');
   useEffect(() => {
     let cancelled = false;
     setGate('checking');
@@ -131,6 +137,7 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
         setDefaultCrewName(
           (a?.defaultCrewId && names[a.defaultCrewId]) || Object.values(names)[0] || '',
         );
+        setAgentDisplayName(a?.name || slug);
         setGate(a && a.activeVersionId ? 'ready' : 'no-active');
       })
       .catch(() => { if (!cancelled) setGate('error'); });
@@ -303,7 +310,7 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
             bareHead
             full={brainFull}
           >
-            <BrainPanels panels={brainPanels} arrangement={brainArrangement} onClose={() => setBrainOpen(false)} />
+            <BrainPanels panels={brainPanels} arrangement={brainArrangement} dockSide={dir === 'rtl' ? 'right' : 'left'} onClose={() => setBrainOpen(false)} />
           </SidePanel>
         )}
 
@@ -312,6 +319,7 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
             t={t}
             logo={logo}
             brandName={brandName}
+            agentName={agentDisplayName}
             logoFilterable={logoFilterable}
             debug={debug}
             embed={embed}
@@ -338,7 +346,20 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
                 lang={settings.lang}
                 debug={debug}
                 showWelcome={showWelcome}
-                logo={logo}
+                welcomeComposer={
+                  <Composer
+                    t={t}
+                    value={input}
+                    busy={chat.busy}
+                    uiDir={dir}
+                    ctrlEnter={settings.ctrlEnter}
+                    variant="card"
+                    onChange={setInput}
+                    onSend={onSend}
+                    onToggleCtrlEnter={() => setSetting({ ctrlEnter: !settings.ctrlEnter })}
+                  />
+                }
+                botLabel={brandName}
                 crewNames={crewNames}
                 defaultCrewName={defaultCrewName}
                 onPick={text => chat.send(text)}
@@ -348,16 +369,20 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
                 onDeleteFromHere={turn => setPendingDelete({ turn, mode: 'fromHere' })}
               />
               {chat.error && <div className="err-chip">{chat.error}</div>}
-              <Composer
-                t={t}
-                value={input}
-                busy={chat.busy}
-                uiDir={dir}
-                ctrlEnter={settings.ctrlEnter}
-                onChange={setInput}
-                onSend={onSend}
-                onToggleCtrlEnter={() => setSetting({ ctrlEnter: !settings.ctrlEnter })}
-              />
+              {/* Bottom composer only once the conversation has started —
+                  in the empty state it lives inside the welcome card. */}
+              {!showWelcome && (
+                <Composer
+                  t={t}
+                  value={input}
+                  busy={chat.busy}
+                  uiDir={dir}
+                  ctrlEnter={settings.ctrlEnter}
+                  onChange={setInput}
+                  onSend={onSend}
+                  onToggleCtrlEnter={() => setSetting({ ctrlEnter: !settings.ctrlEnter })}
+                />
+              )}
             </>
           )}
 
@@ -382,7 +407,19 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
             placeholderTitle={t.profTitle}
             placeholderSub={t.profSub}
             emoji="👤"
-          />
+            bareHead
+            full={profilerFull}
+          >
+            <ProfilerPanels
+              panels={profilerPanels}
+              ask={chat.profilerAsk}
+              onAsk={chat.askProfiler}
+              onRefresh={chat.refreshProfiler}
+              refreshing={chat.profilerRefreshing}
+              dockSide={dir === 'rtl' ? 'left' : 'right'}
+              onClose={() => setProfilerOpen(false)}
+            />
+          </SidePanel>
         )}
       </div>
 

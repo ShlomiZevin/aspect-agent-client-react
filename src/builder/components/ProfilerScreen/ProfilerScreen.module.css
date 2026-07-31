@@ -1,0 +1,19 @@
+/* Profiler-only overrides layered on top of the shared LiveBrain styles.
+ * Keeps the Live Brain screen untouched. */
+
+/* The left column has more in it than Live Brain (sections + global
+ * settings + Ask), so it must scroll independently — matching the
+ * fixed-height preview column beside it. */
+.chainScroll {
+  max-height: calc(100vh - 84px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+.chainScroll::-webkit-scrollbar { width: 8px; }
+.chainScroll::-webkit-scrollbar-thumb { background: #e3d7f0; border-radius: 100px; }
+.chainScroll::-webkit-scrollbar-thumb:hover { background: #c3b8d4; }
+
+/* Global "applies to all sections" block — sits at the very top, like an
+ * addon's filter row. */
+.globalBlock { display: flex; flex-direction: column; gap: 8px; margin-bottom: 6px; }

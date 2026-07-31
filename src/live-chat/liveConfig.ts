@@ -51,8 +51,8 @@ export interface QuickQuestion {
 }
 
 export const DEFAULT_QUESTIONS: QuickQuestion[] = [
-  { icon: '💬', text: { he: 'ספר/י לי על השירות', en: 'Tell me about the service' } },
-  { icon: '✨', text: { he: 'מה אפשר לעשות כאן?', en: 'What can I do here?' } },
-  { icon: '🤝', text: { he: 'אני רוצה להתחיל', en: 'I want to get started' } },
+  { icon: '💬', text: { he: 'ספרי לי עליך', en: 'Tell me about you' } },
+  { icon: '🤝', text: { he: 'רוצה להתחיל תהליך', en: 'I want to start a process' } },
+  { icon: '🤔', text: { he: 'לא בטוח מה מתאים לי', en: "I'm not sure what fits me" } },
   { icon: '❓', text: { he: 'יש לי שאלה', en: 'I have a question' } },
 ];

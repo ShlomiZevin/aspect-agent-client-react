@@ -28,7 +28,7 @@ import {
 } from '../../state/builderApi';
 import { bodyOfAgent, bodyOfCrew } from '../../state/useProjectSync';
 import { sendRuntimeMessage, type RuntimeEvent } from '../../state/runtimeStream';
-import { AddonRunTimeline } from '../AddonRun/AddonRunTimeline';
+import { AddonRunTimeline, type RunCat } from '../AddonRun/AddonRunTimeline';
 import type { AddonRunSnapshot } from '../AddonRun/AddonRunCard';
 import { useConfirm } from '../Confirm/Confirm';
 import { HistoryPanel } from './HistoryPanel';
@@ -164,6 +164,7 @@ export function UserChat() {
     refreshConversationMemory,
     applyLocalMemoryWrites,
     applyLiveBrainPanel,
+    applyProfilerPanel,
     pendingSeeds,
   } = useBuilder();
   const agent = useCurrentAgent();
@@ -553,6 +554,10 @@ export function UserChat() {
         // Live Brain screen updates just that card (panel by panel).
         applyLiveBrainPanel(e.panelId, e.panel);
         return;
+      case 'profiler.panel':
+        // Same, for the Profiler authoring screen's preview.
+        applyProfilerPanel(e.panelId, e.panel);
+        return;
       case 'done':
         refreshConversationMemory();
         reloadConvList();
@@ -873,6 +878,7 @@ export function UserChat() {
               turn={t}
               rtl={settings.rtl}
               showTimeline={settings.showAddonRuns}
+              runHidden={{ chain: !settings.runChain, brain: !settings.runBrain, profiler: !settings.runProfiler }}
               awaiting={awaitingTalker && i === turns.length - 1}
               onExpand={() => loadRunsForTurn(t)}
               onReport={text => setReportFor(text)}
@@ -966,6 +972,8 @@ interface TurnProps {
    *  view. Also skips the lazy runs fetch (TurnTimeline's mount
    *  effect) until the user toggles activity back on. */
   showTimeline: boolean;
+  /** Run families to hide in the timeline (from chat Settings). */
+  runHidden?: Partial<Record<RunCat, boolean>>;
   /** True while this turn is the one currently streaming. Drives the
    *  minimal "thinking…" line when the timeline is hidden. */
   awaiting: boolean;
@@ -975,7 +983,7 @@ interface TurnProps {
   onDeleteFromHere: () => void;
 }
 
-function Turn({ turn, rtl, showTimeline, awaiting, onExpand, onReport, onDeleteSelf, onDeleteFromHere }: TurnProps) {
+function Turn({ turn, rtl, showTimeline, runHidden, awaiting, onExpand, onReport, onDeleteSelf, onDeleteFromHere }: TurnProps) {
   const canDelete = turn.userMessageId !== null || turn.assistantMessageId !== null;
   const showRuns = showTimeline
     && (turn.runs.length > 0 || (turn.assistantMessageId !== null && !turn.runsLoaded));
@@ -1003,7 +1011,7 @@ function Turn({ turn, rtl, showTimeline, awaiting, onExpand, onReport, onDeleteS
           onDeleteFromHere={onDeleteFromHere}
         />
       )}
-      {showRuns && <TurnTimeline turn={turn} onExpand={onExpand} />}
+      {showRuns && <TurnTimeline turn={turn} hidden={runHidden} onExpand={onExpand} />}
       {showThinking && (
         <div className={styles.thinkingLine}>
           <span className={styles.thinkingPulse} />
@@ -1089,14 +1097,14 @@ function Bubble({ text, who, rtl, deleteControls, onReport, onDeleteSelf, onDele
   );
 }
 
-function TurnTimeline({ turn, onExpand }: { turn: Turn; onExpand: () => void }) {
+function TurnTimeline({ turn, hidden, onExpand }: { turn: Turn; hidden?: Partial<Record<RunCat, boolean>>; onExpand: () => void }) {
   useEffect(() => {
     if (!turn.runsLoaded && turn.runs.length === 0) onExpand();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turn.id]);
 
   if (turn.runs.length === 0) return null;
-  return <AddonRunTimeline runs={turn.runs} />;
+  return <AddonRunTimeline runs={turn.runs} hidden={hidden} />;
 }
 
 // TODO(builder): `DynamicTrail` was added in the recent builder merge but is never

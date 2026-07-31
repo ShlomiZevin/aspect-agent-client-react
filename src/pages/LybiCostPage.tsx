@@ -439,6 +439,17 @@ export function LybiCostPage() {
           })}
         </div>
 
+        <div style={{ marginTop: 24, background: '#fff', border: `1px solid ${LINE}`, borderRadius: 12, padding: '16px 20px' }}>
+          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: FAINT, marginBottom: 8 }}>
+            Where does the knowledge base cost go?
+          </div>
+          <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.65, display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+            <div>• KB infrastructure (vectorizing, storage, retrieval — Pinecone + embeddings): <b style={{ color: INK }}>less than $0.01 per 1,000 interactions</b>. Negligible.</div>
+            <div>• The real KB cost is the retrieved text entering the talker's prompt as input tokens (~$9–15 per 1,000 interactions) — <b style={{ color: INK }}>already counted in the Reads levels above</b>.</div>
+            <div>• Loading a KB is a one-time cost of cents (a 200-page KB ≈ $0.004 to vectorize).</div>
+          </div>
+        </div>
+
         {showAdvanced && (
           <div style={{ marginTop: 24, background: '#fff', border: `1px solid ${LINE}`, borderRadius: 14, padding: '20px 24px' }}>
             <div style={{ display: 'flex', gap: 48, flexWrap: 'wrap' as const, marginBottom: 24 }}>

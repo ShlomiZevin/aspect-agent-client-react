@@ -50,6 +50,10 @@ export function bodyOfAgent(agent: AgentDoc): AgentBody {
     // with BuilderContext.bodyOfAgent so the save body and the dirty-check
     // body match. (This is what actually persists panels to the server.)
     ...((agent.liveBrain?.panels?.length || agent.liveBrain?.frame) ? { liveBrain: agent.liveBrain } : {}),
+    // Same for the Profiler — WITHOUT this the save body omits it, which
+    // both wipes a saved profiler AND makes the runtime override drop it
+    // (no auto-update, no runs). Empty == absent.
+    ...((agent.profiler?.panels?.length || agent.profiler?.frame || agent.profiler?.ask) ? { profiler: agent.profiler } : {}),
   };
 }
 

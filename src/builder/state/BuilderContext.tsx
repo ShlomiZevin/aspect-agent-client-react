@@ -155,6 +155,10 @@ export function bodyOfAgent(agent: AgentDoc): AgentBody {
     // used the feature compare equal to their pre-liveBrain version
     // bodies (no spurious "dirty" on load). Empty == absent.
     ...((agent.liveBrain?.panels?.length || agent.liveBrain?.frame) ? { liveBrain: agent.liveBrain } : {}),
+    // Same empty==absent trick for the Profiler — without this, any agent
+    // with a profiler shows a permanent phantom "unsaved changes" (the
+    // working copy carries `profiler`, the compared body wouldn't).
+    ...((agent.profiler?.panels?.length || agent.profiler?.frame || agent.profiler?.ask) ? { profiler: agent.profiler } : {}),
   };
 }
 
@@ -322,7 +326,7 @@ interface BuilderState {
   // Agent-level
   updateAgent: (
     agentId: ID,
-    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets' | 'liveBrain'>>,
+    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets' | 'liveBrain' | 'profiler'>>,
   ) => void;
   /**
    * Rename a declared domain. Cascades through `agent.domains`,
@@ -627,6 +631,12 @@ interface BuilderState {
   liveBrainPanelEvent: { panelId: string; panel: LiveBrainPanelData | null; seq: number } | null;
   applyLiveBrainPanel: (panelId: string, panel: LiveBrainPanelData | null) => void;
 
+  // Profiler — same per-panel live plumbing as the Live Brain, for the
+  // Profiler authoring screen's preview. UserChat calls `applyProfilerPanel`
+  // on each `profiler.panel` SSE event.
+  profilerPanelEvent: { panelId: string; panel: LiveBrainPanelData | null; seq: number } | null;
+  applyProfilerPanel: (panelId: string, panel: LiveBrainPanelData | null) => void;
+
   // Live brain state for the preview conversation. Two parallel
   // sections: `memory` (facts the brain remembers) and `thinking`
   // (the current strategic plan). FieldsPanel renders memory values
@@ -803,6 +813,13 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   }, []);
   useEffect(() => { setLiveBrainPanelEvent(null); }, [previewConversationId]);
 
+  const [profilerPanelEvent, setProfilerPanelEvent] =
+    useState<{ panelId: string; panel: LiveBrainPanelData | null; seq: number } | null>(null);
+  const applyProfilerPanel = useCallback((panelId: string, panel: LiveBrainPanelData | null) => {
+    setProfilerPanelEvent(prev => ({ panelId, panel, seq: (prev?.seq ?? 0) + 1 }));
+  }, []);
+  useEffect(() => { setProfilerPanelEvent(null); }, [previewConversationId]);
+
   // Live brain state for the preview conversation. The chat panel
   // calls refreshConversationMemory after each turn, and the
   // FieldsPanel + Thinking panels render values inline. The `summary`
@@ -965,7 +982,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
 
   // ── Agent ──
   const updateAgent = useCallback(
-    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets' | 'liveBrain'>>) => {
+    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets' | 'liveBrain' | 'profiler'>>) => {
       setDoc(d => ({
         ...d,
         agents: d.agents.map(a => (a.id === agentId ? { ...a, ...patch } : a)),
@@ -1584,6 +1601,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
               ...(Array.isArray(ab.snippets)   && { snippets: ab.snippets as AgentDoc['snippets'] }),
               ...(Array.isArray(ab.personas)   && { personas: ab.personas as AgentDoc['personas'] }),
               ...(ab.liveBrain !== undefined   && { liveBrain: ab.liveBrain as AgentDoc['liveBrain'] }),
+              ...(ab.profiler !== undefined    && { profiler: ab.profiler as AgentDoc['profiler'] }),
             };
           }
           agent = {
@@ -2415,6 +2433,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       clearPendingSeed,
       liveBrainPanelEvent,
       applyLiveBrainPanel,
+      profilerPanelEvent,
+      applyProfilerPanel,
       conversationMemory,
       refreshConversationMemory,
       updateConversationMemoryField,
@@ -2484,6 +2504,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       pendingSeeds,
       liveBrainPanelEvent,
       applyLiveBrainPanel,
+      profilerPanelEvent,
+      applyProfilerPanel,
       conversationMemory,
       refreshConversationMemory,
       updateConversationMemoryField,

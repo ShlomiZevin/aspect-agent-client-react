@@ -19,6 +19,10 @@ export interface ChatSettingsState {
    *  (messages only) for distraction-free review. Purely visual —
    *  runs still stream and persist; they're just not rendered. */
   showAddonRuns: boolean;
+  /** Which run families to show in the timeline (colour-coded). */
+  runChain: boolean;
+  runBrain: boolean;
+  runProfiler: boolean;
 }
 
 const STORAGE_KEY = 'builder:chatSettings';
@@ -26,16 +30,20 @@ const STORAGE_KEY = 'builder:chatSettings';
 function loadSettings(): ChatSettingsState {
   // Default RTL on — most agents in this builder are Hebrew, and a
   // left-aligned LTR bubble of Hebrew text is hard to read.
+  const DEFAULTS: ChatSettingsState = { rtl: true, showAddonRuns: true, runChain: true, runBrain: true, runProfiler: true };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { rtl: true, showAddonRuns: true };
+    if (!raw) return DEFAULTS;
     const parsed = JSON.parse(raw);
     return {
       rtl: parsed.rtl !== false,
       showAddonRuns: parsed.showAddonRuns !== false,
+      runChain: parsed.runChain !== false,
+      runBrain: parsed.runBrain !== false,
+      runProfiler: parsed.runProfiler !== false,
     };
   } catch {
-    return { rtl: true, showAddonRuns: true };
+    return DEFAULTS;
   }
 }
 
@@ -130,20 +138,34 @@ export function ChatSettingsPopover({ open, onClose, triggerRef, settings, onCha
           label="Addon activity"
           hint="Per-turn timelines between messages"
           value={settings.showAddonRuns}
-          onChange={v => onChange('showAddonRuns', v)}
+          onChange={v => {
+            onChange('showAddonRuns', v);
+            // Turning activity ON shows every family (a clean, all-on start).
+            if (v) { onChange('runChain', true); onChange('runBrain', true); onChange('runProfiler', true); }
+          }}
         />
+      )}
+      {showAddonRunsToggle && settings.showAddonRuns && (
+        <div className={styles.subGroup}>
+          <ToggleRow label="Chat chain" dot="#9aa1ab" value={settings.runChain} onChange={v => onChange('runChain', v)} />
+          <ToggleRow label="Live Brain" dot="#E0198A" value={settings.runBrain} onChange={v => onChange('runBrain', v)} />
+          <ToggleRow label="Profiler" dot="#7C3AED" value={settings.runProfiler} onChange={v => onChange('runProfiler', v)} />
+        </div>
       )}
     </div>
   );
 }
 
 function ToggleRow({
-  label, hint, value, onChange,
-}: { label: string; hint?: string; value: boolean; onChange: (v: boolean) => void }) {
+  label, hint, value, onChange, dot,
+}: { label: string; hint?: string; value: boolean; onChange: (v: boolean) => void; dot?: string }) {
   return (
     <label className={styles.row}>
       <div className={styles.text}>
-        <span className={styles.label}>{label}</span>
+        <span className={styles.label}>
+          {dot && <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: dot, marginInlineEnd: 7, verticalAlign: 'middle' }} />}
+          {label}
+        </span>
         {hint && <span className={styles.hint}>{hint}</span>}
       </div>
       <span

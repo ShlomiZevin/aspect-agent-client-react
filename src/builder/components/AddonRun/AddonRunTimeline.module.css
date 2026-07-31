@@ -6,3 +6,7 @@
   border-radius: 10px;
   background: var(--bg-input, #fafafa);
 }
+
+/* Wrapper only — the family colour lives on the AddonRunCard's own accent
+   (its left border + gentle tint), so no extra stripe here. */
+.row { min-width: 0; }

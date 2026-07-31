@@ -15,6 +15,24 @@ import styles from './AddonRunCard.module.css';
 
 const KB_RETRIEVER_PLUGIN_ID = 'kb-retriever';
 
+// Live Brain / Profiler panels are internal plugins (no client descriptor),
+// so give them a family accent + fallback icon here instead of the ugly "?".
+const PANEL_FAMILY: Record<string, { accent: string; icon: string }> = {
+  'live-brain-panel': { accent: '#E0198A', icon: '🧠' },
+  'profiler-panel':   { accent: '#7C3AED', icon: '👤' },
+};
+
+/** Split a leading emoji off a label so it can be the card's icon tile
+ *  (and not repeated in the name). */
+function splitLabelEmoji(label?: string): { emoji?: string; rest: string } {
+  const s = (label ?? '').trim();
+  try {
+    const m = s.match(/^([\p{Extended_Pictographic}‍️]+)\s*(.*)$/u);
+    if (m) return { emoji: m[1], rest: m[2] || '' };
+  } catch { /* older engine */ }
+  return { rest: s };
+}
+
 export interface AddonRunSnapshot {
   instanceId: string;
   pluginId: string;
@@ -261,7 +279,14 @@ export function AddonRunCard({ run }: Props) {
   const [promptCopied, setPromptCopied] = useState(false);
   const [outputCopied, setOutputCopied] = useState(false);
   const desc = getPlugin(run.pluginId);
-  const accent = desc?.color || '#6366f1';
+  const family = PANEL_FAMILY[run.pluginId];
+  const accent = desc?.color || family?.accent || '#6366f1';
+  // Name + icon: prefer the descriptor; for panels, pull the emoji out of
+  // the label as the icon and show the rest as the name.
+  const rawName = (run.label && run.label !== run.pluginId) ? run.label : (desc?.name || run.pluginId);
+  const { emoji: labelEmoji, rest: labelRest } = splitLabelEmoji(rawName);
+  const icon = desc?.icon || labelEmoji || family?.icon || '•';
+  const displayName = labelEmoji ? (labelRest || rawName) : rawName;
 
   // Look up the target crew's display name from the in-memory project
   // doc. Used by the Transition section so users see "Profiler" not
@@ -332,18 +357,11 @@ export function AddonRunCard({ run }: Props) {
       >
         <span className={styles.caret}>{open ? '▾' : '▸'}</span>
         <span className={styles.icon} style={{ background: `${accent}22`, color: accent }}>
-          {desc?.icon ?? '?'}
+          {icon}
         </span>
-        {/* The server fills `label` with `instance.config.name || pluginId`,
-            so a missing instance name arrives as the (lowercase, hyphenated)
-            pluginId — uglier than the descriptor's display name. Prefer
-            the descriptor in that case; keep the pluginId as the final
-            fallback for instances whose plugin isn't loaded. */}
-        <span className={styles.name}>{
-          (run.label && run.label !== run.pluginId)
-            ? run.label
-            : (desc?.name || run.pluginId)
-        }</span>
+        {/* Name: descriptor name for known plugins; for panels, the label
+            with its leading emoji lifted into the icon tile above. */}
+        <span className={styles.name}>{displayName}</span>
         {/* Offline-lane runs happen AFTER the user-facing reply
             streams, so the user-visible answer is unaffected by their
             output. Surface a small badge so the reader knows this

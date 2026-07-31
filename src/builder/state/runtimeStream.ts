@@ -6,7 +6,7 @@
  * the supplied handler.
  */
 
-import { runtimeMessageStream, type LiveBrainPanelData } from './builderApi';
+import { runtimeMessageStream, type LiveBrainPanelData, type ProfilerPanelData } from './builderApi';
 
 export type RuntimeEvent =
   | { type: 'conversation'; conversationId: number; messageId: number; currentCrewId?: string | null }
@@ -17,6 +17,12 @@ export type RuntimeEvent =
    * position for ordering.
    */
   | { type: 'brain.panel'; panelId: string; index: number; panel: LiveBrainPanelData | null }
+  /**
+   * Profiler update — the SECOND surface. Same per-panel semantics as
+   * `brain.panel` but for the Profiler; `panel` carries a `placement`
+   * (header indicators vs body section). `panel: null` hides it.
+   */
+  | { type: 'profiler.panel'; panelId: string; index: number; panel: ProfilerPanelData | null }
   | { type: 'addon.start'; instanceId: string; pluginId: string; lane: string; label?: string;
       model?: unknown;
       modelLabel?: { providerName: string; modelName: string } | null }

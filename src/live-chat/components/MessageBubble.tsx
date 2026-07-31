@@ -3,13 +3,15 @@ import { MarkdownBody } from '../../builder/components/ChatPanel/MarkdownBody';
 import type { LiveTurn } from '../useLiveChat';
 import type { Dict } from '../i18n';
 import { ThinkingProcess } from './ThinkingProcess';
-import { IconBug, IconChevron, IconTrash, IconTrashDown, IconUser } from '../icons';
+import { IconBug, IconChevron, IconTrash, IconTrashDown } from '../icons';
 
 interface Props {
   turn: LiveTurn;
   t: Dict;
   debug: boolean;
-  /** crewId → display name, for the bubble label. */
+  /** Brand/agent name — the bot eyebrow ("LYBI"). Falls back to the crew. */
+  botLabel: string;
+  /** crewId → display name, for the bubble label fallback. */
   crewNames: Record<string, string>;
   /** Shown when the turn's crew is unknown (e.g. single-crew agents). */
   defaultCrewName: string;
@@ -27,12 +29,14 @@ interface Props {
  * on the inner content so a Hebrew message right-aligns and an English one
  * left-aligns regardless of UI language.
  */
-export function MessageBubble({ turn, t, debug, crewNames, defaultCrewName, onExpandThink, onReport, onDelete, onDeleteFromHere }: Props) {
+export function MessageBubble({ turn, t, debug, botLabel, crewNames, defaultCrewName, onExpandThink, onReport, onDelete, onDeleteFromHere }: Props) {
   const [thinkOpen, setThinkOpen] = useState(false);
   const canDelete = turn.userMessageId !== null || turn.assistantMessageId !== null;
   const thinking = turn.assistantText === '' && turn.thinkingLabel !== null;
   const showBot = turn.assistantText !== '' || turn.assistantMessageId !== null || thinking;
   const crewName = (turn.crewId && crewNames[turn.crewId]) || defaultCrewName;
+  // Customer-facing identity: the brand ("LYBI"), not the internal crew name.
+  const label = botLabel || crewName;
 
   const toggleThink = () => {
     const next = !thinkOpen;
@@ -44,19 +48,16 @@ export function MessageBubble({ turn, t, debug, crewNames, defaultCrewName, onEx
     <>
       {turn.userText && (
         <div className="msg user">
-          <div className="avatar"><IconUser /></div>
           <div className="bubble-wrap">
+            <div className="sender-label">Customer</div>
             <div className="bubble"><div className="bubble-text" dir="auto">{turn.userText}</div></div>
           </div>
         </div>
       )}
       {showBot && (
         <div className="msg bot">
-          <div className="avatar avatar-spiral">
-            <img src="/img/lybi-spiral.png" alt="" />
-          </div>
           <div className="bubble-wrap">
-            {crewName && <div className="crew-label">{crewName}</div>}
+            {label && <div className="crew-label">{label}</div>}
             {thinking ? (
               // Customer-facing: just the dots — no addon names, even in
               // debug (the builder's chat is where per-addon progress
