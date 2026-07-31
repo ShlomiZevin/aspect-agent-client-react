@@ -5,6 +5,7 @@
  */
 import { useState } from 'react';
 import { useJobs } from '../jobs/JobsContext';
+import { useLanguage } from '../../../context/LanguageContext';
 import { insightsService } from '../../../services/insightsService';
 import { SimpleQueryHelper } from './SimpleQueryHelper';
 import styles from './InvestigateHero.module.css';
@@ -13,12 +14,10 @@ import styles from './InvestigateHero.module.css';
 // baskets") are deliberately excluded: that analysis needs a self-join
 // across ~2M rows with no supporting index and reliably times out with no
 // canned fallback to land on anymore (see investigation.service.js) — every
-// example chip here has been run for real and confirmed to actually work.
-const EXAMPLE_PROMPTS = [
-  'Main risks for the next 6 months',
-  'Which stores will miss Q3 target — and why',
-  'Which product family has the steepest margin decline',
-];
+// example chip here has been run for real and confirmed to actually work
+// (translation keys, not hardcoded English — the plan step is an LLM call
+// that turns either language into the same kind of concrete data question).
+const EXAMPLE_PROMPT_KEYS = ['intel.hero.example1', 'intel.hero.example2', 'intel.hero.example3'];
 
 const SKIP_HELPER_KEY = 'aspect_intel_skip_query_helper';
 
@@ -29,6 +28,7 @@ interface Props {
 }
 
 export function InvestigateHero({ datasetId, onAskInChat }: Props) {
+  const { t } = useLanguage();
   const [text, setText] = useState('');
   const [classifying, setClassifying] = useState(false);
   // Non-null = the gentle helper is showing for exactly this typed prompt.
@@ -86,20 +86,29 @@ export function InvestigateHero({ datasetId, onAskInChat }: Props) {
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.title}>What should Aspect investigate for you?</div>
+      <div className={`${styles.box} ${helperPrompt ? styles.boxFlagged : ''}`}>
+        <div className={styles.inputRow}>
+          <span className={styles.sparkle}>✦</span>
+          <input
+            className={styles.input}
+            placeholder={t('intel.hero.placeholder')}
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && submitTyped()}
+          />
+          <button className={styles.startBtn} onClick={submitTyped} disabled={classifying}>
+            {classifying ? t('intel.hero.checking') : t('intel.hero.start')}
+          </button>
+        </div>
 
-      <div className={`${styles.inputRow} ${helperPrompt ? styles.inputRowFlagged : ''}`}>
-        <span className={styles.sparkle}>✦</span>
-        <input
-          className={styles.input}
-          placeholder='Ask for an analysis — e.g. "What are the easiest ways to grow income next quarter?"'
-          value={text}
-          onChange={e => setText(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && submitTyped()}
-        />
-        <button className={styles.startBtn} onClick={submitTyped} disabled={classifying}>
-          {classifying ? 'Checking…' : 'Start analysis'}
-        </button>
+        <div className={styles.chipsBlock}>
+          <div className={styles.chipsLabel}>{t('intel.hero.possible')}</div>
+          <div className={styles.chips}>
+            {EXAMPLE_PROMPT_KEYS.map(key => (
+              <button key={key} className={styles.chip} onClick={() => startFromChip(t(key))}>{t(key)}</button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {helperPrompt && (
@@ -110,12 +119,6 @@ export function InvestigateHero({ datasetId, onAskInChat }: Props) {
           onDontShowAgainChange={setDontShowAgain}
         />
       )}
-
-      <div className={styles.chips}>
-        {EXAMPLE_PROMPTS.map(p => (
-          <button key={p} className={styles.chip} onClick={() => startFromChip(p)}>{p}</button>
-        ))}
-      </div>
     </div>
   );
 }

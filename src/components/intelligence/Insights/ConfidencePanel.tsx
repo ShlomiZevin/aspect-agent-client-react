@@ -1,4 +1,5 @@
 import type { InsightConfidenceCheck } from '../../../types/insights';
+import { useLanguage } from '../../../context/LanguageContext';
 import styles from './ConfidencePanel.module.css';
 
 export function ConfidencePanel({ score, basis, checks }: {
@@ -6,14 +7,15 @@ export function ConfidencePanel({ score, basis, checks }: {
   basis: string;
   checks: InsightConfidenceCheck[];
 }) {
-  const label = score >= 85 ? 'HIGH' : score >= 60 ? 'MEDIUM' : 'LOW';
+  const { t } = useLanguage();
+  const label = score >= 85 ? t('intel.confidence.high') : score >= 60 ? t('intel.confidence.medium') : t('intel.confidence.low');
   const r = 15.9;
   const circumference = 100;
   const dash = `${score / 100 * circumference} ${circumference}`;
 
   return (
     <div className={styles.card}>
-      <div className={styles.title}>Confidence score</div>
+      <div className={styles.title}>{t('intel.detail.confidence')}</div>
       <div className={styles.top}>
         <div className={styles.gaugeWrap}>
           <svg width={110} height={110} viewBox="0 0 42 42">
@@ -46,7 +48,7 @@ export function ConfidencePanel({ score, basis, checks }: {
         ))}
       </div>
 
-      <div className={styles.footer}>Score recalculates on every nightly refresh.</div>
+      <div className={styles.footer}>{t('intel.detail.confidenceFooter')}</div>
     </div>
   );
 }

@@ -1,0 +1,44 @@
+.outer { display: flex; align-items: flex-start; min-height: 100%; }
+
+.page { flex: 1; min-width: 0; padding: 44px 24px 40px; max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+
+.greetingBlock { text-align: center; }
+.greeting { font: 700 32px var(--ai-font-head); color: var(--ai-text); }
+.subtitle { font-size: 14.5px; color: var(--ai-text-dim); margin-top: 8px; }
+
+.twoCol { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 800px) { .twoCol { grid-template-columns: 1fr; } }
+
+/* min-width: 0 overrides the grid item's default auto min-size — without
+   it, a long nowrap row label (see .rowLabel below) sets this panel's
+   min-content width to its full unwrapped text length even though that text
+   visually truncates, so "1fr 1fr" stops being equal and this column grows
+   at its sibling's expense. */
+.panel { min-width: 0; background: var(--ai-surface); border: 1px solid var(--ai-border); border-radius: 14px; padding: 16px 20px; }
+.panelTitle { font-size: 12px; font-weight: 700; color: var(--ai-text); margin-bottom: 10px; }
+.panelCount { color: var(--ai-text-mute); font-weight: 500; }
+.panelEmpty { font-size: 12.5px; color: var(--ai-text-mute); padding: 6px 2px; }
+
+.row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px 2px; border-bottom: 1px solid var(--ai-border-soft);
+  background: none; border-left: none; border-right: none; border-top: none;
+  text-align: start; cursor: pointer; font-family: var(--ai-font-body);
+}
+.panel .row:last-child { border-bottom: none; }
+.rowLabel { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ai-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rowAction { font-size: 12px; color: var(--ai-accent); font-weight: 600; flex: none; }
+
+.statusDot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.dotRunning { background: var(--ai-accent); animation: pulse 1.6s infinite; }
+.dotReady { background: var(--ai-success); }
+.dotError { background: var(--ai-negative); }
+.dotMuted { background: var(--ai-text-mute); opacity: .5; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+.rowStatusRunning { font-size: 11.5px; font-weight: 700; color: var(--ai-accent); flex: none; }
+.rowStatusReady { font-size: 11.5px; font-weight: 700; color: var(--ai-success); flex: none; }
+.rowStatusError { font-size: 11.5px; font-weight: 700; color: var(--ai-negative); flex: none; }
+.rowStatusMuted { font-size: 11.5px; color: var(--ai-text-mute); flex: none; }
+
+.seeAll { align-self: center; background: none; border: none; font-size: 13.5px; font-weight: 600; color: var(--ai-accent); cursor: pointer; padding: 2px 0 8px; }

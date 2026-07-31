@@ -22,7 +22,11 @@
 
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ai-accent); flex-shrink: 0; animation: ai-badge-pulse 1.6s infinite; }
 @keyframes ai-badge-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
-.label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.textCol { min-width: 0; line-height: 1.25; }
+.kicker { font-size: 9.5px; font-weight: 700; letter-spacing: .04em; color: var(--ai-accent); }
+.completed .kicker { color: #12996B; }
+.error .kicker { color: #DC2626; }
+.label { font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 145px; }
 .pct { color: var(--ai-accent); font-weight: 700; flex-shrink: 0; }
 
 .progressBar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--ai-accent-soft); }

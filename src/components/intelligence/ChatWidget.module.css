@@ -72,7 +72,7 @@
   flex-shrink: 0;
 }
 .headTitle { font: 700 15px var(--ai-font-head); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ai-text); }
-.headActions { margin-left: auto; display: flex; gap: 8px; flex-shrink: 0; }
+.headActions { margin-inline-start: auto; display: flex; gap: 8px; flex-shrink: 0; }
 
 /* Expanded-mode header (mockup 2c): back arrow + conversation title +
  * sync info, replacing the hamburger/mark/generic-title/minimize combo used
@@ -98,7 +98,7 @@
 }
 .backBtn:hover { color: var(--ai-text); }
 .headExpandedTitle { font: 700 14.5px var(--ai-font-head); color: var(--ai-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.collapseBtn { margin-left: auto; }
+.collapseBtn { margin-inline-start: auto; }
 .iconBtn {
   width: 32px;
   height: 32px;

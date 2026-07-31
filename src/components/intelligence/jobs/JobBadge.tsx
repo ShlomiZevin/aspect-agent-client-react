@@ -1,4 +1,5 @@
 import type { Job } from './JobsContext';
+import { useLanguage } from '../../../context/LanguageContext';
 import styles from './JobBadge.module.css';
 
 interface Props {
@@ -7,20 +8,22 @@ interface Props {
   onRestart: (e: React.MouseEvent) => void;
 }
 
-// An auto-proposed investigation (started from "Request a new insight", no
-// text typed) has an empty job.prompt until the server picks the real angle
-// and returns it — show this instead of a blank label while that's pending.
-const AUTO_LABEL = 'Aspect is picking a new angle to investigate…';
-
+// Two-line "KICKER / title" layout (design turns 9a/10a/11a header badges),
+// not a single compact line — matches the same shape everywhere a report's
+// status shows up (this badge, ReportProgressCard, JobSidebar).
 export function JobBadge({ job, onClick, onRestart }: Props) {
-  const label = job.prompt || AUTO_LABEL;
+  const { t } = useLanguage();
+  const label = job.prompt || t('intel.badge.pickingAngle');
 
   if (job.status === 'completed') {
     return (
       <button className={`${styles.badge} ${styles.completed}`} onClick={onClick} title={label}>
         <span className={styles.checkIcon}>✓</span>
-        <span className={styles.label}>{label}</span>
-        <span className={styles.reviewLink}>Review →</span>
+        <div className={styles.textCol}>
+          <div className={styles.kicker}>{t('intel.badge.ready')}</div>
+          <div className={styles.label}>{label}</div>
+        </div>
+        <span className={styles.reviewLink}>{t('intel.badge.view')} →</span>
         <span className={styles.doneBar} />
       </button>
     );
@@ -30,8 +33,11 @@ export function JobBadge({ job, onClick, onRestart }: Props) {
     return (
       <button className={`${styles.badge} ${styles.error}`} onClick={onClick} title={job.errorMessage || label}>
         <span className={styles.errIcon}>!</span>
-        <span className={styles.label}>{label}</span>
-        <span className={styles.restartLink} onClick={onRestart}>Restart ↻</span>
+        <div className={styles.textCol}>
+          <div className={styles.kicker}>{t('intel.badge.failed')}</div>
+          <div className={styles.label}>{label}</div>
+        </div>
+        <span className={styles.restartLink} onClick={onRestart}>{t('intel.sidebar.restart')} ↻</span>
         <span className={styles.errBar} />
       </button>
     );
@@ -40,7 +46,10 @@ export function JobBadge({ job, onClick, onRestart }: Props) {
   return (
     <button className={styles.badge} onClick={onClick} title={label}>
       <span className={styles.dot} />
-      <span className={styles.label}>{label}</span>
+      <div className={styles.textCol}>
+        <div className={styles.kicker}>{t('intel.badge.inProgress')}</div>
+        <div className={styles.label}>{label}</div>
+      </div>
       <span className={styles.pct}>{job.progress}%</span>
       <span className={styles.progressBar}><span className={styles.progressBarFill} style={{ width: `${job.progress}%` }} /></span>
     </button>

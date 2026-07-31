@@ -1,53 +1,54 @@
 .wrap { display: flex; flex-direction: column; gap: 15px; }
-.title { font: 700 26px var(--ai-font-head); color: var(--ai-text); }
 
-.inputRow {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+/* Big question box (design turn 10a) — the single dominant element on Home,
+   per Shlomi's feedback ("you have only one function to do here"). */
+.box {
   background: var(--ai-surface);
   border: 1.5px solid #DCD1EE;
-  border-radius: 14px;
-  padding: 6px 6px 6px 20px;
-  box-shadow: 0 4px 20px rgba(124, 58, 237, .08);
+  border-radius: 18px;
+  box-shadow: 0 6px 28px rgba(124, 58, 237, .1);
+  padding: 22px 24px;
 }
-:global([data-mode='dark']) .inputRow { border-color: rgba(139, 92, 246, .35); }
-/* Matches the design's "gentle helper" state — a slightly stronger purple
-   border + shadow while the helper card below is suggesting Data Chat. */
-.inputRowFlagged { border-color: #C4B5FD; box-shadow: 0 4px 20px rgba(124, 58, 237, .1); }
-.sparkle { font-size: 18px; color: var(--ai-accent); flex-shrink: 0; }
+:global([data-mode='dark']) .box { border-color: rgba(139, 92, 246, .35); }
+.boxFlagged { border-color: #C4B5FD; box-shadow: 0 6px 28px rgba(124, 58, 237, .14); }
+
+.inputRow { display: flex; align-items: center; gap: 12px; }
+.sparkle { font-size: 20px; color: var(--ai-accent); flex-shrink: 0; }
 .input {
   flex: 1;
   border: none;
   outline: none;
   background: transparent;
-  font-size: 15px;
+  font-size: 17px;
   color: var(--ai-text);
   font-family: var(--ai-font-body);
 }
 .input::placeholder { color: var(--ai-text-mute); }
 .startBtn {
-  padding: 11px 22px;
-  border-radius: 10px;
+  padding: 13px 28px;
+  border-radius: 12px;
   border: none;
   background: var(--ai-grad);
   color: #fff;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
 }
 .startBtn:disabled { opacity: .6; cursor: default; }
 
-.chips { display: flex; gap: 10px; flex-wrap: wrap; }
+.chipsBlock { border-top: 1px solid var(--ai-border-soft); margin-top: 18px; padding-top: 14px; }
+.chipsLabel { font-size: 11.5px; font-weight: 500; color: var(--ai-text-mute); margin-bottom: 10px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip {
-  padding: 8px 14px;
+  padding: 7px 14px;
   border-radius: 999px;
-  background: var(--ai-surface);
-  border: 1px solid var(--ai-border);
-  color: var(--ai-text-dim);
+  background: var(--ai-accent-soft);
+  border: 1px solid #E2D6F5;
+  color: #5B21B6;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
 }
-.chip:hover { color: var(--ai-accent); border-color: #E2D6F5; }
+:global([data-mode='dark']) .chip { color: var(--ai-text); }
+.chip:hover { border-color: var(--ai-accent); }

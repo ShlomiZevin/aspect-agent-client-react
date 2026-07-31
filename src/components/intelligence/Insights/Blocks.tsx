@@ -1,5 +1,6 @@
 import type { InsightBlock } from '../../../types/insights';
 import { InsightChart } from './InsightChart';
+import { useLanguage } from '../../../context/LanguageContext';
 import detailStyles from './InsightDetail.module.css';
 import styles from './Blocks.module.css';
 
@@ -68,9 +69,10 @@ function ComparisonBlock({ items }: Extract<InsightBlock, { type: 'comparison' }
 }
 
 function ScenariosBlock({ items }: Extract<InsightBlock, { type: 'scenarios' }>) {
+  const { t } = useLanguage();
   return (
     <div>
-      <div className={detailStyles.scenariosTitle}>Key numbers</div>
+      <div className={detailStyles.scenariosTitle}>{t('intel.detail.keyNumbers')}</div>
       <div className={detailStyles.scenarioGrid}>
         {items.map(s => (
           <div key={s.key} className={`${detailStyles.scenarioCard} ${s.key === 'good' ? detailStyles.good : ''} ${s.key === 'negative' ? detailStyles.negative : ''}`}>

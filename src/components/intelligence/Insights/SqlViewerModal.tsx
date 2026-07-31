@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLanguage } from '../../../context/LanguageContext';
 import styles from './SqlViewerModal.module.css';
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
  * other component in this feature.
  */
 export function SqlViewerModal({ prompt, dataQuestion, sql, onClose }: Props) {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
 
   const copy = () => {
@@ -31,8 +33,8 @@ export function SqlViewerModal({ prompt, dataQuestion, sql, onClose }: Props) {
       <div className={styles.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className={styles.header}>
           <div className={styles.headerText}>
-            <div className={styles.title}>View SQL queries</div>
-            <div className={styles.subtitle}>The real query Aspect ran to produce this insight.</div>
+            <div className={styles.title}>{t('intel.sql.title')}</div>
+            <div className={styles.subtitle}>{t('intel.sql.subtitle')}</div>
           </div>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
@@ -41,17 +43,17 @@ export function SqlViewerModal({ prompt, dataQuestion, sql, onClose }: Props) {
 
         <div className={styles.body}>
           <div className={styles.field}>
-            <div className={styles.fieldLabel}>Investigation prompt</div>
+            <div className={styles.fieldLabel}>{t('intel.sql.prompt')}</div>
             <div className={styles.fieldValue}>{prompt}</div>
           </div>
           <div className={styles.field}>
-            <div className={styles.fieldLabel}>Data question Aspect derived</div>
+            <div className={styles.fieldLabel}>{t('intel.sql.dataQuestion')}</div>
             <div className={styles.fieldValue}>{dataQuestion}</div>
           </div>
           <div className={styles.field}>
             <div className={styles.fieldLabelRow}>
-              <div className={styles.fieldLabel}>SQL executed</div>
-              <button className={styles.copyBtn} onClick={copy}>{copied ? 'Copied ✓' : 'Copy'}</button>
+              <div className={styles.fieldLabel}>{t('intel.sql.executed')}</div>
+              <button className={styles.copyBtn} onClick={copy}>{copied ? t('intel.sql.copied') : t('intel.sql.copy')}</button>
             </div>
             <pre className={styles.sqlBlock}>{sql}</pre>
           </div>

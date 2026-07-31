@@ -7,6 +7,7 @@ import { ConfidencePanel } from './ConfidencePanel';
 import { SqlViewerModal } from './SqlViewerModal';
 import { ActionPlanModal } from './ActionPlanModal';
 import { CATEGORY_COLOR } from './categoryColors';
+import { useLanguage } from '../../../context/LanguageContext';
 import styles from './InsightDetail.module.css';
 
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function InsightDetail({ datasetId, insightId, onBack, onLoaded, onAskFollowUp }: Props) {
+  const { t } = useLanguage();
   const [insight, setInsight] = useState<InsightDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export function InsightDetail({ datasetId, insightId, onBack, onLoaded, onAskFol
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datasetId, insightId]);
 
-  if (loading) return <div className={styles.state}>Loading insight…</div>;
+  if (loading) return <div className={styles.state}>{t('intel.detail.loading')}</div>;
   if (error) return <div className={styles.state}>⚠ {error}</div>;
   if (!insight) return null;
 
@@ -61,18 +63,18 @@ export function InsightDetail({ datasetId, insightId, onBack, onLoaded, onAskFol
         <div className={styles.titleBody}>
           <div className={styles.badgeRow}>
             <span className={styles.tagBadge} style={{ background: color }}>{insight.tag}</span>
-            <span className={styles.foundInfo}>Found by nightly scan · {insight.foundAgo}</span>
+            <span className={styles.foundInfo}>{t('intel.detail.foundBy')} · {insight.foundAgo}</span>
           </div>
           <div className={styles.title}>{insight.title}</div>
         </div>
         <div className={styles.actions}>
           <button className={styles.trackBtn} onClick={toggleTracked}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill={insight.tracked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round"><path d="M6 3.5h12V21l-6-4.6L6 21z" /></svg>
-            {insight.tracked ? 'Tracked' : 'Track'}
+            {insight.tracked ? t('intel.detail.saved') : t('intel.detail.save')}
           </button>
-          <button className={styles.openBtn} onClick={() => setPlanModalOpen(true)}>Open {insight.ctaLabel}</button>
+          <button className={styles.openBtn} onClick={() => setPlanModalOpen(true)}>{t('intel.reports.open')} {insight.ctaLabel}</button>
           {insight.isGenerated && (
-            <button className={styles.deleteBtn} onClick={deleteInsight} aria-label="Delete this generated insight" title="Delete">
+            <button className={styles.deleteBtn} onClick={deleteInsight} aria-label={t('intel.detail.delete')} title={t('intel.detail.delete')}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M9 7V5h6v2M6.5 7l1 13h9l1-13" /></svg>
             </button>
           )}
@@ -87,7 +89,7 @@ export function InsightDetail({ datasetId, insightId, onBack, onLoaded, onAskFol
         <ReasoningTrail
           steps={insight.reasoning}
           onViewSql={insight.evidence ? () => setSqlModalOpen(true) : undefined}
-          onAskFollowUp={onAskFollowUp ? () => onAskFollowUp(`I'm looking at this insight: "${insight.headline}". Can you dig deeper into this and suggest what to do next?`) : undefined}
+          onAskFollowUp={onAskFollowUp ? () => onAskFollowUp(`I'm looking at this report: "${insight.headline}". Can you dig deeper into this and suggest what to do next?`) : undefined}
         />
         <ConfidencePanel score={insight.confidenceScore} basis={insight.confidenceBasis} checks={insight.confidenceChecks} />
       </div>

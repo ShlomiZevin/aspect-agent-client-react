@@ -1,4 +1,5 @@
 import type { InsightReasoningStep } from '../../../types/insights';
+import { useLanguage } from '../../../context/LanguageContext';
 import styles from './ReasoningTrail.module.css';
 
 export function ReasoningTrail({ steps, onViewSql, onAskFollowUp }: {
@@ -6,9 +7,10 @@ export function ReasoningTrail({ steps, onViewSql, onAskFollowUp }: {
   onViewSql?: () => void;
   onAskFollowUp?: () => void;
 }) {
+  const { t } = useLanguage();
   return (
     <div className={styles.card}>
-      <div className={styles.title}>How Aspect found this</div>
+      <div className={styles.title}>{t('intel.detail.howFound')}</div>
       <div>
         {steps.map((step, i) => (
           <div className={styles.step} key={step.title}>
@@ -24,8 +26,8 @@ export function ReasoningTrail({ steps, onViewSql, onAskFollowUp }: {
         ))}
       </div>
       <div className={styles.actions}>
-        <button className={styles.actionBtn} onClick={onViewSql}>View SQL queries</button>
-        <button className={styles.actionBtn} onClick={onAskFollowUp}>Ask a follow-up in chat</button>
+        <button className={styles.actionBtn} onClick={onViewSql}>{t('intel.detail.viewSql')}</button>
+        <button className={styles.actionBtn} onClick={onAskFollowUp}>{t('intel.detail.askFollowUp')}</button>
       </div>
     </div>
   );
