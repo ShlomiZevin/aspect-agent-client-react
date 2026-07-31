@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import type { Dict } from '../i18n';
-import { IconSend } from '../icons';
 
 interface Props {
   t: Dict;
@@ -10,12 +9,15 @@ interface Props {
   uiDir: 'rtl' | 'ltr';
   /** When true: Enter = newline, Ctrl/Cmd+Enter = send. */
   ctrlEnter: boolean;
+  /** 'bottom' (default): the docked pill. 'card': Noa's centered welcome
+   *  card — bordered, large prompt, a text Send pill and inline Ctrl+Enter. */
+  variant?: 'bottom' | 'card';
   onChange: (v: string) => void;
   onSend: () => void;
   onToggleCtrlEnter: () => void;
 }
 
-export function Composer({ t, value, busy, uiDir, ctrlEnter, onChange, onSend, onToggleCtrlEnter }: Props) {
+export function Composer({ t, value, busy, uiDir, ctrlEnter, variant = 'bottom', onChange, onSend, onToggleCtrlEnter }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
   const autoGrow = (el: HTMLTextAreaElement) => {
@@ -37,6 +39,37 @@ export function Composer({ t, value, busy, uiDir, ctrlEnter, onChange, onSend, o
   // reading side; once the user types, follow the typed content (`auto`).
   const fieldDir = value.trim() ? 'auto' : uiDir;
 
+  // Noa's welcome card: a bordered box with a large prompt, an inline
+  // Ctrl+Enter toggle and a text "Send" pill — the composer pulled up to
+  // centre-stage while there's no conversation yet.
+  if (variant === 'card') {
+    return (
+      <div className="composer-card">
+        <textarea
+          ref={ref}
+          rows={1}
+          dir={fieldDir}
+          className="composer-card-input"
+          placeholder={t.welcomePlaceholder}
+          value={value}
+          disabled={busy}
+          onChange={e => { onChange(e.target.value); autoGrow(e.target); }}
+          onKeyDown={onKey}
+        />
+        <div className="composer-card-foot">
+          <label className="ctrl-enter">
+            <input type="checkbox" checked={ctrlEnter} onChange={onToggleCtrlEnter} />
+            <span>{t.sendCtrlEnter}</span>
+          </label>
+          <span className="spacer" />
+          <button className="send-pill" onClick={onSend} disabled={busy || !value.trim()} type="button">
+            {t.send}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="composer">
       <div className="composer-inner">
@@ -50,8 +83,8 @@ export function Composer({ t, value, busy, uiDir, ctrlEnter, onChange, onSend, o
           onChange={e => { onChange(e.target.value); autoGrow(e.target); }}
           onKeyDown={onKey}
         />
-        <button className="send-btn" onClick={onSend} disabled={busy || !value.trim()} title="send" type="button">
-          <IconSend />
+        <button className="send-pill" onClick={onSend} disabled={busy || !value.trim()} type="button">
+          {t.send}
         </button>
       </div>
       <div className="composer-foot">
@@ -59,7 +92,6 @@ export function Composer({ t, value, busy, uiDir, ctrlEnter, onChange, onSend, o
           <input type="checkbox" checked={ctrlEnter} onChange={onToggleCtrlEnter} />
           <span>{t.sendCtrlEnter}</span>
         </label>
-        <span className="hint">{t.hint}</span>
       </div>
     </div>
   );

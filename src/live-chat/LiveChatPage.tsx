@@ -346,7 +346,20 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
                 lang={settings.lang}
                 debug={debug}
                 showWelcome={showWelcome}
-                logo={logo}
+                welcomeComposer={
+                  <Composer
+                    t={t}
+                    value={input}
+                    busy={chat.busy}
+                    uiDir={dir}
+                    ctrlEnter={settings.ctrlEnter}
+                    variant="card"
+                    onChange={setInput}
+                    onSend={onSend}
+                    onToggleCtrlEnter={() => setSetting({ ctrlEnter: !settings.ctrlEnter })}
+                  />
+                }
+                botLabel={brandName}
                 crewNames={crewNames}
                 defaultCrewName={defaultCrewName}
                 onPick={text => chat.send(text)}
@@ -356,16 +369,20 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
                 onDeleteFromHere={turn => setPendingDelete({ turn, mode: 'fromHere' })}
               />
               {chat.error && <div className="err-chip">{chat.error}</div>}
-              <Composer
-                t={t}
-                value={input}
-                busy={chat.busy}
-                uiDir={dir}
-                ctrlEnter={settings.ctrlEnter}
-                onChange={setInput}
-                onSend={onSend}
-                onToggleCtrlEnter={() => setSetting({ ctrlEnter: !settings.ctrlEnter })}
-              />
+              {/* Bottom composer only once the conversation has started —
+                  in the empty state it lives inside the welcome card. */}
+              {!showWelcome && (
+                <Composer
+                  t={t}
+                  value={input}
+                  busy={chat.busy}
+                  uiDir={dir}
+                  ctrlEnter={settings.ctrlEnter}
+                  onChange={setInput}
+                  onSend={onSend}
+                  onToggleCtrlEnter={() => setSetting({ ctrlEnter: !settings.ctrlEnter })}
+                />
+              )}
             </>
           )}
 

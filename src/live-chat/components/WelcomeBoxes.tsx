@@ -1,31 +1,37 @@
+import type { ReactNode } from 'react';
 import type { Dict, Lang } from '../i18n';
 import { DEFAULT_QUESTIONS, type QuickQuestion } from '../liveConfig';
 
 interface Props {
   t: Dict;
   lang: Lang;
-  /** Brand logo shown big and centered above the title (#714). */
-  logo?: string | null;
   /** Optional author-configured questions; falls back to the defaults. */
   questions?: QuickQuestion[];
+  /** The centred composer card (Noa pulls the composer up into the welcome). */
+  composer?: ReactNode;
   onPick: (text: string) => void;
 }
 
-/** Shown when there's no conversation yet — a grid of starter questions.
- *  (The builder will eventually let authors configure these per-agent.) */
-export function WelcomeBoxes({ t, lang, logo, questions, onPick }: Props) {
+/**
+ * Empty-state welcome (Noa design): an intro line beside a small round brand
+ * mark ("I run a conversation, not a form"), the composer as a centred card,
+ * then the starter questions as quiet outline pills below it.
+ */
+export function WelcomeBoxes({ t, lang, questions, composer, onPick }: Props) {
   const list = questions && questions.length > 0 ? questions : DEFAULT_QUESTIONS;
-  // No configured brand logo → the platform logo, not nothing (#714).
-  const welcomeLogo = logo ?? '/img/lybi-logo-transparent.png';
   return (
     <div className="welcome">
-      <img className="welcome-logo" src={welcomeLogo} alt="" />
-      <h3 className="welcome-title">{t.quickTitle}</h3>
-      <div className="welcome-grid">
+      <div className="welcome-intro">
+        <span className="welcome-mark"><img src="/img/lybi-spiral.png" alt="" /></span>
+        <span className="welcome-intro-tx" dir="auto">{t.welcomeIntro}</span>
+      </div>
+
+      {composer && <div className="welcome-composer">{composer}</div>}
+
+      <div className="welcome-pills">
         {list.map((q, i) => (
-          <button key={i} className="quick-box" onClick={() => onPick(q.text[lang])}>
-            <span className="quick-ic">{q.icon}</span>
-            <span className="quick-tx" dir="auto">{q.text[lang]}</span>
+          <button key={i} className="welcome-pill" onClick={() => onPick(q.text[lang])} dir="auto">
+            {q.text[lang]}
           </button>
         ))}
       </div>

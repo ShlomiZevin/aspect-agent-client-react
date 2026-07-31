@@ -34,6 +34,12 @@ export interface Dict {
   // extra (not in the mockup)
   thinking: string;
   quickTitle: string;
+  /** Welcome/empty-state headline (Noa: "I run a conversation, not a form"). */
+  welcomeIntro: string;
+  /** Placeholder inside the centered welcome composer card. */
+  welcomePlaceholder: string;
+  /** Send button label (text pill in the welcome card). */
+  send: string;
   refresh: string;
   sendCtrlEnter: string;
   viewOnSite: string;
@@ -110,9 +116,12 @@ export const I18N: Record<Lang, Dict> = {
     hint: 'מסך הדגמה · Lybi — The Intelligent Relationship Platform',
     think: 'תהליך חשיבה',
     report: 'דווח',
-    placeholder: 'כתוב/כתבי הודעה…',
+    placeholder: 'כתוב/כתבי לליבי…',
     thinking: 'חושב…',
     quickTitle: 'איך אפשר לעזור?',
+    welcomeIntro: 'אני ליבי. אני מנהלת שיחה, לא טופס.',
+    welcomePlaceholder: 'ספרו לי במילים שלכם מה מביא אתכם…',
+    send: 'שליחה',
     refresh: 'רענון',
     sendCtrlEnter: 'שליחה עם Ctrl+Enter',
     viewOnSite: 'תצוגה באתר (הטמעה)',
@@ -187,9 +196,12 @@ export const I18N: Record<Lang, Dict> = {
     hint: 'Demo screen · Lybi — The Intelligent Relationship Platform',
     think: 'Reasoning',
     report: 'Report',
-    placeholder: 'Type a message…',
+    placeholder: 'Write to Lybi…',
     thinking: 'Thinking…',
     quickTitle: 'How can I help?',
+    welcomeIntro: "I'm Lybi. I run a conversation, not a form.",
+    welcomePlaceholder: 'Tell me in your own words what brings you here…',
+    send: 'Send',
     refresh: 'Refresh',
     sendCtrlEnter: 'Send with Ctrl+Enter',
     viewOnSite: 'View on site (embed)',
