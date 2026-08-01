@@ -52,3 +52,5 @@
 }
 :global([data-mode='dark']) .chip { color: var(--ai-text); }
 .chip:hover { border-color: var(--ai-accent); }
+.chip:disabled { opacity: .5; cursor: default; }
+.chip:disabled:hover { border-color: #E2D6F5; }

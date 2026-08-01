@@ -33,6 +33,11 @@
 
 .cardValue { font: 700 24px var(--ai-font-head); color: var(--ai-text); margin-top: 8px; }
 .cardComment { font-size: 12px; color: var(--ai-text-mute); line-height: 1.5; margin-top: 8px; }
+/* Server-generated value/delta strings are plain unlocalized numbers — under
+   RTL the bidi algorithm reorders the minus sign/currency symbol around the
+   digits into garbage. See the matching comment in HomeRail.module.css. */
+:global([dir="rtl"]) .cardValue,
+:global([dir="rtl"]) .deltaChip { direction: ltr; text-align: right; }
 
 .cardHeadline { font-size: 13.5px; font-weight: 600; color: var(--ai-text); line-height: 1.45; }
 .cardImpact { font-size: 13px; font-weight: 700; color: var(--ai-text-dim); margin-top: 8px; }

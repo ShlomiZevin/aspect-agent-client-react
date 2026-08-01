@@ -72,14 +72,16 @@ export function HomeRail({ expanded, onToggleExpanded, tracked, recent, totalCou
         <span className={styles.expSectionLabel}>{t('intel.reports.saved').toUpperCase()} · {tracked?.length ?? 0}</span>
       </div>
       <div className={styles.expCards}>
-        {(tracked || []).map(item => (
+        {(tracked || []).slice(0, 3).map(item => (
           <button key={item.id} className={styles.expCard} onClick={() => onOpenInsight(item.id)}>
             <div className={styles.expCardTop}>
               <span className={styles.expCardLabel}>{item.label}</span>
               <span className={`${styles.deltaChip} ${styles[item.trendDir]}`}>{item.trendLabel}</span>
             </div>
             <div className={styles.expCardValue}>{item.value}</div>
-            <MiniChart series={[{ key: item.id, color: '#8B5CF6', points: item.points }]} variant={item.isRanking ? 'bar' : 'line'} height={34} />
+            <div className={styles.expCardChart}>
+              <MiniChart series={[{ key: item.id, color: '#8B5CF6', points: item.points }]} variant={item.isRanking ? 'bar' : 'line'} height={34} />
+            </div>
             <div className={styles.expCardComment}>{item.sub}</div>
           </button>
         ))}
@@ -102,7 +104,7 @@ export function HomeRail({ expanded, onToggleExpanded, tracked, recent, totalCou
         </>
       )}
 
-      <button className={styles.expFooter} onClick={onOpenAll}>{t('intel.home.seeAll')} ({totalCount}) →</button>
+      <button className={styles.expFooter} onClick={onOpenAll}>{t('intel.rail.allFooter')} ({totalCount}) →</button>
     </div>
   );
 }

@@ -19,6 +19,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Conversation } from '../../types/chat';
 import { getUserConversations, deleteAllConversations, deleteConversation } from '../../services/conversationService';
 import { getAgentConfig } from '../../agents/agentRegistry';
+import { useLanguage } from '../../context/LanguageContext';
+import { localeFor } from './dateFormat';
 import styles from './ChatHistoryPanel.module.css';
 
 interface Props {
@@ -37,13 +39,15 @@ function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-function groupLabel(date: Date, today: Date, yesterday: Date): string {
-  if (isSameDay(date, today)) return 'TODAY';
-  if (isSameDay(date, yesterday)) return 'YESTERDAY';
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric' }).toUpperCase();
+function groupLabel(date: Date, today: Date, yesterday: Date, t: (key: string) => string, locale: string): string {
+  if (isSameDay(date, today)) return t('intel.chat.today');
+  if (isSameDay(date, yesterday)) return t('intel.chat.yesterday');
+  return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' }).toUpperCase();
 }
 
 export function ChatHistoryPanel({ datasetId, activeConversationId, onSelect, onNew, refreshKey, variant, onActiveTitleChange }: Props) {
+  const { t, language } = useLanguage();
+  const locale = localeFor(language);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [query, setQuery] = useState('');
   const config = getAgentConfig(datasetId);
@@ -78,8 +82,8 @@ export function ChatHistoryPanel({ datasetId, activeConversationId, onSelect, on
   useEffect(() => {
     if (!onActiveTitleChange) return;
     const active = conversations.find(c => c.id === activeConversationId);
-    onActiveTitleChange(active ? (active.title || 'New Chat') : null);
-  }, [conversations, activeConversationId, onActiveTitleChange]);
+    onActiveTitleChange(active ? (active.title || t('intel.chat.newChatTitle')) : null);
+  }, [conversations, activeConversationId, onActiveTitleChange, t]);
 
   const clearAll = async () => {
     if (!config) return;
@@ -103,16 +107,16 @@ export function ChatHistoryPanel({ datasetId, activeConversationId, onSelect, on
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const filtered = query.trim()
-      ? conversations.filter(c => (c.title || 'New Chat').toLowerCase().includes(query.trim().toLowerCase()))
+      ? conversations.filter(c => (c.title || t('intel.chat.newChatTitle')).toLowerCase().includes(query.trim().toLowerCase()))
       : conversations;
     const byLabel = new Map<string, Conversation[]>();
     for (const c of filtered) {
-      const label = groupLabel(c.updatedAt, today, yesterday);
+      const label = groupLabel(c.updatedAt, today, yesterday, t, locale);
       if (!byLabel.has(label)) byLabel.set(label, []);
       byLabel.get(label)!.push(c);
     }
     return Array.from(byLabel.entries());
-  }, [conversations, query]);
+  }, [conversations, query, t, locale]);
 
   const expanded = variant === 'expanded';
 
@@ -120,20 +124,20 @@ export function ChatHistoryPanel({ datasetId, activeConversationId, onSelect, on
     <div className={`${styles.panel} ${expanded ? styles.panelExpanded : ''}`}>
       <div className={styles.top}>
         {expanded ? (
-          <button className={styles.newBtnExpanded} onClick={onNew}><span>＋</span>New chat</button>
+          <button className={styles.newBtnExpanded} onClick={onNew}><span>＋</span>{t('intel.chat.newChat')}</button>
         ) : (
           <div className={styles.topRow}>
-            <span className={styles.label}>HISTORY</span>
-            <button className={styles.newBtn} onClick={onNew}>＋ New</button>
+            <span className={styles.label}>{t('intel.chat.history')}</span>
+            <button className={styles.newBtn} onClick={onNew}>{t('intel.chat.new')}</button>
           </div>
         )}
         <div className={styles.search}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M16.5 16.5L21 21" /></svg>
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder={expanded ? 'Search conversations…' : 'Search…'} />
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder={expanded ? t('intel.chat.searchLong') : t('intel.chat.searchShort')} />
         </div>
       </div>
       <div className={styles.list}>
-        {groups.length === 0 && <div className={styles.empty}>No conversations yet.</div>}
+        {groups.length === 0 && <div className={styles.empty}>{t('intel.chat.noConversations')}</div>}
         {groups.map(([label, items]) => (
           <div key={label}>
             <div className={styles.groupLabel}>{label}</div>
@@ -145,11 +149,11 @@ export function ChatHistoryPanel({ datasetId, activeConversationId, onSelect, on
                   onClick={() => onSelect(c.id)}
                 >
                   <div className={styles.itemBody}>
-                    <div className={styles.itemTitle}>{c.title || 'New Chat'}</div>
-                    <div className={styles.itemTime}>{c.updatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div className={styles.itemTitle}>{c.title || t('intel.chat.newChatTitle')}</div>
+                    <div className={styles.itemTime}>{c.updatedAt.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</div>
                   </div>
                   {expanded && (
-                    <button className={styles.itemDelete} onClick={e => removeOne(e, c.id)} aria-label="Delete conversation" title="Delete">
+                    <button className={styles.itemDelete} onClick={e => removeOne(e, c.id)} aria-label={t('intel.chat.deleteConversation')} title={t('intel.chat.delete')}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M9 7V5h6v2M6.5 7l1 13h9l1-13" /></svg>
                     </button>
                   )}
@@ -161,7 +165,7 @@ export function ChatHistoryPanel({ datasetId, activeConversationId, onSelect, on
       </div>
       <div className={styles.clearAll} onClick={clearAll}>
         <svg width={expanded ? 14 : 13} height={expanded ? 14 : 13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M9 7V5h6v2M6.5 7l1 13h9l1-13" /></svg>
-        {expanded ? 'Clear all conversations' : 'Clear all'}
+        {expanded ? t('intel.chat.clearAllConversations') : t('intel.chat.clearAll')}
       </div>
     </div>
   );

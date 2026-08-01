@@ -7,6 +7,7 @@ import styles from './ActionPlanModal.module.css';
 
 interface Props {
   datasetId: string;
+  userId: string;
   insightId: string;
   ctaLabel: string;
   onClose: () => void;
@@ -18,18 +19,18 @@ interface Props {
  * investigation.service.js. Same bespoke-modal pattern as SqlViewerModal, not
  * the app-wide Modal component, to stay self-contained in this design system.
  */
-export function ActionPlanModal({ datasetId, insightId, ctaLabel, onClose }: Props) {
+export function ActionPlanModal({ datasetId, userId, insightId, ctaLabel, onClose }: Props) {
   const { t } = useLanguage();
   const [plan, setPlan] = useState<ActionPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    insightsService.getActionPlan(datasetId, insightId)
+    insightsService.getActionPlan(datasetId, userId, insightId)
       .then(p => { if (!cancelled) setPlan(p); })
       .catch(err => { if (!cancelled) setError(err.message); });
     return () => { cancelled = true; };
-  }, [datasetId, insightId]);
+  }, [datasetId, userId, insightId]);
 
   return (
     <div className={styles.overlay} onClick={onClose}>

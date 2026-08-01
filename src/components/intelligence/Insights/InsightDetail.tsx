@@ -12,6 +12,8 @@ import styles from './InsightDetail.module.css';
 
 interface Props {
   datasetId: string;
+  /** Anon session id (see IntelligenceShell's UserProvider) — null until the async create finishes. */
+  userId: string | null;
   insightId: string;
   onBack: () => void;
   /** Reports the fetched insight up once loaded, so the shell's header breadcrumb can show its name. */
@@ -20,7 +22,7 @@ interface Props {
   onAskFollowUp?: (question: string) => void;
 }
 
-export function InsightDetail({ datasetId, insightId, onBack, onLoaded, onAskFollowUp }: Props) {
+export function InsightDetail({ datasetId, userId, insightId, onBack, onLoaded, onAskFollowUp }: Props) {
   const { t } = useLanguage();
   const [insight, setInsight] = useState<InsightDetailType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,15 +31,16 @@ export function InsightDetail({ datasetId, insightId, onBack, onLoaded, onAskFol
   const [planModalOpen, setPlanModalOpen] = useState(false);
 
   useEffect(() => {
+    if (!userId) return; // anon session still being created
     let cancelled = false;
     setLoading(true);
     setError(null);
-    insightsService.getInsight(datasetId, insightId)
+    insightsService.getInsight(datasetId, userId, insightId)
       .then(d => { if (!cancelled) { setInsight(d); setLoading(false); onLoaded?.(d); } })
       .catch(err => { if (!cancelled) { setError(err.message); setLoading(false); } });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [datasetId, insightId]);
+  }, [datasetId, userId, insightId]);
 
   if (loading) return <div className={styles.state}>{t('intel.detail.loading')}</div>;
   if (error) return <div className={styles.state}>⚠ {error}</div>;
@@ -46,13 +49,15 @@ export function InsightDetail({ datasetId, insightId, onBack, onLoaded, onAskFol
   const color = CATEGORY_COLOR[insight.category] || '#7C3AED';
 
   const deleteInsight = () => {
-    insightsService.deleteInsight(datasetId, insightId).then(onBack).catch(() => {});
+    if (!userId) return;
+    insightsService.deleteInsight(datasetId, userId, insightId).then(onBack).catch(() => {});
   };
 
   const toggleTracked = () => {
+    if (!userId) return;
     const next = !insight.tracked;
     setInsight(cur => cur && { ...cur, tracked: next }); // optimistic — "Tracked by you" only re-reads on next mount, not worth a round trip first
-    insightsService.setTracked(datasetId, insightId, next).catch(() => {
+    insightsService.setTracked(datasetId, userId, insightId, next).catch(() => {
       setInsight(cur => cur && { ...cur, tracked: !next }); // revert on failure
     });
   };
@@ -103,9 +108,10 @@ export function InsightDetail({ datasetId, insightId, onBack, onLoaded, onAskFol
         />
       )}
 
-      {planModalOpen && (
+      {planModalOpen && userId && (
         <ActionPlanModal
           datasetId={datasetId}
+          userId={userId}
           insightId={insightId}
           ctaLabel={insight.ctaLabel}
           onClose={() => setPlanModalOpen(false)}

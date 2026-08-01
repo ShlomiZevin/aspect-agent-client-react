@@ -15,6 +15,8 @@ const PAGE_SIZE = 20;
 
 interface Props {
   datasetId: string;
+  /** Anon session id (see IntelligenceShell's UserProvider) — null until the async create finishes. */
+  userId: string | null;
   onOpenInsight: (id: string) => void;
 }
 
@@ -22,9 +24,9 @@ type Row =
   | { kind: 'job'; key: string; date: number; question: string; result: string; detail: string; status: 'running' | 'error'; onClick?: () => void }
   | { kind: 'insight'; key: string; date: number; question: string; result: string; detail: string; tracked: boolean; unviewed: boolean; onClick: () => void };
 
-export function ReportHistoryPage({ datasetId, onOpenInsight }: Props) {
-  const { t } = useLanguage();
-  const { data: insights, loading } = useInsights(datasetId);
+export function ReportHistoryPage({ datasetId, userId, onOpenInsight }: Props) {
+  const { t, language } = useLanguage();
+  const { data: insights, loading } = useInsights(datasetId, userId);
   const { jobs, restartJob } = useJobs();
   const [query, setQuery] = useState('');
   const [visible, setVisible] = useState(PAGE_SIZE);
@@ -92,7 +94,7 @@ export function ReportHistoryPage({ datasetId, onOpenInsight }: Props) {
               role={clickable ? 'button' : undefined}
               tabIndex={clickable ? 0 : undefined}
             >
-              <span className={styles.date} dir="ltr">{row.date ? formatRelativeDateTime(row.date) : '—'}</span>
+              <span className={styles.date}>{row.date ? formatRelativeDateTime(row.date, language) : '—'}</span>
               <span className={styles.question}>
                 {row.question}
                 {row.kind === 'insight' && row.tracked && <BookmarkIcon />}

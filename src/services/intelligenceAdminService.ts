@@ -58,6 +58,22 @@ export const intelligenceAdminService = {
       baseURL || getBaseURL()
     ).then(r => r.insights),
 
+  /** Cross-user — removes an insight regardless of which anonymous session owns it (see insights-admin.routes.js). */
+  deleteInsight: (datasetId: string, insightId: string, baseURL?: string) =>
+    apiRequest<{ deleted: true }>(
+      `/api/admin/intelligence/datasets/${datasetId}/insights/${insightId}`,
+      { method: 'DELETE' },
+      baseURL || getBaseURL()
+    ),
+
+  /** Cross-user — toggles "tracked" regardless of which anonymous session owns it (see insights-admin.routes.js). */
+  setTracked: (datasetId: string, insightId: string, tracked: boolean, baseURL?: string) =>
+    apiRequest<{ id: string; tracked: boolean }>(
+      `/api/admin/intelligence/datasets/${datasetId}/insights/${insightId}/track`,
+      { method: 'POST', body: JSON.stringify({ tracked }) },
+      baseURL || getBaseURL()
+    ),
+
   /** Introspects the real DB schema and drafts a plain-language data model description — not saved, caller reviews then calls updateConfig. */
   generateDescription: (datasetId: string, baseURL?: string) =>
     apiRequest<{ dataModelDescription: string }>(

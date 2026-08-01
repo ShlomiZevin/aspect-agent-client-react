@@ -21,6 +21,8 @@ export type JobStatus = 'running' | 'completed' | 'error';
 export interface Job {
   id: string;
   datasetId: string;
+  /** The anon session that started this job — reports are private per user, see insightsService. */
+  userId: string;
   prompt: string;
   status: JobStatus;
   progress: number;
@@ -37,7 +39,7 @@ interface JobsContextValue {
   jobs: Job[];
   selectedJobId: string | null;
   selectJob: (id: string | null) => void;
-  startJob: (datasetId: string, prompt: string) => string;
+  startJob: (datasetId: string, userId: string, prompt: string) => string;
   cancelJob: (id: string) => void;
   restartJob: (datasetId: string, id: string) => void;
 }
@@ -60,9 +62,26 @@ function loadStoredJobs(): Job[] {
   }
 }
 
+// datasetId::prompt -> in flight. A plain ref, not React state: the dedup
+// check in startJob must be synchronous and immediate, because two clicks
+// close enough together (a real double-click, or two calls in the same
+// event-loop tick) both run before React re-renders — checking the `jobs`
+// state array alone lets both reads see the same stale "nothing running yet"
+// snapshot and both pass. A ref mutates instantly, so the second call always
+// sees what the first one just wrote, no matter how close together they are.
+function jobKey(datasetId: string, prompt: string): string {
+  return `${datasetId}::${prompt.trim()}`;
+}
+
 export function JobsProvider({ children }: { children: ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>(loadStoredJobs);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const runningKeys = useRef<Set<string>>(null as unknown as Set<string>);
+  if (!runningKeys.current) {
+    runningKeys.current = new Set(
+      jobs.filter(j => j.status === 'running' && j.prompt.trim()).map(j => jobKey(j.datasetId, j.prompt)),
+    );
+  }
   const timers = useRef<Map<string, ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>>>(new Map());
   // Separate from `timers` (which holds the resume poll's setTimeout) — the
   // progress-bar ticker keeps running independently while polling, capped
@@ -74,7 +93,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(jobs));
   }, [jobs]);
 
-  const runJob = useCallback((datasetId: string, id: string, prompt: string) => {
+  const runJob = useCallback((datasetId: string, userId: string, id: string, prompt: string) => {
     const startedAt = Date.now();
     const interval = setInterval(() => {
       setJobs(js => js.map(j => {
@@ -85,13 +104,14 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     }, 150);
     timers.current.set(id, interval);
 
-    insightsService.investigate(datasetId, prompt)
+    insightsService.investigate(datasetId, userId, prompt)
       .then(result => {
         const elapsed = Date.now() - startedAt;
         const wait = Math.max(0, FAKE_DURATION_MS - elapsed);
         setTimeout(() => {
           clearInterval(interval);
           timers.current.delete(id);
+          if (prompt.trim()) runningKeys.current.delete(jobKey(datasetId, prompt));
           // For an auto-proposed investigation (started with prompt: ''),
           // the server picks the actual angle — result.prompt carries that
           // real prompt back so the badge/review label isn't blank.
@@ -101,6 +121,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       .catch(err => {
         clearInterval(interval);
         timers.current.delete(id);
+        if (prompt.trim()) runningKeys.current.delete(jobKey(datasetId, prompt));
         setJobs(js => js.map(j => j.id === id ? { ...j, status: 'error', errorMessage: err.message } : j));
       });
   }, []);
@@ -114,7 +135,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     if (t) { clearInterval(t); progressTimers.current.delete(id); }
   };
 
-  const resumeJob = useCallback((datasetId: string, id: string, beforeIds: string[] | undefined, attempt = 0) => {
+  const resumeJob = useCallback((datasetId: string, userId: string, id: string, prompt: string, beforeIds: string[] | undefined, attempt = 0) => {
     if (!beforeIds) {
       setJobs(js => js.map(j => j.id === id ? { ...j, status: 'error', errorMessage: 'Lost track of this investigation after a page reload — check the insights list below, or Restart to run a new one.' } : j));
       return;
@@ -133,11 +154,12 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       progressTimers.current.set(id, tick);
     }
 
-    insightsService.getInsights(datasetId)
+    insightsService.getInsights(datasetId, userId)
       .then(list => {
         const fresh = list.find(i => !beforeIds.includes(i.id));
         if (fresh) {
           stopProgressTicker(id);
+          if (prompt.trim()) runningKeys.current.delete(jobKey(datasetId, prompt));
           const result: InvestigateResult = {
             prompt: fresh.headline,
             status: 'ready',
@@ -151,19 +173,21 @@ export function JobsProvider({ children }: { children: ReactNode }) {
         }
         if (attempt >= RESUME_MAX_ATTEMPTS) {
           stopProgressTicker(id);
+          if (prompt.trim()) runningKeys.current.delete(jobKey(datasetId, prompt));
           setJobs(js => js.map(j => j.id === id ? { ...j, status: 'error', errorMessage: 'This investigation is taking longer than expected to reappear after reload — check the insights list below, or Restart.' } : j));
           return;
         }
-        const t = setTimeout(() => resumeJob(datasetId, id, beforeIds, attempt + 1), RESUME_POLL_MS);
+        const t = setTimeout(() => resumeJob(datasetId, userId, id, prompt, beforeIds, attempt + 1), RESUME_POLL_MS);
         timers.current.set(id, t);
       })
       .catch(() => {
         if (attempt >= RESUME_MAX_ATTEMPTS) {
           stopProgressTicker(id);
+          if (prompt.trim()) runningKeys.current.delete(jobKey(datasetId, prompt));
           setJobs(js => js.map(j => j.id === id ? { ...j, status: 'error', errorMessage: 'Lost track of this investigation.' } : j));
           return;
         }
-        const t = setTimeout(() => resumeJob(datasetId, id, beforeIds, attempt + 1), RESUME_POLL_MS);
+        const t = setTimeout(() => resumeJob(datasetId, userId, id, prompt, beforeIds, attempt + 1), RESUME_POLL_MS);
         timers.current.set(id, t);
       });
   }, []);
@@ -172,38 +196,68 @@ export function JobsProvider({ children }: { children: ReactNode }) {
   // 'running' when the page went away needs to be reconnected.
   useEffect(() => {
     jobs.forEach(j => {
-      if (j.status === 'running') resumeJob(j.datasetId, j.id, j.beforeIds);
+      if (j.status === 'running') resumeJob(j.datasetId, j.userId, j.id, j.prompt, j.beforeIds);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const startJob = useCallback((datasetId: string, prompt: string) => {
+  const startJob = useCallback((datasetId: string, userId: string, prompt: string) => {
+    // A double-click / double-Enter on the same quick-question chip (or
+    // clicking it again while it's still running) used to fire a second,
+    // fully independent investigation — same question, two concurrent LLM/DB
+    // runs, two separate report records once both finished. Reusing the
+    // already-running job for an identical (trimmed) prompt on this dataset
+    // makes a repeat click a no-op instead. Empty prompts (auto-proposed,
+    // Aspect picks its own angle) are intentionally exempt — each one is a
+    // genuinely distinct request, not a repeat of "the same question".
+    //
+    // Checked against `runningKeys` (a ref), not the `jobs` state array:
+    // two calls close enough together (a fast double-click) both run before
+    // React re-renders, so a state-based check has both reads see the same
+    // stale snapshot and both pass. The ref is updated synchronously, so the
+    // second call always sees what the first one just wrote.
+    const normalized = prompt.trim();
+    const key = normalized ? jobKey(datasetId, normalized) : null;
+    if (key) {
+      if (runningKeys.current.has(key)) {
+        const already = jobs.find(j => j.datasetId === datasetId && j.status === 'running' && j.prompt.trim() === normalized);
+        return already?.id ?? '';
+      }
+      runningKeys.current.add(key);
+    }
+
     const id = crypto.randomUUID();
-    setJobs(js => [...js, { id, datasetId, prompt, status: 'running', progress: 0, startedAt: Date.now(), beforeIds: undefined }]);
+    setJobs(js => [...js, { id, datasetId, userId, prompt, status: 'running', progress: 0, startedAt: Date.now(), beforeIds: undefined }]);
     // Best-effort snapshot for resume-after-reload — doesn't block the
     // investigation itself, which starts immediately below regardless.
-    insightsService.getInsights(datasetId)
+    insightsService.getInsights(datasetId, userId)
       .then(list => setJobs(js => js.map(j => j.id === id ? { ...j, beforeIds: list.map(i => i.id) } : j)))
       .catch(() => {});
-    runJob(datasetId, id, prompt);
+    runJob(datasetId, userId, id, prompt);
     return id;
-  }, [runJob]);
+  }, [runJob, jobs]);
 
   const cancelJob = useCallback((id: string) => {
     const t = timers.current.get(id);
     if (t) { clearInterval(t); clearTimeout(t); timers.current.delete(id); }
     stopProgressTicker(id);
-    setJobs(js => js.filter(j => j.id !== id));
+    setJobs(js => {
+      const job = js.find(j => j.id === id);
+      if (job?.status === 'running' && job.prompt.trim()) runningKeys.current.delete(jobKey(job.datasetId, job.prompt));
+      return js.filter(j => j.id !== id);
+    });
     setSelectedJobId(cur => cur === id ? null : cur);
   }, []);
 
   const restartJob = useCallback((datasetId: string, id: string) => {
+    const job = jobs.find(j => j.id === id);
+    if (!job) return;
     setJobs(js => js.map(j => j.id === id ? { ...j, status: 'running', progress: 0, startedAt: Date.now(), errorMessage: undefined, beforeIds: undefined } : j));
-    insightsService.getInsights(datasetId)
+    insightsService.getInsights(datasetId, job.userId)
       .then(list => setJobs(js => js.map(j => j.id === id ? { ...j, beforeIds: list.map(i => i.id) } : j)))
       .catch(() => {});
-    const job = jobs.find(j => j.id === id);
-    if (job) runJob(datasetId, id, job.prompt);
+    if (job.prompt.trim()) runningKeys.current.add(jobKey(datasetId, job.prompt));
+    runJob(datasetId, job.userId, id, job.prompt);
   }, [jobs, runJob]);
 
   return (

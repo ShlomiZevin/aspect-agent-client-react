@@ -97,6 +97,8 @@
   flex-shrink: 0;
 }
 .backBtn:hover { color: var(--ai-text); }
+/* Fixed left-pointing "back" chevron path — mirror it under RTL. */
+:global([dir="rtl"]) .backBtn svg { transform: scaleX(-1); }
 .headExpandedTitle { font: 700 14.5px var(--ai-font-head); color: var(--ai-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .collapseBtn { margin-inline-start: auto; }
 .iconBtn {

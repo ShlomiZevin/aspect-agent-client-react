@@ -103,21 +103,36 @@
 :global([data-mode='dark']) .navActive { color: var(--ai-accent); }
 
 .headerRight { margin-inline-start: auto; display: flex; align-items: center; gap: 10px; }
-.langBadge {
+/* Segmented control — both languages always visible, active one highlighted
+   (matches the LanguageToggle pattern used elsewhere in Aspect, see
+   components/common/LanguageToggle), not a single button that only shows
+   whichever language you'd switch TO. */
+.langGroup {
   height: 38px;
-  padding: 0 13px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
   border: 1px solid var(--ai-border);
   border-radius: 10px;
   background: var(--ai-shell-bg);
-  display: flex;
-  align-items: center;
-  font-size: 12.5px;
+  box-sizing: border-box;
+}
+.langOption {
+  height: 100%;
+  padding: 0 11px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--ai-text);
+  color: var(--ai-text-mute);
   font-family: var(--ai-font-body);
   cursor: pointer;
 }
-.langBadge:hover { border-color: var(--ai-border); background: var(--ai-accent-soft); }
+.langOption:hover { color: var(--ai-text); }
+.langOptionActive { background: var(--ai-accent); color: #fff; }
+.langOptionActive:hover { color: #fff; }
 .iconBtn {
   width: 38px;
   height: 38px;

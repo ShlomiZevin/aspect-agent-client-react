@@ -29,6 +29,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChatWelcome } from './ChatWelcome';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
 import { PREFILL_STORAGE_KEY } from '../../pages/AgentChatWidgetPage';
+import { useLanguage } from '../../context/LanguageContext';
 import styles from './ChatWidget.module.css';
 
 interface Props {
@@ -69,6 +70,7 @@ function loadSize(): { width: number; height: number } {
 }
 
 export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, onExpandedChange, pendingQuestion, onPendingQuestionConsumed }: Props) {
+  const { t } = useLanguage();
   const [historyOpen, setHistoryOpen] = useState(false);
 
   // Expanded mode has room for the sidebar by default, matching mockup 2c.
@@ -151,10 +153,10 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
         <div className={styles.chatCol}>
           {expanded && started ? (
             <div className={styles.headExpanded}>
-              <button className={styles.backBtn} onClick={backToWelcome} aria-label="Back to welcome" title="Back">
+              <button className={styles.backBtn} onClick={backToWelcome} aria-label={t('intel.chat.backToWelcome')} title={t('intel.chat.back')}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 4l-7 8 7 8" /></svg>
               </button>
-              <span className={styles.headExpandedTitle}>{activeTitle || 'Data Chat'}</span>
+              <span className={styles.headExpandedTitle}>{activeTitle || t('intel.nav.chat')}</span>
               {/* No sync-info line here (unlike the mockup's isolated
                   illustration): this widget sits under the Aspect
                   Intelligence page's own header, whose breadcrumb row
@@ -162,25 +164,25 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
                   text — repeating it here would just be the same two dates
                   printed twice on screen at once. .collapseBtn pushes
                   itself to the right instead (margin-left: auto). */}
-              <button className={`${styles.iconBtn} ${styles.collapseBtn}`} onClick={() => onExpandedChange(false)} aria-label="Collapse chat" title="Collapse">
+              <button className={`${styles.iconBtn} ${styles.collapseBtn}`} onClick={() => onExpandedChange(false)} aria-label={t('intel.chat.collapseChat')} title={t('intel.chat.collapse')}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7.5 7.5M3 21l7.5-7.5" /></svg>
               </button>
             </div>
           ) : (
             <div className={styles.head}>
-              <button className={`${styles.iconBtn} ${historyOpen ? styles.iconBtnActive : ''}`} onClick={() => setHistoryOpen(o => !o)} aria-label="Toggle history" title="History">☰</button>
+              <button className={`${styles.iconBtn} ${historyOpen ? styles.iconBtnActive : ''}`} onClick={() => setHistoryOpen(o => !o)} aria-label={t('intel.chat.toggleHistory')} title={t('intel.chat.toggleHistory')}>☰</button>
               <span className={styles.headMark}>✦</span>
-              <span className={styles.headTitle}>Data Chat</span>
+              <span className={styles.headTitle}>{t('intel.nav.chat')}</span>
               <div className={styles.headActions}>
-                <button className={styles.iconBtn} onClick={() => onExpandedChange(!expanded)} aria-label={expanded ? 'Collapse chat' : 'Expand chat'} title={expanded ? 'Collapse' : 'Expand'}>
+                <button className={styles.iconBtn} onClick={() => onExpandedChange(!expanded)} aria-label={expanded ? t('intel.chat.collapseChat') : t('intel.chat.expandChat')} title={expanded ? t('intel.chat.collapse') : t('intel.chat.expand')}>
                   {expanded ? '⤡' : '⤢'}
                 </button>
-                <button className={styles.iconBtn} onClick={onClose} aria-label="Close chat" title="Minimize">−</button>
+                <button className={styles.iconBtn} onClick={onClose} aria-label={t('intel.chat.closeChat')} title={t('intel.chat.minimize')}>−</button>
               </div>
             </div>
           )}
           {started
-            ? <iframe className={styles.frame} src={src} title="Data chat" />
+            ? <iframe className={styles.frame} src={src} title={t('intel.nav.chat')} />
             : <ChatWelcome datasetId={datasetId} onSend={send} />}
         </div>
       </div>

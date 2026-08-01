@@ -18,6 +18,7 @@
 import { useParams, useLocation, Navigate } from 'react-router-dom';
 import { IntelligenceShell } from '../components/intelligence/IntelligenceShell';
 import { useDocumentMeta } from '../hooks';
+import { getAgentConfig } from '../agents/agentRegistry';
 
 export function IntelligencePage() {
   const { datasetId, insightId } = useParams<{ datasetId: string; insightId?: string }>();
@@ -25,9 +26,11 @@ export function IntelligencePage() {
   const isChatRoute = location.pathname.endsWith('/chat');
   const isHistoryRoute = location.pathname.endsWith('/reports/history');
   const isReportsRoute = !isHistoryRoute && location.pathname.endsWith('/reports');
+  const config = getAgentConfig(datasetId);
 
   useDocumentMeta({
-    title: 'Aspect Intelligence',
+    title: config?.pageTitle || 'Aspect Intelligence',
+    favicon: config?.favicon,
     description: 'Aspect proactively investigates your data and surfaces findings.',
   });
 

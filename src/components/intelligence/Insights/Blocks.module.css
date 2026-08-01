@@ -42,6 +42,18 @@
 .comparisonValue.negative { color: var(--ai-negative); }
 .comparisonSub { font-size: 12px; color: var(--ai-text-dim); margin-top: 6px; line-height: 1.5; }
 
+/* Every value above is LLM-generated, always-English content (report content
+   itself isn't translated, see i18n/translations.ts's intel.* comment) —
+   under RTL, direction:ltr stops the bidi algorithm from reordering any
+   minus/currency signs around the digits. text-align:right on the two
+   block-level ones keeps them where they already sat (right-aligned per the
+   RTL default); .rankValue is a flex item so alignment is untouched. */
+:global([dir="rtl"]) .rankValue,
+:global([dir="rtl"]) .statValue,
+:global([dir="rtl"]) .comparisonValue { direction: ltr; }
+:global([dir="rtl"]) .statValue,
+:global([dir="rtl"]) .comparisonValue { text-align: right; }
+
 @media (max-width: 1000px) {
   .comparisonGrid { grid-template-columns: 1fr; }
 }

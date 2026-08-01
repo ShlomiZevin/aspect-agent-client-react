@@ -18,6 +18,8 @@ import styles from './HomePage.module.css';
 
 interface Props {
   datasetId: string;
+  /** Anon session id (see IntelligenceShell's UserProvider) — null until the async create finishes. */
+  userId: string | null;
   onOpenInsight: (id: string) => void;
   onAskInChat: (question: string) => void;
   onSeeAllReports: () => void;
@@ -31,10 +33,10 @@ function greetingKey(): string {
   return 'intel.home.greeting.evening';
 }
 
-export function HomePage({ datasetId, onOpenInsight, onAskInChat, onSeeAllReports, onOpenHistory }: Props) {
+export function HomePage({ datasetId, userId, onOpenInsight, onAskInChat, onSeeAllReports, onOpenHistory }: Props) {
   const { t } = useLanguage();
-  const { data: insights, refetch } = useInsights(datasetId);
-  const { data: tracked, loading: trackedLoading } = useTracked(datasetId);
+  const { data: insights, refetch } = useInsights(datasetId, userId);
+  const { data: tracked, loading: trackedLoading } = useTracked(datasetId, userId);
   const { jobs, restartJob, selectJob, cancelJob } = useJobs();
 
   // A job finishing in the background needs to make its report show up in
@@ -93,11 +95,11 @@ export function HomePage({ datasetId, onOpenInsight, onAskInChat, onSeeAllReport
       />
       <div className={styles.page}>
         <div className={styles.greetingBlock}>
-          <div className={styles.greeting}>{t(greetingKey())}, {t('intel.home.greetingName')}</div>
+          <div className={styles.greeting}>{t(greetingKey())}</div>
           <div className={styles.subtitle}>{t('intel.home.subtitle')}</div>
         </div>
 
-        <InvestigateHero datasetId={datasetId} onAskInChat={onAskInChat} />
+        <InvestigateHero datasetId={datasetId} userId={userId} onAskInChat={onAskInChat} />
 
         {runningJob && <ReportProgressCard job={runningJob} />}
 
@@ -161,14 +163,14 @@ function JobRow({ job, onOpen, onRestart, onOpenSidebar }: { job: Job; onOpen: (
 }
 
 function InsightRow({ insight, onOpen }: { insight: { id: string; headline: string; createdAt?: number; viewed?: boolean }; onOpen: () => void }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <button className={styles.row} onClick={onOpen}>
       <span className={`${styles.statusDot} ${styles.dotMuted}`} />
       <span className={styles.rowLabel}>{insight.headline}</span>
       <span className={styles.rowStatusMuted}>
         {insight.viewed
-          ? <>{t('intel.home.viewed')} {insight.createdAt && <span dir="ltr">{formatRelativeDateTime(insight.createdAt)}</span>}</>
+          ? <>{t('intel.home.viewed')} {insight.createdAt && formatRelativeDateTime(insight.createdAt, language)}</>
           : t('intel.home.ready')}
       </span>
     </button>

@@ -15,22 +15,26 @@ import styles from './ReportsPage.module.css';
 
 interface Props {
   datasetId: string;
+  /** Anon session id (see IntelligenceShell's UserProvider) — null until the async create finishes. */
+  userId: string | null;
   onOpenInsight: (id: string) => void;
   onOpenHistory: () => void;
 }
 
-export function ReportsPage({ datasetId, onOpenInsight, onOpenHistory }: Props) {
+export function ReportsPage({ datasetId, userId, onOpenInsight, onOpenHistory }: Props) {
   const { t } = useLanguage();
-  const { data: tracked, loading: trackedLoading, refetch: refetchTracked } = useTracked(datasetId);
-  const { data: insights, loading: insightsLoading, refetch: refetchInsights } = useInsights(datasetId);
+  const { data: tracked, loading: trackedLoading, refetch: refetchTracked } = useTracked(datasetId, userId);
+  const { data: insights, loading: insightsLoading, refetch: refetchInsights } = useInsights(datasetId, userId);
 
   const suggested = (insights || []).filter(i => !i.tracked && i.origin !== 'user');
 
   const untrack = (id: string) => {
-    insightsService.setTracked(datasetId, id, false).then(() => { refetchTracked(); refetchInsights(); }).catch(() => {});
+    if (!userId) return;
+    insightsService.setTracked(datasetId, userId, id, false).then(() => { refetchTracked(); refetchInsights(); }).catch(() => {});
   };
   const save = (id: string) => {
-    insightsService.setTracked(datasetId, id, true).then(() => { refetchTracked(); refetchInsights(); }).catch(() => {});
+    if (!userId) return;
+    insightsService.setTracked(datasetId, userId, id, true).then(() => { refetchTracked(); refetchInsights(); }).catch(() => {});
   };
 
   return (
@@ -97,7 +101,11 @@ export function ReportsPage({ datasetId, onOpenInsight, onOpenHistory }: Props) 
               <div key={i.id} className={styles.card}>
                 <div className={styles.cardHeadline}>{i.headline}</div>
                 <div className={styles.cardImpact} data-dir={i.impactDirection}>
-                  {i.impactValue} <span className={styles.cardConfidence}>· {i.confidence}% {t('intel.reports.sure')}</span>
+                  {/* impactValue is a plain unlocalized number string (e.g. "-₪386K") —
+                      isolated as its own LTR run so RTL doesn't reorder the minus
+                      sign/currency symbol around the digits; the rest of the line
+                      (including the translated "sure") stays in normal flow. */}
+                  <span dir="ltr">{i.impactValue}</span> <span className={styles.cardConfidence}>· {i.confidence}% {t('intel.reports.sure')}</span>
                 </div>
                 <div className={styles.cardFooter} style={{ marginTop: 'auto' }}>
                   <button className={styles.iconBtn} onClick={() => save(i.id)} title={t('intel.reports.save')}><BookmarkIcon /></button>
