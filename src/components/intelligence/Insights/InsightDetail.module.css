@@ -35,6 +35,10 @@
 .scenarioValue.negative { color: var(--ai-negative); }
 .scenarioDesc { font-size: 12px; color: var(--ai-text-dim); line-height: 1.55; margin-top: 8px; }
 
+/* Always-English LLM-generated value — see the matching comment in
+   Blocks.module.css. */
+:global([dir="rtl"]) .scenarioValue { direction: ltr; text-align: right; }
+
 .bottomGrid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; align-items: stretch; }
 
 .state { padding: 40px; text-align: center; color: var(--ai-text-mute); }

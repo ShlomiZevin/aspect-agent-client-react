@@ -56,7 +56,7 @@
 .navBtn { padding: 8px 14px; border-radius: 8px; color: var(--ai-text-dim); font: 600 13.5px var(--ai-font-body); }
 .navActive { background: var(--ai-accent-soft); color: var(--ai-accent); }
 
-.headerRight { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.headerRight { margin-inline-start: auto; display: flex; align-items: center; gap: 10px; }
 .iconBtn {
   width: 38px; height: 38px; border: 1px solid var(--ai-border); border-radius: 10px;
   background: var(--ai-shell-bg); color: var(--ai-text-dim);
@@ -93,7 +93,7 @@
   border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
-  text-align: left;
+  text-align: start;
   transition: transform .15s, box-shadow .15s;
 }
 .card:hover { transform: translateY(-3px); box-shadow: var(--ai-shadow); }

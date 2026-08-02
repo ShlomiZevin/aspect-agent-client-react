@@ -85,7 +85,7 @@
 }
 .sendBtn:disabled { opacity: .5; cursor: default; }
 
-.hint { font-size: 10.5px; color: var(--ai-text-mute); text-align: right; margin: 0 24px 14px; }
+.hint { font-size: 10.5px; color: var(--ai-text-mute); text-align: end; margin: 0 24px 14px; }
 
 @media (max-width: 640px) {
   .grid { grid-template-columns: repeat(2, 1fr); }

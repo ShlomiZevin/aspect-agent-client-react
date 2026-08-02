@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { insightsService } from '../../../services/insightsService';
 import type { ActionPlan } from '../../../types/insights';
 import { Skeleton } from './Skeleton';
+import { useLanguage } from '../../../context/LanguageContext';
 import styles from './ActionPlanModal.module.css';
 
 interface Props {
   datasetId: string;
+  userId: string;
   insightId: string;
   ctaLabel: string;
   onClose: () => void;
@@ -17,17 +19,18 @@ interface Props {
  * investigation.service.js. Same bespoke-modal pattern as SqlViewerModal, not
  * the app-wide Modal component, to stay self-contained in this design system.
  */
-export function ActionPlanModal({ datasetId, insightId, ctaLabel, onClose }: Props) {
+export function ActionPlanModal({ datasetId, userId, insightId, ctaLabel, onClose }: Props) {
+  const { t } = useLanguage();
   const [plan, setPlan] = useState<ActionPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    insightsService.getActionPlan(datasetId, insightId)
+    insightsService.getActionPlan(datasetId, userId, insightId)
       .then(p => { if (!cancelled) setPlan(p); })
       .catch(err => { if (!cancelled) setError(err.message); });
     return () => { cancelled = true; };
-  }, [datasetId, insightId]);
+  }, [datasetId, userId, insightId]);
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -35,7 +38,7 @@ export function ActionPlanModal({ datasetId, insightId, ctaLabel, onClose }: Pro
         <div className={styles.header}>
           <div className={styles.headerText}>
             <div className={styles.title}>{plan?.planTitle || `Open ${ctaLabel}`}</div>
-            <div className={styles.subtitle}>Concrete next steps, grounded in this insight's own numbers.</div>
+            <div className={styles.subtitle}>{t('intel.plan.subtitle')}</div>
           </div>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
@@ -47,7 +50,7 @@ export function ActionPlanModal({ datasetId, insightId, ctaLabel, onClose }: Pro
             <div className={styles.loading}>
               <div className={styles.loadingHint}>
                 <span className={styles.spinner} />
-                Aspect is drafting an action plan — grounded in this insight's own numbers, usually ~10-15s…
+                {t('intel.plan.drafting')}
               </div>
               {[0, 1, 2].map(i => (
                 <div key={i} className={styles.step}>

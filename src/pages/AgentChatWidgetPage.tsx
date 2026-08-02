@@ -31,6 +31,29 @@ import { ChatContainer } from '../components/chat';
 import { getAgentConfig } from '../agents/agentRegistry';
 import { useDocumentMeta } from '../hooks';
 import { ensureIntelligenceFontsLoaded } from '../components/intelligence/fonts';
+// Real-chat components (ThinkingIndicator, etc.) read theme CSS custom
+// properties (--text-secondary, --surface, ...) that only exist under a
+// `.theme-<agent>` class — normally applied by whatever wraps the full
+// AppLayout page. This page deliberately skips AppLayout (see file header),
+// which meant those variables were simply never defined here: not a wrong
+// color, an UNDEFINED one, so text fell back to inherited/initial values —
+// invisible-looking (near-white) text during a step like ThinkingIndicator's
+// "message received / routing to" list, most visible while an in-flight
+// response is stuck (e.g. an upstream rate-limit) instead of resolving fast.
+// Importing every theme file is safe: each is scoped under its own
+// `.theme-<agent>` class (see AgentContext's themeClass), so only the one
+// matching this page's actual agent ever applies.
+import '../styles/themes/aspect-theme.css';
+import '../styles/themes/banking-onboarder-theme.css';
+import '../styles/themes/byline-theme.css';
+import '../styles/themes/foreman-theme.css';
+import '../styles/themes/freeda-theme.css';
+import '../styles/themes/hypertoy-theme.css';
+import '../styles/themes/newdeli-theme.css';
+import '../styles/themes/tevanaot-theme.css';
+import '../styles/themes/thestock-theme.css';
+import '../styles/themes/zer4u-theme.css';
+import '../styles/themes/zolstock-theme.css';
 
 export const PREFILL_STORAGE_KEY = 'aspect_intelligence_prefill';
 
@@ -147,11 +170,20 @@ export function AgentChatWidgetPage() {
                 [class*="_bot_"] { background: #F8F5FC !important; border: none !important; border-radius: 4px 14px 14px 14px !important; }
                 [class*="_bot_"], [class*="_bot_"] * { color: #241A38 !important; }
                 /* ...except anything that carries its own colored
-                   background (table headers, the download/view-table
-                   button) — those still need white text for contrast, the
-                   line above was clobbering them too. */
+                   background (table headers, the "view/download table"
+                   button — Message.tsx's styles.dataTableBtn) — those still
+                   need white text for contrast, the line above was
+                   clobbering them too. Targeting that ONE button by its own
+                   class (not "any <button>") on purpose: a blanket
+                   "[class*='_bot_'] button" previously also caught
+                   ThinkingIndicator's toggle buttons (its header AND its
+                   per-step file/SQL disclosure toggles, none of which carry
+                   a colored background), forcing their text/icons white and
+                   invisible against the light bubble. Whack-a-mole exceptions
+                   for each toggle kept missing new ones — matching the real
+                   button's own class instead is the actual fix. */
                 [class*="_bot_"] th, [class*="_bot_"] th *,
-                [class*="_bot_"] button, [class*="_bot_"] button * {
+                [class*="_dataTableBtn_"], [class*="_dataTableBtn_"] * {
                   color: #fff !important;
                 }
                 [class*="_crewLabel_"] { display: none !important; }

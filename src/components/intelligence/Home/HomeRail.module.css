@@ -1,0 +1,104 @@
+/* ── collapsed (60px) ───────────────────────────────────────── */
+.rail {
+  width: 60px; flex: none; background: var(--ai-surface); border-inline-end: 1px solid var(--ai-border);
+  display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 6px;
+  height: 100%; overflow-y: auto;
+}
+.railExpand {
+  width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center;
+  background: var(--ai-accent-soft); border: 1px solid #E2D6F5; color: var(--ai-accent); flex: none; cursor: pointer;
+}
+/* The chevron SVGs (railExpand / expCollapseBtn below) are drawn as fixed
+   left/right-pointing paths — under RTL the rail sits on the opposite
+   physical side, so "expand into the content" / "collapse back" point the
+   wrong way unless mirrored here. */
+:global([dir="rtl"]) .railExpand svg,
+:global([dir="rtl"]) .expCollapseBtn svg { transform: scaleX(-1); }
+.railDivider { width: 24px; height: 1px; background: var(--ai-accent-soft); margin: 6px 0; }
+.railBtn {
+  position: relative; width: 40px; height: 40px; border-radius: 11px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; color: var(--ai-text-mute); cursor: pointer;
+}
+.railBtn:hover { background: var(--ai-shell-bg); }
+.railBadge {
+  position: absolute; top: 2px; inset-inline-end: 2px; background: var(--ai-accent-2); color: #fff;
+  font: 700 9px var(--ai-font-body); border-radius: 999px; padding: 1px 5px; line-height: 1.3;
+}
+
+/* ── expanded (300px) — design turns 7c/9c ─────────────────── */
+.railExpanded {
+  width: 300px; flex: none; background: var(--ai-surface); border-inline-end: 1px solid var(--ai-border);
+  display: flex; flex-direction: column;
+  height: 100%; overflow-y: auto;
+}
+/* Pinned to the top of the rail's own internal scroll, not .body's — stays
+   put while Saved/Recent cards scroll underneath it. */
+.expHead {
+  flex: none; position: sticky; top: 0; z-index: 1; background: var(--ai-surface);
+  display: flex; align-items: center; gap: 10px; padding: 16px 18px 10px;
+}
+.expTitle { font: 700 13px var(--ai-font-head); color: var(--ai-text); letter-spacing: .02em; }
+.expCollapseBtn {
+  margin-inline-start: auto; width: 30px; height: 30px; border-radius: 9px;
+  background: var(--ai-accent-soft); border: 1px solid #E2D6F5; display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+
+.expSectionHead { padding: 6px 18px 4px; display: flex; align-items: center; gap: 8px; }
+.expSectionHead:not(:first-of-type) { padding-top: 10px; }
+/* #B9AECB — a step lighter than --ai-text-mute (#8B80A0), matching the
+   design's rail section eyebrows exactly (distinct from body copy muting). */
+.expSectionLabel { font-size: 11px; font-weight: 700; letter-spacing: .1em; color: #B9AECB; }
+
+.expCards { padding: 8px 14px; display: flex; flex-direction: column; gap: 10px; }
+/* Design-exact card surface (#FBF9FD/#EEE7F6) — a hair lighter than the
+   shared --ai-shell-bg/--ai-border-soft tokens used elsewhere in the shell. */
+.expCard {
+  background: #FBF9FD; border: 1px solid #EEE7F6; border-radius: 13px; padding: 14px 15px;
+  text-align: start; cursor: pointer; font-family: var(--ai-font-body); display: block; width: 100%;
+}
+.expCardTop { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.expCardLabel { font-size: 12.5px; font-weight: 600; color: var(--ai-text); }
+.deltaChip { font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 2px 8px; white-space: nowrap; flex: none; }
+.deltaChip.up { color: var(--ai-success); background: #F0FBF6; border: 1px solid #BFE8D5; }
+.deltaChip.down { color: var(--ai-negative); background: #FDF3F1; border: 1px solid #F3CBC2; }
+.deltaChip.flat { color: var(--ai-text-mute); background: var(--ai-accent-soft); border: 1px solid var(--ai-border); }
+.expCardValue { font: 700 22px var(--ai-font-head); color: var(--ai-text); margin-top: 7px; }
+.expCardChart { margin-top: 6px; }
+/* Server-generated value/delta strings ("-165 pp", "-₪386K") are plain
+   LTR-shaped numbers, not localized — under RTL, the bidi algorithm
+   reorders the minus sign/currency symbol around the digits into garbage
+   ("165K-" instead of "-165K"). direction:ltr fixes the internal character
+   order; text-align:right keeps it visually where it already sat (these
+   divs have no siblings, so alignment is otherwise untouched). */
+:global([dir="rtl"]) .expCardValue,
+:global([dir="rtl"]) .deltaChip { direction: ltr; text-align: right; }
+.expCardComment { font-size: 11.5px; color: var(--ai-text-mute); line-height: 1.5; margin-top: 7px; }
+
+.expRecent { padding: 6px 14px; display: flex; flex-direction: column; gap: 3px; }
+.expRecentRow {
+  display: flex; align-items: center; gap: 9px; border-radius: 9px; padding: 8px 11px;
+  background: none; border: none; cursor: pointer; width: 100%; text-align: start; font-family: var(--ai-font-body);
+}
+.expRecentRow:hover { background: var(--ai-shell-bg); }
+.expRecentDot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.dotReady { background: var(--ai-success); }
+.dotMuted { background: #B9AECB; }
+/* #3B3350 — darker/more saturated than --ai-text-dim (#6E6584); the design
+   gives recent-report row labels more contrast than regular dim body text. */
+.expRecentLabel { font-size: 12.5px; font-weight: 500; color: #3B3350; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The design canvas is light-only — these hardcoded design-exact colors
+   (light-mode fidelity, see comments above) need an explicit dark-mode
+   reversion back to the shared tokens so dark mode doesn't regress to
+   light-colored cards/text on a dark background. */
+:global([data-mode='dark']) .expSectionLabel,
+:global([data-mode='dark']) .expRecentLabel { color: var(--ai-text-dim); }
+:global([data-mode='dark']) .expCard { background: var(--ai-shell-bg); border-color: var(--ai-border-soft); }
+:global([data-mode='dark']) .dotMuted { background: var(--ai-text-mute); opacity: .5; }
+
+.expFooter {
+  margin-top: auto; padding: 14px 18px; border-top: 1px solid var(--ai-accent-soft);
+  font-size: 12.5px; font-weight: 600; color: var(--ai-accent); background: none; border-inline: none; border-bottom: none;
+  text-align: start; cursor: pointer; font-family: var(--ai-font-body);
+}

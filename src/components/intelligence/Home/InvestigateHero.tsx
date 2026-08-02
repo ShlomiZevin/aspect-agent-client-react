@@ -5,6 +5,7 @@
  */
 import { useState } from 'react';
 import { useJobs } from '../jobs/JobsContext';
+import { useLanguage } from '../../../context/LanguageContext';
 import { insightsService } from '../../../services/insightsService';
 import { SimpleQueryHelper } from './SimpleQueryHelper';
 import styles from './InvestigateHero.module.css';
@@ -13,42 +14,57 @@ import styles from './InvestigateHero.module.css';
 // baskets") are deliberately excluded: that analysis needs a self-join
 // across ~2M rows with no supporting index and reliably times out with no
 // canned fallback to land on anymore (see investigation.service.js) — every
-// example chip here has been run for real and confirmed to actually work.
-const EXAMPLE_PROMPTS = [
-  'Main risks for the next 6 months',
-  'Which stores will miss Q3 target — and why',
-  'Which product family has the steepest margin decline',
-];
+// example chip here has been run for real and confirmed to actually work
+// (translation keys, not hardcoded English — the plan step is an LLM call
+// that turns either language into the same kind of concrete data question).
+const EXAMPLE_PROMPT_KEYS = ['intel.hero.example1', 'intel.hero.example2', 'intel.hero.example3'];
 
 const SKIP_HELPER_KEY = 'aspect_intel_skip_query_helper';
 
 interface Props {
   datasetId: string;
+  /** Anon session id (see IntelligenceShell's UserProvider) — null until the async create finishes. */
+  userId: string | null;
   /** Opens the chat widget and sends a question — see IntelligenceShell.askFollowUp, reused here for "Ask in Data Chat". */
   onAskInChat: (question: string) => void;
 }
 
-export function InvestigateHero({ datasetId, onAskInChat }: Props) {
+export function InvestigateHero({ datasetId, userId, onAskInChat }: Props) {
+  const { t } = useLanguage();
   const [text, setText] = useState('');
   const [classifying, setClassifying] = useState(false);
   // Non-null = the gentle helper is showing for exactly this typed prompt.
   const [helperPrompt, setHelperPrompt] = useState<string | null>(null);
   const [dontShowAgain, setDontShowAgain] = useState(false);
-  const { startJob } = useJobs();
+  const { startJob, jobs } = useJobs();
+
+  // Same question already running for this dataset — used to grey out its
+  // chip and block resubmitting it, rather than silently letting a
+  // double-click/double-Enter fire a second, fully redundant investigation
+  // (JobsContext.startJob also guards this server-side of the click, but the
+  // disabled state here is the visible half of that fix).
+  const isRunning = (prompt: string) => {
+    const normalized = prompt.trim();
+    return !!normalized && jobs.some(j => j.datasetId === datasetId && j.status === 'running' && j.prompt.trim() === normalized);
+  };
 
   const runInvestigation = (prompt: string) => {
-    startJob(datasetId, prompt);
+    if (!userId) return; // anon session still being created — practically instant, shouldn't be reachable
+    startJob(datasetId, userId, prompt);
     setText('');
     setHelperPrompt(null);
   };
 
   // Example chips are pre-vetted real investigations (see comment above) —
   // no need to classify something already known to be worth investigating.
-  const startFromChip = (prompt: string) => runInvestigation(prompt);
+  const startFromChip = (prompt: string) => {
+    if (isRunning(prompt)) return;
+    runInvestigation(prompt);
+  };
 
   const submitTyped = async () => {
     const q = text.trim();
-    if (!q || classifying) return;
+    if (!q || !userId || classifying || isRunning(q)) return;
     if (localStorage.getItem(SKIP_HELPER_KEY) === '1') {
       runInvestigation(q);
       return;
@@ -86,20 +102,35 @@ export function InvestigateHero({ datasetId, onAskInChat }: Props) {
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.title}>What should Aspect investigate for you?</div>
+      <div className={`${styles.box} ${helperPrompt ? styles.boxFlagged : ''}`}>
+        <div className={styles.inputRow}>
+          <span className={styles.sparkle}>✦</span>
+          <input
+            className={styles.input}
+            placeholder={t('intel.hero.placeholder')}
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && submitTyped()}
+          />
+          <button className={styles.startBtn} onClick={submitTyped} disabled={!userId || classifying || isRunning(text)}>
+            {classifying ? t('intel.hero.checking') : t('intel.hero.start')}
+          </button>
+        </div>
 
-      <div className={`${styles.inputRow} ${helperPrompt ? styles.inputRowFlagged : ''}`}>
-        <span className={styles.sparkle}>✦</span>
-        <input
-          className={styles.input}
-          placeholder='Ask for an analysis — e.g. "What are the easiest ways to grow income next quarter?"'
-          value={text}
-          onChange={e => setText(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && submitTyped()}
-        />
-        <button className={styles.startBtn} onClick={submitTyped} disabled={classifying}>
-          {classifying ? 'Checking…' : 'Start analysis'}
-        </button>
+        <div className={styles.chipsBlock}>
+          <div className={styles.chipsLabel}>{t('intel.hero.possible')}</div>
+          <div className={styles.chips}>
+            {EXAMPLE_PROMPT_KEYS.map(key => {
+              const prompt = t(key);
+              const running = isRunning(prompt);
+              return (
+                <button key={key} className={styles.chip} onClick={() => startFromChip(prompt)} disabled={running} title={running ? t('intel.hero.alreadyRunning') : undefined}>
+                  {prompt}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {helperPrompt && (
@@ -110,12 +141,6 @@ export function InvestigateHero({ datasetId, onAskInChat }: Props) {
           onDontShowAgainChange={setDontShowAgain}
         />
       )}
-
-      <div className={styles.chips}>
-        {EXAMPLE_PROMPTS.map(p => (
-          <button key={p} className={styles.chip} onClick={() => startFromChip(p)}>{p}</button>
-        ))}
-      </div>
     </div>
   );
 }

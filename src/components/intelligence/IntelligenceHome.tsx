@@ -9,8 +9,8 @@
  * Styled to match IntelligenceShell's header/typography/card language exactly
  * (same CSS variables, same brand-row pattern) rather than as a standalone
  * mini-page — this is the top of the same product, not a different one.
- * Nav only shows "Home" (active): Insights/Data Chat/Dashboards all require
- * a selected dataset, which doesn't exist yet at this level.
+ * Nav only shows "Home" (active): My Reports/Data Chat all require a
+ * selected dataset, which doesn't exist yet at this level.
  */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +29,11 @@ export function IntelligenceHome() {
 
   useEffect(() => { ensureIntelligenceFontsLoaded(); }, []);
   useEffect(() => { localStorage.setItem(MODE_KEY, mode); }, [mode]);
+  // This picker has no language toggle of its own (always English) — but
+  // <html dir> is a global attribute, so leaving on a per-dataset shell page
+  // (which does have a Hebrew toggle, see IntelligenceShell's LanguageProvider)
+  // would leak dir="rtl" here, mirroring a page whose CSS was never built for it.
+  useEffect(() => { document.documentElement.setAttribute('dir', 'ltr'); }, []);
 
   useEffect(() => {
     insightsService.listDatasets()

@@ -1,0 +1,57 @@
+.page { padding: 38px 24px 40px; max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+.headRow { display: flex; align-items: center; gap: 12px; }
+.title { font: 700 26px var(--ai-font-head); color: var(--ai-text); }
+.count { font-size: 13px; color: var(--ai-text-mute); }
+.search {
+  margin-inline-start: auto; display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--ai-border); background: var(--ai-surface); border-radius: 10px;
+  padding: 9px 14px; width: 240px;
+}
+.search input { border: none; outline: none; background: none; font-size: 12.5px; color: var(--ai-text); flex: 1; font-family: var(--ai-font-body); }
+.search input::placeholder { color: var(--ai-text-mute); }
+
+.table { background: var(--ai-surface); border: 1px solid var(--ai-border); border-radius: 16px; overflow: hidden; }
+.headerRow, .row {
+  display: grid; grid-template-columns: 110px 1fr 190px 190px 90px; gap: 14px; align-items: center;
+}
+.headerRow { padding: 13px 22px; background: var(--ai-shell-bg); border-bottom: 1px solid var(--ai-border); font-size: 11px; font-weight: 700; letter-spacing: .05em; color: var(--ai-text-mute); }
+.row { padding: 14px 22px; border-bottom: 1px solid var(--ai-border-soft); }
+.row:last-child { border-bottom: none; }
+.rowClickable { cursor: pointer; }
+.rowClickable:hover { background: var(--ai-shell-bg); }
+.rowUnviewed { background: linear-gradient(90deg, rgba(18, 153, 107, .06), transparent 70%); box-shadow: inset 3px 0 0 var(--ai-success); }
+
+.date { font-size: 12.5px; color: var(--ai-text-mute); }
+.question { font-size: 13.5px; font-weight: 600; color: var(--ai-text); display: flex; align-items: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result { font-size: 12.5px; color: var(--ai-text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Always English (server-generated impactValue, or the headline fallback —
+   report content itself isn't translated, see i18n/translations.ts's intel.*
+   comment) — isolate it as its own LTR run so RTL doesn't reorder any
+   minus/currency signs it contains. */
+:global([dir="rtl"]) .result { direction: ltr; text-align: right; }
+
+.detail { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: var(--ai-text-mute); }
+.detail[data-status='running'] { color: var(--ai-accent); font-weight: 700; }
+.detail[data-status='error'] { color: var(--ai-negative); font-weight: 700; }
+.detail[data-status='unviewed'] { color: var(--ai-success); font-weight: 700; }
+.pulseDot { width: 7px; height: 7px; border-radius: 50%; background: var(--ai-accent); animation: pulse 1.6s infinite; }
+.readyDot { width: 7px; height: 7px; border-radius: 50%; background: var(--ai-success); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+.action { font-size: 12.5px; font-weight: 600; color: var(--ai-accent); text-align: end; }
+.actionDisabled { color: var(--ai-text-mute); font-weight: 500; }
+
+.state { padding: 30px; text-align: center; color: var(--ai-text-mute); font-size: 13px; }
+
+.loadMore {
+  align-self: center; padding: 12px 32px; border-radius: 11px;
+  border: 1.5px solid #E2D6F5; background: var(--ai-surface); color: var(--ai-accent);
+  font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+
+@media (max-width: 800px) {
+  .headerRow, .row { grid-template-columns: 90px 1fr 90px; }
+  .result { display: none; }
+  .headerRow span:nth-child(3) { display: none; }
+}

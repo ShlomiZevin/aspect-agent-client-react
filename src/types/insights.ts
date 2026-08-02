@@ -31,8 +31,16 @@ export interface InsightSummary {
   chartPreview: InsightChartPreview;
   /** True for insights produced by a real "Start analysis" run — these can be deleted; seed content cannot. */
   isGenerated?: boolean;
-  /** True when pinned to "Tracked by you" via the detail page's Track button — the only way anything lands in that strip. */
+  /** True when pinned to "Tracked by you" / "Saved reports" via the detail page's Track button — the only way anything lands there. */
   tracked?: boolean;
+  /** Epoch ms — used for History-page date column and sorting. */
+  createdAt?: number;
+  /** 'user' = a question someone actually typed; 'proposed' = Aspect picked this angle on its own (History page's "my report" vs "proposed" tag, design turn 12a). */
+  origin?: 'user' | 'proposed';
+  /** Flips to true the first time the detail page is opened — drives History's "Ready — not viewed yet" highlight. */
+  viewed?: boolean;
+  /** The free-text question actually asked (typed by the user, or Aspect's own proposed angle) — History page's "What I asked" column. */
+  askedPrompt?: string;
 }
 
 export interface InsightScenario {

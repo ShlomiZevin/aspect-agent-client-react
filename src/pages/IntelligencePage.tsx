@@ -5,24 +5,32 @@
  * the server.
  *
  * Routes: /intelligence (the dataset picker, IntelligenceHomePage — never
- * this component), /intelligence/:datasetId, /intelligence/:datasetId/insight/:insightId,
- * and /intelligence/:datasetId/chat — real URLs (not just internal component
- * state) so each view can be linked/bookmarked/shared and back/forward work,
- * and so the nav's active item and the chat widget's open/expanded state
- * always agree with the URL. Nested under :datasetId rather than flat paths
- * since more internal Intelligence pages are expected later.
+ * this component), /intelligence/:datasetId (Home, design turn 10a/10b),
+ * /intelligence/:datasetId/insight/:insightId, /intelligence/:datasetId/reports
+ * (My Reports, design turn 11a), /intelligence/:datasetId/reports/history
+ * (Report history, design turn 12a), and /intelligence/:datasetId/chat — real
+ * URLs (not just internal component state) so each view can be
+ * linked/bookmarked/shared and back/forward work, and so the nav's active
+ * item and the chat widget's open/expanded state always agree with the URL.
+ * Nested under :datasetId rather than flat paths since more internal
+ * Intelligence pages are expected later.
  */
 import { useParams, useLocation, Navigate } from 'react-router-dom';
 import { IntelligenceShell } from '../components/intelligence/IntelligenceShell';
 import { useDocumentMeta } from '../hooks';
+import { getAgentConfig } from '../agents/agentRegistry';
 
 export function IntelligencePage() {
   const { datasetId, insightId } = useParams<{ datasetId: string; insightId?: string }>();
   const location = useLocation();
   const isChatRoute = location.pathname.endsWith('/chat');
+  const isHistoryRoute = location.pathname.endsWith('/reports/history');
+  const isReportsRoute = !isHistoryRoute && location.pathname.endsWith('/reports');
+  const config = getAgentConfig(datasetId);
 
   useDocumentMeta({
-    title: 'Aspect Intelligence',
+    title: config?.pageTitle || 'Aspect Intelligence',
+    favicon: config?.favicon,
     description: 'Aspect proactively investigates your data and surfaces findings.',
   });
 
@@ -31,5 +39,13 @@ export function IntelligencePage() {
   // just send it back to the dataset picker.
   if (!datasetId) return <Navigate to="/intelligence" replace />;
 
-  return <IntelligenceShell datasetId={datasetId} insightId={insightId} chatRoute={isChatRoute} />;
+  return (
+    <IntelligenceShell
+      datasetId={datasetId}
+      insightId={insightId}
+      chatRoute={isChatRoute}
+      reportsRoute={isReportsRoute}
+      historyRoute={isHistoryRoute}
+    />
+  );
 }

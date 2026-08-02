@@ -10,6 +10,7 @@
 import { useState, type ReactElement } from 'react';
 import { getAgentConfig } from '../../agents/agentRegistry';
 import { translations } from '../../i18n/translations';
+import { useLanguage } from '../../context/LanguageContext';
 import styles from './ChatWelcome.module.css';
 
 const ICONS: Record<string, ReactElement> = {
@@ -39,6 +40,7 @@ interface Props {
 }
 
 export function ChatWelcome({ datasetId, onSend }: Props) {
+  const { t, language } = useLanguage();
   const [text, setText] = useState('');
   const config = getAgentConfig(datasetId);
 
@@ -52,15 +54,15 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
     <div className={styles.wrap}>
       <div className={styles.hero}>
         <span className={styles.mark}>✦</span>
-        <div className={styles.title}>Welcome to {config?.headerTitle || config?.agentName || 'your'} BI</div>
-        <div className={styles.subtitle}>Ask me about sales, profit, products, stores, and inventory.</div>
+        <div className={styles.title}>{t('intel.welcome.title')} {config?.headerTitle || config?.agentName || 'your'} {t('intel.welcome.titleSuffix')}</div>
+        <div className={styles.subtitle}>{t('intel.welcome.subtitle')}</div>
       </div>
 
-      <div className={styles.questionsLabel}>QUICK QUESTIONS</div>
+      <div className={styles.questionsLabel}>{t('intel.welcome.quickQuestions')}</div>
       <div className={styles.grid}>
         {(config?.quickQuestions || []).map((q, i) => {
-          const label = q.textKey ? translations.en[q.textKey] : q.text || '';
-          const question = q.questionKey ? translations.en[q.questionKey] : q.question || '';
+          const label = q.textKey ? translations[language][q.textKey] : q.text || '';
+          const question = q.questionKey ? translations[language][q.questionKey] : q.question || '';
           const iconKey = KEY_TO_ICON[i] || 'revenue';
           return (
             <button key={i} className={styles.tile} onClick={() => onSend(question)}>
@@ -78,7 +80,7 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
       <div className={styles.inputRow}>
         <input
           className={styles.input}
-          placeholder="Ask about your business…"
+          placeholder={t('intel.welcome.placeholder')}
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) submit(); }}
@@ -86,11 +88,11 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
         <svg className={styles.micIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 19v3" />
         </svg>
-        <button className={styles.sendBtn} disabled={!text.trim()} onClick={submit} aria-label="Send">
+        <button className={styles.sendBtn} disabled={!text.trim()} onClick={submit} aria-label={t('intel.welcome.send')}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
         </button>
       </div>
-      <div className={styles.hint}>Send with Ctrl+Enter</div>
+      <div className={styles.hint}>{t('intel.welcome.hint')}</div>
     </div>
   );
 }

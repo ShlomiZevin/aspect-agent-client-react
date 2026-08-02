@@ -1,12 +1,16 @@
 /**
- * Chrome for Aspect Intelligence: brand header, Home/Insights/Data Chat nav,
- * breadcrumb + sync info row, light/dark toggle. A standalone product from
- * Aspect BI (BIShell) — "Data Chat" navigates out to the existing chat page
- * rather than being reimplemented here.
+ * Chrome for Aspect Intelligence: brand header, Home/My Reports/Data Chat
+ * nav, breadcrumb + sync info row, light/dark toggle. A standalone product
+ * from Aspect BI (BIShell) — "Data Chat" navigates out to the existing chat
+ * page rather than being reimplemented here.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { InsightsList } from './Insights/InsightsList';
+import { LanguageProvider, useLanguage } from '../../context/LanguageContext';
+import { UserProvider, useUserContext } from '../../context/UserContext';
+import { HomePage } from './Home/HomePage';
+import { ReportsPage } from './Reports/ReportsPage';
+import { ReportHistoryPage } from './Reports/ReportHistoryPage';
 import { InsightDetail } from './Insights/InsightDetail';
 import { ChatWidget } from './ChatWidget';
 import { ensureIntelligenceFontsLoaded } from './fonts';
@@ -15,6 +19,7 @@ import { JobBadges } from './jobs/JobBadges';
 import { JobSidebar } from './jobs/JobSidebar';
 import { insightsService } from '../../services/insightsService';
 import { getAgentConfig } from '../../agents/agentRegistry';
+import { formatDateTime, formatDateOnly } from './dateFormat';
 import styles from './IntelligenceShell.module.css';
 
 type Mode = 'light' | 'dark';
@@ -23,22 +28,42 @@ const MODE_KEY = 'aspect_intelligence_mode';
 
 interface Props {
   datasetId: string;
-  /** Insight id from the URL (/intelligence/:datasetId/insight/:insightId) — undefined means the list view. */
+  /** Insight id from the URL (/intelligence/:datasetId/insight/:insightId) — undefined means Home/Reports/History. */
   insightId?: string;
   /** True on /intelligence/:datasetId/chat — the chat widget's open/expanded state and the nav's active item both follow this. */
   chatRoute: boolean;
+  /** True on /intelligence/:datasetId/reports — My Reports (design turn 11a). */
+  reportsRoute: boolean;
+  /** True on /intelligence/:datasetId/reports/history — Report history (design turn 12a). */
+  historyRoute: boolean;
 }
 
 export function IntelligenceShell(props: Props) {
+  // Same storage key (`${datasetId}_language`) the embedded chat widget's
+  // own page already uses — the header's EN/HE toggle now drives both this
+  // shell's UI chrome AND the chat, instead of only the chat (see the old
+  // comment this replaced: Aspect Intelligence used to be deliberately
+  // English-only; Shlomi asked for Hebrew as mandatory, see project memory).
+  const agentConfig = getAgentConfig(props.datasetId);
   return (
-    <JobsProvider>
-      <IntelligenceShellInner {...props} />
-    </JobsProvider>
+    <LanguageProvider storagePrefix={`${props.datasetId}_`}>
+      {/* Same storagePrefix the embedded chat widget's own UserProvider uses
+          (AgentChatWidgetPage) — reports and chats end up sharing the exact
+          same anonymous session/localStorage key, so "your reports" means
+          the same "you" as "your chats", not a second, unrelated identity. */}
+      <UserProvider storagePrefix={agentConfig?.storagePrefix} baseURL={agentConfig?.baseURL}>
+        <JobsProvider>
+          <IntelligenceShellInner {...props} />
+        </JobsProvider>
+      </UserProvider>
+    </LanguageProvider>
   );
 }
 
-function IntelligenceShellInner({ datasetId, insightId, chatRoute }: Props) {
+function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute, historyRoute }: Props) {
   const navigate = useNavigate();
+  const { language, setLanguage, t } = useLanguage();
+  const { userId } = useUserContext();
   // Dataset branding (name/logo mark) resolved from the API rather than a
   // hardcoded prop, so this shell works for any enabled dataset, not just
   // whichever one it was originally built against.
@@ -92,23 +117,18 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute }: Props) {
       .then(r => r.json())
       .then(data => {
         if (cancelled) return;
-        const fmtDateTime = (iso: string) => new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
-        const fmtDate = (value: string) => {
-          const [y, mo, d] = value.split('-').map(Number);
-          return new Date(y, mo - 1, d || 1).toLocaleString('en-GB', { day: d ? '2-digit' : undefined, month: 'short', year: 'numeric' });
-        };
         setSyncInfo({
-          lastSync: data.lastRun?.completed_at ? fmtDateTime(data.lastRun.completed_at) : 'n/a',
+          lastSync: data.lastRun?.completed_at ? formatDateTime(data.lastRun.completed_at, language) : 'n/a',
           // Same 3 fields as the real chat's own DataStatusBar — "Data from"
           // was being fetched already but silently dropped, so this header
           // showed 2 of the 3 fields the real chat shows for the same data.
-          dataFrom: data.firstDataDate ? fmtDate(data.firstDataDate) : null,
-          dataThrough: data.lastDataDate ? fmtDate(data.lastDataDate) : 'n/a',
+          dataFrom: data.firstDataDate ? formatDateOnly(data.firstDataDate, language) : null,
+          dataThrough: data.lastDataDate ? formatDateOnly(data.lastDataDate, language) : 'n/a',
         });
       })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [datasetId, baseURL]);
+  }, [datasetId, baseURL, language]);
 
   const [mode, setMode] = useState<Mode>(() => (localStorage.getItem(MODE_KEY) as Mode) || 'light');
   // Measured so the expanded chat widget can sit flush "under the header"
@@ -123,33 +143,22 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute }: Props) {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  // Shares the chat's own storage key (`${agentSlug}_language`, see
-  // hypertoyConfig.storagePrefix) so this toggle and the embedded chat widget
-  // (and the full /hypertoy page) always agree on the current language.
-  // Defaults to English here (unlike the chat's own default of Hebrew) since
-  // Aspect Intelligence itself is English-only UI — an English default keeps
-  // the embedded chat consistent with it for first-time visitors.
-  const langKey = `${datasetId}_language`;
-  const [lang, setLang] = useState<'en' | 'he'>(() => (localStorage.getItem(langKey) === 'he' ? 'he' : 'en'));
-
-  useEffect(() => {
-    if (!localStorage.getItem(langKey)) localStorage.setItem(langKey, 'en');
-  }, [langKey]);
-
   useEffect(() => { ensureIntelligenceFontsLoaded(); }, []);
   useEffect(() => { localStorage.setItem(MODE_KEY, mode); }, [mode]);
 
   const openInsight = (id: string) => navigate(`/intelligence/${datasetId}/insight/${id}`);
-  // "Insights" (nav, breadcrumb, and the detail page's own back link all
-  // share this) always leaves the chat view entirely, closing the widget —
-  // it doesn't just collapse it back to windowed, it hides it, so Insights
-  // reads as a clean dedicated view, not "Insights with a chat still open
-  // somewhere."
-  const backToInsights = () => {
+  // Home/My Reports/History/the detail page's own back link all close the
+  // chat widget entirely rather than just collapsing it back to windowed —
+  // navigating away from chat should read as a clean dedicated view, not
+  // "Reports with a chat still open somewhere."
+  const closeChatAnd = (fn: () => void) => {
     setChatOpen(false);
     setChatExpanded(false);
-    navigate(`/intelligence/${datasetId}`);
+    fn();
   };
+  const goHome = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}`));
+  const goReports = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}/reports`));
+  const goHistory = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}/reports/history`));
   const reviewCompletedJob = (job: Job) => {
     const firstId = job.result?.insightIds[0];
     // Once you've actually gone and looked at it, it doesn't belong in the
@@ -158,11 +167,6 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute }: Props) {
     // itself isn't touched, only the job's "there's something to review" state.
     cancelJob(job.id);
     if (firstId) openInsight(firstId);
-  };
-  const toggleLang = () => {
-    const next = lang === 'en' ? 'he' : 'en';
-    setLang(next);
-    localStorage.setItem(langKey, next);
   };
   // "Data Chat" nav opens the same popup widget in its expanded (full-window)
   // state instead of navigating to the separate, differently-styled /hypertoy
@@ -190,6 +194,9 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute }: Props) {
     handleChatExpandedChange(true);
     setPendingChatQuestion(question);
   };
+  const view: 'home' | 'reports' | 'history' | 'detail' | 'chat' =
+    chatRoute ? 'chat' : insightId ? 'detail' : historyRoute ? 'history' : reportsRoute ? 'reports' : 'home';
+
   return (
     <div className={styles.shell} data-mode={mode}>
       <header className={styles.header} ref={headerRef}>
@@ -203,52 +210,72 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute }: Props) {
           </div>
 
           <nav className={styles.nav}>
-            <button className={styles.navBtn} onClick={() => navigate('/intelligence')}>Home</button>
-            <button className={`${styles.navBtn} ${!chatRoute ? styles.navActive : ''}`} onClick={backToInsights}>Insights</button>
-            <button className={`${styles.navBtn} ${chatRoute ? styles.navActive : ''}`} onClick={openDataChat}>Data Chat</button>
+            <button className={`${styles.navBtn} ${view === 'home' ? styles.navActive : ''}`} onClick={goHome}>{t('intel.nav.home')}</button>
+            <button className={`${styles.navBtn} ${(view === 'reports' || view === 'history' || view === 'detail') ? styles.navActive : ''}`} onClick={goReports}>{t('intel.nav.reports')}</button>
+            <button className={`${styles.navBtn} ${view === 'chat' ? styles.navActive : ''}`} onClick={openDataChat}>{t('intel.nav.chat')}</button>
           </nav>
 
           <div className={styles.headerRight}>
             <JobBadges datasetId={datasetId} onReviewCompleted={reviewCompletedJob} />
-            <button className={styles.langBadge} onClick={toggleLang} title="Language used by the data chat">{lang.toUpperCase()}</button>
+            <div className={styles.langGroup} role="group" aria-label="Language">
+              <button className={`${styles.langOption} ${language === 'en' ? styles.langOptionActive : ''}`} onClick={() => setLanguage('en')} aria-pressed={language === 'en'}>EN</button>
+              <button className={`${styles.langOption} ${language === 'he' ? styles.langOptionActive : ''}`} onClick={() => setLanguage('he')} aria-pressed={language === 'he'}>עב</button>
+            </div>
             <button className={styles.iconBtn} onClick={() => setMode(m => m === 'dark' ? 'light' : 'dark')} title="Toggle theme" aria-label="Toggle theme">
               <Glyph name={mode === 'dark' ? 'sun' : 'moon'} />
             </button>
-            <div className={styles.onlineDot}><span className={styles.dot} />Online</div>
+            <div className={styles.onlineDot}><span className={styles.dot} />{t('intel.online')}</div>
             <div className={styles.avatar}>DA</div>
           </div>
         </div>
 
         <div className={styles.breadcrumbRow}>
-          <span className={styles.crumb} onClick={() => navigate('/intelligence')} style={{ cursor: 'pointer' }}>Home</span>
-          <span className={styles.crumbSep}>/</span>
-          {chatRoute ? (
-            <span className={`${styles.crumb} ${styles.crumbActive}`}>Data Chat</span>
-          ) : (
+          <span className={`${styles.crumb} ${view === 'home' ? styles.crumbActive : ''}`} onClick={goHome} style={{ cursor: 'pointer' }}>{t('intel.nav.home')}</span>
+          {view === 'chat' && (
             <>
-              <span className={`${styles.crumb} ${!insightId ? styles.crumbActive : ''}`} onClick={backToInsights} style={{ cursor: 'pointer' }}>Insights</span>
-              {insightId && (
-                <>
-                  <span className={styles.crumbSep}>/</span>
-                  <span className={`${styles.crumb} ${styles.crumbActive}`}>{insightBreadcrumb || '…'}</span>
-                </>
-              )}
+              <span className={styles.crumbSep}>/</span>
+              <span className={`${styles.crumb} ${styles.crumbActive}`}>{t('intel.nav.chat')}</span>
+            </>
+          )}
+          {(view === 'reports' || view === 'history' || view === 'detail') && (
+            <>
+              <span className={styles.crumbSep}>/</span>
+              <span className={`${styles.crumb} ${view === 'reports' ? styles.crumbActive : ''}`} onClick={goReports} style={{ cursor: 'pointer' }}>{t('intel.nav.reports')}</span>
+            </>
+          )}
+          {view === 'history' && (
+            <>
+              <span className={styles.crumbSep}>/</span>
+              <span className={`${styles.crumb} ${styles.crumbActive}`}>{t('intel.nav.history')}</span>
+            </>
+          )}
+          {view === 'detail' && (
+            <>
+              <span className={styles.crumbSep}>/</span>
+              <span className={`${styles.crumb} ${styles.crumbActive}`}>{insightBreadcrumb || '…'}</span>
             </>
           )}
           {syncInfo && (
+            // Formatted with the current UI locale (see formatDateTime/
+            // formatDateOnly in dateFormat.ts) — real Hebrew month names and
+            // word order under Hebrew, not English text force-isolated as an
+            // LTR island, so no dir="ltr" override needed here.
             <span className={styles.syncInfo}>
-              Last sync: <b>{syncInfo.lastSync}</b>
-              {syncInfo.dataFrom && <> · Data from: <b>{syncInfo.dataFrom}</b></>}
-              {' '}· Data through: <b>{syncInfo.dataThrough}</b>
+              {t('intel.lastSync')}: <b>{syncInfo.lastSync}</b>
+              {syncInfo.dataFrom && <> · {t('intel.dataFrom')}: <b>{syncInfo.dataFrom}</b></>}
+              {' '}· {t('intel.dataThrough')}: <b>{syncInfo.dataThrough}</b>
             </span>
           )}
         </div>
       </header>
 
       <main className={styles.body}>
-        {!chatRoute && (insightId
-          ? <InsightDetail datasetId={datasetId} insightId={insightId} onBack={backToInsights} onLoaded={i => setInsightBreadcrumb(i.breadcrumbLabel)} onAskFollowUp={askFollowUp} />
-          : <InsightsList datasetId={datasetId} onOpenInsight={openInsight} onAskInChat={askFollowUp} />)}
+        {view === 'detail' && insightId && (
+          <InsightDetail datasetId={datasetId} userId={userId} insightId={insightId} onBack={goReports} onLoaded={i => setInsightBreadcrumb(i.breadcrumbLabel)} onAskFollowUp={askFollowUp} />
+        )}
+        {view === 'history' && <ReportHistoryPage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} />}
+        {view === 'reports' && <ReportsPage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onOpenHistory={goHistory} />}
+        {view === 'home' && <HomePage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onAskInChat={askFollowUp} onSeeAllReports={goReports} onOpenHistory={goHistory} />}
       </main>
 
       {selectedJobId && <JobSidebar datasetId={datasetId} onReview={reviewCompletedJob} />}
@@ -268,7 +295,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute }: Props) {
 
       {!chatOpen && (
         <div className={styles.launcherWrap}>
-          <div className={styles.teaser}>Ask me anything about your data <span>— ⌘K</span></div>
+          <div className={styles.teaser}>{t('intel.launcher.teaser')} <span dir="ltr">— ⌘K</span></div>
           <button className={styles.orb} onClick={() => { setChatOpen(true); setChatEverOpened(true); }} aria-label="Open chat">✦</button>
         </div>
       )}

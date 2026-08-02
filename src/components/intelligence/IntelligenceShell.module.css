@@ -99,24 +99,40 @@
   font: 600 13.5px var(--ai-font-body);
 }
 .navBtn:hover { color: var(--ai-text); }
-.navActive { background: var(--ai-accent-soft); color: var(--ai-accent); }
+.navActive { background: var(--ai-accent-soft); color: #5B21B6; }
+:global([data-mode='dark']) .navActive { color: var(--ai-accent); }
 
-.headerRight { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-.langBadge {
+.headerRight { margin-inline-start: auto; display: flex; align-items: center; gap: 10px; }
+/* Segmented control — both languages always visible, active one highlighted
+   (matches the LanguageToggle pattern used elsewhere in Aspect, see
+   components/common/LanguageToggle), not a single button that only shows
+   whichever language you'd switch TO. */
+.langGroup {
   height: 38px;
-  padding: 0 13px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
   border: 1px solid var(--ai-border);
   border-radius: 10px;
   background: var(--ai-shell-bg);
-  display: flex;
-  align-items: center;
-  font-size: 12.5px;
+  box-sizing: border-box;
+}
+.langOption {
+  height: 100%;
+  padding: 0 11px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--ai-text);
+  color: var(--ai-text-mute);
   font-family: var(--ai-font-body);
   cursor: pointer;
 }
-.langBadge:hover { border-color: var(--ai-border); background: var(--ai-accent-soft); }
+.langOption:hover { color: var(--ai-text); }
+.langOptionActive { background: var(--ai-accent); color: #fff; }
+.langOptionActive:hover { color: #fff; }
 .iconBtn {
   width: 38px;
   height: 38px;
@@ -130,7 +146,7 @@
   cursor: pointer;
 }
 .iconBtn:hover { color: var(--ai-text); }
-.onlineDot { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ai-text); font-weight: 600; padding-left: 4px; }
+.onlineDot { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ai-text); font-weight: 600; padding-inline-start: 4px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ai-success-2); }
 .avatar {
   width: 34px;
@@ -156,7 +172,7 @@
 .crumb { font-weight: 600; }
 .crumbActive { color: var(--ai-accent); }
 .crumbSep { color: #D3C6E8; }
-.syncInfo { margin-left: auto; }
+.syncInfo { margin-inline-start: auto; }
 .syncInfo b { color: var(--ai-text); font-weight: 600; }
 
 /* ── body ────────────────────────────────────────────────── */

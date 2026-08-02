@@ -27,27 +27,35 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const insightsService = {
   listDatasets: () => request<{ datasets: IntelligenceDatasetMeta[] }>('').then(r => r.datasets),
 
+  // Reports are private per anonymous browser session — every call below
+  // (except classifyPrompt, which touches no storage, and bootstrap, which
+  // is an admin/dataset-level seed action) requires the same userId the
+  // embedded chat widget already uses, so "your reports" and "your chats"
+  // are scoped to the same session (see IntelligenceShell's UserProvider).
+
   // Separate endpoints, not one combined "feed", so the UI loads/renders
   // each independently.
-  getInsights: (datasetId: string) => request<{ insights: InsightSummary[] }>(`/${datasetId}/insights`).then(r => r.insights),
+  getInsights: (datasetId: string, userId: string) =>
+    request<{ insights: InsightSummary[] }>(`/${datasetId}/insights?userId=${encodeURIComponent(userId)}`).then(r => r.insights),
 
   /** The subset of insights currently marked `tracked` (via setTracked), as strip cards — see insights.routes.js. */
-  getTracked: (datasetId: string) => request<{ tracked: TrackedMetric[] }>(`/${datasetId}/tracked`).then(r => r.tracked),
+  getTracked: (datasetId: string, userId: string) =>
+    request<{ tracked: TrackedMetric[] }>(`/${datasetId}/tracked?userId=${encodeURIComponent(userId)}`).then(r => r.tracked),
 
-  getInsight: (datasetId: string, insightId: string) =>
-    request<InsightDetail>(`/${datasetId}/${insightId}`),
+  getInsight: (datasetId: string, userId: string, insightId: string) =>
+    request<InsightDetail>(`/${datasetId}/${insightId}?userId=${encodeURIComponent(userId)}`),
 
-  investigate: (datasetId: string, prompt: string) =>
+  investigate: (datasetId: string, userId: string, prompt: string) =>
     request<InvestigateResult>(`/${datasetId}/investigate`, {
       method: 'POST',
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ userId, prompt }),
     }),
 
-  /** Runs the dataset's curated bootstrap prompt set (admin panel "Run bootstrap now"). */
+  /** Runs the dataset's curated bootstrap prompt set (admin panel "Run bootstrap now") — dataset-level, no user scope. */
   bootstrap: (datasetId: string) =>
     request<{ created: number; insightIds: string[] }>(`/${datasetId}/bootstrap`, { method: 'POST' }),
 
-  /** "Gentle helper" — is this typed prompt a quick lookup (suggest Data Chat) or a real investigation? */
+  /** "Gentle helper" — is this typed prompt a quick lookup (suggest Data Chat) or a real investigation? Stateless, no user scope. */
   classifyPrompt: (datasetId: string, prompt: string) =>
     request<{ isSimpleQuery: boolean }>(`/${datasetId}/classify-prompt`, {
       method: 'POST',
@@ -55,24 +63,27 @@ export const insightsService = {
     }),
 
   /** Toggles whether an insight shows up in "Tracked by you" — the only way anything lands in that strip. */
-  setTracked: (datasetId: string, insightId: string, tracked: boolean) =>
+  setTracked: (datasetId: string, userId: string, insightId: string, tracked: boolean) =>
     request<{ id: string; tracked: boolean }>(`/${datasetId}/${insightId}/track`, {
       method: 'POST',
-      body: JSON.stringify({ tracked }),
+      body: JSON.stringify({ userId, tracked }),
     }),
 
   /** "Manage tracking" drag-to-reorder — sends the complete new order, returns the re-sorted list. */
-  reorderTracked: (datasetId: string, insightIds: string[]) =>
+  reorderTracked: (datasetId: string, userId: string, insightIds: string[]) =>
     request<{ tracked: TrackedMetric[] }>(`/${datasetId}/tracked/reorder`, {
       method: 'POST',
-      body: JSON.stringify({ insightIds }),
+      body: JSON.stringify({ userId, insightIds }),
     }).then(r => r.tracked),
 
   /** Only works for generated insights (isGenerated: true) — seed content has no delete path. */
-  deleteInsight: (datasetId: string, insightId: string) =>
-    request<{ deleted: true }>(`/${datasetId}/${insightId}`, { method: 'DELETE' }),
+  deleteInsight: (datasetId: string, userId: string, insightId: string) =>
+    request<{ deleted: true }>(`/${datasetId}/${insightId}?userId=${encodeURIComponent(userId)}`, { method: 'DELETE' }),
 
   /** "Open <cta> plan" — generates (or returns the server's cached) action plan for this insight. */
-  getActionPlan: (datasetId: string, insightId: string) =>
-    request<ActionPlan>(`/${datasetId}/${insightId}/plan`, { method: 'POST' }),
+  getActionPlan: (datasetId: string, userId: string, insightId: string) =>
+    request<ActionPlan>(`/${datasetId}/${insightId}/plan`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    }),
 };

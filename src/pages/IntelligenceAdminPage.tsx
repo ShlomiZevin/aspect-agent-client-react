@@ -23,7 +23,6 @@ import { Routes, Route, Navigate, NavLink, Outlet, useParams, useNavigate, useLo
 import { ThemeProvider } from '../context/ThemeContext';
 import { isSuperAdminUnlocked, unlockSuperAdmin, lockSuperAdmin } from '../services/superAdminService';
 import { intelligenceAdminService, type IntelligenceAdminDataset, type IntelligenceConfigVersion } from '../services/intelligenceAdminService';
-import { insightsService } from '../services/insightsService';
 import type { InsightDetail } from '../types/insights';
 import { useDocumentMeta } from '../hooks';
 import styles from './IntelligenceAdminPage.module.css';
@@ -831,7 +830,7 @@ function DatasetInsightsPage() {
   const deleteInsight = async (insightId: string) => {
     setBusyId(insightId);
     try {
-      await insightsService.deleteInsight(dataset.id, insightId);
+      await intelligenceAdminService.deleteInsight(dataset.id, insightId);
       setInsights(cur => cur?.filter(i => i.id !== insightId) ?? null);
       reload();
     } finally {
@@ -842,7 +841,7 @@ function DatasetInsightsPage() {
   const toggleTracked = async (insight: InsightDetail) => {
     setBusyId(insight.id);
     try {
-      await insightsService.setTracked(dataset.id, insight.id, !insight.tracked);
+      await intelligenceAdminService.setTracked(dataset.id, insight.id, !insight.tracked);
       setInsights(cur => cur?.map(i => i.id === insight.id ? { ...i, tracked: !i.tracked } : i) ?? null);
       reload();
     } finally {

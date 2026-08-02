@@ -327,6 +327,22 @@ function AppContent() {
           }
         />
         <Route
+          path="/intelligence/:datasetId/reports"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <IntelligencePage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/intelligence/:datasetId/reports/history"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <IntelligencePage />
+            </Suspense>
+          }
+        />
+        <Route
           path="/intelligence/:datasetId/chat"
           element={
             <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
