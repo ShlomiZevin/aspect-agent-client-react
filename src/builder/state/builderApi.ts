@@ -41,7 +41,7 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
 export interface LiveBrainPanelData {
   id: string;
   title: string;
-  render: 'text' | 'html' | 'tags' | 'fields' | 'bars' | 'cards';
+  render: 'text' | 'html' | 'tags' | 'fields' | 'bars' | 'cards' | 'journey';
   /** Present for `text` (Markdown) and `html` (sanitized HTML) renders. */
   text?: string;
   /** Present for structured renders — shape matches the render type. */
@@ -51,6 +51,11 @@ export interface LiveBrainPanelData {
     pairs?: { k: string; v: string; tag?: boolean }[];           // fields
     bars?: { label: string; value: number; color?: string }[];   // bars
     cards?: { title: string; body: string }[];                   // cards
+    journey?: {                                                  // journey / status
+      rows?: { k: string; v: string; pill?: boolean }[];
+      readiness?: { label?: string; value: number };
+      next?: string;
+    };
   };
   ranAt?: number;
 }

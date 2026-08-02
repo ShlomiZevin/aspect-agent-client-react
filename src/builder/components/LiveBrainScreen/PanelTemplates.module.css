@@ -27,9 +27,101 @@
 /* Noa's base chip is already strong; the gradient ✦ chip is the highlight. */
 .tag {
   font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 100px;
-  background: #F2EAF9; color: #2A1442; border: 1px solid #E3D7F0;
+  background: var(--lb-surface); color: var(--lb-ink); border: 1px solid var(--lb-card-line);
   transition: background-color .25s ease, color .25s ease, border-color .25s ease, transform .2s ease;
 }
+/* ── Live Brain cards (Noa 05 · כרטיסיות) — stacked full-width boxes, each
+   OUTLINED (a fill alone disappears on a bad screen). Three parts: a mono
+   eyebrow naming the source, a real title, then two lines of body. ── */
+:global([data-look='brain']) .cards { gap: 11px; }
+:global([data-look='brain']) .card {
+  padding: 13px 14px; border-radius: 12px;
+  background: var(--lb-card-fill); border: 1px solid var(--lb-card-line);
+}
+.cardEyebrow {
+  font-family: var(--lb-mono); font-size: 8.5px; font-weight: 700;
+  letter-spacing: 1.2px; text-transform: uppercase;
+  color: var(--lb-eyebrow); margin-bottom: 7px;
+}
+.cardHeading { font-size: 15.5px; font-weight: 700; color: var(--lb-title); margin-bottom: 5px; }
+:global([data-look='brain']) .cardBody { font-size: 14px; line-height: 1.6; color: var(--lb-body2); }
+
+/* ── Live Brain bars (Noa 04 · ברים) — label and figure on one line, a 6px
+   rail beneath. The figure is mono and LTR so a column of measures lines up
+   and Hebrew can't reverse the digits; the label stays quiet body text so
+   the NUMBER is what the eye lands on. ── */
+:global([data-look='brain']) .bars { gap: 15px; }
+:global([data-look='brain']) .bar { gap: 0; }
+:global([data-look='brain']) .barRow { gap: 12px; margin-bottom: 7px; }
+:global([data-look='brain']) .barLab { font-size: 14.5px; font-weight: 400; color: var(--lb-body2); }
+:global([data-look='brain']) .barNum { font-size: 14px; color: var(--lb-title); }
+:global([data-look='brain']) .track { height: 6px; background: var(--lb-track); }
+
+/* ── Live Brain fields (Noa 03 · שדות) — one row type carrying both prose
+   and figures. Label quiet on the start edge, value bold on the end edge,
+   a hairline UNDER each row (the last one runs clean into the footer).
+   Figures are set in mono and pinned LTR so a column of them lines up and
+   Hebrew can't reverse the digits; the unit stays in the body font. ── */
+:global([data-look='brain']) .fieldRow {
+  align-items: baseline; gap: 14px; padding: 11px 0;
+  border-top: 0; border-bottom: 1px solid var(--lb-divider);
+}
+:global([data-look='brain']) .fieldRow:last-child { border-bottom: 0; }
+:global([data-look='brain']) .fieldK { font-size: 14px; color: var(--lb-label); }
+:global([data-look='brain']) .fieldV { font-size: 15px; font-weight: 700; color: var(--lb-title); padding: 0; }
+.fieldNum {
+  font-family: var(--lb-mono); font-size: 14.5px; font-weight: 700;
+  color: var(--lb-title); font-variant-numeric: tabular-nums;
+}
+.fieldUnit {
+  font-size: 12px; font-weight: 400; letter-spacing: normal;
+  color: var(--lb-muted); margin-inline-start: 5px;
+}
+/* An uncollected field stays visible — a dash plus a quiet chip — so the
+   shape of the profile still reads. */
+.fieldBlank { display: inline-flex; align-items: center; gap: 7px; }
+.fieldDash { font-family: var(--lb-mono); font-size: 15px; font-weight: 400; color: var(--lb-muted); }
+.fieldBlankPill {
+  font-size: 12.5px; font-weight: 400; color: var(--lb-muted);
+  border: 1px solid var(--lb-chip-off-line); border-radius: 100px;
+  padding: 2px 9px; white-space: nowrap;
+}
+
+/* ── Live Brain chips (Noa 02 · תגיות) — exactly two states, and the
+   difference is VALUE and WEIGHT, not hue, so it survives a bad screen.
+   ON: solid brand fill, white, bold. OFF: hollow, dim border, faded label.
+   Scoped by the surface's data-look, so the Profiler's chip set is untouched. */
+:global([data-look='brain']) .tag {
+  font-size: 13.5px; font-weight: 600; padding: 6px 13px; border-radius: 100px;
+  background: var(--lb-chip-off, #fff);
+  border: 1px solid var(--lb-chip-off-line, #C9BAE3);
+  color: var(--lb-chip-off-text, #5B4A73);
+}
+:global([data-look='brain']) .tagOn {
+  font-weight: 700; transform: none;
+  background: var(--lb-chip-on, #5B1E8A);
+  border-color: transparent; color: #fff;
+  box-shadow: var(--lb-chip-on-shadow, none);
+}
+/* Her ✦ marks a NEWLY ADDED chip in the Profiler; in the brain the gradient
+   alone carries "on", so the glyph would read as a second meaning. */
+:global([data-look='brain']) .tagOn::before { content: none; }
+/* "+N" — the overflow fold for a long list. */
+.tagMore.tagMore {
+  font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer;
+  padding: 6px 13px; border-radius: 100px;
+  background: none; border: 1px dashed var(--lb-chip-off-line, #C9BAE3);
+  color: var(--lb-muted);
+}
+.tagMore.tagMore:hover { color: var(--lb-eyebrow); border-color: var(--lb-eyebrow); }
+
+/* Fixed legend in the tags footer — swatch + label, then the count. */
+.legend { display: inline-flex; align-items: center; gap: 12px; }
+.legendItem { display: inline-flex; align-items: center; gap: 5px; }
+.swatch { width: 9px; height: 9px; border-radius: 3px; display: block; }
+.swatchOn { background: var(--lb-chip-on, #5B1E8A); }
+.swatchOff { background: var(--lb-chip-off, #fff); border: 1px solid var(--lb-chip-off-line, #C9BAE3); }
+
 .tagOn {
   background: linear-gradient(135deg, #E0198A, #5B1E8A);
   color: #fff; font-weight: 700; border-color: transparent;
@@ -39,11 +131,11 @@
 
 /* ── fields (Noa: rows split by hairline top borders) ── */
 .fields { display: flex; flex-direction: column; }
-.fieldRow { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 9px 0; border-top: 1px solid #F2EAF9; }
+.fieldRow { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 9px 0; border-top: 1px solid var(--lb-surface); }
 .fieldRow.long, .fieldRow:has(.fieldLong) { align-items: flex-start; }
-.fieldK { font-size: 12px; color: #9A8FAA; flex: none; }
-.fieldV { font-size: 12.5px; font-weight: 700; color: #1A0A38; text-align: end; border-radius: 5px; padding: 1px 4px; }
-.fieldEmpty { font-weight: 500; font-style: italic; color: #C3B8D4; }
+.fieldK { font-size: 12px; color: var(--lb-muted); flex: none; }
+.fieldV { font-size: 12.5px; font-weight: 700; color: var(--lb-ink); text-align: end; border-radius: 5px; padding: 1px 4px; }
+.fieldEmpty { font-weight: 500; font-style: italic; color: var(--lb-muted); }
 .fieldLong { font-weight: 600; white-space: normal; }
 .pill { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
   background: #FFF6E0; color: #B8860B; }
@@ -58,23 +150,25 @@
 .bar { display: flex; flex-direction: column; gap: 5px; }
 .barRow { display: flex; align-items: center; justify-content: space-between; }
 .barRow { align-items: baseline; }
-.barLab { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 700; color: #1A0A38; }
+.barLab { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 700; color: var(--lb-ink); }
 .swatch { display: none; }
-.barNum { font-family: var(--lb-mono, ui-monospace, monospace); font-size: 12px; font-weight: 700; color: #9A2295; font-variant-numeric: tabular-nums; }
-.track { height: 7px; border-radius: 100px; background: #EFEAF6; overflow: hidden; }
+.barNum { font-family: var(--lb-mono, ui-monospace, monospace); font-size: 12px; font-weight: 700; color: var(--lb-eyebrow); font-variant-numeric: tabular-nums; }
+/* Live Brain look — Noa's big mono value beside the bar. */
+:global([data-look="brain"]) .barNum { font-size: 15px; }
+.track { height: 7px; border-radius: 100px; background: var(--lb-line); overflow: hidden; }
 .fill { height: 100%; border-radius: 999px; background: var(--lb-grad, linear-gradient(90deg, #E0198A, #7C3AED)); transition: width .9s cubic-bezier(.4, 0, .2, 1); }
 
 /* ── cards ── */
 .cards { display: flex; flex-direction: column; gap: 8px; }
 .card {
   border: 0; border-radius: 11px; padding: 11px 13px;
-  background: #FBF5FF; animation: lbCardIn .35s ease both;
+  background: var(--lb-tint); animation: lbCardIn .35s ease both;
 }
 /* Noa's insight card: mono uppercase title, optional status pill inline. */
 .cardTitleRow { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
-.cardTitle { font-family: var(--lb-mono, ui-monospace, monospace); font-size: 9.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: #9A2295; }
+.cardTitle { font-family: var(--lb-mono, ui-monospace, monospace); font-size: 9.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--lb-eyebrow); }
 .cardTag { flex: none; font-size: 8.5px; font-weight: 800; color: #B8860B; background: #FFF6E0; padding: 2px 6px; border-radius: 5px; }
-.cardBody { font-size: 12.5px; line-height: 1.5; color: #2A1442; }
+.cardBody { font-size: 12.5px; line-height: 1.5; color: var(--lb-ink); }
 @keyframes lbCardIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: none; }
@@ -86,23 +180,23 @@
 }
 
 /* Noa's per-bar sub-label (Profile Health captions like "Warming up"). */
-.barCaption { font-size: 11px; color: #5C5070; margin-top: 5px; }
+.barCaption { font-size: 11px; color: var(--lb-label); margin-top: 5px; }
 
 
 /* ── journey / status ── */
 .journey { display: flex; flex-direction: column; }
-.jRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #F2EAF9; }
+.jRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--lb-surface); }
 .jRowLong { align-items: flex-start; }
-.jK { font-size: 12px; color: #9A8FAA; flex: none; }
-.jV { font-size: 12.5px; font-weight: 700; color: #1A0A38; text-align: end; }
+.jK { font-size: 12px; color: var(--lb-muted); flex: none; }
+.jV { font-size: 12.5px; font-weight: 700; color: var(--lb-ink); text-align: end; }
 .jVLong { font-weight: 500; white-space: normal; }
-.jPill { font-size: 11.5px; font-weight: 700; color: #5B1E8A; background: rgba(154, 34, 149, .10); padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
-.jReady { margin-top: 12px; background: #FBF5FF; border-radius: 11px; padding: 12px 13px; }
+.jPill { font-size: 11.5px; font-weight: 700; color: #5B1E8A; background: var(--lb-eyebrow-bg); padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.jReady { margin-top: 12px; background: var(--lb-tint); border-radius: 11px; padding: 12px 13px; }
 .jReadyHead { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 7px; }
-.jReadyLab { font-size: 11.5px; font-weight: 700; color: #1A0A38; }
-.jReadyNum { font-family: var(--lb-mono, ui-monospace, monospace); font-size: 11px; font-weight: 700; color: #9A2295; }
+.jReadyLab { font-size: 11.5px; font-weight: 700; color: var(--lb-ink); }
+.jReadyNum { font-family: var(--lb-mono, ui-monospace, monospace); font-size: 11px; font-weight: 700; color: var(--lb-eyebrow); }
 /* Suggested next step — INSIDE the readiness box, arrow + one sentence. */
 .jNext { margin-top: 9px; display: flex; align-items: flex-start; gap: 7px; }
 .jNextIcon { flex: none; margin-top: 2px; }
-.jNextText { font-size: 12px; line-height: 1.45; color: #5C5070; }
-.jNextText strong { color: #1A0A38; font-weight: 700; }
+.jNextText { font-size: 12px; line-height: 1.45; color: var(--lb-label); }
+.jNextText strong { color: var(--lb-ink); font-weight: 700; }

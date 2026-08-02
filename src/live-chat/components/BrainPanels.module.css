@@ -1,0 +1,18 @@
+/* Live Brain shell header furniture (Noa's Shell mockup): the LIVE pill and
+ * the light/dark toggle that sit beside the wordmark. Colours come from the
+ * PanelSurface --lb-* tokens, so both themes are handled for free. */
+
+.livePill {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  font-family: var(--lb-mono); font-size: 9px; letter-spacing: 1.2px;
+  color: var(--lb-label, #665A7D);
+  border: 1px solid var(--lb-card-line, #EAE4F2); border-radius: 100px;
+  padding: 5px 11px; white-space: nowrap;
+}
+.liveDot {
+  width: 5px; height: 5px; border-radius: 100px; flex: none;
+  background: #F060B0; box-shadow: 0 0 0 3px rgba(240, 96, 176, .22);
+}
+
+/* (Noa's header also has a Light/Dark toggle — ours lives in the chat's
+   settings menu, so it isn't repeated here.) */

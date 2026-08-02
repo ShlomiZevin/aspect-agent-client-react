@@ -13,6 +13,8 @@ export interface Dict {
   brain: string;
   brainTitle: string;
   brainSub: string;
+  /** Live Brain header strapline, under the LIVE BRAIN wordmark. */
+  brainStrap: string;
   profiler: string;
   profTitle: string;
   profSub: string;
@@ -42,6 +44,9 @@ export interface Dict {
   send: string;
   refresh: string;
   sendCtrlEnter: string;
+  /** Live Brain TEXT panel — expand / collapse a clamped body. */
+  showMore: string;
+  showLess: string;
   viewOnSite: string;
   openFullChat: string;
   openInBuilder: string;
@@ -99,6 +104,7 @@ export const I18N: Record<Lang, Dict> = {
     brain: 'המוח החי',
     brainTitle: 'המוח החי של השיחה',
     brainSub: 'כאן יוצג תהליך הקבלת-החלטות החי: מודלים פעילים, מטרות, ניהול הקשר ומצב רגשי. יאופיין בהמשך.',
+    brainStrap: 'למה ליבי אומרת מה שהיא אומרת',
     profiler: 'פרופיל השיחה',
     profTitle: 'פרופיל הלקוח המתפתח',
     profSub: 'כאן יוצג הפרופיל שנבנה תוך כדי השיחה: צרכים, העדפות, הקשר ומסע מתפתח. יאופיין בהמשך.',
@@ -124,6 +130,8 @@ export const I18N: Record<Lang, Dict> = {
     send: 'שליחה',
     refresh: 'רענון',
     sendCtrlEnter: 'שליחה עם Ctrl+Enter',
+    showMore: 'הצג עוד',
+    showLess: 'הצג פחות',
     viewOnSite: 'תצוגה באתר (הטמעה)',
     openFullChat: 'פתיחת הצ׳אט במסך מלא',
     openInBuilder: 'פתח ב-Builder',
@@ -179,6 +187,7 @@ export const I18N: Record<Lang, Dict> = {
     brain: 'Live Brain',
     brainTitle: "The conversation's live brain",
     brainSub: 'Live decisioning will show here: active models, goals, context management and emotional state. To be specified.',
+    brainStrap: 'why I’m saying what I’m saying',
     profiler: 'Conversation Profile',
     profTitle: 'The evolving customer profile',
     profSub: 'The profile built mid-conversation will show here: needs, preferences, context and evolving journey. To be specified.',
@@ -204,6 +213,8 @@ export const I18N: Record<Lang, Dict> = {
     send: 'Send',
     refresh: 'Refresh',
     sendCtrlEnter: 'Send with Ctrl+Enter',
+    showMore: 'Show more',
+    showLess: 'Show less',
     viewOnSite: 'View on site (embed)',
     openFullChat: 'Open full chat',
     openInBuilder: 'Open in builder',

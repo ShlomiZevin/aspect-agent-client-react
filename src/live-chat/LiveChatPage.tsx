@@ -310,7 +310,16 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
             bareHead
             full={brainFull}
           >
-            <BrainPanels panels={brainPanels} arrangement={brainArrangement} dockSide={dir === 'rtl' ? 'right' : 'left'} onClose={() => setBrainOpen(false)} />
+            <BrainPanels
+              panels={brainPanels}
+              arrangement={brainArrangement}
+              dockSide={dir === 'rtl' ? 'right' : 'left'}
+              lang={settings.lang}
+              subtitle={t.brainStrap}
+              moreLabel={t.showMore}
+              lessLabel={t.showLess}
+              onClose={() => setBrainOpen(false)}
+            />
           </SidePanel>
         )}
 

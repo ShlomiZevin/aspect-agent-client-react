@@ -399,9 +399,12 @@ export function ProfilerScreen() {
   const panelFilter = editing?.filter ?? EMPTY_FILTER;
 
   // Ask config (with defaults).
-  const ask = profiler?.ask ?? { enabled: false, model: DEFAULT_ASK_MODEL, prompt: '', chips: [] as string[] };
+  const ASK_DEFAULTS = { enabled: false, model: DEFAULT_ASK_MODEL, prompt: '', chips: [] as string[] };
+  const ask = profiler?.ask ?? ASK_DEFAULTS;
   const patchAsk = (patch: Partial<NonNullable<ProfilerDef['ask']>>) =>
-    writeProfiler({ ask: { enabled: false, model: DEFAULT_ASK_MODEL, prompt: '', chips: [], ...ask, ...patch } });
+    // Defaults spread FIRST (as an object, not loose keys) so `ask` and the
+    // incoming patch win — loose keys before a spread are silently overwritten.
+    writeProfiler({ ask: { ...ASK_DEFAULTS, ...ask, ...patch } });
 
   const display = buildDisplayPanels(panels, liveValues);
   const placeById = new Map(panels.map(p => [p.id, p.placement]));

@@ -1,0 +1,179 @@
+/* Live Brain — Noa's "cognitive processing" panel (Shell mockup).
+ * A normal brain panel frame (head / body / footer, tokens inherited from
+ * PanelSurface's --lb-* vars) wrapping the reasoning animation: breathing
+ * spiral core, two counter-rotating orbit rings, expanding pulse rings, six
+ * synapse rays, six labelled nodes and drifting motes. Decorative only.
+ * Light is the primary look; the dark override mirrors her theme block. */
+
+.panel {
+  background: var(--lb-panel, #fff);
+  border: 1px solid var(--lb-card-line, #EAE4F2);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+/* ── head (matches .lookBrain .cardHead) ──
+   Double class → out-specifies the `.lybi-chat button` reset, which would
+   otherwise strip the tinted strip and its bottom hairline. */
+.head.head {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 12px 14px; text-align: start; font: inherit; cursor: pointer;
+  background: var(--lb-tint, #FBF5FF);
+  border: 0; border-bottom: 1px solid var(--lb-line, #EAE4F2);
+}
+.icon {
+  width: 26px; height: 26px; flex: none; border-radius: 8px;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, #E0198A 0%, #5B1E8A 100%);
+}
+.icon img { width: 15px; height: 15px; display: block; filter: brightness(0) invert(1); }
+.title {
+  font-size: 14.5px; font-weight: 700; color: var(--lb-title, #1A0A38);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.spacer { flex: 1; }
+.chev {
+  width: 22px; height: 22px; flex: none; display: grid; place-items: center;
+  border: 1px solid var(--lb-card-line, #EAE4F2); border-radius: 6px;
+  background: var(--lb-tint, #FBF5FF); color: var(--lb-chev, #C3B8D4);
+  transition: transform .15s;
+  transform: rotate(-90deg);
+}
+.chevOpen { transform: rotate(0deg); }
+
+/* ── the animation field ── */
+.viz {
+  --neu-ring:   #C9BAE3;
+  --neu-ring-2: #DCD1EE;
+  --neu-glow:   rgba(224, 25, 138, .16);
+  --neu-fill:   #FBF5FF;
+  --neu-pulse:  rgba(224, 25, 138, .5);
+  --neu-pulse-2: rgba(124, 77, 214, .4);
+  --neu-label:  #5B4A73;
+  --neu-dim:    #9B7FC7;
+
+  position: relative; height: 222px; overflow: hidden;
+  display: grid; place-items: center; direction: ltr;
+  background: var(--neu-fill);
+}
+:global(.lybi-chat[data-theme="dark"]) .viz {
+  --neu-ring:   rgba(255, 255, 255, .22);
+  --neu-ring-2: rgba(255, 255, 255, .16);
+  --neu-glow:   rgba(224, 25, 138, .28);
+  --neu-fill:   transparent;
+  --neu-pulse:  rgba(240, 96, 176, .55);
+  --neu-pulse-2: rgba(176, 123, 232, .45);
+  --neu-label:  rgba(255, 255, 255, .62);
+  --neu-dim:    rgba(255, 255, 255, .28);
+}
+
+.glow {
+  position: absolute; inset: 0;
+  background: radial-gradient(45% 60% at 50% 50%, var(--neu-glow), transparent 70%);
+}
+.mote { position: absolute; border-radius: 100px; animation: lbFloat ease-in-out infinite; }
+
+/* Centre anchor — everything below is positioned from the middle. */
+.stage { position: relative; width: 1px; height: 1px; }
+
+.orbit { position: absolute; left: 50%; top: 50%; border-radius: 100px; }
+.orbitOuter {
+  width: 186px; height: 186px; margin: -93px 0 0 -93px;
+  border: 1px dashed var(--neu-ring); animation: lbOrbit 34s linear infinite;
+}
+.orbitInner {
+  width: 124px; height: 124px; margin: -62px 0 0 -62px;
+  border: 1px solid var(--neu-ring-2); animation: lbOrbit 22s linear reverse infinite;
+}
+
+.pulse {
+  position: absolute; left: 50%; top: 50%; width: 150px; height: 150px;
+  margin: -75px 0 0 -75px; border-radius: 100px;
+  border: 1.5px solid var(--neu-pulse);
+  animation: lbRing 5s cubic-bezier(.2, .6, .3, 1) infinite;
+}
+.pulseB { border-color: var(--neu-pulse-2); animation-delay: 2.5s; }
+
+.synapse {
+  position: absolute; left: 50%; top: 50%; width: 86px; height: 1.5px;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, var(--neu-pulse), transparent);
+  animation: lbSynapse 6s linear infinite;
+}
+
+.core {
+  position: absolute; left: 50%; top: 50%; z-index: 2;
+  animation: lbBreathe 5s ease-in-out infinite;
+}
+.core img { width: 56px; height: 56px; display: block; }
+:global(.lybi-chat[data-theme="dark"]) .core img { filter: brightness(0) invert(1); }
+
+/* ── the six labelled nodes ── */
+.node {
+  position: absolute; transform: translate(-50%, -50%); z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.mark { position: relative; width: 10px; height: 10px; display: block; }
+.halo {
+  position: absolute; inset: -8px; border-radius: 100px;
+  border: 1.5px solid rgba(224, 25, 138, .85);
+  animation: lbHalo 6s linear infinite;
+}
+.dot { position: absolute; inset: 0; border-radius: 100px; animation: lbDot 6s linear infinite; }
+.label {
+  font-size: 11px; font-weight: 600; letter-spacing: .3px; white-space: nowrap;
+  color: var(--neu-label); animation: lbFlick 6s linear infinite;
+}
+
+/* ── footer (matches .lookBrain .cardFoot, plus her right-hand caption) ── */
+.foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 15px; border-top: 1px solid var(--lb-line, #EAE4F2);
+}
+.footMono {
+  font-family: var(--lb-mono); font-size: 8.5px; font-weight: 700;
+  letter-spacing: 1.3px; text-transform: uppercase; color: var(--lb-muted, #9A8FAA);
+}
+.footText { font-size: 13px; color: var(--lb-muted, #9A8FAA); }
+
+/* ── Noa's keyframes, lifted from the mockup ── */
+@keyframes lbRing {
+  0%   { transform: scale(.35); opacity: 0; }
+  18%  { opacity: .55; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+@keyframes lbBreathe {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: .85; }
+  50%      { transform: translate(-50%, -50%) scale(1.06); opacity: 1; }
+}
+@keyframes lbDot {
+  0%, 100% { background: var(--neu-dim); box-shadow: none; transform: scale(1); }
+  5%       { background: #E0198A; box-shadow: 0 0 0 4px rgba(224, 25, 138, .24); transform: scale(1.25); }
+  17%      { background: var(--neu-dim); box-shadow: none; transform: scale(1); }
+}
+@keyframes lbHalo {
+  0%, 100% { opacity: 0; transform: scale(.6); }
+  6%       { opacity: 1; transform: scale(1); }
+  22%      { opacity: 0; transform: scale(1.6); }
+}
+@keyframes lbFlick {
+  0%, 100% { opacity: .6; }
+  5%       { opacity: 1; }
+  18%      { opacity: .65; }
+}
+@keyframes lbFloat {
+  0%, 100% { transform: translate(0, 0); opacity: .35; }
+  50%      { transform: translate(-6px, -9px); opacity: .85; }
+}
+@keyframes lbOrbit { to { transform: rotate(360deg); } }
+@keyframes lbSynapse {
+  0%, 100% { opacity: .28; }
+  8%       { opacity: 1; }
+  30%      { opacity: .3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mote, .orbitOuter, .orbitInner, .pulse, .synapse, .core, .halo, .dot, .label { animation: none; }
+  .halo { opacity: 0; }
+  .dot { background: var(--neu-dim); }
+}

@@ -100,6 +100,8 @@
 .lybi-chat .brain.open { width: max(460px, 50vw); }
 .lybi-chat .panel-inner { width: 340px; flex-shrink: 0; height: 100%; display: flex; flex-direction: column; }
 .lybi-chat .brain .panel-inner { width: max(460px, 50vw); }
+/* Brain-mock: <BrainPanels/> owns its own header/banner — no padding chrome. */
+.lybi-chat .lb-mock-panel { padding: 0; overflow: hidden; }
 .lybi-chat .panel-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 18px 20px; border-bottom: 1px solid var(--border); gap: 10px;

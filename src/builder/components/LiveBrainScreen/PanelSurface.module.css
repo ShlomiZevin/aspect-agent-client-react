@@ -7,14 +7,25 @@
  */
 
 .surface {
-  /* Noa palette → the shared PanelBody templates pick these up. */
+  /* Noa panel tokens — LIGHT defaults. The shared PanelBody templates pick
+     these up too. A dark override follows, keyed on the customer chat's
+     data-theme so the panels turn glassy in dark mode and stay light in the
+     builder / light chat. */
   --lb-accent: #E0198A; --lb-accent-2: #5B1E8A;
   --lb-grad: linear-gradient(90deg, #E0198A, #5B1E8A);
   --lb-ink: #1A0A38; --lb-muted: #9A8FAA;
   --lb-line: #EAE4F2; --lb-surface: #F2EAF9; --lb-panel: #fff;
   --lb-mono: "JetBrains Mono", ui-monospace, "SF Mono", "Roboto Mono", Menlo, monospace;
+  /* Live Brain chip states (Noa's light theme block). */
+  --lb-chip-on: #5B1E8A; --lb-chip-on-shadow: none;
+  --lb-chip-off: #fff; --lb-chip-off-line: #C9BAE3; --lb-chip-off-text: #5B4A73;
+  --lb-body2: #423655; --lb-track: #EAE1F5; --lb-card-fill: #FBF5FF;
+  --lb-page: #FAFAFF; --lb-head: #fff; --lb-title: #1A0A38; --lb-sub: #5C5070;
+  --lb-label: #665A7D; --lb-divider: #EAE4F2; --lb-card-line: #EAE4F2;
+  --lb-tint: #FBF5FF; --lb-eyebrow: #9A2295; --lb-eyebrow-bg: rgba(154, 34, 149, .10);
+  --lb-chev: #C3B8D4; --lb-scroll: #E3D7F0; --lb-scroll-h: #C3B8D4;
 
-  background: #FAFAFF;
+  background: var(--lb-page);
   height: 100%; min-height: 0;
   display: flex; flex-direction: column;
   font-family: "Assistant", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -30,20 +41,48 @@
   text-align: left;
 }
 
+/* Live Brain look — follow the surrounding chat direction (so Hebrew content
+   renders RTL like Noa's Live Brain page), instead of the Profiler's LTR pin.
+   Everything inside (header, cards, bars, fields) mirrors via flex/text-align
+   start-end, so the whole panel flips correctly for Hebrew. */
+.surface.lookBrain { direction: inherit; text-align: start; }
+
+/* Dark override (Noa's glassy panels) — applies only inside the customer
+   chat's dark theme; the builder + light chat keep the light tokens above. */
+:global(.lybi-chat[data-theme="dark"]) .surface {
+  --lb-ink: rgba(255, 255, 255, .88); --lb-muted: rgba(255, 255, 255, .45);
+  --lb-line: rgba(255, 255, 255, .14); --lb-surface: rgba(255, 255, 255, .06);
+  --lb-panel: rgba(255, 255, 255, .055);
+  --lb-page: #0A0420; --lb-head: rgba(255, 255, 255, .04); --lb-title: #fff;
+  --lb-sub: rgba(255, 255, 255, .70); --lb-label: rgba(255, 255, 255, .62);
+  --lb-divider: rgba(255, 255, 255, .10); --lb-card-line: rgba(255, 255, 255, .22);
+  --lb-tint: rgba(255, 255, 255, .06); --lb-eyebrow: #B07BE8;
+  --lb-eyebrow-bg: rgba(176, 123, 232, .15);
+  --lb-chev: rgba(255, 255, 255, .40); --lb-scroll: rgba(255, 255, 255, .16);
+  --lb-scroll-h: rgba(255, 255, 255, .28);
+  /* On dark the ON chip carries the full brand gradient + its glow. */
+  --lb-chip-on: linear-gradient(135deg, #E0198A 0%, #9A2295 100%);
+  --lb-chip-on-shadow: 0 6px 16px rgba(224, 25, 138, .30);
+  --lb-chip-off: transparent; --lb-chip-off-line: rgba(255, 255, 255, .18);
+  --lb-chip-off-text: rgba(255, 255, 255, .45);
+  --lb-body2: rgba(255, 255, 255, .80); --lb-track: rgba(255, 255, 255, .14);
+  --lb-card-fill: transparent;
+}
+
 /* ── FIXED header — outside the scroll region, so the scrollbar only runs
    alongside the panels below it (not up next to the title). ── */
 .head {
   position: relative;
   flex: none; box-sizing: border-box; min-height: 70px; /* match the chat top bar */
   display: flex; flex-direction: column; justify-content: center;
-  padding: 12px 18px; background: #fff; border-bottom: 1px solid #EAE4F2;
+  padding: 12px 18px; background: var(--lb-head); border-bottom: 1px solid var(--lb-divider);
 }
 .headTwo { justify-content: flex-start; padding-top: 16px; padding-bottom: 14px; }
 /* Title row (logo + title + close). */
 .headTop { display: flex; align-items: center; gap: 11px; }
 /* Second row — "Updated N ago" on the left, Refresh/Ask on the right. */
 .headMeta { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 15px; }
-.updated { font-family: var(--lb-mono); font-size: 10px; letter-spacing: .5px; color: #9A8FAA; }
+.updated { font-family: var(--lb-mono); font-size: 10px; letter-spacing: .5px; color: var(--lb-muted); }
 .headActions { display: flex; align-items: center; gap: 8px; }
 /* Noa's 3px brand accent line across the top of the header. */
 .head::before {
@@ -62,14 +101,14 @@
   background: linear-gradient(135deg, rgba(224, 25, 138, .12), rgba(91, 30, 138, .14));
 }
 .mark { flex: 1; min-width: 0; }
-.title { font-size: 16px; font-weight: 800; letter-spacing: -.01em; color: #1A0A38; line-height: 1.1; }
-.sub { font-size: 11.5px; color: #5C5070; margin-top: 2px; }
+.title { font-size: 16px; font-weight: 800; letter-spacing: -.01em; color: var(--lb-title); line-height: 1.1; }
+.sub { font-size: 11.5px; color: var(--lb-sub); margin-top: 2px; }
 .headRight { flex: none; display: flex; align-items: center; gap: 6px; }
 /* Double class → out-specifies the `.lybi-chat button` reset that would
    otherwise strip the border/background in the customer chat. */
 .close.close {
-  width: 30px; height: 30px; flex: none; border-radius: 8px; border: 1px solid #EAE4F2;
-  background: #fff; color: #9A8FAA; cursor: pointer; line-height: 1;
+  width: 30px; height: 30px; flex: none; border-radius: 8px; border: 1px solid var(--lb-card-line);
+  background: var(--lb-panel); color: var(--lb-muted); cursor: pointer; line-height: 1;
   display: grid; place-items: center; transition: color .15s, border-color .15s;
 }
 .close:hover { color: #E0198A; border-color: rgba(224, 25, 138, .5); }
@@ -78,11 +117,11 @@
 .body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 14px 14px 22px; }
 .body::-webkit-scrollbar { width: 8px; }
 .body::-webkit-scrollbar-track { background: transparent; }
-.body::-webkit-scrollbar-thumb { background: #E3D7F0; border-radius: 100px; }
-.body::-webkit-scrollbar-thumb:hover { background: #C3B8D4; }
-.sectionLabel { font-family: var(--lb-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #9A8FAA; padding: 2px 2px 11px; }
+.body::-webkit-scrollbar-thumb { background: var(--lb-scroll); border-radius: 100px; }
+.body::-webkit-scrollbar-thumb:hover { background: var(--lb-scroll-h); }
+.sectionLabel { font-family: var(--lb-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--lb-muted); padding: 2px 2px 11px; }
 .cards { display: flex; flex-direction: column; gap: 11px; }
-.empty { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; color: #9A8FAA; font-size: 13px; line-height: 1.5; padding: 48px 26px; }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; color: var(--lb-muted); font-size: 13px; line-height: 1.5; padding: 48px 26px; }
 .emptyEmoji { font-size: 30px; opacity: .75; }
 
 /* ── card (Noa's section card) ── */
@@ -94,7 +133,7 @@
 /* "Born" — the card materializes: blur-in + a clear scale-up + rise +
    fade, on a smooth decelerating curve (no bounce). Noticeable but elegant. */
 .card {
-  background: #fff; border: 1px solid #EAE4F2; border-radius: 14px;
+  background: var(--lb-panel); border: 1px solid var(--lb-card-line); border-radius: 14px;
   box-shadow: 0 1px 3px rgba(26, 10, 56, .05), 0 14px 30px -22px rgba(26, 10, 56, .4);
   overflow: hidden; transform-origin: center top;
   animation: lbReveal .72s cubic-bezier(.16, 1, .3, 1) both;
@@ -108,16 +147,135 @@
 .cardHead { display: flex; align-items: center; gap: 10px; width: 100%; text-align: start; background: none; border: 0; cursor: pointer; padding: 13px 15px; font: inherit; }
 .cardIcon {
   width: 30px; height: 30px; flex: none; border-radius: 8px; display: grid; place-items: center;
+  color: var(--lb-eyebrow);
   background: linear-gradient(135deg, rgba(224, 25, 138, .12), rgba(91, 30, 138, .14));
 }
-.cardTitle { font-size: 13.5px; font-weight: 700; color: #1A0A38; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Live Brain look (Noa's "Live Brain Panels") — distinct from the
+   Profiler. Solid-gradient icon chip with a WHITE glyph, an OUTLINE mono
+   type-tag, and a tinted header strip. Scoped to .lookBrain so the Profiler
+   keeps its own soft-tile / filled-pill design. ── */
+/* ── Live Brain HEADER (Noa's Shell): a 32px solid-gradient tile carrying the
+   spiral, a mono "LIVE BRAIN" wordmark over a quiet subtitle, and a square
+   close. The Profiler keeps its soft tile + 16px title. ── */
+.lookBrain .logo {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: linear-gradient(135deg, #E0198A 0%, #9A2295 50%, #5B1E8A 100%);
+  box-shadow: 0 6px 18px rgba(224, 25, 138, .32);
+}
+.lookBrain .logo img {
+  width: 20px; height: 20px; display: block;
+  /* the spiral asset is magenta — force it white on the gradient tile */
+  filter: brightness(0) invert(1);
+}
+.lookBrain .title {
+  font-family: var(--lb-mono); font-size: 10.5px; font-weight: 700;
+  letter-spacing: 1.7px; line-height: 1.2; white-space: nowrap;
+}
+.lookBrain .sub { font-size: 12.5px; color: var(--lb-muted); margin-top: 3px; }
+.lookBrain .close.close {
+  width: 28px; height: 28px; border-radius: 8px;
+  border: 1px solid var(--lb-line); background: var(--lb-tint);
+}
+
+/* A card pinned above the panel list (the reasoning animation). */
+.lead { margin-bottom: 11px; }
+
+/* ── Live Brain TEXT panel (Noa's 01 · טקסט): plain prose in the panel body —
+   no quote box, no rail. Capped at 132px so one long rationale can't push the
+   other panels off screen; the overflow fades and opens on "show more". ── */
+.brainText { padding: 15px; font-size: 14.5px; line-height: 1.65; color: var(--lb-ink); }
+.brainText p { margin: 0 0 10px; }
+.brainText p:last-child { margin-bottom: 0; }
+.clamp { position: relative; max-height: 132px; overflow: hidden; }
+.clampOpen { max-height: none; }
+.clampFade {
+  position: absolute; inset-inline: 0; bottom: 0; height: 46px; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--lb-panel));
+}
+.moreBtn.moreBtn {
+  margin: 9px 0 0; padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 12.5px; font-weight: 700; color: var(--lb-eyebrow);
+}
+.moreBtn.moreBtn:hover { color: #E0198A; }
+
+/* ── HTML panel (not one of Noa's five — it follows TEXT).
+   The author's HTML is left completely alone: whatever colours, cards or
+   layout it ships are its own. Our job is only the HOLDER — sit the content
+   squarely in the panel, edge to edge, with no stray margins fighting the
+   frame. Everything below is either a default for UNSTYLED markup or a
+   containment guard; nothing overrides an author's choice. ── */
+/* A single styled card fills the panel body instead of floating inside it. */
+.brainHtml > div > :global(*:only-child) { display: block; width: 100%; }
+.brainHtml :global(h1), .brainHtml :global(h2), .brainHtml :global(h3),
+.brainHtml :global(h4) { font-size: 14.5px; font-weight: 700; color: var(--lb-title); margin: 0 0 6px; }
+.brainHtml :global(ul), .brainHtml :global(ol) { margin: 0 0 10px; padding-inline-start: 18px; }
+.brainHtml :global(li) { margin: 3px 0; }
+.brainHtml :global(li)::marker { color: var(--lb-muted); }
+.brainHtml :global(strong), .brainHtml :global(b) { color: var(--lb-title); font-weight: 700; }
+.brainHtml :global(a) { color: var(--lb-eyebrow); }
+.brainHtml :global(hr) { border: 0; border-top: 1px solid var(--lb-line); margin: 12px 0; }
+.brainHtml :global(code) {
+  font-family: var(--lb-mono); font-size: 12px;
+  background: var(--lb-surface); border-radius: 5px; padding: 1px 5px;
+}
+.brainHtml :global(blockquote) {
+  margin: 0 0 10px; padding: 10px 13px; border-radius: 11px;
+  background: var(--lb-tint); border-inline-start: 3px solid #E0198A;
+}
+.brainHtml :global(table) { width: 100%; border-collapse: collapse; font-size: 13px; }
+.brainHtml :global(th), .brainHtml :global(td) {
+  border: 1px solid var(--lb-line); padding: 5px 8px; text-align: start;
+}
+/* An author card shouldn't be able to overflow the panel or push it wide. */
+.brainHtml :global(img), .brainHtml :global(table), .brainHtml :global(pre) { max-width: 100%; }
+.brainHtml :global(pre) { white-space: pre-wrap; }
+/* Nested boxes sit flush with the panel body — no double margin at the edges. */
+.brainHtml > div > :global(*:first-child) { margin-top: 0; }
+.brainHtml > div > :global(*:last-child) { margin-bottom: 0; }
+
+.lookBrain .cardHead { background: var(--lb-tint); border-bottom: 1px solid var(--lb-line); }
+.lookBrain .cardIcon {
+  width: 26px; height: 26px; border-radius: 8px; color: #fff;
+  background: linear-gradient(135deg, #E0198A 0%, #5B1E8A 100%);
+}
+.lookBrain .cardTitle { font-size: 14.5px; }
+/* Noa's collapse control is a real button, not a bare glyph: a bordered
+   22px tile whose chevron points DOWN when the panel is open and to the
+   SIDE when it's folded away. */
+.lookBrain .chev {
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 1px solid var(--lb-card-line); background: var(--lb-tint);
+  transform: rotate(-90deg);
+}
+.lookBrain .chevOpen { transform: rotate(0deg); }
+/* Her panel bodies breathe evenly — 15px all round, not tucked up under the
+   head the way the Profiler's sections are. */
+.lookBrain .cardBody { padding: 15px; }
+.lookBrain .cardBody.bodyFields { padding: 4px 15px 8px; }
+/* Collapsed panel — the one-line preview needs the same 15px gutter as a
+   body, and room to breathe under the head's hairline. Without it the line
+   sits flush on the card edge and reads as spill, not content. */
+.lookBrain .cardCompact { padding: 11px 15px 12px; margin-top: 0; font-size: 12.5px; }
+.lookBrain .typePill {
+  font-size: 8.5px; letter-spacing: 1.2px; color: var(--lb-label);
+  background: none; border: 1px solid var(--lb-card-line); border-radius: 100px; padding: 3px 9px;
+}
+/* Noa's per-panel footer — mono metadata row (source/count/scale/legend). */
+.lookBrain .cardFoot {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 15px; border-top: 1px solid var(--lb-line);
+  font-family: var(--lb-mono); font-size: 8.5px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase; color: var(--lb-muted);
+}
+.cardTitle { font-size: 13.5px; font-weight: 700; color: var(--lb-title); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .spacer { flex: 1; }
-.typePill { flex: none; font-family: var(--lb-mono); font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #9A2295; background: rgba(154, 34, 149, .10); border-radius: 5px; padding: 3px 7px; }
-.chev { flex: none; color: #C3B8D4; display: grid; place-items: center; transition: transform .2s; }
+.typePill { flex: none; font-family: var(--lb-mono); font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--lb-eyebrow); background: var(--lb-eyebrow-bg); border-radius: 5px; padding: 3px 7px; }
+.chev { flex: none; color: var(--lb-chev); display: grid; place-items: center; transition: transform .2s; }
 .chevOpen { transform: rotate(180deg); }
 .cardBody { padding: 2px 15px 15px; }
 /* Noa's narrative summary — a soft lilac box with a gradient rail. */
-.narrative { position: relative; margin: 0 15px 15px; padding: 13px 14px 13px 17px; background: #FBF5FF; border-radius: 11px; overflow: hidden; }
+.narrative { position: relative; margin: 0 15px 15px; padding: 13px 14px 13px 17px; background: var(--lb-tint); border-radius: 11px; overflow: hidden; }
 .narrative::before { content: ''; position: absolute; top: 0; bottom: 0; inset-inline-start: 0; width: 3px; background: linear-gradient(#E0198A, #5B1E8A); }
 
 @media (prefers-reduced-motion: reduce) {
@@ -128,6 +286,6 @@
    (Noa's collapsed sections show a summary, not an empty header). */
 .cardCompact {
   padding: 0 15px 13px; margin-top: -2px;
-  font-size: 11.5px; color: #9A8FAA; line-height: 1.4;
+  font-size: 11.5px; color: var(--lb-muted); line-height: 1.4;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }

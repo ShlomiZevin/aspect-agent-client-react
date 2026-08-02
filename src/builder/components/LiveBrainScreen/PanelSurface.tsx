@@ -14,7 +14,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { PanelRender } from '../../types';
-import { PanelBody, compactSummary, type PanelValues } from './PanelTemplates';
+import { PanelBody, compactSummary, panelFooter, type PanelValues } from './PanelTemplates';
 import s from './PanelSurface.module.css';
 
 export interface DisplayPanel {
@@ -23,6 +23,9 @@ export interface DisplayPanel {
   render: PanelRender;
   text?: string;
   values?: PanelValues;
+  /** When this panel last computed (ms). Drives the brain footer's
+   *  "UPDATED 2S" — Noa's update cue lives there, not in a typing animation. */
+  ranAt?: number;
   /** 'header' → the pinned group at the top (e.g. Profile Health);
    *  anything else → a normal body section. */
   placement?: 'header' | 'body';
@@ -32,6 +35,12 @@ export interface DisplayPanel {
 // Insights=cards, Levels=bars.
 const TYPE_LABEL: Record<PanelRender, string> = {
   text: 'Narrative', html: 'HTML', tags: 'Tags', fields: 'Fields', bars: 'Levels', cards: 'Insights', journey: 'Status',
+};
+// The Live Brain names its panels by TYPE, not by their editorial role — Noa's
+// panel library tags them TEXT / TAGS / FIELDS / BARS / CARDS. Only the types
+// already converted live here; the rest fall back to the Profiler labels.
+const BRAIN_TYPE_LABEL: Partial<Record<PanelRender, string>> = {
+  text: 'Text',
 };
 // Noa uses SVG line-icons (NOT emoji) in a soft gradient tile — one per
 // render type. 24×24 viewBox, stroke coloured by CSS (#9A2295).
@@ -55,7 +64,52 @@ export function cleanLabel(title: string, render: PanelRender): string {
   return (title || TYPE_LABEL[render]).trim();
 }
 
-function Card({ panel, selected, footer }: { panel: DisplayPanel; selected?: boolean; footer?: ReactNode }) {
+/**
+ * Noa's TEXT panel body: capped at 132px so a long rationale can't crowd the
+ * other panels out of view. What fits shows in full; anything longer fades at
+ * the cut and opens on "show more".
+ */
+function ClampedText({ children, moreLabel, lessLabel }: {
+  children: ReactNode; moreLabel: string; lessLabel: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const inner = useRef<HTMLDivElement>(null);
+
+  // Measure the CONTENT's natural height (the clamp lives on the wrapper), so
+  // the reading stays true while the panel is expanded — and re-measure as
+  // the text streams in.
+  useEffect(() => {
+    const el = inner.current;
+    if (!el) return;
+    const measure = () => setOverflows(el.scrollHeight > CLAMP_PX + 1);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [children]);
+
+  return (
+    <>
+      <div className={`${s.clamp} ${expanded ? s.clampOpen : ''}`}>
+        <div ref={inner}>{children}</div>
+        {!expanded && overflows && <span className={s.clampFade} aria-hidden />}
+      </div>
+      {overflows && (
+        <button type="button" className={s.moreBtn} onClick={() => setExpanded(v => !v)}>
+          {expanded ? lessLabel : moreLabel}
+        </button>
+      )}
+    </>
+  );
+}
+const CLAMP_PX = 132;
+
+function Card({ panel, selected, footer, isBrain, moreLabel, lessLabel }: {
+  panel: DisplayPanel; selected?: boolean; footer?: ReactNode; isBrain?: boolean;
+  moreLabel: string; lessLabel: string;
+}) {
   const [open, setOpen] = useState(true);
   const label = cleanLabel(panel.title, panel.render);
 
@@ -81,13 +135,15 @@ function Card({ panel, selected, footer }: { panel: DisplayPanel; selected?: boo
       <section className={`${s.card} ${selected ? s.cardSel : ''}`}>
         <button type="button" className={s.cardHead} onClick={() => setOpen(o => !o)}>
           <span className={s.cardIcon} aria-hidden>
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#9A2295" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <path d={ICON_PATH[panel.render] ?? ICON_PATH.text} />
             </svg>
           </span>
           <span className={s.cardTitle}>{label}</span>
           <span className={s.spacer} />
-          <span className={s.typePill}>{TYPE_LABEL[panel.render] ?? panel.render}</span>
+          <span className={s.typePill}>
+            {(isBrain ? BRAIN_TYPE_LABEL[panel.render] : undefined) ?? TYPE_LABEL[panel.render] ?? panel.render}
+          </span>
           <span className={`${s.chev} ${open ? s.chevOpen : ''}`} aria-hidden>
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M6 9l6 6 6-6" />
@@ -96,9 +152,34 @@ function Card({ panel, selected, footer }: { panel: DisplayPanel; selected?: boo
         </button>
         {open ? (
           <>
-            <div className={panel.render === 'text' ? s.narrative : s.cardBody}>
-              <PanelBody render={panel.render} text={panel.text} values={panel.values} />
-            </div>
+            {/* The Profiler frames its narrative in a lilac quote box; the brain
+                shows plain prose in the panel body, capped at 132px. */}
+            {isBrain && (panel.render === 'text' || panel.render === 'html') ? (
+              <div className={`${s.brainText} ${panel.render === 'html' ? s.brainHtml : ''}`}>
+                <ClampedText moreLabel={moreLabel} lessLabel={lessLabel}>
+                  <PanelBody render={panel.render} text={panel.text} values={panel.values} brain />
+                </ClampedText>
+              </div>
+            ) : (
+              <div className={[
+                panel.render === 'text' ? s.narrative : s.cardBody,
+                // Field rows carry their own 11px rhythm, so the body hugs
+                // tighter than the other types (Noa: 4px / 8px).
+                isBrain && panel.render === 'fields' ? s.bodyFields : '',
+              ].filter(Boolean).join(' ')}>
+                <PanelBody render={panel.render} text={panel.text} values={panel.values} brain={isBrain} />
+              </div>
+            )}
+            {/* Noa's per-panel footer (brain look only) — mono metadata row. */}
+            {isBrain && (() => {
+              const f = panelFooter(panel.render, panel.values, panel.ranAt);
+              return f ? (
+                <div className={s.cardFoot}>
+                  <span>{f.left}</span>
+                  <span>{f.right}</span>
+                </div>
+              ) : null;
+            })()}
             {footer}
           </>
         ) : (
@@ -116,7 +197,13 @@ function Card({ panel, selected, footer }: { panel: DisplayPanel; selected?: boo
 
 export interface PanelSurfaceProps {
   panels: DisplayPanel[];
-  icon?: string;
+  /** Header mark. A string renders as-is (emoji); a node lets a surface pass
+   *  its own artwork (the Live Brain passes Noa's spiral on a gradient tile). */
+  icon?: ReactNode;
+  /** A card pinned at the TOP of the scroll body, above the panels — Noa's
+   *  Live Brain opens with the reasoning animation as its first panel. It
+   *  scrolls with the list and shows even when no panels have run yet. */
+  leadCard?: ReactNode;
   /** Optional SVG path for a line-art logo mark on a SOFT tinted tile
    *  (Noa's Profiler header). When set it replaces the emoji `icon`. */
   iconSvg?: string;
@@ -149,19 +236,45 @@ export interface PanelSurfaceProps {
   footerFor?: (panel: DisplayPanel) => ReactNode;
   selectedId?: string;
   emptyLabel?: string;
+  /** Labels for the TEXT panel's expand control (brain look). Localised by
+   *  the host; English defaults keep the builder preview working. */
+  moreLabel?: string;
+  lessLabel?: string;
+  /** Which look-and-feel to render. `'profiler'` (default) is Noa's Profiler
+   *  design, pinned LTR (English labels). `'brain'` is the Live Brain look —
+   *  it follows the surrounding chat direction, so Hebrew content renders RTL
+   *  the way Noa's Live Brain page does. Kept separate so tuning one never
+   *  touches the other. */
+  look?: 'brain' | 'profiler';
 }
 
 export function PanelSurface({
   panels, headerRight, headerActions, updatedLabel, onClose, footerFor, selectedId, emptyLabel, sectionLabel, headerLabel,
-  icon = '🧠', iconSvg, title = 'LYBI · LIVE BRAIN', dockSide = 'right',
-  subtitle = 'why I’m saying what I’m saying',
+  icon = '🧠', iconSvg, title = 'LYBI · LIVE BRAIN', dockSide = 'right', leadCard,
+  subtitle = 'why I’m saying what I’m saying', look = 'profiler',
+  moreLabel = 'Show more', lessLabel = 'Show less',
 }: PanelSurfaceProps) {
+  const isBrain = look === 'brain';
+  // The brain footers say "UPDATED 2S". That has to keep counting up or it
+  // lies within a minute of a panel running — one timer for the whole
+  // surface, re-rendering the cards so each recomputes its own age.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!isBrain) return;
+    const id = setInterval(() => tick(n => n + 1), 20_000);
+    return () => clearInterval(id);
+  }, [isBrain]);
   const twoRow = !!(headerActions || updatedLabel);
   const closeOnLeft = dockSide === 'left';
+  // Noa's Live Brain closes with an X; the Profiler drawer collapses back to
+  // its wall, so it keeps the directional chevron.
+  const closePath = isBrain
+    ? 'M6 6l12 12M18 6L6 18'
+    : (closeOnLeft ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6');
   const closeBtn = onClose ? (
     <button type="button" className={s.close} onClick={onClose} aria-label="Close">
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-        <path d={closeOnLeft ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'} />
+        <path d={closePath} />
       </svg>
     </button>
   ) : null;
@@ -169,7 +282,12 @@ export function PanelSurface({
   const bodyPanels = panels.filter(p => p.placement !== 'header');
   const cards = (list: DisplayPanel[]) => (
     <div className={s.cards}>
-      {list.map(p => <Card key={p.id} panel={p} selected={p.id === selectedId} footer={footerFor?.(p)} />)}
+      {list.map(p => (
+        <Card
+          key={p.id} panel={p} selected={p.id === selectedId} footer={footerFor?.(p)}
+          isBrain={isBrain} moreLabel={moreLabel} lessLabel={lessLabel}
+        />
+      ))}
     </div>
   );
   // A body-group label shows when there's an explicit one, OR when a header
@@ -177,7 +295,7 @@ export function PanelSurface({
   const bodyLabel = sectionLabel ?? (headerPanels.length > 0 ? 'Profile sections' : null);
 
   return (
-    <div className={s.surface} dir="ltr">
+    <div className={`${s.surface} ${isBrain ? s.lookBrain : ''}`} data-look={look} dir={isBrain ? undefined : 'ltr'}>
       <header className={`${s.head} ${twoRow ? s.headTwo : ''}`}>
         <div className={s.headTop}>
           {closeOnLeft && closeBtn}
@@ -205,11 +323,14 @@ export function PanelSurface({
         )}
       </header>
       <div className={s.body}>
+        {leadCard ? <div className={s.lead}>{leadCard}</div> : null}
         {panels.length === 0 ? (
-          <div className={s.empty}>
-            <span className={s.emptyEmoji} aria-hidden>🧠</span>
-            <span>{emptyLabel ?? 'Nothing here yet.'}</span>
-          </div>
+          leadCard ? null : (
+            <div className={s.empty}>
+              <span className={s.emptyEmoji} aria-hidden>🧠</span>
+              <span>{emptyLabel ?? 'Nothing here yet.'}</span>
+            </div>
+          )
         ) : (
           <>
             {headerPanels.length > 0 && (
