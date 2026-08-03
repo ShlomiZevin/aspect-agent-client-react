@@ -23,6 +23,8 @@ export interface SendArgs {
   agentSlug: string;
   ownerUserId: string;
   userMessage: string;
+  /** The preview conversation currently open in the builder (if any). */
+  activeConversationId?: number | null;
   onEvent: (event: AlfredEvent) => void;
   signal?: AbortSignal;
 }

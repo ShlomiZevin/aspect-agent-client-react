@@ -49,11 +49,12 @@ export function bodyOfAgent(agent: AgentDoc): AgentBody {
     // Snapshot liveBrain only when it has panels — keeps this in lockstep
     // with BuilderContext.bodyOfAgent so the save body and the dirty-check
     // body match. (This is what actually persists panels to the server.)
-    ...((agent.liveBrain?.panels?.length || agent.liveBrain?.frame) ? { liveBrain: agent.liveBrain } : {}),
+    ...((agent.liveBrain?.panels?.length || agent.liveBrain?.frame || agent.liveBrain?.enabled === false) ? { liveBrain: agent.liveBrain } : {}),
     // Same for the Profiler — WITHOUT this the save body omits it, which
     // both wipes a saved profiler AND makes the runtime override drop it
-    // (no auto-update, no runs). Empty == absent.
-    ...((agent.profiler?.panels?.length || agent.profiler?.frame || agent.profiler?.ask) ? { profiler: agent.profiler } : {}),
+    // (no auto-update, no runs). Empty == absent. `enabled:false` also
+    // persists so a disabled surface stays disabled.
+    ...((agent.profiler?.panels?.length || agent.profiler?.frame || agent.profiler?.ask || agent.profiler?.enabled === false) ? { profiler: agent.profiler } : {}),
   };
 }
 

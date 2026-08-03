@@ -154,11 +154,11 @@ export function bodyOfAgent(agent: AgentDoc): AgentBody {
     // Only snapshot liveBrain once it has panels, so agents that never
     // used the feature compare equal to their pre-liveBrain version
     // bodies (no spurious "dirty" on load). Empty == absent.
-    ...((agent.liveBrain?.panels?.length || agent.liveBrain?.frame) ? { liveBrain: agent.liveBrain } : {}),
+    ...((agent.liveBrain?.panels?.length || agent.liveBrain?.frame || agent.liveBrain?.enabled === false) ? { liveBrain: agent.liveBrain } : {}),
     // Same empty==absent trick for the Profiler — without this, any agent
     // with a profiler shows a permanent phantom "unsaved changes" (the
     // working copy carries `profiler`, the compared body wouldn't).
-    ...((agent.profiler?.panels?.length || agent.profiler?.frame || agent.profiler?.ask) ? { profiler: agent.profiler } : {}),
+    ...((agent.profiler?.panels?.length || agent.profiler?.frame || agent.profiler?.ask || agent.profiler?.enabled === false) ? { profiler: agent.profiler } : {}),
   };
 }
 

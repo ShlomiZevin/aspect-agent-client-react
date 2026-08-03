@@ -13,8 +13,18 @@
 }
 
 .head { margin-bottom: 10px; }
+.headRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
 .sub { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+
+/* Master on/off — one switch for the whole Live Brain (all panels at once). */
+.masterToggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.masterToggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch { width: 34px; height: 20px; border-radius: 100px; background: var(--border, #d5d0e0); position: relative; transition: background .15s; flex: none; }
+.switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.masterToggle input:checked + .switch { background: #E0198A; }
+.masterToggle input:checked + .switch::after { transform: translateX(14px); }
+.switchLabel { font-size: 12px; font-weight: 700; color: var(--muted); min-width: 22px; }
 
 .grid {
   display: grid;

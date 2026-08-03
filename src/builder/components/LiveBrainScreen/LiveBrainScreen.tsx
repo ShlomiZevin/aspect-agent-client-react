@@ -337,6 +337,10 @@ export function LiveBrainScreen() {
   const liveBrain = agent.liveBrain;
   const panels = (liveBrain?.panels ?? []).map(normalizePanel);
   const editing = panels.find(p => p.id === editingId) ?? null;
+  // Master on/off for the whole Live Brain (absent = on, back-compat).
+  const brainEnabled = liveBrain?.enabled !== false;
+  const toggleBrainEnabled = () =>
+    updateAgent(agent.id, { liveBrain: { panels: [], ...(liveBrain ?? {}), enabled: !brainEnabled } });
   const writePanels = (next: BrainPanel[]) =>
     updateAgent(agent.id, { liveBrain: { ...(liveBrain ?? {}), panels: next } });
   const patchPanel = (id: string, patch: Partial<BrainPanel>) =>
@@ -397,7 +401,14 @@ export function LiveBrainScreen() {
              the very top, like the real chat drawer) ── */}
         <aside className={styles.chain}>
           <div className={styles.head}>
-            <h1 className={styles.h1}>🧠 Live Brain</h1>
+            <div className={styles.headRow}>
+              <h1 className={styles.h1}>🧠 Live Brain</h1>
+              <label className={styles.masterToggle} title={brainEnabled ? 'Live Brain runs for every crew' : 'Live Brain is off — nothing runs or shows'}>
+                <input type="checkbox" checked={brainEnabled} onChange={toggleBrainEnabled} />
+                <span className={styles.switch} aria-hidden />
+                <span className={styles.switchLabel}>{brainEnabled ? 'On' : 'Off'}</span>
+              </label>
+            </div>
             <p className={styles.sub}>The customer-facing brain — shown beside the chat. Applies to every crew.</p>
           </div>
           <div className={styles.listHead}>Panels</div>

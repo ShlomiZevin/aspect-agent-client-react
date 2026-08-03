@@ -1008,6 +1008,9 @@ export function alfredMessageStream(args: {
   agentSlug:   string;
   ownerUserId: string;
   userMessage: string;
+  /** The preview conversation currently open in the builder — lets
+   *  Alfred's read_conversation tool target "this chat" directly. */
+  activeConversationId?: number | null;
 }): Promise<Response> {
   return fetch(
     `${BASE_URL}/api/builder/alfred/chats/${args.chatId}/messages`,
@@ -1018,6 +1021,7 @@ export function alfredMessageStream(args: {
         agentSlug:   args.agentSlug,
         ownerUserId: args.ownerUserId,
         userMessage: args.userMessage,
+        activeConversationId: args.activeConversationId ?? null,
       }),
     },
   );

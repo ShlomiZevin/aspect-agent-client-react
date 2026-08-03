@@ -350,6 +350,9 @@ export function ProfilerScreen() {
   const writeProfiler = (patch: Partial<ProfilerDef>) =>
     updateAgent(agent.id, { profiler: { panels: [], ...(profiler ?? {}), ...patch } });
   const writePanels = (next: ProfilerPanel[]) => writeProfiler({ panels: next });
+  // Master on/off for the whole Profiler (absent = on, back-compat).
+  const profilerEnabled = profiler?.enabled !== false;
+  const toggleProfilerEnabled = () => writeProfiler({ enabled: !profilerEnabled });
   const patchPanel = (id: string, patch: Partial<ProfilerPanel>) =>
     writePanels(panels.map(p => (p.id === id ? { ...p, ...patch } : p)));
   const patchTags = (patch: Partial<NonNullable<ProfilerPanel['tags']>>) =>
@@ -430,7 +433,14 @@ export function ProfilerScreen() {
       <div className={styles.grid}>
         <aside className={`${styles.chain} ${pstyles.chainScroll}`}>
           <div className={styles.head}>
-            <h1 className={styles.h1}>👤 Profiler</h1>
+            <div className={styles.headRow}>
+              <h1 className={styles.h1}>👤 Profiler</h1>
+              <label className={styles.masterToggle} title={profilerEnabled ? 'Profiler runs for every crew' : 'Profiler is off — nothing runs or shows'}>
+                <input type="checkbox" checked={profilerEnabled} onChange={toggleProfilerEnabled} />
+                <span className={styles.switch} aria-hidden />
+                <span className={styles.switchLabel}>{profilerEnabled ? 'On' : 'Off'}</span>
+              </label>
+            </div>
             <p className={styles.sub}>A live customer profile built from the conversation — shown beside the chat. Applies to every crew.</p>
           </div>
           <div className={styles.listHead}>Profile Sections</div>

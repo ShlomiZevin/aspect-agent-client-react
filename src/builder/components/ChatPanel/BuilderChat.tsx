@@ -61,13 +61,18 @@ function fromServer(m: AlfredMessage): Msg | null {
 
 /** Human labels for Alfred's tools, shown while a tool call runs. */
 const TOOL_LABELS: Record<string, string> = {
-  read_change_log: 'Reading the change log…',
-  read_addon_code: 'Reading addon code…',
+  read_change_log:    'Reading the change history…',
+  read_addon_code:    'Reading addon code…',
+  list_agents:        'Scanning your agents…',
+  read_agent:         'Reading another agent…',
+  list_conversations: 'Listing recent chats…',
+  read_conversation:  'Reading the chat + addon runs…',
+  read_run:           'Zooming into a run…',
 };
 
 export function BuilderChat() {
   useModels();
-  const { doc, isAgentDirty, isCrewDirty, pendingAlfredApply } = useBuilder();
+  const { doc, isAgentDirty, isCrewDirty, pendingAlfredApply, previewConversationId } = useBuilder();
   const confirm = useConfirm();
 
   const slug = doc.agents[0]?.slug ?? '';
@@ -90,12 +95,14 @@ export function BuilderChat() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const wasAtBottomRef = useRef(true);
 
-  // Auto-scroll: keep glued to bottom unless user scrolls up.
+  // Auto-scroll: keep glued to bottom unless user scrolls up. Also
+  // reacts to the tool note so a tool call appearing in the streaming
+  // bubble never lands just below the fold.
   useLayoutEffect(() => {
     const el = messagesRef.current;
     if (!el) return;
     if (wasAtBottomRef.current) el.scrollTop = el.scrollHeight;
-  }, [messages]);
+  }, [messages, toolNote]);
 
   const onMessagesScroll = () => {
     const el = messagesRef.current;
@@ -219,6 +226,7 @@ export function BuilderChat() {
         agentSlug:   slug,
         ownerUserId,
         userMessage: text,
+        activeConversationId: previewConversationId,
         onEvent:     handleEvent,
       });
     } catch (err) {
@@ -399,18 +407,24 @@ export function BuilderChat() {
             }
             const cls = `${styles.msg} ${m.role === 'user' ? styles.msgUser : styles.msgBot} ${settings.rtl ? styles.msgRtl : ''}`;
             const placeholder = m.role === 'assistant' && busy ? '…' : '';
+            // The running tool renders INSIDE the streaming bubble — it
+            // replaces the "…" placeholder (or trails already-streamed
+            // text) so the user sees WHY the reply is pausing, right
+            // where they're looking.
+            const isStreamingBubble = m.role === 'assistant' && busy && i === messages.length - 1;
+            const note = isStreamingBubble && toolNote
+              ? <span className={styles.toolNote}>🔍 {toolNote}</span>
+              : null;
             return (
               <div key={m.id ?? `local_${i}`} className={cls}>
                 {m.role === 'assistant'
-                  ? (m.text ? <MarkdownBody text={m.text} /> : placeholder)
+                  ? (m.text
+                      ? <><MarkdownBody text={m.text} />{note}</>
+                      : (note ?? placeholder))
                   : (m.text || placeholder)}
               </div>
             );
           })}
-
-          {toolNote && (
-            <div className={styles.toolNote}>🔍 {toolNote}</div>
-          )}
         </div>
       </div>
 

@@ -172,7 +172,17 @@ export function ChatPanel() {
         </div>
 
         <div className={styles.body}>
-          {tab === 'builder' ? <BuilderChat /> : <UserChat />}
+          {/* BOTH tabs stay mounted; the inactive one is display:none.
+              Unmount-on-switch was an old bug: UserChat resets its
+              conversation on mount, so every Builder-tab visit silently
+              started a fresh preview conversation. Same rule as the
+              collapse rail — hiding must never reset chat state. */}
+          <div className={`${styles.tabPane} ${tab === 'builder' ? '' : styles.tabPaneHidden}`}>
+            <BuilderChat />
+          </div>
+          <div className={`${styles.tabPane} ${tab === 'user' ? '' : styles.tabPaneHidden}`}>
+            <UserChat />
+          </div>
         </div>
       </div>
     </>
