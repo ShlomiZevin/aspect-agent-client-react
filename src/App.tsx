@@ -21,6 +21,10 @@ const BIPage = lazy(() => import('./pages/BIPage').then(m => ({ default: m.BIPag
 const IntelligencePage = lazy(() => import('./pages/IntelligencePage').then(m => ({ default: m.IntelligencePage })));
 const IntelligenceHomePage = lazy(() => import('./pages/IntelligenceHomePage').then(m => ({ default: m.IntelligenceHomePage })));
 
+// Lybi HQ — our internal company brain. Its own subtree under src/hq/, lazy so
+// no customer-facing route ever downloads it. Never a product surface.
+const HQApp = lazy(() => import('./hq/HQApp').then(m => ({ default: m.HQApp })));
+
 const ZER4U_MAINTENANCE = false;
 
 function Zer4UMaintenancePage() {
@@ -130,6 +134,9 @@ function AppContent() {
         <Route path="/lybi/installation" element={<LybiInstallPage />} />
         <Route path="/lybi/support" element={<LybiSupportPage />} />
         <Route path="/lybi/backlog" element={<TechBacklogPage />} />
+
+        {/* Lybi HQ — internal only. Must sit above the /lybi/* splat below. */}
+        <Route path="/hq/*" element={<HQApp />} />
         <Route path="/lybi/about/shlomi" element={<AboutShlomiPage />} />
         <Route path="/lybi/freeda-legacy" element={<FreedaLegacyFlowPage />} />
         {/* Explicit so the `/lybi/*` splat below doesn't shadow the Live chat. */}

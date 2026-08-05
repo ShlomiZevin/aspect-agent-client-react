@@ -88,6 +88,9 @@ export function BuilderChat() {
   const [applyOpen, setApplyOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [toolNote, setToolNote] = useState<string | null>(null);
+  // Composer height, driven by the top drag bar. null = default (rows=2).
+  const [inputHeight, setInputHeight] = useState<number | null>(null);
+  const [inputDragging, setInputDragging] = useState(false);
   const [settings, setSetting] = useChatSettings();
 
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -299,6 +302,30 @@ export function BuilderChat() {
     setApplyOpen(true);
   };
 
+  // Drag the bar ABOVE the composer to resize the input — dragging UP
+  // grows it (there's no room below; mirrors ChatPanel's width handle).
+  const startInputDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startH = inputRef.current?.offsetHeight ?? 52;
+    setInputDragging(true);
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+    const onMove = (ev: MouseEvent) => {
+      const next = Math.min(320, Math.max(52, startH + (startY - ev.clientY)));
+      setInputHeight(next);
+    };
+    const onUp = () => {
+      setInputDragging(false);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
   const onRemoveMarker = async (messageId: number | null) => {
     if (messageId === null || chatId === null) return;
     try {
@@ -442,10 +469,19 @@ export function BuilderChat() {
         />
       )}
 
-      <div className={styles.composer}>
+      <div className={`${styles.composer} ${styles.composerWithBar}`}>
+        <div
+          className={`${styles.composerResizeBar} ${inputDragging ? styles.composerResizeBarActive : ''}`}
+          onMouseDown={startInputDrag}
+          onDoubleClick={() => setInputHeight(null)}
+          role="separator"
+          aria-orientation="horizontal"
+          title="Drag to resize the message box · double-click to reset"
+        />
         <textarea
           ref={inputRef}
-          className={styles.input}
+          className={`${styles.input} ${styles.inputResizable}`}
+          style={inputHeight !== null ? { height: inputHeight } : undefined}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => {

@@ -801,6 +801,45 @@
   color: var(--text-primary, #111827);
 }
 
+/* Alfred's composer only: height driven by the top drag bar (native
+ * bottom-corner resize has no room down there). */
+.inputResizable {
+  min-height: 52px;
+  max-height: 320px;
+}
+
+/* Grab bar on TOP of Alfred's composer — drag up to grow the input.
+ * A zero-height OVERLAY straddling the composer's existing top border,
+ * so it adds no height to the panel. Double-click resets. */
+.composerWithBar {
+  position: relative;
+}
+
+.composerResizeBar {
+  position: absolute;
+  top: -5px;
+  left: 0;
+  right: 0;
+  height: 10px;
+  cursor: row-resize;
+  display: grid;
+  place-items: center;
+  z-index: 2;
+}
+
+.composerResizeBar::before {
+  content: '';
+  width: 38px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border-color, #e5e7eb);
+}
+
+.composerResizeBar:hover::before,
+.composerResizeBarActive::before {
+  background: var(--primary-color, #6366f1);
+}
+
 .input:focus {
   outline: none;
   border-color: var(--primary-color, #6366f1);

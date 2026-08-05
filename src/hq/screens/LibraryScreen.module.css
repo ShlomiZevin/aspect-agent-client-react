@@ -1,0 +1,143 @@
+.screen { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+
+.head { flex-shrink: 0; padding: 30px 20px 0; }
+.headInner { max-width: 940px; margin: 0 auto; }
+.eyebrow { display: block; margin-bottom: 9px; }
+.title { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -.3px; margin-bottom: 18px; }
+
+.controls { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+
+.searchWrap {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: 100px;
+  padding: 0 16px;
+  transition: border-color .15s;
+}
+.searchWrap:focus-within { border-color: var(--mag); }
+.searchWrap svg { width: 17px; height: 17px; color: var(--text-3); flex-shrink: 0; }
+.search {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  padding: 10px 0;
+  outline: 0;
+}
+.search::placeholder { color: var(--text-3); }
+
+.filters { display: flex; gap: 6px; }
+.filterActive,
+.filterActive:hover {
+  background: var(--grad);
+  color: #fff;
+  border-color: transparent;
+  transform: none;
+  box-shadow: 0 6px 18px rgba(224, 25, 138, .24);
+}
+
+.scroll { flex: 1; overflow-y: auto; padding: 0 20px 40px; }
+.list { max-width: 940px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+
+.card {
+  display: block;
+  width: 100%;
+  text-align: start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color .15s, transform .12s, box-shadow .15s;
+  animation: hqFade .28s ease both;
+}
+.card:hover {
+  border-color: var(--border-2);
+  border-left-color: var(--mag);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.cardTop { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+.kindChip {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  padding: 4px 9px;
+  border-radius: 100px;
+  background: var(--grad);
+  color: #fff;
+  flex-shrink: 0;
+  direction: ltr;
+}
+.kindChipMuted { background: var(--surface-3); color: var(--text-2); }
+.cardDate { font-size: 12.5px; color: var(--text-3); margin-inline-start: auto; flex-shrink: 0; }
+
+.cardTitle { font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.4; margin-bottom: 6px; }
+.cardSummary {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cardFoot { display: flex; align-items: center; gap: 14px; margin-top: 12px; font-size: 12.5px; color: var(--text-3); flex-wrap: wrap; }
+.stat { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+.stat svg { width: 13px; height: 13px; }
+.statHot { color: var(--mag); }
+.pending { display: inline-flex; align-items: center; gap: 7px; color: var(--text-2); }
+.failed { color: var(--danger); font-weight: 600; }
+
+/* Overlapping avatar stack — the negative margin lives on the items, since
+   `gap` cannot be negative. */
+.people { display: flex; margin-inline-start: auto; }
+.person {
+  width: 24px; height: 24px;
+  border-radius: 100px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-2);
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-2);
+  text-transform: uppercase;
+  margin-inline-start: -5px;
+}
+.person:first-child { margin-inline-start: 0; }
+
+.empty { text-align: center; padding: 12vh 20px; }
+.emptyMark {
+  width: 52px; height: 52px;
+  margin: 0 auto 16px;
+  border-radius: 100px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  place-items: center;
+}
+.emptyMark img { width: 26px; height: 26px; object-fit: contain; opacity: .8; }
+.emptyTitle { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 7px; }
+.emptyHint { font-size: 14px; color: var(--text-2); }
+
+.loading { text-align: center; padding: 12vh 0; color: var(--text-3); font-size: 14px; }
+
+@media (max-width: 760px) {
+  .head { padding: 20px 14px 0; }
+  .scroll { padding: 0 14px 30px; }
+  .title { font-size: 21px; }
+  .filters { width: 100%; overflow-x: auto; padding-bottom: 2px; }
+}
