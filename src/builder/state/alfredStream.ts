@@ -25,6 +25,8 @@ export interface SendArgs {
   userMessage: string;
   /** The preview conversation currently open in the builder (if any). */
   activeConversationId?: number | null;
+  /** The on-screen working copies — Alfred talks about the DRAFT. */
+  workingBodies?: import('./builderApi').ApplyWorkingBodies;
   onEvent: (event: AlfredEvent) => void;
   signal?: AbortSignal;
 }

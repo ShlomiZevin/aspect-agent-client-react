@@ -1011,6 +1011,8 @@ export function alfredMessageStream(args: {
   /** The preview conversation currently open in the builder — lets
    *  Alfred's read_conversation tool target "this chat" directly. */
   activeConversationId?: number | null;
+  /** The on-screen working copies — Alfred talks about the DRAFT. */
+  workingBodies?: ApplyWorkingBodies;
 }): Promise<Response> {
   return fetch(
     `${BASE_URL}/api/builder/alfred/chats/${args.chatId}/messages`,
@@ -1022,6 +1024,7 @@ export function alfredMessageStream(args: {
         ownerUserId: args.ownerUserId,
         userMessage: args.userMessage,
         activeConversationId: args.activeConversationId ?? null,
+        workingBodies: args.workingBodies,
       }),
     },
   );
@@ -1049,6 +1052,7 @@ export interface ApplyPreviewResponse {
 export async function applyPreview(args: {
   chatId:      number;
   agentSlug:   string;
+  workingBodies?: ApplyWorkingBodies;
   ownerUserId: string;
 }): Promise<ApplyPreviewResponse> {
   return http<ApplyPreviewResponse>(
@@ -1056,8 +1060,9 @@ export async function applyPreview(args: {
     {
       method: 'POST',
       body:   JSON.stringify({
-        agentSlug:   args.agentSlug,
-        ownerUserId: args.ownerUserId,
+        agentSlug:     args.agentSlug,
+        ownerUserId:   args.ownerUserId,
+        workingBodies: args.workingBodies,
       }),
     },
   );

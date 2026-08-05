@@ -18,13 +18,12 @@
 
 import { useEffect, useState } from 'react';
 import { Modal } from '../Modal/Modal';
-import { bodyOf, bodyOfAgent, useBuilder } from '../../state/BuilderContext';
+import { useBuilder, workingBodiesOf } from '../../state/BuilderContext';
 import {
   applyGenerate,
   applyPreview,
   type ApplyGenerateResponse,
   type ApplyTarget,
-  type ApplyWorkingBodies,
 } from '../../state/builderApi';
 import styles from './ApplyPreviewModal.module.css';
 
@@ -73,7 +72,11 @@ export function ApplyPreviewModal({
     let cancelled = false;
     (async () => {
       try {
-        const plan = await applyPreview({ chatId, agentSlug, ownerUserId });
+        // The plan is built against the DRAFT the user sees.
+        const plan = await applyPreview({
+          chatId, agentSlug, ownerUserId,
+          workingBodies: workingBodiesOf(doc, agentSlug),
+        });
         if (cancelled) return;
         setSummary(plan.summary);
         setDescription(plan.description);
@@ -98,13 +101,7 @@ export function ApplyPreviewModal({
       // so generation bases on exactly what's on screen (chained
       // applies stack; unsaved edits are respected). The server falls
       // back to the saved viewing version if this is absent.
-      const agent = doc.agents.find(a => a.slug === agentSlug) ?? doc.agents[0];
-      const workingBodies: ApplyWorkingBodies | undefined = agent
-        ? {
-            agent: { id: agent.id, body: bodyOfAgent(agent) },
-            crews: agent.crews.map(c => ({ id: c.id, body: bodyOf(c) })),
-          }
-        : undefined;
+      const workingBodies = workingBodiesOf(doc, agentSlug);
 
       const out = await applyGenerate({
         chatId,

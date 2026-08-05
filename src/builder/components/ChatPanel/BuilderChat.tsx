@@ -12,7 +12,7 @@
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useBuilder } from '../../state/BuilderContext';
+import { useBuilder, workingBodiesOf } from '../../state/BuilderContext';
 import { BUILDER_HELPER_MODEL, formatModelRef } from '../../registry/providerModels';
 import { useModels } from '../../registry/useModels';
 import {
@@ -230,6 +230,9 @@ export function BuilderChat() {
         ownerUserId,
         userMessage: text,
         activeConversationId: previewConversationId,
+        // Ship the on-screen draft — Alfred talks about what you SEE,
+        // not the last save (matches preview runtime + Apply).
+        workingBodies: workingBodiesOf(doc, slug),
         onEvent:     handleEvent,
       });
     } catch (err) {

@@ -167,6 +167,24 @@ function agentBodiesEqual(a: AgentBody, b: AgentBody): boolean {
 }
 
 /**
+ * The client's visible working copies of one agent + its crews, in the
+ * shape the Alfred endpoints accept (`workingBodies`). Shared by the
+ * brainstorm chat, Apply preview, and Apply generation so all Alfred
+ * surfaces read the DRAFT the user actually sees.
+ */
+export function workingBodiesOf(
+  doc: ProjectDoc,
+  agentSlug: string,
+): { agent: { id: ID; body: AgentBody }; crews: Array<{ id: ID; body: CrewBody }> } | undefined {
+  const agent = doc.agents.find(a => a.slug === agentSlug) ?? doc.agents[0];
+  if (!agent) return undefined;
+  return {
+    agent: { id: agent.id, body: bodyOfAgent(agent) },
+    crews: agent.crews.map(c => ({ id: c.id, body: bodyOf(c) })),
+  };
+}
+
+/**
  * Does a stored draft contain UNSAVED work — any agent/crew whose
  * working copy differs from its own viewing-version snapshot?
  *
