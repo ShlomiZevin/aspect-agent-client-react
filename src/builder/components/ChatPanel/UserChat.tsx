@@ -309,7 +309,7 @@ export function UserChat() {
   const reloadConvList = useCallback(async () => {
     if (!slug) return;
     try {
-      const list = await listConversations({ agentSlug: slug, ownerUserId });
+      const list = await listConversations({ agentSlug: slug, ownerUserId, source: 'builder' });
       setConvList(list);
     } catch (err) {
       console.warn('[builder] listConversations failed:', err);
@@ -608,7 +608,7 @@ export function UserChat() {
           value: s.value,
           domain: s.domain,
         }));
-        const created = await createConversation({ agentSlug: slug, ownerUserId, seedMemory });
+        const created = await createConversation({ agentSlug: slug, ownerUserId, seedMemory, source: 'builder' });
         convId = created.conversationId;
         setConversationId(convId);
       }

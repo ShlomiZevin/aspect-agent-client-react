@@ -598,6 +598,9 @@ export interface SeedMemoryEntry {
 export async function createConversation(args: {
   agentSlug: string;
   ownerUserId: string;
+  /** Which V2 surface this conversation is born in — 'live' for the
+   *  customer-facing chat, 'builder' for builder preview (default). */
+  source?: 'builder' | 'live';
   /** Starting field values the conversation is born with — written by
    *  the server as part of creation, so the very first turn already
    *  sees them (builder "enter data before the chat starts", #765). */
@@ -609,6 +612,7 @@ export async function createConversation(args: {
       method: 'POST',
       body: JSON.stringify({
         ownerUserId: args.ownerUserId,
+        ...(args.source ? { source: args.source } : {}),
         ...(args.seedMemory && args.seedMemory.length > 0 ? { seedMemory: args.seedMemory } : {}),
       }),
     },
@@ -824,8 +828,11 @@ export async function patchConversationMemory(args: {
 export async function listConversations(args: {
   agentSlug: string;
   ownerUserId: string;
+  /** Which V2 surface to list for — 'live' or 'builder' (default). */
+  source?: 'builder' | 'live';
 }): Promise<ConversationListItem[]> {
   const params = new URLSearchParams({ ownerUserId: args.ownerUserId });
+  if (args.source) params.set('source', args.source);
   const res = await http<{ conversations: ConversationListItem[] }>(
     `/api/agents/${args.agentSlug}/conversations?${params}`,
   );

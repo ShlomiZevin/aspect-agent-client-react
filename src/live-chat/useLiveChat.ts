@@ -188,7 +188,7 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
   const reloadConvList = useCallback(async () => {
     if (!slug) return;
     try {
-      setConvList(await listConversations({ agentSlug: slug, ownerUserId }));
+      setConvList(await listConversations({ agentSlug: slug, ownerUserId, source: 'live' }));
     } catch (err) {
       console.warn('[live] listConversations failed:', err);
     }
@@ -302,7 +302,7 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     try {
       let convId = conversationId;
       if (convId === null) {
-        const created = await createConversation({ agentSlug: slug, ownerUserId });
+        const created = await createConversation({ agentSlug: slug, ownerUserId, source: 'live' });
         convId = created.conversationId;
         setConversationId(convId);
         // Fresh conversation: pull the Profiler meta (Ask config + frame)
