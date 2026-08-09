@@ -17,6 +17,8 @@ import { DropScreen } from './screens/DropScreen';
 import { LibraryScreen } from './screens/LibraryScreen';
 import { AtomScreen } from './screens/AtomScreen';
 import { SourcesScreen } from './screens/SourcesScreen';
+import { AskProvider } from './ask/AskContext';
+import { AskPanel } from './ask/AskPanel';
 import { IconAsk, IconDrop, IconLibrary, IconMoon, IconSources, IconSun } from './icons';
 import { getStatus } from './services/hqApi';
 import type { HQStatus } from './types';
@@ -52,6 +54,7 @@ export function HQApp() {
   useEffect(() => { localStorage.setItem(THEME_KEY, theme); }, [theme]);
 
   return (
+    <AskProvider>
     <div className="lybi-hq" data-theme={theme}>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
@@ -111,6 +114,10 @@ export function HQApp() {
           <Route path="*" element={<Navigate to="ask" replace />} />
         </Routes>
       </main>
+
+      {/* Ask sits on top of every screen — never something you navigate away to. */}
+      <AskPanel />
     </div>
+    </AskProvider>
   );
 }

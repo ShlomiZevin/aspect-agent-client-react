@@ -102,7 +102,7 @@ export function AtomScreen() {
             <div className={styles.actions}>
               {isMeeting && (
                 <button className="hqMini" onClick={handleRerun} disabled={working || atom.scribe_status === 'running'}>
-                  <IconRefresh /> Re-run Scribe
+                  <IconRefresh /> {atom.scribe_status === 'done' ? 'Re-run Scribe' : 'Summarise'}
                 </button>
               )}
               <button

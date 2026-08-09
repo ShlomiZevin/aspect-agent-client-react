@@ -9,13 +9,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { dropNotionStreaming, dropSimple, inspectDrop } from '../services/hqApi';
+import { drop, getStatus, inspectDrop } from '../services/hqApi';
 import type { DropInspection } from '../types';
 import styles from './DropScreen.module.css';
 
 interface Props { onIngested?: () => void }
 
 type Phase = 'idle' | 'inspecting' | 'importing' | 'done' | 'error';
+
+/** Covers notion.so, notion.site and app.notion.com, plus a bare page id. */
+const LOOKS_NOTION = /notion\.(so|site)|app\.notion\.com|[0-9a-f]{32}/i;
 
 interface Outcome {
   headline: string;
@@ -33,15 +36,31 @@ export function DropScreen({ onIngested }: Props) {
   const [progress, setProgress] = useState({ done: 0, total: 0, title: '' });
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notionReady, setNotionReady] = useState<boolean | null>(null);
   const navigate = useNavigate();
 
+  // The setup guide is one-time scaffolding — hide it once the token is live.
+  useEffect(() => {
+    getStatus().then(s => setNotionReady(s.notionConfigured)).catch(() => setNotionReady(null));
+  }, []);
+
   const inspectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Grow with the content up to the CSS max-height, so the box starts small
+  // instead of sitting there as a large empty rectangle.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [input]);
 
   // Debounced: as soon as a Notion link is recognised we show what it is and
   // how many rows it holds, so nobody imports 400 pages by surprise.
   const runInspection = useCallback((value: string) => {
     if (inspectTimer.current) clearTimeout(inspectTimer.current);
-    if (!/notion\.so|notion\.site/i.test(value)) { setInspection(null); return; }
+    if (!LOOKS_NOTION.test(value)) { setInspection(null); return; }
 
     inspectTimer.current = setTimeout(async () => {
       setPhase('inspecting');
@@ -74,10 +93,9 @@ export function DropScreen({ onIngested }: Props) {
     setProgress({ done: 0, total: 0, title: '' });
 
     try {
-      const isNotion = /notion\.so|notion\.site/i.test(value);
+      const result = await drop(value, kind, setProgress);
 
-      if (isNotion) {
-        const result = await dropNotionStreaming(value, kind, setProgress);
+      if (result.type === 'notion') {
         setOutcome({
           headline: `Imported ${result.ingested} of ${result.total} from "${result.label}"`,
           detail: result.notionType === 'database'
@@ -86,11 +104,10 @@ export function DropScreen({ onIngested }: Props) {
           failures: result.failures,
         });
       } else {
-        const result = await dropSimple(value, kind);
         setOutcome({
           headline: 'Saved to HQ',
-          detail: `"${result.atom.title}" is indexed and askable.`,
-          atomId: result.atom.id,
+          detail: `"${result.atom?.title}" is indexed and askable.`,
+          atomId: result.atom?.id,
         });
       }
 
@@ -121,11 +138,12 @@ export function DropScreen({ onIngested }: Props) {
 
         <div className={`${styles.box} ${focused ? styles.boxFocused : ''}`}>
           <textarea
+            ref={textareaRef}
             className={styles.textarea}
             value={input}
             disabled={busy}
             dir="auto"
-            placeholder={'Paste a Notion link…\n\nOr write a note — anything you want HQ to remember.'}
+            placeholder="Paste a Notion link, or write anything you want HQ to remember…"
             onChange={e => handleChange(e.target.value)}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
@@ -211,15 +229,25 @@ export function DropScreen({ onIngested }: Props) {
 
         {error && <div className={styles.errorBox}>{error}</div>}
 
-        <div className={styles.setup}>
-          <span className={`hqEyebrow ${styles.setupTitle}`}>Connecting Notion · once, ~10 min</span>
-          <ol className={styles.setupList}>
-            <li>Notion → Settings → Connections → <em>Develop or manage integrations</em> → New integration.</li>
-            <li>Enable <strong>Read content</strong>, <strong>Read comments</strong> and <strong>Read user information</strong>.</li>
-            <li>Copy the secret into the server as <code>NOTION_TOKEN</code>.</li>
-            <li>Open the page or database in Notion → <code>⋯</code> → <strong>Connections</strong> → add the integration. This cascades to everything beneath it.</li>
-          </ol>
-        </div>
+        {notionReady === false && (
+          <div className={styles.setup}>
+            <span className={`hqEyebrow ${styles.setupTitle}`}>Connect Notion · once, ~10 min</span>
+            <ol className={styles.setupList}>
+              <li>Notion → Settings → Connections → <em>Develop or manage integrations</em> → New integration.</li>
+              <li>Enable <strong>Read content</strong>, <strong>Read comments</strong> and <strong>Read user information</strong>.</li>
+              <li>Copy the secret into the server as <code>NOTION_TOKEN</code>, then restart it.</li>
+              <li>Open the page or database in Notion → <code>⋯</code> → <strong>Connections</strong> → add the integration. This cascades to everything beneath it.</li>
+            </ol>
+          </div>
+        )}
+
+        {notionReady === true && (
+          <div className={styles.connected}>
+            <span className={styles.connectedDot} />
+            Notion is connected — paste any page or database link above.
+          </div>
+        )}
+
       </div>
     </div>
   );

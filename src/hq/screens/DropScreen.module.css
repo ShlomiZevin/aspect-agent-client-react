@@ -19,14 +19,18 @@
 
 .textarea {
   width: 100%;
-  min-height: 128px;
+  min-height: 76px;
+  max-height: 340px;
   border: 0;
   background: transparent;
   color: var(--text);
   font-family: inherit;
   font-size: 17px;
   line-height: 1.6;
-  resize: vertical;
+  /* No native grabber — it's the one bit of raw browser chrome on the page,
+     and the field grows with its content instead. */
+  resize: none;
+  overflow-y: auto;
   outline: 0;
   padding: 0;
   margin-bottom: 14px;
@@ -145,4 +149,20 @@
   .title { font-size: 21px; }
   .boxFoot { flex-wrap: wrap; }
   .footHint { flex-basis: 100%; order: 3; }
+}
+
+/* Quiet confirmation once Notion is wired — replaces the setup guide. */
+.connected {
+  margin-top: 30px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+.connectedDot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  flex-shrink: 0;
 }

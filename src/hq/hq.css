@@ -76,7 +76,24 @@
 
 .lybi-hq * { box-sizing: border-box; }
 .lybi-hq button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
-.lybi-hq input, .lybi-hq textarea, .lybi-hq select { font-family: inherit; }
+
+.lybi-hq input, .lybi-hq textarea, .lybi-hq select { font-family: inherit; appearance: none; }
+
+/* `styles/global.css` gives every field a focus ring:
+     input:focus, textarea:focus { border-color: …; box-shadow: 0 0 0 3px …; }
+   `:focus` (0,1,1) outranks a component class (0,1,0), so it wins over our own
+   styling and paints a stray grey box inside our bordered cards. Kill the ring
+   here — our fields signal focus on their *container*, not the field itself.
+   Deliberately does NOT touch padding or border, so each field keeps control. */
+.lybi-hq input:focus,
+.lybi-hq textarea:focus,
+.lybi-hq select:focus,
+.lybi-hq input:focus-visible,
+.lybi-hq textarea:focus-visible,
+.lybi-hq select:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
 
 /* Ambient brand glow — the same warmth the chat gets from its gradient. */
 .lybi-hq::before {
@@ -110,8 +127,12 @@
   direction: ltr;
 }
 
+/* NOTE: these are scoped `.lybi-hq .hqX` rather than plain `.hqX` on purpose.
+   The `.lybi-hq button` reset above is (0,1,1); an unscoped `.hqPill` is (0,1,0)
+   and loses to it, so `background:none` silently stripped every brand button. */
+
 /* The gradient action pill (chat's `.send-pill`). */
-.hqPill {
+.lybi-hq .hqPill {
   font-size: 14px;
   font-weight: 700;
   color: #fff;
@@ -124,11 +145,18 @@
   transition: transform .1s, opacity .15s;
   white-space: nowrap;
 }
-.hqPill:hover:not(:disabled) { transform: translateY(-1px); }
-.hqPill:disabled { opacity: .5; cursor: default; box-shadow: none; }
+.lybi-hq .hqPill:hover:not(:disabled) { transform: translateY(-1px); }
+/* Flat + muted rather than a faded gradient — a washed-out brand colour reads
+   as unfinished, a grey chip reads as deliberately inactive. */
+.lybi-hq .hqPill:disabled {
+  background: var(--surface-3);
+  color: var(--text-3);
+  box-shadow: none;
+  cursor: default;
+}
 
 /* Outline pill (chat's `.welcome-pill`). */
-.hqGhostPill {
+.lybi-hq .hqGhostPill {
   font-size: 14px;
   color: var(--text-2);
   background: var(--surface);
@@ -138,10 +166,10 @@
   cursor: pointer;
   transition: border-color .15s, transform .12s, box-shadow .15s;
 }
-.hqGhostPill:hover { border-color: var(--mag); transform: translateY(-1px); box-shadow: var(--shadow); }
+.lybi-hq .hqGhostPill:hover { border-color: var(--mag); transform: translateY(-1px); box-shadow: var(--shadow); }
 
 /* Small chip button (chat's `.mini-btn`). */
-.hqMini {
+.lybi-hq .hqMini {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -155,9 +183,9 @@
   transition: .15s;
   white-space: nowrap;
 }
-.hqMini:hover:not(:disabled) { color: var(--mag); border-color: var(--mag); }
-.hqMini:disabled { opacity: .45; cursor: default; }
-.hqMiniDanger:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); }
+.lybi-hq .hqMini:hover:not(:disabled) { color: var(--mag); border-color: var(--mag); }
+.lybi-hq .hqMini:disabled { opacity: .45; cursor: default; }
+.lybi-hq .hqMiniDanger:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); }
 
 /* ── Markdown ────────────────────────────────────────────────────────────── */
 .hqProse { line-height: 1.7; font-size: 16px; color: var(--text); }

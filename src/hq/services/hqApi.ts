@@ -26,35 +26,51 @@ export const getStatus = () => api<HQStatus>('/status');
 export const inspectDrop = (input: string) =>
   api<DropInspection>('/drop/inspect', { method: 'POST', body: JSON.stringify({ input }) });
 
-export const dropSimple = (input: string, kind = 'auto', title?: string) =>
-  api<{ ok: boolean; type: string; atom: Atom }>('/drop', {
-    method: 'POST',
-    body: JSON.stringify({ input, kind, title }),
-  });
-
 export interface DropProgress { done: number; total: number; title: string }
 export interface DropDone {
-  ok: boolean; label: string; notionType: string;
-  total: number; ingested: number;
-  failures: { title: string; error: string }[];
+  ok: boolean;
+  type: string;
+  label?: string;
+  notionType?: string;
+  total?: number;
+  ingested?: number;
+  failures?: { title: string; error: string }[];
+  atom?: Atom;
 }
 
 /**
- * Notion imports stream SSE — a meetings database can be hundreds of pages and
- * a silent multi-minute request is indistinguishable from a hang.
+ * One drop call for everything.
+ *
+ * The SERVER decides what a pasted string is and answers accordingly: a Notion
+ * import streams SSE (it can be hundreds of pages), text and URLs come back as
+ * plain JSON. So the client must not second-guess the type — it dispatches on
+ * the response's Content-Type instead.
+ *
+ * This replaced a client-side `notion.so` regex that disagreed with the server:
+ * an `app.notion.com` link was treated as text here and as Notion there, so the
+ * client tried to JSON.parse an event stream ("Unexpected token 'e'").
  */
-export async function dropNotionStreaming(
+export async function drop(
   input: string,
-  kind: string,
-  onProgress: (p: DropProgress) => void,
+  kind = 'auto',
+  onProgress?: (p: DropProgress) => void,
+  title?: string,
 ): Promise<DropDone> {
   const res = await fetch(`${getBaseURL()}/api/hq/drop`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ input, kind }),
+    body: JSON.stringify({ input, kind, title }),
   });
 
-  if (!res.ok || !res.body) throw new Error(`Import failed (${res.status})`);
+  if (!res.ok) {
+    let message = `Import failed (${res.status})`;
+    try { message = (await res.json()).error || message; } catch { /* keep default */ }
+    throw new Error(message);
+  }
+
+  const isStream = (res.headers.get('content-type') || '').includes('text/event-stream');
+  if (!isStream) return res.json();
+  if (!res.body) throw new Error('Import returned no body');
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -72,15 +88,16 @@ export async function dropNotionStreaming(
     buffer = frames.pop() || '';
 
     for (const frame of frames) {
-      const eventLine = frame.split('\n').find(l => l.startsWith('event: '));
-      const dataLine = frame.split('\n').find(l => l.startsWith('data: '));
+      const lines = frame.split('\n');
+      const eventLine = lines.find(l => l.startsWith('event: '));
+      const dataLine = lines.find(l => l.startsWith('data: '));
       if (!eventLine || !dataLine) continue;
 
       const event = eventLine.slice(7).trim();
       let payload: unknown;
       try { payload = JSON.parse(dataLine.slice(6)); } catch { continue; }
 
-      if (event === 'progress') onProgress(payload as DropProgress);
+      if (event === 'progress') onProgress?.(payload as DropProgress);
       else if (event === 'done') result = payload as DropDone;
       else if (event === 'error') failure = (payload as { error: string }).error;
     }

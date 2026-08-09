@@ -1,0 +1,39 @@
+/* Shared Ask input — the chat's `.composer-card`. */
+
+.composer {
+  background: var(--surface);
+  border: 1.5px solid var(--border-2);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 16px 18px 12px;
+  transition: border-color .18s;
+}
+.focused { border-color: var(--mag); }
+
+.compact { padding: 12px 14px 10px; border-radius: 14px; box-shadow: none; }
+
+.input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  resize: none;
+  font-family: inherit;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--text);
+  outline: 0;
+  padding: 0;
+  margin-bottom: 12px;
+  min-height: 28px;
+  max-height: 160px;
+}
+.compact .input { font-size: 15px; margin-bottom: 9px; max-height: 120px; }
+.input::placeholder { color: var(--text-3); }
+
+.foot { display: flex; align-items: center; gap: 9px; }
+.hint { font-size: 12px; color: var(--text-3); flex: 1; }
+.spacer { flex: 1; }
+
+@media (max-width: 760px) {
+  .hint { display: none; }
+}

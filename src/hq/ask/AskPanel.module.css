@@ -1,0 +1,101 @@
+/* HQ — Ask panel. Docked right, above everything, never navigated away from. */
+
+.fab {
+  position: fixed;
+  inset-inline-end: 22px;
+  bottom: 22px;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 20px;
+  border-radius: 100px;
+  background: var(--grad);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 10px 28px rgba(224, 25, 138, .36);
+  transition: transform .12s, box-shadow .15s;
+}
+.fab:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(224, 25, 138, .44); }
+.fab svg { width: 18px; height: 18px; }
+
+/* A quiet mark that there's an ongoing conversation waiting inside. */
+.fabDot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .4);
+}
+
+.panel {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: 50;
+  width: min(460px, 92vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-inline-start: 1px solid var(--border);
+  box-shadow: -18px 0 48px rgba(26, 10, 56, .18);
+  transform: translateX(100%);
+  transition: transform .26s cubic-bezier(.32, .72, 0, 1);
+  visibility: hidden;
+}
+.open { transform: none; visibility: visible; }
+
+/* RTL: the panel docks to the left, so it slides in from the other side. */
+:global([dir='rtl']) .panel { transform: translateX(-100%); }
+:global([dir='rtl']) .open { transform: none; }
+
+.head {
+  flex-shrink: 0;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.headMark {
+  width: 30px; height: 30px;
+  border-radius: 100px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.headMark img { width: 17px; height: 17px; object-fit: contain; }
+.headTitle { font-size: 15px; font-weight: 800; color: var(--text); flex: 1; }
+.close {
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  color: var(--text-3);
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+  transition: background .15s, color .15s;
+}
+.close:hover { background: var(--surface-2); color: var(--text); }
+
+.body { flex: 1; overflow-y: auto; padding: 18px 16px; }
+
+.empty {
+  margin-top: 16vh;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-3);
+  padding: 0 18px;
+}
+
+.foot { flex-shrink: 0; padding: 12px 14px 16px; border-top: 1px solid var(--border); }
+
+@media (max-width: 760px) {
+  .panel { width: 100vw; inset-block-end: 64px; }
+  .fab { bottom: 78px; padding: 11px 16px; }
+  .fabLabel { display: none; }
+}
