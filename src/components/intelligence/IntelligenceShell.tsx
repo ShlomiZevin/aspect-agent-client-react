@@ -198,7 +198,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
     chatRoute ? 'chat' : insightId ? 'detail' : historyRoute ? 'history' : reportsRoute ? 'reports' : 'home';
 
   return (
-    <div className={styles.shell} data-mode={mode}>
+    <div className={styles.shell} data-mode={mode} data-brand={datasetId}>
       <header className={styles.header} ref={headerRef}>
         <div className={styles.headerRow}>
           <div className={styles.brand}>
