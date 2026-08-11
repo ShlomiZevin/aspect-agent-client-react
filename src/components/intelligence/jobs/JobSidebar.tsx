@@ -22,7 +22,7 @@ export function JobSidebar({ datasetId, onReview }: Props) {
   // of mid-flight. job.progress is already 100 on completion, so every step
   // naturally reads as done with no separate branching needed for the steps.
   const showProgress = job.status === 'running' || job.status === 'completed';
-  const activeStepIndex = STEP_SCRIPT.findIndex((_, i) => stepStatus(job.progress, i) !== 'done');
+  const activeStepIndex = STEP_SCRIPT.findIndex((_, i) => stepStatus(job.progress, i, job.stage) !== 'done');
   const startedLabel = new Date(job.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   // The fake ramp caps at 96% within ~8s, but a real investigation runs far
   // longer — past that cap, a number derived from the same 8s window would
@@ -80,7 +80,7 @@ export function JobSidebar({ datasetId, onReview }: Props) {
             <div className={styles.stepsTitle}>{t('intel.sidebar.steps')}</div>
             <div className={styles.steps}>
               {STEP_SCRIPT.map((step, i) => {
-                const status = stepStatus(job.progress, i);
+                const status = stepStatus(job.progress, i, job.stage);
                 const statusClass = status === 'done' ? styles.stepDone : status === 'active' ? styles.stepActive : styles.stepPending;
                 return (
                   <div key={step.labelKey} className={`${styles.step} ${statusClass}`}>

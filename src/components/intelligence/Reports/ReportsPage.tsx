@@ -6,6 +6,7 @@
  * category-filter pills (InsightsList, design turn 3a) — that filter UI
  * doesn't exist in the new design.
  */
+import { useNavigate } from 'react-router-dom';
 import { useTracked, useInsights } from '../useInsightsFeed';
 import { insightsService } from '../../../services/insightsService';
 import { MiniChart } from '../Insights/MiniChart';
@@ -23,6 +24,7 @@ interface Props {
 
 export function ReportsPage({ datasetId, userId, onOpenInsight, onOpenHistory }: Props) {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const { data: tracked, loading: trackedLoading, refetch: refetchTracked } = useTracked(datasetId, userId);
   const { data: insights, loading: insightsLoading, refetch: refetchInsights } = useInsights(datasetId, userId);
 
@@ -92,14 +94,36 @@ export function ReportsPage({ datasetId, userId, onOpenInsight, onOpenHistory }:
             {[0, 1, 2].map(i => <Skeleton key={i} width="100%" height={150} radius={14} />)}
           </div>
         )}
+        {/* An empty page that only states a fact leaves the user with nothing
+            to do — and "check back after tonight's run" is misleading when
+            asking a question right now is the actual path to a report. Offer
+            that instead. */}
         {!insightsLoading && suggested.length === 0 && (
-          <div className={styles.empty}>{t('intel.reports.suggestedEmpty')}</div>
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon} aria-hidden="true">✦</div>
+            <div className={styles.emptyTitle}>{t('intel.reports.suggestedEmptyTitle')}</div>
+            <div className={styles.emptyBody}>{t('intel.reports.suggestedEmptyBody')}</div>
+            <button className={styles.emptyCta} onClick={() => navigate(`/intelligence/${datasetId}`)}>{t('intel.reports.suggestedEmptyCta')}</button>
+          </div>
         )}
         {!insightsLoading && suggested.length > 0 && (
           <div className={styles.grid}>
             {suggested.map(i => (
               <div key={i.id} className={styles.card}>
                 <div className={styles.cardHeadline}>{i.headline}</div>
+                {/* The preview chart already travels on every summary
+                    (chartPreview) — it was simply never rendered here, so a
+                    suggestion was a wall of text while a saved report got a
+                    sparkline. Same data, same component as the saved cards. */}
+                {i.chartPreview?.series?.[0]?.points?.length > 1 && (
+                  <div className={styles.cardChart}>
+                    <MiniChart
+                      series={i.chartPreview.series}
+                      variant={isTimeSeries(i.chartPreview.categories) ? 'line' : 'bar'}
+                      height={40}
+                    />
+                  </div>
+                )}
                 <div className={styles.cardImpact} data-dir={i.impactDirection}>
                   {/* impactValue is a plain unlocalized number string (e.g. "-₪386K") —
                       isolated as its own LTR run so RTL doesn't reorder the minus
@@ -118,6 +142,19 @@ export function ReportsPage({ datasetId, userId, onOpenInsight, onOpenHistory }:
       </div>
     </div>
   );
+}
+
+
+/**
+ * Calendar-shaped categories (months, quarters, week numbers, bare years) are a
+ * genuine TIME TREND and read correctly as a line. Anything else — store,
+ * product or campaign names — is a ranked snapshot, where a line would imply a
+ * before/after between rank #1 and rank #8 that does not exist. Mirrors
+ * looksLikeTimeSeries() in investigation.service.js.
+ */
+const TIME_CATEGORY = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|q[1-4]|w(eek)?\s?\d{1,2}|\d{4})/i;
+function isTimeSeries(categories: string[] = []): boolean {
+  return categories.length > 0 && categories.every(c => TIME_CATEGORY.test(String(c).trim()));
 }
 
 function BookmarkIcon({ filled }: { filled?: boolean }) {

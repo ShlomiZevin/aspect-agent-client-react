@@ -29,6 +29,11 @@ export function InsightDetail({ datasetId, userId, insightId, onBack, onLoaded, 
   const [error, setError] = useState<string | null>(null);
   const [sqlModalOpen, setSqlModalOpen] = useState(false);
   const [planModalOpen, setPlanModalOpen] = useState(false);
+  // Declared with the other hooks, ABOVE the early returns below — a hook
+  // after a conditional `return` changes the hook count between the loading
+  // and loaded renders, which React treats as a fatal order violation.
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!userId) return; // anon session still being created
@@ -48,9 +53,15 @@ export function InsightDetail({ datasetId, userId, insightId, onBack, onLoaded, 
 
   const color = CATEGORY_COLOR[insight.category] || '#7C3AED';
 
+  // Deletion is permanent — the row leaves Postgres, and a report costs 4+ LLM
+  // round trips and 30-100s to regenerate — so it asks first (state declared
+  // with the other hooks above).
   const deleteInsight = () => {
-    if (!userId) return;
-    insightsService.deleteInsight(datasetId, userId, insightId).then(onBack).catch(() => {});
+    if (!userId || deleting) return;
+    setDeleting(true);
+    insightsService.deleteInsight(datasetId, userId, insightId)
+      .then(onBack)
+      .catch(() => { setDeleting(false); setConfirmDelete(false); });
   };
 
   const toggleTracked = () => {
@@ -70,6 +81,20 @@ export function InsightDetail({ datasetId, userId, insightId, onBack, onLoaded, 
             <span className={styles.tagBadge} style={{ background: color }}>{insight.tag}</span>
             <span className={styles.foundInfo}>{t('intel.detail.foundBy')} · {insight.foundAgo}</span>
           </div>
+          {/* What was actually ASKED, above the rewritten headline. The title
+              is Aspect's own summary of the finding, which can read as a
+              different question from the one the user typed — without this
+              line there was no way to tell, from the report, what the report
+              was answering. For an Aspect-proposed report this is the angle
+              Aspect chose for itself. */}
+          {insight.evidence?.prompt && (
+            <div className={styles.askedRow}>
+              <span className={styles.askedLabel}>
+                {insight.origin === 'proposed' ? t('intel.detail.askedProposed') : t('intel.detail.asked')}:
+              </span>
+              <span className={styles.askedText}>{insight.evidence.prompt}</span>
+            </div>
+          )}
           <div className={styles.title}>{insight.title}</div>
         </div>
         <div className={styles.actions}>
@@ -78,8 +103,9 @@ export function InsightDetail({ datasetId, userId, insightId, onBack, onLoaded, 
             {insight.tracked ? t('intel.detail.saved') : t('intel.detail.save')}
           </button>
           <button className={styles.openBtn} onClick={() => setPlanModalOpen(true)}>{t('intel.reports.open')} {insight.ctaLabel}</button>
-          {insight.isGenerated && (
-            <button className={styles.deleteBtn} onClick={deleteInsight} aria-label={t('intel.detail.delete')} title={t('intel.detail.delete')}>
+          {/* A shared suggestion is not this user's to delete — removing it would take it from everyone. Saving it first makes a personal copy that can be deleted. */}
+          {insight.isGenerated && !insight.shared && (
+            <button className={styles.deleteBtn} onClick={() => setConfirmDelete(true)} aria-label={t('intel.detail.delete')} title={t('intel.detail.delete')}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M9 7V5h6v2M6.5 7l1 13h9l1-13" /></svg>
             </button>
           )}
@@ -116,6 +142,28 @@ export function InsightDetail({ datasetId, userId, insightId, onBack, onLoaded, 
           ctaLabel={insight.ctaLabel}
           onClose={() => setPlanModalOpen(false)}
         />
+      )}
+
+      {confirmDelete && (
+        <div className={styles.confirmOverlay} role="dialog" aria-modal="true" aria-labelledby="del-title" onClick={() => !deleting && setConfirmDelete(false)}>
+          <div className={styles.confirmBox} onClick={e => e.stopPropagation()}>
+            <div className={styles.confirmTitle} id="del-title">{t('intel.detail.deleteConfirmTitle')}</div>
+            {/* Name the report being deleted — with several open it is otherwise
+                easy to confirm the wrong one. */}
+            <div className={styles.confirmBody}>
+              {t('intel.detail.deleteConfirmBody')}
+              <div className={styles.confirmName}>“{insight.title || insight.headline}”</div>
+            </div>
+            <div className={styles.confirmActions}>
+              <button className={styles.confirmCancel} onClick={() => setConfirmDelete(false)} disabled={deleting} autoFocus>
+                {t('intel.detail.cancel')}
+              </button>
+              <button className={styles.confirmDelete} onClick={deleteInsight} disabled={deleting}>
+                {deleting ? t('intel.detail.deleting') : t('intel.detail.delete')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

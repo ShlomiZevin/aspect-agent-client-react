@@ -4,6 +4,12 @@
   border-radius: 18px;
   overflow: hidden;
   box-shadow: 0 6px 24px rgba(76, 29, 149, .08);
+  /* The parent (.page in HomePage.module.css) is a flex COLUMN, so this card
+     is a flex item and shrinks below its content height once the page
+     overflows — and because the card clips its own overflow, the step
+     descriptions get cut off mid-line. `flex: none` makes it size to its
+     content and scroll the page instead. */
+  flex: none;
 }
 
 .head { display: flex; align-items: center; gap: 12px; padding: 18px 24px 14px; }
