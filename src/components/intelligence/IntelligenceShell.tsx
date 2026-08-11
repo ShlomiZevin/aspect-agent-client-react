@@ -225,7 +225,6 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
               <Glyph name={mode === 'dark' ? 'sun' : 'moon'} />
             </button>
             <div className={styles.onlineDot}><span className={styles.dot} />{t('intel.online')}</div>
-            <div className={styles.avatar}>DA</div>
           </div>
         </div>
 
