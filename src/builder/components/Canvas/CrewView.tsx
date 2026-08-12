@@ -159,23 +159,19 @@ export function CrewView({ agent, crew }: Props) {
         currentOwnerUserId={ownerUserId}
       />
 
-      <div className={styles.crewGrid}>
-        <div className={styles.crewMain}>
-          {/* The agent's chain is surfaced INSIDE the crew chain via
-              the fixed Agent combo chip rendered by ChainCanvas — hover
-              that chip for the agent steps and a link to the agent
-              page. The standalone agent strip that used to sit above
-              this is gone (replaced by the combo). */}
-          <ChainCanvas agent={agent} crew={crew} />
-        </div>
+      <div className={styles.crewStack}>
+        {/* The agent's chain is surfaced INSIDE the crew chain via
+            the fixed Agent combo chip rendered by ChainCanvas — hover
+            that chip for the agent steps and a link to the agent
+            page. The standalone agent strip that used to sit above
+            this is gone (replaced by the combo). */}
+        <ChainCanvas agent={agent} crew={crew} />
 
-        <aside className={styles.crewSide}>
-          {/* Pinned fields surface INSIDE the Memory panel under a
-              gentle "Pinned" subheader (see FieldsPanel) — not as
-              a separate panel. Per-conversation overrides still
-              happen on the brain panel. */}
-          <FieldsPanel agentId={agent.id} crewId={crew.id} />
-        </aside>
+        {/* Memory sits BELOW the Cortex, full-width, laid out as
+            collapsible domain columns (each domain a card). Pinned
+            fields surface as their own accented card; per-conversation
+            overrides still happen on the brain panel. */}
+        <FieldsPanel agentId={agent.id} crewId={crew.id} layout="columns" />
       </div>
     </>
   );

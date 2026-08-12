@@ -279,7 +279,13 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                           const c = Array.isArray(ns) ? ns.length : 0;
                           return `${c} KB${c === 1 ? '' : 's'}`;
                         })()
-                      : '';
+                      : instance.pluginId === 'rules'
+                        ? (() => {
+                            const rs = (instance.config as { rules?: unknown[] })?.rules;
+                            const c = Array.isArray(rs) ? rs.length : 0;
+                            return `${c} rule${c === 1 ? '' : 's'}`;
+                          })()
+                        : '';
                   const instanceName =
                     (instance.config && typeof (instance.config as { name?: unknown }).name === 'string'
                       ? ((instance.config as { name?: string }).name || '').trim()

@@ -364,10 +364,15 @@
   gap: 6px;
 }
 
+/* One row: `field = value` inline for short values. Long values
+ * (the clamped pre) claim a full-width line of their own via
+ * .writeValueLong below. */
 .writesItem {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
   font-size: 11px;
 }
 
@@ -412,6 +417,9 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* Force long values onto their own full-width line — short values
+   * stay inline next to `field =`. */
+  flex: 1 0 100%;
 }
 
 .writeValuePre {

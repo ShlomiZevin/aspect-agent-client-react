@@ -45,7 +45,19 @@
   height: 16px;
 }
 
-/* ── Crew two-column layout: main (prompt + cortex) | side (fields) ── */
+/* ── Crew layout: a single vertical stack — Cortex (full width) then
+   the Memory domain-columns below it. Replaces the crew view's old
+   2-column grid that pinned Memory to a narrow right rail. ── */
+.crewStack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* ── Two-column layout: main | side (fields). STILL used by AgentView
+   (agent-level fields keep their right-rail side panel); CrewView has
+   moved to `.crewStack` above. ── */
 .crewGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 280px;

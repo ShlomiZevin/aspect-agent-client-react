@@ -15,6 +15,7 @@ import './thinker/addon.thinker';
 import './summarizer/addon.summarizer';
 import './talker/addon.talker';
 import './transitionRouter/addon.transitionRouter';
+import './rules/addon.rules';
 import './kbRetriever/addon.kbRetriever';
 
 export {};

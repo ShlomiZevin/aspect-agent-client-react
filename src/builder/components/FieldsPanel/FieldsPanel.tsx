@@ -18,7 +18,7 @@
  * `crewField.crewId`), regardless of which view we were rendered in.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { useAgentFields } from '../../state/useAgentFields';
@@ -60,6 +60,15 @@ interface Props {
   /** Owning crew when this panel is rendered inside CrewView.
    *  Absent in AgentView; the "+ Add field" affordance is hidden then. */
   crewId?: ID;
+  /**
+   * How the field groups are laid out:
+   *   - 'stack'   (default) — vertical accordion, groups stacked one
+   *     under another. Used by the AgentView side panel.
+   *   - 'columns' — full-width responsive grid of collapsible domain
+   *     cards (each domain a column, wrapping to more rows). Cards
+   *     default to COLLAPSED. Used by CrewView, below the Cortex.
+   */
+  layout?: 'stack' | 'columns';
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -74,7 +83,7 @@ const SOURCE_LABEL: Record<string, { label: string; icon: string }> = {
   inferred: { label: 'Inferred', icon: '🧐' },
 };
 
-export function FieldsPanel({ agentId, crewId }: Props) {
+export function FieldsPanel({ agentId, crewId, layout = 'stack' }: Props) {
   // Pick the right source: crew view sees agent + this-crew's
   // fields; agent view sees only agent-scoped fields. The hooks
   // own scope filtering — this component doesn't.
@@ -126,7 +135,30 @@ export function FieldsPanel({ agentId, crewId }: Props) {
   // field pre-checked — the user lands in the right next step.
   const [wirePreselectId, setWirePreselectId] = useState<ID | null>(null);
   const [editing, setEditing] = useState<CrewField | null>(null);
+  // 'stack' mode: default EXPANDED, `collapsed` tracks closed groups.
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // 'columns' mode: default COLLAPSED, `expanded` tracks open cards.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // Masonry needs a concrete column count (cards are distributed into
+  // independent vertical columns in JS). Measured from the container so
+  // it stays responsive; ~300px target column width, matching the old
+  // grid's minmax. Default 3 until the observer measures.
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [colCount, setColCount] = useState(3);
+  useEffect(() => {
+    if (layout !== 'columns') return;
+    const el = gridRef.current;
+    if (!el) return;
+    const MIN_COL = 300, GAP = 10;
+    const compute = () => {
+      const w = el.clientWidth;
+      setColCount(Math.max(1, Math.floor((w + GAP) / (MIN_COL + GAP))));
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [layout]);
 
   // Are there any declared agent fields not yet wired to this crew?
   // Drives whether the "+ Wire field" button is offered or hidden —
@@ -191,6 +223,34 @@ export function FieldsPanel({ agentId, crewId }: Props) {
       return next;
     });
   };
+
+  const toggleExpand = (key: string) => {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  // Shared row list — used by both the stack groups and the column
+  // cards so a field row renders identically in either layout.
+  const renderRows = (fields: CrewField[]) => (
+    <div className={styles.list}>
+      {fields.map(cf => (
+        <FieldRow
+          key={`${cf.crewId}/${cf.field.id}`}
+          cf={cf}
+          onPick={setEditing}
+          onDelete={onDeleteField}
+          liveValue={liveValueByField[cf.field.name]}
+          showCrewChip={showCrewChip}
+          enumNameById={enumNameById}
+          mentions={mentions}
+        />
+      ))}
+    </div>
+  );
 
   return (
     <>
@@ -257,6 +317,74 @@ export function FieldsPanel({ agentId, crewId }: Props) {
               : 'No fields yet. Add one from a crew view.'
             }
           </div>
+        ) : layout === 'columns' ? (
+          /* Columns layout (CrewView): every group is a collapsible
+             card — Pinned first (accented), each domain next, "No
+             domain" last (muted). Cards default to COLLAPSED.
+
+             Independent-column masonry: cards are distributed round-
+             robin into N vertical columns, each of which flows on its
+             own. Expanding a card only pushes the cards BELOW it in the
+             SAME column — the other columns don't move. Round-robin (not
+             height-balancing) keeps each card's column STABLE, so an
+             expand never reshuffles siblings. */
+          (() => {
+            const cards: ReactNode[] = [];
+            if (pinnedFields.length > 0) {
+              cards.push(
+                <MemoryCard
+                  key="__pinned__"
+                  name="Pinned"
+                  icon="🎯"
+                  accent
+                  count={pinnedFields.length}
+                  open={expanded.has('__pinned__')}
+                  onToggle={() => toggleExpand('__pinned__')}
+                >
+                  {renderRows(pinnedFields)}
+                </MemoryCard>,
+              );
+            }
+            for (const group of collectedDomains.filter(g => g.name !== null)) {
+              const name = group.name as string;
+              cards.push(
+                <MemoryCard
+                  key={name}
+                  name={name}
+                  count={group.fields.length}
+                  open={expanded.has(name)}
+                  onToggle={() => toggleExpand(name)}
+                >
+                  {renderRows(group.fields)}
+                </MemoryCard>,
+              );
+            }
+            for (const group of collectedDomains.filter(g => g.name === null)) {
+              cards.push(
+                <MemoryCard
+                  key="__ungrouped__"
+                  name="No domain"
+                  muted
+                  count={group.fields.length}
+                  open={expanded.has('__ungrouped__')}
+                  onToggle={() => toggleExpand('__ungrouped__')}
+                >
+                  {renderRows(group.fields)}
+                </MemoryCard>,
+              );
+            }
+            const cols: ReactNode[][] = Array.from({ length: colCount }, () => []);
+            cards.forEach((node, i) => cols[i % colCount].push(node));
+            return (
+              <div className={styles.masonry} ref={gridRef}>
+                {cols.map((col, ci) => (
+                  <div className={styles.masonryCol} key={ci}>
+                    {col}
+                  </div>
+                ))}
+              </div>
+            );
+          })()
         ) : (
           <div className={styles.groups}>
             {/* Pinned FIRST — org-level defaults read at a glance
@@ -357,6 +485,39 @@ export function FieldsPanel({ agentId, crewId }: Props) {
         crewId={crewId ?? ''}
       />
     </>
+  );
+}
+
+interface MemoryCardProps {
+  name: string;
+  count: number;
+  open: boolean;
+  onToggle: () => void;
+  icon?: string;
+  /** Accent border/tint — used for the Pinned card. */
+  accent?: boolean;
+  /** Muted fill — used for the "No domain" card. */
+  muted?: boolean;
+  children: ReactNode;
+}
+
+/**
+ * MemoryCard — one collapsible column in the CrewView columns layout.
+ * Header (caret + optional icon + name + count) toggles the body open.
+ * The body caps its height and scrolls internally so a large domain
+ * can't blow out its grid row.
+ */
+function MemoryCard({ name, count, open, onToggle, icon, accent, muted, children }: MemoryCardProps) {
+  return (
+    <div className={`${styles.card} ${accent ? styles.cardAccent : ''} ${muted ? styles.cardMuted : ''}`}>
+      <button type="button" className={styles.cardHeader} onClick={onToggle}>
+        <span className={styles.groupCaret}>{open ? '▾' : '▸'}</span>
+        {icon && <span className={styles.cardIcon} aria-hidden>{icon}</span>}
+        <span className={styles.cardName}>{name}</span>
+        <span className={styles.groupCount}>{count}</span>
+      </button>
+      {open && <div className={styles.cardBody}>{children}</div>}
+    </div>
   );
 }
 

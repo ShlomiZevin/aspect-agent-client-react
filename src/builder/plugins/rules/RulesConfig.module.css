@@ -1,0 +1,390 @@
+/* Rules addon config — numbered rule cards with visually distinct
+ * WHEN / THEN zones (tinted panels with a colored spine), aligned
+ * action rows, and explicit delete buttons. Conditions inside WHEN
+ * render via the shared ConditionsEditor (its own module CSS). */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.empty,
+.hint,
+.footHint {
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+  font-style: italic;
+}
+
+/* ── Rule card ──────────────────────────────────────────────────── */
+/* Gentle indigo-gray tint distinguishes rule cards from the modal's
+ * white; the WHEN/THEN zones inside go white so they still pop. */
+.rule {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 12px;
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f8f9fd;
+}
+
+.ruleDisabled {
+  opacity: 0.55;
+}
+
+.ruleHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ruleHeadClickable {
+  cursor: pointer;
+  user-select: none;
+  margin: -4px -6px;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.ruleHeadClickable:hover {
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.chevron {
+  color: var(--text-tertiary, #9ca3af);
+  font-size: 11px;
+  width: 12px;
+  flex-shrink: 0;
+}
+
+/* Collapsed one-line summary: WHEN → THEN in quiet mono. */
+.ruleSummary {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: Consolas, ui-monospace, monospace;
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.summaryWhen {
+  color: var(--text-secondary, #4b5563);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+}
+
+.summaryArrow {
+  color: var(--text-tertiary, #9ca3af);
+  flex-shrink: 0;
+}
+
+.summaryThen {
+  color: var(--text-primary, #111827);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  max-width: 45%;
+}
+
+.ruleTools {
+  margin-left: auto;
+}
+
+.ruleNum {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary, #4b5563);
+  background: var(--surface-2, #f3f4f6);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.ruleTools {
+  display: flex;
+  gap: 5px;
+}
+
+.toolBtn {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 5px 8px;
+  border-radius: 7px;
+}
+
+.toolBtn:hover:not(:disabled) {
+  background: var(--surface-2, #f3f4f6);
+}
+
+.toolBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.toolDanger:hover:not(:disabled) {
+  border-color: #fca5a5;
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+/* ── WHEN / THEN zones — tinted panels with a colored spine ─────── */
+.zone {
+  position: relative;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+/* Zones use the builder's own neutrals: quiet gray panel, indigo
+ * accent for WHEN, slate for THEN. No off-palette blue/green. */
+.zoneWhen {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-inline-start: 3px solid var(--primary-color, #6366f1);
+}
+
+/* THEN mirrors WHEN's structure: header line (pill + Add button),
+ * action rows below. */
+.zoneThen {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-inline-start: 3px solid #94a3b8;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.thenHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kw {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+.kwWhen {
+  color: var(--primary-color, #4338ca);
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.kwThen {
+  color: #475569;
+  background: rgba(100, 116, 139, 0.14);
+}
+
+.zoneBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* ── Action rows: [type | params | delete] on one aligned line ──── */
+.actionRow {
+  display: grid;
+  grid-template-columns: 158px minmax(0, 1fr) 32px;
+  align-items: start;
+  gap: 8px;
+}
+
+.actionRow > .actionType,
+.actionRow > .deleteBtn {
+  margin-top: 1px;
+}
+
+.actionParams {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* Same metrics as the WHEN zone's controls (ConditionsEditor:
+ * selects = 11px/600, inputs = 12px/400, 4×8 padding, radius 6) so
+ * WHEN and THEN read as one system. */
+.select,
+.input {
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-surface, #fff);
+  color: var(--text-primary, #111827);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-family: inherit;
+  height: 28px;
+  box-sizing: border-box;
+}
+
+.select {
+  cursor: pointer;
+  max-width: 180px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.input {
+  flex: 0 1 150px;
+  min-width: 90px;
+  font-size: 12px;
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+}
+
+.numInput {
+  flex: 0 1 84px;
+  min-width: 64px;
+}
+
+.replyInput {
+  flex: 1 1 260px;
+}
+
+.op {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.actionType {
+  font-weight: 600;
+  width: 100%;
+  max-width: none;
+}
+
+
+.deleteBtn {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 5px 0;
+  width: 30px;
+  justify-self: end;
+}
+
+.deleteBtn:hover:not(:disabled) {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.deleteBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* One action = its row, plus (for formulas) a full-width second line
+ * starting flush with the action-type dropdown. */
+.actionItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formulaBox {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+/* reserve room for the corner "?" help button */
+.formulaBox textarea { padding-right: 28px; }
+
+/* Code-editor look — same block as ConditionsEditor's .formulaWrap
+ * textarea (WHEN formulas). Keep the two in sync. */
+.formulaBox textarea {
+  /* display:block kills the inline-block baseline gap — see the
+   * matching block in ConditionsEditor.module.css. Keep in sync. */
+  display: block;
+  font-family: Consolas, 'Cascadia Code', ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 18px;
+  width: 100%;
+  height: 28px;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  background: var(--bg-input, #fafafa);
+  color: var(--text-primary, #111827);
+  resize: none;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.formulaBox textarea::placeholder {
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.formulaBox textarea:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  background: #fff;
+}
+
+.formulaHint {
+  font-size: 11px;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.formulaProblem {
+  font-size: 11px;
+  color: #b91c1c;
+}
+
+/* Same look as the WHEN header's "+ Add" (ConditionsEditor.addBtn). */
+.addAction {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 6px;
+  padding: 3px 9px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.addAction:hover {
+  background: rgba(99, 102, 241, 0.16);
+}
+
+.addRule {
+  background: none;
+  border: 1px dashed var(--border, #d1d5db);
+  color: var(--accent, #4f46e5);
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 10px;
+  text-align: center;
+  align-self: stretch;
+}
+
+.addRule:hover {
+  background: var(--surface-2, #f3f4f6);
+}

@@ -121,6 +121,92 @@
   gap: 12px;
 }
 
+/* ── Columns layout (CrewView, full-width below the Cortex) ──
+   Independent-column masonry: a flex row of equal-width columns, each
+   flowing its own stack of cards. Because the columns are separate flex
+   containers, expanding a card only grows ITS column and pushes the
+   cards below it there — the other columns are untouched (unlike a CSS
+   grid, where one tall cell pushes the whole next row down).
+   Card distribution + column count live in FieldsPanel (JS), sized to
+   ~300px per column so each field row can show its live value inline. */
+.masonry {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.masonryCol {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  overflow: hidden;
+}
+
+/* Pinned card — indigo accent so it reads as "special provenance". */
+.cardAccent {
+  border-color: rgba(99, 102, 241, 0.35);
+  background: rgba(99, 102, 241, 0.03);
+}
+
+/* "No domain" card — muted fill so ungrouped fields sit quietly. */
+.cardMuted {
+  background: var(--bg-input, #fafafa);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px 10px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.cardHeader:hover {
+  background: var(--bg-input, #f3f4f6);
+}
+
+.cardIcon {
+  font-size: 12px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.cardName {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #4b5563);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Card body — the field list. Grows to whatever height it needs so an
+   expanded domain shows ALL its fields (and their live values during a
+   chat) with no internal scroll. Grid rows are top-aligned, so a taller
+   expanded card just makes its row taller; its shorter siblings stay
+   pinned to the top. */
+.cardBody {
+  padding: 8px;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+}
+
 .group {
   display: flex;
   flex-direction: column;

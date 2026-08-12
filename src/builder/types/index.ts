@@ -820,6 +820,19 @@ export type TransitionCondition =
        */
       type: 'run-count';
       max: number;
+    }
+  | {
+      /**
+       * Single JavaScript expression over `{{field}}` tokens, matched
+       * by truthiness — the OR / complex-logic escape hatch the
+       * AND-only list can't express (e.g. `{{age}} > 50 || {{stage}}
+       * == 'post'`). Fenced server-side: single expression only (no
+       * loops/statements — linted), evaluated in a vm with a hard
+       * timeout. Errors evaluate as not-matched, surfaced in the run
+       * card.
+       */
+      type: 'formula';
+      expr: string;
     };
 // `always` was dropped — composing with an upstream extractor +
 // field op covers the unconditional pipeline case more inspectably.
@@ -860,6 +873,64 @@ export interface TransitionRouterConfig {
    * Optional for back-compat; absence reads as `true`.
    */
   fireImmediately?: boolean;
+}
+
+// ─── Rules addon ───────────────────────────────────────────────────
+
+/** The fixed compute-function library for rule set-actions. Every
+ *  function is deterministic server code — no user expressions. */
+export interface RuleComputeDef {
+  fn: 'years-since' | 'days-since' | 'add' | 'subtract' | 'today';
+  /** Source field: the date field for *-since, left operand for math. */
+  field?: string;
+  /** Right operand as another field (takes precedence over `number`). */
+  otherField?: string;
+  /** Right operand as a fixed number. */
+  number?: number;
+}
+
+export interface RuleAction {
+  type: 'set' | 'clear' | 'transition' | 'stop' | 'reply';
+  /** set/clear: target field name (a declared agent/crew field). */
+  field?: string;
+  /** set: how the value is produced. Default 'fixed'. */
+  valueMode?: 'fixed' | 'copy' | 'formula' | 'compute';
+  /** set + fixed: the literal value. */
+  value?: string;
+  /** set + copy: source field name. */
+  fromField?: string;
+  /** set + formula: single JS expression over {{field}} tokens
+   *  (e.g. `yearsSince({{birthdate}})`, `{{a}} + {{b}}`, `{{n}} % 2`).
+   *  Same fencing as formula conditions: linted, vm, hard timeout. */
+  formula?: string;
+  /** set + compute: legacy dropdown functions — superseded by
+   *  `formula`, kept for configs saved before it existed. */
+  compute?: RuleComputeDef;
+  /** transition: target crew id. Fires same turn unless false. */
+  target?: ID;
+  fireImmediately?: boolean;
+  /** reply: fixed assistant text (pair with a stop action). */
+  text?: string;
+}
+
+export interface RuleDef {
+  id: string;
+  /** Same AND-conditions as filters. EMPTY = always fires (that's how
+   *  computed fields are expressed — a THEN with no WHEN). */
+  conditions: TransitionCondition[];
+  actions: RuleAction[];
+  enabled?: boolean;
+}
+
+/** Rules addon config. Rules run top to bottom, every match fires,
+ *  later writes win. `extractsFields` mirrors every field the rules
+ *  touch so the server resolves their domains (kept in sync by the
+ *  config UI — not user-edited). */
+export interface RulesAddonConfig {
+  /** User-editable instance name shown on the chain card. */
+  name?: string;
+  rules: RuleDef[];
+  extractsFields: string[];
 }
 
 // ─── The three-level documents ─────────────────────────────────────

@@ -253,3 +253,77 @@
 /* ComboPicker styles moved to ./ComboPicker.module.css (the picker
  * is now a shared component used by Switch rules in Triggered
  * Context as well). */
+
+/* ── Formula condition ──────────────────────────────────────────── */
+/* The mention textarea styled as one quiet input line: matches the
+ * sibling selects, no scrollbar, no drag-resize grip (autoGrow owns
+ * the height). */
+.formulaWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+/* reserve room for the corner "?" help button */
+.formulaWrap textarea { padding-right: 28px; }
+
+/* Code-editor look — deliberately DIFFERENT from form inputs: dark
+ * strip, monospace, light text. Fixed 28px so the row shares one
+ * centerline with the type pill and remove button. Identical block
+ * lives in RulesConfig.module.css for THEN-value formulas — keep the
+ * two in sync. */
+.formulaWrap textarea {
+  /* display:block kills the inline-block baseline gap that pushed the
+   * box 4px off the row's centerline — the alignment fix. */
+  display: block;
+  font-family: Consolas, 'Cascadia Code', ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 18px;
+  width: 100%;
+  height: 28px;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  background: var(--bg-input, #fafafa);
+  color: var(--text-primary, #111827);
+  resize: none;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.formulaWrap textarea::placeholder {
+  color: var(--text-tertiary, #9ca3af);
+}
+
+/* Pixel-perfect rows in flat mode: every control in a condition row
+ * shares the same fixed 28px box. Scoped to .condCardFlat so card
+ * hosts (router, filters) keep their natural heights. */
+.condCardFlat .condTypePill,
+.condCardFlat .opSelect,
+.condCardFlat .inlineInput {
+  height: 28px;
+  box-sizing: border-box;
+}
+
+/* Flat variant — host opts in (Rules addon's WHEN zone is already a
+ * tinted panel; a white card inside it reads as double chrome). Other
+ * hosts (Transition Router, filters) keep the card. */
+.condCardFlat {
+  background: transparent;
+  border: none;
+  padding: 2px 0;
+}
+
+.formulaWrap textarea:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  background: #fff;
+}
+
+.formulaProblem {
+  font-size: 11px;
+  color: #b91c1c;
+}

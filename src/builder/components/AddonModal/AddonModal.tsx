@@ -195,7 +195,7 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
       <Modal
         open={open}
         onClose={handleCancel}
-        width={720}
+        width={instance.pluginId === 'rules' ? 860 : 720}
         title={
           <>
             <span className={styles.titleIcon}>{desc.icon}</span>

@@ -13,10 +13,13 @@
  * comparison ops, booleans only get equality.
  */
 
-import { useEffect, useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
 import { useCrewFields } from '../../state/useCrewFields';
 import { ComboPicker } from './ComboPicker';
+import { lintFormula } from './formulaLint';
+import { FormulaHelpButton } from './FormulaHelp';
+import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
 import { SYSTEM_FIELDS } from '../../registry/systemFields';
 import type { FieldDef, FieldOp, ID, TransitionCondition } from '../../types';
 import styles from './ConditionsEditor.module.css';
@@ -36,6 +39,7 @@ type CondType = TransitionCondition['type'];
 const CONDITION_TYPES: { value: CondType; label: string }[] = [
   { value: 'field',            label: 'Field check' },
   { value: 'fields-collected', label: 'Fields collected' },
+  { value: 'formula',          label: 'Formula' },
 ];
 
 const OP_LABELS: Record<FieldOp, string> = {
@@ -78,6 +82,8 @@ function emptyCondition(type: CondType): TransitionCondition {
       return { type, fields: [] };
     case 'field':
       return { type, field: '', op: 'equals', value: '' };
+    case 'formula':
+      return { type, expr: '' };
     case 'run-count':
       // Defensive — `run-count` isn't picked from the dropdown any
       // more, but if it ever arrives here (legacy data, programmatic
@@ -92,8 +98,10 @@ interface ConditionsEditorProps {
   onChange: (next: TransitionCondition[]) => void;
   agentId: ID;
   crewId: ID;
-  /** Header shown above the list. Defaults to "Conditions · all must match". */
-  title?: string;
+  /** Header shown above the list. Defaults to "Conditions · all must match".
+   *  Accepts a node so hosts can inline their own label pill (Rules
+   *  passes its WHEN pill here to keep everything on one line). */
+  title?: ReactNode;
   /** Message shown when the list is empty. */
   emptyMessage?: string;
   /** Optional content slotted between the title and the +Add button.
@@ -101,6 +109,11 @@ interface ConditionsEditorProps {
    *  row instead of stacking it above — saves a row of vertical
    *  real estate. */
   headerSlot?: ReactNode;
+  /** Render condition rows without the white card chrome (background/
+   *  border). For hosts that already wrap the editor in their own
+   *  panel — the Rules addon's WHEN zone. Default false: every other
+   *  host keeps the card look. */
+  flat?: boolean;
 }
 
 export function ConditionsEditor({
@@ -108,6 +121,7 @@ export function ConditionsEditor({
   title = 'Conditions',
   emptyMessage = 'No conditions — this rule will never fire. Add one above.',
   headerSlot,
+  flat = false,
 }: ConditionsEditorProps) {
   const { allFields } = useCrewFields(agentId, crewId);
   const { doc } = useBuilder();
@@ -200,6 +214,7 @@ export function ConditionsEditor({
               fieldByName={fieldByName}
               enumValuesFor={enumValuesFor}
               systemFieldNames={systemFieldNames}
+              flat={flat}
               onChange={next => updateCondition(i, next)}
               onRemove={() => removeCondition(i)}
             />
@@ -218,17 +233,18 @@ interface ConditionCardProps {
   fieldByName: Map<string, FieldDef>;
   enumValuesFor: (field: FieldDef | undefined) => string[];
   systemFieldNames: Set<string>;
+  flat?: boolean;
   onChange: (next: TransitionCondition) => void;
   onRemove: () => void;
 }
 
 function ConditionCard({
-  cond, fieldNames, fieldByName, enumValuesFor, systemFieldNames, onChange, onRemove,
+  cond, fieldNames, fieldByName, enumValuesFor, systemFieldNames, flat, onChange, onRemove,
 }: ConditionCardProps) {
   const setType = (type: CondType) => onChange(emptyCondition(type));
 
   return (
-    <div className={styles.condCard}>
+    <div className={`${styles.condCard} ${flat ? styles.condCardFlat : ''}`}>
       <select
         className={styles.condTypePill}
         value={cond.type}
@@ -245,6 +261,9 @@ function ConditionCard({
         )}
         {cond.type === 'fields-collected' && (
           <FieldsCollectedBody cond={cond} fieldNames={fieldNames} systemFieldNames={systemFieldNames} onChange={onChange} />
+        )}
+        {cond.type === 'formula' && (
+          <FormulaBody cond={cond} fieldNames={fieldNames} onChange={onChange} />
         )}
         {/* `run-count` body is no longer surfaced here — see the cap
             input on AddonFilterSection. The type stays in the union
@@ -414,6 +433,46 @@ function FieldsCollectedBody({
       placeholder="field names, comma-separated"
       spellCheck={false}
     />
+  );
+}
+
+function FormulaBody({
+  cond, fieldNames, onChange,
+}: {
+  cond: Extract<TransitionCondition, { type: 'formula' }>;
+  fieldNames: string[];
+  onChange: (next: TransitionCondition) => void;
+}) {
+  // Validated on blur — same fences as the server (single JS
+  // expression, no loops/statements), so authors learn about a broken
+  // formula while editing, not from the run log.
+  const [problem, setProblem] = useState<string | null>(null);
+
+  // Fields-only autocomplete on `{{` — same restricted picker as the
+  // Rules addon's value formulas, not the full prompt token set.
+  const fieldOptions = useMemo(() => ({
+    '@': fieldNames.map(n => ({ label: n, insertion: `{{${n}}}`, group: 'Field' })),
+  }), [fieldNames]);
+
+  return (
+    <div className={styles.formulaWrap}>
+      <FormulaHelpButton mode="when" />
+      <MentionTextarea
+        value={cond.expr}
+        onChange={expr => {
+          onChange({ ...cond, expr });
+          if (problem) setProblem(null);
+        }}
+        onBlur={() => setProblem(lintFormula(cond.expr))}
+        options={fieldOptions}
+        rows={1}
+        autoGrow
+        minHeight={28}
+        spellCheck={false}
+        placeholder={'JavaScript · true = match · type {{ to insert a field'}
+      />
+      {problem && <span className={styles.formulaProblem}>✕ {problem}</span>}
+    </div>
   );
 }
 
