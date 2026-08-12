@@ -8,6 +8,10 @@
     ],
     "rewrites": [
       {
+        "source": "/intelligence/zolstock",
+        "destination": "/intelligence/zolstock.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

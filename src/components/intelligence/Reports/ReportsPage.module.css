@@ -55,3 +55,26 @@
   padding: 8px 18px; border-radius: 9px; border: 1.5px solid var(--ai-accent);
   background: none; color: var(--ai-accent); font-size: 12.5px; font-weight: 600; cursor: pointer;
 }
+
+/* Empty state with an action. Stating "no suggestions, check back tonight"
+   leaves the user stuck, and it is also inaccurate — asking a question now is
+   the real path to a report, not waiting for a nightly run. */
+.emptyState {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 8px; padding: 44px 24px 48px;
+  border: 1px dashed var(--ai-border, #E2D6F5); border-radius: 16px;
+  background: var(--ai-surface);
+}
+.emptyIcon { font-size: 22px; color: var(--ai-accent); }
+.emptyTitle { font: 700 16px var(--ai-font-head); color: var(--ai-text); }
+.emptyBody { font-size: 13.5px; color: var(--ai-text-mute); max-width: 46ch; line-height: 1.55; }
+.emptyCta {
+  margin-top: 10px; padding: 11px 20px; border-radius: 11px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, #8B5CF6, #C026D3); color: #fff;
+  font-size: 13.5px; font-weight: 700;
+}
+.emptyCta:focus-visible { outline: 2px solid var(--ai-accent); outline-offset: 2px; }
+
+/* Sparkline on a suggested card — the same visual weight as the saved cards
+   carry, so the two sections read as one family instead of "rich" vs "plain". */
+.cardChart { margin-top: 10px; }

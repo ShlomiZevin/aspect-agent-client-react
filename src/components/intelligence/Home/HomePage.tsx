@@ -60,9 +60,15 @@ export function HomePage({ datasetId, userId, onOpenInsight, onAskInChat, onSeeA
   // Last run reports: active jobs (running/completed-not-yet-reviewed/error)
   // first, then the most recent already-settled reports that aren't
   // represented by one of those jobs — capped at 3 rows (design turn 10a/10b).
+  // Shared/system-proposed suggestions are excluded here on purpose — this
+  // panel reads as "your recent activity", and a suggestion nobody in this
+  // session asked for showed up as if it were the user's own history
+  // (confusing even in a fresh/incognito session, since it's dataset-wide,
+  // not per-user). "Suggested reports" still show, clearly labeled as such,
+  // on the Reports page (ReportsPage.tsx) — only this panel goes personal-only.
   const jobInsightIds = new Set(jobs.flatMap(j => j.result?.insightIds || []));
   const recentInsights = useMemo(
-    () => [...(insights || [])].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)),
+    () => [...(insights || [])].filter(i => !i.shared).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)),
     [insights],
   );
   const lastRunRows = [
@@ -71,7 +77,9 @@ export function HomePage({ datasetId, userId, onOpenInsight, onAskInChat, onSeeA
   ].slice(0, 3);
 
   const savedCount = tracked?.length ?? 0;
-  const totalCount = insights?.length ?? 0;
+  // "See all my reports (N)" — must agree with the personal-only panel above
+  // it, so it excludes shared suggestions too (recentInsights already does).
+  const totalCount = recentInsights.length;
   const { expanded: railExpanded, toggle: toggleRail } = useRailExpanded(datasetId);
   // Recent Reports in the expanded rail (design turn 7c/9c) — 2 most recent
   // reports not already shown as Saved, same idea as "Last run reports"

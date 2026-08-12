@@ -27,6 +27,15 @@ export interface Job {
   status: JobStatus;
   progress: number;
   startedAt: number;
+  /** Real server-reported pipeline stage (plan|query|aggregate|synthesize|verify),
+   * polled while the investigate request is still open — see stageProgress below. */
+  stage?: string;
+  /** Short server-supplied line about what this stage is actually doing, e.g. the data question PLAN settled on. */
+  stageDetail?: string;
+  /** Server-measured elapsed time for this run — used instead of reading a clock during render. */
+  elapsedMs?: number;
+  /** Server-computed time remaining, derived from the same stage model as `progress` so the two agree. */
+  etaMs?: number;
   result?: InvestigateResult;
   errorMessage?: string;
   /** Insight ids that existed when this job started — the signal used to
@@ -46,7 +55,18 @@ interface JobsContextValue {
 
 const JobsContext = createContext<JobsContextValue | undefined>(undefined);
 
-const FAKE_DURATION_MS = 8000;
+/**
+ * How often to ask the server which pipeline stage a running investigation is
+ * actually in. Replaces the old FAKE_DURATION_MS = 8000 timer, which animated
+ * the bar against a guessed 8-second runtime while a real investigation takes
+ * 30-100s — so it raced to its 96% cap in under 8s, froze there for the rest
+ * of the run, then snapped to 100%. The five named steps were driven off that
+ * same fake number, so the UI claimed "Double-check the findings" was done
+ * before the SQL had even run.
+ */
+const PROGRESS_POLL_MS = 1500;
+/** Fallback pacing when the server has no progress for this job (older instance, or a job started before a restart). */
+const FALLBACK_DURATION_MS = 60000;
 const STORAGE_KEY = 'aspect-intel-jobs';
 const RESUME_POLL_MS = 3000;
 const RESUME_MAX_ATTEMPTS = 40; // ~2 minutes of polling after a reload
@@ -95,28 +115,45 @@ export function JobsProvider({ children }: { children: ReactNode }) {
 
   const runJob = useCallback((datasetId: string, userId: string, id: string, prompt: string) => {
     const startedAt = Date.now();
+
+    // The job id doubles as the server-side progress key, so the browser can
+    // ask what the pipeline is REALLY doing while the investigate POST is
+    // still open. Progress is clamped monotonic: a poll that arrives out of
+    // order, or a fallback estimate, can never walk the bar backwards.
     const interval = setInterval(() => {
-      setJobs(js => js.map(j => {
-        if (j.id !== id || j.status !== 'running') return j;
-        const pct = Math.min(96, Math.round((Date.now() - startedAt) / FAKE_DURATION_MS * 100));
-        return { ...j, progress: pct };
-      }));
-    }, 150);
+      insightsService
+        .getProgress(datasetId, id)
+        .then(p => {
+          if (!p || p.done) return;
+          setJobs(js => js.map(j => (
+            j.id === id && j.status === 'running'
+              ? { ...j, progress: Math.max(j.progress, p.percent), stage: p.stage, stageDetail: p.detail ?? j.stageDetail, elapsedMs: p.elapsedMs, etaMs: p.etaMs }
+              : j
+          )));
+        })
+        .catch(() => {
+          // No server-side progress for this job (older revision, or the
+          // instance restarted mid-run). Creep forward on a realistic
+          // 60s scale instead of the old 8s one, still capped below 100.
+          setJobs(js => js.map(j => {
+            if (j.id !== id || j.status !== 'running') return j;
+            const est = Math.round(100 * (1 - Math.exp(-(Date.now() - startedAt) / FALLBACK_DURATION_MS)));
+            return { ...j, progress: Math.max(j.progress, Math.min(95, est)) };
+          }));
+        });
+    }, PROGRESS_POLL_MS);
     timers.current.set(id, interval);
 
-    insightsService.investigate(datasetId, userId, prompt)
+    insightsService.investigate(datasetId, userId, prompt, id)
       .then(result => {
-        const elapsed = Date.now() - startedAt;
-        const wait = Math.max(0, FAKE_DURATION_MS - elapsed);
-        setTimeout(() => {
-          clearInterval(interval);
-          timers.current.delete(id);
-          if (prompt.trim()) runningKeys.current.delete(jobKey(datasetId, prompt));
-          // For an auto-proposed investigation (started with prompt: ''),
-          // the server picks the actual angle — result.prompt carries that
-          // real prompt back so the badge/review label isn't blank.
-          setJobs(js => js.map(j => j.id === id ? { ...j, status: 'completed', progress: 100, result, prompt: result.prompt || j.prompt } : j));
-        }, wait);
+        clearInterval(interval);
+        timers.current.delete(id);
+        if (prompt.trim()) runningKeys.current.delete(jobKey(datasetId, prompt));
+        // Completion is now driven by the request actually resolving, not by
+        // waiting out a fixed timer — the old code deliberately delayed the
+        // result until FAKE_DURATION_MS had elapsed, which only ever made a
+        // fast run feel slower and a slow run look stuck.
+        setJobs(js => js.map(j => j.id === id ? { ...j, status: 'completed', progress: 100, stage: 'done', result, prompt: result.prompt || j.prompt } : j));
       })
       .catch(err => {
         clearInterval(interval);
@@ -147,8 +184,11 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       const tick = setInterval(() => {
         setJobs(js => js.map(j => {
           if (j.id !== id || j.status !== 'running') return j;
-          const pct = Math.min(96, Math.max(j.progress, Math.round((Date.now() - tickStart) / FAKE_DURATION_MS * 100)));
-          return { ...j, progress: pct };
+          // Resumed-after-reload path: the original request's promise is gone,
+          // so there's nothing to poll against — ease forward on the realistic
+          // 60s scale rather than the old 8s one, never regressing.
+          const est = Math.round(100 * (1 - Math.exp(-(Date.now() - tickStart) / FALLBACK_DURATION_MS)));
+          return { ...j, progress: Math.min(96, Math.max(j.progress, est)) };
         }));
       }, 150);
       progressTimers.current.set(id, tick);

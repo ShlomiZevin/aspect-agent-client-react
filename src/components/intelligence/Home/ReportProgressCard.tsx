@@ -16,9 +16,16 @@ interface Props {
 
 export function ReportProgressCard({ job }: Props) {
   const { t } = useLanguage();
-  const activeIndex = currentStepIndex(job.progress);
+  const activeIndex = currentStepIndex(job.progress, job.stage);
   const nearCap = job.progress >= 90;
-  const secondsLeft = Math.max(1, Math.round((100 - job.progress) / 100 * 8));
+  // The server computes the remaining time from the SAME stage model that
+  // produces `progress`, so the two always agree. Extrapolating elapsed÷percent
+  // here instead — the previous approach — was wrong because progress is
+  // deliberately non-linear in time: it is anchored to stage boundaries and
+  // eased within each stage. At 54% that extrapolation claimed "about 15s
+  // left" when verify alone still had ~12s behind a synthesize step that had
+  // barely started; the real figure is ~32s.
+  const secondsLeft = Math.max(1, Math.round((job.etaMs ?? 45000) / 1000));
 
   return (
     <div className={styles.card}>
@@ -38,7 +45,7 @@ export function ReportProgressCard({ job }: Props) {
 
       <div className={styles.steps}>
         {STEP_SCRIPT.map((step, i) => {
-          const status = stepStatus(job.progress, i);
+          const status = stepStatus(job.progress, i, job.stage);
           const statusClass = status === 'done' ? styles.stepDone : status === 'active' ? styles.stepActive : styles.stepPending;
           return (
             <div key={step.labelKey} className={`${styles.step} ${statusClass}`}>
@@ -46,7 +53,14 @@ export function ReportProgressCard({ job }: Props) {
                 <span className={styles.stepIcon}>{status === 'done' ? '✓' : status === 'active' ? <span className={styles.stepDotSmall} /> : i + 1}</span>
                 <span className={styles.stepLabel}>{t(step.labelKey)}</span>
               </div>
-              <div className={styles.stepDesc}>{i === activeIndex ? `${t(step.descKey)} — ${t('intel.step.runningNow')}` : t(step.descKey)}</div>
+              {/* On the running step, prefer the server's own line about what it's
+                  actually doing (e.g. the data question the plan settled on) over
+                  the generic script text. */}
+              <div className={styles.stepDesc}>
+                {i === activeIndex
+                  ? `${job.stageDetail || t(step.descKey)} — ${t('intel.step.runningNow')}`
+                  : t(step.descKey)}
+              </div>
             </div>
           );
         })}

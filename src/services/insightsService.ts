@@ -3,7 +3,7 @@
  * server — a separate product from Aspect BI (/api/bi), see insightsService's
  * server counterpart at aspect-agent-server/insights/routes/insights.routes.js.
  */
-import type { InsightSummary, TrackedMetric, InsightDetail, InvestigateResult, IntelligenceDatasetMeta, ActionPlan } from '../types/insights';
+import type { InsightSummary, TrackedMetric, InsightDetail, InvestigateResult, IntelligenceDatasetMeta, ActionPlan, InvestigationProgress } from '../types/insights';
 
 const PROD_BASE = 'https://aspect-agent-server-1018338671074.europe-west1.run.app';
 const BASE = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || PROD_BASE);
@@ -45,11 +45,22 @@ export const insightsService = {
   getInsight: (datasetId: string, userId: string, insightId: string) =>
     request<InsightDetail>(`/${datasetId}/${insightId}?userId=${encodeURIComponent(userId)}`),
 
-  investigate: (datasetId: string, userId: string, prompt: string) =>
+  /** `jobId` is the client-generated progress key — the server reports real pipeline stages against it (see getProgress). */
+  investigate: (datasetId: string, userId: string, prompt: string, jobId?: string) =>
     request<InvestigateResult>(`/${datasetId}/investigate`, {
       method: 'POST',
-      body: JSON.stringify({ userId, prompt }),
+      body: JSON.stringify({ userId, prompt, jobId }),
     }),
+
+  /**
+   * Real pipeline stage for a running investigation. Polled while the
+   * (long, 30-100s) investigate POST is still open, so the progress bar
+   * reflects what the server is actually doing instead of a guessed timer.
+   * Rejects with 404 once the job is unknown to this instance — callers
+   * treat that as "fall back to an estimate", not as an error.
+   */
+  getProgress: (datasetId: string, jobId: string) =>
+    request<InvestigationProgress>(`/${datasetId}/progress/${encodeURIComponent(jobId)}`),
 
   /** Runs the dataset's curated bootstrap prompt set (admin panel "Run bootstrap now") — dataset-level, no user scope. */
   bootstrap: (datasetId: string) =>

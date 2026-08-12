@@ -39,6 +39,8 @@ export interface InsightSummary {
   origin?: 'user' | 'proposed';
   /** Flips to true the first time the detail page is opened — drives History's "Ready — not viewed yet" highlight. */
   viewed?: boolean;
+  /** True when this is a dataset-wide suggestion owned by the system, not this session — it can be Saved (which clones it) but not deleted. */
+  shared?: boolean;
   /** The free-text question actually asked (typed by the user, or Aspect's own proposed angle) — History page's "What I asked" column. */
   askedPrompt?: string;
 }
@@ -107,7 +109,22 @@ export interface InsightDetail extends Omit<InsightSummary, 'chartPreview'> {
   confidenceChecks: InsightConfidenceCheck[];
   confidenceBasis: string;
   /** The real investigation prompt, derived data question, and SQL that produced this insight — shown via "View SQL queries". */
-  evidence?: { prompt: string; dataQuestion: string; sql: string };
+  evidence?: {
+    prompt: string;
+    dataQuestion: string;
+    sql: string;
+    /** The SQL generator's own confidence that this dataset can answer the question. */
+    sqlConfidence?: 'high' | 'medium' | 'low';
+    verification?: { verified: boolean; issues: string[] };
+    /** How the reported numbers were actually computed — see result-digest.service.js. */
+    aggregation?: {
+      rowCount: number;
+      groupedBy: string[];
+      distinctGroups: number;
+      collapsedColumns: string[];
+      sampleShown: number;
+    };
+  };
 }
 
 export interface TrackedMetric {
@@ -144,6 +161,23 @@ export interface InvestigateResult {
   findingsCount: number;
   combinedImpactLabel: string;
   insightIds: string[];
+}
+
+/**
+ * Real server-side pipeline stage for a running investigation — see
+ * insights/services/investigation-progress.service.js. `percent` is anchored
+ * to actual stage boundaries and eased within a stage, so it is monotonic and
+ * never claims a step finished before it did.
+ */
+export interface InvestigationProgress {
+  stage: 'plan' | 'query' | 'aggregate' | 'synthesize' | 'verify' | 'done' | 'failed';
+  percent: number;
+  done: boolean;
+  failed: boolean;
+  detail: string | null;
+  elapsedMs: number;
+  /** Time remaining, from the same stage model as `percent` so the two never disagree. */
+  etaMs?: number;
 }
 
 /** "Open <cta> plan" on an insight detail page — see generateActionPlan in investigation.service.js. */

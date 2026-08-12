@@ -42,6 +42,21 @@
   overflow: hidden;
 }
 
+/* Zol Stock brand override — same cobalt blue + yellow as the real logo /
+ * zolstock.co.il and the main chat app's .theme-zolstock (styles/themes/
+ * zolstock-theme.css). Kept subtle: the gradient stays monochromatic blue
+ * (matches that file's --gradient exactly) with yellow reserved for just the
+ * small logo-mark badge, not full-page elements — a blue-to-yellow gradient
+ * across buttons/backgrounds reads as garish rather than "their brand". */
+.shell[data-brand='zolstock'] {
+  --ai-accent: #0a40a8;
+  --ai-accent-2: #0858d6;
+  --ai-accent-soft: rgba(10, 64, 168, 0.1);
+  --ai-accent-soft-2: rgba(8, 88, 214, 0.12);
+  --ai-grad: linear-gradient(135deg, #0a40a8, #0858d6);
+  --ai-grad-mark: linear-gradient(135deg, #0a40a8, #ffd400);
+}
+
 .shell[data-mode='dark'] {
   --ai-bg: #100b1c;
   --ai-shell-bg: #17111f;
