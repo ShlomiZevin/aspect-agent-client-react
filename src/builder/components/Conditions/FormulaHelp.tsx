@@ -20,7 +20,8 @@ const WHEN_EXAMPLES: Example[] = [
   { code: '{{age}} >= 18 && {{country}} === "IL"',         desc: 'BOTH are true  (&& = and)' },
   { code: '{{plan}} === "pro" || {{plan}} === "team"',     desc: 'EITHER is true  (|| = or)' },
   { code: '{{status}} !== "closed"',                       desc: 'the status is anything except “closed”' },
-  { code: '{{email}} !== ""',                              desc: 'the field has some value (not empty)' },
+  { code: '{{email}} != null',                             desc: 'the field was collected (has a value)' },
+  { code: '{{mood}} == null',                              desc: 'the field is still empty (not collected yet)' },
 ];
 
 const THEN_EXAMPLES: Example[] = [
@@ -28,7 +29,8 @@ const THEN_EXAMPLES: Example[] = [
   { code: '{{firstName}} + " " + {{lastName}}',            desc: 'join two fields into a full name' },
   { code: '{{count}} + 1',                                 desc: 'add one to a counter' },
   { code: '{{done}} / {{total}} * 100',                    desc: 'percent complete' },
-  { code: '{{name}}.trim().toUpperCase()',                desc: 'tidy up and upper-case text' },
+  { code: '{{age}} >= 50 ? "50+" : "under 50"',            desc: 'pick between two values (condition ? ifYes : ifNo)' },
+  { code: 'yearsSince({{birthdate}})',                     desc: 'age in years from a date field' },
 ];
 
 export function FormulaHelpButton({ mode }: { mode: 'when' | 'then' }) {
@@ -81,11 +83,13 @@ export function FormulaHelpButton({ mode }: { mode: 'when' | 'then' }) {
               <div><code>{'==='}</code> is equal · <code>{'!=='}</code> is not equal</div>
               <div><code>{'>'}</code> <code>{'>='}</code> <code>{'<'}</code> <code>{'<='}</code> compare numbers</div>
               <div><code>{'&&'}</code> and · <code>{'||'}</code> or · <code>{'!'}</code> not</div>
-              <div><code>{'+ - * /'}</code> math · <code>{'+'}</code> also joins text together</div>
+              <div><code>{'+ - * / %'}</code> math · <code>{'+'}</code> also joins text together</div>
+              <div>dates: <code>yearsSince({'{{birthdate}}'})</code> · <code>daysSince({'{{last_visit}}'})</code> · <code>today()</code></div>
             </div>
 
             <div className={styles.tips}>
               <div>• Text needs quotes: <code>"open"</code>, <code>"IL"</code>. Numbers don’t: <code>18</code>, <code>1.17</code>.</div>
+              <div>• A field that wasn’t collected yet counts as <code>null</code> — check it with <code>{'{{x}} == null'}</code>.</div>
               <div>• Keep it to one line — a single expression (no <code>if</code>, no loops).</div>
               {mode === 'when'
                 ? <div>• The answer is always true or false. Leave the box empty to “always fire”.</div>
