@@ -54,26 +54,37 @@ const OP_LABELS: Record<FieldOp, string> = {
   'lte':          '≤',
   'in':           'is one of',
   'not-in':       'is not one of',
+  'is-null':      'is empty',
+  'is-not-null':  'has a value',
 };
 
+// Emptiness checks apply to every field type — they're the only ops
+// that can match a field that was never collected.
+const NULL_OPS: FieldOp[] = ['is-null', 'is-not-null'];
+
 function opsForField(field?: FieldDef): FieldOp[] {
-  if (!field) return ['equals', 'not-equals', 'in', 'not-in'];
+  if (!field) return ['equals', 'not-equals', 'in', 'not-in', ...NULL_OPS];
   switch (field.type) {
     case 'enum':
-      return ['equals', 'not-equals', 'in', 'not-in'];
+      return ['equals', 'not-equals', 'in', 'not-in', ...NULL_OPS];
     case 'string':
-      return ['equals', 'not-equals', 'contains', 'starts-with', 'ends-with', 'in', 'not-in'];
+      return ['equals', 'not-equals', 'contains', 'starts-with', 'ends-with', 'in', 'not-in', ...NULL_OPS];
     case 'int':
-      return ['equals', 'not-equals', 'gt', 'gte', 'lt', 'lte'];
+      return ['equals', 'not-equals', 'gt', 'gte', 'lt', 'lte', ...NULL_OPS];
     case 'boolean':
-      return ['equals', 'not-equals'];
+      return ['equals', 'not-equals', ...NULL_OPS];
     default:
-      return ['equals', 'not-equals'];
+      return ['equals', 'not-equals', ...NULL_OPS];
   }
 }
 
 function isMultiValueOp(op: FieldOp): boolean {
   return op === 'in' || op === 'not-in';
+}
+
+/** Ops that take no operand — the value input is hidden entirely. */
+function isNoValueOp(op: FieldOp): boolean {
+  return op === 'is-null' || op === 'is-not-null';
 }
 
 function emptyCondition(type: CondType): TransitionCondition {
@@ -310,6 +321,7 @@ function FieldBody({
   const isBoolean = matched?.type === 'boolean';
   const isNumeric = matched?.type === 'int';
   const multiValue = isMultiValueOp(cond.op);
+  const noValue = isNoValueOp(cond.op);
 
   return (
     <>
@@ -325,9 +337,11 @@ function FieldBody({
         value={cond.op}
         onChange={e => {
           const nextOp = e.target.value as FieldOp;
-          const next = isMultiValueOp(nextOp)
-            ? { ...cond, op: nextOp, values: cond.values ?? [], value: undefined }
-            : { ...cond, op: nextOp, value: cond.value ?? '', values: undefined };
+          const next = isNoValueOp(nextOp)
+            ? { ...cond, op: nextOp, value: undefined, values: undefined }
+            : isMultiValueOp(nextOp)
+              ? { ...cond, op: nextOp, values: cond.values ?? [], value: undefined }
+              : { ...cond, op: nextOp, value: cond.value ?? '', values: undefined };
           onChange(next);
         }}
       >
@@ -336,7 +350,7 @@ function FieldBody({
         ))}
       </select>
 
-      {multiValue ? (
+      {noValue ? null : multiValue ? (
         isEnum ? (
           <MultiChipPicker
             options={enumValues}

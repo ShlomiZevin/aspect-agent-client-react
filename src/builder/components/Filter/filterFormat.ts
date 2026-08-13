@@ -77,11 +77,16 @@ export function conditionLine(c: TransitionCondition): string {
     return fs ? `fields collected: ${fs}` : 'fields collected (none picked)';
   }
   if (c.type === 'field') {
+    if (c.op === 'is-null') return `${c.field} is empty`;
+    if (c.op === 'is-not-null') return `${c.field} has a value`;
     if (c.op === 'in' || c.op === 'not-in') {
       const vals = (c.values ?? []).map(v => String(v)).join(', ');
       return `${c.field} ${c.op} [${vals}]`;
     }
     return `${c.field} ${c.op} ${JSON.stringify(c.value)}`;
+  }
+  if (c.type === 'formula') {
+    return c.expr || '(empty formula)';
   }
   if (c.type === 'run-count') {
     return `runs ≤ ${c.max}`;

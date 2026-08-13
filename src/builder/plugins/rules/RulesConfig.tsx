@@ -35,7 +35,7 @@ const ACTION_LABELS: Record<RuleAction['type'], string> = {
 const OP_SIGNS: Record<string, string> = {
   'equals': '=', 'not-equals': '≠', 'contains': '~', 'starts-with': 'starts',
   'ends-with': 'ends', 'gt': '>', 'gte': '≥', 'lt': '<', 'lte': '≤',
-  'in': 'in', 'not-in': 'not in',
+  'in': 'in', 'not-in': 'not in', 'is-null': 'is empty', 'is-not-null': 'has a value',
 };
 
 /** One-line human summary for a collapsed rule card. */
@@ -44,7 +44,10 @@ function summarizeRule(rule: RuleDef, crewName: (id: string) => string): { when:
   const when = conditions.length === 0
     ? 'Always'
     : conditions.map(c => {
-        if (c.type === 'field') return `${c.field} ${OP_SIGNS[c.op] ?? c.op} ${c.values ? c.values.join('|') : String(c.value ?? '')}`;
+        if (c.type === 'field') {
+          if (c.op === 'is-null' || c.op === 'is-not-null') return `${c.field} ${OP_SIGNS[c.op]}`;
+          return `${c.field} ${OP_SIGNS[c.op] ?? c.op} ${c.values ? c.values.join('|') : String(c.value ?? '')}`;
+        }
         if (c.type === 'formula') return c.expr || '(empty formula)';
         if (c.type === 'fields-collected') return `has ${c.fields.join(', ')}`;
         return c.type;
