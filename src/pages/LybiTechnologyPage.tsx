@@ -16,7 +16,7 @@ const PANEL2 = '#0C1017';
 const BORDER = '#1B2430';
 const TEXT = '#C9D1D9';
 const MUTED = '#8B949E';
-const FAINT = '#5E6773';
+const FAINT = '#7C8794';
 const TEAL = '#56D4DD';
 const GREEN = '#7EE787';
 const AMBER = '#E3B341';
@@ -34,14 +34,14 @@ const TONES: Record<Tone, { fg: string; bd: string; bg: string }> = {
 function Node({ label, sub, tone = 'muted', dim }: { label: string; sub?: string; tone?: Tone; dim?: boolean }) {
   const t = TONES[tone];
   return (
-    <div style={{ background: t.bg, border: `1px solid ${t.bd}`, borderRadius: 10, padding: '9px 13px', textAlign: 'center', opacity: dim ? 0.55 : 1 }}>
+    <div style={{ background: t.bg, border: `1px solid ${t.bd}`, borderRadius: 10, padding: '9px 13px', textAlign: 'center', opacity: dim ? 0.85 : 1 }}>
       <div style={{ fontFamily: MONO, fontSize: 12.5, fontWeight: 600, color: t.fg, whiteSpace: 'nowrap' }}>{label}</div>
-      {sub && <div style={{ fontFamily: SANS, fontSize: 10.5, color: FAINT, marginTop: 2, whiteSpace: 'nowrap' }}>{sub}</div>}
+      {sub && <div style={{ fontFamily: SANS, fontSize: 11, color: MUTED, marginTop: 3, whiteSpace: 'nowrap' }}>{sub}</div>}
     </div>
   );
 }
 function Arrow({ dim }: { dim?: boolean }) {
-  return <span style={{ color: dim ? '#2A333F' : '#3A4553', fontSize: 15, flexShrink: 0 }}>→</span>;
+  return <span style={{ color: dim ? '#68727F' : '#9AA4B0', fontSize: 18, fontWeight: 700, flexShrink: 0, margin: '0 1px' }}>→</span>;
 }
 function Chip({ children, tone = 'teal' }: { children: React.ReactNode; tone?: Tone }) {
   const t = TONES[tone];
@@ -56,7 +56,7 @@ function Head({ n, title, onDeep }: { n: string; title: string; onDeep?: () => v
         <button onClick={onDeep} style={{ marginInlineStart: 'auto', fontFamily: MONO, fontSize: 11, color: TEAL, background: 'transparent', border: `1px solid ${BORDER}`, borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = TEAL; }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = BORDER; }}>
-          deep dive ↗
+          details ↗
         </button>
       )}
     </div>
@@ -80,16 +80,6 @@ function DSec({ title, children }: { title: string; children: React.ReactNode })
 function FlowRow({ children }: { children: React.ReactNode }) {
   return <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', background: PANEL2, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '14px 16px' }}>{children}</div>;
 }
-function Refs({ items }: { items: [string, string][] }) {
-  return (
-    <div style={{ background: PANEL2, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '12px 14px', fontFamily: MONO, fontSize: 12, lineHeight: 1.9 }}>
-      {items.map(([path, note]) => (
-        <div key={path}><span style={{ color: TEAL }}>{path}</span>{'  '}<span style={{ color: FAINT }}>{note}</span></div>
-      ))}
-    </div>
-  );
-}
-
 const DEEP: Record<string, { title: string; tag: string; render: () => React.ReactNode }> = {
   chain: {
     title: 'The reasoning chain',
@@ -123,9 +113,6 @@ const DEEP: Record<string, { title: string; tag: string; render: () => React.Rea
           </FlowRow>
           <p style={{ fontFamily: SANS, fontSize: 12.5, color: FAINT, margin: '10px 0 0' }}>Stacking many narrow, specialized steps is what produces depth a single prompt can’t reach.</p>
         </DSec>
-        <DSec title="Grounded">
-          <Refs items={[['crew/services/dispatcher.service.js', '_streamCrew — runs the chain'], ['crew/base/CrewMember.js', 'the step primitive'], ['builder/runtime/', 'addon execution'], ['docs/guides/CREW_CHAIN_ARCHITECTURE.md', 'full runtime doc']]} />
-        </DSec>
       </>
     ),
   },
@@ -158,38 +145,54 @@ const DEEP: Record<string, { title: string; tag: string; render: () => React.Rea
             <Chip tone="green">gate knowledge · SAG</Chip><Chip tone="purple">shape reasoning</Chip><Chip tone="amber">drive transitions</Chip><Chip tone="teal">fill prompt tokens</Chip>
           </div>
         </DSec>
-        <DSec title="Grounded">
-          <Refs items={[['crew/services/dispatcher.service.js', '_runExtractor — parallel, buffered'], ['memory', 'fields grouped by domain, shared across crews']]} />
-        </DSec>
       </>
     ),
   },
   sag: {
-    title: 'SAG — Signal-Augmented Generation',
+    title: 'SAG — knowledge that switches on by itself',
     tag: 'active knowledge',
     render: () => (
       <>
-        <P>RAG retrieves on the user’s <em style={em}>words</em>. SAG activates on the system’s <em style={em}>inferred
-          state</em> — so the right knowledge is in the prompt before the user asks, even when they never mentioned it.</P>
-        <DSec title="Two models">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <FlowRow><Node label="you ask" dim /><Arrow dim /><Node label="embed" dim /><Arrow dim /><Node label="search" dim /><Arrow dim /><Node label="answer" dim /><span style={{ fontFamily: MONO, fontSize: 11, color: FAINT, marginInlineStart: 6 }}>RAG · nothing if unmentioned</span></FlowRow>
-            <FlowRow><Node label="signals" tone="teal" /><Arrow /><Node label="gate" tone="green" sub="by field value" /><Arrow /><Node label="activate module" tone="green" /><Arrow /><Node label="into prompt" tone="amber" /></FlowRow>
+        <P>A domain holds far more knowledge than fits in a single prompt — so, exactly like any knowledge base, the agent
+          must pull in only the <strong style={strong}>relevant piece</strong> for the moment, never everything at once. The
+          real question is <em style={em}>what decides which piece</em>.</P>
+
+        <DSec title="RAG — triggered by your words">
+          <div style={{ background: PANEL2, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '14px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, padding: '3px 9px' }}>RAG</span>
+              <Node label="you ask" tone="muted" sub="you raise the topic" /><Arrow /><Node label="it retrieves" tone="muted" sub="finds the matching piece" /><Arrow /><Node label="it answers" tone="muted" sub="replies with that piece" />
+            </div>
+            <p style={{ fontFamily: SANS, fontSize: 13, color: MUTED, margin: '12px 0 0', lineHeight: 1.6 }}>It brings the right piece — but only if you bring up the topic. Miss it, and it stays silent.</p>
           </div>
         </DSec>
-        <DSec title="How activation works">
-          <P>Knowledge lives as <strong style={strong}>modules</strong> gated by field values. When a signal takes a value,
-            its module switches on and is resolved into the prompt for that turn — via tokens like{' '}
-            <span style={{ fontFamily: MONO, color: TEAL }}>{'{{targetedkb:NAME}}'}</span> and{' '}
-            <span style={{ fontFamily: MONO, color: TEAL }}>{'{{dc:field:section}}'}</span>.</P>
+
+        <DSec title="SAG — triggered by what we detect">
+          <div style={{ background: 'linear-gradient(180deg, rgba(126,231,135,0.07), transparent)', border: `1px solid ${TONES.green.bd}`, borderRadius: 10, padding: '14px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, color: GREEN, border: `1px solid ${TONES.green.bd}`, borderRadius: 6, padding: '3px 9px' }}>SAG</span>
+              <Node label="we detect" tone="teal" sub="signals read the state" /><Arrow /><Node label="we inject" tone="green" sub="add the matching piece" /><Arrow /><Node label="it answers" tone="amber" sub="already knows it" />
+            </div>
+            <p style={{ fontFamily: SANS, fontSize: 13, color: MUTED, margin: '12px 0 0', lineHeight: 1.6 }}>Same selective injection — but <strong style={strong}>our own mechanism spots the moment</strong> and brings the right knowledge on its own, before you ask.</p>
+          </div>
         </DSec>
-        <DSec title="The domain “bible”">
-          <P>A complete domain knowledge base, structured so its sections toggle by state — effectively a{' '}
-            <strong style={strong}>different prompt for every situation</strong>. That is what lets the agent lead a deep
-            flow instead of only answering questions.</P>
+
+        <DSec title="How it works">
+          <P>As you talk, our <strong style={strong}>signals</strong> identify the event or state you’re in — a stage, a
+            concern, a decision point — most of which you never say outright. Our targeted knowledge base holds the domain as{' '}
+            <strong style={strong}>modules, one per state</strong>. We inject <em style={em}>only the matching module</em> into
+            that turn’s prompt — the right knowledge, exactly when it matters, without loading the rest.</P>
+          <FlowRow>
+            <Node label="detect: stage = peri" tone="teal" sub="from your signals" /><Arrow />
+            <Node label="inject the “peri” module" tone="green" /><Arrow />
+            <Node label="in this turn’s answer" tone="amber" />
+          </FlowRow>
         </DSec>
-        <DSec title="Grounded">
-          <Refs items={[['services/kb.resolver.js', 'signal-gated resolution · Pinecone'], ['builder/runtime/promptAssembler.js', 'token resolution per turn'], ['docs/guides/BUILDER_V2_DYNAMIC_CONTEXT.md', 'value-gated sections']]} />
+
+        <DSec title="One knowledge base, many modules">
+          <P>The full domain expertise, split into modules that switch on and off by state — so the agent carries a{' '}
+            <strong style={strong}>different, focused playbook for every situation</strong> instead of one bloated prompt.
+            Detecting the moment and injecting exactly the right knowledge for it is one of our strongest capabilities.</P>
         </DSec>
       </>
     ),
@@ -220,9 +223,6 @@ const DEEP: Record<string, { title: string; tag: string; render: () => React.Rea
             authored graph nodes. It <strong style={strong}>never runs the same agent twice</strong>. This is more than
             templating: templating fills slots in a static prompt; ARR recomposes <em style={em}>which</em> knowledge and
             sections even exist.</P>
-        </DSec>
-        <DSec title="Grounded">
-          <Refs items={[['builder/runtime/promptAssembler.js', 'token engine'], ['crew/services/dispatcher.service.js', 'assembledPrompt — final assembly']]} />
         </DSec>
       </>
     ),

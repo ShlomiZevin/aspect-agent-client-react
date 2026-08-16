@@ -75,3 +75,11 @@ export const IconDecision = () => (
 export const IconQuestion = () => (
   <svg {...base}><circle cx="12" cy="12" r="9" /><path d="M9.5 9.2a2.6 2.6 0 1 1 3.4 2.5c-.6.2-.9.8-.9 1.4v.6" /><path d="M12 17h.01" /></svg>
 );
+
+export const IconPlug = () => (
+  <svg {...base}><path d="M9 3v6M15 3v6" /><path d="M6 9h12v3a6 6 0 0 1-12 0V9Z" /><path d="M12 18v3" /></svg>
+);
+
+export const IconActivity = () => (
+  <svg {...base}><path d="M3 12h4l2.5-6 4 13 2.5-7h5" /></svg>
+);

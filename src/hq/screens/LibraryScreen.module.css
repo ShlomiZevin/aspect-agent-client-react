@@ -141,3 +141,118 @@
   .title { font-size: 21px; }
   .filters { width: 100%; overflow-x: auto; padding-bottom: 2px; }
 }
+
+.subtitle {
+  font-size: 14px; color: var(--text-2); line-height: 1.6;
+  max-width: 620px; margin: 8px 0 4px;
+}
+
+.cardOrigin {
+  font-size: 11.5px; color: var(--text-3);
+  margin-inline-start: 2px;
+}
+
+/* An entry with no summary must say so — silence reads as "broken". */
+.cardSummaryMuted {
+  font-size: 13px; color: var(--text-3); line-height: 1.55;
+  margin-top: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.errorBox {
+  padding: 13px 16px; border-radius: var(--radius);
+  border: 1px solid var(--danger); border-inline-start: 3px solid var(--danger);
+  background: var(--surface); color: var(--danger); font-size: 13.5px;
+  margin-bottom: 12px;
+}
+
+/* ── Start fresh ─────────────────────────────────────────────────────────── */
+.dangerPanel {
+  margin-top: 28px;
+  display: flex; align-items: center; gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--danger);
+  border-radius: var(--radius);
+  padding: 15px 18px;
+}
+.dangerTitle { font-size: 14px; font-weight: 700; color: var(--text); }
+.dangerHint {
+  font-size: 12.5px; color: var(--text-3); line-height: 1.6;
+  margin-top: 3px; max-width: 620px;
+}
+
+.modalWrap {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(10, 4, 32, .45);
+  backdrop-filter: blur(3px);
+  display: grid; place-items: center; padding: 20px;
+  animation: hqFade .16s ease;
+}
+.modal {
+  width: min(440px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 60px rgba(10, 4, 32, .3);
+  padding: 22px;
+}
+.modalTitle { font-size: 17px; font-weight: 800; color: var(--text); margin-bottom: 9px; }
+.modalBody { font-size: 14px; color: var(--text-2); line-height: 1.6; margin-bottom: 12px; }
+.modalList {
+  list-style: none; display: flex; flex-direction: column; gap: 6px;
+  font-size: 13px; color: var(--text-3); line-height: 1.5; margin-bottom: 18px;
+}
+.modalList li { padding-inline-start: 16px; position: relative; }
+.modalList li::before {
+  content: ''; position: absolute; inset-inline-start: 4px; top: 8px;
+  width: 4px; height: 4px; border-radius: 50%; background: var(--ok);
+}
+.modalActions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Beside the title, and unmistakably destructive. This wipes the company
+   brain — a quiet grey pill would be lying about what it does. */
+.titleRow { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.resetBtn {
+  margin-inline-start: auto;
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--surface);
+  border: 1.5px solid var(--danger);
+  border-radius: 100px;
+  padding: 8px 16px;
+  font: inherit; font-size: 13px; font-weight: 700;
+  color: var(--danger);
+  cursor: pointer;
+  transition: background .15s, color .15s, transform .1s;
+}
+.resetBtn svg { width: 15px; height: 15px; }
+.resetBtn:hover {
+  background: var(--danger);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.modalMark {
+  width: 42px; height: 42px; margin-bottom: 14px;
+  border-radius: 100px;
+  background: rgba(214, 51, 108, .12);
+  color: var(--danger);
+  display: grid; place-items: center;
+}
+.modalMark svg { width: 20px; height: 20px; }
+.modalBody b { color: var(--text); }
+
+/* Solid red, not an outline that goes red on hover — the confirm step is the
+   last thing between a click and an empty brain. */
+.confirmDanger {
+  background: var(--danger);
+  border: 0;
+  border-radius: 100px;
+  padding: 9px 20px;
+  font: inherit; font-size: 13px; font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+}
+.confirmDanger:hover:not(:disabled) { transform: translateY(-1px); }
+.confirmDanger:disabled { opacity: .55; cursor: default; }

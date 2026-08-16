@@ -1,0 +1,403 @@
+/* Tool rail left, content right — filtering must never move the list. */
+.screen { height: 100%; display: flex; overflow: hidden; position: relative; }
+
+/* ── Tool rail ───────────────────────────────────────────────────────────── */
+.rail {
+  width: 262px;
+  flex-shrink: 0;
+  border-inline-end: 1px solid var(--border);
+  background: var(--surface-2);
+  padding: 22px 16px 18px;
+  /* The rail scrolls, so the floating source menu is clipped to it. That's
+     fine — the menu is rail-width and opens near the top, well inside the
+     visible area. (Setting overflow-x: visible here would do nothing: when one
+     axis is not `visible`, the other computes to `auto`.) */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.providerIcon { font-size: 17px; flex-shrink: 0; }
+
+/* One row that opens, rather than a stack of cards. Same look, a fifth of the
+   height — the rail's vertical space belongs to the filters. */
+.sourcePick {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--mag);
+  border-inline-start: 3px solid var(--mag);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  text-align: start;
+  transition: box-shadow .15s;
+}
+.sourcePick:hover { box-shadow: var(--shadow-sm); }
+.sourcePickBody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.sourcePickBody b { font-size: 13px; font-weight: 700; color: var(--text); }
+.sourcePickBody small { font-size: 11.5px; color: var(--text-3); }
+.caret { color: var(--text-3); font-size: 11px; transition: transform .15s; flex-shrink: 0; }
+.caretOpen { transform: rotate(180deg); }
+
+.sourceWrap { position: relative; }
+
+/* Floats over the rail. Anchored to the picker, so the filters below never
+   move when it opens. */
+.sourceMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  inset-inline: 0;
+  z-index: 30;
+  display: flex; flex-direction: column; gap: 5px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 14px 34px rgba(10, 4, 32, .22);
+  padding: 8px;
+  animation: hqFade .14s ease;
+}
+.sourceMenuLabel {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .8px; color: var(--text-3);
+  padding: 2px 3px 4px;
+}
+/* Catches the click that closes the menu, under it but over everything else. */
+.sourceScrim { position: fixed; inset: 0; z-index: 29; }
+.sourceOption {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  opacity: .6;
+}
+
+.railHint { font-size: 11px; color: var(--text-3); line-height: 1.45; }
+
+.railGroup { display: flex; flex-direction: column; gap: 7px; }
+.railLabel {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .9px; color: var(--text-3);
+}
+.railOptions { display: flex; flex-direction: column; gap: 2px; }
+.railOption {
+  display: flex; align-items: center; gap: 8px;
+  background: none; border: 0;
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font: inherit; font-size: 13px;
+  color: var(--text-2);
+  cursor: pointer;
+  text-align: start;
+  transition: background .12s, color .12s;
+}
+.railOption:hover { background: var(--surface-3); color: var(--text); }
+.railOption span:first-child {
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.railOptionOn, .railOptionOn:hover { background: var(--grad); color: #fff; font-weight: 600; }
+.railCount { font-size: 11.5px; opacity: .72; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+.railLink {
+  background: none; border: 0; padding: 2px 0;
+  font: inherit; font-size: 12.5px;
+  color: var(--mag); cursor: pointer; text-align: start;
+}
+.railLink:hover { text-decoration: underline; }
+.railLink:disabled { opacity: .45; cursor: default; text-decoration: none; }
+
+.railFoot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); }
+
+.selectWrap { position: relative; display: block; }
+.select {
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font: inherit; font-size: 12.5px;
+  /* Room for the caret on the end side, in both writing directions. */
+  padding: 8px 30px 8px 10px;
+  width: 100%;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+:global([dir='rtl']) .select { padding: 8px 10px 8px 30px; }
+.select:hover { border-color: var(--border-2); }
+.select:focus { outline: 0; border-color: var(--mag); }
+/* Drawn back in because `appearance: none` removed the native one — without a
+   caret the field looks like a text input nobody thinks to click. */
+.selectCaret {
+  position: absolute;
+  inset-inline-end: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--text-3);
+  pointer-events: none;
+}
+
+/* ── Content ─────────────────────────────────────────────────────────────── */
+.content { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+.contentHead {
+  flex-shrink: 0;
+  display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap;
+  padding: 26px 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.title { font-size: 24px; font-weight: 800; color: var(--text); letter-spacing: -.3px; }
+.subtitle { font-size: 14px; color: var(--text-2); margin-top: 4px; }
+
+.headActions {
+  margin-inline-start: auto;
+  display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap;
+}
+
+.searchWrap {
+  min-width: 200px;
+  display: flex; align-items: center; gap: 9px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: 100px;
+  padding: 0 15px;
+}
+.searchWrap:focus-within { border-color: var(--mag); }
+.searchWrap svg { width: 15px; height: 15px; color: var(--text-3); flex-shrink: 0; }
+.search {
+  flex: 1; border: 0; background: transparent;
+  color: var(--text); font-size: 13.5px; padding: 9px 0; outline: 0;
+}
+.search::placeholder { color: var(--text-3); }
+
+/* Bottom padding clears the floating bar. */
+.scroll { flex: 1; overflow-y: auto; padding: 16px 24px 130px; }
+
+.listHead { display: flex; align-items: center; gap: 12px; padding: 0 14px 8px; }
+.list { display: flex; flex-direction: column; gap: 5px; }
+
+.row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  transition: border-color .12s, background .12s;
+}
+.row:hover { border-color: var(--border-2); }
+.rowPicked { border-color: var(--mag); background: var(--surface-2); }
+.rowSyncing { border-color: var(--mag); box-shadow: 0 0 0 1px var(--mag); }
+
+.check {
+  width: 17px; height: 17px; flex-shrink: 0;
+  border-radius: 5px;
+  border: 1.5px solid var(--border-2);
+  display: grid; place-items: center;
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+.checkOn { background: var(--grad); border-color: transparent; color: #fff; }
+.check svg { width: 11px; height: 11px; }
+
+.rowBody { flex: 1; min-width: 0; }
+.rowTitle {
+  font-size: 14px; font-weight: 600; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rowMeta {
+  font-size: 12px; color: var(--text-3); margin-top: 2px;
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+}
+.rowError { font-size: 12px; color: var(--danger); margin-top: 3px; }
+
+.parentTag {
+  background: var(--surface-3);
+  border-radius: 4px;
+  padding: 1px 6px;
+  max-width: 200px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.chip {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px;
+  padding: 3px 8px; border-radius: 100px; flex-shrink: 0; direction: ltr;
+}
+.chipPending { background: var(--surface-3); color: var(--text-3); }
+.chipDone    { background: rgba(18, 165, 148, .14); color: var(--ok); }
+.chipStale   { background: rgba(178, 106, 0, .14); color: var(--warn); }
+.chipFailed  { background: rgba(214, 51, 108, .14); color: var(--danger); }
+.chipSkipped { background: var(--surface-2); color: var(--text-3); }
+.chipSyncing { background: var(--grad); color: #fff; }
+
+.link { color: var(--mag); flex-shrink: 0; display: inline-flex; }
+.link svg { width: 14px; height: 14px; }
+
+.spacer { flex: 1; }
+
+.empty { text-align: center; padding: 10vh 20px; }
+.emptyMark {
+  width: 52px; height: 52px; margin: 0 auto 16px;
+  border-radius: 100px; background: var(--surface);
+  border: 1px solid var(--border); box-shadow: var(--shadow-sm);
+  display: grid; place-items: center;
+}
+.emptyMark img { width: 26px; height: 26px; object-fit: contain; opacity: .8; }
+.emptyTitle { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 7px; }
+.emptyHint { font-size: 14px; color: var(--text-2); max-width: 420px; margin: 0 auto; line-height: 1.6; }
+
+/* Explanations live below the list — read once, then out of the way. */
+.footNotes {
+  margin-top: 26px; padding-top: 18px;
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 9px;
+  font-size: 12.5px; color: var(--text-3); line-height: 1.65;
+}
+.inlineLink {
+  background: none; border: 0; padding: 0;
+  color: var(--mag); font: inherit; cursor: pointer; text-decoration: underline;
+}
+
+.errorBox, .noticeBox {
+  margin-bottom: 14px; padding: 12px 15px;
+  border-radius: var(--radius); font-size: 13.5px;
+  border: 1px solid var(--border-2);
+  background: var(--surface);
+}
+.errorBox { border-color: var(--danger); border-inline-start: 3px solid var(--danger); color: var(--danger); }
+.noticeBox { border-inline-start: 3px solid var(--ok); color: var(--text-2); cursor: pointer; }
+
+/* ── Floating bars ───────────────────────────────────────────────────────── */
+.floatBar {
+  position: absolute;
+  bottom: 22px;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  width: min(660px, calc(100% - 48px));
+  z-index: 20;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: 14px;
+  box-shadow: 0 16px 44px rgba(10, 4, 32, .22);
+  padding: 13px 16px;
+  animation: hqFade .18s ease;
+}
+/* RTL flips inset-inline-start, so the translate has to flip with it. */
+:global([dir='rtl']) .floatBar { transform: translateX(50%); }
+.floatRun { border-inline-start: 3px solid var(--mag); }
+.floatCount {
+  min-width: 26px; height: 26px; padding: 0 7px;
+  border-radius: 100px; background: var(--grad); color: #fff;
+  display: grid; place-items: center;
+  font-size: 12.5px; font-weight: 700;
+}
+.floatText { font-size: 13.5px; color: var(--text-2); }
+
+.runBody { flex: 1; min-width: 0; }
+.runTop { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 7px; }
+.runNow { font-size: 13.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.runCount { font-size: 12.5px; color: var(--text-3); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.bar { height: 6px; border-radius: 100px; background: var(--surface-3); overflow: hidden; }
+.barFill { height: 100%; background: var(--grad); border-radius: 100px; transition: width .3s ease; }
+.barIndeterminate { animation: hqPulse 1.4s ease-in-out infinite; }
+.runHint { font-size: 11.5px; color: var(--text-3); margin-top: 6px; }
+
+/* ── Modals ──────────────────────────────────────────────────────────────── */
+.modalWrap {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(10, 4, 32, .45);
+  backdrop-filter: blur(3px);
+  display: grid; place-items: center; padding: 20px;
+  animation: hqFade .16s ease;
+}
+.modalWide {
+  width: min(620px, 100%); max-height: 78vh; overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 60px rgba(10, 4, 32, .3);
+  padding: 22px;
+}
+.modalTitle { font-size: 17px; font-weight: 800; color: var(--text); margin-bottom: 14px; }
+.modalBody { font-size: 14px; color: var(--text-2); line-height: 1.6; }
+.modalActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+.runList { display: flex; flex-direction: column; gap: 8px; }
+.runRow {
+  display: flex; align-items: flex-start; gap: 11px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+}
+.runRow .chip { margin-top: 2px; }
+.runRowBody { flex: 1; min-width: 0; }
+.runRowTitle { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.runRowSource { font-weight: 400; color: var(--text-3); }
+.runRowMeta { font-size: 12px; color: var(--text-3); margin-top: 3px; }
+
+@media (max-width: 900px) {
+  .screen { flex-direction: column; }
+  .rail {
+    width: auto; max-height: 42vh;
+    border-inline-end: 0; border-bottom: 1px solid var(--border);
+  }
+  .contentHead { padding: 18px 14px 14px; }
+  .scroll { padding: 14px 14px 130px; }
+  .title { font-size: 20px; }
+  .floatBar { width: calc(100% - 28px); bottom: 14px; }
+}
+
+/* Link to the page that owns running work. Goes loud when something is live. */
+.activityLink {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  font: inherit; font-size: 12.5px;
+  color: var(--text-2); cursor: pointer; text-align: start;
+  transition: border-color .15s, color .15s;
+}
+.activityLink:hover { border-color: var(--mag); color: var(--text); }
+.activityLive { border-color: var(--mag); color: var(--text); font-weight: 600; }
+.activityDot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--text-3); flex-shrink: 0;
+}
+.activityDotLive { background: var(--mag); animation: hqPulse 1.4s ease-in-out infinite; }
+
+/* Two actions that look different because they ARE different — one is a few
+   seconds, the other re-reads the whole workspace. Each states its own job so
+   nobody has to guess which one they wanted. */
+.checkBtn, .checkBtnGhost {
+  display: flex; align-items: center; gap: 9px;
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+  font: inherit;
+  cursor: pointer;
+  text-align: start;
+  transition: transform .1s, border-color .15s, opacity .15s;
+}
+.checkBtn {
+  background: var(--grad);
+  border: 0;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(224, 25, 138, .24);
+}
+.checkBtn:hover:not(:disabled) { transform: translateY(-1px); }
+.checkBtn:disabled { background: var(--surface-3); color: var(--text-3); box-shadow: none; cursor: default; }
+
+.checkBtnGhost {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+}
+.checkBtnGhost:hover:not(:disabled) { border-color: var(--mag); color: var(--text); }
+.checkBtnGhost:disabled { opacity: .45; cursor: default; }
+
+.checkBtn svg, .checkBtnGhost svg { width: 16px; height: 16px; flex-shrink: 0; }
+.checkBtn span, .checkBtnGhost span { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.checkBtn b, .checkBtnGhost b { font-size: 13px; font-weight: 700; }
+.checkBtn small { font-size: 11px; opacity: .82; font-weight: 500; }
+.checkBtnGhost small { font-size: 11px; color: var(--text-3); }

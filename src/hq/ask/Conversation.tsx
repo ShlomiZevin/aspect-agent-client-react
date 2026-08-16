@@ -70,7 +70,7 @@ export function Conversation({ compact = false, onNavigate }: Props) {
   }, [turns]);
 
   function openCitation(c: Citation) {
-    if (c.atomId) navigate(`/hq/library/${c.atomId}`);
+    if (c.atomId) navigate(`/lybi/hq/knowledge/${c.atomId}`);
     else if (c.url) window.open(c.url, '_blank', 'noopener');
     onNavigate?.();
   }

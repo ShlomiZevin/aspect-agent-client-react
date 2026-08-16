@@ -87,3 +87,92 @@ export interface DropInspection {
   text?: string;
   error?: string;
 }
+
+// ─── Integrations ────────────────────────────────────────────────────────────
+
+export type SyncItemStatus =
+  | 'pending' | 'selected' | 'syncing' | 'done' | 'stale' | 'skipped' | 'failed';
+
+export interface SyncItem {
+  id: number;
+  external_id: string;
+  title: string;
+  url: string | null;
+  parent_title: string | null;
+  object_type: string;
+  status: SyncItemStatus;
+  chars: number | null;
+  chunks: number | null;
+  error: string | null;
+  atom_id: number | null;
+  remote_edited_at: string | null;
+  synced_at: string | null;
+}
+
+export interface SyncStats {
+  byStatus: Partial<Record<SyncItemStatus, number>>;
+  byType: Record<string, number>;
+  /** Which database or page each item sits under — the handle for bulk pruning. */
+  parents: { title: string; count: number; done: number }[];
+  total: number;
+  syncedChars: number;
+}
+
+export interface ItemFilters {
+  status?: string;
+  search?: string;
+  type?: string;
+  parent?: string;
+  /** ISO dates, on when the page last changed at the source. */
+  since?: string;
+  until?: string;
+}
+
+export interface SyncRun {
+  id: number;
+  kind: 'discover' | 'sync';
+  /** How it was started — a person, or (later) a schedule. */
+  trigger: 'manual' | 'auto';
+  label: string | null;
+  status: 'running' | 'done' | 'cancelled' | 'failed';
+  total: number;
+  processed: number;
+  succeeded: number;
+  failed: number;
+  current_title: string | null;
+  error: string | null;
+  started_at: string;
+  finished_at: string | null;
+  source_label?: string;
+  source_kind?: string;
+  /** True while this process still holds the run in memory. */
+  live?: boolean;
+}
+
+export interface Provider {
+  id: string;
+  name: string;
+  connected: boolean;
+  comingSoon?: boolean;
+  sourceId?: number;
+  defaultKind?: string;
+  stats?: SyncStats;
+  lastRun?: SyncRun | null;
+  lastSyncAt?: string | null;
+}
+
+/** One frame of a discover/sync stream. */
+export interface SyncProgress {
+  phase: 'discover' | 'start' | 'item' | 'item_done' | 'item_failed' | 'done' | 'cancelled';
+  runId?: number;
+  itemId?: number;
+  title?: string;
+  found?: number;
+  processed?: number;
+  total?: number;
+  succeeded?: number;
+  failed?: number;
+  chars?: number;
+  chunks?: number;
+  error?: string;
+}

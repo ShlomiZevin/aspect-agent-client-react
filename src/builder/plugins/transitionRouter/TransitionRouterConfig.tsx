@@ -32,6 +32,17 @@ export function TransitionRouterConfigComponent({
   return (
     <div className={styles.wrap}>
       <div className={styles.row}>
+        <span className={styles.rowLabel}>Name</span>
+        <input
+          className={styles.reasonInput}
+          value={config.name ?? ''}
+          onChange={e => onChange({ ...config, name: e.target.value })}
+          placeholder="shown on the chain card (optional)"
+          spellCheck={false}
+        />
+      </div>
+
+      <div className={styles.row}>
         <span className={styles.rowLabel}>Target</span>
         {targets.length === 0 ? (
           <span className={styles.empty}>Add a second crew first.</span>

@@ -73,7 +73,7 @@ export function AtomScreen() {
     if (!atom) return;
     if (!window.confirm(`Remove "${atom.title}" from HQ? This also drops it from search.`)) return;
     await deleteAtom(atom.id);
-    navigate('../library');
+    navigate('../knowledge');
   }
 
   if (loading) return <div className={styles.screen}><div className={styles.loading}>Loading…</div></div>;
@@ -85,7 +85,7 @@ export function AtomScreen() {
   return (
     <div className={styles.screen}>
       <div className={styles.inner}>
-        <button className={styles.back} onClick={() => navigate('../library')}>
+        <button className={styles.back} onClick={() => navigate('../knowledge')}>
           <IconBack /> Library
         </button>
 
@@ -102,7 +102,7 @@ export function AtomScreen() {
             <div className={styles.actions}>
               {isMeeting && (
                 <button className="hqMini" onClick={handleRerun} disabled={working || atom.scribe_status === 'running'}>
-                  <IconRefresh /> {atom.scribe_status === 'done' ? 'Re-run Scribe' : 'Summarise'}
+                  <IconRefresh /> {atom.scribe_status === 'done' ? 'Redo summary' : 'Summarise'}
                 </button>
               )}
               <button

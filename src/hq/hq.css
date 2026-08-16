@@ -75,7 +75,13 @@
 }
 
 .lybi-hq * { box-sizing: border-box; }
-.lybi-hq button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+
+/* `:where()` contributes NOTHING to specificity, so this reset is (0,0,1) and
+   loses to any single class — including CSS-module classes, which are (0,1,0).
+   Written as `.lybi-hq button` it was (0,1,1) and silently ate the background,
+   border and colour of every styled button in every module. That cost two
+   rounds of "the CSS is missing"; the fix belongs here, not in each module. */
+:where(.lybi-hq) button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
 
 .lybi-hq input, .lybi-hq textarea, .lybi-hq select { font-family: inherit; appearance: none; }
 
@@ -146,6 +152,21 @@
   white-space: nowrap;
 }
 .lybi-hq .hqPill:hover:not(:disabled) { transform: translateY(-1px); }
+
+/* An <svg> with only a viewBox has no intrinsic size, so inside a full-width
+   pill it stretched to the button's width — and `border-radius: 100px` turned
+   that into a giant circle. Every brand button that can hold an icon needs the
+   icon pinned, not just the ones that happen to be narrow today. */
+.lybi-hq .hqPill,
+.lybi-hq .hqGhostPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.lybi-hq .hqPill svg,
+.lybi-hq .hqGhostPill svg,
+.lybi-hq .hqMini svg { width: 15px; height: 15px; flex-shrink: 0; }
 /* Flat + muted rather than a faded gradient — a washed-out brand colour reads
    as unfinished, a grey chip reads as deliberately inactive. */
 .lybi-hq .hqPill:disabled {

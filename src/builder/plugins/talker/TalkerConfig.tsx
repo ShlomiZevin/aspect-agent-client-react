@@ -54,6 +54,7 @@ export function TalkerConfigComponent({
 
   return (
     <div className={styles.wrap}>
+      {nameField}
       <InlineField label="Model" hint="LLM used for this addon's call.">
         <ModelPicker
           value={config.model}

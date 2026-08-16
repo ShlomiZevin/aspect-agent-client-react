@@ -526,3 +526,21 @@
   color: var(--text-secondary, #4b5563);
   font-style: italic;
 }
+
+/* Enum-guard rejection (task #805): the engine dropped a field write
+ * because the value isn't one of the enum's declared values. Shown in
+ * the memory-writes section so "why didn't my field fill?" answers
+ * itself; the raw model output above stays untouched. */
+.rejectedWrite {
+  font-size: 11px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+
+.rejectedWrite code {
+  font-family: ui-monospace, "Menlo", monospace;
+  font-weight: 600;
+}

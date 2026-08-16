@@ -106,7 +106,7 @@ export function DropScreen({ onIngested }: Props) {
       } else {
         setOutcome({
           headline: 'Saved to HQ',
-          detail: `"${result.atom?.title}" is indexed and askable.`,
+          detail: `HQ has read "${result.atom?.title}" — you can ask about it now.`,
           atomId: result.atom?.id,
         });
       }
@@ -128,8 +128,8 @@ export function DropScreen({ onIngested }: Props) {
     <div className={styles.screen}>
       <div className={styles.inner}>
         <div className={styles.head}>
-          <span className={`hqEyebrow ${styles.eyebrow}`}>Capture</span>
-          <h1 className={styles.title}>Drop it in</h1>
+          <span className={`hqEyebrow ${styles.eyebrow}`}>Add to HQ</span>
+          <h1 className={styles.title}>Add something</h1>
           <p className={styles.subtitle}>
             A Notion link, a URL, or just type. Paste a Notion <strong>database</strong> link and
             every row comes in at once.
@@ -220,7 +220,7 @@ export function DropScreen({ onIngested }: Props) {
             )}
             <button
               className={styles.resultLink}
-              onClick={() => navigate(outcome.atomId ? `../library/${outcome.atomId}` : '../library')}
+              onClick={() => navigate(outcome.atomId ? `../knowledge/${outcome.atomId}` : '../knowledge')}
             >
               {outcome.atomId ? 'Open it →' : 'Open the library →'}
             </button>

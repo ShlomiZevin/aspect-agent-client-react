@@ -227,7 +227,7 @@
 }
 .lybi-chat .msg.bot .bubble a { color: var(--mag); text-decoration: underline; }
 .lybi-chat .msg.user .bubble {
-  background: var(--user-bub); color: var(--text); font-weight: 600;
+  background: var(--user-bub); color: var(--text);
   border: 1px solid var(--bub-border); padding: 12px 17px;
   border-bottom-right-radius: 5px;              /* down-tail on the customer side */
   box-shadow: 0 4px 16px rgba(26, 10, 56, .06);

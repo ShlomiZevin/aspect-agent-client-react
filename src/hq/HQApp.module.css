@@ -130,3 +130,27 @@
   .navCount { display: none; }
   .main { padding-bottom: 64px; }
 }
+
+/* A child of the entry above it — smaller, indented, with a rail marking the
+   relationship. Still a full nav destination, not a link buried in a page. */
+.navSub {
+  font-size: 13.5px;
+  font-weight: 500;
+  padding-block: 8px;
+  margin-inline-start: 15px;
+  border-inline-start: 1px solid var(--border-2);
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+.navSub .navIcon, .navSub .navIcon svg { width: 16px; height: 16px; }
+.navLabel { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Something is running right now. Visible from every screen. */
+.navLive {
+  margin-inline-start: auto;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--mag);
+  flex-shrink: 0;
+  animation: hqPulse 1.4s ease-in-out infinite;
+}
+.navItemActive .navLive { background: #fff; }

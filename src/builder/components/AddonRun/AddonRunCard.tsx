@@ -72,6 +72,12 @@ export interface AddonRunSnapshot {
   rawOutput?: string;
   parsedOutput?: unknown;
   memoryWrites?: Array<{ domain: string | null; field: string; value: unknown }>;
+  /** Field writes the engine REJECTED because the value isn't one of
+   *  the target field's enum values (task #805 — any addon can fill
+   *  fields via the JSON harvest, but an enum-bound field only accepts
+   *  its declared values). rawOutput still shows what the model
+   *  returned; this section explains why it didn't land in memory. */
+  rejectedWrites?: Array<{ field: string; value: unknown; allowed: string[] }>;
   parseError?: string;
   /** How many raw messages reached the LLM as history on this run.
    *  Filled from the `addon.prompt` event (live) or the persisted
@@ -321,8 +327,9 @@ export function AddonRunCard({ run }: Props) {
     : null;
 
   const hasWrites = writes.length > 0;
+  const rejected = Array.isArray(run.rejectedWrites) ? run.rejectedWrites : [];
   const hasParseError = !!run.parseError;
-  const showMemorySection = !kbParsed && (hasWrites || hasParseError);
+  const showMemorySection = !kbParsed && (hasWrites || hasParseError || rejected.length > 0);
   const hasTransition = !!run.transition;
   // Plugins that don't have a prompt template (Transition Router) still
   // emit an empty prompt via the engine — drop the section when empty.
@@ -562,7 +569,13 @@ export function AddonRunCard({ run }: Props) {
                 </div>
               )}
               {hasWrites && <WritesByDomain writes={writes} />}
-              {!hasWrites && !hasParseError && (
+              {rejected.map((r, i) => (
+                <div key={i} className={styles.rejectedWrite}>
+                  ✕ <code>{r.field}</code> = {JSON.stringify(r.value)} — rejected,
+                  not one of the field's values ({r.allowed.join(' · ')})
+                </div>
+              ))}
+              {!hasWrites && !hasParseError && rejected.length === 0 && (
                 <div className={styles.memoryNote}>Nothing extracted</div>
               )}
             </Section>

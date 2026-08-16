@@ -136,8 +136,11 @@ function AppContent() {
         <Route path="/lybi/support" element={<LybiSupportPage />} />
         <Route path="/lybi/backlog" element={<TechBacklogPage />} />
 
-        {/* Lybi HQ — internal only. Must sit above the /lybi/* splat below. */}
-        <Route path="/hq/*" element={<HQApp />} />
+        {/* Lybi HQ — internal only. Must sit above the /lybi/* splat below,
+            which would otherwise swallow it into the landing page. */}
+        <Route path="/lybi/hq/*" element={<HQApp />} />
+        {/* The old top-level path, so existing links and bookmarks still land. */}
+        <Route path="/hq/*" element={<Navigate to="/lybi/hq" replace />} />
         <Route path="/lybi/about/shlomi" element={<AboutShlomiPage />} />
         <Route path="/lybi/freeda-legacy" element={<FreedaLegacyFlowPage />} />
         {/* Explicit so the `/lybi/*` splat below doesn't shadow the Live chat. */}

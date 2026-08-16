@@ -139,5 +139,124 @@ export const resyncSource = (id: number) =>
 export const deleteSource = (id: number) =>
   api<{ ok: boolean }>(`/sources/${id}`, { method: 'DELETE' });
 
+/** Forget everything HQ has read. Connections and their page lists survive. */
+export const resetHQ = () =>
+  api<{ ok: boolean; removed: number }>('/reset', {
+    method: 'POST', body: JSON.stringify({ confirm: 'DELETE' }),
+  });
+
 export const ask = (question: string) =>
   api<AskResult>('/ask', { method: 'POST', body: JSON.stringify({ question }) });
+
+// ─── Integrations ────────────────────────────────────────────────────────────
+
+import type { Provider, SyncItem, SyncStats, SyncRun, SyncProgress, ItemFilters } from '../types';
+
+export const listProviders = () =>
+  api<{ providers: Provider[] }>('/integrations').then(r => r.providers);
+
+export const listSyncItems = (params: ItemFilters = {}) => {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => { if (v) qs.set(k, String(v)); });
+  const suffix = qs.toString();
+  return api<{ items: SyncItem[]; stats: SyncStats }>(`/integrations/notion/items${suffix ? `?${suffix}` : ''}`);
+};
+
+/**
+ * Include or exclude items. Pass explicit ids, or `filters` to mean "everything
+ * currently listed" — which avoids POSTing hundreds of ids to ignore a database.
+ */
+export const setItemsStatus = (
+  status: 'pending' | 'skipped',
+  target: { itemIds?: number[]; filters?: ItemFilters },
+) =>
+  api<{ ok: boolean; changed: number; stats: SyncStats }>('/integrations/notion/items/status', {
+    method: 'POST', body: JSON.stringify({ status, ...target }),
+  });
+
+export const getLatestRun = () =>
+  api<{ run: SyncRun | null }>('/integrations/notion/run').then(r => r.run);
+
+export const cancelRun = (runId: number) =>
+  api<{ ok: boolean; stopping: boolean }>(`/integrations/runs/${runId}/cancel`, { method: 'POST' });
+
+/**
+ * Shared SSE reader for discover/sync. Both stream `progress` frames and end
+ * with `done` or `error`, so the caller just supplies the path and a body.
+ */
+async function streamRun(
+  path: string,
+  body: unknown,
+  onProgress: (p: SyncProgress) => void,
+): Promise<Record<string, unknown>> {
+  const res = await fetch(`${getBaseURL()}/api/hq${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body ?? {}),
+  });
+
+  if (!res.ok) {
+    let message = `Request failed (${res.status})`;
+    try { message = (await res.json()).error || message; } catch { /* keep default */ }
+    throw new Error(message);
+  }
+  if (!res.body) throw new Error('No response stream');
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let result: Record<string, unknown> | null = null;
+  let failure: string | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const frames = buffer.split('\n\n');
+    buffer = frames.pop() || '';
+
+    for (const frame of frames) {
+      const lines = frame.split('\n');
+      const eventLine = lines.find(l => l.startsWith('event: '));
+      const dataLine = lines.find(l => l.startsWith('data: '));
+      if (!eventLine || !dataLine) continue;
+
+      const event = eventLine.slice(7).trim();
+      let payload: unknown;
+      try { payload = JSON.parse(dataLine.slice(6)); } catch { continue; }
+
+      if (event === 'progress') onProgress(payload as SyncProgress);
+      else if (event === 'done') result = payload as Record<string, unknown>;
+      else if (event === 'error') failure = (payload as { error: string }).error;
+    }
+  }
+
+  if (failure) throw new Error(failure);
+  return result ?? {};
+}
+
+/**
+ * Watermarked by default — only pages edited since the last pass, which is one
+ * request rather than nine when nothing has moved. `full` re-reads everything
+ * and is the only way to notice a page deleted in Notion.
+ */
+export const discoverNotion = (onProgress: (p: SyncProgress) => void, full = false) =>
+  streamRun('/integrations/notion/discover', { full }, onProgress);
+
+/**
+ * Starts a run and returns its id immediately. The run is NOT tied to this
+ * request — closing the tab leaves it going, and `listRuns` reads its progress
+ * back from the database. That's why there's no onProgress here.
+ */
+export const startNotionSync = (target: { itemIds?: number[]; filters?: ItemFilters; label?: string }) =>
+  api<{ ok: boolean; runId: number; total: number }>('/integrations/notion/sync', {
+    method: 'POST', body: JSON.stringify(target),
+  });
+
+export const listRuns = (limit = 20) =>
+  api<{ runs: SyncRun[] }>(`/integrations/runs?limit=${limit}`).then(r => r.runs);
+
+/** The pages one run worked on, and how each turned out. */
+export const listRunItems = (runId: number) =>
+  api<{ items: SyncItem[] }>(`/integrations/runs/${runId}/items`).then(r => r.items);
