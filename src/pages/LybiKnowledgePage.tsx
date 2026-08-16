@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const PAGES = [
+  { path: '/lybi/technology', icon: '⚙️', title: 'Adaptive Reasoning Runtime — how it works', desc: 'Runtime spec: signal-driven context, the Cortex (thinker→talker), SAG vs RAG, and per-turn prompt synthesis' },
   { path: '/lybi/brain', icon: '🧠', title: 'We Build Brains, Not Chatbots', desc: 'Our edge: each addon maps to a real human brain region — memory, planning, voice', slides: 7 },
   { path: '/lybi/llm-guide', icon: '🤖', title: 'How AI Actually Works', desc: 'What is an LLM, why it doesn\'t "follow" instructions, and what to expect', slides: 14 },
   { path: '/lybi/kb-vs-triggered', icon: '📁', title: 'KB vs Triggered Context', desc: 'When to use Knowledge Base and when to use Triggered Context', slides: 3 },

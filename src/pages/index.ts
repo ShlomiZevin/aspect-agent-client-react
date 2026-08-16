@@ -46,6 +46,7 @@ export { ChainArchitecturePage } from './ChainArchitecturePage';
 export { InfrastructurePage } from './InfrastructurePage';
 export { EnterpriseReadinessPage } from './EnterpriseReadinessPage';
 export { LybiArchitecturePage } from './LybiArchitecturePage';
+export { LybiTechnologyPage } from './LybiTechnologyPage';
 export { KBvsTriggeredPage } from './KBvsTriggeredPage';
 export { LybiKnowledgePage } from './LybiKnowledgePage';
 export { LybiCostPage } from './LybiCostPage';
