@@ -39,6 +39,19 @@ export function TalkerConfigComponent({
   });
   const [expanded, setExpanded] = useState(false);
 
+  const nameField = (
+    <InlineField label="Name" hint="Shown on the chain card. Leave empty to use the plugin name.">
+      <input
+        className={styles.input}
+        type="text"
+        value={config.name ?? ''}
+        onChange={e => patch({ name: e.target.value })}
+        placeholder="e.g. Support voice (optional)"
+        spellCheck={false}
+      />
+    </InlineField>
+  );
+
   return (
     <div className={styles.wrap}>
       <InlineField label="Model" hint="LLM used for this addon's call.">
