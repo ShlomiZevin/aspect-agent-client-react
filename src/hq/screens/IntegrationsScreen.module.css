@@ -401,3 +401,19 @@
 .checkBtn b, .checkBtnGhost b { font-size: 13px; font-weight: 700; }
 .checkBtn small { font-size: 11px; opacity: .82; font-weight: 500; }
 .checkBtnGhost small { font-size: 11px; color: var(--text-3); }
+
+.selectAll {
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: 100px;
+  padding: 5px 13px;
+  font: inherit; font-size: 12px; font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.selectAll:hover { color: var(--mag); border-color: var(--mag); }
+.headHint { font-size: 11.5px; color: var(--text-3); }
+/* Rows are click targets now, so the cursor has to say so — and shift-click
+   would otherwise drag-select the text of every row it passes over. */
+.row { cursor: pointer; user-select: none; }

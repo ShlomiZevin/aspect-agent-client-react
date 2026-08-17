@@ -17,6 +17,16 @@ import { deleteAtom, getAtom, patchAtom, rerunScribe } from '../services/hqApi';
 import type { Atom } from '../types';
 import styles from './AtomScreen.module.css';
 
+/**
+ * Length in words. "0k characters" was both jargon and wrong-looking — a short
+ * page rounded to zero and read as empty when it simply wasn't long.
+ */
+function wordsText(chars: number): string {
+  const words = Math.round(chars / 5.5);
+  if (words < 1000) return `about ${words} words`;
+  return `about ${(words / 1000).toFixed(1).replace('.0', '')}k words`;
+}
+
 export function AtomScreen() {
   const { id } = useParams<{ id: string }>();
   const atomId = Number(id);
@@ -252,8 +262,8 @@ export function AtomScreen() {
           <>
             <button className={styles.transcriptToggle} onClick={() => setShowTranscript(v => !v)}>
               {showTranscript ? '▾' : '▸'} {isMeeting ? 'Full transcript' : 'Full content'}
-              {' · '}{Math.round(atom.body.length / 1000)}k characters
-              {atom.chunk_count > 0 && ` · ${atom.chunk_count} chunks indexed`}
+              {' · '}{wordsText(atom.body.length)}
+              {atom.chunk_count > 0 && ' · searchable'}
             </button>
 
             {showTranscript && (

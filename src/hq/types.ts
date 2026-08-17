@@ -114,7 +114,11 @@ export interface SyncStats {
   byType: Record<string, number>;
   /** Which database or page each item sits under — the handle for bulk pruning. */
   parents: { title: string; count: number; done: number }[];
+  /** What the list is showing, with every filter applied. */
   total: number;
+  /** Totals for the "Everything"/"Both" options — that dimension unfiltered. */
+  statusTotal: number;
+  typeTotal: number;
   syncedChars: number;
 }
 

@@ -13,7 +13,7 @@ const SANS = "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helve
 const BG = '#0A0D13';
 const PANEL = '#0F141C';
 const PANEL2 = '#0C1017';
-const BORDER = '#1B2430';
+const BORDER = '#333E4C';
 const TEXT = '#C9D1D9';
 const MUTED = '#8B949E';
 const FAINT = '#7C8794';
@@ -24,11 +24,11 @@ const PURPLE = '#C89BE8';
 
 type Tone = 'teal' | 'green' | 'purple' | 'amber' | 'muted';
 const TONES: Record<Tone, { fg: string; bd: string; bg: string }> = {
-  teal:   { fg: TEAL,   bd: 'rgba(86,212,221,0.4)',   bg: 'rgba(86,212,221,0.07)' },
-  green:  { fg: GREEN,  bd: 'rgba(126,231,135,0.4)',  bg: 'rgba(126,231,135,0.07)' },
-  purple: { fg: PURPLE, bd: 'rgba(200,155,232,0.45)', bg: 'rgba(200,155,232,0.09)' },
-  amber:  { fg: AMBER,  bd: 'rgba(227,179,65,0.4)',   bg: 'rgba(227,179,65,0.07)' },
-  muted:  { fg: MUTED,  bd: BORDER,                    bg: PANEL },
+  teal:   { fg: TEAL,   bd: 'rgba(86,212,221,0.55)',   bg: 'rgba(86,212,221,0.09)' },
+  green:  { fg: GREEN,  bd: 'rgba(126,231,135,0.55)',  bg: 'rgba(126,231,135,0.09)' },
+  purple: { fg: PURPLE, bd: 'rgba(200,155,232,0.6)',   bg: 'rgba(200,155,232,0.11)' },
+  amber:  { fg: AMBER,  bd: 'rgba(227,179,65,0.55)',   bg: 'rgba(227,179,65,0.09)' },
+  muted:  { fg: MUTED,  bd: '#3E4956',                  bg: '#141B25' },
 };
 
 function Node({ label, sub, tone = 'muted', dim }: { label: string; sub?: string; tone?: Tone; dim?: boolean }) {
@@ -80,6 +80,139 @@ function DSec({ title, children }: { title: string; children: React.ReactNode })
 function FlowRow({ children }: { children: React.ReactNode }) {
   return <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', background: PANEL2, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '14px 16px' }}>{children}</div>;
 }
+/**
+ * RagSagFlows — the RAG-vs-SAG comparison flow. Shared by the main-page
+ * section AND the deep-dive modal so the two flow graphs are identical.
+ */
+function RagSagFlows() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 14, padding: '20px' }}>
+        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: FAINT, marginBottom: 16 }}>RAG · reactive</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <Node label="you ask" tone="muted" /><Arrow /><Node label="search the KB" tone="muted" /><Arrow /><Node label="into the prompt" tone="muted" />
+        </div>
+        <p style={{ fontFamily: SANS, fontSize: 12.5, color: FAINT, margin: '15px 0 0' }}>Never mentioned it? Nothing surfaces.</p>
+      </div>
+      <div style={{ background: 'linear-gradient(180deg, rgba(126,231,135,0.06), rgba(86,212,221,0.03))', border: `1px solid ${TONES.green.bd}`, borderRadius: 14, padding: '20px' }}>
+        <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: GREEN, marginBottom: 16 }}>SAG · anticipatory</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <Node label="signals detect" tone="teal" /><Arrow /><Node label="fetch the right section" tone="green" /><Arrow /><Node label="into the prompt" tone="amber" />
+        </div>
+        <p style={{ fontFamily: SANS, fontSize: 12.5, color: MUTED, margin: '15px 0 0' }}>Surfaces the right section — <strong style={strong}>before you ask</strong>.</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * SagDemo — a looping, self-contained animation for the SAG deep-dive.
+ * Cycles through chat messages; each one lights up different signals,
+ * which switch on different knowledge rows and inject different KB data.
+ */
+function SagDemo() {
+  const TURNS: { msg: string; domain: 'banking' | 'menopause'; sig: string[]; tier: { label: string; tone: Tone }; note: string }[] = [
+    // The one case RAG could also handle — a direct question.
+    { msg: 'What’s the interest rate on my savings account?', domain: 'banking', sig: ['topic = savings-rate'], tier: { label: 'both · RAG can catch this', tone: 'muted' }, note: 'A direct question — a keyword search would find it too.' },
+    // Only our signals — the user names nothing the KB could match.
+    { msg: 'Honestly I’ve just been foggy and short-tempered lately.', domain: 'menopause', sig: ['stage = peri', 'concern = mood'], tier: { label: 'only our signals', tone: 'green' }, note: 'She never said “menopause” — nothing for RAG to match. Our signals read the stage and inject it.' },
+    { msg: 'Money’s been really tight since the baby arrived.', domain: 'banking', sig: ['life-event = new-child', 'cashflow = strained'], tier: { label: 'only our signals', tone: 'green' }, note: 'She never asked about a product — we spot the strain and surface the right help.' },
+    { msg: 'I’ve gained weight round my middle no matter what I do.', domain: 'menopause', sig: ['stage = peri', 'concern = weight'], tier: { label: 'only our signals', tone: 'green' }, note: 'She’s talking about weight — we read the stage underneath and bring the right guidance.' },
+    { msg: 'I keep getting texts about a payment I don’t recognise.', domain: 'banking', sig: ['fraud-risk = high'], tier: { label: 'only our signals', tone: 'green' }, note: 'She didn’t ask how to report fraud — we detect it and bring the exact steps.' },
+  ];
+  const ROWS = [
+    { s: 'stage = peri', m: 'kb.peri' },
+    { s: 'concern = mood', m: 'kb.mood' },
+    { s: 'concern = weight', m: 'kb.weight' },
+    { s: 'topic = savings-rate', m: 'kb.savings' },
+    { s: 'life-event = new-child', m: 'kb.family' },
+    { s: 'cashflow = strained', m: 'kb.overdraft' },
+    { s: 'fraud-risk = high', m: 'kb.fraud' },
+  ];
+  const [i, setI] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  useEffect(() => {
+    if (!playing) return;
+    const id = setInterval(() => setI(v => (v + 1) % TURNS.length), 5200);
+    return () => clearInterval(id);
+  }, [playing, TURNS.length]);
+  const step = (d: number) => { setPlaying(false); setI(v => (v + d + TURNS.length) % TURNS.length); };
+  const jump = (idx: number) => { setPlaying(false); setI(idx); };
+  const turn = TURNS[i];
+  const on = (s: string) => turn.sig.includes(s);
+  const active = ROWS.filter(r => on(r.s)).length;
+  const tt = TONES[turn.tier.tone];
+  const ctlBtn = { fontFamily: MONO, fontSize: 12, color: MUTED, background: 'transparent', border: `1px solid ${BORDER}`, borderRadius: 6, padding: '3px 9px', cursor: 'pointer', lineHeight: 1 } as const;
+
+  return (
+    <div style={{ background: '#0B0F16', border: `1px solid ${BORDER}`, borderRadius: 12, overflow: 'hidden', boxShadow: '0 8px 30px rgba(0,0,0,0.35)' }}>
+      <style>{'@keyframes sagIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}'}</style>
+
+      {/* Controls */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 14px', borderBottom: `1px solid ${BORDER}`, background: '#141B25', flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: FAINT }}>incoming message · {i + 1}/{TURNS.length}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 6, marginInlineEnd: 4 }}>
+            {TURNS.map((_, idx) => (
+              <button key={idx} onClick={() => jump(idx)} aria-label={`Go to message ${idx + 1}`} style={{ width: 8, height: 8, borderRadius: '50%', padding: 0, cursor: 'pointer', border: 'none', background: idx === i ? TEAL : '#3A4753' }} />
+            ))}
+          </div>
+          <button onClick={() => step(-1)} style={ctlBtn} title="Previous message" aria-label="Previous">◀</button>
+          <button onClick={() => setPlaying(p => !p)} style={{ ...ctlBtn, color: playing ? MUTED : TEAL }} title={playing ? 'Pause' : 'Play'}>{playing ? '⏸ pause' : '▶ play'}</button>
+          <button onClick={() => step(1)} style={ctlBtn} title="Next message" aria-label="Next">▶</button>
+        </div>
+      </div>
+
+      {/* Message + case tag + detected signals + note */}
+      <div style={{ padding: '14px 16px', borderBottom: `1px solid ${BORDER}`, background: '#141B25' }}>
+        <div key={`t${i}`} style={{ animation: 'sagIn 0.4s ease', display: 'flex', flexWrap: 'wrap', gap: 7, alignItems: 'center', marginBottom: 10 }}>
+          <span style={{ fontFamily: MONO, fontSize: 10, fontWeight: 600, color: MUTED, background: '#141B25', border: `1px solid ${BORDER}`, borderRadius: 5, padding: '3px 8px' }}>{turn.domain === 'banking' ? '🏦 banking' : '🌸 menopause'}</span>
+          <span style={{ fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: tt.fg, background: tt.bg, border: `1px solid ${tt.bd}`, borderRadius: 5, padding: '3px 8px' }}>{turn.tier.label}</span>
+        </div>
+        <div key={`m${i}`} style={{ animation: 'sagIn 0.45s ease' }}>
+          <span style={{ fontFamily: SANS, fontSize: 13.5, lineHeight: 1.5, color: TEXT, background: 'rgba(86,212,221,0.08)', border: `1px solid ${TONES.teal.bd}`, borderRadius: '4px 12px 12px 12px', padding: '8px 12px', display: 'inline-block', maxWidth: '100%' }}>{turn.msg}</span>
+        </div>
+        <div key={`s${i}`} style={{ animation: 'sagIn 0.55s ease', display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 12, alignItems: 'center' }}>
+          <span style={{ fontFamily: MONO, fontSize: 11, color: FAINT }}>signals detected →</span>
+          {turn.sig.map(s => (
+            <span key={s} style={{ fontFamily: MONO, fontSize: 11.5, color: TEAL, background: TONES.teal.bg, border: `1px solid ${TONES.teal.bd}`, borderRadius: 999, padding: '4px 10px' }}>{s}</span>
+          ))}
+        </div>
+        <div key={`n${i}`} style={{ animation: 'sagIn 0.6s ease', marginTop: 10, fontFamily: MONO, fontSize: 11.5, lineHeight: 1.55, color: AMBER }}>⚡ {turn.note}</div>
+      </div>
+
+      {/* Knowledge table header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', borderBottom: `1px solid ${BORDER}` }}>
+        <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: MUTED }}>● knowledge table</span>
+        <span style={{ fontFamily: MONO, fontSize: 11, color: GREEN }}>{active} injected</span>
+      </div>
+
+      {/* Rows — animate on/off as the message changes */}
+      {ROWS.map((r, idx) => {
+        const a = on(r.s);
+        return (
+          <div key={r.s} style={{
+            display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, alignItems: 'center',
+            padding: '11px 14px', borderTop: idx === 0 ? 'none' : `1px solid ${BORDER}`,
+            borderLeft: `3px solid ${a ? GREEN : 'transparent'}`,
+            background: a ? 'rgba(126,231,135,0.07)' : 'transparent',
+            boxShadow: a ? 'inset 0 0 26px rgba(126,231,135,0.06)' : 'none',
+            transition: 'background 0.45s ease, border-left-color 0.45s ease, box-shadow 0.45s ease',
+          }}>
+            <span style={{ fontFamily: MONO, fontSize: 13, color: a ? TEXT : MUTED, transition: 'color 0.45s ease' }}>{r.s}</span>
+            <span style={{ fontFamily: MONO, fontSize: 12.5, color: a ? TEAL : FAINT, transition: 'color 0.45s ease' }}>{r.m}</span>
+            <span style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap', color: a ? GREEN : FAINT, transition: 'color 0.45s ease' }}>{a ? '● injected' : 'off'}</span>
+          </div>
+        );
+      })}
+
+      <div style={{ padding: '10px 14px', borderTop: `1px solid ${BORDER}`, background: '#141B25', fontFamily: MONO, fontSize: 11, color: MUTED }}>
+        <span style={{ color: GREEN }}>▸</span> only the lit rows are injected into this turn’s prompt
+      </div>
+    </div>
+  );
+}
+
 const DEEP: Record<string, { title: string; tag: string; render: () => React.ReactNode }> = {
   chain: {
     title: 'The reasoning chain',
@@ -157,42 +290,31 @@ const DEEP: Record<string, { title: string; tag: string; render: () => React.Rea
           must pull in only the <strong style={strong}>relevant piece</strong> for the moment, never everything at once. The
           real question is <em style={em}>what decides which piece</em>.</P>
 
-        <DSec title="RAG — triggered by your words">
-          <div style={{ background: PANEL2, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '14px 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, padding: '3px 9px' }}>RAG</span>
-              <Node label="you ask" tone="muted" sub="you raise the topic" /><Arrow /><Node label="it retrieves" tone="muted" sub="finds the matching piece" /><Arrow /><Node label="it answers" tone="muted" sub="replies with that piece" />
-            </div>
-            <p style={{ fontFamily: SANS, fontSize: 13, color: MUTED, margin: '12px 0 0', lineHeight: 1.6 }}>It brings the right piece — but only if you bring up the topic. Miss it, and it stays silent.</p>
-          </div>
-        </DSec>
-
-        <DSec title="SAG — triggered by what we detect">
-          <div style={{ background: 'linear-gradient(180deg, rgba(126,231,135,0.07), transparent)', border: `1px solid ${TONES.green.bd}`, borderRadius: 10, padding: '14px 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, color: GREEN, border: `1px solid ${TONES.green.bd}`, borderRadius: 6, padding: '3px 9px' }}>SAG</span>
-              <Node label="we detect" tone="teal" sub="signals read the state" /><Arrow /><Node label="we inject" tone="green" sub="add the matching piece" /><Arrow /><Node label="it answers" tone="amber" sub="already knows it" />
-            </div>
-            <p style={{ fontFamily: SANS, fontSize: 13, color: MUTED, margin: '12px 0 0', lineHeight: 1.6 }}>Same selective injection — but <strong style={strong}>our own mechanism spots the moment</strong> and brings the right knowledge on its own, before you ask.</p>
-          </div>
+        <DSec title="RAG vs SAG">
+          <RagSagFlows />
         </DSec>
 
         <DSec title="How it works">
           <P>As you talk, our <strong style={strong}>signals</strong> identify the event or state you’re in — a stage, a
-            concern, a decision point — most of which you never say outright. Our targeted knowledge base holds the domain as{' '}
-            <strong style={strong}>modules, one per state</strong>. We inject <em style={em}>only the matching module</em> into
+            concern, a decision point — most of which you never say outright. The knowledge is split into{' '}
+            <strong style={strong}>modules, one per state</strong>; we fetch <em style={em}>only the matching module</em> into
             that turn’s prompt — the right knowledge, exactly when it matters, without loading the rest.</P>
-          <FlowRow>
-            <Node label="detect: stage = peri" tone="teal" sub="from your signals" /><Arrow />
-            <Node label="inject the “peri” module" tone="green" /><Arrow />
-            <Node label="in this turn’s answer" tone="amber" />
-          </FlowRow>
         </DSec>
 
-        <DSec title="One knowledge base, many modules">
-          <P>The full domain expertise, split into modules that switch on and off by state — so the agent carries a{' '}
-            <strong style={strong}>different, focused playbook for every situation</strong> instead of one bloated prompt.
-            Detecting the moment and injecting exactly the right knowledge for it is one of our strongest capabilities.</P>
+        <DSec title="See it live: signals → knowledge, per message">
+          <div style={{ background: 'rgba(126,231,135,0.08)', border: `1px solid ${TONES.green.bd}`, borderInlineStart: `3px solid ${GREEN}`, borderRadius: 10, padding: '14px 16px', margin: '0 0 16px' }}>
+            <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: GREEN, marginBottom: 6 }}>the whole point</div>
+            <div style={{ fontFamily: SANS, fontSize: 14.5, lineHeight: 1.7, color: TEXT }}>
+              The user might <strong style={strong}>never say a single word</strong> related to the knowledge — and we still
+              know to inject the right piece. RAG simply can’t: no mention, no retrieval.
+            </div>
+          </div>
+          <P>Picture the domain knowledge as a <strong style={strong}>table of states</strong>. Each message, our sensors read
+            your signals and switch on the rows that match — and <strong style={strong}>only those</strong> get injected. The
+            first is a plain question even RAG could catch; the rest — across <strong style={strong}>menopause and
+            banking</strong> — name nothing the KB could search for, yet the right knowledge still fires. Use ◀ ▶ to hold on
+            any slide.</P>
+          <SagDemo />
         </DSec>
       </>
     ),
@@ -240,16 +362,16 @@ function DeepModal({ dkey, onClose }: { dkey: string; onClose: () => void }) {
   const d = DEEP[dkey];
   if (!d) return null;
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(3,5,8,0.72)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflowY: 'auto' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 720, background: BG, border: `1px solid ${BORDER}`, borderRadius: 16, boxShadow: '0 24px 70px rgba(0,0,0,0.6)' }}>
-        <div style={{ position: 'sticky', top: 0, background: BG, borderBottom: `1px solid ${BORDER}`, borderRadius: '16px 16px 0 0', padding: '16px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(3,5,8,0.72)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 20px' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 720, maxHeight: 'calc(100vh - 64px)', background: BG, border: `1px solid ${BORDER}`, borderRadius: 16, boxShadow: '0 24px 70px rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ flex: '0 0 auto', background: BG, borderBottom: `1px solid ${BORDER}`, padding: '16px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
             <h3 style={{ fontFamily: MONO, fontSize: 17, fontWeight: 700, color: TEXT, margin: 0 }}>{d.title}</h3>
             <span style={{ fontFamily: MONO, fontSize: 11, color: FAINT }}>· {d.tag}</span>
           </div>
           <button onClick={onClose} style={{ fontFamily: MONO, fontSize: 16, color: MUTED, background: 'transparent', border: 'none', cursor: 'pointer', lineHeight: 1 }} aria-label="Close">✕</button>
         </div>
-        <div style={{ padding: '10px 22px 26px' }}>{d.render()}</div>
+        <div style={{ flex: '1 1 auto', overflowY: 'auto', padding: '10px 22px 26px' }}>{d.render()}</div>
       </div>
     </div>
   );
@@ -268,7 +390,8 @@ export function LybiTechnologyPage() {
   }, []);
 
   return (
-    <div style={{ fontFamily: SANS, background: BG, color: TEXT, minHeight: '100vh', overflow: 'auto' }}>
+    <div className="lybiTech" style={{ fontFamily: SANS, background: BG, color: TEXT, minHeight: '100vh', overflow: 'auto' }}>
+      <style>{'.lybiTech ::selection{background:rgba(86,212,221,0.30);color:#F2FCFD}.lybiTech ::-moz-selection{background:rgba(86,212,221,0.30);color:#F2FCFD}'}</style>
       <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(10,13,19,0.9)', backdropFilter: 'blur(8px)', borderBottom: `1px solid ${BORDER}` }}>
         <div style={{ maxWidth: 920, margin: '0 auto', padding: '13px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Link to="/lybi/knowledge" style={{ fontFamily: MONO, fontSize: 13, color: MUTED, textDecoration: 'none' }}>
@@ -369,27 +492,64 @@ export function LybiTechnologyPage() {
 
         {/* 04 · SAG */}
         <section style={{ marginTop: 56 }}>
-          <Head n="04" title="SAG — a knowledge base that doesn’t wait to be asked" onDeep={() => setDeep('sag')} />
+          <Head n="04" title="SAG — knowledge that doesn’t wait to be asked" onDeep={() => setDeep('sag')} />
           <P>
-            Every KB and every RAG system is <strong style={strong}>query-driven</strong>: you ask, it searches, it answers.
-            If you never mention the topic, nothing surfaces. Ours is <strong style={strong}>signal-driven</strong> — the right
-            knowledge activates from what the system <em style={em}>infers</em>, before you ask, even when you never said a word about it.
+            To act as a genuine <strong style={strong}>domain expert</strong>, there’s an enormous amount to know. There are
+            only two ways to hand all of that knowledge to the model — and on their own, <strong style={strong}>both break</strong>:
           </P>
+
+          {/* the problem — two options */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
             <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 14, padding: '20px' }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: FAINT, marginBottom: 16 }}>RAG · reactive</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <Node label="you ask" dim /><Arrow dim /><Node label="search" dim /><Arrow dim /><Node label="answer" dim />
+              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: MUTED, marginBottom: 14 }}>Option 1 · everything in the prompt</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {['Slow — a huge prompt on every turn', 'Costly — you pay for every token, every time', 'Hallucinations — models drift inside giant prompts'].map(t => (
+                  <div key={t} style={{ display: 'flex', gap: 9, alignItems: 'baseline' }}>
+                    <span style={{ color: '#F2708A', fontFamily: MONO, fontSize: 12, flexShrink: 0 }}>✕</span>
+                    <span style={{ fontFamily: SANS, fontSize: 13, lineHeight: 1.5, color: MUTED }}>{t}</span>
+                  </div>
+                ))}
               </div>
-              <p style={{ fontFamily: SANS, fontSize: 12.5, color: FAINT, margin: '15px 0 0' }}>Never mentioned it? Nothing surfaces.</p>
             </div>
-            <div style={{ background: 'linear-gradient(180deg, rgba(126,231,135,0.06), rgba(86,212,221,0.03))', border: `1px solid ${TONES.green.bd}`, borderRadius: 14, padding: '20px' }}>
-              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: GREEN, marginBottom: 16 }}>SAG · anticipatory</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <Node label="signals" tone="teal" /><Arrow /><Node label="activate" tone="green" /><Arrow /><Node label="right knowledge" tone="green" />
+            <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 14, padding: '20px' }}>
+              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: MUTED, marginBottom: 14 }}>Option 2 · a knowledge base (RAG)</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {[['✓', GREEN, 'Lean — pulls only what’s relevant'], ['✕', '#F2708A', 'But it only fires when the user ASKS'], ['✕', '#F2708A', 'Blind to what they should hear but never mention']].map(([icon, col, t]) => (
+                  <div key={t} style={{ display: 'flex', gap: 9, alignItems: 'baseline' }}>
+                    <span style={{ color: col, fontFamily: MONO, fontSize: 12, flexShrink: 0 }}>{icon}</span>
+                    <span style={{ fontFamily: SANS, fontSize: 13, lineHeight: 1.5, color: MUTED }}>{t}</span>
+                  </div>
+                ))}
               </div>
-              <p style={{ fontFamily: SANS, fontSize: 12.5, color: MUTED, margin: '15px 0 0' }}>Surfaces what you need — <strong style={strong}>before you ask</strong>.</p>
             </div>
+          </div>
+
+          {/* the need + the answer (SAG) */}
+          <div style={{ marginTop: 16, background: 'linear-gradient(180deg, rgba(126,231,135,0.08), rgba(86,212,221,0.03))', border: `1px solid ${TONES.green.bd}`, borderInlineStart: `3px solid ${GREEN}`, borderRadius: 12, padding: '18px 20px' }}>
+            <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: GREEN, marginBottom: 10 }}>the answer · prompt optimization with SAG</div>
+            <p style={{ fontFamily: SANS, fontSize: 14.5, lineHeight: 1.8, color: MUTED, margin: '0 0 12px' }}>
+              So we need one mechanism that does <strong style={strong}>both jobs at once</strong>: keep the prompt lean,{' '}
+              <em style={em}>and</em> fetch the exact right knowledge — even when the user never mentions anything relevant. A
+              domain expert’s full body of knowledge is huge; the agent has to know what matters, right now, on its own.
+            </p>
+            <p style={{ fontFamily: SANS, fontSize: 14.5, lineHeight: 1.8, color: TEXT, margin: 0 }}>
+              That’s <strong style={strong}>SAG</strong>. Our signals <strong style={strong}>fetch the right section into the
+              prompt</strong>, so it stays optimized (lean) and accurate to the current state — enhanced with exactly the
+              expertise the moment calls for. The agent responds like a true domain expert, <strong style={strong}>without the
+              customer ever asking</strong>.
+            </p>
+          </div>
+
+          {/* the flows — the SAME component used in the details modal */}
+          <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: FAINT, margin: '26px 0 12px' }}>at a glance · the two flows</div>
+          <RagSagFlows />
+          <div style={{ marginTop: 26 }}>
+            <div style={{ fontFamily: MONO, fontSize: 15, fontWeight: 600, color: TEXT, marginBottom: 8 }}>The difference is the trigger</div>
+            <p style={{ fontFamily: SANS, fontSize: 14.5, lineHeight: 1.8, color: MUTED, margin: 0, maxWidth: 760 }}>
+              Same job in both — bring in only the relevant piece, never the whole library. RAG waits for the user’s words, so
+              it only helps once they raise a topic. SAG fires on the <strong style={strong}>state we detect</strong> — so the
+              right knowledge is already in the prompt, exactly when it’s needed, before the customer ever asks.
+            </p>
           </div>
         </section>
 

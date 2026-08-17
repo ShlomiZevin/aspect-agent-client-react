@@ -177,12 +177,40 @@ export function IntegrationsScreen({ onChanged }: { onChanged?: () => void }) {
   const allVisiblePicked = visibleIds.length > 0 && visibleIds.every(id => picked.has(id));
   const filtersOn = !!(parent || type !== 'page' || status || search || dateKey);
 
-  function toggle(id: number) {
+  /**
+   * Shift-click selects the range from the last click to this one, the way
+   * every file list does. `lastClicked` is the anchor; without it, ticking 40
+   * consecutive pages means 40 clicks.
+   */
+  const lastClicked = useRef<number | null>(null);
+
+  function toggle(id: number, shift = false) {
+    if (shift && lastClicked.current !== null) {
+      const from = visibleIds.indexOf(lastClicked.current);
+      const to = visibleIds.indexOf(id);
+      if (from !== -1 && to !== -1) {
+        const [lo, hi] = from < to ? [from, to] : [to, from];
+        // The anchor's state decides the whole range, so shift-clicking can
+        // deselect a block too, not only select one.
+        const selecting = picked.has(lastClicked.current);
+        setPicked(prev => {
+          const next = new Set(prev);
+          for (const rangeId of visibleIds.slice(lo, hi + 1)) {
+            if (selecting) next.add(rangeId); else next.delete(rangeId);
+          }
+          return next;
+        });
+        lastClicked.current = id;
+        return;
+      }
+    }
+
     setPicked(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+    lastClicked.current = id;
   }
 
   function pickAllVisible() {
@@ -191,6 +219,7 @@ export function IntegrationsScreen({ onChanged }: { onChanged?: () => void }) {
       visibleIds.forEach(id => (allVisiblePicked ? next.delete(id) : next.add(id)));
       return next;
     });
+    lastClicked.current = null;
   }
 
   function clearFilters() {
@@ -315,14 +344,17 @@ export function IntegrationsScreen({ onChanged }: { onChanged?: () => void }) {
               </div>
             )}
 
+            {/* Counts are faceted: each group is counted with the OTHER filters
+                applied, so picking "Documents" narrows the Show numbers. The
+                unfiltered option shows that dimension's own total. */}
             <FilterGroup
               label="Show" options={STATUS} value={status} onChange={setStatus}
-              counts={k => (k ? stats?.byStatus[k as SyncItemStatus] ?? 0 : stats?.total ?? 0)}
+              counts={k => (k ? stats?.byStatus[k as SyncItemStatus] ?? 0 : stats?.statusTotal ?? 0)}
             />
 
             <FilterGroup
               label="Kind" options={TYPES} value={type} onChange={setType}
-              counts={k => (k ? stats?.byType[k] ?? 0 : stats?.total ?? 0)}
+              counts={k => (k ? stats?.byType[k] ?? 0 : stats?.typeTotal ?? 0)}
             />
 
             <FilterGroup label="When it changed" options={DATES} value={dateKey} onChange={setDateKey} />
@@ -424,7 +456,12 @@ export function IntegrationsScreen({ onChanged }: { onChanged?: () => void }) {
               >
                 {allVisiblePicked && <IconCheck />}
               </span>
-              <span className="hqEyebrow">{items.length} {items.length === 1 ? 'page' : 'pages'}</span>
+              <button className={styles.selectAll} onClick={pickAllVisible}>
+                {allVisiblePicked ? 'Clear' : `Select all ${items.length}`} shown
+              </button>
+              <span className={styles.headHint}>
+                shift-click to select a range
+              </span>
               <span className={styles.spacer} />
               {filtersOn && !busy && (
                 <button className={styles.railLink} onClick={() => handleIgnore('skipped', true)}>
@@ -444,10 +481,16 @@ export function IntegrationsScreen({ onChanged }: { onChanged?: () => void }) {
                 <div
                   key={item.id}
                   className={`${styles.row} ${isPicked ? styles.rowPicked : ''} ${isCurrent ? styles.rowSyncing : ''}`}
+                  onClick={e => {
+                    // Let the "open in Notion" link do its own thing.
+                    if ((e.target as HTMLElement).closest('a')) return;
+                    toggle(item.id, e.shiftKey);
+                  }}
                 >
+                  {/* No handler of its own — the whole row is the click
+                      target, and a nested one would toggle twice. */}
                   <span
                     className={`${styles.check} ${isPicked ? styles.checkOn : ''}`}
-                    onClick={() => toggle(item.id)}
                     role="checkbox"
                     aria-checked={isPicked}
                   >
