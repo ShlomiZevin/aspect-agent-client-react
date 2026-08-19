@@ -116,11 +116,18 @@ export function AtomScreen() {
               </span>
             )}
             <div className={styles.actions}>
-              {isMeeting && (
-                <button className="hqMini" onClick={handleRerun} disabled={working || atom.scribe_status === 'running'}>
-                  <IconRefresh /> {atom.scribe_status === 'done' ? 'Redo summary' : 'Summarise'}
-                </button>
-              )}
+              {/* Any entry, not just meetings. A proposal with no summary is
+                  only findable by wording that happens to match its text —
+                  a summary makes it findable by what it's ABOUT, in whichever
+                  language someone asks. */}
+              <button
+                className="hqMini"
+                onClick={handleRerun}
+                disabled={working || atom.scribe_status === 'running'}
+                title="Reads the whole thing and writes a summary, decisions and action items"
+              >
+                <IconRefresh /> {atom.scribe_status === 'done' ? 'Redo summary' : 'Summarise'}
+              </button>
               <button
                 className="hqMini"
                 onClick={() => { setDraftTitle(atom.title); setEditingTitle(true); }}
