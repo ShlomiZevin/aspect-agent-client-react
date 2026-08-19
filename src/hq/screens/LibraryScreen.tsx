@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { IconCheck, IconDecision, IconSearch, IconTrash } from '../icons';
 import { listAtoms, resetHQ } from '../services/hqApi';
 import type { Atom } from '../types';
+import { sourceOf } from '../sourceOf';
 import styles from './LibraryScreen.module.css';
 
 const FILTERS = [
@@ -46,17 +47,9 @@ function initials(name: string): string {
   return name.trim().split(/\s+/).slice(0, 2).map(p => p[0] || '').join('');
 }
 
-/** Where it came from, read off the link HQ stored with it. */
-function originOf(atom: Atom): string {
-  const url = atom.external_url || '';
-  if (/notion\./.test(url)) return 'From Notion';
-  if (/docs\.google|drive\.google/.test(url)) return 'From Google Drive';
-  if (url) return 'From a link';
-  return 'Typed into HQ';
-}
-
 function AtomCard({ atom, onOpen }: { atom: Atom; onOpen: () => void }) {
   const kind = KIND[atom.kind] || { label: atom.kind, what: '' };
+  const source = sourceOf(atom);
   const people = atom.participants || [];
   const isMeeting = atom.kind === 'meeting';
 
@@ -66,7 +59,9 @@ function AtomCard({ atom, onOpen }: { atom: Atom; onOpen: () => void }) {
         <span className={`${styles.kindChip} ${!isMeeting ? styles.kindChipMuted : ''}`} title={kind.what}>
           {kind.label}
         </span>
-        <span className={styles.cardOrigin}>{originOf(atom)}</span>
+        <span className={styles.cardOrigin} title={atom.source_label || source.name}>
+          <span aria-hidden="true">{source.icon}</span> {source.name}
+        </span>
         <span className={styles.cardDate}>{formatDate(atom.occurred_at || atom.ingested_at)}</span>
       </div>
 

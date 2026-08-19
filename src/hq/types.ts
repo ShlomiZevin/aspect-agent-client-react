@@ -34,6 +34,9 @@ export interface Atom {
   scribe_status: ScribeStatus;
   chunk_count: number;
   error: string | null;
+  /** Which connector it came from — joined from hq_sources, not guessed. */
+  source_kind?: string | null;
+  source_label?: string | null;
 }
 
 export interface Source {
@@ -70,6 +73,8 @@ export interface AskResult {
 export interface HQStatus {
   ok: boolean;
   notionConfigured: boolean;
+  /** Every built connector and whether its credentials are present. */
+  sources?: { id: string; name: string; connected: boolean }[];
   totalAtoms: number;
   byKind: Record<string, number>;
   indexed: number;

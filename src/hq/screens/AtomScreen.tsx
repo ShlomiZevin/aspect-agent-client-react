@@ -15,6 +15,7 @@ import remarkGfm from 'remark-gfm';
 import { IconBack, IconDecision, IconEdit, IconExternal, IconRefresh, IconTrash } from '../icons';
 import { deleteAtom, getAtom, patchAtom, rerunScribe } from '../services/hqApi';
 import type { Atom } from '../types';
+import { sourceOf } from '../sourceOf';
 import styles from './AtomScreen.module.css';
 
 /**
@@ -91,17 +92,22 @@ export function AtomScreen() {
 
   const when = atom.occurred_at || atom.ingested_at;
   const isMeeting = atom.kind === 'meeting';
+  const source = sourceOf(atom);
 
   return (
     <div className={styles.screen}>
       <div className={styles.inner}>
         <button className={styles.back} onClick={() => navigate('../knowledge')}>
-          <IconBack /> Library
+          <IconBack /> Knowledge
         </button>
 
         <header className={styles.header}>
           <div className={styles.headTop}>
             <span className={styles.kindChip}>{atom.kind}</span>
+            {/* Which system this came from, stated rather than implied by a link. */}
+            <span className={styles.sourceChip} title={atom.source_label || source.name}>
+              <span aria-hidden="true">{source.icon}</span> {source.name}
+            </span>
             {when && (
               <span className={styles.date}>
                 {new Date(when).toLocaleDateString(undefined, {
@@ -150,7 +156,7 @@ export function AtomScreen() {
             {(atom.projects || []).map((p, i) => <span key={`t${i}`} className={styles.tag}>#{p}</span>)}
             {atom.external_url && (
               <a className={styles.sourceLink} href={atom.external_url} target="_blank" rel="noopener noreferrer">
-                Open in Notion <IconExternal />
+                {source.open} <IconExternal />
               </a>
             )}
           </div>

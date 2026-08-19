@@ -47,6 +47,7 @@ export { InfrastructurePage } from './InfrastructurePage';
 export { EnterpriseReadinessPage } from './EnterpriseReadinessPage';
 export { LybiArchitecturePage } from './LybiArchitecturePage';
 export { LybiTechnologyPage } from './LybiTechnologyPage';
+export { LybiBankingDeckPage } from './LybiBankingDeckPage';
 export { KBvsTriggeredPage } from './KBvsTriggeredPage';
 export { LybiKnowledgePage } from './LybiKnowledgePage';
 export { LybiCostPage } from './LybiCostPage';

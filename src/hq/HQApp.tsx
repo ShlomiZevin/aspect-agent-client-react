@@ -112,10 +112,13 @@ export function HQApp() {
                 : `HQ has read ${status.totalAtoms} ${status.totalAtoms === 1 ? 'thing' : 'things'}`
               : 'connecting…'}
           </div>
-          <div className={styles.statLine}>
-            <span className={`${styles.dot} ${status?.notionConfigured ? styles.dotOk : styles.dotWarn}`} />
-            Notion {status?.notionConfigured ? 'connected' : 'not connected'}
-          </div>
+          {/* One line per source, so adding a connector needs no change here. */}
+          {(status?.sources ?? []).map(s => (
+            <div key={s.id} className={styles.statLine}>
+              <span className={`${styles.dot} ${s.connected ? styles.dotOk : styles.dotWarn}`} />
+              {s.name} {s.connected ? 'connected' : 'not connected'}
+            </div>
+          ))}
           {status && status.failed > 0 && (
             <div className={styles.statLine}>
               <span className={`${styles.dot} ${styles.dotWarn}`} />
