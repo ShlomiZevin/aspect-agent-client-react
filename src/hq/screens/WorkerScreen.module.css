@@ -1,0 +1,572 @@
+/* Conversations left, chat centre, work right. The work rail is the point:
+   you can see what is being done without it interrupting the conversation. */
+.screen { height: 100%; display: flex; overflow: hidden; }
+.loading { padding: 40px; font-size: 14px; color: var(--text-3); }
+
+/* ── Conversations ───────────────────────────────────────────────────────── */
+.rail {
+  width: 240px; flex-shrink: 0;
+  border-inline-end: 1px solid var(--border);
+  background: var(--surface-2);
+  padding: 18px 14px;
+  display: flex; flex-direction: column; gap: 14px;
+  overflow-y: auto;
+}
+.back {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: none; border: 0; padding: 0;
+  font: inherit; font-size: 13px; color: var(--mag); cursor: pointer;
+}
+.back svg { width: 15px; height: 15px; }
+.back:hover { text-decoration: underline; }
+
+.person { display: flex; align-items: center; gap: 11px; }
+.avatar {
+  width: 40px; height: 40px; flex-shrink: 0;
+  border-radius: 100px; background: var(--surface);
+  border: 1px solid var(--border);
+  display: grid; place-items: center; font-size: 20px;
+}
+.name { font-size: 15px; font-weight: 800; color: var(--text); }
+.role { font-size: 12px; color: var(--accent); font-weight: 600; }
+
+.convList { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.conv {
+  display: flex; align-items: center; gap: 8px;
+  background: none; border: 0; border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font: inherit; font-size: 12.5px; color: var(--text-2);
+  cursor: pointer; text-align: left;
+}
+.conv:hover { background: var(--surface-3); color: var(--text); }
+.convOn { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: var(--shadow-sm); }
+.convTitle { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.convCount { font-size: 11px; color: var(--text-3); flex-shrink: 0; }
+
+.roleLink {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 0; padding: 10px 0 0;
+  border-top: 1px solid var(--border);
+  font: inherit; font-size: 12.5px; color: var(--mag); cursor: pointer;
+}
+.roleLink svg { width: 14px; height: 14px; }
+.roleLink:hover { text-decoration: underline; }
+
+/* ── Chat ────────────────────────────────────────────────────────────────── */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.thread { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+
+.msg { display: flex; gap: 10px; align-items: flex-start; max-width: 760px; }
+.msgUser { margin-inline-start: auto; flex-direction: row-reverse; }
+.msgAvatar {
+  width: 30px; height: 30px; flex-shrink: 0;
+  border-radius: 100px; background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: grid; place-items: center; font-size: 15px;
+}
+.bubble {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 14.5px; line-height: 1.65; color: var(--text);
+  min-width: 0;
+}
+.msgUser .bubble { background: var(--grad); color: #fff; border-color: transparent; }
+.working { display: flex; align-items: center; gap: 10px; color: var(--text-3); font-size: 13.5px; }
+
+.empty { text-align: center; padding: 12vh 20px; }
+.emptyAvatar { font-size: 40px; display: block; margin-bottom: 14px; }
+.emptyTitle { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.emptyHint { font-size: 14px; color: var(--text-2); max-width: 420px; margin: 0 auto; line-height: 1.6; }
+
+.errorBox {
+  padding: 12px 15px; border-radius: var(--radius);
+  border: 1px solid var(--danger); border-inline-start: 3px solid var(--danger);
+  background: var(--surface); color: var(--danger); font-size: 13.5px;
+}
+
+.composer {
+  flex-shrink: 0; display: flex; align-items: flex-end; gap: 10px;
+  padding: 16px 24px 20px; border-top: 1px solid var(--border);
+}
+.input {
+  flex: 1; resize: none; max-height: 180px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: 18px;
+  padding: 12px 16px;
+  font: inherit; font-size: 14.5px; color: var(--text);
+  outline: 0; line-height: 1.5;
+}
+.input:focus { border-color: var(--mag); }
+
+/* ── Work ────────────────────────────────────────────────────────────────── */
+.work {
+  width: 300px; flex-shrink: 0;
+  border-inline-start: 1px solid var(--border);
+  background: var(--surface-2);
+  padding: 18px 16px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.workHead { display: flex; align-items: center; }
+.workEmpty { font-size: 12.5px; color: var(--text-3); line-height: 1.6; }
+
+.job {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 15px;
+}
+.jobLive { border-color: var(--accent); border-inline-start: 3px solid var(--accent); }
+.jobTop { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.jobState {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px;
+  padding: 3px 8px; border-radius: 100px; direction: ltr;
+}
+.stateRunning { background: var(--grad); color: #fff; }
+.stateDone { background: rgba(18,165,148,.14); color: var(--ok); }
+.stateOther { background: var(--surface-3); color: var(--text-3); }
+.stop {
+  margin-inline-start: auto; background: none; border: 0; padding: 0;
+  font: inherit; font-size: 12px; color: var(--danger); cursor: pointer;
+}
+.stop:hover { text-decoration: underline; }
+
+.jobTitle { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 11px; }
+
+.steps { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.step { display: flex; gap: 9px; font-size: 12.5px; line-height: 1.5; color: var(--text-3); }
+.stepMark { width: 14px; flex-shrink: 0; text-align: center; }
+.stepText { min-width: 0; }
+.step_running { color: var(--text); font-weight: 600; }
+.step_running .stepMark { color: var(--accent); animation: hqPulse 1.2s ease-in-out infinite; }
+.step_done { color: var(--text-2); }
+.step_done .stepMark { color: var(--ok); }
+.step_failed { color: var(--danger); }
+
+.jobFoot {
+  display: flex; gap: 6px; font-size: 11.5px; color: var(--text-3);
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border);
+}
+
+.gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.thumb {
+  display: block; border-radius: var(--radius-sm); overflow: hidden;
+  background: var(--surface); border: 1px solid var(--border);
+  text-decoration: none;
+}
+.thumb img { width: 100%; aspect-ratio: 3/4; object-fit: cover; display: block; }
+/* Physical `left`, not `start`: `dir="auto"` turns a Hebrew title RTL, and
+   alignment following that direction would leave a grid of tiles with their
+   captions on alternating sides. Direction stays auto so the text itself
+   renders correctly. */
+.thumbTitle {
+  display: block; padding: 5px 7px;
+  text-align: left;
+  font-size: 10.5px; color: var(--text-3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ── Job description ─────────────────────────────────────────────────────── */
+.modalWrap {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(10,4,32,.45); backdrop-filter: blur(3px);
+  display: grid; place-items: center; padding: 20px;
+  animation: hqFade .16s ease;
+}
+.modal {
+  /* FIXED height, not max-height: the two tabs hold different amounts of
+     content, and a dialog that resizes as you switch makes the tabs themselves
+     move under the cursor. */
+  width: min(760px, 100%);
+  height: min(660px, 88vh);
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 60px rgba(10,4,32,.3);
+  padding: 22px;
+}
+/* Whatever a tab puts here fills the space and scrolls inside it. */
+.roleEditor, .lessonList { flex: 1; min-height: 0; }
+.modalTitle { font-size: 17px; font-weight: 800; color: var(--text); margin-bottom: 7px; }
+.modalHint { font-size: 13px; color: var(--text-3); line-height: 1.6; margin-bottom: 14px; }
+.roleEditor {
+  resize: none;
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12.5px; line-height: 1.7; color: var(--text);
+  outline: 0;
+}
+.roleEditor:focus { border-color: var(--mag); }
+.modalActions {
+  flex-shrink: 0;
+  display: flex; justify-content: flex-end; gap: 8px;
+  margin-top: 16px; padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 1180px) {
+  .work { display: none; }
+}
+@media (max-width: 860px) {
+  .rail { display: none; }
+}
+
+/* ── Trace: what she is doing, in the conversation ───────────────────────── */
+.traceLine {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 12.5px; color: var(--text-3); line-height: 1.7;
+}
+.traceMark { color: var(--ok); font-size: 11px; }
+.traceLive {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  font-size: 13px; color: var(--text-2); margin-top: 4px;
+}
+.traceJob { font-size: 12px; color: var(--text-3); }
+
+/* Her narrating mid-work, not answering you. */
+.aside {
+  background: transparent;
+  border-style: dashed;
+  color: var(--text-3);
+  font-size: 13.5px;
+}
+
+/* ── Job history ─────────────────────────────────────────────────────────── */
+.jobTop {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: none; border: 0; padding: 0; margin-bottom: 0;
+  font: inherit; cursor: pointer; text-align: start;
+}
+.jobTitle {
+  flex: 1; min-width: 0;
+  font-size: 13px; font-weight: 700; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  margin-bottom: 0;
+}
+.jobCount {
+  flex-shrink: 0; font-size: 11px; color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.steps { margin-top: 11px; }
+
+/* A ring that actually spins on the step being worked on. A static mark makes
+   you compare ticks to work out where it is. */
+.spinner {
+  display: inline-block; width: 11px; height: 11px;
+  border: 2px solid var(--border-2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: hqSpin .8s linear infinite;
+}
+.stepDot {
+  display: inline-block; width: 5px; height: 5px;
+  border-radius: 50%; background: var(--border-2);
+}
+.stepDetail { display: block; font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+
+/* ── Reports ─────────────────────────────────────────────────────────────── */
+.report {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+  text-decoration: none;
+  transition: transform .1s, border-color .15s;
+}
+.report:hover { transform: translateY(-1px); border-color: var(--accent); }
+.reportIcon { font-size: 17px; flex-shrink: 0; }
+.reportBody { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.reportTitle {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.reportSummary {
+  font-size: 11.5px; color: var(--text-3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.reportOpen { font-size: 11px; color: var(--accent); font-weight: 600; flex-shrink: 0; }
+
+/* ── Which brain she uses ────────────────────────────────────────────────── */
+.modelRow {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border);
+}
+.modelLabel {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .9px; color: var(--text-3);
+}
+.modelPick {
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: 100px;
+  padding: 5px 14px;
+  font: inherit; font-size: 12.5px; font-weight: 600;
+  color: var(--text-2); cursor: pointer;
+  transition: .15s;
+}
+.modelPick:hover { border-color: var(--mag); color: var(--text); }
+.modelOn, .modelOn:hover {
+  background: var(--grad); color: #fff; border-color: transparent;
+}
+
+/* ── Conversation header ─────────────────────────────────────────────────── */
+.convHead {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.convHeadTitle {
+  flex: 1; min-width: 0;
+  /* PHYSICAL right, not `end`: `end` resolves against the element's own
+     direction, and dir="auto" on a Hebrew title makes that the LEFT edge — so
+     the title sat next to the pills, which is the thing we were avoiding. */
+  text-align: right;
+  font-size: 14px; font-weight: 700; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.modelSwitch { display: flex; gap: 5px; flex-shrink: 0; order: -1; }
+
+/* ── Thinking ────────────────────────────────────────────────────────────── */
+/* ── The working ─────────────────────────────────────────────────────────────
+   Above the answer it produced, because that is the order it happened in.
+   Collapsed to a single quiet line by default: a finished thread should read
+   as a conversation, with the working available rather than in the way.
+   Never a bubble — this is not her talking to you. */
+.turn { display: flex; flex-direction: column; gap: 7px; }
+
+.thinking { max-width: 760px; margin-inline-start: 40px; }
+
+/* Collapsed: metadata, not a control. Sits light until you go near it. */
+.thinkingToggle {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: none; border: 0;
+  padding: 3px 9px 3px 7px;
+  border-radius: 100px;
+  font: inherit; font-size: 11.5px; font-weight: 600;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.thinkingToggle:hover { background: var(--surface-2); color: var(--mag); }
+
+.thinkChev {
+  font-size: 8px; line-height: 1;
+  transition: transform .18s ease;
+  opacity: .7;
+}
+.thinkChevOpen { transform: rotate(90deg); }
+:global([dir='rtl']) .thinkChev { transform: rotate(180deg); }
+:global([dir='rtl']) .thinkChevOpen { transform: rotate(90deg); }
+
+/* Expanded: a timeline. The rail and the dots do the explaining, so the text
+   can stay quiet and the eye can follow the sequence. */
+.thinkingBody {
+  margin-top: 6px;
+  padding: 12px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  animation: hqFade .18s ease;
+}
+
+.traceLine {
+  position: relative;
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 3px 0 4px 2px;
+  font-size: 12.5px; line-height: 1.6;
+  color: var(--text-2);
+}
+/* The connecting rail. Drawn from BELOW the mark to the next one, and the mark
+   sits on the page background above it — otherwise the line runs straight
+   through the tick and both look broken. */
+.traceLine:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 8px;
+  top: 20px; bottom: -2px;
+  width: 1px;
+  background: var(--border-2);
+}
+.traceMark {
+  position: relative; z-index: 1;
+  flex-shrink: 0;
+  width: 17px; height: 17px;
+  display: inline-flex; align-items: center; justify-content: center;
+  align-self: flex-start;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  font-size: 9px;
+  color: var(--ok);
+}
+
+/* The step in flight. Magenta, and the only thing moving. */
+.traceLive {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 5px 0 1px 2px;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--text);
+}
+.traceJob { font-size: 11.5px; font-weight: 500; color: var(--text-3); }
+
+/* In flight there is no answer above it yet, so it shows open with no toggle. */
+.thinkingLive .thinkingBody {
+  margin-top: 0;
+  border-color: var(--border-2);
+  border-inline-start: 2px solid var(--mag);
+}
+
+.costSplit { color: var(--text-3); font-size: 10.5px; }
+.chevOpen { transform: rotate(180deg); }
+
+/* ── How she works: job description + lessons ────────────────────────────── */
+.tabs {
+  display: flex; gap: 4px;
+  margin-bottom: 14px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: none; border: 0; border-radius: 100px;
+  padding: 7px 15px;
+  font: inherit; font-size: 13px; font-weight: 600;
+  color: var(--text-3); cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.tab:hover { background: var(--surface-2); color: var(--text); }
+.tabOn, .tabOn:hover { background: var(--grad); color: #fff; }
+.tabCount {
+  font-size: 11px; font-weight: 700;
+  background: rgba(255,255,255,.22); border-radius: 100px; padding: 1px 7px;
+}
+.tab:not(.tabOn) .tabCount { background: var(--surface-3); color: var(--text-3); }
+
+.addLesson { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 14px; }
+.lessonInput {
+  flex: 1; resize: vertical;
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  padding: 10px 13px;
+  font: inherit; font-size: 13px; line-height: 1.6; color: var(--text);
+  outline: 0;
+}
+.lessonInput:focus { border-color: var(--mag); }
+
+.lessonList {
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 7px;
+}
+.lessonEmpty { font-size: 13px; color: var(--text-3); line-height: 1.6; padding: 20px 0; }
+
+.lesson {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  transition: opacity .15s;
+}
+/* Off, not gone — still readable, visibly inactive. */
+.lessonOff { opacity: .45; }
+
+/* A switch, because on/off is the most common thing you do to a lesson. */
+.lessonToggle {
+  flex-shrink: 0; margin-top: 2px;
+  width: 34px; height: 19px; padding: 2px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-2);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.lessonToggleOn { background: var(--grad); border-color: transparent; }
+.lessonKnob {
+  display: block; width: 13px; height: 13px;
+  background: #fff; border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(10,4,32,.3);
+  transition: transform .15s;
+}
+.lessonToggleOn .lessonKnob { transform: translateX(15px); }
+:global([dir='rtl']) .lessonToggleOn .lessonKnob { transform: translateX(-15px); }
+
+.lessonBody { flex: 1; min-width: 0; }
+.lessonText { font-size: 13px; line-height: 1.6; color: var(--text); }
+.lessonMeta {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  font-size: 11.5px; color: var(--text-3); margin-top: 6px;
+}
+.lessonLink {
+  background: none; border: 0; padding: 0;
+  font: inherit; font-size: 11.5px; color: var(--mag); cursor: pointer;
+}
+.lessonLink:hover { text-decoration: underline; }
+.lessonRemove { color: var(--danger); }
+.lessonActions { display: flex; gap: 7px; justify-content: flex-end; margin-top: 8px; }
+
+/* Labels inside a job, so its reports and images are named rather than just
+   appearing under the steps. Same eyebrow as the rail headings, indented to
+   read as belonging to this job. */
+.jobSection {
+  margin: 12px 0 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.jobSection:first-of-type { border-top: 0; padding-top: 0; }
+
+/* What the job is on right now, visible without expanding it. */
+.jobNow {
+  display: flex; align-items: center; gap: 9px;
+  margin-top: 9px; padding-top: 9px;
+  border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-2); font-weight: 600;
+}
+.jobNowText { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Which model made a picture, and what it cost. Both belong on the tile —
+   looking them up in Media defeats the point of judging the image here. */
+.thumbMeta {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 7px 6px;
+  font-size: 9.5px; line-height: 1.3;
+}
+.thumbModel {
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text-3); font-weight: 600;
+}
+.thumbCost { color: var(--text-3); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+/* Marks a model row as being about pictures rather than about the brain.
+   An icon rather than a word: the bar is already dense, and two labelled
+   groups would compete with the conversation title for the eye. */
+.switchLabel {
+  font-size: 11px;
+  opacity: .55;
+  padding-inline-end: 1px;
+  align-self: center;
+}
+
+/* The three "who does this" pickers. Left of the conversation title because an
+   RTL title is right-aligned and anything after it lands mid-header. */
+.pickers { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; min-width: 0; }
+
+/* The same three in the defaults modal, where they set the employee rather
+   than the conversation. */
+.defaults {
+  margin-top: 16px; padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.defaults > .hqEyebrow { display: block; margin-bottom: 10px; }
+.defaultsRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

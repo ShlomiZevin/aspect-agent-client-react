@@ -185,3 +185,196 @@ export interface SyncProgress {
   chunks?: number;
   error?: string;
 }
+
+// ─── Employees ───────────────────────────────────────────────────────────────
+
+export interface Worker {
+  id: number;
+  slug: string;
+  name: string;
+  role_title: string;
+  tagline: string | null;
+  avatar: string | null;
+  accent: string | null;
+  /** The employment definition — a plain system prompt, editable by anyone. */
+  role_definition: string;
+  model: string;
+  tools: string[];
+  settings: Record<string, unknown>;
+  running_jobs?: number;
+  conversations?: number;
+  spend?: WorkerSpend | null;
+}
+
+/** Both kinds of money a worker costs — images and reasoning are billed apart. */
+export interface WorkerSpend {
+  imagesUsd: number;
+  imagesThisMonthUsd: number;
+  imageCount: number;
+  thinkingUsd: number;
+  totalUsd: number;
+}
+
+export interface WorkerCapabilities {
+  images: boolean;
+  htmlRender: boolean;
+  imageModels: { id: string; label: string; about: string; approxCost: number }[];
+  /** Models offered for the phrasing step — see hq/services/phrasing.service.js. */
+  phrasingModels: { id: string; label: string; about: string }[];
+}
+
+export interface WorkerConversation {
+  id: number;
+  worker_id: number;
+  title: string;
+  updated_at: string;
+  message_count?: number;
+  media_count?: number;
+  /**
+   * Per-conversation overrides of the employee's model choices. null on any of
+   * them means "follow her default", not "none".
+   */
+  model?: string | null;
+  phrasing_model?: string | null;
+  image_model?: string | null;
+}
+
+export interface WorkerMessage {
+  id: number;
+  role: 'user' | 'assistant';
+  content: string;
+  metadata: { toolCalls?: { name: string }[]; jobId?: number | null };
+  created_at: string;
+}
+
+export interface JobStep {
+  n: number;
+  title: string;
+  status: 'pending' | 'running' | 'done' | 'failed';
+  detail?: string;
+}
+
+export interface Job {
+  id: number;
+  worker_id: number;
+  conversation_id: number | null;
+  title: string;
+  brief: string | null;
+  status: 'running' | 'done' | 'cancelled' | 'failed';
+  steps: JobStep[];
+  current_step: number | null;
+  error: string | null;
+  cost_usd: string | number;
+  /** Token spend, split by what it was for — two providers bill separately. */
+  llm_cost_usd?: string | number;
+  phrasing_cost_usd?: string | number;
+  llm_tokens_in?: number;
+  llm_tokens_out?: number;
+  estimated_usd: string | number | null;
+  started_at: string;
+  finished_at: string | null;
+  media_count?: number;
+  live?: boolean;
+  worker_name?: string;
+  avatar?: string;
+}
+
+export interface MediaItem {
+  id: number;
+  conversation_id: number | null;
+  job_id: number | null;
+  folder_id: number | null;
+  kind: string;
+  title: string | null;
+  url: string | null;
+  mime_type: string | null;
+  width: number | null;
+  height: number | null;
+  bytes: number | null;
+  prompt: string | null;
+  model: string | null;
+  cost_usd: string | number | null;
+  source: string | null;
+  created_at: string;
+}
+
+export interface MediaFolder {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  media_count: number;
+}
+
+export interface MediaConversationGroup {
+  id: number;
+  title: string;
+  updated_at: string;
+  worker_name: string | null;
+  avatar: string | null;
+  media_count: number;
+}
+
+/** A craft note a worker follows. Not company knowledge — see hq_worker_lessons. */
+export interface Lesson {
+  id: number;
+  worker_id: number;
+  lesson: string;
+  learned_from: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+export interface Report {
+  id: number;
+  title: string;
+  summary: string | null;
+  conversation_id: number | null;
+  job_id: number | null;
+  worker_name: string | null;
+  avatar: string | null;
+  created_at: string;
+}
+
+/** One frame from a worker's stream. */
+export interface WorkerEvent {
+  type: 'text' | 'tool_start' | 'tool_done' | 'tool_failed' | 'tool_progress'
+      | 'job_started' | 'job_step' | 'job_finished' | 'media' | 'report' | 'stopped';
+  text?: string;
+  tool?: string;
+  input?: Record<string, unknown>;
+  error?: string;
+  job?: Job;
+  jobId?: number;
+  steps?: JobStep[];
+  done?: number;
+  total?: number;
+  item?: MediaItem;
+  report?: Report;
+  summary?: string;
+  note?: string;
+}
+
+/** What HQ itself costs — tokens and images together. */
+export interface HQUsage {
+  days: number;
+  totals: {
+    tokensUsd: number; imagesUsd: number; totalUsd: number;
+    imageCount: number; calls: number;
+  };
+  byProcess: { process: string; label: string; model: string; modelName: string; inp: number; outp: number; calls: number; usd: number }[];
+  byModel: { model: string; modelName: string; provider: string; inp: number; outp: number; calls: number; usd: number }[];
+  byImageModel: { model: string; label: string; n: number; usd: number; each: number }[];
+  byWorker: {
+    who: string; model: string; modelName: string; kind: 'tokens' | 'images';
+    calls: number; inp: number | null; outp: number | null;
+    pictures: number | null; usd: number;
+  }[];
+  byDay: { day: string; tokensUsd: number; imagesUsd: number; totalUsd: number }[];
+  recent: {
+    key: string; kind: 'tokens' | 'images'; who: string; label: string;
+    model: string; modelName: string; provider: string;
+    input_tokens: number | null; output_tokens: number | null;
+    title?: string | null; created_at: string; usd: number;
+  }[];
+  budget: { spentTodayUsd: number; dailyLimitUsd: number; remainingUsd: number; blocked: boolean } | null;
+}

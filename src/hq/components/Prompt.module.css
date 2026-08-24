@@ -1,0 +1,30 @@
+.wrap {
+  position: fixed; inset: 0; z-index: 70;
+  background: rgba(10, 4, 32, .45); backdrop-filter: blur(3px);
+  display: grid; place-items: center; padding: 20px;
+  animation: hqFade .16s ease;
+}
+.box {
+  width: 100%; max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 60px rgba(10, 4, 32, .28);
+  padding: 22px 24px 20px;
+}
+.title { font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -.2px; }
+.hint { margin-top: 6px; font-size: 13px; line-height: 1.55; color: var(--text-2); }
+.input {
+  width: 100%; margin-top: 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+  font: inherit; font-size: 14.5px; color: var(--text);
+  outline: 0;
+}
+.input:focus { border-color: var(--mag); background: var(--surface); }
+.input:disabled { opacity: .6; }
+
+/* Confirm on the right, where the eye finishes reading the form. */
+.actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 18px; }

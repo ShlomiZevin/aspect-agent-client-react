@@ -83,3 +83,11 @@ export const IconPlug = () => (
 export const IconActivity = () => (
   <svg {...base}><path d="M3 12h4l2.5-6 4 13 2.5-7h5" /></svg>
 );
+
+export const IconTeam = () => (
+  <svg {...base}><circle cx="9" cy="8" r="3.2" /><path d="M3 20a6 6 0 0 1 12 0" /><path d="M16 5.6a3.2 3.2 0 0 1 0 6.3" /><path d="M18.5 20a6 6 0 0 0-3-5.2" /></svg>
+);
+
+export const IconMedia = () => (
+  <svg {...base}><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9.5" r="1.6" /><path d="M21 16l-5-5-6.5 6.5" /></svg>
+);

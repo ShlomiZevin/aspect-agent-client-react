@@ -131,18 +131,55 @@
   .main { padding-bottom: 64px; }
 }
 
-/* A child of the entry above it — smaller, indented, with a rail marking the
-   relationship. Still a full nav destination, not a link buried in a page. */
-.navSub {
-  font-size: 13.5px;
-  font-weight: 500;
-  padding-block: 8px;
-  margin-inline-start: 15px;
-  border-inline-start: 1px solid var(--border-2);
-  border-start-start-radius: 0;
-  border-end-start-radius: 0;
+/* Children of an expandable entry, in a bordered well so the grouping is
+   visible even when nothing inside is selected. Both Team and Integrations use
+   it — two things that expand shouldn't look like two different mechanisms. */
+.navChildren {
+  display: flex; flex-direction: column; gap: 1px;
+  margin: 2px 0 4px 10px;
+  padding: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
-.navSub .navIcon, .navSub .navIcon svg { width: 16px; height: 16px; }
+:global([dir='rtl']) .navChildren { margin: 2px 10px 4px 0; }
+
+.navChild {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 9px;
+}
+/* The icon BOX stays the same size on every row so labels line up down the
+   whole nav; only the glyph inside it shrinks. Parent rows draw an SVG and
+   child rows draw an emoji avatar, which have different optical sizes — left
+   alone, the two columns of text never agree. */
+.navChild .navIcon { width: 19px; height: 19px; }
+.navChild .navIcon svg { width: 15px; height: 15px; }
+.navChild .navIcon { font-size: 14px; line-height: 1; }
+
+/* A selected child is marked, not repainted — a second full gradient block
+   directly under the first one reads as two selected things. */
+/* Between the two extremes that were wrong: a white card with a bar and a dot
+   was three signals stacked under an already-gradient parent; plain coloured
+   text was too faint to find. A soft tint of the brand colour plus a short
+   marker reads as selected at a glance and still sits quietly under the
+   gradient above it. */
+.navChildActive, .navChildActive:hover {
+  background: color-mix(in srgb, var(--mag) 12%, transparent);
+  color: var(--mag);
+  font-weight: 700;
+  position: relative;
+}
+.navChildActive::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 16px;
+  border-radius: 100px;
+  background: var(--mag);
+}
 .navLabel { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Something is running right now. Visible from every screen. */
@@ -154,3 +191,28 @@
   animation: hqPulse 1.4s ease-in-out infinite;
 }
 .navItemActive .navLive { background: #fff; }
+
+/* Says "this opens" before you click it. */
+.navChevron {
+  margin-inline-start: auto;
+  font-size: 10px; color: var(--text-3);
+  transition: transform .15s;
+}
+.navChevronOpen { transform: rotate(180deg); }
+.navItemActive .navChevron { color: rgba(255,255,255,.85); }
+.navGroup .navCount { margin-inline-start: 0; }
+
+/* "working" as a quiet word rather than another pulsing dot — the nav already
+   has one on Running & history, and two competing dots is noise. */
+.navWorking {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: .3px;
+  color: var(--mag);
+  opacity: .8;
+  animation: hqPulse 1.8s ease-in-out infinite;
+}
+/* Inside a selected row the text is already magenta, so the badge would
+   disappear into it — drop it back to a plain marker there. */
+.navChildActive .navWorking { opacity: .6; }
