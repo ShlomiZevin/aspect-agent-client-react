@@ -70,6 +70,14 @@ Two links reach into the sibling server folder — both deliberate, both easy to
 
 Both mean the sibling repo must be checked out next to this one at the expected path.
 
+**Two token systems, and a component can land in either.** The chat app uses the global tokens in `styles/variables.css` (`--surface`, `--border`, `--primary-color`); Aspect Intelligence defines its own `--ai-*` set on `.shell`, re-themed per client via `data-brand`. A dialog rendered inside Intelligence must therefore prefer the portal's tokens and fall back — `var(--ai-surface, var(--surface))` — or it looks like a generic box dropped on the client's palette. Note there is no bare `--primary`: it is `--primary-color`, and `var(--primary)` silently resolves to nothing (a submit button with no background).
+
+**Never call `useAgentContext()` from a component that Intelligence might render.** It THROWS when there is no `AgentProvider`, and `IntelligenceShell` has none — the whole tree unmounts and the user sees a blank page. Pass `agentName`/`baseURL` as props; hosts inside Intelligence resolve them from `getAgentConfig(datasetId)`.
+
+**Mobile: a flex child needs `min-width: 0` / `min-height: 0` before it will shrink or scroll.** Both bugs cost real time here — an input with `flex: 1` refused to shrink and pushed the page's primary button off-screen, and a welcome pane with no `overflow-y`/`min-height: 0` was clipped by its `overflow: hidden` parent with nothing to scroll. Keep mobile rules inside `@media` blocks so desktop is provably untouched.
+
+**The data-status panel is bilingual and catalog-complete (Stage 3, 2026-08-24).** `DataHealthModal` (opened from `DataStatusBar`'s Last-sync label; enabled per agent via `features.showDataStatus`) renders TWO tables from `GET /api/admin/data-loader/:schema/data-health`: the file-mapped sources, and a `tables[]` catalog listing EVERY table + materialized view in the live schema with the period it stores (`from`/`through`) or an explicit "snapshot — no date column" label — never a bare dash. It also shows the server's post-reload MV `freshness` verdict when present. New strings for this panel go through `i18n/translations.ts` in BOTH languages (`dataHealth.*` keys) — an English-only key renders as its raw key name for Hebrew users.
+
 ## Gotchas
 
 - **Declare every hook above the component's early returns.** These components `return` early for loading and error states, so a `useState` added lower down changes the hook count between renders — React treats that as fatal. Easy to do accidentally when adding state next to the handler that uses it.

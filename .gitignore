@@ -36,3 +36,6 @@ package-lock.json
 # `npm run sync-types` (also hooked into postinstall / predev /
 # prebuild). Don't commit the local copy — it'll drift.
 src/builder/types/index.ts
+
+# One-off manual snapshot of the repo (2026-08-10) — never commit; delete when confirmed unneeded
+public.zip
