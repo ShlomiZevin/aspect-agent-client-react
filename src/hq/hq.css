@@ -189,6 +189,26 @@
 }
 .lybi-hq .hqGhostPill:hover { border-color: var(--mag); transform: translateY(-1px); box-shadow: var(--shadow); }
 
+/* THE selected state, for every pill that is one of a set.
+ *
+ * Lives here rather than in each module because a module class is (0,1,0) and
+ * loses to `.lybi-hq .hqGhostPill` (0,2,0) — three screens had written their
+ * own `xOn` rule and each got only the half of it the base rule did not define,
+ * which is why a "selected" pill showed a glow but kept its white background.
+ *
+ * Filled, not tinted: these sit in a row of identical shapes, and a tint that
+ * reads as selected on its own stops reading as selected next to four siblings.
+ */
+.lybi-hq .hqGhostPill.hqOn,
+.lybi-hq .hqGhostPill.hqOn:hover {
+  background: var(--grad);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(224, 25, 138, .3);
+  transform: none;
+}
+
 /* Small chip button (chat's `.mini-btn`). */
 .lybi-hq .hqMini {
   display: inline-flex;

@@ -270,3 +270,176 @@ export const listRuns = (limit = 20) =>
 /** The pages one run worked on, and how each turned out. */
 export const listRunItems = (runId: number) =>
   api<{ items: SyncItem[] }>(`/integrations/runs/${runId}/items`).then(r => r.items);
+
+// ─── Employees ───────────────────────────────────────────────────────────────
+
+import type {
+  Worker, WorkerCapabilities, WorkerConversation, WorkerMessage,
+  Job, MediaItem, MediaFolder, MediaConversationGroup, WorkerEvent, Report, Lesson, WorkerSpend,
+} from '../types';
+
+/** What HQ costs to run. Deliberately not on the per-agent admin page. */
+export const getHQUsage = (days = 30) =>
+  api<import('../types').HQUsage>(`/usage?days=${days}`);
+
+export const listWorkers = () =>
+  api<{ workers: Worker[]; capabilities: WorkerCapabilities }>('/workers');
+
+export const getWorker = (slug: string) =>
+  api<{ worker: Worker; conversations: WorkerConversation[]; spend: WorkerSpend | null }>(
+    `/workers/${slug}`);
+
+/** The employment definition is meant to be edited — that's the whole point. */
+export const updateWorker = (slug: string, patch: Partial<{
+  name: string; roleTitle: string; tagline: string; avatar: string;
+  accent: string; roleDefinition: string; model: string; tools: string[];
+  /** Which model writes the actual copy. Changing it changes nothing else. */
+  phrasingModel: string | null;
+  /** Her default picture model. null means she picks per brief. */
+  imageModel: string | null;
+}>) =>
+  api<{ worker: Worker }>(`/workers/${slug}`, { method: 'PATCH', body: JSON.stringify(patch) })
+    .then(r => r.worker);
+
+/**
+ * What a worker has learned. Shown next to the job description because they are
+ * the same kind of thing — instructions that shape every answer.
+ */
+export const listLessons = (slug: string) =>
+  api<{ lessons: Lesson[] }>(`/workers/${slug}/lessons`).then(r => r.lessons);
+
+export const addLesson = (slug: string, lesson: string) =>
+  api<{ lesson: Lesson }>(`/workers/${slug}/lessons`, {
+    method: 'POST', body: JSON.stringify({ lesson }),
+  }).then(r => r.lesson);
+
+export const updateLesson = (id: number, patch: { lesson?: string; active?: boolean }) =>
+  api<{ lesson: Lesson }>(`/workers/lessons/${id}`, {
+    method: 'PATCH', body: JSON.stringify(patch),
+  }).then(r => r.lesson);
+
+export const deleteLesson = (id: number) =>
+  api<{ ok: boolean }>(`/workers/lessons/${id}`, { method: 'DELETE' });
+
+export const newConversation = (slug: string, title?: string) =>
+  api<{ conversation: WorkerConversation }>(`/workers/${slug}/conversations`, {
+    method: 'POST', body: JSON.stringify({ title }),
+  }).then(r => r.conversation);
+
+export const getConversation = (slug: string, id: number) =>
+  api<{
+    conversation: WorkerConversation | null;
+    messages: WorkerMessage[]; jobs: Job[]; media: MediaItem[]; reports: Report[];
+  }>(`/workers/${slug}/conversations/${id}`);
+
+/**
+ * Which models this conversation uses, overriding the employee's defaults.
+ * Only the keys you pass are touched — null on any of them means "follow her
+ * default" rather than "pick nothing".
+ */
+export const setConversationModels = (
+  slug: string,
+  id: number,
+  patch: { model?: string | null; phrasingModel?: string | null; imageModel?: string | null },
+) =>
+  api<{ conversation: WorkerConversation }>(`/workers/${slug}/conversations/${id}`, {
+    method: 'PATCH', body: JSON.stringify(patch),
+  }).then(r => r.conversation);
+
+/** Models a worker can be switched between, from the platform's own list. */
+export const WORKER_MODELS = [
+  { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6', about: 'Fast and sharp. The default.' },
+  { id: 'claude-opus-4-7',   label: 'Opus 4.7',   about: 'Best reasoning. Slower and dearer.' },
+];
+
+export const listReports = (conversationId?: number) =>
+  api<{ reports: Report[] }>(`/reports${conversationId ? `?conversationId=${conversationId}` : ''}`)
+    .then(r => r.reports);
+
+/** A report is a page you open, not JSON — this is the link to hand someone. */
+export const reportUrl = (id: number) => `${getBaseURL()}/api/hq/reports/${id}/view`;
+
+export const listJobs = (slug: string) =>
+  api<{ jobs: Job[] }>(`/workers/${slug}/jobs`).then(r => r.jobs);
+
+export const cancelJob = (jobId: number) =>
+  api<{ ok: boolean; stopping: boolean }>(`/workers/jobs/${jobId}/cancel`, { method: 'POST' });
+
+/**
+ * Send a message and watch the worker work.
+ *
+ * The stream is a WINDOW, not the work itself — jobs and media are written
+ * server-side as they happen, so losing this connection costs you the live
+ * view and nothing else. Reload and the job is still there.
+ */
+export async function sendToWorker(
+  slug: string,
+  conversationId: number,
+  message: string,
+  onEvent: (e: WorkerEvent) => void,
+): Promise<{ text: string; jobId: number | null; media: MediaItem[]; jobs: Job[] }> {
+  const res = await fetch(`${getBaseURL()}/api/hq/workers/${slug}/conversations/${conversationId}/message`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  });
+  if (!res.ok || !res.body) throw new Error(`Request failed (${res.status})`);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let result: { text: string; jobId: number | null; media: MediaItem[]; jobs: Job[] } | null = null;
+  let failure: string | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const frames = buffer.split('\n\n');
+    buffer = frames.pop() || '';
+    for (const frame of frames) {
+      const ev = frame.match(/^event: (.*)$/m)?.[1];
+      const data = frame.match(/^data: (.*)$/m)?.[1];
+      if (!ev || !data) continue;
+      let payload: unknown;
+      try { payload = JSON.parse(data); } catch { continue; }
+
+      if (ev === 'event') onEvent(payload as WorkerEvent);
+      else if (ev === 'done') result = payload as typeof result;
+      else if (ev === 'error') failure = (payload as { error: string }).error;
+    }
+  }
+
+  if (failure) throw new Error(failure);
+  return result ?? { text: '', jobId: null, media: [], jobs: [] };
+}
+
+// ─── Media library ───────────────────────────────────────────────────────────
+
+export const listMedia = (params: {
+  conversationId?: number; folderId?: number; jobId?: number; workerId?: number;
+} = {}) => {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => { if (v) qs.set(k, String(v)); });
+  const suffix = qs.toString();
+  return api<{ items: MediaItem[] }>(`/media${suffix ? `?${suffix}` : ''}`).then(r => r.items);
+};
+
+export const mediaByConversation = () =>
+  api<{ conversations: MediaConversationGroup[] }>('/media/by-conversation').then(r => r.conversations);
+
+export const listMediaFolders = () =>
+  api<{ folders: MediaFolder[] }>('/media/folders').then(r => r.folders);
+
+export const createMediaFolder = (name: string) =>
+  api<{ folder: MediaFolder }>('/media/folders', { method: 'POST', body: JSON.stringify({ name }) })
+    .then(r => r.folder);
+
+export const moveMedia = (mediaIds: number[], folderId: number | null) =>
+  api<{ ok: boolean; moved: number }>('/media/move', {
+    method: 'POST', body: JSON.stringify({ mediaIds, folderId }),
+  });
+
+export const deleteMedia = (id: number) =>
+  api<{ ok: boolean }>(`/media/${id}`, { method: 'DELETE' });

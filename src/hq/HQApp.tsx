@@ -18,11 +18,17 @@ import { LibraryScreen } from './screens/LibraryScreen';
 import { AtomScreen } from './screens/AtomScreen';
 import { IntegrationsScreen } from './screens/IntegrationsScreen';
 import { ActivityScreen } from './screens/ActivityScreen';
+import { TeamScreen } from './screens/TeamScreen';
+import { WorkerScreen } from './screens/WorkerScreen';
+import { MediaScreen } from './screens/MediaScreen';
+import { UsageScreen } from './screens/UsageScreen';
 import { AskProvider } from './ask/AskContext';
 import { AskPanel } from './ask/AskPanel';
-import { IconActivity, IconAsk, IconDrop, IconLibrary, IconMoon, IconPlug, IconSun } from './icons';
-import { getStatus, listRuns } from './services/hqApi';
-import type { HQStatus } from './types';
+import {
+  IconAsk, IconDrop, IconLibrary, IconMedia, IconMoon, IconPlug, IconSun, IconTeam,
+} from './icons';
+import { getStatus, listRuns, listWorkers } from './services/hqApi';
+import type { HQStatus, Worker } from './types';
 
 import './hq.css';
 import styles from './HQApp.module.css';
@@ -39,15 +45,30 @@ const NAV = [
   { to: 'ask',          Icon: IconAsk,     label: 'Ask',          hint: 'Ask anything about Lybi',            showCount: false, sub: false },
   { to: 'add',          Icon: IconDrop,    label: 'Add',          hint: 'Paste a link, file or note',         showCount: false, sub: false },
   { to: 'knowledge',    Icon: IconLibrary, label: 'Knowledge',    hint: 'Everything HQ has read',             showCount: true,  sub: false },
+  { to: 'team',         Icon: IconTeam,    label: 'Team',         hint: 'The employees who do work for you',  showCount: false, sub: false },
+  { to: 'media',        Icon: IconMedia,   label: 'Media',        hint: 'Everything the team has made',       showCount: false, sub: false },
   { to: 'integrations', Icon: IconPlug,    label: 'Integrations', hint: 'Notion, Drive — pick what HQ reads', showCount: false, sub: false },
-  // Sits under Integrations because it's where a run you started from there
-  // goes to live. It's a destination in its own right, not a footnote.
-  { to: 'activity',     Icon: IconActivity, label: 'Running & history', hint: 'What HQ is doing now, and everything it has done', showCount: false, sub: true },
 ];
+
+/**
+ * Entries that open. Both behave identically — same chevron, same click
+ * target, same indented children — because two things that expand should not
+ * need to be learned separately.
+ */
+const EXPANDABLE: Record<string, { people?: boolean; items?: { to: string; label: string; icon: string }[] }> = {
+  // Team lists the actual employees, plus what they cost to run.
+  team: { people: true, items: [{ to: 'usage', label: 'Spending', icon: '$' }] },
+  integrations: { items: [{ to: 'activity', label: 'Running & history', icon: '◍' }] },
+};
 
 export function HQApp() {
   const [status, setStatus] = useState<HQStatus | null>(null);
   const [running, setRunning] = useState(0);
+  // The team expands in the nav so you can go straight to a person rather than
+  // through a list. Open by default — with two employees, hiding them is worse
+  // than showing them.
+  const [people, setPeople] = useState<Worker[]>([]);
+  const [open, setOpen] = useState<Record<string, boolean>>({ team: true, integrations: true });
   const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem(THEME_KEY) as Theme) || 'light',
   );
@@ -61,15 +82,33 @@ export function HQApp() {
     refreshStatus();
   }, [refreshStatus]);
 
-  // A live badge in the nav is the only way to notice a run from another
-  // screen — runs outlive the page that started them.
+  /**
+   * A live badge in the nav is the only way to notice a run from another
+   * screen — runs outlive the page that started them.
+   *
+   * Deliberately slow, and paused while the tab is hidden. At 4s this polled
+   * ~15 times a minute from every open tab whether or not anything was
+   * running; the page that actually needs second-by-second detail (Activity)
+   * polls fast on its own, and only while a run is live.
+   */
   useEffect(() => {
-    const check = () => listRuns(5)
-      .then(rs => setRunning(rs.filter(r => r.status === 'running').length))
-      .catch(() => setRunning(0));
+    const check = () => {
+      if (document.hidden) return;
+      listRuns(5)
+        .then(rs => setRunning(rs.filter(r => r.status === 'running').length))
+        .catch(() => setRunning(0));
+    };
     check();
-    const timer = setInterval(check, 4000);
-    return () => clearInterval(timer);
+    const timer = setInterval(check, 20_000);
+    document.addEventListener('visibilitychange', check);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', check);
+    };
+  }, []);
+
+  useEffect(() => {
+    listWorkers().then(r => setPeople(r.workers)).catch(() => setPeople([]));
   }, []);
 
   useEffect(() => { localStorage.setItem(THEME_KEY, theme); }, [theme]);
@@ -85,22 +124,69 @@ export function HQApp() {
         </div>
 
         <nav className={styles.nav}>
-          {NAV.map(({ to, Icon, label, hint, showCount, sub }) => (
-            <NavLink
-              key={to}
-              to={to}
-              title={hint}
-              className={({ isActive }) =>
-                `${styles.navItem} ${sub ? styles.navSub : ''} ${isActive ? styles.navItemActive : ''}`}
-            >
-              <span className={styles.navIcon}><Icon /></span>
-              <span className={styles.navLabel}>{label}</span>
-              {to === 'activity' && running > 0 && (
-                <span className={styles.navLive} title={`${running} running`} />
-              )}
-              {showCount && status ? <span className={styles.navCount}>{status.totalAtoms}</span> : null}
-            </NavLink>
-          ))}
+          {NAV.flatMap(({ to, Icon, label, hint, showCount }) => {
+            const group = EXPANDABLE[to];
+            const items = group?.items || [];
+            const showsPeople = !!group?.people && people.length > 0;
+            const expandable = !!group && (showsPeople || items.length > 0);
+            const isOpen = open[to] !== false;
+
+            return [
+              <NavLink
+                key={to}
+                to={to}
+                title={hint}
+                className={({ isActive }) =>
+                  `${styles.navItem} ${expandable ? styles.navGroup : ''} ${isActive ? styles.navItemActive : ''}`}
+                // The whole row toggles, not just the chevron — a 12px target
+                // for something you open constantly is a nuisance. Navigation
+                // still happens; opening comes along with it.
+                onClick={() => expandable && setOpen(o => ({ ...o, [to]: !isOpen }))}
+              >
+                <span className={styles.navIcon}><Icon /></span>
+                <span className={styles.navLabel}>{label}</span>
+                {showCount && status ? <span className={styles.navCount}>{status.totalAtoms}</span> : null}
+                {expandable && (
+                  <span className={`${styles.navChevron} ${isOpen ? styles.navChevronOpen : ''}`}>▾</span>
+                )}
+              </NavLink>,
+
+              ...(expandable && isOpen ? [(
+                <div key={`${to}-kids`} className={styles.navChildren}>
+                  {showsPeople && people.map(p => (
+                    <NavLink
+                      key={p.slug}
+                      to={`team/${p.slug}`}
+                      title={`${p.name} — ${p.role_title}`}
+                      className={({ isActive }) =>
+                        `${styles.navItem} ${styles.navChild} ${isActive ? styles.navChildActive : ''}`}
+                    >
+                      <span className={styles.navIcon}>{p.avatar || '🙂'}</span>
+                      <span className={styles.navLabel}>{p.name}</span>
+                      {!!p.running_jobs && (
+                        <span className={styles.navWorking} title="working">working</span>
+                      )}
+                    </NavLink>
+                  ))}
+
+                  {items.map(item => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      className={({ isActive }) =>
+                        `${styles.navItem} ${styles.navChild} ${isActive ? styles.navChildActive : ''}`}
+                    >
+                      <span className={styles.navIcon}>{item.icon}</span>
+                      <span className={styles.navLabel}>{item.label}</span>
+                      {item.to === 'activity' && running > 0 && (
+                        <span className={styles.navLive} title={`${running} running`} />
+                      )}
+                    </NavLink>
+                  ))}
+                </div>
+              )] : []),
+            ];
+          })}
         </nav>
 
         <div className={styles.sidebarFoot}>
@@ -145,6 +231,10 @@ export function HQApp() {
           <Route path="knowledge/:id" element={<AtomScreen />} />
           <Route path="integrations" element={<IntegrationsScreen onChanged={refreshStatus} />} />
           <Route path="activity" element={<ActivityScreen />} />
+          <Route path="team" element={<TeamScreen />} />
+          <Route path="team/:slug" element={<WorkerScreen />} />
+          <Route path="media" element={<MediaScreen />} />
+          <Route path="usage" element={<UsageScreen />} />
 
           {/* Old names, kept so any bookmark or in-app link still lands. */}
           <Route path="drop" element={<Navigate to="../add" replace />} />
