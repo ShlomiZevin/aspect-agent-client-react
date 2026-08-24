@@ -73,7 +73,7 @@ export function FeedbackPage({ agentName, baseURL }: FeedbackPageProps) {
         const query = searchText.toLowerCase();
         const matchesText =
           fb.feedbackText.toLowerCase().includes(query) ||
-          fb.messageContent.toLowerCase().includes(query) ||
+          (fb.messageContent ?? '').toLowerCase().includes(query) ||
           fb.userMessage.toLowerCase().includes(query);
         if (!matchesText) return false;
       }

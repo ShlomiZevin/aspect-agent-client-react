@@ -16,6 +16,10 @@
 .sparkle { font-size: 20px; color: var(--ai-accent); flex-shrink: 0; }
 .input {
   flex: 1;
+  /* Without this the input's intrinsic min-width (its placeholder) refuses to
+     shrink, so on a phone the row overflowed and pushed Start-a-check off the
+     right edge of the page. */
+  min-width: 0;
   border: none;
   outline: none;
   background: transparent;
@@ -54,3 +58,18 @@
 .chip:hover { border-color: var(--ai-accent); }
 .chip:disabled { opacity: .5; cursor: default; }
 .chip:disabled:hover { border-color: #E2D6F5; }
+
+/* ── mobile ────────────────────────────────────────────────────────────────
+   The composer stacks: question on its own line, action full width beneath it.
+   Chips become one even column — as a wrapped flex row they came out ragged,
+   with a different width per line. */
+@media (max-width: 640px) {
+  .box { padding: 16px; border-radius: 14px; }
+  .inputRow { flex-wrap: wrap; gap: 10px; }
+  /* 16px is the threshold below which iOS Safari zooms the page on focus. */
+  .input { flex: 1 1 0; font-size: 16px; }
+  .startBtn { flex: 1 1 100%; padding: 12px 20px; }
+  .chipsBlock { margin-top: 14px; padding-top: 12px; }
+  .chips { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .chip { text-align: center; }
+}

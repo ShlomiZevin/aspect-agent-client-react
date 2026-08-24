@@ -8,6 +8,7 @@ import { useState } from 'react';
 import type { TrackedMetric, InsightSummary } from '../../../types/insights';
 import { MiniChart } from '../Insights/MiniChart';
 import { useLanguage } from '../../../context/LanguageContext';
+import { FeedbackTrigger } from '../../chat/GeneralFeedbackModal';
 import styles from './HomeRail.module.css';
 
 const EXPANDED_KEY_PREFIX = 'aspect_intel_rail_expanded_';
@@ -24,6 +25,9 @@ export function useRailExpanded(datasetId: string) {
 }
 
 interface Props {
+  /** Threaded through for the feedback modal — the Intelligence tree has no AgentProvider. */
+  agentName: string;
+  baseURL: string;
   expanded: boolean;
   onToggleExpanded: () => void;
   tracked: TrackedMetric[] | null;
@@ -34,7 +38,7 @@ interface Props {
   onOpenHistory: () => void;
 }
 
-export function HomeRail({ expanded, onToggleExpanded, tracked, recent, totalCount, onOpenInsight, onOpenAll, onOpenHistory }: Props) {
+export function HomeRail({ agentName, baseURL, expanded, onToggleExpanded, tracked, recent, totalCount, onOpenInsight, onOpenAll, onOpenHistory }: Props) {
   const { t } = useLanguage();
 
   if (!expanded) {
@@ -42,6 +46,12 @@ export function HomeRail({ expanded, onToggleExpanded, tracked, recent, totalCou
       <div className={styles.rail}>
         <button className={styles.railExpand} onClick={onToggleExpanded} title={t('intel.rail.expand')}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 5l7 7-7 7" /></svg>
+        </button>
+        {/* Mobile stand-in for the chevron above, which is hidden below 720px:
+            the panel is a drawer there, and a right-chevron reads as "widen
+            this column" rather than "open a panel". */}
+        <button className={styles.railDrawerBtn} onClick={onToggleExpanded} title={t('intel.rail.expand')} aria-label={t('intel.rail.expand')}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5.5h18M3 12h18M3 18.5h12" /></svg>
         </button>
         <div className={styles.railDivider} />
         <button className={styles.railBtn} onClick={onToggleExpanded} title={t('intel.rail.saved')}>
@@ -54,11 +64,21 @@ export function HomeRail({ expanded, onToggleExpanded, tracked, recent, totalCou
         <button className={styles.railBtn} onClick={onOpenAll} title={t('intel.rail.all')}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>
         </button>
+        {/* Pinned to the foot of the rail so it is reachable from Home in both
+            rail states without competing with the navigation above it. */}
+        <div className={styles.railFoot}>
+          <FeedbackTrigger agentName={agentName} baseURL={baseURL} variant="icon" className={styles.railBtn} />
+        </div>
       </div>
     );
   }
 
   return (
+    <>
+      {/* Below 720px the panel is a drawer over the page, so it needs something
+          to dismiss against. Rendered at every width but display:none on
+          desktop, which keeps the desktop tree and layout unchanged. */}
+      <div className={styles.scrim} onClick={onToggleExpanded} role="presentation" />
     <div className={styles.railExpanded}>
       <div className={styles.expHead}>
         <div className={styles.expTitle}>{t('intel.nav.reports').toUpperCase()}</div>
@@ -104,7 +124,16 @@ export function HomeRail({ expanded, onToggleExpanded, tracked, recent, totalCou
         </>
       )}
 
-      <button className={styles.expFooter} onClick={onOpenAll}>{t('intel.rail.allFooter')} ({totalCount}) →</button>
+      {/* Carries the same grid glyph as the collapsed rail's "all reports"
+          button. Without it this row's label started at the padding edge while
+          the feedback row below was indented by its icon, so the two never
+          lined up. */}
+      <button className={styles.expFooter} onClick={onOpenAll}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>
+        {t('intel.rail.allFooter')} ({totalCount}) →
+      </button>
+      <FeedbackTrigger agentName={agentName} baseURL={baseURL} className={styles.expFeedback} />
     </div>
+    </>
   );
 }

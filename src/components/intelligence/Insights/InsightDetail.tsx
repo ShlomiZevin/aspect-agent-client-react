@@ -112,6 +112,58 @@ export function InsightDetail({ datasetId, userId, insightId, onBack, onLoaded, 
         </div>
       </div>
 
+      {/* Caveats that must not depend on the model remembering to write them.
+          These are computed server-side (see investigation.service.js's PLAN
+          contract and period-coverage.service.js) and rendered unconditionally,
+          because each one changes what the numbers below actually mean:
+          a different subject, a narrower scope, or an unfinished period. They
+          sit ABOVE the finding — a caveat under the chart is read after the
+          reader has already believed the headline. */}
+      {insight.evidence?.substitution && (
+        <div className={`${styles.caveat} ${styles.caveatStrong}`} role="note">
+          <strong>{t('intel.detail.substitution')}</strong>{' '}
+          {t('intel.detail.substitutionBody')
+            .replace('{asked}', insight.evidence.substitution.asked)
+            .replace('{used}', insight.evidence.substitution.used)}
+          {insight.evidence.substitution.reason ? ` — ${insight.evidence.substitution.reason}` : ''}
+        </div>
+      )}
+      {insight.evidence?.scopeAdded && (
+        <div className={styles.caveat} role="note">
+          <strong>{t('intel.detail.scopeAdded')}</strong>{' '}
+          {t('intel.detail.scopeAddedBody').replace('{scope}', insight.evidence.scopeAdded.scope)}
+        </div>
+      )}
+      {/* The independent fact-check is still unsatisfied after the rewrites.
+          The query and its rows are real — only the write-up over-claims — so
+          the finding is downgraded rather than discarded (confidence is capped
+          server-side). But a low score alone is easy to miss, and the figure it
+          refers to is sitting right there in the headline, so the specific
+          objection is shown rather than left in the evidence payload. */}
+      {insight.evidence?.verification && insight.evidence.verification.verified === false && (
+        <div className={`${styles.caveat} ${styles.caveatStrong}`} role="note">
+          <strong>{t('intel.detail.factCheck')}</strong>{' '}
+          {t('intel.detail.factCheckBody')}
+          {insight.evidence.verification.issues?.length > 0 && (
+            <ul className={styles.caveatList}>
+              {insight.evidence.verification.issues.slice(0, 3).map((issue, i) => (
+                <li key={i}>{issue}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      {insight.evidence?.coverage?.partial && (
+        <div className={styles.caveat} role="note">
+          <strong>{t('intel.detail.partialPeriod')}</strong>{' '}
+          {t('intel.detail.partialPeriodBody')
+            .replace('{period}', insight.evidence.coverage.period)
+            .replace('{covered}', String(insight.evidence.coverage.daysCovered))
+            .replace('{expected}', String(insight.evidence.coverage.daysExpected))
+            .replace('{end}', insight.evidence.coverage.actualEnd)}
+        </div>
+      )}
+
       {/* The model chose 1-3 of these per question — not a fixed
           chart+scenarios template every time, see Blocks.tsx. */}
       {insight.blocks.map((block, i) => <BlockRenderer key={i} block={block} />)}

@@ -189,3 +189,29 @@
     flex-wrap: wrap;
   }
 }
+
+/* Pasted screenshots: constrained so one large image cannot blow out the card,
+   and clickable-looking so a reviewer knows to open it full size. */
+.feedbackRich img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 6px 0;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.feedbackRich p { margin: 0 0 6px; }
+.feedbackRich p:last-child { margin-bottom: 0; }
+.feedbackRich ul, .feedbackRich ol { margin: 4px 0; padding-inline-start: 20px; }
+
+.feedbackMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.feedbackMeta a { color: inherit; text-decoration: underline; overflow-wrap: anywhere; }

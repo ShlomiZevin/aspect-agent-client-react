@@ -231,3 +231,12 @@
   .nav { order: 3; width: 100%; overflow-x: auto; }
   .breadcrumbRow { padding: 8px 16px; }
 }
+
+/* Phones: the crumb trail wrapped to two or three lines and repeated what the
+   nav above already shows, so it is dropped. The row itself stays — it carries
+   the sync stamp and the data-scope button, which have nowhere else to live. */
+@media (max-width: 640px) {
+  .crumb, .crumbSep { display: none; }
+  .breadcrumbRow { justify-content: flex-end; gap: 8px; }
+  .syncInfo { font-size: 11px; }
+}
