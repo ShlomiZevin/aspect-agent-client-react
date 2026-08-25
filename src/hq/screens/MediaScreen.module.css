@@ -208,3 +208,48 @@
 }
 .folderNew:hover { border-style: dashed; box-shadow: none; }
 .folderNew .folderName { color: var(--mag); }
+
+/* ── Folders ─────────────────────────────────────────────────────────────── */
+/* Tiles, not rows. A folder is somewhere you go into; full-width bars read as
+   records to scan. Mirrors the builder homepage, in HQ's palette. */
+.folderGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(184px, 1fr));
+  gap: 12px;
+}
+
+.folderTile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  min-height: 122px;
+  background: linear-gradient(180deg, rgba(224, 25, 138, .05) 0%, var(--surface) 60%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 15px 15px 13px;
+  font: inherit; text-align: left; cursor: pointer;
+  transition: border-color .13s, transform .13s, box-shadow .13s;
+}
+.folderTile:hover {
+  border-color: var(--mag);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(10, 4, 32, .09);
+}
+
+.folderIcon { font-size: 25px; line-height: 1; margin-bottom: 5px; }
+.folderName {
+  width: 100%;
+  font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3;
+  /* Physical, not `start`: dir="auto" turns a Hebrew name RTL and the grid
+     would end up with captions on alternating sides. */
+  text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.folderFoot { margin-top: auto; padding-top: 8px; font-size: 11px; color: var(--text-3); }
+
+/* The create tile lives in the grid, so "make one" is where you already are. */
+.folderNew {
+  background: none;
+  border-style: dashed;
+  border-color: var(--border-2);
+}
+.folderNew .folderIcon { color: var(--mag); }
+.folderNew:hover { background: var(--surface); }

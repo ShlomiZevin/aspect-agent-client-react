@@ -237,6 +237,13 @@ export function WorkerScreen() {
     setLiveJob(data.jobs.find(j => j.status === 'running') || null);
   }, [slug]);
 
+  // What this HQ can do — which picture models exist, whether rendering is
+  // available. The header's pickers are built from it, so it loads with the
+  // screen rather than on demand.
+  useEffect(() => {
+    listWorkers().then(r => setCaps(r.capabilities)).catch(() => setCaps(null));
+  }, []);
+
   useEffect(() => {
     getWorker(slug)
       .then(async ({ worker: w, conversations: cs }) => {
@@ -365,7 +372,6 @@ export function WorkerScreen() {
     setPanel(which);
     if (worker) setDraftRole(worker.role_definition);
     listLessons(slug).then(setLessons).catch(() => setLessons([]));
-    listWorkers().then(r => setCaps(r.capabilities)).catch(() => setCaps(null));
   }
 
   async function toggleLesson(l: Lesson) {
