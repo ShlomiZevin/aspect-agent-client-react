@@ -119,7 +119,26 @@
 .iconBtnActive { background: var(--ai-accent-soft); border-color: #E2D6F5; color: #5B21B6; }
 .frame { flex: 1; border: none; width: 100%; }
 
-@media (max-width: 480px) {
-  .panel { right: 0; left: 0; width: auto !important; }
+/* Phones: the docked panel keeps whatever height it was dragged/defaulted to,
+   which on a small screen ran the conversation off the bottom with nothing to
+   scroll — the panel itself is overflow:hidden and only the iframe inside it
+   scrolls, so it has to be pinned to the viewport rather than sized. Anchoring
+   top AND bottom makes the height resolve to the viewport, and the iframe then
+   gets a real scroll area. Raised from 480px: most phones are wider than that
+   in CSS pixels and were missing this entirely. */
+@media (max-width: 640px) {
+  .panel {
+    top: 0;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    width: auto !important;
+    height: auto !important;
+    max-height: 100vh;
+    max-height: 100dvh;
+    border: none;
+    border-radius: 0;
+  }
+  .panelExpanded { border-top: none; }
   .resizeHandle { display: none; }
 }

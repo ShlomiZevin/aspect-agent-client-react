@@ -3,6 +3,12 @@
   display: flex;
   flex-direction: column;
   background: var(--ai-surface);
+  /* The panel around this is overflow:hidden, and this pane had no scroll of
+     its own — so once the quick-question tiles were taller than the panel (any
+     phone) the list was simply cut off with no way to reach the rest.
+     min-height:0 is required for a flex child to be allowed to scroll at all. */
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 30px 8px; }

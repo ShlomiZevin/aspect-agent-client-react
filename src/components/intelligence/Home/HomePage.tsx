@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { InvestigateHero } from './InvestigateHero';
 import { ReportProgressCard } from './ReportProgressCard';
 import { HomeRail, useRailExpanded } from './HomeRail';
+import { getAgentConfig } from '../../../agents/agentRegistry';
 import { useInsights, useTracked } from '../useInsightsFeed';
 import { useJobs, type Job } from '../jobs/JobsContext';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -80,6 +81,8 @@ export function HomePage({ datasetId, userId, onOpenInsight, onAskInChat, onSeeA
   // "See all my reports (N)" — must agree with the personal-only panel above
   // it, so it excludes shared suggestions too (recentInsights already does).
   const totalCount = recentInsights.length;
+  // Same lookup IntelligenceShell uses — this tree has no AgentProvider.
+  const railAgent = getAgentConfig(datasetId);
   const { expanded: railExpanded, toggle: toggleRail } = useRailExpanded(datasetId);
   // Recent Reports in the expanded rail (design turn 7c/9c) — 2 most recent
   // reports not already shown as Saved, same idea as "Last run reports"
@@ -92,6 +95,8 @@ export function HomePage({ datasetId, userId, onOpenInsight, onAskInChat, onSeeA
   return (
     <div className={styles.outer}>
       <HomeRail
+        agentName={railAgent?.agentName || ''}
+        baseURL={railAgent?.baseURL || ''}
         expanded={railExpanded}
         onToggleExpanded={toggleRail}
         tracked={tracked}

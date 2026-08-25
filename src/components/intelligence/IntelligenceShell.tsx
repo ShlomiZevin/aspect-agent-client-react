@@ -13,6 +13,8 @@ import { ReportsPage } from './Reports/ReportsPage';
 import { ReportHistoryPage } from './Reports/ReportHistoryPage';
 import { InsightDetail } from './Insights/InsightDetail';
 import { ChatWidget } from './ChatWidget';
+import { DataHealthTrigger } from '../chat/DataHealthModal';
+import { FeedbackTrigger } from '../chat/GeneralFeedbackModal';
 import { ensureIntelligenceFontsLoaded } from './fonts';
 import { JobsProvider, useJobs, type Job } from './jobs/JobsContext';
 import { JobBadges } from './jobs/JobBadges';
@@ -108,7 +110,8 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   // Kosta comparing this header directly against the real chat's own bar).
   // Every dataset's own agent config points at the same backend, so its
   // baseURL is used here rather than one specific dataset's config.
-  const baseURL = getAgentConfig(datasetId)?.baseURL;
+  const datasetAgent = getAgentConfig(datasetId);
+  const baseURL = datasetAgent?.baseURL;
   const [syncInfo, setSyncInfo] = useState<{ lastSync: string; dataFrom: string | null; dataThrough: string } | null>(null);
   useEffect(() => {
     if (!baseURL) return;
@@ -224,6 +227,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
             <button className={styles.iconBtn} onClick={() => setMode(m => m === 'dark' ? 'light' : 'dark')} title="Toggle theme" aria-label="Toggle theme">
               <Glyph name={mode === 'dark' ? 'sun' : 'moon'} />
             </button>
+            {datasetAgent && <FeedbackTrigger agentName={datasetAgent.agentName} baseURL={datasetAgent.baseURL} variant="icon" className={styles.iconBtn} />}
             <div className={styles.onlineDot}><span className={styles.dot} />{t('intel.online')}</div>
           </div>
         </div>
@@ -260,11 +264,18 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
             // word order under Hebrew, not English text force-isolated as an
             // LTR island, so no dir="ltr" override needed here.
             <span className={styles.syncInfo}>
+              {/* Last sync only. The date range moved into the data panel
+                  behind the icon — three values inline crowded the breadcrumb
+                  and repeated what one click already shows. */}
               {t('intel.lastSync')}: <b>{syncInfo.lastSync}</b>
-              {syncInfo.dataFrom && <> · {t('intel.dataFrom')}: <b>{syncInfo.dataFrom}</b></>}
-              {' '}· {t('intel.dataThrough')}: <b>{syncInfo.dataThrough}</b>
             </span>
           )}
+          {/* Deliberately OUTSIDE the syncInfo guard. The label above only
+              renders once /data-info returns, so tying the icon to it hid the
+              data panel in exactly the situation someone would open it — when
+              freshness information is missing. The panel reports the failure
+              itself instead. */}
+          {baseURL && <DataHealthTrigger baseURL={baseURL} schema={datasetId} />}
         </div>
       </header>
 
@@ -294,7 +305,12 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
 
       {!chatOpen && (
         <div className={styles.launcherWrap}>
-          <div className={styles.teaser}>{t('intel.launcher.teaser')} <span dir="ltr">— ⌘K</span></div>
+          {/* The ⌘K badge is gone. It was never wired to anything — there is no
+              key handler for it anywhere in the client — so it advertised a
+              shortcut that did nothing, and the glyph read as noise on the
+              Hebrew side. Removed rather than implemented: the launcher is one
+              click away and already labelled. */}
+          <div className={styles.teaser}>{t('intel.launcher.teaser')}</div>
           <button className={styles.orb} onClick={() => { setChatOpen(true); setChatEverOpened(true); }} aria-label="Open chat">✦</button>
         </div>
       )}

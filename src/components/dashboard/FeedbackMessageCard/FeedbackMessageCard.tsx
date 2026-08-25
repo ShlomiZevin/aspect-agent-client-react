@@ -18,9 +18,11 @@ export function FeedbackMessageCard({ feedback, onDelete }: FeedbackMessageCardP
     setIsDeleting(false);
   };
 
-  const truncatedMessage = feedback.messageContent.length > 200 && !expanded
-    ? feedback.messageContent.slice(0, 200) + '...'
-    : feedback.messageContent;
+  // Null for general feedback, which has no reply behind it.
+  const messageContent = feedback.messageContent ?? '';
+  const truncatedMessage = messageContent.length > 200 && !expanded
+    ? messageContent.slice(0, 200) + '...'
+    : messageContent;
 
   // Build conversation URL using agent's URL slug from database
   const conversationUrl = feedback.agentUrlSlug
@@ -77,14 +79,19 @@ export function FeedbackMessageCard({ feedback, onDelete }: FeedbackMessageCardP
         </div>
       </div>
 
+      {/* General feedback has no conversation behind it, so the transcript
+          blocks are skipped entirely rather than rendered empty. */}
+      {feedback.source !== 'general' && (
       <div className={styles.userMessage}>
         <span className={styles.roleLabel}>User:</span> {feedback.userMessage}
       </div>
+      )}
 
+      {feedback.source !== 'general' && (
       <div className={styles.assistantMessage}>
         <span className={styles.roleLabel}>Assistant:</span>{' '}
         {truncatedMessage}
-        {feedback.messageContent.length > 200 && (
+        {(feedback.messageContent?.length ?? 0) > 200 && (
           <button
             className={styles.expandButton}
             onClick={() => setExpanded(!expanded)}
@@ -94,10 +101,35 @@ export function FeedbackMessageCard({ feedback, onDelete }: FeedbackMessageCardP
           </button>
         )}
       </div>
+      )}
 
       <div className={styles.feedbackSection}>
-        <div className={styles.feedbackLabel}>Feedback</div>
-        <div className={styles.feedbackText}>{feedback.feedbackText}</div>
+        <div className={styles.feedbackLabel}>
+          {feedback.source === 'general' ? 'Feedback (sent from the app)' : 'Feedback'}
+        </div>
+        {/* Rows written since screenshots were allowed contain HTML; older rows
+            are plain text and must keep rendering as text, or their content
+            shows up mangled. The HTML was sanitised server-side on write (see
+            services/sanitize-feedback-html.js) — this is not the trust
+            boundary, and nothing unsanitised should ever reach here. */}
+        {feedback.isHtml ? (
+          <div
+            className={`${styles.feedbackText} ${styles.feedbackRich}`}
+            dangerouslySetInnerHTML={{ __html: feedback.feedbackText }}
+          />
+        ) : (
+          <div className={styles.feedbackText}>{feedback.feedbackText}</div>
+        )}
+        {(feedback.contact || feedback.contextUrl) && (
+          <div className={styles.feedbackMeta}>
+            {feedback.contact && <span>{feedback.contact}</span>}
+            {feedback.contextUrl && (
+              <a href={feedback.contextUrl} target="_blank" rel="noopener noreferrer">
+                {feedback.contextUrl}
+              </a>
+            )}
+          </div>
+        )}
       </div>
 
       {feedback.tags.length > 0 && (

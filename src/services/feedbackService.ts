@@ -161,3 +161,31 @@ export async function getFeedbackStats(
   );
   return data.stats;
 }
+
+// ─── General Feedback (not attached to a message) ────────────────────
+
+export interface GeneralFeedbackInput {
+  /** HTML from RichTextEditor — may contain inline base64 screenshots. Sanitised server-side. */
+  feedbackText: string;
+  tags?: FeedbackTag[];
+  contact?: string;
+  contextUrl?: string;
+}
+
+/**
+ * Feedback volunteered from the sidebar rather than about one reply. Stored in
+ * the same table and surfaced in the same reviewer inbox as message feedback,
+ * so there is one place to look rather than two.
+ */
+export async function createGeneralFeedback(
+  agentName: string,
+  input: GeneralFeedbackInput,
+  baseURL: string
+): Promise<FeedbackMessage> {
+  const data = await apiRequest<{ feedback: FeedbackMessage }>(
+    `/api/agents/${encodeURIComponent(agentName)}/feedback/general`,
+    { method: 'POST', body: JSON.stringify(input) },
+    baseURL
+  );
+  return data.feedback;
+}

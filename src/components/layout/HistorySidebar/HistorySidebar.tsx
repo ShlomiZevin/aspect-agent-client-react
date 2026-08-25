@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChatContext } from '../../../context';
+import { FeedbackTrigger } from '../../chat/GeneralFeedbackModal';
 import { useAgentConfig } from '../../../context/AgentContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { ConfirmDialog } from '../../common';
@@ -343,6 +344,10 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
             })
           )}
         </div>
+
+        {/* Always reachable, not only after a reply the user disliked — the
+            point is that feedback can be left at any moment. */}
+        <FeedbackTrigger agentName={config.agentName} baseURL={config.baseURL} />
       </aside>
 
       <ConfirmDialog

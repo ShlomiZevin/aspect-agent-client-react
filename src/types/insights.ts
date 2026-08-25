@@ -116,6 +116,31 @@ export interface InsightDetail extends Omit<InsightSummary, 'chartPreview'> {
     /** The SQL generator's own confidence that this dataset can answer the question. */
     sqlConfidence?: 'high' | 'medium' | 'low';
     verification?: { verified: boolean; issues: string[] };
+    /**
+     * Set when the planner answered about a DIFFERENT entity than the prompt
+     * asked about (e.g. "customers" -> sellers). Structural rather than prose
+     * because no numeric check can catch a rewritten question — the arithmetic
+     * is right and the subject is wrong — and a caveat the model may omit is
+     * not a safeguard. Render it above the finding, never below.
+     */
+    substitution?: { asked: string; used: string; reason?: string } | null;
+    /** Set when a period was imposed on a question that asked for a total. */
+    scopeAdded?: { scope: string; reason?: string } | null;
+    /**
+     * Set when the newest period in the answer is incomplete — these datasets
+     * are periodic exports, so the trailing month is usually a few days long
+     * and is not comparable to a full one.
+     */
+    coverage?: {
+      partial: boolean;
+      period: string;
+      expectedEnd: string;
+      actualEnd: string;
+      daysCovered: number;
+      daysExpected: number;
+      pctCovered: number;
+      note: string;
+    } | null;
     /** How the reported numbers were actually computed — see result-digest.service.js. */
     aggregation?: {
       rowCount: number;
