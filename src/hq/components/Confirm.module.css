@@ -1,0 +1,30 @@
+.wrap {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(10, 4, 32, .45); backdrop-filter: blur(3px);
+  display: grid; place-items: center; padding: 20px;
+  animation: hqFade .16s ease;
+}
+.box {
+  width: 100%; max-width: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 60px rgba(10, 4, 32, .28);
+  padding: 22px 24px 20px;
+}
+.title { font-size: 16.5px; font-weight: 800; color: var(--text); letter-spacing: -.2px; }
+.body { margin-top: 8px; font-size: 13.5px; line-height: 1.6; color: var(--text-2); }
+
+.actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 20px; }
+
+/* Solid red rather than the brand gradient: this is the one button in HQ that
+   destroys something, and it should not look like every other primary action. */
+.danger {
+  background: var(--danger); color: #fff;
+  border: 0; border-radius: 100px;
+  padding: 9px 22px;
+  font: inherit; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: opacity .13s;
+}
+.danger:hover:not(:disabled) { opacity: .9; }
+.danger:disabled { background: var(--surface-3); color: var(--text-3); cursor: default; }

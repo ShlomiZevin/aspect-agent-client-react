@@ -142,3 +142,16 @@
 .chipOpen:hover .chipName { color: var(--mag); }
 .metaLink { color: inherit; text-decoration: none; }
 .metaLink:hover { color: var(--mag); text-decoration: underline; }
+
+/* Just arrived. One pulse of the brand colour, then it settles — a file moving
+   from the composer to the rail crosses the screen while you are looking at the
+   composer, so its arrival has to announce itself.
+
+   Applied to the specific row, never to the container: highlighting the whole
+   list marks every file already there as new. */
+.landed { animation: hqLandFile 2s ease-out; }
+@keyframes hqLandFile {
+  0%   { background: rgba(224, 25, 138, .24); border-color: var(--mag); transform: translateX(8px); }
+  16%  { background: rgba(224, 25, 138, .24); border-color: var(--mag); transform: none; }
+  100% { background: var(--surface-2); border-color: var(--border); transform: none; }
+}

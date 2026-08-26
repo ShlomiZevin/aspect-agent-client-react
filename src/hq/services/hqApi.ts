@@ -377,6 +377,11 @@ export const newConversation = (slug: string, title?: string) =>
     method: 'POST', body: JSON.stringify({ title }),
   }).then(r => r.conversation);
 
+/** Removes the conversation and everything it produced — jobs, media, reports. */
+export const deleteConversation = (slug: string, id: number) =>
+  api<{ ok: boolean; files: number; blobs: number }>(
+    `/workers/${slug}/conversations/${id}`, { method: 'DELETE' });
+
 export const getConversation = (slug: string, id: number) =>
   api<{
     conversation: WorkerConversation | null;

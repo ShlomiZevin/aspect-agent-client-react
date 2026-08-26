@@ -16,6 +16,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import { Confirm } from '../components/Confirm';
 import { FileDrop } from '../components/FileDrop';
 import type { FileDropHandle } from '../components/FileDrop';
 import { Picker } from '../components/Picker';
@@ -23,7 +24,7 @@ import type { PickerOption } from '../components/Picker';
 import { IconBack, IconClip, IconEdit, IconExpand, IconSend } from '../icons';
 import {
   WORKER_MODELS, addLesson, cancelJob, deleteLesson, getConversation, getWorker, listLessons,
-  listWorkerFiles, listWorkers, newConversation, reportUrl, sendToWorker, setConversationModels,
+  deleteConversation, listWorkerFiles, listWorkers, newConversation, reportUrl, sendToWorker, setConversationModels,
   updateLesson, updateWorker,
 } from '../services/hqApi';
 import type {
@@ -187,8 +188,21 @@ export function WorkerScreen() {
    * where it lives. This is the only place you can read it whole.
    */
   const [openJob, setOpenJob] = useState<Job | null>(null);
+  /** The conversation awaiting a yes before it is destroyed. */
+  const [deleting, setDeleting] = useState<WorkerConversation | null>(null);
+  const [deletingBusy, setDeletingBusy] = useState(false);
+  /** Files that have just moved from the composer to the rail. */
+  const [justLanded, setJustLanded] = useState<number[]>([]);
 
   const bottom = useRef<HTMLDivElement>(null);
+  /**
+   * The bubble being built for the turn in flight. A turn can emit several text
+   * blocks and they all belong to one message; without this each became its own
+   * bubble and a trailing emoji appeared as a message of its own.
+   */
+  const optimisticId = useRef<number | null>(null);
+  /** Set when a turn ends, so the next text replaces rather than extends. */
+  const newTurn = useRef(false);
 
   /**
    * The three option lists. Built from the server's own registries so a model
@@ -326,10 +340,20 @@ export function WorkerScreen() {
    * unaffected.
    */
   useEffect(() => {
-    if (busy || liveJob?.status !== 'running' || !conversationId) return;
+    if (busy || !conversationId) return;
+
+    // A running job is the obvious case. The other one is a plain question:
+    // it creates no job row, so nothing here knew a reply was coming and a
+    // reload mid-answer showed a thread that stayed empty until you refreshed
+    // by hand. An unanswered user message is the evidence — the server writes
+    // the assistant row when it is done, so the wait ends by itself.
+    const jobRunning = liveJob?.status === 'running';
+    const awaitingReply = messages.length > 0 && messages[messages.length - 1].role === 'user';
+    if (!jobRunning && !awaitingReply) return;
+
     const timer = setInterval(() => { void loadConversation(conversationId); }, 2500);
     return () => clearInterval(timer);
-  }, [busy, liveJob?.status, conversationId, loadConversation]);
+  }, [busy, liveJob?.status, conversationId, loadConversation, messages]);
 
   function note(line: string) {
     setTrace(prev => {
@@ -374,10 +398,54 @@ export function WorkerScreen() {
     // Every tool has returned and she is working out what to say. Without this
     // the longest silence in an exchange — after the last tool, before the
     // reply — showed nothing at all.
+    // A turn just ended; whatever is said next belongs to the next one.
     if (e.type === 'composing') {
+      newTurn.current = true;
       setActivity(e.after === 'finish_job' ? 'Writing the answer' : 'Working out what to say');
     }
-    if (e.type === 'text') setActivity(null);
+    // Show the answer the moment it arrives.
+    //
+    // Without this the thread stayed blank between "she is thinking" and the
+    // stream closing — a visible gap right where you are watching hardest.
+    //
+    // Mirrors exactly what the server keeps, so the bubble does not change
+    // under you when the real row arrives:
+    //   blocks within one turn  → joined (a sentence plus a trailing emoji is
+    //                             one utterance; keeping only the last is how a
+    //                             message reading just "😊" got saved)
+    //   a later turn            → replaces the earlier one, because mid-run
+    //                             narration is not the answer
+    // Divergence here would show as a flicker on every reply.
+    if (e.type === 'text' && e.text) {
+      const text = e.text;
+      setMessages(prev => {
+        const id = optimisticId.current;
+        const at = id !== null ? prev.findIndex(m => m.id === id) : -1;
+
+        if (at >= 0) {
+          const next = [...prev];
+          const existing = next[at].content;
+          if (existing === text || existing.endsWith(text)) return prev;
+          next[at] = {
+            ...next[at],
+            content: newTurn.current ? text : `${existing}
+
+${text}`.trim(),
+          };
+          newTurn.current = false;
+          return next;
+        }
+
+        const fresh = -Date.now();
+        optimisticId.current = fresh;
+        newTurn.current = false;
+        return [...prev, {
+          id: fresh, role: 'assistant', content: text,
+          metadata: {}, created_at: new Date().toISOString(),
+        }];
+      });
+      setActivity(null);
+    }
   }
 
   async function send() {
@@ -387,7 +455,15 @@ export function WorkerScreen() {
     setInput('');
     // Handed over: it now belongs to the conversation rather than to the
     // message you are composing, so it moves out of the composer.
+    // The chips are about to move to the rail. Mark them so the arrival is
+    // visible — a file silently appearing in a column you are not looking at is
+    // indistinguishable from nothing happening.
+    setJustLanded(pending.map(f => f.id));
+    window.setTimeout(() => setJustLanded([]), 2200);
+
     setPending([]);
+    optimisticId.current = null;
+    newTurn.current = false;
     setBusy(true);
     setError(null);
     setTrace([]);
@@ -411,6 +487,7 @@ export function WorkerScreen() {
       setBusy(false);
       setActivity(null);
       setTrace([]);
+      optimisticId.current = null;
     }
   }
 
@@ -491,14 +568,27 @@ export function WorkerScreen() {
 
         <div className={styles.convList}>
           {conversations.map(c => (
-            <button
+            <div
               key={c.id}
               className={`${styles.conv} ${c.id === conversationId ? styles.convOn : ''}`}
-              onClick={() => { setConversationId(c.id); loadConversation(c.id); }}
             >
-              <span className={styles.convTitle} dir="auto">{c.title}</span>
+              <button
+                className={styles.convOpen}
+                onClick={() => { setConversationId(c.id); loadConversation(c.id); }}
+              >
+                <span className={styles.convTitle} dir="auto">{c.title}</span>
+              </button>
               {!!c.media_count && <span className={styles.convCount}>{c.media_count} 🖼</span>}
-            </button>
+              {/* On hover only: a delete on every row of a list you navigate
+                  with is a thing to hit by accident. */}
+              <button
+                className={styles.convDelete}
+                title="Delete this conversation"
+                onClick={e => { e.stopPropagation(); setDeleting(c); }}
+              >
+                ✕
+              </button>
+            </div>
           ))}
         </div>
 
@@ -638,7 +728,11 @@ export function WorkerScreen() {
             );
           })}
 
-          {(activity || trace.length > 0) && (
+          {/* `busy` is in the condition deliberately: while a turn is in flight
+              there must ALWAYS be something on screen. Keying only off activity
+              left silent windows wherever a state cleared a fraction before the
+              next one was set. */}
+          {(busy || activity || trace.length > 0) && (
             <div className={`${styles.thinking} ${styles.thinkingLive}`}>
               <div className={styles.thinkingBody}>
                 {trace.filter(line => line !== activity).map((line, i) => (
@@ -646,10 +740,10 @@ export function WorkerScreen() {
                     <span className={styles.traceMark}>✓</span> {line}
                   </div>
                 ))}
-                {activity && (
+                {(activity || busy) && (
                   <div className={styles.traceLive}>
                     <span className="hqDots"><i /><i /><i /></span>
-                    {activity}
+                    {activity || `${worker.name} is working`}
                     {liveJob && liveJob.status === 'running' && (
                       <span className={styles.traceJob}>
                         · {(liveJob.steps || []).filter(st => st.status === 'done').length}
@@ -813,6 +907,12 @@ export function WorkerScreen() {
                         <span className={styles.stepText} dir="auto">
                           {st.title}
                           {st.detail && <span className={styles.stepDetail}>{st.detail}</span>}
+                          {/* What she is doing INSIDE the live step. Attached to
+                              the step rather than floating above the card, so
+                              open and collapsed say the same thing. */}
+                          {liveStep && st.n === liveStep.n && activity && activity !== st.title && (
+                            <span className={styles.stepPhase}>{activity}</span>
+                          )}
                         </span>
                       </li>
                     ))}
@@ -900,6 +1000,7 @@ export function WorkerScreen() {
                 onChange={next => setConvFiles([...pending, ...next])}
                 conversationId={conversationId}
                 compact
+                highlight={justLanded}
               />
             </div>
           </>
@@ -917,6 +1018,39 @@ export function WorkerScreen() {
           </>
         )}
       </aside>
+
+      {deleting && (
+        <Confirm
+          title={`Delete “${deleting.title}”?`}
+          body="Everything it produced goes with it — the messages, the jobs, the images and reports, and any file you attached to it. This cannot be undone."
+          confirmLabel="Delete conversation"
+          busy={deletingBusy}
+          onCancel={() => setDeleting(null)}
+          onConfirm={async () => {
+            const target = deleting;
+            setDeletingBusy(true);
+            try {
+              await deleteConversation(slug, target.id);
+              const left = conversations.filter(c => c.id !== target.id);
+              setConversations(left);
+              setDeleting(null);
+              // Deleting the one you are reading has to land somewhere: the next
+              // conversation, or a fresh one if that was the last.
+              if (target.id === conversationId) {
+                const next = left[0] || await newConversation(slug);
+                if (!left[0]) setConversations([next]);
+                setConversationId(next.id);
+                await loadConversation(next.id);
+              }
+            } catch (err) {
+              setError(err instanceof Error ? err.message : 'Could not delete that');
+              setDeleting(null);
+            } finally {
+              setDeletingBusy(false);
+            }
+          }}
+        />
+      )}
 
       {/* The brief at a readable width. Everything in the rail is compressed to
           300px; this is where you actually read what was asked and what she

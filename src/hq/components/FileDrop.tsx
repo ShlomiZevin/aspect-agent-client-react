@@ -34,6 +34,12 @@ interface Props {
   compact?: boolean;
   /** Told to the parent so the paperclip can show progress on itself. */
   onBusyChange?: (busy: boolean) => void;
+  /**
+   * Ids to flash. Per file rather than per container: a highlight applied to the
+   * whole list marks everything already there as new, which says the opposite of
+   * what it is for.
+   */
+  highlight?: number[];
 }
 
 export interface FileDropHandle {
@@ -52,6 +58,7 @@ function icon(file: WorkerFile) {
 
 export const FileDrop = forwardRef<FileDropHandle, Props>(function FileDrop({
   slug, caps, files, onChange, conversationId = null, compact = false, onBusyChange,
+  highlight = [],
 }, ref) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -124,7 +131,10 @@ export const FileDrop = forwardRef<FileDropHandle, Props>(function FileDrop({
         {files.length > 0 && (
           <ul className={styles.chips}>
             {files.map(f => (
-              <li key={f.id} className={styles.chip}>
+              <li
+                key={f.id}
+                className={`${styles.chip} ${highlight.includes(f.id) ? styles.landed : ''}`}
+              >
                 <a
                   className={styles.chipOpen}
                   href={workerFileUrl(f.id)}
@@ -153,7 +163,10 @@ export const FileDrop = forwardRef<FileDropHandle, Props>(function FileDrop({
       {files.length > 0 && (
         <ul className={styles.list}>
           {files.map(f => (
-            <li key={f.id} className={`${styles.file} ${f.active ? '' : styles.fileOff}`}>
+            <li
+              key={f.id}
+              className={`${styles.file} ${f.active ? '' : styles.fileOff} ${highlight.includes(f.id) ? styles.landed : ''}`}
+            >
               <span className={styles.icon}>{icon(f)}</span>
 
               <span className={styles.body}>
