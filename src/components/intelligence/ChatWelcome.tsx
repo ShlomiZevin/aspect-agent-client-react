@@ -71,7 +71,7 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
           const iconKey = KEY_TO_ICON[i] || 'revenue';
           return (
             <button key={i} className={styles.tile} onClick={() => onSend(question)}>
-              <svg className={styles.tileIcon} width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg className={styles.tileIcon} width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 {ICONS[iconKey]}
               </svg>
               <span className={styles.tileLabel}>{toSentenceCase(label)}</span>

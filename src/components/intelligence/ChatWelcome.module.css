@@ -22,7 +22,7 @@
   flex-direction: column;
 }
 
-.hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 30px 8px; }
+.hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 24px 30px 6px; }
 
 /* Constrained heights (docked widget is ~620px; the compact hero keeps the
    quick questions AND the pinned composer comfortably on screen). */
@@ -35,22 +35,22 @@
   .tileLabel { font-size: 11.5px; }
 }
 .mark {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   background: var(--ai-grad-mark, var(--ai-grad));
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 19px;
   box-shadow: 0 10px 26px rgba(139, 92, 246, .35);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
-.title { font: 700 21px var(--ai-font-head); color: var(--ai-text); }
+.title { font: 700 20px var(--ai-font-head); color: var(--ai-text); }
 .subtitle { font-size: 13px; color: var(--ai-text-mute); margin-top: 8px; max-width: 380px; }
 
-.questionsLabel { font: 700 11px var(--ai-font-head); letter-spacing: .08em; color: var(--ai-text-mute); text-align: center; margin: 26px 0 14px; }
+.questionsLabel { font: 700 11px var(--ai-font-head); letter-spacing: .08em; color: var(--ai-text-mute); text-align: center; margin: 18px 0 12px; }
 
 .grid {
   display: grid;
@@ -62,8 +62,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 16px 10px;
+  gap: 7px;
+  padding: 12px 10px;
   border-radius: 12px;
   border: 1px solid var(--ai-border);
   background: var(--ai-shell-bg, var(--ai-accent-soft));
