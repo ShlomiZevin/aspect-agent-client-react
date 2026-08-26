@@ -77,7 +77,12 @@
 .editorWrap {
   border: 1px solid var(--ai-border, var(--border));
   border-radius: var(--radius-sm);
+  /* The editor manages its own 80–200px internal scroll (expanded mode is
+     deliberately NOT used here — its min-height:300px / max-height:none blew
+     the modal past the viewport and pushed the buttons off-screen,
+     2026-08-26 review). Long prefills wrap instead of scrolling sideways. */
   overflow: hidden;
+  overflow-wrap: anywhere;
   background: var(--bg-input, var(--ai-surface, var(--surface)));
 }
 
@@ -138,28 +143,33 @@
 .sent { margin-inline-end: auto; font-size: 12px; color: var(--success, #10b981); font-weight: 500; }
 
 .cancel {
-  padding: 7px 14px;
+  padding: 10px 18px;
   border: 1px solid var(--ai-border, var(--border));
-  border-radius: var(--radius-sm);
+  border-radius: 11px;
   background: none;
   color: var(--ai-text-mute, var(--text-secondary));
-  font-size: 13px;
-  cursor: pointer;
-}
-.cancel:hover { background: var(--ai-shell-bg, var(--bg-hover, rgba(0, 0, 0, 0.05))); color: var(--ai-text, var(--text-primary)); }
-
-.submit {
-  padding: 7px 16px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--ai-accent, var(--primary-color, #2563eb));
-  color: var(--primary-contrast, #fff);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
 }
-.submit:hover:not(:disabled) { filter: brightness(1.06); }
-.submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.cancel:hover { background: var(--ai-shell-bg, var(--bg-hover, rgba(0, 0, 0, 0.05))); color: var(--ai-text, var(--text-primary)); }
+
+/* Same treatment as the app's primary buttons (the --ai-grad gradient the
+   Intelligence CTAs use; plain accent as the fallback outside that portal) —
+   the flat dark rectangle it replaced read as unfinished (2026-08-26 review). */
+.submit {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 11px;
+  background: var(--ai-grad, linear-gradient(135deg, var(--primary-color, #2563eb), var(--ai-accent, #1d4ed8)));
+  color: var(--primary-contrast, #fff);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.25);
+}
+.submit:hover:not(:disabled) { filter: brightness(1.07); }
+.submit:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 .submit:focus-visible, .cancel:focus-visible { outline: 2px solid var(--ai-accent, var(--primary-color, #2563eb)); outline-offset: 2px; }
 
 /* ── the sidebar trigger ───────────────────────────────────────────────── */

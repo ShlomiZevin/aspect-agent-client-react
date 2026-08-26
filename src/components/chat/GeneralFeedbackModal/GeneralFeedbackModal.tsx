@@ -140,7 +140,6 @@ export function GeneralFeedbackModal({ agentName, baseURL, onClose, mode = 'gene
                 value={text}
                 onChange={setText}
                 placeholder={t('feedback.general.placeholder')}
-                expanded
               />
             </div>
             <span className={styles.hint}>{t('feedback.general.pasteHint')}</span>
