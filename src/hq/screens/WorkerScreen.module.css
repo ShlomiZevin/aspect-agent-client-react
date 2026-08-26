@@ -93,9 +93,15 @@
 .input {
   flex: 1; min-width: 0; resize: none; max-height: 180px;
   background: none; border: 0;
-  padding: 7px 4px;
+  /* Height is arithmetic, not luck: 20px line + 7px padding each side = 34px,
+     exactly the button diameter, so one line sits centred against them.
+     `display: block` kills the inline-baseline gap a textarea otherwise adds. */
+  display: block;
+  line-height: 20px;
+  padding: 7px 6px;
+  min-height: 34px;
   font: inherit; font-size: 14.5px; color: var(--text);
-  outline: 0; line-height: 1.5;
+  outline: 0;
 }
 
 /* ── Work ────────────────────────────────────────────────────────────────── */
@@ -135,10 +141,15 @@
 
 .steps { list-style: none; display: flex; flex-direction: column; gap: 7px; }
 .step { display: flex; gap: 9px; font-size: 12.5px; line-height: 1.5; color: var(--text-3); }
-.stepMark { width: 14px; flex-shrink: 0; text-align: center; }
+/* Wide enough for the three bouncing dots that mark the live step — a single
+   pulsing character was too quiet to read as "happening now". */
+.stepMark {
+  width: 22px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
 .stepText { min-width: 0; }
 .step_running { color: var(--text); font-weight: 600; }
-.step_running .stepMark { color: var(--accent); animation: hqPulse 1.2s ease-in-out infinite; }
+.step_running .stepMark { color: var(--accent); }
 .step_done { color: var(--text-2); }
 .step_done .stepMark { color: var(--ok); }
 .step_failed { color: var(--danger); }
@@ -583,12 +594,12 @@
   background: var(--surface);
   border: 1px solid var(--border-2);
   border-radius: 20px;
-  padding: 7px 7px 7px 8px;
+  padding: 6px;
   transition: border-color .14s;
 }
 .composerBody:focus-within { border-color: var(--mag); }
 
-.composerRow { display: flex; align-items: center; gap: 6px; }
+.composerRow { display: flex; align-items: flex-end; gap: 4px; }
 
 /* Both buttons are the same circle on the same row, so nothing sits a few
    pixels proud of anything else. */
@@ -601,10 +612,103 @@
   transition: background .13s, color .13s, opacity .13s;
 }
 .clip { background: none; color: var(--text-3); }
-.clip:hover { background: var(--surface-3); color: var(--mag); }
+.clip:hover:not(:disabled) { background: var(--surface-3); color: var(--mag); }
+.clip:disabled { cursor: default; }
 .clip svg { width: 17px; height: 17px; }
+
+/* Uploading shows on the button you pressed. Putting "Reading it…" inside the
+   composer split the field into two lines and made the input look broken. */
+.clipSpin {
+  width: 14px; height: 14px;
+  border: 2px solid var(--border-2);
+  border-top-color: var(--mag);
+  border-radius: 100px;
+  animation: hqSpin .7s linear infinite;
+}
 
 .send { background: var(--grad); color: #fff; }
 .send:hover:not(:disabled) { opacity: .9; }
 .send:disabled { background: var(--surface-3); color: var(--text-3); cursor: default; }
 .send svg { width: 15px; height: 15px; }
+
+/* ── Reading a job whole ─────────────────────────────────────────────────── */
+/* Appears on hover so the collapsed row stays clean, but keeps its space so
+   nothing shifts under the cursor. */
+.jobExpand {
+  flex-shrink: 0;
+  display: grid; place-items: center;
+  width: 20px; height: 20px; border-radius: var(--radius-sm);
+  color: var(--text-3);
+  opacity: 0; transition: opacity .12s, background .12s, color .12s;
+}
+.job:hover .jobExpand { opacity: 1; }
+.jobExpand:hover { background: var(--surface-3); color: var(--mag); }
+.jobExpand svg { width: 13px; height: 13px; }
+
+.jobModal {
+  width: min(760px, 100%);
+  /* Fixed, so switching between a one-step job and a ten-step one does not
+     resize the dialog under the cursor. */
+  height: min(680px, 88vh);
+  display: flex; flex-direction: column;
+}
+.jobModalHead {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 11px;
+  padding-bottom: 14px; margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.jobModalTitle {
+  min-width: 0; flex: 1;
+  font-size: 18px; font-weight: 800; color: var(--text); line-height: 1.35;
+  text-align: left;
+}
+
+.jobModalBody { flex: 1; overflow-y: auto; padding: 16px 2px; }
+.jobSection { margin-bottom: 26px; }
+.jobSection > .hqEyebrow { display: block; margin-bottom: 9px; }
+
+/* The brief is prose that was typed, so it keeps its own line breaks. */
+.jobBrief {
+  font-size: 14.5px; line-height: 1.75; color: var(--text);
+  white-space: pre-wrap; text-align: left;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 15px 17px;
+}
+
+.jobPlan { list-style: none; display: flex; flex-direction: column; gap: 11px; }
+.jobPlanStep { display: flex; gap: 11px; font-size: 14px; line-height: 1.6; }
+.jobPlanText { min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.jobPlanTitle { color: var(--text); font-weight: 600; }
+.jobPlanDetail { font-size: 12.5px; color: var(--text-3); line-height: 1.55; }
+
+/* The conversation's own attachments, in the rail. Stacked rather than in a
+   row: the rail is 300px and a filename needs the width. */
+.attached :global(ul) { flex-direction: column; }
+.attached li { max-width: 100%; }
+
+/* Smaller dots inside a step marker. The chat's are 7px with a 5px gap — 31px
+   wide, which is a tenth of the rail. Same motion, a third of the footprint. */
+.stepMark :global(.hqDots) { gap: 3px; }
+.stepMark :global(.hqDots) i { width: 4px; height: 4px; }
+
+/* Paused on a question. Not an error and not progress — it is your turn, so it
+   reads as an ask rather than as a failure. */
+.stateWaiting { background: rgba(224, 25, 138, .13); color: var(--mag); }
+
+/* Same marker column as an expanded step, so the line does not shift sideways
+   when you open the card. */
+.jobNowMark {
+  width: 22px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.jobNowMark :global(.hqDots) { gap: 3px; }
+.jobNowMark :global(.hqDots) i { width: 4px; height: 4px; }
+
+/* The phase within the live step — "working out what to say". Secondary to the
+   step itself, which is the actual answer to "what is it working on". */
+.jobNowPhase {
+  display: block; margin-top: 2px;
+  font-size: 11px; color: var(--text-3); font-weight: 400;
+}

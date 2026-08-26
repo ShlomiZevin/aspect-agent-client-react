@@ -13,6 +13,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "deploy": "npm run build && firebase deploy --only hosting",
+    "og:render": "node scripts/og/render.cjs",
     "deploy:aspect": "npm run sync-types && vite build --mode aspect && node scripts/inject-share-pages.cjs && firebase use default && firebase deploy --only hosting",
     "deploy:lybi-prod": "npm run sync-types && vite build --mode lybi-prod && firebase use lybi-prod && firebase deploy --only hosting",
     "deploy:freeda": "npm run sync-types && vite build --mode freeda && firebase use freeda && firebase deploy --only hosting"

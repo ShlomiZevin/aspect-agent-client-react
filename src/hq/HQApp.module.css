@@ -207,6 +207,7 @@
 .navWorking {
   margin-inline-start: auto;
   flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 5px;
   font-size: 10.5px; font-weight: 700;
   letter-spacing: .3px;
   color: var(--mag);
@@ -216,3 +217,9 @@
 /* Inside a selected row the text is already magenta, so the badge would
    disappear into it — drop it back to a plain marker there. */
 .navChildActive .navWorking { opacity: .6; }
+
+/* Motion is what says "right now" — a static word could be a stale badge, which
+   is exactly what it used to be before the roster started polling. Small, since
+   this sits in a 240px rail beside a name. */
+.navWorking :global(.hqDots) { gap: 2px; }
+.navWorking :global(.hqDots) i { width: 3px; height: 3px; }

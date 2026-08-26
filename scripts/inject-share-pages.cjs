@@ -36,6 +36,17 @@ const PAGES = [
     image: `${BASE_URL}/img/og-zolstock.png`,
     locale: 'he_IL',
   },
+  {
+    // The customer-facing "here is what we are going to build" paper. Shared
+    // with the client over WhatsApp, so the card matters more here than on a
+    // page people reach from inside the product.
+    route: '/aspect/zolstock-purchasing-he',
+    outFile: 'aspect/zolstock-purchasing-he.html',
+    title: 'מלאי חכם · זול סטוק — מה להזמין, כמה, ומתי',
+    description: 'מה אנחנו הולכים לבנות: מערכת שמקדימה את הצורך במקום להציג נתונים בדיעבד — מה להזמין מכל ספק, כמה, ובאיזה תאריך להוציא את ההזמנה. לרכש, למחסן ולסניפים.',
+    image: `${BASE_URL}/img/og-zolstock-purchasing.png`,
+    locale: 'he_IL',
+  },
 ];
 
 function buildHead(base, page) {

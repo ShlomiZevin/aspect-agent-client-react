@@ -143,7 +143,12 @@ export interface SyncRun {
   /** How it was started — a person, or (later) a schedule. */
   trigger: 'manual' | 'auto';
   label: string | null;
-  status: 'running' | 'done' | 'cancelled' | 'failed';
+  /**
+   * `waiting` means she stopped mid-job to ask you something. It is not a
+   * failure and not progress — nothing will happen until you reply, and your
+   * next message puts it back to `running`.
+   */
+  status: 'running' | 'waiting' | 'done' | 'cancelled' | 'failed';
   total: number;
   processed: number;
   succeeded: number;
@@ -280,7 +285,12 @@ export interface Job {
   conversation_id: number | null;
   title: string;
   brief: string | null;
-  status: 'running' | 'done' | 'cancelled' | 'failed';
+  /**
+   * `waiting` means she stopped mid-job to ask you something. It is not a
+   * failure and not progress — nothing will happen until you reply, and your
+   * next message puts it back to `running`.
+   */
+  status: 'running' | 'waiting' | 'done' | 'cancelled' | 'failed';
   steps: JobStep[];
   current_step: number | null;
   error: string | null;
@@ -357,8 +367,12 @@ export interface Report {
 
 /** One frame from a worker's stream. */
 export interface WorkerEvent {
+  /** `composing` = every tool has returned and she is writing the reply. */
   type: 'text' | 'tool_start' | 'tool_done' | 'tool_failed' | 'tool_progress'
-      | 'job_started' | 'job_step' | 'job_finished' | 'media' | 'report' | 'stopped';
+      | 'composing' | 'job_started' | 'job_step' | 'job_finished' | 'media'
+      | 'report' | 'stopped';
+  /** On `composing`: the last tool that ran, so the wording can suit it. */
+  after?: string | null;
   text?: string;
   tool?: string;
   input?: Record<string, unknown>;

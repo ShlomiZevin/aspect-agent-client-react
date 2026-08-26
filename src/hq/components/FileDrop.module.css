@@ -1,74 +1,99 @@
-.wrap { display: flex; flex-direction: column; gap: 9px; }
+.wrap { display: flex; flex-direction: column; gap: 8px; }
 
-.list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+/* `display: contents` rather than `none`: the hidden file input inside still
+   has to exist for the composer's paperclip to open it. With nothing to show
+   the wrapper must contribute no box at all — inside the composer its parent
+   has a `gap`, and an empty flex child still pushed the input row down. */
+.silent { display: contents; }
 
-.file {
-  display: flex; align-items: center; gap: 9px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 9px 8px 11px;
+.hidden { display: none; }
+
+.icon { font-size: 14px; line-height: 1; flex-shrink: 0; opacity: .85; }
+
+.error {
+  font-size: 12px; color: var(--danger); line-height: 1.5;
+  border-inline-start: 2px solid var(--danger); padding-inline-start: 9px;
 }
-/* Off, not gone. Muted rather than struck through — this is a file you may
-   switch back on, not one you have discarded. */
-.fileOff { opacity: .5; }
 
-.icon { font-size: 15px; line-height: 1; flex-shrink: 0; }
+/* ── Briefcase: a small library you curate ───────────────────────────────── */
+.list { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+
+/* Quiet by default. These are reference material you glance down, not controls
+   you operate, so a row carries no chrome until you are on it. */
+.file {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 8px 8px 8px 10px;
+  transition: background .12s, border-color .12s;
+}
+.file:hover { background: var(--surface-2); border-color: var(--border); }
 
 .body { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
 
-/* The label is edited in place on the row. A file with none says so, because an
-   unnamed brand document is one she has no instruction about. */
 .labelBtn {
   background: none; border: 0; padding: 0;
   font: inherit; text-align: left; cursor: text;
-  min-width: 0; width: 100%;
-  display: block;
+  min-width: 0; width: 100%; display: block;
 }
-.label {
+.label,
+.labelEmpty {
   display: block;
-  font-size: 13px; font-weight: 600; color: var(--text);
+  font-size: 13px; line-height: 1.4;
   /* Physical, not `start`: dir="auto" turns a Hebrew label RTL and the column
      would end up with two ragged edges. */
   text-align: left;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.labelEmpty {
-  display: block;
-  font-size: 13px; font-weight: 600; color: var(--mag);
-  border-bottom: 1px dashed currentColor;
-  width: fit-content; max-width: 100%;
-  text-align: left;
-}
-.labelBtn:hover .labelEmpty { opacity: .75; }
+.label { font-weight: 600; color: var(--text); }
+/* Unlabelled is worth noticing, but a dashed magenta underline shouted about
+   it. Muted and italic reads as an invitation rather than an error. */
+.labelEmpty { color: var(--text-3); font-style: italic; font-weight: 400; }
+.labelBtn:hover .label { color: var(--mag); }
+.labelBtn:hover .labelEmpty { color: var(--mag); font-style: normal; }
 
+/* Sized and weighted exactly like the text it replaces, so committing an edit
+   does not make the row jump. No underline: the caret is the affordance. */
 .labelInput {
-  width: 100%;
-  background: var(--surface); color: var(--text);
-  border: 0; border-bottom: 1px solid var(--mag);
-  padding: 1px 0 2px;
-  font: inherit; font-size: 13px; font-weight: 600;
+  width: 100%; display: block;
+  background: none; color: var(--text);
+  border: 0; padding: 0;
+  font: inherit; font-size: 13px; font-weight: 600; line-height: 1.4;
   text-align: left; outline: 0;
 }
+.labelInput::placeholder { font-weight: 400; font-style: italic; color: var(--text-3); }
+
 .meta {
-  font-size: 10.5px; color: var(--text-3);
+  font-size: 10.5px; line-height: 1.4; color: var(--text-3);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-.act {
-  flex-shrink: 0;
-  background: none; border: 1px solid var(--border-2); border-radius: 100px;
-  padding: 3px 9px;
-  font: inherit; font-size: 10.5px; font-weight: 600; color: var(--text-3);
-  cursor: pointer; transition: .13s;
+/* Hidden until the row is hovered. Two outlined pills on every row made a
+   reading list look like a control panel. Words, not glyphs — "On"/"✕" in
+   circles were unreadable as a pair. */
+.actions {
+  flex-shrink: 0; display: flex; align-items: center; gap: 2px;
+  opacity: 0; transition: opacity .12s;
 }
-.act:hover { border-color: var(--mag); color: var(--mag); }
+.file:hover .actions,
+.file:focus-within .actions { opacity: 1; }
 
-.busy { font-size: 12px; color: var(--text-3); }
+.act {
+  background: none; border: 0; border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font: inherit; font-size: 11px; font-weight: 600; color: var(--text-3);
+  cursor: pointer; white-space: nowrap;
+  transition: background .12s, color .12s;
+}
+.act:hover { background: var(--surface-3); color: var(--text); }
+.actDanger:hover { background: rgba(224, 25, 138, .1); color: var(--mag); }
 
-/* ── Footer ──────────────────────────────────────────────────────────────── */
-.footer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.hidden { display: none; }
+/* Off, not gone — and the row says so in words rather than leaving you to
+   infer it from a control you would have to hover to find. */
+.fileOff { opacity: .5; }
+.fileOff .actions { opacity: 1; }
+
+.footer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
 .formats { font-size: 10.5px; color: var(--text-3); }
 /* The running cost, stated where you add to it rather than discovered later. */
 .total {
@@ -77,21 +102,43 @@
   font-variant-numeric: tabular-nums;
 }
 
-.error {
-  font-size: 12px; color: var(--danger); line-height: 1.5;
-  border-inline-start: 2px solid var(--danger); padding-inline-start: 9px;
-}
+/* ── Composer: chips. Attach and send. ───────────────────────────────────── */
+.compact { gap: 0; }
+.chips { list-style: none; display: flex; flex-wrap: wrap; gap: 5px; padding: 1px 2px 3px; }
 
-/* In the composer: chips, not rows. They sit directly above the input as part
-   of what you are about to send, so they must not read as a panel. */
-.compact { gap: 6px; }
-.compact .list { flex-direction: row; flex-wrap: wrap; gap: 6px; }
-.compact .file {
-  width: auto; max-width: 260px;
-  padding: 5px 8px 5px 10px;
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  max-width: 230px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 100px;
-  background: var(--surface);
+  padding: 3px 4px 3px 9px;
 }
-.compact .label, .compact .labelEmpty, .compact .labelInput { font-size: 11.5px; }
-.compact .meta { font-size: 9.5px; }
-.compact .act { padding: 2px 7px; font-size: 9.5px; }
+.chipName {
+  min-width: 0;
+  font-size: 11.5px; color: var(--text);
+  text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.chipMeta { font-size: 10px; color: var(--text-3); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+/* Always visible: a chip has no roomy row to hover, and one you cannot remove
+   is a trap. */
+.chipX {
+  flex-shrink: 0;
+  width: 17px; height: 17px;
+  display: grid; place-items: center;
+  background: none; border: 0; border-radius: 100px;
+  font-size: 9px; color: var(--text-3); cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.chipX:hover { background: var(--surface-3); color: var(--mag); }
+
+/* Files you gave her open in a tab. Being unable to look at the thing she is
+   working from makes any disagreement about it impossible to settle. */
+.chipOpen {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-width: 0; text-decoration: none; color: inherit;
+}
+.chipOpen:hover .chipName { color: var(--mag); }
+.metaLink { color: inherit; text-decoration: none; }
+.metaLink:hover { color: var(--mag); text-decoration: underline; }

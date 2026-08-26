@@ -107,9 +107,26 @@ export function HQApp() {
     };
   }, []);
 
+  /**
+   * The roster, refreshed while anyone is working.
+   *
+   * This used to run once on mount, so the "working" badge was a snapshot from
+   * page load: it never appeared for a job started elsewhere and — worse — never
+   * cleared when one finished, which needed a page reload to correct.
+   *
+   * Polls only while someone is actually working, so an idle HQ is silent.
+   */
   useEffect(() => {
-    listWorkers().then(r => setPeople(r.workers)).catch(() => setPeople([]));
-  }, []);
+    let alive = true;
+    const load = () => listWorkers()
+      .then(r => { if (alive) setPeople(r.workers); })
+      .catch(() => { if (alive) setPeople([]); });
+
+    void load();
+    const busy = people.some(p => p.running_jobs);
+    const timer = setInterval(load, busy ? 3000 : 20000);
+    return () => { alive = false; clearInterval(timer); };
+  }, [people.some(p => p.running_jobs)]);
 
   useEffect(() => { localStorage.setItem(THEME_KEY, theme); }, [theme]);
 
@@ -164,7 +181,13 @@ export function HQApp() {
                       <span className={styles.navIcon}>{p.avatar || '🙂'}</span>
                       <span className={styles.navLabel}>{p.name}</span>
                       {!!p.running_jobs && (
-                        <span className={styles.navWorking} title="working">working</span>
+                        <span
+                          className={styles.navWorking}
+                          title={p.running_jobs === 1 ? 'on a job right now' : `on ${p.running_jobs} jobs right now`}
+                        >
+                          <span className="hqDots"><i /><i /><i /></span>
+                          working
+                        </span>
                       )}
                     </NavLink>
                   ))}

@@ -320,6 +320,9 @@ export async function uploadWorkerFile(
   return (await res.json()).file as import('../types').WorkerFile;
 }
 
+/** Opens in a new tab. The server signs a fresh URL each time, so no link rots. */
+export const workerFileUrl = (id: number) => `${getBaseURL()}/api/hq/workers/files/${id}/open`;
+
 export const listWorkerFiles = (slug: string, conversationId?: number | null) =>
   api<{ files: import('../types').WorkerFile[] }>(
     `/workers/${slug}/files${conversationId ? `?conversationId=${conversationId}` : ''}`,

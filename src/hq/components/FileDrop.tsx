@@ -1,28 +1,25 @@
 /**
  * HQ — what a worker has been given.
  *
- * Used twice with different scope: her briefcase (in front of her forever) and
- * a conversation's attachments (that chat only). The mechanics are identical,
- * so the component is one; only the scope differs.
+ * Two scopes, and they are deliberately NOT the same control:
  *
- * The file uploads the moment you pick it, and the label is added afterwards,
- * inline on the row. Naming a file before it exists put a dialog in front of the
- * thing you actually came to do, and made an already-chosen file feel unsaved.
+ *   Briefcase (in "How she works") — material she carries into every message
+ *   forever. Each file is labelled, because the label is the instruction: "brand
+ *   voice, follow for all copy" is what turns an attachment into a rule. Files
+ *   can be switched off without being deleted, for a guide you are between
+ *   versions of. This is a small library you curate.
  *
- * Two things it insists on:
+ *   Conversation (the composer's paperclip) — the brief for this one job. No
+ *   label, no on/off, nothing to configure: you attach it and send. Anything
+ *   more is friction in the middle of typing a message.
  *
- * The supported formats are stated BEFORE you pick, because the common case — a
- * brand deck — is a .pptx that cannot be read, and finding that out after a 20MB
- * upload is a bad way to learn it.
- *
- * The token weight is shown per file. These are re-sent on every turn, so a
- * briefcase is a running cost, and a number is the only thing that keeps it a
- * briefcase rather than a filing cabinet.
+ * A file uploads the moment you pick it. Naming first put a dialog in front of
+ * the thing you came to do and made an already-chosen file feel unsaved.
  */
 
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 
-import { deleteWorkerFile, updateWorkerFile, uploadWorkerFile } from '../services/hqApi';
+import { deleteWorkerFile, updateWorkerFile, uploadWorkerFile, workerFileUrl } from '../services/hqApi';
 import type { WorkerCapabilities, WorkerFile } from '../types';
 import styles from './FileDrop.module.css';
 
@@ -33,11 +30,10 @@ interface Props {
   onChange: (files: WorkerFile[]) => void;
   /** Omitted for the briefcase; set for a conversation's own attachments. */
   conversationId?: number | null;
-  /**
-   * Compact drops the add button and the format line — the composer's paperclip
-   * is the affordance there, and a second one would be noise above the input.
-   */
+  /** Chips in the composer: attach and send, nothing to configure. */
   compact?: boolean;
+  /** Told to the parent so the paperclip can show progress on itself. */
+  onBusyChange?: (busy: boolean) => void;
 }
 
 export interface FileDropHandle {
@@ -55,11 +51,11 @@ function icon(file: WorkerFile) {
 }
 
 export const FileDrop = forwardRef<FileDropHandle, Props>(function FileDrop({
-  slug, caps, files, onChange, conversationId = null, compact = false,
+  slug, caps, files, onChange, conversationId = null, compact = false, onBusyChange,
 }, ref) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** Which row is being named. New uploads open straight into this. */
+  /** Which row is being named. Briefcase only. */
   const [naming, setNaming] = useState<number | null>(null);
   const [draft, setDraft] = useState('');
   const input = useRef<HTMLInputElement>(null);
@@ -69,21 +65,21 @@ export const FileDrop = forwardRef<FileDropHandle, Props>(function FileDrop({
   const accept = (caps?.fileExtensions || []).join(',');
   const total = files.filter(f => f.active).reduce((sum, f) => sum + (f.token_estimate || 0), 0);
 
+  function working(v: boolean) { setBusy(v); onBusyChange?.(v); }
+
   async function send(file: File | undefined) {
     if (!file) return;
-    setBusy(true);
+    working(true);
     setError(null);
     try {
       const added = await uploadWorkerFile(slug, file, { conversationId });
       onChange([...files, added]);
-      // Straight into naming: the file is safe, and this is the one thing that
-      // turns "here is a PDF" into an instruction.
-      setNaming(added.id);
-      setDraft('');
+      // Straight into naming — but only where a label means something.
+      if (!compact) { setNaming(added.id); setDraft(''); }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed');
     } finally {
-      setBusy(false);
+      working(false);
       if (input.current) input.current.value = '';
     }
   }
@@ -106,8 +102,54 @@ export const FileDrop = forwardRef<FileDropHandle, Props>(function FileDrop({
     await deleteWorkerFile(file.id).catch(() => onChange(files));
   }
 
+  // With nothing to show the wrapper must contribute NO box: inside the composer
+  // its parent has a `gap`, and an empty flex child still pushed the input row
+  // down and left the field looking mis-centred.
+  const nothing = !files.length && !error;
+
+  const picker = (
+    <input
+      ref={input}
+      type="file"
+      accept={accept}
+      className={styles.hidden}
+      onChange={e => void send(e.target.files?.[0])}
+    />
+  );
+
+  // ── In the composer: chips. Filename, weight, remove. Nothing else. ───────
+  if (compact) {
+    return (
+      <div className={`${styles.wrap} ${styles.compact} ${nothing ? styles.silent : ''}`}>
+        {files.length > 0 && (
+          <ul className={styles.chips}>
+            {files.map(f => (
+              <li key={f.id} className={styles.chip}>
+                <a
+                  className={styles.chipOpen}
+                  href={workerFileUrl(f.id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`Open ${f.filename}`}
+                >
+                  <span className={styles.icon}>{icon(f)}</span>
+                  <span className={styles.chipName} dir="auto">{f.filename}</span>
+                </a>
+                {f.token_estimate ? <span className={styles.chipMeta}>{weight(f.token_estimate)}</span> : null}
+                <button className={styles.chipX} onClick={() => remove(f)} title="Remove">✕</button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {error && <div className={styles.error}>{error}</div>}
+        {picker}
+      </div>
+    );
+  }
+
+  // ── Her briefcase: a small library you curate. ────────────────────────────
   return (
-    <div className={`${styles.wrap} ${compact ? styles.compact : ''}`}>
+    <div className={styles.wrap}>
       {files.length > 0 && (
         <ul className={styles.list}>
           {files.map(f => (
@@ -136,57 +178,65 @@ export const FileDrop = forwardRef<FileDropHandle, Props>(function FileDrop({
                     title="Click to say what this is"
                   >
                     <span className={f.label ? styles.label : styles.labelEmpty} dir="auto">
-                      {f.label || 'Add a label'}
+                      {f.label || 'Say what this is'}
                     </span>
                   </button>
                 )}
                 <span className={styles.meta}>
-                  {f.filename}{f.token_estimate ? ` · ${weight(f.token_estimate)}` : ''}
+                  <a
+                    className={styles.metaLink}
+                    href={workerFileUrl(f.id)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`Open ${f.filename}`}
+                  >
+                    {f.filename}
+                  </a>
+                  {f.token_estimate ? ` · ${weight(f.token_estimate)}` : ''}
                   {f.kind === 'reference' && ' · visual reference'}
+                  {!f.active && ' · not in use'}
                 </span>
               </span>
 
-              <button
-                className={styles.act}
-                onClick={() => toggle(f)}
-                title={f.active ? 'Stop using this without deleting it' : 'Use this again'}
-              >
-                {f.active ? 'On' : 'Off'}
-              </button>
-              <button className={styles.act} onClick={() => remove(f)} title="Remove">✕</button>
+              <span className={styles.actions}>
+                <button
+                  className={styles.act}
+                  onClick={() => toggle(f)}
+                  title={f.active ? 'Stop using this without deleting it' : 'Use this again'}
+                >
+                  {f.active ? 'Turn off' : 'Turn on'}
+                </button>
+                <button
+                  className={`${styles.act} ${styles.actDanger}`}
+                  onClick={() => remove(f)}
+                  title="Remove"
+                >
+                  Remove
+                </button>
+              </span>
             </li>
           ))}
         </ul>
       )}
 
-      {busy && <div className={styles.busy}>Reading it…</div>}
       {error && <div className={styles.error}>{error}</div>}
+      {picker}
 
-      <input
-        ref={input}
-        type="file"
-        accept={accept}
-        className={styles.hidden}
-        onChange={e => void send(e.target.files?.[0])}
-      />
-
-      {!compact && (
-        <div className={styles.footer}>
-          <button className="hqMini" onClick={() => input.current?.click()} disabled={busy}>
-            ＋ Add a file
-          </button>
-          <span className={styles.formats}>
-            {(caps?.fileTypes || []).join(', ')}
-            {caps?.maxFileBytes ? ` · up to ${Math.round(caps.maxFileBytes / 1048576)}MB` : ''}
+      <div className={styles.footer}>
+        <button className="hqMini" onClick={() => input.current?.click()} disabled={busy}>
+          {busy ? 'Reading it…' : '＋ Add a file'}
+        </button>
+        <span className={styles.formats}>
+          {(caps?.fileTypes || []).join(', ')}
+          {caps?.maxFileBytes ? ` · up to ${Math.round(caps.maxFileBytes / 1048576)}MB` : ''}
+        </span>
+        {/* The running cost, stated where you add to it rather than found later. */}
+        {total > 0 && (
+          <span className={styles.total} title="Re-read on every message, so this is a per-message cost">
+            {weight(total)} every message
           </span>
-          {/* The running cost of the briefcase, stated where you add to it. */}
-          {total > 0 && (
-            <span className={styles.total} title="Re-read on every message, so this is a per-message cost">
-              {weight(total)} every message
-            </span>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 });

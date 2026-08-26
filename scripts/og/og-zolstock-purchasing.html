@@ -1,0 +1,63 @@
+<!doctype html>
+<!--
+  Source for public/img/og-zolstock-purchasing.png — the WhatsApp/Slack link
+  preview for /aspect/zolstock-purchasing-he.
+
+  Kept in the repo (rather than a one-off export) so the card can be re-rendered
+  when the wording changes. Same visual family as og-zolstock.png: purple
+  gradient, the client's logo on a white tile, Hebrew headline, Aspect footer.
+
+  Re-render:
+    npm run og:render og-zolstock-purchasing
+-->
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1200px;height:630px;overflow:hidden}
+  body{
+    font-family:'Assistant',Arial,sans-serif;
+    background:radial-gradient(120% 120% at 50% 0%,#7B2BE0 0%,#5B18C4 55%,#4A11A8 100%);
+    color:#fff;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:0 74px;
+  }
+  .eyebrow{
+    display:flex;align-items:center;gap:10px;
+    font-size:23px;font-weight:700;letter-spacing:.01em;
+    color:#E4D4FF;margin-bottom:26px;
+  }
+  .dot{width:11px;height:11px;border-radius:50%;background:#4ADE80;box-shadow:0 0 12px rgba(74,222,128,.8)}
+  .tile{
+    width:150px;height:150px;border-radius:26px;background:#fff;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 14px 40px rgba(0,0,0,.28);margin-bottom:32px;
+  }
+  .tile img{width:104px;height:auto;display:block}
+  h1{font-size:57px;font-weight:800;line-height:1.2;margin-bottom:20px}
+  h1 .accent{color:#FFD84D}
+  p{font-size:26px;font-weight:400;line-height:1.55;color:#E9DEFF;max-width:940px}
+  .foot{
+    position:absolute;bottom:36px;
+    display:flex;align-items:center;gap:11px;
+    font-size:21px;font-weight:700;color:#F3EAFF;
+  }
+  .mark{
+    width:30px;height:30px;border-radius:9px;background:#fff;color:#5B18C4;
+    display:flex;align-items:center;justify-content:center;font-size:16px;
+  }
+</style>
+</head>
+<body>
+  <div class="eyebrow"><span class="dot"></span>Aspect Intelligence · מלאי חכם</div>
+
+  <div class="tile"><img src="../../public/img/zolstock-logo.png" alt="" /></div>
+
+  <h1>מה להזמין, <span class="accent">כמה</span>, ומתי</h1>
+  <p>מערכת שמקדימה את הצורך במקום להציג נתונים בדיעבד — לרכש, למחסן ולסניפים.</p>
+
+  <div class="foot"><span class="mark">✦</span>Aspect Intelligence</div>
+</body>
+</html>

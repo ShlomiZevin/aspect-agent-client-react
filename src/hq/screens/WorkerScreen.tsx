@@ -20,7 +20,7 @@ import { FileDrop } from '../components/FileDrop';
 import type { FileDropHandle } from '../components/FileDrop';
 import { Picker } from '../components/Picker';
 import type { PickerOption } from '../components/Picker';
-import { IconBack, IconClip, IconEdit, IconSend } from '../icons';
+import { IconBack, IconClip, IconEdit, IconExpand, IconSend } from '../icons';
 import {
   WORKER_MODELS, addLesson, cancelJob, deleteLesson, getConversation, getWorker, listLessons,
   listWorkerFiles, listWorkers, newConversation, reportUrl, sendToWorker, setConversationModels,
@@ -170,6 +170,23 @@ export function WorkerScreen() {
   const [convFiles, setConvFiles] = useState<WorkerFile[]>([]);
   /** The composer's paperclip opens the picker directly — no intermediate bar. */
   const convDrop = useRef<FileDropHandle>(null);
+  /** Progress belongs on the clip, not as text shoved into the input field. */
+  const [attaching, setAttaching] = useState(false);
+  /**
+   * Files attached but not yet sent. They live ON TOP OF THE INPUT, where you
+   * just put them — the rail is easy to miss at the moment you attach.
+   *
+   * On send they move to the rail: the file is then part of the conversation
+   * and stays in context for all of it, so a chip left in the input would imply
+   * it is about to be sent again.
+   */
+  const [pending, setPending] = useState<WorkerFile[]>([]);
+  /**
+   * A job opened full-size. The rail is 300px wide and the brief is whatever
+   * was actually asked for — often several paragraphs — so it is unreadable
+   * where it lives. This is the only place you can read it whole.
+   */
+  const [openJob, setOpenJob] = useState<Job | null>(null);
 
   const bottom = useRef<HTMLDivElement>(null);
 
@@ -194,6 +211,9 @@ export function WorkerScreen() {
   /** Her standing choices, which the header falls back to when nothing is pinned. */
   const workerVoice = (worker?.settings?.phrasingModel as string) || caps?.phrasingModels?.[0]?.id || null;
   const workerImage = (worker?.settings?.imageModel as string) || null;
+
+  /** Everything already handed over — the composer holds the rest. */
+  const handedOver = convFiles.filter(f => !pending.some(p => p.id === f.id));
 
   const labelOf = (options: PickerOption[], id: string | null | undefined) =>
     options.find(o => o.id === id)?.label || null;
@@ -246,7 +266,25 @@ export function WorkerScreen() {
     setConvModel(data.conversation?.model ?? null);
     setConvPhrasing(data.conversation?.phrasing_model ?? null);
     setConvFiles(await listWorkerFiles(slug, id).catch(() => []));
-    setLiveJob(data.jobs.find(j => j.status === 'running') || null);
+    setPending([]);
+    const live = data.jobs.find(j => j.status === 'running') || null;
+    setLiveJob(live);
+
+    // Reload mid-job and the thread was silent: `activity` is only set by
+    // send(), so returning to a running job looked like a finished one that had
+    // simply stopped talking. Recover the line from the job itself.
+    if (live) {
+      const steps = live.steps || [];
+      const step = steps.find(st => st.status === 'running')
+        || steps.find(st => st.status === 'pending');
+      setActivity(step ? step.title : `${worker?.name || 'She'} is working`);
+      // Rebuild what has already happened. Without this a reload showed the
+      // current step alone, as though the job had only just begun.
+      setTrace(steps.filter(st => st.status === 'done').map(st => st.title));
+    } else {
+      setActivity(null);
+      setTrace([]);
+    }
   }, [slug]);
 
   // What this HQ can do — which picture models exist, whether rendering is
@@ -333,6 +371,12 @@ export function WorkerScreen() {
       setReports(prev => [e.report as Report, ...prev]);
       note(`Published a report: ${e.report.title}`);
     }
+    // Every tool has returned and she is working out what to say. Without this
+    // the longest silence in an exchange — after the last tool, before the
+    // reply — showed nothing at all.
+    if (e.type === 'composing') {
+      setActivity(e.after === 'finish_job' ? 'Writing the answer' : 'Working out what to say');
+    }
     if (e.type === 'text') setActivity(null);
   }
 
@@ -341,6 +385,9 @@ export function WorkerScreen() {
     if (!text || !conversationId || busy) return;
 
     setInput('');
+    // Handed over: it now belongs to the conversation rather than to the
+    // message you are composing, so it moves out of the composer.
+    setPending([]);
     setBusy(true);
     setError(null);
     setTrace([]);
@@ -629,18 +676,29 @@ export function WorkerScreen() {
               ref={convDrop}
               slug={slug}
               caps={caps}
-              files={convFiles}
-              onChange={setConvFiles}
+              files={pending}
+              onChange={next => {
+                setPending(next);
+                // The rail is the full list either way; it just hides whatever
+                // is still sitting in the composer.
+                setConvFiles(prev => {
+                  const ids = new Set(next.map(f => f.id));
+                  const kept = prev.filter(p => ids.has(p.id) || !pending.some(q => q.id === p.id));
+                  return [...kept.filter(k => !ids.has(k.id)), ...next];
+                });
+              }}
               conversationId={conversationId}
               compact
+              onBusyChange={setAttaching}
             />
             <div className={styles.composerRow}>
               <button
                 className={styles.clip}
                 onClick={() => convDrop.current?.pick()}
+                disabled={attaching}
                 title={`Attach a file to this conversation — ${(caps?.fileTypes || []).join(', ')}`}
               >
-                <IconClip />
+                {attaching ? <span className={styles.clipSpin} /> : <IconClip />}
               </button>
               <textarea
                 className={styles.input}
@@ -678,6 +736,17 @@ export function WorkerScreen() {
           const isOpen = openJobId === job.id || (openJobId === null && job.id === jobs[0].id);
           const steps = job.steps || [];
           const done = steps.filter(st => st.status === 'done').length;
+          /**
+           * The step she is actually on.
+           *
+           * A step only becomes 'running' when update_step fires, so between
+           * ticks nothing is marked running and the card looked idle. The first
+           * pending step is the live one in that gap. Derived once so the
+           * collapsed line and the expanded list can never disagree.
+           */
+          const liveStep = job.status === 'running'
+            ? (steps.find(st => st.status === 'running') || steps.find(st => st.status === 'pending'))
+            : null;
           const jobMedia = media.filter(m => m.job_id === job.id);
           const jobReports = reports.filter(r => r.job_id === job.id);
           const images = Number(job.cost_usd || 0);
@@ -689,30 +758,45 @@ export function WorkerScreen() {
               <button className={styles.jobTop} onClick={() => setOpenJobId(isOpen ? -1 : job.id)}>
                 <span className={`${styles.jobState} ${
                   job.status === 'running' ? styles.stateRunning :
+                  job.status === 'waiting' ? styles.stateWaiting :
                   job.status === 'done' ? styles.stateDone : styles.stateOther}`}
                 >
-                  {job.status === 'running' ? 'working' : job.status}
+                  {job.status === 'running' ? 'working'
+                    : job.status === 'waiting' ? 'needs you'
+                    : job.status}
                 </span>
                 <span className={styles.jobTitle} dir="auto">{job.title}</span>
+                <span
+                  className={styles.jobExpand}
+                  title="Read the whole brief"
+                  onClick={e => { e.stopPropagation(); setOpenJob(job); }}
+                >
+                  <IconExpand />
+                </span>
                 <span className={styles.jobCount}>{done}/{steps.length}</span>
                 <span className={`${styles.navChevron} ${isOpen ? styles.chevOpen : ''}`}>▾</span>
               </button>
 
-              {/* What it is doing right now, stated even when collapsed —
-                  "2 of 3" tells you how far, not what it is actually on. */}
-              {/* Steps only move when a step completes, so between them this
-                  looked frozen while the chat was visibly working. Fall back to
-                  whatever tool is running right now. */}
-              {job.status === 'running' && (() => {
-                const current = steps.find(st => st.status === 'running');
-                const line = current?.title || activity;
-                return line ? (
-                  <div className={styles.jobNow}>
-                    <span className={styles.spinner} />
-                    <span className={styles.jobNowText} dir="auto">{line}</span>
-                  </div>
-                ) : null;
-              })()}
+              {/* Which step, and what she is doing within it.
+                  The step is the answer to "what is it working on"; the phase
+                  ("working out what to say") is a detail of that step, not a
+                  replacement for it — showing the phase alone told you she was
+                  busy without telling you at what.
+
+                  A step only turns 'running' when update_step fires, so between
+                  ticks the first pending step is the live one. Treating it as
+                  such is what stops the card looking idle mid-job. */}
+              {job.status === 'running' && !isOpen && liveStep && (
+                <div className={styles.jobNow}>
+                  <span className={styles.jobNowMark}><span className="hqDots"><i /><i /><i /></span></span>
+                  <span className={styles.jobNowText} dir="auto">
+                    {liveStep.title}
+                    {activity && activity !== liveStep.title && (
+                      <span className={styles.jobNowPhase}>{activity}</span>
+                    )}
+                  </span>
+                </div>
+              )}
 
               {isOpen && (
                 <>
@@ -722,7 +806,8 @@ export function WorkerScreen() {
                         <span className={styles.stepMark}>
                           {st.status === 'done' ? '✓'
                             : st.status === 'failed' ? '✕'
-                            : st.status === 'running' ? <span className={styles.spinner} />
+                            : liveStep && st.n === liveStep.n
+                              ? <span className="hqDots"><i /><i /><i /></span>
                             : <span className={styles.stepDot} />}
                         </span>
                         <span className={styles.stepText} dir="auto">
@@ -797,10 +882,33 @@ export function WorkerScreen() {
           );
         })}
 
+        {/* What this conversation was GIVEN, as against what she made. Sits in
+            the rail because that is where a conversation's belongings are —
+            and because a chip left in the composer reads as unsent. */}
+        {handedOver.length > 0 && (
+          <>
+            <div className={styles.workHead}>
+              <span className="hqEyebrow">
+                {handedOver.length === 1 ? 'Attached here' : `Attached here · ${handedOver.length}`}
+              </span>
+            </div>
+            <div className={styles.attached}>
+              <FileDrop
+                slug={slug}
+                caps={caps}
+                files={handedOver}
+                onChange={next => setConvFiles([...pending, ...next])}
+                conversationId={conversationId}
+                compact
+              />
+            </div>
+          </>
+        )}
+
         {/* Anything made outside a job still has to be reachable. */}
         {media.some(m => !m.job_id) && (
           <>
-            <div className={styles.workHead}><span className="hqEyebrow">Not in a job</span></div>
+            <div className={styles.workHead}><span className="hqEyebrow">Made in the chat</span></div>
             <div className={styles.gallery}>
               {media.filter(m => !m.job_id).map(m => (
                 <Thumb key={m.id} item={m} />
@@ -809,6 +917,60 @@ export function WorkerScreen() {
           </>
         )}
       </aside>
+
+      {/* The brief at a readable width. Everything in the rail is compressed to
+          300px; this is where you actually read what was asked and what she
+          planned in response. */}
+      {openJob && (
+        <div className={styles.modalWrap} onClick={() => setOpenJob(null)}>
+          <div className={`${styles.modal} ${styles.jobModal}`} onClick={e => e.stopPropagation()}>
+            <div className={styles.jobModalHead}>
+              <span className={`${styles.jobState} ${
+                openJob.status === 'running' ? styles.stateRunning :
+                openJob.status === 'waiting' ? styles.stateWaiting :
+                openJob.status === 'done' ? styles.stateDone : styles.stateOther}`}
+              >
+                {openJob.status === 'running' ? 'working'
+                  : openJob.status === 'waiting' ? 'needs you'
+                  : openJob.status}
+              </span>
+              <span className={styles.jobModalTitle} dir="auto">{openJob.title}</span>
+            </div>
+
+            <div className={styles.jobModalBody}>
+              {openJob.brief && (
+                <section className={styles.jobSection}>
+                  <span className="hqEyebrow">What was asked</span>
+                  <p className={styles.jobBrief} dir="auto">{openJob.brief}</p>
+                </section>
+              )}
+
+              <section className={styles.jobSection}>
+                <span className="hqEyebrow">Her plan</span>
+                <ol className={styles.jobPlan}>
+                  {(openJob.steps || []).map(step => (
+                    <li key={step.n} className={`${styles.jobPlanStep} ${styles[`step_${step.status}`] || ''}`}>
+                      <span className={styles.stepMark}>
+                        {step.status === 'running'
+                          ? <span className="hqDots"><i /><i /><i /></span>
+                          : step.status === 'done' ? '✓' : step.status === 'failed' ? '✕' : '○'}
+                      </span>
+                      <span className={styles.jobPlanText} dir="auto">
+                        <span className={styles.jobPlanTitle}>{step.title}</span>
+                        {step.detail && <span className={styles.jobPlanDetail}>{step.detail}</span>}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            </div>
+
+            <div className={styles.modalActions}>
+              <button className="hqGhostPill" onClick={() => setOpenJob(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Everything she is told ────────────────────────────────────────── */}
       {panel && (

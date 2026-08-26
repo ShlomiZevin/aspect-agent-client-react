@@ -49,6 +49,11 @@ export const IconClip = () => (
   </svg>
 );
 
+/** Open something at a readable size. */
+export const IconExpand = () => (
+  <svg {...base}><path d="M15 4h5v5M20 4l-7 7M9 20H4v-5M4 20l7-7" /></svg>
+);
+
 export const IconBack = () => (
   <svg {...base}><path d="M15 18l-6-6 6-6" /></svg>
 );

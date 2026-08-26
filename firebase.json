@@ -12,6 +12,10 @@
         "destination": "/intelligence/zolstock.html"
       },
       {
+        "source": "/aspect/zolstock-purchasing-he",
+        "destination": "/aspect/zolstock-purchasing-he.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
