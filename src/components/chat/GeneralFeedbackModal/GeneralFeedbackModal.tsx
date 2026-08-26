@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import styles from './GeneralFeedbackModal.module.css';
 import { useLanguage } from '../../../context/LanguageContext';
 import { RichTextEditor } from '../../tasks/RichTextEditor/RichTextEditor';
-import { createGeneralFeedback } from '../../../services/feedbackService';
+import { createFeedback, createGeneralFeedback } from '../../../services/feedbackService';
 import type { FeedbackTag } from '../../../types/feedback';
 
 /**
@@ -34,6 +34,22 @@ interface Props {
   agentName: string;
   baseURL: string;
   onClose: () => void;
+  /**
+   * Reject mode (Stage: feedback & accuracy). The same modal doubles as the
+   * "Reject answer" flow from chat messages and insight pages: the disputed
+   * request is prefilled read-only-ish as the first paragraph, the
+   * wrong-numbers tag comes preselected, labels switch to the reject wording,
+   * and — when `assistantMessageId` is present — the feedback attaches to
+   * that message instead of landing as general feedback. Structure is
+   * generic for every client; colors ride the token system.
+   */
+  mode?: 'general' | 'reject';
+  /** Prefilled first paragraph (e.g. `Data for request: "…" is incorrect.`). */
+  initialText?: string;
+  /** Tag names preselected on open (e.g. ['wrong-numbers']). */
+  initialTags?: string[];
+  /** When set, submit via the message-scoped feedback API. */
+  assistantMessageId?: number;
 }
 
 function isBlank(html: string): boolean {
@@ -42,11 +58,18 @@ function isBlank(html: string): boolean {
   return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length === 0;
 }
 
-export function GeneralFeedbackModal({ agentName, baseURL, onClose }: Props) {
+/** Escape user text before seeding it into the rich editor as HTML. */
+function esc(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+export function GeneralFeedbackModal({ agentName, baseURL, onClose, mode = 'general', initialText, initialTags, assistantMessageId }: Props) {
   const { t } = useLanguage();
-  const [text, setText] = useState('');
+  const reject = mode === 'reject';
+  const [text, setText] = useState(() =>
+    initialText ? `<p><strong>${esc(initialText)}</strong></p><p><br></p>` : '');
   const [contact, setContact] = useState('');
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string[]>(initialTags ?? []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -65,16 +88,23 @@ export function GeneralFeedbackModal({ agentName, baseURL, onClose }: Props) {
     setSaving(true);
     setError(null);
     try {
-      await createGeneralFeedback(
-        agentName,
-        {
-          feedbackText: text,
-          tags: QUICK_TAGS.filter(tag => selected.includes(tag.name)),
-          contact: contact.trim() || undefined,
-          contextUrl: window.location.href,
-        },
-        baseURL
-      );
+      const tags = QUICK_TAGS.filter(tag => selected.includes(tag.name));
+      if (assistantMessageId) {
+        // Reject of a specific chat answer — lands linked to that message so
+        // the reviewer sees question + answer + complaint in one place.
+        await createFeedback(assistantMessageId, text, tags, baseURL);
+      } else {
+        await createGeneralFeedback(
+          agentName,
+          {
+            feedbackText: text,
+            tags,
+            contact: contact.trim() || undefined,
+            contextUrl: window.location.href,
+          },
+          baseURL
+        );
+      }
       setSent(true);
       // Held briefly so the confirmation is actually seen — closing instantly
       // reads as the click having done nothing.
@@ -96,15 +126,15 @@ export function GeneralFeedbackModal({ agentName, baseURL, onClose }: Props) {
       >
         <div className={styles.header}>
           <div>
-            <h3>{t('feedback.general.title')}</h3>
-            <p className={styles.subtitle}>{t('feedback.general.subtitle')}</p>
+            <h3>{t(reject ? 'feedback.reject.title' : 'feedback.general.title')}</h3>
+            <p className={styles.subtitle}>{t(reject ? 'feedback.reject.subtitle' : 'feedback.general.subtitle')}</p>
           </div>
           <button className={styles.close} onClick={onClose} aria-label={t('common.close')} disabled={saving}>×</button>
         </div>
 
         <div className={styles.body}>
           <div className={styles.field}>
-            <span className={styles.label}>{t('feedback.general.whatLabel')}</span>
+            <span className={styles.label}>{t(reject ? 'feedback.reject.commentsLabel' : 'feedback.general.whatLabel')}</span>
             <div className={styles.editorWrap}>
               <RichTextEditor
                 value={text}
@@ -138,17 +168,19 @@ export function GeneralFeedbackModal({ agentName, baseURL, onClose }: Props) {
             </div>
           </div>
 
-          <div className={styles.field}>
-            <span className={styles.label}>
-              {t('feedback.general.contactLabel')} <span className={styles.optional}>{t('feedback.general.optional')}</span>
-            </span>
-            <input
-              className={styles.input}
-              value={contact}
-              onChange={e => setContact(e.target.value)}
-              placeholder={t('feedback.general.contactPlaceholder')}
-            />
-          </div>
+          {!reject && (
+            <div className={styles.field}>
+              <span className={styles.label}>
+                {t('feedback.general.contactLabel')} <span className={styles.optional}>{t('feedback.general.optional')}</span>
+              </span>
+              <input
+                className={styles.input}
+                value={contact}
+                onChange={e => setContact(e.target.value)}
+                placeholder={t('feedback.general.contactPlaceholder')}
+              />
+            </div>
+          )}
         </div>
 
         <div className={styles.footer}>
