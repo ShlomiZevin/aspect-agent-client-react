@@ -2,16 +2,38 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  /* The wrap itself no longer scrolls — .scrollArea does. Keeping overflow
+     here as hidden so the pinned composer below can never be pushed out. */
   background: var(--ai-surface);
-  /* The panel around this is overflow:hidden, and this pane had no scroll of
-     its own — so once the quick-question tiles were taller than the panel (any
-     phone) the list was simply cut off with no way to reach the rest.
-     min-height:0 is required for a flex child to be allowed to scroll at all. */
-  overflow-y: auto;
+  overflow: hidden;
   min-height: 0;
 }
 
+/* The scrolling half: hero + quick questions. min-height:0 is required for a
+   flex child to be allowed to scroll at all (the original bug on phones was
+   this pane having no scroll of its own inside the overflow:hidden panel;
+   the 2026-08-26 regression was the COMPOSER living inside the scroll region
+   and opening truncated — it is pinned below this area now). */
+.scrollArea {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
 .hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 30px 8px; }
+
+/* Constrained heights (docked widget is ~620px; the compact hero keeps the
+   quick questions AND the pinned composer comfortably on screen). */
+@media (max-height: 860px) {
+  .hero { padding: 18px 24px 4px; }
+  .mark { transform: scale(0.8); }
+  .title { font-size: 19px; }
+  .subtitle { font-size: 12.5px; }
+  .tile { padding: 10px 8px; }
+  .tileLabel { font-size: 11.5px; }
+}
 .mark {
   width: 52px;
   height: 52px;
@@ -59,11 +81,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 16px 24px 6px;
+  margin: 12px 24px 6px;
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--ai-border);
   background: var(--ai-surface);
+  /* Pinned below the scroll area — never squeezed, never scrolled away. */
+  flex-shrink: 0;
 }
 .input {
   flex: 1;
