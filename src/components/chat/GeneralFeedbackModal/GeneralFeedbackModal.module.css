@@ -143,32 +143,39 @@
 .sent { margin-inline-end: auto; font-size: 12px; color: var(--success, #10b981); font-weight: 500; }
 
 .cancel {
-  padding: 10px 18px;
-  border: 1px solid var(--ai-border, var(--border));
-  border-radius: 11px;
+  padding: 12px 22px;
+  border: 1px solid var(--ai-border, var(--border, #e2e8f0));
+  border-radius: 12px;
   background: none;
-  color: var(--ai-text-mute, var(--text-secondary));
-  font-size: 13px;
+  color: var(--ai-text-mute, var(--text-secondary, #64748b));
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
 }
 .cancel:hover { background: var(--ai-shell-bg, var(--bg-hover, rgba(0, 0, 0, 0.05))); color: var(--ai-text, var(--text-primary)); }
 
-/* Same treatment as the app's primary buttons (the --ai-grad gradient the
-   Intelligence CTAs use; plain accent as the fallback outside that portal) —
-   the flat dark rectangle it replaced read as unfinished (2026-08-26 review). */
+/* EXACT copy of the portal's primary button (.startBtn / .openBtn:
+   background var(--ai-grad); color #fff; radius 12px). Two hard-won lessons
+   baked in (three review rounds, 2026-08-26):
+   1. This modal can render OUTSIDE the Intelligence .shell (the chat widget
+      portals to body), where every --ai-* token is UNDEFINED — so the
+      fallback is the literal zolstock-blue gradient the portal uses, not
+      another token chain that dies silently.
+   2. color is #fff !important because *something* in the host context kept
+      overriding it to dark-on-blue. A primary action button has white text.
+      Full stop. */
 .submit {
-  padding: 10px 22px;
+  padding: 12px 26px;
   border: none;
-  border-radius: 11px;
-  background: var(--ai-grad, linear-gradient(135deg, var(--primary-color, #2563eb), var(--ai-accent, #1d4ed8)));
-  color: var(--primary-contrast, #fff);
-  font-size: 13px;
+  border-radius: 12px;
+  background: var(--ai-grad, linear-gradient(135deg, #0a40a8, #0858d6));
+  color: #fff !important;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.25);
+  box-shadow: 0 2px 10px rgba(8, 88, 214, 0.3);
 }
-.submit:hover:not(:disabled) { filter: brightness(1.07); }
+.submit:hover:not(:disabled) { filter: brightness(1.08); }
 .submit:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 .submit:focus-visible, .cancel:focus-visible { outline: 2px solid var(--ai-accent, var(--primary-color, #2563eb)); outline-offset: 2px; }
 
