@@ -3,22 +3,26 @@
  *
  * Used twice with different scope: her briefcase (in front of her forever) and
  * a conversation's attachments (that chat only). The mechanics are identical,
- * so the component is one; only the scope and the labelling rule differ.
+ * so the component is one; only the scope differs.
+ *
+ * The file uploads the moment you pick it, and the label is added afterwards,
+ * inline on the row. Naming a file before it exists put a dialog in front of the
+ * thing you actually came to do, and made an already-chosen file feel unsaved.
  *
  * Two things it insists on:
  *
- * The supported formats are stated BEFORE you pick a file, because the common
- * case — a brand deck — is a .pptx that cannot be read, and finding that out
- * after a 20MB upload is a bad way to learn it.
+ * The supported formats are stated BEFORE you pick, because the common case — a
+ * brand deck — is a .pptx that cannot be read, and finding that out after a 20MB
+ * upload is a bad way to learn it.
  *
  * The token weight is shown per file. These are re-sent on every turn, so a
  * briefcase is a running cost, and a number is the only thing that keeps it a
  * briefcase rather than a filing cabinet.
  */
 
-import { useRef, useState } from 'react';
+import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 
-import { deleteWorkerFile, setWorkerFileActive, uploadWorkerFile } from '../services/hqApi';
+import { deleteWorkerFile, updateWorkerFile, uploadWorkerFile } from '../services/hqApi';
 import type { WorkerCapabilities, WorkerFile } from '../types';
 import styles from './FileDrop.module.css';
 
@@ -29,9 +33,16 @@ interface Props {
   onChange: (files: WorkerFile[]) => void;
   /** Omitted for the briefcase; set for a conversation's own attachments. */
   conversationId?: number | null;
-  /** The briefcase requires a label — it IS the instruction. */
-  requireLabel?: boolean;
+  /**
+   * Compact drops the add button and the format line — the composer's paperclip
+   * is the affordance there, and a second one would be noise above the input.
+   */
   compact?: boolean;
+}
+
+export interface FileDropHandle {
+  /** Open the file picker from outside — the composer's paperclip uses this. */
+  pick: () => void;
 }
 
 const weight = (n: number | null) =>
@@ -43,45 +54,51 @@ function icon(file: WorkerFile) {
   return '📄';
 }
 
-export function FileDrop({
-  slug, caps, files, onChange, conversationId = null, requireLabel = false, compact = false,
-}: Props) {
-  const [pending, setPending] = useState<File | null>(null);
-  const [label, setLabel] = useState('');
+export const FileDrop = forwardRef<FileDropHandle, Props>(function FileDrop({
+  slug, caps, files, onChange, conversationId = null, compact = false,
+}, ref) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Which row is being named. New uploads open straight into this. */
+  const [naming, setNaming] = useState<number | null>(null);
+  const [draft, setDraft] = useState('');
   const input = useRef<HTMLInputElement>(null);
+
+  useImperativeHandle(ref, () => ({ pick: () => input.current?.click() }), []);
 
   const accept = (caps?.fileExtensions || []).join(',');
   const total = files.filter(f => f.active).reduce((sum, f) => sum + (f.token_estimate || 0), 0);
 
-  function choose(file: File | undefined) {
+  async function send(file: File | undefined) {
     if (!file) return;
-    setError(null);
-    // With a label required we cannot upload yet — the name is part of the
-    // upload, not an edit afterwards.
-    if (requireLabel) { setPending(file); setLabel(''); }
-    else void send(file);
-  }
-
-  async function send(file: File, withLabel?: string) {
     setBusy(true);
+    setError(null);
     try {
-      const added = await uploadWorkerFile(slug, file, { conversationId, label: withLabel });
+      const added = await uploadWorkerFile(slug, file, { conversationId });
       onChange([...files, added]);
-      setPending(null); setLabel(''); setError(null);
-      if (input.current) input.current.value = '';
+      // Straight into naming: the file is safe, and this is the one thing that
+      // turns "here is a PDF" into an instruction.
+      setNaming(added.id);
+      setDraft('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed');
     } finally {
       setBusy(false);
+      if (input.current) input.current.value = '';
     }
+  }
+
+  async function saveLabel(file: WorkerFile) {
+    const label = draft.trim();
+    setNaming(null);
+    if (label === (file.label || '')) return;
+    onChange(files.map(f => f.id === file.id ? { ...f, label: label || null } : f));
+    await updateWorkerFile(file.id, { label }).catch(() => onChange(files));
   }
 
   async function toggle(file: WorkerFile) {
     onChange(files.map(f => f.id === file.id ? { ...f, active: !f.active } : f));
-    await setWorkerFileActive(file.id, !file.active)
-      .catch(() => onChange(files));
+    await updateWorkerFile(file.id, { active: !file.active }).catch(() => onChange(files));
   }
 
   async function remove(file: WorkerFile) {
@@ -96,13 +113,39 @@ export function FileDrop({
           {files.map(f => (
             <li key={f.id} className={`${styles.file} ${f.active ? '' : styles.fileOff}`}>
               <span className={styles.icon}>{icon(f)}</span>
+
               <span className={styles.body}>
-                <span className={styles.label} dir="auto">{f.label || f.filename}</span>
+                {naming === f.id ? (
+                  <input
+                    className={styles.labelInput}
+                    autoFocus
+                    value={draft}
+                    placeholder="What is this? e.g. brand voice — follow for all copy"
+                    onChange={e => setDraft(e.target.value)}
+                    onBlur={() => void saveLabel(f)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') void saveLabel(f);
+                      if (e.key === 'Escape') setNaming(null);
+                    }}
+                    dir="auto"
+                  />
+                ) : (
+                  <button
+                    className={styles.labelBtn}
+                    onClick={() => { setNaming(f.id); setDraft(f.label || ''); }}
+                    title="Click to say what this is"
+                  >
+                    <span className={f.label ? styles.label : styles.labelEmpty} dir="auto">
+                      {f.label || 'Add a label'}
+                    </span>
+                  </button>
+                )}
                 <span className={styles.meta}>
-                  {f.label ? `${f.filename} · ` : ''}{weight(f.token_estimate)}
+                  {f.filename}{f.token_estimate ? ` · ${weight(f.token_estimate)}` : ''}
                   {f.kind === 'reference' && ' · visual reference'}
                 </span>
               </span>
+
               <button
                 className={styles.act}
                 onClick={() => toggle(f)}
@@ -116,45 +159,22 @@ export function FileDrop({
         </ul>
       )}
 
-      {/* Naming happens before the upload, not after — the label is the
-          instruction, so a file cannot exist without one. */}
-      {pending && (
-        <div className={styles.naming}>
-          <div className={styles.namingFile}>{pending.name}</div>
-          <input
-            className={styles.namingInput}
-            autoFocus
-            value={label}
-            placeholder="What is this, and what should she do with it?"
-            onChange={e => setLabel(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && label.trim()) void send(pending, label.trim()); }}
-            dir="auto"
-          />
-          <div className={styles.namingActions}>
-            <button className="hqGhostPill" onClick={() => { setPending(null); setLabel(''); }} disabled={busy}>
-              Cancel
-            </button>
-            <button className="hqPill" onClick={() => void send(pending, label.trim())} disabled={busy || !label.trim()}>
-              {busy ? 'Adding…' : 'Add'}
-            </button>
-          </div>
-        </div>
-      )}
-
+      {busy && <div className={styles.busy}>Reading it…</div>}
       {error && <div className={styles.error}>{error}</div>}
 
-      {!pending && (
+      <input
+        ref={input}
+        type="file"
+        accept={accept}
+        className={styles.hidden}
+        onChange={e => void send(e.target.files?.[0])}
+      />
+
+      {!compact && (
         <div className={styles.footer}>
           <button className="hqMini" onClick={() => input.current?.click()} disabled={busy}>
-            {busy ? 'Adding…' : '＋ Add a file'}
+            ＋ Add a file
           </button>
-          <input
-            ref={input}
-            type="file"
-            accept={accept}
-            className={styles.hidden}
-            onChange={e => choose(e.target.files?.[0])}
-          />
           <span className={styles.formats}>
             {(caps?.fileTypes || []).join(', ')}
             {caps?.maxFileBytes ? ` · up to ${Math.round(caps.maxFileBytes / 1048576)}MB` : ''}
@@ -169,4 +189,4 @@ export function FileDrop({
       )}
     </div>
   );
-}
+});

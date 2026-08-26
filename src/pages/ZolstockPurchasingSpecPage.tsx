@@ -194,7 +194,10 @@ export function ZolstockPurchasingSpecPage() {
   const [active, setActive] = useState(INTRO.id);
   const [progress, setProgress] = useState(0);
   const [theme, setTheme] = useState<Theme>(() => {
-    try { return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark'; } catch { return 'dark'; }
+    // Light is the default — these are documents people read and forward, and
+    // a dark page is a surprise when a link is opened cold. A stored 'dark'
+    // still wins, so anyone who chose it keeps it.
+    try { return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'; } catch { return 'light'; }
   });
   const scrollerRef = useRef<HTMLDivElement>(null);
 

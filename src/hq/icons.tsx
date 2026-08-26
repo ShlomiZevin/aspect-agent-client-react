@@ -40,6 +40,15 @@ export const IconSend = () => (
   <svg {...base}><path d="M12 19V5M6 11l6-6 6 6" /></svg>
 );
 
+/** Paperclip. A real icon rather than the 📎 emoji, which renders at a
+    different weight and baseline on every platform and sat visibly off-centre
+    against the send button. */
+export const IconClip = () => (
+  <svg {...base}>
+    <path d="M20 11.5 12 19.5a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L9.6 17.2a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9" />
+  </svg>
+);
+
 export const IconBack = () => (
   <svg {...base}><path d="M15 18l-6-6 6-6" /></svg>
 );

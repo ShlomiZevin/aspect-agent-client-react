@@ -16,12 +16,39 @@
 .icon { font-size: 15px; line-height: 1; flex-shrink: 0; }
 
 .body { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
+
+/* The label is edited in place on the row. A file with none says so, because an
+   unnamed brand document is one she has no instruction about. */
+.labelBtn {
+  background: none; border: 0; padding: 0;
+  font: inherit; text-align: left; cursor: text;
+  min-width: 0; width: 100%;
+  display: block;
+}
 .label {
+  display: block;
   font-size: 13px; font-weight: 600; color: var(--text);
   /* Physical, not `start`: dir="auto" turns a Hebrew label RTL and the column
      would end up with two ragged edges. */
   text-align: left;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.labelEmpty {
+  display: block;
+  font-size: 13px; font-weight: 600; color: var(--mag);
+  border-bottom: 1px dashed currentColor;
+  width: fit-content; max-width: 100%;
+  text-align: left;
+}
+.labelBtn:hover .labelEmpty { opacity: .75; }
+
+.labelInput {
+  width: 100%;
+  background: var(--surface); color: var(--text);
+  border: 0; border-bottom: 1px solid var(--mag);
+  padding: 1px 0 2px;
+  font: inherit; font-size: 13px; font-weight: 600;
+  text-align: left; outline: 0;
 }
 .meta {
   font-size: 10.5px; color: var(--text-3);
@@ -37,26 +64,7 @@
 }
 .act:hover { border-color: var(--mag); color: var(--mag); }
 
-/* ── Naming ──────────────────────────────────────────────────────────────── */
-.naming {
-  display: flex; flex-direction: column; gap: 8px;
-  background: var(--surface);
-  border: 1px solid var(--mag);
-  border-radius: var(--radius-sm);
-  padding: 12px 13px;
-}
-.namingFile { font-size: 11px; color: var(--text-3); }
-.namingInput {
-  background: var(--surface-2);
-  border: 1px solid var(--border-2);
-  border-radius: var(--radius-sm);
-  padding: 9px 11px;
-  font: inherit; font-size: 13.5px; color: var(--text);
-  text-align: left;
-  outline: 0;
-}
-.namingInput:focus { border-color: var(--mag); background: var(--surface); }
-.namingActions { display: flex; justify-content: flex-end; gap: 8px; }
+.busy { font-size: 12px; color: var(--text-3); }
 
 /* ── Footer ──────────────────────────────────────────────────────────────── */
 .footer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -74,5 +82,16 @@
   border-inline-start: 2px solid var(--danger); padding-inline-start: 9px;
 }
 
-.compact .file { padding: 6px 8px; }
-.compact .label { font-size: 12px; }
+/* In the composer: chips, not rows. They sit directly above the input as part
+   of what you are about to send, so they must not read as a panel. */
+.compact { gap: 6px; }
+.compact .list { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+.compact .file {
+  width: auto; max-width: 260px;
+  padding: 5px 8px 5px 10px;
+  border-radius: 100px;
+  background: var(--surface);
+}
+.compact .label, .compact .labelEmpty, .compact .labelInput { font-size: 11.5px; }
+.compact .meta { font-size: 9.5px; }
+.compact .act { padding: 2px 7px; font-size: 9.5px; }

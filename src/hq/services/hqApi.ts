@@ -325,10 +325,13 @@ export const listWorkerFiles = (slug: string, conversationId?: number | null) =>
     `/workers/${slug}/files${conversationId ? `?conversationId=${conversationId}` : ''}`,
   ).then(r => r.files);
 
-/** Off rather than deleted, for a guide you are between versions of. */
-export const setWorkerFileActive = (id: number, active: boolean) =>
+/**
+ * Name it, or switch it off without losing it. Only the keys passed are
+ * touched, so setting a label cannot silently reactivate a file.
+ */
+export const updateWorkerFile = (id: number, patch: { active?: boolean; label?: string }) =>
   api<{ file: import('../types').WorkerFile }>(`/workers/files/${id}`, {
-    method: 'PATCH', body: JSON.stringify({ active }),
+    method: 'PATCH', body: JSON.stringify(patch),
   }).then(r => r.file);
 
 export const deleteWorkerFile = (id: number) =>

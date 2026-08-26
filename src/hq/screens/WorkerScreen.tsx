@@ -17,9 +17,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { FileDrop } from '../components/FileDrop';
+import type { FileDropHandle } from '../components/FileDrop';
 import { Picker } from '../components/Picker';
 import type { PickerOption } from '../components/Picker';
-import { IconBack, IconEdit, IconSend } from '../icons';
+import { IconBack, IconClip, IconEdit, IconSend } from '../icons';
 import {
   WORKER_MODELS, addLesson, cancelJob, deleteLesson, getConversation, getWorker, listLessons,
   listWorkerFiles, listWorkers, newConversation, reportUrl, sendToWorker, setConversationModels,
@@ -167,7 +168,8 @@ export function WorkerScreen() {
    */
   const [briefcase, setBriefcase] = useState<WorkerFile[]>([]);
   const [convFiles, setConvFiles] = useState<WorkerFile[]>([]);
-  const [showFiles, setShowFiles] = useState(false);
+  /** The composer's paperclip opens the picker directly — no intermediate bar. */
+  const convDrop = useRef<FileDropHandle>(null);
 
   const bottom = useRef<HTMLDivElement>(null);
 
@@ -617,11 +619,14 @@ export function WorkerScreen() {
           <div ref={bottom} />
         </div>
 
-        {/* Attached to THIS conversation only, and in context for all of it —
-            the brief for this campaign, not a standing rule. */}
-        {showFiles && (
-          <div className={styles.convFiles}>
+        <div className={styles.composer}>
+          {/* Attached to THIS conversation and in context for all of it — the
+              brief for this campaign, not a standing rule. The chips sit inside
+              the composer because they are part of what you are sending, not a
+              panel above it. */}
+          <div className={styles.composerBody}>
             <FileDrop
+              ref={convDrop}
               slug={slug}
               caps={caps}
               files={convFiles}
@@ -629,31 +634,30 @@ export function WorkerScreen() {
               conversationId={conversationId}
               compact
             />
+            <div className={styles.composerRow}>
+              <button
+                className={styles.clip}
+                onClick={() => convDrop.current?.pick()}
+                title={`Attach a file to this conversation — ${(caps?.fileTypes || []).join(', ')}`}
+              >
+                <IconClip />
+              </button>
+              <textarea
+                className={styles.input}
+                value={input}
+                dir="auto"
+                rows={1}
+                placeholder={`Ask ${worker.name} for something…`}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+                }}
+              />
+              <button className={styles.send} onClick={send} disabled={busy || !input.trim()}>
+                <IconSend />
+              </button>
+            </div>
           </div>
-        )}
-
-        <div className={styles.composer}>
-          <button
-            className={`${styles.clip} ${convFiles.length ? styles.clipOn : ''}`}
-            onClick={() => setShowFiles(v => !v)}
-            title="Attach something to this conversation"
-          >
-            📎{convFiles.length > 0 && <span className={styles.clipCount}>{convFiles.length}</span>}
-          </button>
-          <textarea
-            className={styles.input}
-            value={input}
-            dir="auto"
-            rows={1}
-            placeholder={`Ask ${worker.name} for something…`}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-            }}
-          />
-          <button className="hqPill" onClick={send} disabled={busy || !input.trim()}>
-            <IconSend />
-          </button>
         </div>
       </div>
 
@@ -862,7 +866,6 @@ export function WorkerScreen() {
                     caps={caps}
                     files={briefcase}
                     onChange={setBriefcase}
-                    requireLabel
                   />
                 </div>
 
