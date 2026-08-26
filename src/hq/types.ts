@@ -215,12 +215,32 @@ export interface WorkerSpend {
   totalUsd: number;
 }
 
+/** A file a worker was GIVEN — as opposed to MediaItem, which is what she made. */
+export interface WorkerFile {
+  id: number;
+  worker_id: number;
+  conversation_id: number | null;
+  kind: 'instructions' | 'reference';
+  label: string | null;
+  filename: string;
+  mime_type: string;
+  bytes: number | null;
+  token_estimate: number | null;
+  has_text?: boolean;
+  active: boolean;
+  created_at: string;
+}
+
 export interface WorkerCapabilities {
   images: boolean;
   htmlRender: boolean;
   imageModels: { id: string; label: string; about: string; approxCost: number }[];
   /** Models offered for the phrasing step — see hq/services/phrasing.service.js. */
   phrasingModels: { id: string; label: string; about: string }[];
+  /** Said before anyone picks a file, so an upload cannot fail on format. */
+  fileTypes: string[];
+  fileExtensions: string[];
+  maxFileBytes: number;
 }
 
 export interface WorkerConversation {

@@ -57,6 +57,8 @@ export { LybiBrainPage } from './LybiBrainPage';
 export { LLMGuidePage } from './LLMGuidePage';
 export { PitchDeckPage } from './PitchDeckPage';
 export { TeamPlanPage } from './TeamPlanPage';
+export { ZolstockPurchasingSpecPage } from './ZolstockPurchasingSpecPage';
+export { ZolstockPurchasingClientPage } from './ZolstockPurchasingClientPage';
 export { TaskBoardPage } from './TaskBoardPage';
 export { TechBacklogPage } from './TechBacklogPage';
 export { TiktokPage } from './TiktokPage';

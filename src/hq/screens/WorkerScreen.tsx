@@ -16,16 +16,18 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import { FileDrop } from '../components/FileDrop';
 import { Picker } from '../components/Picker';
 import type { PickerOption } from '../components/Picker';
 import { IconBack, IconEdit, IconSend } from '../icons';
 import {
   WORKER_MODELS, addLesson, cancelJob, deleteLesson, getConversation, getWorker, listLessons,
-  listWorkers, newConversation, reportUrl, sendToWorker, setConversationModels,
+  listWorkerFiles, listWorkers, newConversation, reportUrl, sendToWorker, setConversationModels,
   updateLesson, updateWorker,
 } from '../services/hqApi';
 import type {
   Job, Lesson, MediaItem, Report, Worker, WorkerCapabilities, WorkerConversation, WorkerEvent,
+  WorkerFile,
   WorkerMessage,
 } from '../types';
 import styles from './WorkerScreen.module.css';
@@ -159,6 +161,13 @@ export function WorkerScreen() {
   const [imageModel, setImageModel] = useState<string | null>(null);
   const [convModel, setConvModel] = useState<string | null>(null);
   const [convPhrasing, setConvPhrasing] = useState<string | null>(null);
+  /**
+   * What she has been given. Two scopes on purpose: the briefcase is in front
+   * of her forever, conversation files only for this chat.
+   */
+  const [briefcase, setBriefcase] = useState<WorkerFile[]>([]);
+  const [convFiles, setConvFiles] = useState<WorkerFile[]>([]);
+  const [showFiles, setShowFiles] = useState(false);
 
   const bottom = useRef<HTMLDivElement>(null);
 
@@ -234,6 +243,7 @@ export function WorkerScreen() {
     setImageModel(data.conversation?.image_model ?? null);
     setConvModel(data.conversation?.model ?? null);
     setConvPhrasing(data.conversation?.phrasing_model ?? null);
+    setConvFiles(await listWorkerFiles(slug, id).catch(() => []));
     setLiveJob(data.jobs.find(j => j.status === 'running') || null);
   }, [slug]);
 
@@ -243,6 +253,12 @@ export function WorkerScreen() {
   useEffect(() => {
     listWorkers().then(r => setCaps(r.capabilities)).catch(() => setCaps(null));
   }, []);
+
+  // Her briefcase belongs to the employee, not to a conversation, so it loads
+  // once with the screen.
+  useEffect(() => {
+    listWorkerFiles(slug).then(setBriefcase).catch(() => setBriefcase([]));
+  }, [slug]);
 
   useEffect(() => {
     getWorker(slug)
@@ -601,7 +617,29 @@ export function WorkerScreen() {
           <div ref={bottom} />
         </div>
 
+        {/* Attached to THIS conversation only, and in context for all of it —
+            the brief for this campaign, not a standing rule. */}
+        {showFiles && (
+          <div className={styles.convFiles}>
+            <FileDrop
+              slug={slug}
+              caps={caps}
+              files={convFiles}
+              onChange={setConvFiles}
+              conversationId={conversationId}
+              compact
+            />
+          </div>
+        )}
+
         <div className={styles.composer}>
+          <button
+            className={`${styles.clip} ${convFiles.length ? styles.clipOn : ''}`}
+            onClick={() => setShowFiles(v => !v)}
+            title="Attach something to this conversation"
+          >
+            📎{convFiles.length > 0 && <span className={styles.clipCount}>{convFiles.length}</span>}
+          </button>
           <textarea
             className={styles.input}
             value={input}
@@ -809,6 +847,25 @@ export function WorkerScreen() {
                     (where Hebrew that reads translated comes from), and pictures
                     are a different provider entirely. A conversation can
                     override any of them without touching these. */}
+                {/* What she carries into every conversation. Sits under the job
+                    description because it is the same thing in a different
+                    form: the text says how she works, these say what to. */}
+                <div className={styles.defaults}>
+                  <span className="hqEyebrow">Her briefcase — read on every message</span>
+                  <p className={styles.defaultsHint}>
+                    Brand guidelines, tone of voice, an example of what good looks like. Unlike the
+                    HQ library she does not have to go looking for these — they are in front of her
+                    every time, and she is told to check her work against them.
+                  </p>
+                  <FileDrop
+                    slug={slug}
+                    caps={caps}
+                    files={briefcase}
+                    onChange={setBriefcase}
+                    requireLabel
+                  />
+                </div>
+
                 <div className={styles.defaults}>
                   <span className="hqEyebrow">Who does what, by default</span>
                   <div className={styles.defaultsRow}>

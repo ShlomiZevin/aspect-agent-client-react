@@ -1,0 +1,78 @@
+.wrap { display: flex; flex-direction: column; gap: 9px; }
+
+.list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+
+.file {
+  display: flex; align-items: center; gap: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 9px 8px 11px;
+}
+/* Off, not gone. Muted rather than struck through — this is a file you may
+   switch back on, not one you have discarded. */
+.fileOff { opacity: .5; }
+
+.icon { font-size: 15px; line-height: 1; flex-shrink: 0; }
+
+.body { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.label {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  /* Physical, not `start`: dir="auto" turns a Hebrew label RTL and the column
+     would end up with two ragged edges. */
+  text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.meta {
+  font-size: 10.5px; color: var(--text-3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.act {
+  flex-shrink: 0;
+  background: none; border: 1px solid var(--border-2); border-radius: 100px;
+  padding: 3px 9px;
+  font: inherit; font-size: 10.5px; font-weight: 600; color: var(--text-3);
+  cursor: pointer; transition: .13s;
+}
+.act:hover { border-color: var(--mag); color: var(--mag); }
+
+/* ── Naming ──────────────────────────────────────────────────────────────── */
+.naming {
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--mag);
+  border-radius: var(--radius-sm);
+  padding: 12px 13px;
+}
+.namingFile { font-size: 11px; color: var(--text-3); }
+.namingInput {
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  font: inherit; font-size: 13.5px; color: var(--text);
+  text-align: left;
+  outline: 0;
+}
+.namingInput:focus { border-color: var(--mag); background: var(--surface); }
+.namingActions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.footer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hidden { display: none; }
+.formats { font-size: 10.5px; color: var(--text-3); }
+/* The running cost, stated where you add to it rather than discovered later. */
+.total {
+  margin-inline-start: auto;
+  font-size: 10.5px; font-weight: 600; color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.error {
+  font-size: 12px; color: var(--danger); line-height: 1.5;
+  border-inline-start: 2px solid var(--danger); padding-inline-start: 9px;
+}
+
+.compact .file { padding: 6px 8px; }
+.compact .label { font-size: 12px; }

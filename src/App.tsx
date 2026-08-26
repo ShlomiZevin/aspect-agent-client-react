@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, AspectAgentsHomePage, ArchitecturePage, AspectBattleCardPage, AspectMarketingSalesPage, AspectPage, AspectLandingPage, AspectPlatformLandingPage, AspectPlatformSalesPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaNextPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, EnterpriseReadinessPage, LybiArchitecturePage, LybiTechnologyPage, LybiBankingDeckPage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiBrainPage, LybiKnowledgePage, LybiCostPage, LybiInstallPage, LybiSupportPage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TeamPlanPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage, AgentChatWidgetPage, IntelligenceAdminPage, ZolStockPage, TevaNaotPage } from './pages';
+import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, AspectAgentsHomePage, ArchitecturePage, AspectBattleCardPage, AspectMarketingSalesPage, AspectPage, AspectLandingPage, AspectPlatformLandingPage, AspectPlatformSalesPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaNextPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, EnterpriseReadinessPage, LybiArchitecturePage, LybiTechnologyPage, LybiBankingDeckPage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiBrainPage, LybiKnowledgePage, LybiCostPage, LybiInstallPage, LybiSupportPage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TeamPlanPage, ZolstockPurchasingSpecPage, ZolstockPurchasingClientPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage, AgentChatWidgetPage, IntelligenceAdminPage, ZolStockPage, TevaNaotPage } from './pages';
 
 // Builder lives in its own subtree — lazy so end-user routes don't pay for it.
 const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ default: m.BuilderPage })));
@@ -120,6 +120,9 @@ function AppContent() {
         <Route path="/aspect/handoff" element={<KostaHandoffPage />} />
         <Route path="/aspect/pitch" element={<PitchDeckPage />} />
         <Route path="/aspect/plan" element={<TeamPlanPage />} />
+        {/* Zol Stock smart-replenishment spec — English engineering brief + its Hebrew customer companion. */}
+        <Route path="/aspect/zolstock-purchasing" element={<ZolstockPurchasingSpecPage />} />
+        <Route path="/aspect/zolstock-purchasing-he" element={<ZolstockPurchasingClientPage />} />
         <Route path="/lybi/llm-guide" element={<LLMGuidePage />} />
         <Route path="/lybi/how-we-build" element={<HowWeBuildPage />} />
         <Route path="/lybi/brain" element={<LybiBrainPage />} />

@@ -289,6 +289,51 @@ export const getWorker = (slug: string) =>
   api<{ worker: Worker; conversations: WorkerConversation[]; spend: WorkerSpend | null }>(
     `/workers/${slug}`);
 
+// ─── What she has been given ────────────────────────────────────────────────
+
+/**
+ * Upload to her briefcase (no conversation) or to one conversation.
+ *
+ * Multipart, so no JSON Content-Type — setting it by hand strips the boundary
+ * and multer sees an empty body.
+ */
+export async function uploadWorkerFile(
+  slug: string,
+  file: File,
+  opts: { conversationId?: number | null; label?: string; kind?: string } = {},
+) {
+  const body = new FormData();
+  body.append('file', file);
+  if (opts.label) body.append('label', opts.label);
+  if (opts.kind) body.append('kind', opts.kind);
+
+  const path = opts.conversationId
+    ? `/workers/${slug}/conversations/${opts.conversationId}/files`
+    : `/workers/${slug}/files`;
+
+  const res = await fetch(`${getBaseURL()}/api/hq${path}`, { method: 'POST', body });
+  if (!res.ok) {
+    let message = `Upload failed (${res.status})`;
+    try { message = (await res.json()).error || message; } catch { /* keep default */ }
+    throw new Error(message);
+  }
+  return (await res.json()).file as import('../types').WorkerFile;
+}
+
+export const listWorkerFiles = (slug: string, conversationId?: number | null) =>
+  api<{ files: import('../types').WorkerFile[] }>(
+    `/workers/${slug}/files${conversationId ? `?conversationId=${conversationId}` : ''}`,
+  ).then(r => r.files);
+
+/** Off rather than deleted, for a guide you are between versions of. */
+export const setWorkerFileActive = (id: number, active: boolean) =>
+  api<{ file: import('../types').WorkerFile }>(`/workers/files/${id}`, {
+    method: 'PATCH', body: JSON.stringify({ active }),
+  }).then(r => r.file);
+
+export const deleteWorkerFile = (id: number) =>
+  api<{ ok: boolean }>(`/workers/files/${id}`, { method: 'DELETE' });
+
 /** The employment definition is meant to be edited — that's the whole point. */
 export const updateWorker = (slug: string, patch: Partial<{
   name: string; roleTitle: string; tagline: string; avatar: string;
