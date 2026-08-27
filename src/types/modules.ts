@@ -25,7 +25,7 @@ export type SettingSource = 'module' | 'platform' | 'code' | null;
 
 export interface ModuleSettingField {
   key: string;
-  type?: 'number' | 'text' | 'boolean' | 'model' | 'emails';
+  type?: 'number' | 'text' | 'boolean' | 'model' | 'emails' | 'event_toggles';
   required?: boolean;
   default?: unknown;
   label: LocalizedText;

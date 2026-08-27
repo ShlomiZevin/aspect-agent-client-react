@@ -303,6 +303,7 @@ function SettingsModal({ datasetId, baseURL, mod, onClose, onSaved }: {
               field={field}
               value={draft[field.key]}
               source={mod.settingsSources[field.key]}
+              events={mod.notificationEvents}
               onChange={v => setField(field.key, v)}
             />
           ))}
@@ -326,13 +327,64 @@ function SettingsModal({ datasetId, baseURL, mod, onClose, onSaved }: {
   );
 }
 
-function SettingField({ field, value, source, onChange }: {
+function SettingField({ field, value, source, events, onChange }: {
   field: ModuleSettingField;
   value: unknown;
   source: string | null;
+  events?: string[];
   onChange: (v: unknown) => void;
 }) {
   const isBool = field.type === 'boolean';
+
+  // Per-event toggles: a checkbox per event the module declares it can emit,
+  // so the list cannot drift from what the module actually sends. Absent or
+  // undefined means ON — the server treats a missing toggle as enabled, and
+  // the UI must agree or the two would disagree about the default.
+  if (field.type === 'event_toggles') {
+    const map = (value && typeof value === 'object' ? value : {}) as Record<string, boolean>;
+    return (
+      <div className={`${styles.field} ${styles.fieldWide}`}>
+        <span className={styles.fieldLabel}>{localized(field.label)}</span>
+        <div className={styles.toggleRow}>
+          {(events || []).map(ev => (
+            <label key={ev} className={styles.eventToggle}>
+              <input
+                type="checkbox"
+                checked={map[ev] !== false}
+                onChange={e => onChange({ ...map, [ev]: e.target.checked })}
+              />
+              <span>{ev.replace(/_/g, ' ')}</span>
+            </label>
+          ))}
+          {!(events || []).length && <span className={styles.fieldHint}>This module emits no events.</span>}
+        </div>
+        {field.hint && <span className={styles.fieldHint}>{localized(field.hint)}</span>}
+      </div>
+    );
+  }
+
+  // Multi-value email field — stored as an array, edited as one line.
+  if (field.type === 'emails') {
+    const list = Array.isArray(value) ? value : [];
+    return (
+      <label className={`${styles.field} ${styles.fieldWide}`}>
+        <span className={styles.fieldLabel}>
+          {localized(field.label)}
+          {field.required && <span className={styles.req}> *</span>}
+        </span>
+        <input
+          className={styles.input}
+          type="text"
+          value={list.join(', ')}
+          placeholder="name@example.com, other@example.com"
+          onChange={e => onChange(
+            e.target.value.split(/[,;]/).map(s => s.trim()).filter(Boolean))}
+        />
+        {field.hint && <span className={styles.fieldHint}>{localized(field.hint)}</span>}
+      </label>
+    );
+  }
+
   return (
     <label className={styles.field}>
       <span className={styles.fieldLabel}>
