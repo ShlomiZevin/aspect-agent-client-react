@@ -1,0 +1,1 @@
+export { PurchasingPage } from './PurchasingPage';

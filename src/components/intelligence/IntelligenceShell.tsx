@@ -12,6 +12,8 @@ import { HomePage } from './Home/HomePage';
 import { ReportsPage } from './Reports/ReportsPage';
 import { ReportHistoryPage } from './Reports/ReportHistoryPage';
 import { InsightDetail } from './Insights/InsightDetail';
+import { PurchasingPage } from './Purchasing/PurchasingPage';
+import { replenishmentService } from '../../services/replenishmentService';
 import { ChatWidget } from './ChatWidget';
 import { DataHealthTrigger } from '../chat/DataHealthModal';
 import { FeedbackTrigger } from '../chat/GeneralFeedbackModal';
@@ -38,6 +40,8 @@ interface Props {
   reportsRoute: boolean;
   /** True on /intelligence/:datasetId/reports/history — Report history (design turn 12a). */
   historyRoute: boolean;
+  /** True on /intelligence/:datasetId/purchasing — the Smart Replenishment module's client surface. */
+  purchasingRoute?: boolean;
 }
 
 export function IntelligenceShell(props: Props) {
@@ -62,7 +66,7 @@ export function IntelligenceShell(props: Props) {
   );
 }
 
-function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute, historyRoute }: Props) {
+function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute, historyRoute, purchasingRoute }: Props) {
   const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
   const { userId } = useUserContext();
@@ -70,6 +74,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   // hardcoded prop, so this shell works for any enabled dataset, not just
   // whichever one it was originally built against.
   const [meta, setMeta] = useState<{ name: string; logoText: string } | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     insightsService.listDatasets()
@@ -112,6 +117,20 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   // baseURL is used here rather than one specific dataset's config.
   const datasetAgent = getAgentConfig(datasetId);
   const baseURL = datasetAgent?.baseURL;
+
+  // Is the Smart Replenishment module live for this dataset? Resolved from
+  // the public module-status endpoint, so switching the module off in the
+  // admin tab removes the nav item and nothing else has to be updated. It
+  // starts false and only ever turns on: a nav item that flickers in and out
+  // is worse than one that appears a beat late.
+  const [purchasingLive, setPurchasingLive] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    replenishmentService.isLive(datasetId, baseURL)
+      .then(live => { if (alive) setPurchasingLive(live); })
+      .catch(() => { /* a failed check simply means no nav item */ });
+    return () => { alive = false; };
+  }, [datasetId, baseURL]);
   const [syncInfo, setSyncInfo] = useState<{ lastSync: string; dataFrom: string | null; dataThrough: string } | null>(null);
   useEffect(() => {
     if (!baseURL) return;
@@ -197,8 +216,8 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
     handleChatExpandedChange(true);
     setPendingChatQuestion(question);
   };
-  const view: 'home' | 'reports' | 'history' | 'detail' | 'chat' =
-    chatRoute ? 'chat' : insightId ? 'detail' : historyRoute ? 'history' : reportsRoute ? 'reports' : 'home';
+  const view: 'home' | 'reports' | 'history' | 'detail' | 'chat' | 'purchasing' =
+    chatRoute ? 'chat' : purchasingRoute ? 'purchasing' : insightId ? 'detail' : historyRoute ? 'history' : reportsRoute ? 'reports' : 'home';
 
   return (
     <div className={styles.shell} data-mode={mode} data-brand={datasetId}>
@@ -216,6 +235,13 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
             <button className={`${styles.navBtn} ${view === 'home' ? styles.navActive : ''}`} onClick={goHome}>{t('intel.nav.home')}</button>
             <button className={`${styles.navBtn} ${(view === 'reports' || view === 'history' || view === 'detail') ? styles.navActive : ''}`} onClick={goReports}>{t('intel.nav.reports')}</button>
             <button className={`${styles.navBtn} ${view === 'chat' ? styles.navActive : ''}`} onClick={openDataChat}>{t('intel.nav.chat')}</button>
+            {/* Renders ONLY when the Smart Replenishment module is enabled AND
+                ready for this dataset. Turning the module off removes the page
+                from the navigation cleanly, with no separate config to keep in
+                step. */}
+            {purchasingLive && (
+              <button className={`${styles.navBtn} ${view === 'purchasing' ? styles.navActive : ''}`} onClick={() => navigate(`/intelligence/${datasetId}/purchasing`)}>{t('intel.nav.purchasing')}</button>
+            )}
           </nav>
 
           <div className={styles.headerRight}>
@@ -285,6 +311,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
         )}
         {view === 'history' && <ReportHistoryPage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} />}
         {view === 'reports' && <ReportsPage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onOpenHistory={goHistory} />}
+        {view === 'purchasing' && <PurchasingPage datasetId={datasetId} baseURL={baseURL} />}
         {view === 'home' && <HomePage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onAskInChat={askFollowUp} onSeeAllReports={goReports} onOpenHistory={goHistory} />}
       </main>
 

@@ -365,6 +365,17 @@ function AppContent() {
             </Suspense>
           }
         />
+        {/* Smart Replenishment's client surface. The route always exists; the
+            page and its nav item only appear when the module is enabled and
+            ready for this dataset (see IntelligenceShell). */}
+        <Route
+          path="/intelligence/:datasetId/purchasing"
+          element={
+            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+              <IntelligencePage />
+            </Suspense>
+          }
+        />
 
         {/* Task Board - standalone full page */}
         <Route path="/tasks" element={<TaskBoardPage />} />
