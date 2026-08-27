@@ -10,6 +10,7 @@ interface FeedbackMessageCardProps {
 export function FeedbackMessageCard({ feedback, onDelete }: FeedbackMessageCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showSql, setShowSql] = useState(false);
 
   const handleDelete = async () => {
     if (!onDelete) return;
@@ -101,6 +102,24 @@ export function FeedbackMessageCard({ feedback, onDelete }: FeedbackMessageCardP
           </button>
         )}
       </div>
+      )}
+
+      {/* SQL run while producing the disputed reply, if any was captured
+          (see types/feedback.ts) — collapsed by default, it's the exception
+          case a reviewer digs into, not the headline. */}
+      {feedback.source !== 'general' && (feedback.sqlQueries?.length ?? 0) > 0 && (
+        <div className={styles.sqlSection}>
+          <button
+            type="button"
+            className={styles.sqlToggle}
+            onClick={() => setShowSql(v => !v)}
+          >
+            {showSql ? 'Hide SQL' : `Show SQL (${feedback.sqlQueries!.length})`}
+          </button>
+          {showSql && feedback.sqlQueries!.map((sql, i) => (
+            <pre key={i} className={styles.sqlBlock}>{sql}</pre>
+          ))}
+        </div>
       )}
 
       <div className={styles.feedbackSection}>
