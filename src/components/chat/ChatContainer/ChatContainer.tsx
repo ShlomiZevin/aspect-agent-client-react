@@ -258,6 +258,14 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
                         key={msg.id}
                         message={msg}
                         isStreaming={isLoading && idx === visibleMessages.length - 1 && msg.role === 'assistant'}
+                        // The user question this reply answered — feeds the
+                        // "Reject answer" prefill so feedback arrives with the
+                        // disputed request attached verbatim.
+                        precedingUserText={
+                          msg.role === 'assistant'
+                            ? [...visibleMessages.slice(0, idx)].reverse().find(m => m.role === 'user')?.content
+                            : undefined
+                        }
                       />
                     ))}
 

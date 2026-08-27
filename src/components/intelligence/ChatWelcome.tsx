@@ -52,6 +52,11 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
 
   return (
     <div className={styles.wrap}>
+      {/* Everything except the composer scrolls; the composer + hint are
+          pinned below. The composer must be visible from the instant the
+          widget opens — it is the primary element of this pane (2026-08-26
+          review: it was inside the scroll region and opened truncated). */}
+      <div className={styles.scrollArea}>
       <div className={styles.hero}>
         <span className={styles.mark}>✦</span>
         <div className={styles.title}>{t('intel.welcome.title')} {config?.headerTitle || config?.agentName || 'your'} {t('intel.welcome.titleSuffix')}</div>
@@ -66,7 +71,7 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
           const iconKey = KEY_TO_ICON[i] || 'revenue';
           return (
             <button key={i} className={styles.tile} onClick={() => onSend(question)}>
-              <svg className={styles.tileIcon} width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg className={styles.tileIcon} width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 {ICONS[iconKey]}
               </svg>
               <span className={styles.tileLabel}>{toSentenceCase(label)}</span>
@@ -76,6 +81,7 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
       </div>
 
       <div className={styles.spacer} />
+      </div>
 
       <div className={styles.inputRow}>
         <input

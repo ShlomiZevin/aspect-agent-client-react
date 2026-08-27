@@ -183,9 +183,19 @@ export function AgentChatWidgetPage() {
                    for each toggle kept missing new ones — matching the real
                    button's own class instead is the actual fix. */
                 [class*="_bot_"] th, [class*="_bot_"] th *,
-                [class*="_dataTableBtn_"], [class*="_dataTableBtn_"] * {
+                [class*="_dataTableBtn_"], [class*="_dataTableBtn_"] *,
+                [class*="_submit_"], [class*="_submit_"] *,
+                [class*="_tag_"][aria-pressed="true"] {
                   color: #fff !important;
                 }
+                /* _submit_ / pressed _tag_: the Reject-answer feedback modal
+                   (GeneralFeedbackModal) renders inside the bot subtree, so
+                   the blanket recolor above was painting its gradient submit
+                   button's text near-black-on-blue (2026-08-26 review, three
+                   rounds to find — the modal's own #fff !important loses the
+                   tie on source order to this page's injected sheet). Same
+                   contrast logic as th/_dataTableBtn_: colored background ⇒
+                   white text. */
                 [class*="_crewLabel_"] { display: none !important; }
                 [class^="_bar_dz658_"] { display: none !important; }
               `}</style>

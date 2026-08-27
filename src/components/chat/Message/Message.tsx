@@ -7,7 +7,7 @@ import { useLanguage } from '../../../context/LanguageContext';
 import { getTranslatedCrewName } from '../../../i18n/crewTranslations';
 import { ThinkingIndicator } from '../ThinkingIndicator';
 import { DebugPanel } from '../DebugPanel';
-import { FeedbackPanel } from '../FeedbackPanel';
+import { GeneralFeedbackModal } from '../GeneralFeedbackModal';
 import { AgentBugModal } from '../AgentBugModal/AgentBugModal';
 import { DataTableModal } from './DataTableModal';
 import type { DisplayColumn } from './DataTableModal';
@@ -23,7 +23,15 @@ interface MessageProps {
    * (tool call running / more text still to come). Drives whether its
    * ThinkingIndicator shows as active or already "done". */
   isStreaming?: boolean;
+  /** The user question this assistant message answered — prefilled into the
+   * "Reject answer" feedback so the reviewer sees the disputed request
+   * verbatim. Passed by the list renderer; absent on user messages. */
+  precedingUserText?: string;
 }
+
+/** Message delete is parked for now (product decision, Stage: feedback &
+ *  accuracy) — the code stays so it can return with one flag flip. */
+const SHOW_DELETE = false;
 
 // Detect if the message's primary direction is RTL (Hebrew, Arabic).
 // Finds the first real letter of any script — if it's Hebrew/Arabic → RTL.
@@ -63,7 +71,7 @@ function getDomainFromUrl(): string {
   return 'general';
 }
 
-export function Message({ message, isStreaming = false }: MessageProps) {
+export function Message({ message, isStreaming = false, precedingUserText }: MessageProps) {
   const { debugMode, deleteMessagesFrom, crewMembers, conversationId, selectedMessageIds, toggleMessageSelect, copyMessages, copyFromMessage, messages, sendMessage, restrictedMode } = useChatContext();
   const { t, language } = useLanguage();
   const config = useAgentConfig();
@@ -310,7 +318,7 @@ export function Message({ message, isStreaming = false }: MessageProps) {
                   ? `Transition prompt for: ${message.injectionMeta.crewMemberName}`
                   : 'Injected for testing'}
               </span>
-              {showActions && <DeleteButton />}
+              {SHOW_DELETE && showActions && <DeleteButton />}
             </div>
             <pre className={styles.developerContent}>{message.content}</pre>
           </div>
@@ -319,7 +327,7 @@ export function Message({ message, isStreaming = false }: MessageProps) {
             <span dir={rtl ? 'rtl' : undefined}>{message.content}</span>
             <div className={styles.messageActions}>
               <CopyActions />
-              {showActions && <DeleteButton />}
+              {SHOW_DELETE && showActions && <DeleteButton />}
             </div>
           </div>
         ) : (
@@ -357,21 +365,8 @@ export function Message({ message, isStreaming = false }: MessageProps) {
                     </svg>
                   </button>
                 )}
-                {canFeedback && (
-                  <button
-                    className={styles.feedbackButton}
-                    onClick={() => setShowFeedback(!showFeedback)}
-                    title="Add feedback"
-                    type="button"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-                      <line x1="9" y1="10" x2="15" y2="10" />
-                    </svg>
-                  </button>
-                )}
                 <CopyActions />
-                {showActions && <DeleteButton />}
+                {SHOW_DELETE && showActions && <DeleteButton />}
               </div>
             </div>
             {hasThinkingSteps && (
@@ -565,9 +560,34 @@ export function Message({ message, isStreaming = false }: MessageProps) {
             {debugMode && message.debugData && (
               <DebugPanel data={message.debugData} />
             )}
+            {/* Reject answer — the message-level feedback entry point (Stage:
+                feedback & accuracy). Bottom corner of the bubble: trailing
+                edge, so it sits right in LTR and left under dir="rtl". Ghost
+                styling — noticeable, not aggressive. Opens the shared
+                feedback modal in reject mode with the disputed request
+                prefilled and the wrong-numbers tag preselected. */}
+            {canFeedback && (
+              <div className={styles.rejectRow} dir={rtl ? 'rtl' : 'ltr'}>
+                <button
+                  type="button"
+                  className={styles.rejectButton}
+                  onClick={() => setShowFeedback(true)}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17" />
+                  </svg>
+                  {t('feedback.reject.button')}
+                </button>
+              </div>
+            )}
             {showFeedback && message.dbId && (
-              <FeedbackPanel
-                messageDbId={message.dbId}
+              <GeneralFeedbackModal
+                agentName={config.agentName}
+                baseURL={config.baseURL}
+                mode="reject"
+                assistantMessageId={message.dbId}
+                initialText={t('feedback.reject.prefill').replace('{request}', (precedingUserText || '').slice(0, 300) || '—')}
+                initialTags={['wrong-numbers']}
                 onClose={() => setShowFeedback(false)}
               />
             )}
