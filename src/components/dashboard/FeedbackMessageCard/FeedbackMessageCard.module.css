@@ -136,6 +136,44 @@
   text-decoration: underline;
 }
 
+.sqlSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.sqlToggle {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--font-family);
+}
+
+.sqlToggle:hover {
+  text-decoration: underline;
+}
+
+.sqlBlock {
+  font-family: var(--font-family-mono, ui-monospace, 'SF Mono', Menlo, Consolas, monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--surface-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
 .feedbackSection {
   border-top: 1px solid var(--border);
   padding-top: var(--spacing-md);

@@ -47,6 +47,10 @@ export interface FeedbackMessage {
   tags: FeedbackTag[];
   /** Which crew member handled this message (denormalized) */
   crewMember: string | null;
+  /** SQL run while producing this reply (see server.js /api/finance-assistant/stream).
+   *  Empty for messages saved before this was captured, or replies that never
+   *  queried data (e.g. gate refusals, clarifications). */
+  sqlQueries?: string[];
   /** Conversation external ID for linking */
   conversationId: string;
   /** Agent URL slug for building conversation link */
