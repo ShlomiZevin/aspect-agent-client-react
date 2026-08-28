@@ -61,6 +61,24 @@ export const modulesService = {
       baseURL,
     ),
 
+  /**
+   * Rebuild the module's infrastructure into the LIVE schema, now.
+   *
+   * Init already does this when it converges, and the nightly reload rebuilds
+   * it again (it must — a materialized view over the dataset's tables cannot
+   * survive the schema swap). This is the manual retry: the init-time build
+   * failed, or a reload ran while the module was disabled.
+   *
+   * Slow by nature — it is the same scan the nightly does — so the caller
+   * should show a pending state rather than assume it returns quickly.
+   */
+  buildNow: (datasetId: string, moduleId: string, baseURL?: string) =>
+    apiRequest<{ built: { moduleId: string; seconds: number }[]; failed: { moduleId: string; error: string }[]; log?: string[] }>(
+      `${base(datasetId)}/${encodeURIComponent(moduleId)}/build`,
+      { method: 'POST', body: JSON.stringify({}) },
+      baseURL,
+    ),
+
   /** What the progress bar polls. `progress` is computed server-side. */
   latestRun: (datasetId: string, moduleId: string, baseURL?: string) =>
     apiRequest<ModuleRunResponse>(

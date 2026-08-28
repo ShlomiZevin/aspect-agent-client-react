@@ -440,6 +440,7 @@ function RunModal({ datasetId, baseURL, mod, onClose, onModuleChanged }: {
   const [progress, setProgress] = useState<ModuleProgress | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [building, setBuilding] = useState(false);
   const fetchedFor = useRef<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -496,7 +497,35 @@ function RunModal({ datasetId, baseURL, mod, onClose, onModuleChanged }: {
     }
   };
 
+  /**
+   * Rebuild into the live schema on demand.
+   *
+   * Deliberately synchronous and blocking: it is the same scan the nightly
+   * reload does (tens of seconds), and an operator who pressed this needs to
+   * see whether it actually worked, not a fire-and-forget toast.
+   */
+  const buildNow = async () => {
+    setBuilding(true);
+    setNotice(null);
+    try {
+      const res = await modulesService.buildNow(datasetId, mod.id, baseURL);
+      if (res.failed?.length) {
+        setNotice(res.failed.map(f => f.error).join('; '));
+      } else {
+        const secs = res.built?.[0]?.seconds;
+        setNotice(secs ? `Rebuilt into the live schema in ${secs}s.` : 'Rebuilt into the live schema.');
+      }
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBuilding(false);
+    }
+  };
+
   const running = run?.status === 'running';
+  // Only a LIVE module has something to rebuild: the views are rendered from a
+  // stored binding, and a module that never converged has none.
+  const isLive = mod.enabled && mod.status === 'ready';
 
   return (
     <div className={styles.overlay} role="dialog" aria-modal="true">
@@ -556,13 +585,25 @@ function RunModal({ datasetId, baseURL, mod, onClose, onModuleChanged }: {
           {notice
             ? <div className={styles.noticeError}>{notice}</div>
             : <div className={styles.noticeInfo}>
-                Initialization builds into a scratch schema only. The live schema is
-                rebuilt by the nightly data reload.
+                Initialization verifies in a scratch schema, then builds into the live
+                schema so the module works immediately. The nightly reload rebuilds it
+                again — module views cannot survive the schema swap on their own.
               </div>}
         </div>
 
         <div className={styles.modalActions}>
           <button type="button" className={styles.btnGhost} onClick={onClose}>Close</button>
+          {isLive && (
+            <button
+              type="button"
+              className={styles.btnGhost}
+              disabled={building || running || starting}
+              onClick={() => void buildNow()}
+              title="Re-create this module's views in the live schema now, without waiting for the nightly reload"
+            >
+              {building ? 'Rebuilding…' : 'Rebuild now'}
+            </button>
+          )}
           <button
             type="button"
             className={styles.btnPrimary}
