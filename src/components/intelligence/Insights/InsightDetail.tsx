@@ -8,6 +8,8 @@ import { SqlViewerModal } from './SqlViewerModal';
 import { ActionPlanModal } from './ActionPlanModal';
 import { CATEGORY_COLOR } from './categoryColors';
 import { useLanguage } from '../../../context/LanguageContext';
+import { GeneralFeedbackModal } from '../../chat/GeneralFeedbackModal';
+import { getAgentConfig } from '../../../agents/agentRegistry';
 import styles from './InsightDetail.module.css';
 
 interface Props {
@@ -28,6 +30,7 @@ export function InsightDetail({ datasetId, userId, insightId, onBack, onLoaded, 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sqlModalOpen, setSqlModalOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
   const [planModalOpen, setPlanModalOpen] = useState(false);
   // Declared with the other hooks, ABOVE the early returns below — a hook
   // after a conditional `return` changes the hook count between the loading
@@ -103,6 +106,18 @@ export function InsightDetail({ datasetId, userId, insightId, onBack, onLoaded, 
             {insight.tracked ? t('intel.detail.saved') : t('intel.detail.save')}
           </button>
           <button className={styles.openBtn} onClick={() => setPlanModalOpen(true)}>{t('intel.reports.open')} {insight.ctaLabel}</button>
+          {/* Reject — visually distinct from track/CTA (ghost, warning tint on
+              hover), deliberately NOT in the primary position but present in
+              the same actions row so it is findable. Opens the shared feedback
+              modal in reject mode, prefilled with this insight's headline and
+              the wrong-numbers tag; lands as general feedback carrying the
+              insight URL for tracing. */}
+          <button className={styles.rejectBtn} onClick={() => setRejectOpen(true)}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17" />
+            </svg>
+            {t('feedback.reject.button')}
+          </button>
           {/* A shared suggestion is not this user's to delete — removing it would take it from everyone. Saving it first makes a personal copy that can be deleted. */}
           {insight.isGenerated && !insight.shared && (
             <button className={styles.deleteBtn} onClick={() => setConfirmDelete(true)} aria-label={t('intel.detail.delete')} title={t('intel.detail.delete')}>
@@ -186,6 +201,21 @@ export function InsightDetail({ datasetId, userId, insightId, onBack, onLoaded, 
         />
       )}
 
+      {rejectOpen && (() => {
+        // Intelligence renders no AgentProvider — resolve identity from the
+        // dataset registry (CLAUDE.md rule), never from useAgentContext().
+        const agentCfg = getAgentConfig(datasetId);
+        return agentCfg ? (
+          <GeneralFeedbackModal
+            agentName={agentCfg.agentName}
+            baseURL={agentCfg.baseURL}
+            mode="reject"
+            initialText={t('feedback.reject.insightPrefill').replace('{request}', (insight.evidence?.prompt || insight.headline || '').slice(0, 300))}
+            initialTags={['wrong-numbers']}
+            onClose={() => setRejectOpen(false)}
+          />
+        ) : null;
+      })()}
       {planModalOpen && userId && (
         <ActionPlanModal
           datasetId={datasetId}

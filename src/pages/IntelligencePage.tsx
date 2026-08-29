@@ -26,6 +26,11 @@ export function IntelligencePage() {
   const isChatRoute = location.pathname.endsWith('/chat');
   const isHistoryRoute = location.pathname.endsWith('/reports/history');
   const isReportsRoute = !isHistoryRoute && location.pathname.endsWith('/reports');
+  // Smart Replenishment's client surface. The ROUTE always resolves; whether
+  // the page renders anything is decided by the module's live state inside
+  // the shell, so a stale bookmark to a switched-off module lands on the
+  // shell rather than a broken page.
+  const isPurchasingRoute = location.pathname.endsWith('/purchasing');
   const config = getAgentConfig(datasetId);
 
   useDocumentMeta({
@@ -46,6 +51,7 @@ export function IntelligencePage() {
       chatRoute={isChatRoute}
       reportsRoute={isReportsRoute}
       historyRoute={isHistoryRoute}
+      purchasingRoute={isPurchasingRoute}
     />
   );
 }

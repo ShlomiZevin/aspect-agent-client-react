@@ -94,6 +94,13 @@
 
 .messages {
   flex: 1;
+  /* min-height: 0 is LOAD-BEARING: without it this flex child refuses to
+     shrink below its content height (the CLAUDE.md flex gotcha), so a tall
+     WelcomeSection (12 quick-question cards) pushed the input bar past the
+     container's clipped edge — the widget opened with the composer truncated
+     (2026-08-26 review). The input must be visible at all times; the welcome
+     scrolls instead. */
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: var(--spacing-lg);

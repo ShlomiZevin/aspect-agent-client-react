@@ -1,0 +1,460 @@
+/* Admin — Modules tab. Uses the dashboard's global tokens (variables.css);
+   note there is no bare `--primary`, it is `--primary-color`. */
+
+.page {
+  padding: var(--spacing-lg, 24px);
+  max-width: 1000px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+  margin: 0 0 6px;
+}
+
+.subtitle {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary, #64748b);
+  margin: 0;
+  max-width: 640px;
+}
+
+.superBadge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-light, #f1f5f9);
+  color: var(--text-muted, #64748b);
+  white-space: nowrap;
+}
+
+/* Fixed height so nothing below shifts when a message appears/disappears. */
+.noticeSlot {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.noticeError,
+.noticeInfo {
+  width: 100%;
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.noticeError {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
+.noticeInfo {
+  background: var(--surface-light, #f1f5f9);
+  border: 1px solid var(--border, #e2e8f0);
+  color: var(--text-secondary, #64748b);
+}
+
+.muted { font-size: 13px; color: var(--text-muted, #64748b); }
+.empty {
+  font-size: 13px;
+  color: var(--text-muted, #64748b);
+  padding: 24px;
+  text-align: center;
+  border: 1px dashed var(--border, #e2e8f0);
+  border-radius: 12px;
+}
+
+/* ── module card ─────────────────────────────────────────────────────── */
+
+.card {
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface, #fff);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.cardIdentity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.moduleName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  flex-shrink: 0;
+}
+.dot_ready { background: #16a34a; }
+.dot_initializing { background: #d97706; }
+.dot_failed { background: #dc2626; }
+.dot_degraded { background: #d97706; }
+
+.pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--surface-light, #f1f5f9);
+  color: var(--text-muted, #64748b);
+  white-space: nowrap;
+}
+.pill_ready { background: #dcfce7; color: #15803d; }
+.pill_failed { background: #fee2e2; color: #b91c1c; }
+.pill_degraded, .pill_initializing { background: #fef3c7; color: #b45309; }
+
+.pillLive {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--primary-light, #eef2ff);
+  color: var(--primary-color, #4f46e5);
+  white-space: nowrap;
+}
+
+.toggleWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggleLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+}
+
+.toggle {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary-color, #4f46e5);
+}
+
+.meta {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-muted, #64748b);
+  line-height: 1.6;
+}
+
+.inlineHint {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.cardActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+/* ── buttons ─────────────────────────────────────────────────────────── */
+
+.btnGhost,
+.btnPrimary,
+.btnDanger {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btnGhost {
+  background: var(--surface, #fff);
+  border-color: var(--border, #e2e8f0);
+  color: var(--text-primary, #1e293b);
+}
+.btnGhost:hover { background: var(--surface-light, #f1f5f9); }
+
+.btnPrimary {
+  background: var(--primary-color, #4f46e5);
+  color: #fff;
+}
+.btnPrimary:hover { filter: brightness(1.08); }
+.btnPrimary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btnDanger { background: #dc2626; color: #fff; }
+.btnDanger:hover { filter: brightness(1.08); }
+
+/* ── modals ──────────────────────────────────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--surface, #fff);
+  border-radius: 14px;
+  padding: 20px 22px;
+  width: 100%;
+  max-width: 620px;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+}
+
+.confirmBox {
+  background: var(--surface, #fff);
+  border-radius: 14px;
+  padding: 22px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+}
+
+.confirmText {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text-primary, #1e293b);
+  margin: 0 0 18px;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.modalTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+  margin: 0;
+}
+
+.runId { font-weight: 500; color: var(--text-muted, #64748b); }
+
+.close {
+  border: none;
+  background: none;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-muted, #64748b);
+  padding: 4px;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── settings form ───────────────────────────────────────────────────── */
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+}
+
+@media (max-width: 560px) {
+  .formGrid { grid-template-columns: 1fr; }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.req { color: #dc2626; }
+
+.sourceTag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--surface-light, #f1f5f9);
+  color: var(--text-muted, #64748b);
+}
+
+.input {
+  font-size: 13px;
+  font-family: inherit;
+  padding: 7px 10px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: var(--text-primary, #1e293b);
+  min-width: 0;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary-color, #4f46e5);
+}
+
+.fieldHint {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted, #94a3b8);
+}
+
+/* ── init run ────────────────────────────────────────────────────────── */
+
+.progressRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.progressLabel {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+}
+
+.progressPct {
+  font-size: 12px;
+  color: var(--text-muted, #64748b);
+  font-variant-numeric: tabular-nums;
+}
+
+.progressTrack {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-light, #f1f5f9);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.progressBar {
+  height: 100%;
+  background: var(--primary-color, #4f46e5);
+  transition: width 0.3s ease;
+}
+
+/* A failed run also reaches 100% — drawn in the primary colour it reads as
+   success. */
+.progressBarFailed { background: #dc2626; }
+
+.sectionLabel {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted, #94a3b8);
+  margin-bottom: 8px;
+}
+
+.rounds {
+  border-top: 1px solid var(--border, #e2e8f0);
+  padding-top: 14px;
+  margin-bottom: 4px;
+}
+
+.round {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 4px 0;
+  flex-wrap: wrap;
+}
+
+.roundOk { color: #15803d; font-weight: 600; white-space: nowrap; }
+.roundBad { color: #b91c1c; font-weight: 600; white-space: nowrap; }
+
+.roundDetail {
+  color: var(--text-secondary, #64748b);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.reportReason {
+  margin-top: 10px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #b91c1c;
+}
+
+/* Fields that need the full modal width rather than one grid column. */
+.fieldWide { grid-column: 1 / -1; }
+
+.toggleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.eventToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-primary, #1e293b);
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.eventToggle input { accent-color: var(--primary-color, #4f46e5); cursor: pointer; }

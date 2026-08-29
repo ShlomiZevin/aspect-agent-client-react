@@ -12,6 +12,7 @@ interface DashboardLayoutProps {
   agentLogo: string;
   basePath: string;
   showQueryOptimizer?: boolean;
+  showModules?: boolean;
   showPodcast?: boolean;
   showConversationTrends?: boolean;
   children: ReactNode;
@@ -38,6 +39,14 @@ const DATA_LOADER_ITEM = {
   path: 'data-loader',
   label: 'Data Loader',
   icon: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4 M7 10l5 5 5-5 M12 15V3',
+};
+
+// Aspect Modules — optional per-client capabilities (Smart Replenishment is
+// the first). Super-admin only; see modules/routes/modules.routes.js.
+const MODULES_ITEM = {
+  path: 'modules',
+  label: 'Modules',
+  icon: 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z M3.27 6.96L12 12.01l8.73-5.05 M12 22.08V12',
 };
 
 const CONVERSATION_TRENDS_ITEM = {
@@ -83,7 +92,7 @@ const CLOUD_RUN_LOGS_ITEM = {
 };
 
 
-export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showPodcast, showConversationTrends, children }: DashboardLayoutProps) {
+export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showModules, showPodcast, showConversationTrends, children }: DashboardLayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userType, setUserType] = useState<UserType>(() => (localStorage.getItem('adminUserType') as UserType) || 'admin');
 
@@ -95,6 +104,7 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
   const allNavItems = [
     ...BASE_NAV_ITEMS,
     ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM, DATA_LOADER_ITEM] : []),
+    ...(showModules ? [MODULES_ITEM] : []),
     ...(showPodcast ? [PODCAST_ITEM] : []),
     ...(showConversationTrends || userType === 'business' ? [CONVERSATION_TRENDS_ITEM] : []),
     TEST_RUNNER_ITEM,

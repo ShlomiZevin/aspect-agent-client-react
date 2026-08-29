@@ -130,3 +130,18 @@
 .caveatList li {
   margin: 2px 0;
 }
+
+/* Reject — ghost cousin of trackBtn: same geometry, quieter color, warning
+   tint on hover. Uses the --ai-* portal tokens with global fallbacks so each
+   client's Intelligence brand themes it without overrides. */
+.rejectBtn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 11px 16px; border-radius: 11px;
+  border: 1px solid var(--ai-border, var(--border, #e2e8f0));
+  background: transparent;
+  color: var(--ai-text-mute, var(--text-secondary, #64748b));
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.rejectBtn:hover { color: #b0402c; border-color: #b0402c66; background: #b0402c0d; }
+.rejectBtn:focus-visible { outline: 2px solid var(--ai-accent, var(--primary-color, #2563eb)); outline-offset: 2px; }

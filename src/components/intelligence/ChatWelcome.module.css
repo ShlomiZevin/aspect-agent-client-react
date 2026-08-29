@@ -2,33 +2,55 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  /* The wrap itself no longer scrolls — .scrollArea does. Keeping overflow
+     here as hidden so the pinned composer below can never be pushed out. */
   background: var(--ai-surface);
-  /* The panel around this is overflow:hidden, and this pane had no scroll of
-     its own — so once the quick-question tiles were taller than the panel (any
-     phone) the list was simply cut off with no way to reach the rest.
-     min-height:0 is required for a flex child to be allowed to scroll at all. */
-  overflow-y: auto;
+  overflow: hidden;
   min-height: 0;
 }
 
-.hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 30px 8px; }
+/* The scrolling half: hero + quick questions. min-height:0 is required for a
+   flex child to be allowed to scroll at all (the original bug on phones was
+   this pane having no scroll of its own inside the overflow:hidden panel;
+   the 2026-08-26 regression was the COMPOSER living inside the scroll region
+   and opening truncated — it is pinned below this area now). */
+.scrollArea {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 24px 30px 6px; }
+
+/* Constrained heights (docked widget is ~620px; the compact hero keeps the
+   quick questions AND the pinned composer comfortably on screen). */
+@media (max-height: 860px) {
+  .hero { padding: 18px 24px 4px; }
+  .mark { transform: scale(0.8); }
+  .title { font-size: 19px; }
+  .subtitle { font-size: 12.5px; }
+  .tile { padding: 10px 8px; }
+  .tileLabel { font-size: 11.5px; }
+}
 .mark {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   background: var(--ai-grad-mark, var(--ai-grad));
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 19px;
   box-shadow: 0 10px 26px rgba(139, 92, 246, .35);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
-.title { font: 700 21px var(--ai-font-head); color: var(--ai-text); }
+.title { font: 700 20px var(--ai-font-head); color: var(--ai-text); }
 .subtitle { font-size: 13px; color: var(--ai-text-mute); margin-top: 8px; max-width: 380px; }
 
-.questionsLabel { font: 700 11px var(--ai-font-head); letter-spacing: .08em; color: var(--ai-text-mute); text-align: center; margin: 26px 0 14px; }
+.questionsLabel { font: 700 11px var(--ai-font-head); letter-spacing: .08em; color: var(--ai-text-mute); text-align: center; margin: 18px 0 12px; }
 
 .grid {
   display: grid;
@@ -40,8 +62,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 16px 10px;
+  gap: 7px;
+  padding: 12px 10px;
   border-radius: 12px;
   border: 1px solid var(--ai-border);
   background: var(--ai-shell-bg, var(--ai-accent-soft));
@@ -59,11 +81,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 16px 24px 6px;
+  margin: 12px 24px 6px;
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--ai-border);
   background: var(--ai-surface);
+  /* Pinned below the scroll area — never squeezed, never scrolled away. */
+  flex-shrink: 0;
 }
 .input {
   flex: 1;

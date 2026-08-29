@@ -10,6 +10,7 @@ import { CrewEditorAI } from '../components/dashboard/CrewEditorAI';
 import { CrewPlayground } from '../components/dashboard/CrewPlayground';
 import { QueryOptimizerPage } from '../components/dashboard/QueryOptimizerPage';
 import { DataLoaderPage } from '../components/dashboard/DataLoaderPage';
+import { ModulesPage } from '../components/dashboard/ModulesPage';
 import { PodcastPage } from '../components/dashboard/PodcastPage';
 import { BillingPage } from '../components/dashboard/BillingPage';
 import { LLMUsagePage } from '../components/dashboard/LLMUsagePage';
@@ -59,6 +60,10 @@ export function DashboardPage() {
   const basePath = `/${agent}/${routePrefix}`;
 
   const showQueryOptimizer = !!config.database?.schema;
+  // Modules bind to a dataset, so the tab only makes sense for an agent that
+  // has one. Same condition as the data tools above, named for what it means
+  // here rather than reusing their flag.
+  const showModules = !!config.database?.schema;
   const showPodcast = agent?.toLowerCase() === 'freeda';
   const showConversationTrends = agent?.toLowerCase() === 'banking-v2';
 
@@ -71,6 +76,7 @@ export function DashboardPage() {
           agentLogo={config.logo.src}
           basePath={basePath}
           showQueryOptimizer={showQueryOptimizer}
+          showModules={showModules}
           showPodcast={showPodcast}
           showConversationTrends={showConversationTrends}
         >
@@ -140,6 +146,12 @@ export function DashboardPage() {
               <Route
                 path="data-loader"
                 element={<DataLoaderPage agentName={config.agentName} baseURL={config.baseURL} schemaName={config.database!.schema} />}
+              />
+            )}
+            {showModules && (
+              <Route
+                path="modules"
+                element={<ModulesPage datasetId={config.database!.schema} baseURL={config.baseURL} />}
               />
             )}
             {showPodcast && (

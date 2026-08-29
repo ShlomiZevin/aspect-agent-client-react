@@ -2,6 +2,10 @@
   padding: var(--spacing-md) var(--spacing-lg);
   background-color: var(--surface);
   border-top: 1px solid var(--border);
+  /* The composer is the one element that must NEVER be squeezed or pushed
+     out by tall siblings (welcome grid, long conversations) — pair of
+     guarantees with .messages{min-height:0}. */
+  flex-shrink: 0;
 }
 
 .inputWrapper {

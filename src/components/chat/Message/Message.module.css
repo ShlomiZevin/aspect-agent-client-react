@@ -822,3 +822,39 @@
 @keyframes idSpin {
   to { transform: rotate(360deg); }
 }
+
+/* ── Reject answer (Stage: feedback & accuracy) ─────────────────────────────
+   Trailing-edge corner of the assistant bubble: right in LTR, left under
+   dir="rtl" (the row carries the message's own dir). Ghost treatment on the
+   global token system so per-client theming applies without overrides. */
+.rejectRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.rejectButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary, #64748b);
+  background: transparent;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.rejectButton:hover {
+  color: #b0402c;
+  border-color: #b0402c66;
+  background: #b0402c0d;
+}
+
+.rejectButton:focus-visible {
+  outline: 2px solid var(--primary-color, #2563eb);
+  outline-offset: 2px;
+}
