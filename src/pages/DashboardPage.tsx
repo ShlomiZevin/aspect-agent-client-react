@@ -93,6 +93,17 @@ export function DashboardPage() {
   // those, so showing the tab cannot offer a switch that will not work.
   const showModules = true;
 
+  /**
+   * Agents whose people use the original board in the platform DB: LYBI, and
+   * Freeda alongside it. Hila and Noa work there; on every other agent that
+   * link opened someone else's board.
+   *
+   * A list rather than a flag on the agent config, because it describes who
+   * uses a tool rather than anything about the agent itself.
+   */
+  const LEGACY_BOARD_AGENTS = ['banking', 'banking-v2', 'freeda'];
+  const showLegacyTaskBoard = LEGACY_BOARD_AGENTS.includes((agent ?? '').toLowerCase());
+
   const showPodcast = agent?.toLowerCase() === 'freeda';
   const showConversationTrends = agent?.toLowerCase() === 'banking-v2';
 
@@ -107,6 +118,7 @@ export function DashboardPage() {
           showQueryOptimizer={showQueryOptimizer}
           showModules={showModules}
           showTaskboard={showTaskboard}
+          showLegacyTaskBoard={showLegacyTaskBoard}
           showPodcast={showPodcast}
           showConversationTrends={showConversationTrends}
         >

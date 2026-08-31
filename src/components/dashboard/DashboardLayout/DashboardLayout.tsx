@@ -13,6 +13,8 @@ interface DashboardLayoutProps {
   basePath: string;
   showQueryOptimizer?: boolean;
   showModules?: boolean;
+  /** The original board in the platform DB belongs to this client. */
+  showLegacyTaskBoard?: boolean;
   /** The Task Board module is live for this client. */
   showTaskboard?: boolean;
   showPodcast?: boolean;
@@ -103,7 +105,7 @@ const CLOUD_RUN_LOGS_ITEM = {
 };
 
 
-export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showModules, showTaskboard, showPodcast, showConversationTrends, children }: DashboardLayoutProps) {
+export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showModules, showTaskboard, showLegacyTaskBoard, showPodcast, showConversationTrends, children }: DashboardLayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userType, setUserType] = useState<UserType>(() => (localStorage.getItem('adminUserType') as UserType) || 'admin');
 
@@ -168,7 +170,10 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
         </div>
 
         <nav className={styles.nav}>
-          {userType === 'admin' && (
+          {/* The original board, in the platform DB. Shown only where it is
+              actually used — it is LYBI's board, and Hila and Noa are the people
+              on it. Everywhere else it was a link to someone else's work. */}
+          {userType === 'admin' && showLegacyTaskBoard && (
             <>
               <NavLink
                 to={`${basePath}/task-board`}
