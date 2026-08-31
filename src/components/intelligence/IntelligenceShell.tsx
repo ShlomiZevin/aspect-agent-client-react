@@ -123,12 +123,12 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   // admin tab removes the nav item and nothing else has to be updated. It
   // starts false and only ever turns on: a nav item that flickers in and out
   // is worse than one that appears a beat late.
-  const [purchasingLive, setPurchasingLive] = useState(false);
+  const [purchasingLive, setPurchasingLive] = useState<boolean | null>(null);
   useEffect(() => {
     let alive = true;
     replenishmentService.isLive(datasetId, baseURL)
       .then(live => { if (alive) setPurchasingLive(live); })
-      .catch(() => { /* a failed check simply means no nav item */ });
+      .catch(() => { if (alive) setPurchasingLive(false); });
     return () => { alive = false; };
   }, [datasetId, baseURL]);
   const [syncInfo, setSyncInfo] = useState<{ lastSync: string; dataFrom: string | null; dataThrough: string } | null>(null);
@@ -239,7 +239,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
                 ready for this dataset. Turning the module off removes the page
                 from the navigation cleanly, with no separate config to keep in
                 step. */}
-            {purchasingLive && (
+            {purchasingLive === true && (
               <button className={`${styles.navBtn} ${view === 'purchasing' ? styles.navActive : ''}`} onClick={() => navigate(`/intelligence/${datasetId}/purchasing`)}>{t('intel.nav.purchasing')}</button>
             )}
           </nav>
@@ -311,7 +311,17 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
         )}
         {view === 'history' && <ReportHistoryPage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} />}
         {view === 'reports' && <ReportsPage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onOpenHistory={goHistory} />}
-        {view === 'purchasing' && <PurchasingPage datasetId={datasetId} baseURL={baseURL} />}
+        {/* The VIEW is gated, not only the nav item. With the module off, a
+            stale bookmark used to mount this page anyway: every call 404s and
+            the page printed the server's untranslated message to a customer
+            reading Hebrew. `null` means the answer has not arrived yet, so
+            nothing is rendered rather than a flash of home. */}
+        {view === 'purchasing' && purchasingLive === true && (
+          <PurchasingPage datasetId={datasetId} baseURL={baseURL} />
+        )}
+        {view === 'purchasing' && purchasingLive === false && (
+          <HomePage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onAskInChat={askFollowUp} onSeeAllReports={goReports} onOpenHistory={goHistory} />
+        )}
         {view === 'home' && <HomePage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onAskInChat={askFollowUp} onSeeAllReports={goReports} onOpenHistory={goHistory} />}
       </main>
 
