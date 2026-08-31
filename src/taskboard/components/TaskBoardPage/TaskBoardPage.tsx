@@ -1,6 +1,8 @@
 import { useMemo, useReducer, useState } from 'react';
 import { BoardView } from '../BoardView';
 import { TaskDialog } from '../TaskDialog';
+import { NewTaskModal } from '../NewTaskModal';
+import { IdentityModal } from '../IdentityModal';
 import { EMPTY_FILTERS, activeCount, filtersReducer, matches } from '../../state/filters';
 import { useAttention, useBoard } from '../../state/useBoard';
 import { useIdentity, usePeople } from '../../state/useIdentity';
@@ -30,6 +32,7 @@ export function TaskBoardPage() {
   const [filters, dispatch] = useReducer(filtersReducer, EMPTY_FILTERS);
   const [openId, setOpenId] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
+  const [askingName, setAskingName] = useState(false);
 
   const visible = useMemo(() => {
     const list = [...tasks.values()].filter(t => matches(t, filters, { me, attentionIds }));
@@ -41,17 +44,6 @@ export function TaskBoardPage() {
   // else's change is reflected while the dialog is open.
   const open = openId === null ? null : tasks.get(openId) ?? null;
 
-  const addTask = async () => {
-    const title = window.prompt('New task');
-    if (!title?.trim()) return;
-    setCreating(true);
-    try {
-      const task = await create({ title: title.trim(), opener: me ?? undefined });
-      setOpenId(task.id);
-    } finally {
-      setCreating(false);
-    }
-  };
 
   const moveTask = (id: number, status: TaskStatus) => {
     void update(id, { status }).then(refreshAttention);
@@ -65,24 +57,16 @@ export function TaskBoardPage() {
 
         <span className={styles.spacer} />
 
-        <span className={styles.identity}>
-          {me
-            ? <span className={styles.who}>{me}</span>
-            : (
-              <button
-                type="button"
-                className={styles.toggle}
-                onClick={() => {
-                  const name = window.prompt('Your name');
-                  if (name) identify(name);
-                }}
-              >
-                Who are you?
-              </button>
-            )}
-        </span>
+        <button
+          type="button"
+          className={styles.identity}
+          onClick={() => setAskingName(true)}
+          title="Change who you are"
+        >
+          {me ?? 'Who are you?'}
+        </button>
 
-        <button type="button" className={styles.primary} onClick={addTask} disabled={creating}>
+        <button type="button" className={styles.primary} onClick={() => setCreating(true)}>
           New task
         </button>
       </header>
@@ -159,6 +143,29 @@ export function TaskBoardPage() {
             />
           )}
       </main>
+
+      {creating && (
+        <NewTaskModal
+          me={me}
+          people={people}
+          onCancel={() => setCreating(false)}
+          onCreate={async draft => {
+            const task = await create(draft);
+            setCreating(false);
+            // Straight into the new task: creating one is almost always the
+            // first half of writing it up.
+            setOpenId(task.id);
+          }}
+        />
+      )}
+
+      {askingName && (
+        <IdentityModal
+          people={people}
+          onCancel={() => setAskingName(false)}
+          onPick={name => { identify(name); setAskingName(false); }}
+        />
+      )}
 
       {open && (
         <TaskDialog

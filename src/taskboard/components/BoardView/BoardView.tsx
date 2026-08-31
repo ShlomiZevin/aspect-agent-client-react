@@ -96,7 +96,8 @@ function TaskCard({ task, needsAttention, dragging, onOpen, onDragStart, onDragE
     // this is the only way into a task.
     <button
       type="button"
-      className={`${styles.card} ${dragging ? styles.dragging : ''}`}
+      className={[styles.card, dragging && styles.dragging, task.atRisk && styles.atRiskCard]
+        .filter(Boolean).join(' ')}
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
@@ -112,7 +113,7 @@ function TaskCard({ task, needsAttention, dragging, onOpen, onDragStart, onDragE
           <span className={`${styles.chip} ${styles[task.priority]}`}>{task.priority}</span>
         )}
         {task.type !== 'task' && <span className={styles.chip}>{task.type}</span>}
-        {task.atRisk && <span className={`${styles.chip} ${styles.risk}`}>at risk</span>}
+        {task.atRisk && <span className={`${styles.chip} ${styles.critical}`}>at risk</span>}
         {needsAttention && <span className={`${styles.chip} ${styles.attention}`}>waiting on you</span>}
         {task.tags.map(tag => <span key={tag} className={styles.chip}>{tag}</span>)}
         {task.assignee && <span className={styles.assignee}>{task.assignee}</span>}

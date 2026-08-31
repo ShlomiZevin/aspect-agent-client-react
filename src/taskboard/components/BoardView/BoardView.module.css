@@ -1,56 +1,53 @@
-/* Kanban columns. Tokens from styles/variables.css — never a literal colour
-   that already has one. */
-
 .board {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--spacing-md);
   align-items: start;
-  padding: 4px 2px 24px;
 }
 
 .column {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--spacing-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
   /* A grid child will not shrink below its content without this, which is what
-     pushes long titles into a horizontal scrollbar on the whole page. */
+     pushes a long title into a page-wide horizontal scrollbar. */
   min-width: 0;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
 .columnHead {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 2px 4px 8px;
+  gap: var(--spacing-sm);
+  padding: 6px 8px 10px;
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  background: var(--surface);
-  z-index: 1;
 }
 
 .columnTitle {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-secondary);
 }
 
 .count {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  background: var(--surface-alt, rgba(0, 0, 0, 0.05));
-  border-radius: 999px;
-  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--surface-light);
+  border-radius: var(--radius-full);
+  padding: 2px 8px;
+  font-variant-numeric: tabular-nums;
 }
 
 .dropping {
-  outline: 2px dashed var(--primary-color);
-  outline-offset: 4px;
-  border-radius: 10px;
+  border-color: var(--primary-color);
+  background: var(--primary-light);
 }
 
 .card {
@@ -59,15 +56,15 @@
   text-align: inherit;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 14px;
-  cursor: grab;
-  transition: border-color 0.12s, box-shadow 0.12s;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  cursor: pointer;
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
 }
 
 .card:hover {
-  border-color: var(--primary-color);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .card:focus-visible {
@@ -75,29 +72,35 @@
   outline-offset: 2px;
 }
 
-.dragging {
-  opacity: 0.45;
+.dragging { opacity: 0.4; }
+
+/* At risk reads as the whole card, not a chip — the same treatment the original
+   board gives it, because it is a property of the task, not a label on it. */
+.atRiskCard {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
 .cardTop {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--spacing-sm);
   margin-bottom: 6px;
 }
 
 .id {
   font-size: 11px;
   font-weight: 700;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
 .title {
   font-size: 14px;
   line-height: 1.45;
+  font-weight: 500;
   color: var(--text-primary);
-  /* Long titles wrap instead of stretching the column. */
   overflow-wrap: anywhere;
 }
 
@@ -110,37 +113,40 @@
 }
 
 .chip {
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: var(--radius-full);
   padding: 2px 8px;
-  border: 1px solid var(--border);
+  background: var(--surface-light);
   color: var(--text-secondary);
 }
 
-.critical { border-color: #9F1239; color: #9F1239; }
-.high     { border-color: #B45309; color: #B45309; }
-.attention{ border-color: var(--primary-color); color: var(--primary-color); }
-.risk     { border-color: #9F1239; color: #9F1239; }
+.critical { background: rgba(239, 68, 68, 0.14); color: #b91c1c; }
+.high     { background: rgba(245, 158, 11, 0.16); color: #b45309; }
+.attention{ background: var(--primary-light); color: var(--primary-color); }
 
 .assignee {
   margin-inline-start: auto;
   font-size: 11px;
   font-weight: 600;
   color: var(--text-secondary);
+  background: var(--surface-light);
+  border-radius: var(--radius-full);
+  padding: 2px 9px;
 }
 
 .empty {
-  padding: 18px 4px;
+  padding: var(--spacing-md) 8px;
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 /* One column at a time on a phone: three 33%-wide columns are unreadable, and
-   this board is opened on a phone to check status. */
-@media (max-width: 860px) {
+   this board gets opened on a phone to check status. */
+@media (max-width: 900px) {
   .board {
     grid-template-columns: minmax(0, 1fr);
-    gap: 24px;
   }
 }
