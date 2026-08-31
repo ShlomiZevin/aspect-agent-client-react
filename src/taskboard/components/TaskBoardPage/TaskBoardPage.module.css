@@ -15,16 +15,17 @@
   to { opacity: 1; }
 }
 
+/* The original is a dialog floating over the app, so it caps itself at 1360px,
+   stands 90vh tall and carries a shadow and rounded corners. This is a page
+   inside the dashboard, so it fills what it is given instead — the cap left it
+   sitting in a box with empty space beside it. */
 .modal {
   background: var(--surface);
-  border-radius: var(--radius-lg);
   width: 100%;
-  max-width: 1360px;
-  height: 90vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--shadow-lg);
-  animation: slideUp 0.2s ease;
+  min-height: 0;
   text-align: left;
   direction: ltr;
 }
