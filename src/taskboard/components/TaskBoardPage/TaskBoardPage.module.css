@@ -156,3 +156,69 @@
   .head, .controls { padding-inline: var(--spacing-md); }
   .main { padding: var(--spacing-md); }
 }
+
+/* --- what's new + view switch ------------------------------------------- */
+
+.whatsNew {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--primary-color);
+  background: var(--primary-light);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color var(--transition-fast);
+}
+
+.whatsNew:hover { border-color: var(--primary-color); }
+
+.whatsNewCount {
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  border-radius: var(--radius-full);
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 0 5px;
+}
+
+/* Segmented control: one border around both, a divider between. */
+.viewSwitch {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.viewBtn {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  background: var(--surface);
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.viewBtn + .viewBtn { border-inline-start: 1px solid var(--border); }
+.viewBtn:hover { background: var(--surface-light); color: var(--text-primary); }
+
+.viewBtnOn {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+.viewBtnOn:hover { background: var(--primary-hover); color: #fff; }

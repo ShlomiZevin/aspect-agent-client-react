@@ -3,9 +3,13 @@ import { BoardView } from '../BoardView';
 import { TaskDialog } from '../TaskDialog';
 import { NewTaskModal } from '../NewTaskModal';
 import { IdentityModal } from '../IdentityModal';
+import { ListView } from '../ListView';
+import { NotificationBell } from '../NotificationBell';
+import { WhatsNewModal } from '../WhatsNewModal';
 import { EMPTY_FILTERS, activeCount, filtersReducer, matches } from '../../state/filters';
 import { useAttention, useBoard } from '../../state/useBoard';
 import { useIdentity, usePeople } from '../../state/useIdentity';
+import { useNotifications, useWhatsNew } from '../../state/useNotifications';
 import { PRIORITIES, TYPES } from '../../types';
 import type { Task, TaskPriority, TaskStatus, TaskType } from '../../types';
 import styles from './TaskBoardPage.module.css';
@@ -24,15 +28,32 @@ import styles from './TaskBoardPage.module.css';
  * translations.ts in both locales at that point.
  */
 export function TaskBoardPage() {
-  const { tasks, loading, error, create, update, remove } = useBoard();
+  const { tasks, loading, error, create, update, remove, deploy } = useBoard();
   const { me, identify } = useIdentity();
-  const { people } = usePeople();
+  const { people, add: addPerson } = usePeople();
   const { ids: attentionIds, refresh: refreshAttention } = useAttention(me);
+  const notifications = useNotifications(me);
+  const whatsNew = useWhatsNew(me);
 
   const [filters, dispatch] = useReducer(filtersReducer, EMPTY_FILTERS);
   const [openId, setOpenId] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
   const [askingName, setAskingName] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
+  // Remembered per browser: whoever prefers the table gets it back next time
+  // rather than re-selecting it on every visit.
+  const [view, setView] = useState<'board' | 'list'>(() => {
+    try {
+      return localStorage.getItem('aspect_taskboard_view') === 'list' ? 'list' : 'board';
+    } catch {
+      return 'board';
+    }
+  });
+
+  const changeView = (next: 'board' | 'list') => {
+    setView(next);
+    try { localStorage.setItem('aspect_taskboard_view', next); } catch { /* private mode */ }
+  };
 
   const visible = useMemo(() => {
     const list = [...tasks.values()].filter(t => matches(t, filters, { me, attentionIds }));
@@ -56,6 +77,21 @@ export function TaskBoardPage() {
         <span className={styles.sub}>{visible.length} shown · {tasks.size} total</span>
 
         <span className={styles.spacer} />
+
+        {me && whatsNew.tasks.length > 0 && (
+          <button type="button" className={styles.whatsNew} onClick={() => setShowWhatsNew(true)}>
+            What&apos;s new
+            <span className={styles.whatsNewCount}>{whatsNew.tasks.length}</span>
+          </button>
+        )}
+
+        {me && (
+          <NotificationBell
+            items={notifications.items}
+            onOpenTask={setOpenId}
+            onMarkRead={notifications.markRead}
+          />
+        )}
 
         <button
           type="button"
@@ -122,6 +158,27 @@ export function TaskBoardPage() {
           Drafts
         </Toggle>
 
+        <span className={styles.spacer} />
+
+        <div className={styles.viewSwitch} role="group" aria-label="View">
+          <button
+            type="button"
+            className={`${styles.viewBtn} ${view === 'board' ? styles.viewBtnOn : ''}`}
+            aria-pressed={view === 'board'}
+            onClick={() => changeView('board')}
+          >
+            Board
+          </button>
+          <button
+            type="button"
+            className={`${styles.viewBtn} ${view === 'list' ? styles.viewBtnOn : ''}`}
+            aria-pressed={view === 'list'}
+            onClick={() => changeView('list')}
+          >
+            List
+          </button>
+        </div>
+
         {activeCount(filters) > 0 && (
           <button type="button" className={styles.toggle} onClick={() => dispatch({ type: 'reset' })}>
             Clear ({activeCount(filters)})
@@ -134,12 +191,18 @@ export function TaskBoardPage() {
       <main className={styles.main}>
         {loading && tasks.size === 0
           ? <p className={styles.state}>Loading…</p>
-          : (
+          : view === 'board' ? (
             <BoardView
               tasks={visible}
               attentionIds={attentionIds}
               onOpen={(t: Task) => setOpenId(t.id)}
               onMove={moveTask}
+            />
+          ) : (
+            <ListView
+              tasks={visible}
+              attentionIds={attentionIds}
+              onOpen={(t: Task) => setOpenId(t.id)}
             />
           )}
       </main>
@@ -159,11 +222,23 @@ export function TaskBoardPage() {
         />
       )}
 
+      {showWhatsNew && (
+        <WhatsNewModal
+          tasks={whatsNew.tasks}
+          loading={whatsNew.loading}
+          onClose={() => setShowWhatsNew(false)}
+          onOpenTask={setOpenId}
+          onDismiss={whatsNew.dismiss}
+          onDismissAll={whatsNew.dismissAll}
+        />
+      )}
+
       {askingName && (
         <IdentityModal
           people={people}
           onCancel={() => setAskingName(false)}
           onPick={name => { identify(name); setAskingName(false); }}
+          onAddPerson={addPerson}
         />
       )}
 
@@ -172,9 +247,11 @@ export function TaskBoardPage() {
           task={open}
           me={me}
           people={people}
+          allTasks={[...tasks.values()]}
           onClose={() => { setOpenId(null); void refreshAttention(); }}
           onSave={update}
           onDelete={remove}
+          onDeploy={deploy}
         />
       )}
     </div>

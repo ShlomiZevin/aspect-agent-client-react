@@ -14,10 +14,34 @@ interface Props {
   people: Person[];
   onCancel: () => void;
   onPick: (name: string) => void;
+  /** Adds a name to the roster so it can be assigned work and @mentioned. */
+  onAddPerson: (name: string) => Promise<unknown>;
 }
 
-export function IdentityModal({ people, onCancel, onPick }: Props) {
+export function IdentityModal({ people, onCancel, onPick, onAddPerson }: Props) {
   const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const known = (n: string) => people.some(p => p.name.toLowerCase() === n.toLowerCase());
+
+  /**
+   * A name typed rather than picked joins the roster.
+   *
+   * Without this you could sign comments as someone nobody can assign work to or
+   * @mention — the two lists would drift apart silently, which is what happened
+   * on the old board.
+   */
+  const submit = async (raw: string) => {
+    const clean = raw.trim();
+    if (!clean || busy) return;
+    setBusy(true);
+    try {
+      if (!known(clean)) await onAddPerson(clean).catch(() => { /* still let them in */ });
+      onPick(clean);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <Modal
@@ -31,15 +55,15 @@ export function IdentityModal({ people, onCancel, onPick }: Props) {
           <button
             type="button"
             className={styles.primary}
-            disabled={!name.trim()}
-            onClick={() => onPick(name.trim())}
+            disabled={!name.trim() || busy}
+            onClick={() => submit(name)}
           >
-            Continue
+            {busy ? '…' : known(name.trim()) ? 'Continue' : 'Add and continue'}
           </button>
         </>
       }
     >
-      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (name.trim()) onPick(name.trim()); }}>
+      <form className={styles.form} onSubmit={e => { e.preventDefault(); void submit(name); }}>
         {people.length > 0 && (
           <div className={styles.field}>
             <span className={styles.label}>Pick your name</span>
@@ -65,7 +89,8 @@ export function IdentityModal({ people, onCancel, onPick }: Props) {
 
         <span className={styles.hint}>
           Used to sign your comments and to work out what is waiting on you. Kept in this
-          browser only — there are no accounts yet.
+          browser only — there are no accounts yet. A new name is added to the roster so
+          others can assign you work.
         </span>
 
         <button type="submit" hidden />
