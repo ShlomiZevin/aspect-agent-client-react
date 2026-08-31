@@ -11,7 +11,7 @@
  * server enforces this; the badge in the header just shows it.
  */
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useBuilder, workingBodiesOf } from '../../state/BuilderContext';
 import { BUILDER_HELPER_MODEL, formatModelRef } from '../../registry/providerModels';
 import { useModels } from '../../registry/useModels';
@@ -39,6 +39,9 @@ interface Msg {
   id: number | null;
   role: 'user' | 'assistant';
   text: string;
+  /** Task #816: this reply was stopped by the user — rendered with a
+   *  system pill under the bubble (or alone, when nothing streamed). */
+  stopped?: boolean;
   /** Apply-boundary row — rendered as a divider chip with a ✕, not a
    *  bubble. The consolidator only reads messages after the last one. */
   marker?: boolean;
@@ -201,10 +204,11 @@ export function BuilderChat() {
         return;
       case 'alfred.stopped':
         // Server confirmed the stop. The partial text stays on screen
-        // (marked) but was not saved — it disappears on reload.
+        // but was not saved — it disappears on reload. Rendered as a
+        // system pill, not as bubble text.
         setToolNote(null);
         setStopping(false);
-        updateLast(m => ({ ...m, text: `${m.text}${m.text ? '\n\n' : ''}⏹ stopped — not saved` }));
+        updateLast(m => ({ ...m, stopped: true }));
         return;
       case 'done':
         setToolNote(null);
@@ -464,14 +468,26 @@ export function BuilderChat() {
             const note = isStreamingBubble && toolNote
               ? <span className={styles.toolNote}>🔍 {toolNote}</span>
               : null;
+            // A stopped reply with no streamed text renders as the system
+            // pill alone — an empty assistant bubble would just be noise.
             return (
-              <div key={m.id ?? `local_${i}`} className={cls}>
-                {m.role === 'assistant'
-                  ? (m.text
-                      ? <><MarkdownBody text={m.text} />{note}</>
-                      : (note ?? placeholder))
-                  : (m.text || placeholder)}
-              </div>
+              <Fragment key={m.id ?? `local_${i}`}>
+                {!(m.role === 'assistant' && m.stopped && !m.text) && (
+                  <div className={cls}>
+                    {m.role === 'assistant'
+                      ? (m.text
+                          ? <><MarkdownBody text={m.text} />{note}</>
+                          : (note ?? placeholder))
+                      : (m.text || placeholder)}
+                  </div>
+                )}
+                {m.stopped && (
+                  <div className={styles.stopNotice}>
+                    <span className={styles.stopNoticeIcon}>⏹</span>
+                    Stopped — reply not saved
+                  </div>
+                )}
+              </Fragment>
             );
           })}
         </div>

@@ -1,25 +1,28 @@
 /**
- * "We Are Your AI" — the six-beat narrative for investor and marketing
- * conversations. Story only: no logos, no metrics, no proof numbers.
+ * "We Are Your AI" — the six-slide investor narrative.
  *
  * THE ACTOR IS THE AI, NEVER US. This is the load-bearing decision in the
  * copy. If "we" build what the customer asks for, an investor prices the
  * company as a services firm within thirty seconds of slide one and nothing
  * later undoes it. So the AI is the employee that does the work, and we are
  * the ones who make it capable of doing it — stated outright on slide 3.
- * Every sentence here keeps that division; passive voice ("it gets built")
- * quietly breaks it, so don't reintroduce it.
+ * Passive voice ("it gets built") quietly breaks the same rule.
  *
- * Reads as slides on a screen and as a one-pager on scroll — the deck is its
- * own scroller (position:fixed in the stylesheet), so this route never has to
- * unwind the app's global overflow:hidden the way the other landing pages do.
+ * NO TWO SLIDES SHARE A LAYOUT. Each one is composed for the single thing it
+ * has to do: the problem slide stacks its toll one line at a time, the offer
+ * slide is a full-bleed orange release, the turn slide inverts to black and
+ * splits old cost from new fact. See the stylesheet header for the art
+ * direction this follows (GPT-5.6 review, docs/marketing/).
+ *
+ * The deck is its own scroller (position:fixed in the stylesheet), so this
+ * route never has to unwind the app's global overflow:hidden the way the
+ * other landing pages do.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './WeAreYourAIPage.module.css';
 
-/** Same faces the Intelligence client ships, plus a mono for the answers. */
-const FONTS_HREF =
-  'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&family=Schibsted+Grotesk:wght@500;700;800&display=swap';
+/** One blunt grotesk, two weights. No mono anywhere in this deck. */
+const FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Archivo:wght@400;800&display=swap';
 
 function ensureFontsLoaded() {
   if (document.querySelector(`link[href="${FONTS_HREF}"]`)) return;
@@ -29,18 +32,10 @@ function ensureFontsLoaded() {
   document.head.appendChild(link);
 }
 
-/** The story's beats, in order — the top bar reads the current one back. */
-const BEATS = [
-  'We are your AI',
-  'Everything is a project',
-  'What we do',
-  'So ask',
-  'Why now',
-  'The test',
-];
+const BEATS = ['We are your AI', 'The problem', 'What we do', 'So ask', 'Why now', 'The test'];
 
-/** The offer, as an ask/answer ledger: the ask in the grotesque, the answer in mono. */
-const LEDGER = ['A report?', 'A screen?', 'An automation?', 'A whole system?'];
+/** Slides 4 and 5 change ground colour, so the fixed ticks must change with them. */
+const TONE: Record<number, 'orange' | 'dark'> = { 3: 'orange', 4: 'dark' };
 
 export function WeAreYourAIPage() {
   const deckRef = useRef<HTMLDivElement | null>(null);
@@ -65,9 +60,9 @@ export function WeAreYourAIPage() {
       return;
     }
 
-    // Two thresholds, two jobs: content reveals as soon as a beat is properly
-    // on screen, but the top bar only moves once a beat actually dominates the
-    // viewport — otherwise the label flickers between two beats mid-scroll.
+    // Two thresholds, two jobs: the slide's own sequence starts as soon as it
+    // is properly on screen, but the ticks and the ground colour only follow
+    // once a slide dominates the viewport — otherwise both flicker mid-scroll.
     const reveal = new IntersectionObserver(
       entries => {
         entries.forEach(entry => {
@@ -76,7 +71,7 @@ export function WeAreYourAIPage() {
           if (index >= 0) setSeen(prev => (prev[index] ? prev : prev.map((v, i) => (i === index ? true : v))));
         });
       },
-      { root: deck, threshold: 0.22 },
+      { root: deck, threshold: 0.25 },
     );
 
     const track = new IntersectionObserver(
@@ -98,113 +93,118 @@ export function WeAreYourAIPage() {
     beatRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
-  const beatClass = (index: number, extra?: string) =>
-    [styles.beat, seen[index] ? styles.seen : '', extra ?? ''].filter(Boolean).join(' ');
+  const beatClass = (index: number, ...extra: (string | undefined)[]) =>
+    [styles.beat, seen[index] ? styles.seen : '', ...extra].filter(Boolean).join(' ');
 
   const setBeatRef = (index: number) => (el: HTMLElement | null) => { beatRefs.current[index] = el; };
 
+  const tone = TONE[active];
+  const ticksClass = [
+    styles.ticks,
+    tone === 'orange' ? styles.ticksOnOrange : '',
+    tone === 'dark' ? styles.ticksOnDark : '',
+  ].filter(Boolean).join(' ');
+
   return (
     <div className={styles.deck} ref={deckRef}>
-      <header className={styles.bar}>
-        <span className={styles.barLabel}>You ask. <b>It builds.</b></span>
-        <nav className={styles.ticks} aria-label="Sections">
-          {BEATS.map((label, i) => (
-            <button
-              key={label}
-              type="button"
-              className={styles.tick}
-              aria-label={label}
-              aria-current={active === i ? 'true' : 'false'}
-              onClick={() => goTo(i)}
-            />
-          ))}
-        </nav>
-      </header>
+      <nav className={ticksClass} aria-label="Slides">
+        {BEATS.map((label, i) => (
+          <button
+            key={label}
+            type="button"
+            className={styles.tick}
+            aria-label={label}
+            aria-current={active === i ? 'true' : 'false'}
+            onClick={() => goTo(i)}
+          />
+        ))}
+      </nav>
 
-      <section className={beatClass(0, styles.beatHero)} ref={setBeatRef(0)}>
-        <div className={styles.inner}>
-          <p className={`${styles.eyebrow} ${styles.rise}`}>Your AI</p>
-          <h1 className={`${styles.head} ${styles.headHero} ${styles.rise}`}>We are your <em>AI</em>.</h1>
-          <p className={`${styles.lede} ${styles.rise}`}>
-            <strong>Not a tool you learn. An AI that works for you.</strong> You talk to it. It builds what your
-            business needs &mdash; on your data.
-          </p>
-          <p className={`${styles.cue} ${styles.rise}`}>Two minutes</p>
-        </div>
+      {/* 1 — Hero. Almost empty on purpose. The headline is the slide. */}
+      <section className={beatClass(0)} ref={setBeatRef(0)}>
+        <div className={styles.rule} />
+        <p className={`${styles.eyebrow} ${styles.rise}`}>Your AI</p>
+        <h1 className={`${styles.head} ${styles.headHero} ${styles.rise}`}>We are your <em>AI</em>.</h1>
+        <p className={`${styles.heroLede} ${styles.rise}`}>
+          <strong>Not a tool you learn. An AI that works for you.</strong> You talk to it. It builds what your
+          business needs.
+        </p>
+        <p className={styles.cue}>Two minutes</p>
       </section>
 
+      {/* 2 — The problem. The toll lands one line at a time; the verdict sits
+          alone at the bottom in orange. The bureaucracy is the picture. */}
       <section className={beatClass(1)} ref={setBeatRef(1)}>
-        <div className={styles.inner}>
-          <p className={`${styles.eyebrow} ${styles.rise}`}>The old rule</p>
-          <h2 className={`${styles.head} ${styles.rise}`}>Everything you need is a <em>project</em>.</h2>
-          <p className={`${styles.copy} ${styles.rise}`}>
-            A scope. A quote. A quarter. Your software only answers the questions it was built to answer. Everything
-            else waits. <strong>So you stopped asking.</strong>
-          </p>
+        <div className={styles.rule} />
+        <p className={`${styles.eyebrow} ${styles.rise}`}>The problem</p>
+        <h2 className={`${styles.head} ${styles.rise}`}>You asked for a report. You got a <em>project</em>.</h2>
+        <div className={styles.toll}>
+          <span className={styles.tollLine}>A scope.</span>
+          <span className={styles.tollLine}>A quote.</span>
+          <span className={styles.tollLine}>A quarter.</span>
         </div>
+        <p className={styles.verdict}>So you stopped asking.</p>
       </section>
 
+      {/* 3 — What we do. "YOUR DATA." is the largest thing on screen, and the
+          four things it learned hold up the slide from the bottom rule. */}
       <section className={beatClass(2)} ref={setBeatRef(2)}>
-        <div className={styles.inner}>
-          <p className={`${styles.eyebrow} ${styles.rise}`}>What we do</p>
-          <h2 className={`${styles.head} ${styles.headWide} ${styles.rise}`}>
-            Before you ask, it <em>already knows</em> your data.
-          </h2>
-          <p className={`${styles.copy} ${styles.rise}`}>
-            That is our job. We connect your AI to the business and teach it &mdash; your tables, your language, your
-            exceptions, the way you actually count. Once, up front.{' '}
-            <strong>We make it capable. It does the work.</strong>
-          </p>
+        <div className={styles.rule} />
+        <p className={`${styles.eyebrow} ${styles.rise}`}>What we do</p>
+        <h2 className={`${styles.head} ${styles.headFoundation} ${styles.rise}`}>
+          Before you ask, it already knows <span className={styles.biggest}>your data.</span>
+        </h2>
+        <p className={`${styles.copy} ${styles.rise}`}>
+          That is our job, and we do it once. <strong>We make it capable. It does the work.</strong>
+        </p>
+        <div className={styles.footing}>
+          <span>Tables</span>
+          <span>Language</span>
+          <span>Exceptions</span>
+          <span>The way you count</span>
         </div>
       </section>
 
-      <section className={beatClass(3)} ref={setBeatRef(3)}>
-        <div className={styles.inner}>
-          <p className={`${styles.eyebrow} ${styles.rise}`}>The idea</p>
-          <h2 className={`${styles.head} ${styles.rise}`}>So <em>ask</em>.</h2>
-          <p className={`${styles.lede} ${styles.rise}`}>
-            <strong>Claude Code, for the business.</strong> Developers got an open-ended builder for their code. Your
-            business gets one for its data.
-          </p>
-          <div className={styles.ledger}>
-            {LEDGER.map(ask => (
-              <div className={styles.line} key={ask}>
-                <span className={styles.ask}>{ask}</span>
-                <span className={styles.leader} />
-                <span className={styles.said}>It builds it</span>
-              </div>
-            ))}
+      {/* 4 — The release. Full-bleed orange, black type, one BUILT. */}
+      <section className={beatClass(3, styles.onOrange)} ref={setBeatRef(3)}>
+        <div className={styles.rule} />
+        <p className={`${styles.eyebrow} ${styles.rise}`}>The idea</p>
+        <h2 className={`${styles.head} ${styles.headBlast} ${styles.rise}`}>So ask.</h2>
+        <p className={`${styles.asks} ${styles.rise}`}>
+          A report. A screen. An automation. A whole system.
+        </p>
+        <p className={styles.built}>It builds it.</p>
+        <p className={styles.kicker}>
+          No catalog. No roadmap. <b>Just: what do you need?</b>
+        </p>
+      </section>
+
+      {/* 5 — The turn. Inverted to black; the old cost sits low and grey on the
+          left, the new fact answers it in orange on the right. */}
+      <section className={beatClass(4, styles.onDark)} ref={setBeatRef(4)}>
+        <div className={styles.rule} />
+        <p className={`${styles.eyebrow} ${styles.rise}`}>Why now</p>
+        <h2 className={`${styles.head} ${styles.rise}`}>Now, saying yes <em>scales</em>.</h2>
+        <div className={styles.turn}>
+          <div className={styles.wasCost}>
+            <span>Headcount.</span>
+            <span>Months.</span>
+            <span>Margin death.</span>
           </div>
-          <p className={`${styles.kicker} ${styles.rise}`}>
-            No catalog. No roadmap. <i>Just: what do you need?</i>
-          </p>
+          <p className={styles.nowFact}>The AI does the building now.</p>
         </div>
       </section>
 
-      <section className={beatClass(4)} ref={setBeatRef(4)}>
-        <div className={styles.inner}>
-          <p className={`${styles.eyebrow} ${styles.rise}`}>Why now</p>
-          <h2 className={`${styles.head} ${styles.rise}`}>Now, saying yes <em>scales</em>.</h2>
-          <p className={`${styles.copy} ${styles.rise}`}>
-            More requests used to mean more people, more months, less margin. So every vendor learned to say no and
-            called it focus. <strong>The AI does the building now.</strong> And every build makes the next one faster.
-          </p>
-        </div>
-      </section>
-
-      <section className={beatClass(5, styles.beatClose)} ref={setBeatRef(5)}>
-        <div className={styles.inner}>
-          <p className={`${styles.eyebrow} ${styles.rise}`}>The test</p>
-          <h2 className={`${styles.head} ${styles.headWide} ${styles.rise}`}>
-            Ask it for something it has <em>never built</em>.
-          </h2>
-          <p className={`${styles.stamp} ${styles.rise}`}>
-            Every other vendor sells you what they already built. Yours builds what you ask for.
-          </p>
-          <p className={`${styles.stampNote} ${styles.rise}`}>
-            Bring one real question to the next meeting. It will answer on your data, in the room.
-          </p>
-        </div>
+      {/* 6 — The finale. The emptiest slide in the deck. Hold it. */}
+      <section className={beatClass(5, styles.beatFinale)} ref={setBeatRef(5)}>
+        <div className={styles.rule} />
+        <p className={`${styles.eyebrow} ${styles.rise}`}>The test</p>
+        <h2 className={`${styles.head} ${styles.headFinale} ${styles.rise}`}>
+          Ask it for something it has <em>never built</em>.
+        </h2>
+        <p className={styles.closer}>
+          Bring one real question to the next meeting. It will answer on your data, in the room.
+        </p>
       </section>
     </div>
   );

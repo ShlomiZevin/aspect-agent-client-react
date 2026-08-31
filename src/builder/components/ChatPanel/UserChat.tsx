@@ -70,6 +70,8 @@ interface Turn {
   userMessageId: number | null;
   assistantText: string;
   assistantMessageId: number | null;
+  /** Task #816: turn was stopped by the user — system pill under the bubble. */
+  stopped?: boolean;
   runs: AddonRunSnapshot[];
   runsLoaded: boolean;
   dcResolutions: DcResolution[];
@@ -569,12 +571,9 @@ export function UserChat() {
           setAwaitingTalker(false);
           latestSendTurnIdRef.current = null;
         }
-        // Same look as Alfred: the marker lands in the bubble itself —
-        // a stop is a normal outcome, not an error banner.
-        updateTurn(turnId, t => ({
-          ...t,
-          assistantText: `${t.assistantText}${t.assistantText ? '\n\n' : ''}⏹ stopped — not saved`,
-        }));
+        // Same look as Alfred: a system pill under the bubble — a stop
+        // is a normal outcome, not an error banner.
+        updateTurn(turnId, t => ({ ...t, stopped: true }));
         return;
       case 'done':
         refreshConversationMemory();
@@ -1070,6 +1069,12 @@ function Turn({ turn, rtl, showTimeline, runHidden, awaiting, onExpand, onReport
           onDeleteSelf={onDeleteSelf}
           onDeleteFromHere={onDeleteFromHere}
         />
+      )}
+      {turn.stopped && (
+        <div className={styles.stopNotice}>
+          <span className={styles.stopNoticeIcon}>⏹</span>
+          Stopped — reply not saved
+        </div>
       )}
     </div>
   );

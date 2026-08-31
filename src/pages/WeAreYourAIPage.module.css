@@ -1,43 +1,61 @@
 /**
- * "We Are Your AI" — the investor/marketing narrative deck.
+ * "We Are Your AI" — investor narrative deck.
  *
- * Design: the product's own identity, scaled up. Same faces the Intelligence
- * client already ships (Schibsted Grotesk / Public Sans) and the same violet,
- * on a near-white ground with hairline rules — precise and engineered rather
- * than decorative. Type does the work: the ask is set large in the grotesque,
- * the answer small in a mono. You ask; the machine answers "Built."
+ * ART DIRECTION comes from the GPT-5.6 review in
+ * aspect-agent-server/docs/marketing/investor-deck-review.md, followed
+ * deliberately rather than loosely:
  *
- * Deliberately light-only. This gets presented on someone else's laptop in a
- * meeting, and a dark-mode OS must not repaint the pitch mid-sentence — so
- * every colour is stated outright rather than following the viewer's theme.
+ *   · Exactly three colours. Warm white ground, near-black type, signal
+ *     orange. Orange has ONE job — it marks the action or the turn. No
+ *     gradients, no glows, no fourth hue. "Muted" is the ink at low alpha,
+ *     never a new colour.
+ *   · One blunt grotesk, two weights only (400 / 800). No monospace and no
+ *     terminal cosplay.
+ *   · Type is the image. There are no illustrations, icons, charts or boxes
+ *     anywhere in this deck.
+ *   · Fixed grid: every slide starts at the same left margin, the eyebrow
+ *     always lands on the same line, and the headline begins a quarter of
+ *     the way down. That constancy is what lets the orange rule read as one
+ *     continuous line across all six slides.
+ *   · The deck changes temperature: light, light, light, ORANGE, black,
+ *     light. Slide 4 is the release and slide 5 the inversion; the colour
+ *     change itself is the argument, so no slide gets a decorative variant.
+ *   · Slides 1 and 6 are deliberately 70-80% empty. Do not fill them.
+ *
+ * Light-only by choice — this is presented from someone else's laptop and a
+ * dark-mode OS must not repaint the pitch mid-sentence, so every colour is
+ * stated outright rather than following the viewer's theme.
  *
  * Every text rule sets `color` explicitly: styles/global.css styles h1-h6 by
  * element, which beats anything this page merely inherits down from .deck.
  */
 
 .deck {
-  --ground: #fbfafd;
-  --ground-alt: #f4f1f9;
-  --ink: #1a1327;
-  --ink-soft: #4a4159;
-  --muted: #7a7189;
-  --rule: #e6e1ee;
-  --rule-strong: #cfc7dd;
-  --accent: #6d28d9;
-  --accent-wash: #f1ebfd;
+  --paper: #f3efe6;
+  --ink: #0a0a0a;
+  --orange: #ff4d00;
+
+  --ink-soft: rgba(10, 10, 10, 0.62);
+  --ink-faint: rgba(10, 10, 10, 0.16);
+  --paper-soft: rgba(243, 239, 230, 0.58);
+  --paper-faint: rgba(243, 239, 230, 0.18);
+
+  /* The fixed grid. Every slide obeys these two numbers. */
+  --margin: clamp(1.5rem, 9vw, 9rem);
+  --top: clamp(4.5rem, 19svh, 11rem);
 
   position: fixed;
   inset: 0;
   z-index: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  scroll-snap-type: y proximity;
+  scroll-snap-type: y mandatory;
   scroll-behavior: smooth;
-  background: var(--ground);
+  background: var(--paper);
   color: var(--ink);
-  font-family: 'Public Sans', system-ui, sans-serif;
+  font-family: Archivo, system-ui, sans-serif;
   font-size: 17px;
-  line-height: 1.6;
+  line-height: 1.5;
   direction: ltr;
   text-align: left;
   -webkit-font-smoothing: antialiased;
@@ -47,289 +65,335 @@
   .deck { scroll-behavior: auto; }
 }
 
-/* ── Top bar: progress, and the name of the beat you're on ───────────── */
+/* ── Ticks. No chrome bar — this is a deck, not a website. ─────────────── */
 
-.bar {
+.ticks {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: clamp(1.5rem, 4svh, 2.5rem);
+  right: clamp(1.5rem, 4vw, 3rem);
   z-index: 6;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  height: 52px;
-  padding: 0 clamp(1.25rem, 4vw, 3rem);
-  background: rgba(251, 250, 253, 0.86);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--rule);
+  gap: 8px;
 }
-
-.barLabel {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 0.7rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.barLabel b { color: var(--accent); font-weight: 500; }
-
-.ticks { display: flex; align-items: center; gap: 7px; flex: none; }
 
 .tick {
-  width: 22px;
-  height: 3px;
+  width: 20px;
+  height: 2px;
   border: 0;
   padding: 0;
-  border-radius: 2px;
-  background: var(--rule-strong);
+  background: var(--ink-faint);
   cursor: pointer;
   transition: background 0.25s ease, width 0.25s ease;
 }
 
-.tick:hover { background: var(--muted); }
-.tick[aria-current='true'] { background: var(--accent); width: 34px; }
-.tick:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.tick[aria-current='true'] { background: var(--orange); width: 34px; }
+.tick:hover { background: var(--ink-soft); }
+.tick:focus-visible { outline: 2px solid var(--orange); outline-offset: 5px; }
 
-/* ── Beats ───────────────────────────────────────────────────────────── */
+/* On the orange and black slides the ink-based ticks would vanish. */
+.ticksOnOrange .tick { background: rgba(10, 10, 10, 0.3); }
+.ticksOnOrange .tick[aria-current='true'] { background: var(--ink); }
+.ticksOnDark .tick { background: var(--paper-faint); }
+.ticksOnDark .tick[aria-current='true'] { background: var(--orange); }
+
+/* ── Slides ───────────────────────────────────────────────────────────── */
 
 .beat {
+  position: relative;
   min-height: 100svh;
   scroll-snap-align: start;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: clamp(6rem, 14svh, 10rem) clamp(1.5rem, 6vw, 4rem) clamp(4rem, 12svh, 8rem);
-  border-bottom: 1px solid var(--rule);
+  padding: var(--top) var(--margin) clamp(3rem, 9svh, 6rem) var(--margin);
 }
 
-.beat:last-of-type { border-bottom: 0; }
+/* Temperature. Slide 4 is the release, slide 5 the inversion. */
+.onOrange { background: var(--orange); }
+.onDark { background: var(--ink); color: var(--paper); }
 
-.beatHero { background: linear-gradient(180deg, var(--accent-wash) 0%, var(--ground) 62%); }
-.beatClose { background: var(--ground-alt); }
+/* The one device that repeats: an orange rule on the same line of every
+   slide, directly above the eyebrow. It draws itself as each slide lands. */
+.rule {
+  width: 0;
+  height: 3px;
+  flex: none;
+  background: var(--orange);
+  margin: 0 0 clamp(1rem, 2.4svh, 1.6rem);
+  transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
 
-.inner {
-  width: 100%;
-  max-width: 1080px;
-  margin: 0 auto;
+.seen .rule { width: clamp(88px, 12vw, 190px); }
+.onOrange .rule { background: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rule { transition: none; }
 }
 
 .eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 0.71rem;
-  letter-spacing: 0.2em;
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: var(--muted);
-  margin: 0 0 1.7rem;
+  color: var(--ink-soft);
+  margin: 0 0 clamp(1.4rem, 3.5svh, 2.4rem);
 }
 
-.eyebrow::before {
-  content: '';
-  display: block;
-  width: 26px;
-  height: 2px;
-  flex: none;
-  background: var(--accent);
-}
+.onDark .eyebrow { color: var(--paper-soft); }
+.onOrange .eyebrow { color: rgba(10, 10, 10, 0.62); }
 
 .head {
-  font-family: 'Schibsted Grotesk', system-ui, sans-serif;
   font-weight: 800;
-  font-size: clamp(2.3rem, 5.4vw, 4.6rem);
-  line-height: 1.02;
-  letter-spacing: -0.035em;
+  font-size: clamp(2.6rem, 6.6vw, 5.6rem);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
   color: var(--ink);
-  max-width: 17ch;
+  max-width: 15ch;
   margin: 0;
   text-wrap: balance;
 }
 
-.head em { font-style: normal; color: var(--accent); }
-
-.headWide { max-width: 22ch; }
-
-.headHero {
-  font-size: clamp(3rem, 8.4vw, 7.2rem);
-  line-height: 0.95;
-  letter-spacing: -0.045em;
-  max-width: 14ch;
-}
+.onDark .head { color: var(--paper); }
+.head em { font-style: normal; color: var(--orange); }
+.onOrange .head { color: var(--ink); }
+.onOrange .head em { color: var(--paper); }
 
 .copy {
-  font-size: clamp(1.05rem, 1.25vw, 1.28rem);
-  line-height: 1.6;
+  font-size: clamp(1.05rem, 1.5vw, 1.42rem);
+  line-height: 1.45;
   color: var(--ink-soft);
-  max-width: 54ch;
-  margin: 1.9rem 0 0;
+  max-width: 38ch;
+  margin: clamp(1.6rem, 4svh, 2.6rem) 0 0;
 }
 
-.copy strong { color: var(--ink); font-weight: 600; }
+.copy strong { color: var(--ink); font-weight: 800; }
+.onDark .copy { color: var(--paper-soft); }
+.onDark .copy strong { color: var(--paper); }
 
-.lede {
-  font-size: clamp(1.15rem, 1.7vw, 1.55rem);
-  line-height: 1.5;
-  color: var(--ink-soft);
-  max-width: 40ch;
-  margin: 2rem 0 0;
+/* ── 1 · Hero. 70% empty. The headline is the whole slide. ─────────────── */
+
+.headHero {
+  font-size: clamp(3.4rem, 11.5vw, 9.5rem);
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  max-width: 11ch;
+}
+
+.heroLede {
+  font-size: clamp(1.15rem, 1.9vw, 1.7rem);
+  line-height: 1.35;
   font-weight: 400;
+  color: var(--ink-soft);
+  max-width: 30ch;
+  margin: clamp(2rem, 5svh, 3.4rem) 0 0;
 }
 
-.lede strong { color: var(--ink); font-weight: 600; }
+.heroLede strong { color: var(--ink); font-weight: 800; }
 
 .cue {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 0.71rem;
-  letter-spacing: 0.18em;
+  margin: auto 0 0;
+  padding-top: 3rem;
+  font-size: 0.74rem;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--muted);
-  margin: 3.4rem 0 0;
+  color: var(--ink-soft);
 }
 
-.cue::before {
-  content: '';
-  display: block;
-  width: 30px;
-  height: 1px;
-  background: var(--rule-strong);
-}
+/* ── 2 · The problem. The bureaucracy IS the picture. ──────────────────── */
 
-/* ── The ask / answer ledger ─────────────────────────────────────────── */
-
-.ledger {
-  margin: 2rem 0 0;
-  max-width: 46ch;
-  border-top: 1px solid var(--rule);
-}
-
-.line {
+.toll {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.1rem 0;
-  border-bottom: 1px solid var(--rule);
+  flex-direction: column;
+  margin: clamp(1.4rem, 3.5svh, 2.4rem) 0 0;
 }
 
-.ask {
-  font-family: 'Schibsted Grotesk', system-ui, sans-serif;
-  font-weight: 700;
-  font-size: clamp(1.2rem, 2.2vw, 1.75rem);
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+.tollLine {
+  font-weight: 800;
+  font-size: clamp(2.2rem, 5.6vw, 4.6rem);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  color: var(--ink-faint);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.45s ease, transform 0.45s ease, color 0.45s ease;
+}
+
+.seen .tollLine { opacity: 1; transform: none; color: var(--ink); }
+.seen .tollLine:nth-child(1) { transition-delay: 0.25s; }
+.seen .tollLine:nth-child(2) { transition-delay: 0.55s; }
+.seen .tollLine:nth-child(3) { transition-delay: 0.85s; }
+
+.verdict {
+  margin: auto 0 0;
+  padding-top: clamp(2rem, 6svh, 4rem);
+  font-weight: 800;
+  font-size: clamp(1.6rem, 3.6vw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--orange);
+  max-width: 20ch;
+  opacity: 0;
+  transition: opacity 0.6s ease 1.15s;
+}
+
+.seen .verdict { opacity: 1; }
+
+/* ── 3 · The foundation. "YOUR DATA." is the largest thing on screen. ──── */
+
+.headFoundation { max-width: 13ch; }
+
+.biggest {
+  display: block;
+  font-size: clamp(3.2rem, 9vw, 7.4rem);
+  line-height: 0.92;
+  letter-spacing: -0.05em;
+}
+
+.footing {
+  margin: auto 0 0;
+  padding-top: clamp(2rem, 5svh, 3.5rem);
+  border-top: 2px solid var(--ink);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 2.4rem;
+  font-weight: 800;
+  font-size: clamp(0.8rem, 1.5vw, 1.05rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
   color: var(--ink);
 }
 
-.leader { flex: 1; height: 1px; background: var(--rule); }
+/* ── 4 · The release. Full orange, black type, one BUILT. ──────────────── */
 
-.said {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 0.86rem;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--accent);
-  white-space: nowrap;
+.headBlast {
+  font-size: clamp(4rem, 14vw, 12rem);
+  line-height: 0.85;
+  letter-spacing: -0.055em;
+  max-width: 8ch;
 }
 
-.said::before {
-  content: '';
-  display: block;
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-  background: var(--accent);
+.asks {
+  margin: clamp(1.8rem, 4.5svh, 3rem) 0 0;
+  font-weight: 800;
+  font-size: clamp(1.1rem, 2.4vw, 2rem);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: rgba(10, 10, 10, 0.72);
+  max-width: 30ch;
+}
+
+.built {
+  margin: auto 0 0;
+  padding-top: clamp(1.5rem, 4svh, 2.5rem);
+  font-weight: 800;
+  font-size: clamp(3rem, 10vw, 8rem);
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  color: var(--ink);
 }
 
 .kicker {
-  font-family: 'Schibsted Grotesk', system-ui, sans-serif;
-  font-weight: 700;
-  font-size: clamp(1.3rem, 2.4vw, 1.9rem);
-  letter-spacing: -0.025em;
-  line-height: 1.25;
-  color: var(--ink);
-  max-width: 26ch;
-  margin: 2.6rem 0 0;
+  margin: clamp(0.8rem, 2svh, 1.4rem) 0 0;
+  font-weight: 400;
+  font-size: clamp(1rem, 1.6vw, 1.35rem);
+  color: rgba(10, 10, 10, 0.72);
+  max-width: 34ch;
 }
 
-.kicker i { font-style: normal; color: var(--accent); }
+.kicker b { font-weight: 800; color: var(--ink); }
 
-.stamp {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 0.8rem;
-  line-height: 1.8;
-  letter-spacing: 0.06em;
+/* ── 5 · The turn. Old economics bottom-left, the new fact bottom-right. ─ */
+
+.turn {
+  margin: auto 0 0;
+  padding-top: clamp(2rem, 6svh, 4rem);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(1.5rem, 4vw, 4rem);
+  align-items: end;
+}
+
+.wasCost {
+  display: flex;
+  flex-direction: column;
+  font-weight: 800;
+  font-size: clamp(1.15rem, 2.6vw, 2.2rem);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: var(--paper-faint);
+  transition: color 0.6s ease 0.3s;
+}
+
+.seen .wasCost { color: var(--paper-soft); }
+
+.nowFact {
+  font-weight: 800;
+  font-size: clamp(1.4rem, 3.4vw, 2.9rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  color: var(--orange);
+  max-width: 16ch;
+  justify-self: end;
+  text-align: right;
+}
+
+/* ── 6 · The finale. The emptiest slide in the deck. ───────────────────── */
+
+.beatFinale { justify-content: center; padding-top: 0; }
+
+.headFinale {
+  font-size: clamp(3rem, 9.5vw, 8rem);
+  line-height: 0.92;
+  letter-spacing: -0.05em;
+  max-width: 13ch;
+}
+
+.closer {
+  position: absolute;
+  left: var(--margin);
+  right: var(--margin);
+  bottom: clamp(3rem, 9svh, 6rem);
+  font-size: clamp(0.95rem, 1.4vw, 1.2rem);
   color: var(--ink-soft);
-  max-width: 52ch;
-  margin: 2.8rem 0 0;
-  padding-top: 1.5rem;
-  border-top: 2px solid var(--accent);
+  max-width: 44ch;
 }
 
-.stampNote {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 0.76rem;
-  line-height: 1.8;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  max-width: 52ch;
-  margin: 0.9rem 0 0;
-}
-
-/* ── Reveal ──────────────────────────────────────────────────────────── */
+/* ── Reveal ───────────────────────────────────────────────────────────── */
 
 .rise {
   opacity: 0;
   transform: translateY(14px);
-  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .seen .rise { opacity: 1; transform: none; }
-.seen .rise:nth-child(2) { transition-delay: 0.07s; }
-.seen .rise:nth-child(3) { transition-delay: 0.14s; }
-.seen .rise:nth-child(4) { transition-delay: 0.21s; }
-
-.line {
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.5s ease, transform 0.5s ease;
-}
-
-.seen .line { opacity: 1; transform: none; }
-.seen .line:nth-child(1) { transition-delay: 0.18s; }
-.seen .line:nth-child(2) { transition-delay: 0.3s; }
-.seen .line:nth-child(3) { transition-delay: 0.42s; }
-.seen .line:nth-child(4) { transition-delay: 0.54s; }
+.seen .rise:nth-child(3) { transition-delay: 0.06s; }
+.seen .rise:nth-child(4) { transition-delay: 0.14s; }
+.seen .rise:nth-child(5) { transition-delay: 0.22s; }
 
 @media (prefers-reduced-motion: reduce) {
   .rise,
-  .line {
+  .tollLine,
+  .verdict,
+  .wasCost {
     opacity: 1;
     transform: none;
     transition: none;
   }
+  .tollLine { color: var(--ink); }
+  .wasCost { color: var(--paper-soft); }
 }
 
-/* ── Small screens ───────────────────────────────────────────────────── */
+/* ── Small screens: the grid tightens, nothing else changes ───────────── */
 
 @media (max-width: 720px) {
-  .barLabel { display: none; }
-  .bar { justify-content: flex-end; }
+  .deck { --top: clamp(4rem, 14svh, 7rem); }
   .head,
-  .headWide,
-  .headHero { max-width: none; }
-  .line { flex-wrap: wrap; gap: 0.6rem; }
-  .leader { display: none; }
+  .headHero,
+  .headBlast,
+  .headFinale,
+  .headFoundation { max-width: none; }
+  .turn { grid-template-columns: 1fr; gap: 1.5rem; }
+  .nowFact { justify-self: start; text-align: left; max-width: none; }
+  .footing { gap: 0.4rem 1.4rem; }
 }
