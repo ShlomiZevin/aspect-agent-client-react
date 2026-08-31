@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Modal } from '../Modal';
 import { RichTextEditor } from '../RichTextEditor';
-import { DOMAINS, LABELS, PRIORITIES, STATUSES, TYPES } from '../../types';
+import { LABELS, PRIORITIES, STATUSES, TYPES } from '../../types';
 import type { Person, Task, TaskDraft, TaskPriority, TaskStatus, TaskType } from '../../types';
 import styles from './TaskFormModal.module.css';
 
@@ -29,10 +29,8 @@ interface FormState {
   type: TaskType;
   priority: TaskPriority;
   status: TaskStatus;
-  domain: string;
   assignee: string;
   dueDate: string;
-  crewMember: string;
   tags: string;
   dependsOn: number | null;
   isDraft: boolean;
@@ -41,7 +39,7 @@ interface FormState {
 
 const EMPTY: FormState = {
   title: '', description: '', type: 'feature', priority: 'medium', status: 'todo',
-  domain: 'general', assignee: '', dueDate: '', crewMember: '', tags: '',
+  assignee: '', dueDate: '', tags: '',
   dependsOn: null, isDraft: false, atRisk: false,
 };
 
@@ -84,10 +82,8 @@ export function TaskFormModal({ me, people, allTasks, onCancel, onCreate }: Prop
         type: form.type,
         priority: form.priority,
         status: form.status,
-        domain: form.domain,
         assignee: form.assignee || undefined,
         dueDate: form.dueDate || undefined,
-        crewMember: form.crewMember.trim() || undefined,
         tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
         dependsOn: form.dependsOn ?? undefined,
         isDraft: form.isDraft,
@@ -176,12 +172,6 @@ export function TaskFormModal({ me, people, allTasks, onCancel, onCreate }: Prop
         </div>
 
         <div className={styles.row}>
-          <Field label="Domain" htmlFor="tb-domain">
-            <select id="tb-domain" className={styles.select} value={form.domain} onChange={e => set('domain', e.target.value)}>
-              {DOMAINS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-            </select>
-          </Field>
-
           <Field label="Assignee" htmlFor="tb-assignee">
             <select id="tb-assignee" className={styles.select} value={form.assignee} onChange={e => set('assignee', e.target.value)}>
               <option value="">Unassigned</option>
@@ -192,17 +182,6 @@ export function TaskFormModal({ me, people, allTasks, onCancel, onCreate }: Prop
           <Field label="Due Date" htmlFor="tb-due">
             <input id="tb-due" type="date" className={styles.input} value={form.dueDate} onChange={e => set('dueDate', e.target.value)} />
           </Field>
-        </div>
-
-        <div className={styles.inlineRow}>
-          <label className={styles.inlineLabel} htmlFor="tb-crew">Crew</label>
-          <input
-            id="tb-crew"
-            className={styles.input}
-            value={form.crewMember}
-            placeholder="None"
-            onChange={e => set('crewMember', e.target.value)}
-          />
         </div>
 
         <div className={styles.inlineRow}>

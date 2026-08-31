@@ -1,0 +1,390 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  cursor: pointer;
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+  position: relative;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* At Risk state - red-ish appearance */
+.card.atRisk {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.card.atRisk:hover {
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+/* At Risk toggle button - appears on hover */
+.atRiskToggle {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-light);
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.card:hover .atRiskToggle {
+  opacity: 1;
+}
+
+.atRiskToggle:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.atRiskToggle.active {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+/* Mark Complete button - only for done tasks, positioned below at risk */
+.markCompleteBtn {
+  position: absolute;
+  top: 6px;
+  right: 34px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-light);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.card:hover .markCompleteBtn {
+  opacity: 1;
+}
+
+.markCompleteBtn:hover {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.markCompleteBtn.active {
+  opacity: 1;
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+/* Completed state - subtle green tint with checkmark feel */
+.card.completed {
+  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.card.completed:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+/* Orphan/Unassigned state - gray, sad, needs attention */
+.card.orphan {
+  background: rgba(100, 116, 139, 0.04);
+  border-color: rgba(100, 116, 139, 0.3);
+  border-left: 3px solid #94a3b8;
+}
+
+.card.orphan:hover {
+  border-color: rgba(100, 116, 139, 0.5);
+}
+
+.card.orphan .title {
+  color: var(--text-secondary);
+}
+
+.card.orphan .description {
+  color: var(--text-muted);
+}
+
+/* Orphan indicator - subtle gray corner */
+.card.orphan::after {
+  content: '?';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  font-weight: bold;
+  color: #94a3b8;
+  background: rgba(100, 116, 139, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Assigned state - colored border based on assignee */
+.card.assigned {
+  border-left: 3px solid var(--assignee-color, var(--border));
+}
+
+.card.assigned::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 16px 16px 0;
+  border-color: transparent var(--assignee-color, transparent) transparent transparent;
+  border-radius: 0 var(--radius-md) 0 0;
+}
+
+/* Limbo state - ghosted with skull watermark */
+.card.limbo {
+  opacity: 0.6;
+  background: rgba(100, 116, 139, 0.04);
+  border-color: rgba(100, 116, 139, 0.2);
+}
+
+.card.limbo::before {
+  content: '💀';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 64px;
+  opacity: 0.06;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Draft state - faded appearance */
+.card.draft {
+  opacity: 0.6;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--surface),
+    var(--surface) 10px,
+    rgba(168, 85, 247, 0.03) 10px,
+    rgba(168, 85, 247, 0.03) 20px
+  );
+  border-style: dashed;
+}
+
+.card.draft:hover {
+  opacity: 0.8;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.deployedBadge {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.domain {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: capitalize;
+}
+
+.crewMember {
+  font-size: 10px;
+  font-weight: 500;
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.dependency {
+  font-size: 10px;
+  cursor: help;
+}
+
+.dependency.satisfied {
+  opacity: 0.6;
+}
+
+.dependency.blocked {
+  color: #f59e0b;
+}
+
+.type {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.type.task {
+  background: rgba(100, 116, 139, 0.1);
+  color: #64748b;
+}
+
+.type.bug {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.type.feature {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+}
+
+.type.idea {
+  background: rgba(168, 85, 247, 0.1);
+  color: #a855f7;
+}
+
+.type.goal {
+  background: rgba(20, 184, 166, 0.1);
+  color: #14b8a6;
+}
+
+.type.agenda {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+}
+
+.type.read {
+  background: rgba(234, 179, 8, 0.1);
+  color: #ca8a04;
+}
+
+.type.test {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.priority {
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.title {
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.description {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  direction: ltr !important;
+  text-align: left;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.assignee {
+  font-size: var(--font-size-xs);
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.opener {
+  font-weight: 400;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.dueDate {
+  font-size: 10px;
+  color: var(--text-secondary);
+  background: var(--surface-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.dueDate.overdue {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.tag {
+  font-size: 10px;
+  background: var(--surface-light);
+  color: var(--text-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.meta {
+  margin-top: 6px;
+  text-align: right;
+}
+
+.footerRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.createdAt {
+  font-size: 10px;
+  color: var(--text-secondary);
+  opacity: 0.6;
+}

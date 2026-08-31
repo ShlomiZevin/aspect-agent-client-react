@@ -1,0 +1,212 @@
+.boardWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 500px; /* Maintain height even when empty */
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+  flex: 1;
+  min-height: 0; /* Allow shrink for scroll */
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-light);
+  border-radius: var(--radius-md);
+  min-height: 0; /* Allow column to shrink for scroll */
+  overflow: hidden;
+}
+
+.columnHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0; /* Keep header fixed */
+}
+
+.columnTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.columnCount {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface-light);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.columnContent {
+  flex: 1 1 0; /* Grow, shrink, basis 0 - critical for scroll */
+  min-height: 0; /* Critical: allows flex item to shrink and enable scroll */
+  padding: var(--spacing-md);
+  padding-bottom: calc(var(--spacing-md) * 4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Drag and drop styles */
+.column.dragOver {
+  background: var(--primary-light);
+  border: 2px dashed var(--primary-color);
+}
+
+.column.dragOver .columnContent {
+  background: transparent;
+}
+
+.draggableCard {
+  cursor: grab;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.draggableCard:active {
+  cursor: grabbing;
+}
+
+.draggableCard.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+
+/* Warning Modal */
+.warningOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.warningModal {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.warningIcon {
+  font-size: 48px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.warningTitle {
+  margin: 0 0 var(--spacing-md) 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.warningText {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.warningText strong {
+  color: var(--text-primary);
+}
+
+.warningQuestion {
+  margin: 0 0 var(--spacing-lg) 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.warningActions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: center;
+}
+
+.cancelBtn,
+.proceedBtn {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.cancelBtn {
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.cancelBtn:hover {
+  background: var(--border);
+}
+
+.proceedBtn {
+  background: #f59e0b;
+  border: none;
+  color: white;
+}
+
+.proceedBtn:hover {
+  background: #d97706;
+}
+
+/* ── Mobile ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .boardWrapper {
+    min-height: 0;
+  }
+
+  /* Horizontal scroll: each column stays full-width for easy tap */
+  .board {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: var(--spacing-sm);
+    align-items: flex-start;
+    padding-bottom: var(--spacing-md);
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .column {
+    flex: 0 0 85vw;
+    min-width: 260px;
+    max-width: 340px;
+    scroll-snap-align: start;
+    height: 100%;
+  }
+
+  .columnContent {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  /* Disable drag-hover on touch */
+  .column.dragOver {
+    border: none;
+    background: var(--surface-light);
+  }
+
+  .draggableCard {
+    cursor: pointer;
+  }
+}

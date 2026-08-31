@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CommentThread } from '../CommentThread';
 import { RichTextEditor } from '../RichTextEditor';
-import { DOMAINS, LABELS, PRIORITIES, STATUSES, TYPES } from '../../types';
+import { LABELS, PRIORITIES, STATUSES, TYPES } from '../../types';
 import type { Person, Task, TaskDraft } from '../../types';
 import styles from './TaskDialog.module.css';
 
@@ -102,27 +102,6 @@ export function TaskDialog({ task, me, people, allTasks, onClose, onSave, onDele
                 className={styles.control}
                 defaultValue={task.dueDate?.slice(0, 10) ?? ''}
                 onBlur={e => saveIfChanged('dueDate', e.target.value || undefined)}
-              />
-            </label>
-
-            <label className={styles.field}>
-              <span className={styles.label}>Domain</span>
-              <select
-                className={styles.control}
-                value={task.domain}
-                onChange={e => save({ domain: e.target.value })}
-              >
-                {DOMAINS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-              </select>
-            </label>
-
-            <label className={styles.field}>
-              <span className={styles.label}>Crew</span>
-              <input
-                className={styles.control}
-                defaultValue={task.crewMember ?? ''}
-                placeholder="None"
-                onBlur={e => saveIfChanged('crewMember', e.target.value.trim() || undefined)}
               />
             </label>
 

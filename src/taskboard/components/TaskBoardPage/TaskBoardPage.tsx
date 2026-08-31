@@ -1,5 +1,5 @@
 import { useMemo, useReducer, useState } from 'react';
-import { BoardView } from '../BoardView';
+import { TaskColumns } from '../TaskColumns';
 import { TaskDialog } from '../TaskDialog';
 import { TaskFormModal } from '../TaskFormModal';
 import { IdentityModal } from '../IdentityModal';
@@ -10,25 +10,24 @@ import { EMPTY_FILTERS, activeCount, filtersReducer, matches } from '../../state
 import { useAttention, useBoard } from '../../state/useBoard';
 import { useIdentity, usePeople } from '../../state/useIdentity';
 import { useNotifications, useWhatsNew } from '../../state/useNotifications';
-import { PRIORITIES, TYPES } from '../../types';
+import { LABELS, PRIORITIES, TYPES } from '../../types';
 import type { Task, TaskPriority, TaskStatus, TaskType } from '../../types';
 import styles from './TaskBoardPage.module.css';
 
 /**
  * The Aspect task board.
  *
- * Deliberately thin: data lives in useBoard, filtering in state/filters, and the
- * two views render what they are given. The board this replaces put all of it in
- * one 1550-line component with 35 useState calls, which is why a filter change
- * re-rendered every card and why the form wiped itself mid-edit.
+ * Header, toolbar, columns, list and cards are the original board's markup and
+ * stylesheet, so the two look the same. What differs is underneath: data in
+ * useBoard with optimistic writes over a live stream, filters as one reducer
+ * rather than fifteen pieces of state, and the page in a fraction of the
+ * original's 1550 lines.
  *
- * English and LTR, like the board it replaces — this is an internal tool for
- * three people. It is NOT wired into i18n, and that is a decision rather than an
- * oversight: if it ever ships to a client's super-user, the strings move to
- * translations.ts in both locales at that point.
+ * English and LTR, as the original is — an internal tool for three people, so
+ * deliberately not wired into i18n.
  */
 export function TaskBoardPage() {
-  const { tasks, loading, error, create, update, remove, deploy } = useBoard();
+  const { tasks, loading, error, reload, create, update, remove, deploy } = useBoard();
   const { me, identify } = useIdentity();
   const { people, add: addPerson } = usePeople();
   const { ids: attentionIds, refresh: refreshAttention } = useAttention(me);
@@ -40,8 +39,9 @@ export function TaskBoardPage() {
   const [creating, setCreating] = useState(false);
   const [askingName, setAskingName] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
-  // Remembered per browser: whoever prefers the table gets it back next time
-  // rather than re-selecting it on every visit.
+  const [showFilters, setShowFilters] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
   const [view, setView] = useState<'board' | 'list'>(() => {
     try {
       return localStorage.getItem('aspect_taskboard_view') === 'list' ? 'list' : 'board';
@@ -55,157 +55,185 @@ export function TaskBoardPage() {
     try { localStorage.setItem('aspect_taskboard_view', next); } catch { /* private mode */ }
   };
 
-  const visible = useMemo(() => {
-    const list = [...tasks.values()].filter(t => matches(t, filters, { me, attentionIds }));
-    // Newest first within a column; the board's own order is by status.
-    return list.sort((a, b) => b.id - a.id);
-  }, [tasks, filters, me, attentionIds]);
+  const visible = useMemo(
+    () => [...tasks.values()]
+      .filter(t => matches(t, filters, { me, attentionIds }))
+      .sort((a, b) => b.id - a.id),
+    [tasks, filters, me, attentionIds],
+  );
 
-  // Read from the live map, not captured at open time, so an edit or someone
-  // else's change is reflected while the dialog is open.
+  // Read from the live map rather than captured at open time, so an edit or
+  // someone else's change shows while the dialog is open.
   const open = openId === null ? null : tasks.get(openId) ?? null;
-
 
   const moveTask = (id: number, status: TaskStatus) => {
     void update(id, { status }).then(refreshAttention);
   };
 
   return (
-    <div className={styles.page} dir="ltr">
-      <header className={styles.head}>
-        <span className={styles.brand}>Aspect Tasks</span>
-        <span className={styles.sub}>{visible.length} shown · {tasks.size} total</span>
-
-        <span className={styles.spacer} />
-
-        {me && whatsNew.tasks.length > 0 && (
-          <button type="button" className={styles.whatsNew} onClick={() => setShowWhatsNew(true)}>
-            What&apos;s new
-            <span className={styles.whatsNewCount}>{whatsNew.tasks.length}</span>
-          </button>
-        )}
-
-        {me && (
-          <NotificationBell
-            items={notifications.items}
-            onOpenTask={setOpenId}
-            onMarkRead={notifications.markRead}
-          />
-        )}
-
-        <button
-          type="button"
-          className={styles.identity}
-          onClick={() => setAskingName(true)}
-          title="Change who you are"
-        >
-          {me ?? 'Who are you?'}
-        </button>
-
-        <button type="button" className={styles.primary} onClick={() => setCreating(true)}>
-          New task
-        </button>
-      </header>
-
-      <div className={styles.controls}>
-        <input
-          className={styles.search}
-          placeholder="Search title, or type an id"
-          value={filters.search}
-          onChange={e => dispatch({ type: 'set', patch: { search: e.target.value } })}
-        />
-
-        <select
-          className={styles.select}
-          value={filters.assignee ?? ''}
-          onChange={e => dispatch({ type: 'set', patch: { assignee: e.target.value || null } })}
-        >
-          <option value="">Anyone</option>
-          {people.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
-        </select>
-
-        <select
-          className={styles.select}
-          value={filters.priority ?? ''}
-          onChange={e => dispatch({ type: 'set', patch: { priority: (e.target.value || null) as TaskPriority | null } })}
-        >
-          <option value="">Any priority</option>
-          {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
-
-        <select
-          className={styles.select}
-          value={filters.type ?? ''}
-          onChange={e => dispatch({ type: 'set', patch: { type: (e.target.value || null) as TaskType | null } })}
-        >
-          <option value="">Any type</option>
-          {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-
-        <Toggle on={filters.mine} onClick={() => dispatch({ type: 'toggle', key: 'mine' })} disabled={!me}>
-          Mine
-        </Toggle>
-        <Toggle on={filters.needsAttention} onClick={() => dispatch({ type: 'toggle', key: 'needsAttention' })} disabled={!me}>
-          Waiting on me
-        </Toggle>
-        <Toggle on={filters.unassignedOnly} onClick={() => dispatch({ type: 'toggle', key: 'unassignedOnly' })}>
-          Unassigned
-        </Toggle>
-        <Toggle on={filters.showDone} onClick={() => dispatch({ type: 'toggle', key: 'showDone' })}>
-          Show done
-        </Toggle>
-        <Toggle on={filters.draftsOnly} onClick={() => dispatch({ type: 'toggle', key: 'draftsOnly' })}>
-          Drafts
-        </Toggle>
-
-        <span className={styles.spacer} />
-
-        <div className={styles.viewSwitch} role="group" aria-label="View">
+    <div className={styles.modal} dir="ltr">
+      <div className={styles.header}>
+        <h2 className={styles.title}>
+          Task Board
           <button
-            type="button"
-            className={`${styles.viewBtn} ${view === 'board' ? styles.viewBtnOn : ''}`}
-            aria-pressed={view === 'board'}
-            onClick={() => changeView('board')}
+            className={`${styles.refreshBtn} ${refreshing ? styles.refreshSpin : ''}`}
+            onClick={async () => { setRefreshing(true); await reload(); setRefreshing(false); }}
+            disabled={refreshing}
+            title="Refresh tasks"
+          >
+            &#8635;
+          </button>
+        </h2>
+
+        <div className={styles.headerRight}>
+          {me && (
+            <button
+              className={`${styles.whatsNewBtn} ${whatsNew.tasks.length > 0 ? styles.whatsNewActive : ''}`}
+              onClick={() => setShowWhatsNew(true)}
+              title="Recently deployed features"
+            >
+              What&apos;s New{whatsNew.tasks.length > 0 ? ` (${whatsNew.tasks.length})` : ''}
+            </button>
+          )}
+
+          {me && (
+            <NotificationBell
+              items={notifications.items}
+              onOpenTask={setOpenId}
+              onMarkRead={notifications.markRead}
+            />
+          )}
+
+          <button className={styles.whatsNewBtn} onClick={() => setAskingName(true)} title="Change who you are">
+            {me ?? 'Who are you?'}
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.toolbarRow1}>
+        <button className={styles.addBtn} onClick={() => setCreating(true)}>+ Add Task</button>
+
+        <div className={styles.viewToggle}>
+          <button
+            className={`${styles.viewBtn} ${view === 'list' && !filters.mine ? styles.active : ''}`}
+            onClick={() => { changeView('list'); dispatch({ type: 'set', patch: { mine: false } }); }}
+          >
+            List
+          </button>
+          <button
+            className={`${styles.viewBtn} ${view === 'board' ? styles.active : ''}`}
+            onClick={() => { changeView('board'); dispatch({ type: 'set', patch: { mine: false } }); }}
           >
             Board
           </button>
           <button
-            type="button"
-            className={`${styles.viewBtn} ${view === 'list' ? styles.viewBtnOn : ''}`}
-            aria-pressed={view === 'list'}
-            onClick={() => changeView('list')}
+            className={`${styles.viewBtn} ${filters.mine ? styles.active : ''}`}
+            onClick={() => { changeView('list'); dispatch({ type: 'toggle', key: 'mine' }); }}
+            disabled={!me}
           >
-            List
+            My Tasks
           </button>
         </div>
 
+        <div style={{ position: 'relative', display: 'inline-flex' }}>
+          <input
+            className={`${styles.titleSearch} ${filters.search.trim() ? styles.titleSearchActive : ''}`}
+            type="text"
+            placeholder="Search..."
+            value={filters.search}
+            onChange={e => dispatch({ type: 'set', patch: { search: e.target.value } })}
+          />
+          {filters.search.trim() && (
+            <button
+              className={styles.titleSearchClear}
+              onClick={() => dispatch({ type: 'set', patch: { search: '' } })}
+              title="Clear search"
+            >
+              &times;
+            </button>
+          )}
+        </div>
+
+        <button className={styles.filtersToggleBtn} onClick={() => setShowFilters(v => !v)}>
+          {showFilters ? 'Filters ▴' : 'Filters ▾'}
+          {activeCount(filters) > 0 ? ` (${activeCount(filters)})` : ''}
+        </button>
+      </div>
+
+      <div className={`${styles.toolbarRow2} ${showFilters ? styles.toolbarRow2Visible : styles.toolbarRow2Hidden}`}>
+        <select
+          className={styles.domainFilter}
+          value={filters.assignee ?? ''}
+          onChange={e => dispatch({ type: 'set', patch: { assignee: e.target.value || null } })}
+        >
+          <option value="">All assignees</option>
+          {people.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+        </select>
+
+        <select
+          className={styles.crewFilter}
+          value={filters.priority ?? ''}
+          onChange={e => dispatch({ type: 'set', patch: { priority: (e.target.value || null) as TaskPriority | null } })}
+        >
+          <option value="">All priorities</option>
+          {PRIORITIES.map(p => <option key={p} value={p}>{LABELS[p] ?? p}</option>)}
+        </select>
+
+        <select
+          className={styles.crewFilter}
+          value={filters.type ?? ''}
+          onChange={e => dispatch({ type: 'set', patch: { type: (e.target.value || null) as TaskType | null } })}
+        >
+          <option value="">All types</option>
+          {TYPES.map(t => <option key={t} value={t}>{LABELS[t] ?? t}</option>)}
+        </select>
+
+        <div className={styles.toggleGroup}>
+          <Toggle on={filters.needsAttention} disabled={!me} onClick={() => dispatch({ type: 'toggle', key: 'needsAttention' })}>
+            Needs Me
+          </Toggle>
+          <Toggle on={filters.unassignedOnly} onClick={() => dispatch({ type: 'toggle', key: 'unassignedOnly' })}>
+            Unassigned
+          </Toggle>
+          <Toggle on={filters.showDone} onClick={() => dispatch({ type: 'toggle', key: 'showDone' })}>
+            Show Done
+          </Toggle>
+          <Toggle on={filters.draftsOnly} onClick={() => dispatch({ type: 'toggle', key: 'draftsOnly' })}>
+            Drafts
+          </Toggle>
+        </div>
+
         {activeCount(filters) > 0 && (
-          <button type="button" className={styles.toggle} onClick={() => dispatch({ type: 'reset' })}>
-            Clear ({activeCount(filters)})
+          <button className={styles.clearFiltersBtn} onClick={() => dispatch({ type: 'reset' })}>
+            Clear filters
           </button>
         )}
       </div>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {error && <div className={styles.errorBar}>{error}</div>}
 
-      <main className={styles.main}>
-        {loading && tasks.size === 0
-          ? <p className={styles.state}>Loading…</p>
-          : view === 'board' ? (
-            <BoardView
+      <div className={styles.content}>
+        <div className={styles.boardArea}>
+          {loading && tasks.size === 0 ? (
+            <div className={styles.loading}>Loading...</div>
+          ) : view === 'board' ? (
+            <TaskColumns
               tasks={visible}
-              attentionIds={attentionIds}
-              onOpen={(t: Task) => setOpenId(t.id)}
-              onMove={moveTask}
+              allTasks={[...tasks.values()]}
+              onTaskClick={(t: Task) => setOpenId(t.id)}
+              onStatusChange={moveTask}
+              onAtRiskToggle={(id, atRisk) => { void update(id, { atRisk }); }}
+              onMarkComplete={(id, acknowledged) => { void update(id, { acknowledged }); }}
             />
           ) : (
             <ListView
               tasks={visible}
-              attentionIds={attentionIds}
-              onOpen={(t: Task) => setOpenId(t.id)}
+              onTaskClick={(t: Task) => setOpenId(t.id)}
+              onDeleteTask={(t: Task) => { void remove(t.id); }}
             />
           )}
-      </main>
+        </div>
+      </div>
 
       {creating && (
         <TaskFormModal
@@ -216,8 +244,6 @@ export function TaskBoardPage() {
           onCreate={async draft => {
             const task = await create(draft);
             setCreating(false);
-            // Straight into the new task: creating one is almost always the
-            // first half of writing it up.
             setOpenId(task.id);
           }}
         />
@@ -267,8 +293,7 @@ function Toggle({ on, onClick, disabled, children }: {
 }) {
   return (
     <button
-      type="button"
-      className={`${styles.toggle} ${on ? styles.toggleOn : ''}`}
+      className={`${styles.filterToggleBtn} ${on ? styles.filterToggleActive : ''}`}
       aria-pressed={on}
       disabled={disabled}
       onClick={onClick}

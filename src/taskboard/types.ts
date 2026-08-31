@@ -10,19 +10,6 @@ export const STATUSES = ['todo', 'in_progress', 'done'] as const;
 export const PRIORITIES = ['low', 'medium', 'high', 'critical'] as const;
 export const TYPES = ['task', 'bug', 'feature', 'idea', 'goal', 'agenda', 'read', 'test'] as const;
 
-/**
- * Domains, and the labels the original board shows for them. Kept as the same
- * list so a task filed here reads the same as one filed there.
- */
-export const DOMAINS: { value: string; label: string }[] = [
-  { value: 'general', label: 'General (Engine)' },
-  { value: 'aspect', label: 'Aspect' },
-  { value: 'freeda', label: 'Freeda' },
-  { value: 'freeda-1.0', label: 'Freeda-1.0' },
-  { value: 'banking', label: 'Banking' },
-  { value: 'byline', label: 'Byline' },
-];
-
 /** Title Case labels, as the original form shows them — not raw enum values. */
 export const LABELS: Record<string, string> = {
   todo: 'Todo', in_progress: 'In Progress', done: 'Done',
@@ -51,10 +38,6 @@ export interface Task {
   /** For `read` tasks: the assignee has actually read it. Not the same as done. */
   acknowledged: boolean;
   isDraft: boolean;
-  /** Which part of the product this belongs to. A label, not a boundary. */
-  domain: string;
-  /** The crew member a task is about; free text, the list is per agent. */
-  crewMember?: string;
   dependsOn?: number;
   linkedTaskIds: number[];
   deployedAt?: string;
@@ -68,7 +51,6 @@ export type TaskDraft = Partial<
     Task,
     'title' | 'description' | 'status' | 'priority' | 'type' | 'assignee' | 'opener'
     | 'dueDate' | 'tags' | 'atRisk' | 'acknowledged' | 'isDraft' | 'dependsOn' | 'linkedTaskIds'
-    | 'domain' | 'crewMember'
   >
 >;
 

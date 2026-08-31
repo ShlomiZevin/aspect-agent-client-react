@@ -1,116 +1,160 @@
-import { useMemo, useState } from 'react';
 import type { Task } from '../../types';
 import styles from './ListView.module.css';
 
 /**
- * The board as a sortable table.
+ * The board as a table. Markup and stylesheet are the original board's.
  *
- * Kanban is for moving work along; the list is for reading a lot of it at once
- * and for answering "what is overdue" or "what is unassigned", which columns of
- * cards are bad at.
+ * The Domain and Crew columns are gone with the fields behind them; the
+ * per-column filter dropdowns are gone too, because filtering already lives in
+ * the toolbar above and having the same filter in two places is how two filters
+ * end up disagreeing.
  */
-type Column = 'id' | 'title' | 'status' | 'priority' | 'type' | 'assignee' | 'dueDate';
-
-const COLUMNS: { key: Column; label: string }[] = [
-  { key: 'id', label: '#' },
-  { key: 'title', label: 'Title' },
-  { key: 'status', label: 'Status' },
-  { key: 'priority', label: 'Priority' },
-  { key: 'type', label: 'Type' },
-  { key: 'assignee', label: 'Assignee' },
-  { key: 'dueDate', label: 'Due' },
-];
-
-// Sorting by priority alphabetically puts critical after high, which is worse
-// than not sorting at all.
-const PRIORITY_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-const STATUS_RANK: Record<string, number> = { in_progress: 0, todo: 1, done: 2 };
-
 interface Props {
   tasks: Task[];
-  attentionIds: Set<number> | null;
-  onOpen: (task: Task) => void;
+  onTaskClick: (task: Task) => void;
+  onDeleteTask: (task: Task) => void;
 }
 
-export function ListView({ tasks, attentionIds, onOpen }: Props) {
-  const [sort, setSort] = useState<{ by: Column; desc: boolean }>({ by: 'id', desc: true });
+const TYPE_LABELS: Record<string, string> = {
+  task: 'Task', bug: 'Bug', feature: 'Feature', idea: 'Idea',
+  goal: 'Goal', agenda: 'Agenda', read: 'Read', test: 'Test',
+};
 
-  const rows = useMemo(() => {
-    const value = (t: Task): string | number => {
-      switch (sort.by) {
-        case 'priority': return PRIORITY_RANK[t.priority] ?? 9;
-        case 'status':   return STATUS_RANK[t.status] ?? 9;
-        // Undated sorts last in either direction rather than jumping to the top
-        // as an empty string would.
-        case 'dueDate':  return t.dueDate ?? '9999-12-31';
-        case 'assignee': return (t.assignee ?? '￿').toLowerCase();
-        case 'title':    return t.title.toLowerCase();
-        default:         return t.id;
-      }
-    };
-    return [...tasks].sort((a, b) => {
-      const av = value(a);
-      const bv = value(b);
-      const cmp = av < bv ? -1 : av > bv ? 1 : a.id - b.id;
-      return sort.desc ? -cmp : cmp;
-    });
-  }, [tasks, sort]);
+const PRIORITY_LABELS: Record<string, string> = {
+  low: 'Low', medium: 'Med', high: 'High', critical: 'Crit',
+};
 
-  const toggle = (by: Column) =>
-    setSort(s => (s.by === by ? { by, desc: !s.desc } : { by, desc: by === 'id' }));
+const STATUS_LABELS: Record<string, string> = {
+  todo: 'Todo', in_progress: 'In Progress', done: 'Done',
+};
 
-  if (rows.length === 0) return <div className={styles.wrap}><p className={styles.empty}>Nothing to show.</p></div>;
+function stripHtml(html: string): string {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent || div.innerText || '';
+}
+
+function containsHebrew(text: string): boolean {
+  return /[֐-׿]/.test(text);
+}
+
+function formatDueDate(dateStr?: string): { text: string; isOverdue: boolean } | null {
+  if (!dateStr) return null;
+  const date = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dateOnly = new Date(date);
+  dateOnly.setHours(0, 0, 0, 0);
+
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const isOverdue = dateOnly < today;
+  if (dateOnly.getTime() === today.getTime()) return { text: 'Today', isOverdue: false };
+  if (dateOnly.getTime() === tomorrow.getTime()) return { text: 'Tomorrow', isOverdue: false };
+  return { text: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), isOverdue };
+}
+
+function formatCreatedAt(date: string): string {
+  const d = new Date(date);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const created = new Date(d);
+  created.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((today.getTime() - created.getTime()) / 86_400_000);
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+export function ListView({ tasks, onTaskClick, onDeleteTask }: Props) {
+  if (tasks.length === 0) {
+    return <div className={styles.empty}>No tasks yet. Click &quot;New Task&quot; to create one.</div>;
+  }
 
   return (
-    <div className={styles.wrap}>
+    <div className={styles.tableWrapper} dir="ltr">
       <table className={styles.table}>
         <thead>
           <tr>
-            {COLUMNS.map(c => (
-              <th
-                key={c.key}
-                className={`${styles.th} ${styles.sortable}`}
-                onClick={() => toggle(c.key)}
-                aria-sort={sort.by === c.key ? (sort.desc ? 'descending' : 'ascending') : 'none'}
-              >
-                {c.label}
-                {sort.by === c.key && <span className={styles.arrow}>{sort.desc ? '▼' : '▲'}</span>}
-              </th>
-            ))}
+            <th className={styles.titleCol}>Title</th>
+            <th>Type</th>
+            <th>Assignee</th>
+            <th>Priority</th>
+            <th>Due</th>
+            <th>Created</th>
+            <th>Status</th>
+            <th />
           </tr>
         </thead>
         <tbody>
-          {rows.map(t => (
-            <tr key={t.id} className={styles.row} onClick={() => onOpen(t)}>
-              <td className={`${styles.td} ${styles.id}`}>{t.id}</td>
-              <td className={`${styles.td} ${styles.title}`}>
-                {t.title}
-                {attentionIds?.has(t.id) && <span className={`${styles.chip} ${styles.progress}`} style={{ marginInlineStart: 8 }}>waiting on you</span>}
-                {t.atRisk && <span className={`${styles.chip} ${styles.critical}`} style={{ marginInlineStart: 8 }}>at risk</span>}
-              </td>
-              <td className={styles.td}>
-                <span className={[styles.chip, t.status === 'done' && styles.done, t.status === 'in_progress' && styles.progress].filter(Boolean).join(' ')}>
-                  {t.status.replace('_', ' ')}
-                </span>
-              </td>
-              <td className={styles.td}>
-                <span className={[styles.chip, styles[t.priority]].filter(Boolean).join(' ')}>{t.priority}</span>
-              </td>
-              <td className={`${styles.td} ${styles.muted}`}>{t.type}</td>
-              <td className={`${styles.td} ${styles.muted}`}>{t.assignee ?? '—'}</td>
-              <td className={`${styles.td} ${styles.muted} ${overdue(t) ? styles.atRisk : ''}`}>
-                {t.dueDate ? t.dueDate.slice(0, 10) : '—'}
-              </td>
-            </tr>
-          ))}
+          {tasks.map(task => {
+            const due = formatDueDate(task.dueDate);
+            return (
+              <tr
+                key={task.id}
+                className={[task.atRisk && styles.atRiskRow, task.acknowledged && styles.completedRow]
+                  .filter(Boolean).join(' ')}
+                onClick={() => onTaskClick(task)}
+              >
+                <td className={styles.titleCell}>
+                  <span className={styles.titleWrapper}>
+                    {task.atRisk && <span className={styles.atRiskIcon}>⚠</span>}
+                    <span
+                      className={styles.title}
+                      style={containsHebrew(task.title) ? { direction: 'rtl', textAlign: 'right' } : undefined}
+                    >
+                      {task.title}
+                    </span>
+                  </span>
+                  {task.description && (
+                    <span className={styles.description}>{stripHtml(task.description)}</span>
+                  )}
+                  {/* Repeated inside the title cell for narrow screens, where the
+                      dedicated columns below are hidden by the stylesheet. */}
+                  <span className={styles.mobileMeta}>
+                    {task.assignee && <span className={styles.assignee}>@{task.assignee}</span>}
+                    <span className={`${styles.priority} ${styles[task.priority]}`}>{PRIORITY_LABELS[task.priority]}</span>
+                    <span className={`${styles.status} ${styles[task.status]}`}>{STATUS_LABELS[task.status]}</span>
+                  </span>
+                </td>
+                <td><span className={`${styles.badge} ${styles[task.type]}`}>{TYPE_LABELS[task.type]}</span></td>
+                <td className={styles.mobileShow}>
+                  {task.assignee
+                    ? <span className={styles.assignee}>@{task.assignee}</span>
+                    : <span className={styles.unassigned}>—</span>}
+                </td>
+                <td className={styles.mobileShow}>
+                  <span className={`${styles.priority} ${styles[task.priority]}`}>{PRIORITY_LABELS[task.priority]}</span>
+                </td>
+                <td>
+                  {due
+                    ? <span className={`${styles.dueDate} ${due.isOverdue ? styles.overdue : ''}`}>{due.text}</span>
+                    : <span className={styles.noDueDate}>—</span>}
+                </td>
+                <td>
+                  {task.createdAt
+                    ? <span className={styles.createdAt}>{formatCreatedAt(task.createdAt)}</span>
+                    : <span className={styles.noDueDate}>—</span>}
+                </td>
+                <td className={styles.mobileShow}>
+                  <span className={`${styles.status} ${styles[task.status]}`}>{STATUS_LABELS[task.status]}</span>
+                </td>
+                <td className={styles.deleteCell}>
+                  <button
+                    className={styles.deleteBtn}
+                    onClick={e => { e.stopPropagation(); onDeleteTask(task); }}
+                    title="Delete"
+                  >
+                    ×
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
-}
-
-/** Past its date and not finished. Compared as ISO strings — both are dates. */
-function overdue(t: Task): boolean {
-  if (!t.dueDate || t.status === 'done') return false;
-  return t.dueDate.slice(0, 10) < new Date().toISOString().slice(0, 10);
 }
