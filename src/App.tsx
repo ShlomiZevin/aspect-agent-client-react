@@ -7,7 +7,7 @@ const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ defaul
 
 // Our own task board — separate tool, separate database (aspect_tasks_db).
 // Lazy so the agent-chat routes don't download it.
-const AspectTaskBoard = lazy(() => import('./taskboard/components/TaskBoardPage/TaskBoardPage').then(m => ({ default: m.TaskBoardPage })));
+const AspectTaskBoard = lazy(() => import('./taskboard/components/TaskBoardRoute/TaskBoardRoute').then(m => ({ default: m.TaskBoardRoute })));
 const BuilderHomePage = lazy(() => import('./pages/BuilderHomePage').then(m => ({ default: m.BuilderHomePage })));
 // Customer-facing Live chat — its own subtree, lazy-loaded.
 const LiveChatPage = lazy(() => import('./pages/LiveChatPage').then(m => ({ default: m.LiveChatPage })));
@@ -383,8 +383,10 @@ function AppContent() {
         />
 
         {/* Task Board - standalone full page */}
-        {/* Aspect's own board. /tasks stays LYBI's — different tool, different DB. */}
-        <Route path="/aspect-tasks" element={<AspectTaskBoard />} />
+        {/* Our own board, as an Aspect Module: it renders only where a
+            super-admin has switched it on. /tasks below is the original board
+            and is untouched — a different tool against a different database. */}
+        <Route path="/:agent/taskboard" element={<AspectTaskBoard />} />
         <Route path="/tasks" element={<TaskBoardPage />} />
         <Route path="/tasks/:taskId" element={<TaskBoardPage />} />
 

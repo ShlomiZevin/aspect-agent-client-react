@@ -137,6 +137,21 @@ export const api = {
       body: JSON.stringify(ids ? { person, ids } : { person, all: true }),
     }).then(r => r.marked),
 
+  /**
+   * Whether the board is switched on for this client.
+   *
+   * Reads the PUBLIC module status (`GET /api/modules/:client`), not the admin
+   * one: this runs for whoever opens the board, and the admin shape carries
+   * settings, the binding and the init model id.
+   */
+  isEnabledFor: async (client: string): Promise<boolean> => {
+    const base = import.meta.env.DEV ? 'http://localhost:3000' : getBaseURL();
+    const res = await fetch(`${base}/api/modules/${encodeURIComponent(client)}`);
+    if (!res.ok) return false;
+    const body = await res.json().catch(() => null);
+    return Boolean(body?.modules?.some((m: { id: string }) => m.id === 'taskboard'));
+  },
+
   /** URL for the SSE stream. Not fetched here — EventSource opens it itself. */
   streamUrl: () => `${ROOT()}/stream`,
 };

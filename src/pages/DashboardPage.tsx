@@ -60,10 +60,12 @@ export function DashboardPage() {
   const basePath = `/${agent}/${routePrefix}`;
 
   const showQueryOptimizer = !!config.database?.schema;
-  // Modules bind to a dataset, so the tab only makes sense for an agent that
-  // has one. Same condition as the data tools above, named for what it means
-  // here rather than reusing their flag.
-  const showModules = !!config.database?.schema;
+  // Modules used to bind to a dataset, so this was gated on having one. Since
+  // the framework gained client-scoped modules (the task board is the first),
+  // an agent with no customer schema can have modules too — and Aspect and LYBI
+  // are exactly that. The server decides what is attachable and returns only
+  // those, so showing the tab cannot offer a switch that will not work.
+  const showModules = true;
   const showPodcast = agent?.toLowerCase() === 'freeda';
   const showConversationTrends = agent?.toLowerCase() === 'banking-v2';
 
