@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { Modal } from '../Modal';
+import { CommentThread } from '../CommentThread';
 import { RichTextEditor } from '../RichTextEditor';
 import { LABELS, PRIORITIES, STATUSES, TYPES } from '../../types';
 import type { Person, Task, TaskDraft, TaskPriority, TaskStatus, TaskType } from '../../types';
@@ -19,8 +20,12 @@ interface Props {
   people: Person[];
   /** For the Depends On search. */
   allTasks: Task[];
+  /** Present = edit an existing task; absent = create a new one. */
+  task?: Task;
   onCancel: () => void;
-  onCreate: (draft: TaskDraft) => Promise<unknown>;
+  onSubmit: (draft: TaskDraft) => Promise<unknown>;
+  onDelete?: (id: number) => Promise<unknown>;
+  onDeploy?: (id: number) => Promise<unknown>;
 }
 
 interface FormState {
@@ -43,17 +48,38 @@ const EMPTY: FormState = {
   dependsOn: null, isDraft: false, atRisk: false,
 };
 
+function seed(task?: Task): FormState {
+  if (!task) return EMPTY;
+  return {
+    title: task.title,
+    description: task.description ?? '',
+    type: task.type,
+    priority: task.priority,
+    status: task.status,
+    assignee: task.assignee ?? '',
+    dueDate: task.dueDate?.slice(0, 10) ?? '',
+    tags: task.tags.join(', '),
+    dependsOn: task.dependsOn ?? null,
+    isDraft: task.isDraft,
+    atRisk: task.atRisk,
+  };
+}
+
 // The original searches only from three characters, so a single letter does not
 // render the whole board into a dropdown.
 const MIN_SEARCH = 3;
 
-export function TaskFormModal({ me, people, allTasks, onCancel, onCreate }: Props) {
-  const [form, setForm] = useState<FormState>(EMPTY);
+export function TaskFormModal({ me, people, allTasks, task, onCancel, onSubmit, onDelete, onDeploy }: Props) {
+  // Seeded once, by the initialiser. Never re-seeded from props: that effect is
+  // what made the original wipe itself when an unrelated prop changed identity
+  // on a refresh.
+  const [form, setForm] = useState<FormState>(() => seed(task));
   const [expanded, setExpanded] = useState(false);
   const [search, setSearch] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
@@ -63,9 +89,10 @@ export function TaskFormModal({ me, people, allTasks, onCancel, onCreate }: Prop
     const q = search.trim().toLowerCase();
     if (q.length < MIN_SEARCH) return [];
     return allTasks
+      .filter(t => t.id !== task?.id)  // a task cannot depend on itself
       .filter(t => t.title.toLowerCase().includes(q) || String(t.id) === q)
       .slice(0, 8);
-  }, [search, allTasks]);
+  }, [search, allTasks, task]);
 
   const dependency = form.dependsOn === null
     ? null
@@ -76,7 +103,7 @@ export function TaskFormModal({ me, people, allTasks, onCancel, onCreate }: Prop
     setBusy(true);
     setError(null);
     try {
-      await onCreate({
+      await onSubmit({
         title: form.title.trim(),
         description: form.description || undefined,
         type: form.type,
@@ -88,7 +115,8 @@ export function TaskFormModal({ me, people, allTasks, onCancel, onCreate }: Prop
         dependsOn: form.dependsOn ?? undefined,
         isDraft: form.isDraft,
         atRisk: form.atRisk,
-        opener: me ?? undefined,
+        // Only on create: editing must not reassign who opened it.
+        ...(task ? {} : { opener: me ?? undefined }),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -98,7 +126,7 @@ export function TaskFormModal({ me, people, allTasks, onCancel, onCreate }: Prop
 
   return (
     <Modal
-      title="New Task"
+      title={task ? `#${task.id}  ${task.title}` : 'New Task'}
       width={expanded ? 900 : 600}
       onClose={onCancel}
       footer={
@@ -115,11 +143,29 @@ export function TaskFormModal({ me, people, allTasks, onCancel, onCreate }: Prop
             </Chip>
           </div>
 
-          {error && <span className={styles.error}>{error}</span>}
+          {task && onDelete && (
+            confirmDelete ? (
+              <>
+                <span className={styles.error}>Delete #{task.id}?</span>
+                <button type="button" className={styles.deleteBtn} onClick={() => onDelete(task.id)}>Yes, delete</button>
+                <button type="button" className={styles.cancelBtn} onClick={() => setConfirmDelete(false)}>No</button>
+              </>
+            ) : (
+              <button type="button" className={styles.deleteBtn} onClick={() => setConfirmDelete(true)}>Delete</button>
+            )
+          )}
+
+          {task && onDeploy && !confirmDelete && (
+            <button type="button" className={styles.cancelBtn} onClick={() => onDeploy(task.id)}>
+              {task.deployedAt ? 'Deployed ×' : 'Mark deployed'}
+            </button>
+          )}
+
+          {error && !confirmDelete && <span className={styles.error}>{error}</span>}
           <span className={styles.spacer} />
           <button type="button" className={styles.cancelBtn} onClick={onCancel}>Cancel</button>
           <button type="button" className={styles.submitBtn} disabled={!form.title.trim() || busy} onClick={submit}>
-            {busy ? 'Creating…' : 'Create'}
+            {busy ? (task ? 'Saving…' : 'Creating…') : (task ? 'Save' : 'Create')}
           </button>
         </>
       }
@@ -246,6 +292,8 @@ export function TaskFormModal({ me, people, allTasks, onCancel, onCreate }: Prop
 
         <button type="submit" hidden />
       </form>
+
+      {task && <CommentThread taskId={task.id} me={me} />}
     </Modal>
   );
 }

@@ -1,6 +1,5 @@
 import { useMemo, useReducer, useState } from 'react';
 import { TaskColumns } from '../TaskColumns';
-import { TaskDialog } from '../TaskDialog';
 import { TaskFormModal } from '../TaskFormModal';
 import { IdentityModal } from '../IdentityModal';
 import { ListView } from '../ListView';
@@ -241,11 +240,10 @@ export function TaskBoardPage() {
           people={people}
           allTasks={[...tasks.values()]}
           onCancel={() => setCreating(false)}
-          onCreate={async draft => {
-            const task = await create(draft);
-            setCreating(false);
-            setOpenId(task.id);
-          }}
+          // Closes and leaves you on the board, as the original does. Opening
+          // the new task straight away meant every creation ended in a dialog
+          // nobody asked for.
+          onSubmit={async draft => { await create(draft); setCreating(false); }}
         />
       )}
 
@@ -270,17 +268,22 @@ export function TaskBoardPage() {
       )}
 
       {open && (
-        <TaskDialog
+        <TaskFormModal
           task={open}
           me={me}
           people={people}
           allTasks={[...tasks.values()]}
-          onClose={() => { setOpenId(null); void refreshAttention(); }}
-          onSave={update}
-          onDelete={remove}
+          onCancel={() => { setOpenId(null); void refreshAttention(); }}
+          onSubmit={async draft => {
+            await update(open.id, draft);
+            setOpenId(null);
+            void refreshAttention();
+          }}
+          onDelete={async id => { await remove(id); setOpenId(null); }}
           onDeploy={deploy}
         />
       )}
+
     </div>
   );
 }
