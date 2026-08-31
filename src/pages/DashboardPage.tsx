@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState } from 'react';
 import { useParams, Navigate, Routes, Route } from 'react-router-dom';
 
 import { ThemeProvider, AgentProvider } from '../context';
+import { AccessPage, SignInGate, authApi } from '../auth';
 
 // Lazy for the same reason every other heavy subtree here is: an agent whose
 // Task Board module is switched off must not download it.
@@ -56,12 +57,24 @@ export function DashboardPage() {
   // Whether our own task board is switched on for this client — asked of the
   // server rather than hardcoded, since that switch is the point of the module.
   const [showTaskboard, setShowTaskboard] = useState(false);
+  const [showAccess, setShowAccess] = useState(false);
   useEffect(() => {
     if (!agent) return;
     let cancelled = false;
     taskboardApi.isEnabledFor(agent)
       .then(on => { if (!cancelled) setShowTaskboard(on); })
       .catch(() => { /* not enabled, or unreachable — either way, no nav item */ });
+    return () => { cancelled = true; };
+  }, [agent]);
+
+  // The Access screen only makes sense where sign-in is switched on: without it
+  // an invitation grants entry to a door that is already open.
+  useEffect(() => {
+    if (!agent) return;
+    let cancelled = false;
+    authApi.config(agent)
+      .then(c => { if (!cancelled) setShowAccess(c.enabled); })
+      .catch(() => { /* not enabled, or unreachable */ });
     return () => { cancelled = true; };
   }, [agent]);
 
@@ -118,6 +131,7 @@ export function DashboardPage() {
           showQueryOptimizer={showQueryOptimizer}
           showModules={showModules}
           showTaskboard={showTaskboard}
+          showAccess={showAccess}
           showLegacyTaskBoard={showLegacyTaskBoard}
           showPodcast={showPodcast}
           showConversationTrends={showConversationTrends}
@@ -195,12 +209,19 @@ export function DashboardPage() {
                 path="taskboard"
                 element={
                   <div className={dashStyles.taskBoardWrapper} dir="ltr">
-                    <Suspense fallback={null}>
-                      <AspectTaskBoard />
-                    </Suspense>
+                    <SignInGate tenant={agent ?? ''} agentName={config.displayName}>
+                      {() => (
+                        <Suspense fallback={null}>
+                          <AspectTaskBoard />
+                        </Suspense>
+                      )}
+                    </SignInGate>
                   </div>
                 }
               />
+            )}
+            {showAccess && (
+              <Route path="access" element={<AccessPage tenant={agent ?? ''} />} />
             )}
             {showModules && (
               <Route
