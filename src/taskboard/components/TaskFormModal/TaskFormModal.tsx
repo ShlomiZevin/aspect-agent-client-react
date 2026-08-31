@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CommentThread } from '../CommentThread';
 import { RichTextEditor, sanitize } from '../RichTextEditor';
 import { useTranslation } from '../../state/useTranslation';
@@ -74,6 +74,10 @@ function seed(task?: Task): FormState {
 // render the whole board into a dropdown.
 const MIN_SEARCH = 3;
 
+function containsHebrew(text: string): boolean {
+  return /[֐-׿]/.test(text);
+}
+
 function formatCreatedAt(date: string): string {
   const d = new Date(date);
   const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
@@ -97,6 +101,9 @@ export function TaskFormModal({
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [highlighted, setHighlighted] = useState(-1);
+  const titleRef = useRef<HTMLTextAreaElement>(null);
   const translation = useTranslation();
 
   useEffect(() => {
@@ -186,13 +193,35 @@ export function TaskFormModal({
             <div className={styles.formBody}>
               <div className={styles.titleField}>
                 <label htmlFor="tb-title">Title *</label>
-                <input
-                  id="tb-title"
-                  value={form.title}
-                  placeholder="Task title..."
-                  dir="auto"
-                  onChange={e => set('title', e.target.value)}
-                />
+                {/* A textarea carrying the original class, not a bare input:
+                    that class is what makes it span the field, and a long title
+                    wraps here rather than scrolling sideways. */}
+                {(!task || editingTitle) ? (
+                  <textarea
+                    ref={titleRef}
+                    id="tb-title"
+                    className={styles.titleTextarea}
+                    rows={1}
+                    value={form.title}
+                    placeholder="Task title..."
+                    autoFocus
+                    style={containsHebrew(form.title) ? { direction: 'rtl', textAlign: 'right' } : undefined}
+                    onChange={e => set('title', e.target.value)}
+                    onBlur={() => { if (task && form.title.trim()) setEditingTitle(false); }}
+                    onKeyDown={e => { if (e.key === 'Escape' && task) setEditingTitle(false); }}
+                  />
+                ) : (
+                  <div
+                    className={styles.titleDisplay}
+                    style={containsHebrew(form.title) ? { direction: 'rtl', textAlign: 'right' } : undefined}
+                    onClick={() => {
+                      setEditingTitle(true);
+                      window.setTimeout(() => titleRef.current?.focus(), 0);
+                    }}
+                  >
+                    {form.title || <span className={styles.titlePlaceholder}>Click to add title...</span>}
+                  </div>
+                )}
               </div>
 
               <div className={styles.descriptionField}>
@@ -211,8 +240,8 @@ export function TaskFormModal({
                     >
                       {translation.busy ? 'Translating…' : translation.showing ? 'Hide translation' : 'Translate'}
                     </button>
-                    <button type="button" className={styles.expandBtn} onClick={() => setExpanded(x => !x)}>
-                      {expanded ? 'Collapse' : 'Expand'}
+                    <button type="button" className={styles.expandBtn} onClick={() => setExpanded(true)}>
+                      Expand
                     </button>
                   </span>
                 </div>
@@ -221,7 +250,6 @@ export function TaskFormModal({
                   value={form.description}
                   onChange={html => set('description', html)}
                   placeholder="Optional description..."
-                  minHeight={expanded ? 340 : undefined}
                   people={people}
                 />
 
@@ -315,18 +343,39 @@ export function TaskFormModal({
                         autoComplete="off"
                         value={search}
                         placeholder={`Type ${MIN_SEARCH}+ letters to search...`}
-                        onChange={e => { setSearch(e.target.value); setShowSuggestions(true); }}
+                        onChange={e => { setSearch(e.target.value); setShowSuggestions(true); setHighlighted(-1); }}
                         onFocus={() => setShowSuggestions(true)}
+                        onKeyDown={e => {
+                          if (!showSuggestions || suggestions.length === 0) return;
+                          if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            setHighlighted(i => (i + 1) % suggestions.length);
+                          } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            setHighlighted(i => (i <= 0 ? suggestions.length : i) - 1);
+                          } else if (e.key === 'Enter' && highlighted >= 0) {
+                            // Only when a row is highlighted, so Enter still
+                            // submits the form when the list is merely open.
+                            e.preventDefault();
+                            set('dependsOn', suggestions[highlighted].id);
+                            setSearch('');
+                            setShowSuggestions(false);
+                            setHighlighted(-1);
+                          } else if (e.key === 'Escape') {
+                            setShowSuggestions(false);
+                          }
+                        }}
                         // Delayed so a click on a suggestion lands before the
                         // list is torn down by the blur.
                         onBlur={() => window.setTimeout(() => setShowSuggestions(false), 120)}
                       />
                       {showSuggestions && suggestions.length > 0 && (
                         <div className={styles.suggestionsList}>
-                          {suggestions.map(t => (
+                          {suggestions.map((t, i) => (
                             <div
                               key={t.id}
-                              className={styles.suggestionItem}
+                              className={`${styles.suggestionItem} ${i === highlighted ? styles.highlighted : ''}`}
+                              onMouseEnter={() => setHighlighted(i)}
                               onClick={() => { set('dependsOn', t.id); setSearch(''); setShowSuggestions(false); }}
                             >
                               <span className={styles.autocompleteTitle}>#{t.id} {t.title}</span>
@@ -379,6 +428,19 @@ export function TaskFormModal({
                     />
                     💀 Limbo
                   </label>
+                  {task && form.status === 'done' && (
+                    <label className={`${styles.toggleChip} ${task.acknowledged ? styles.completedActive : ''}`}>
+                      <input
+                        type="checkbox"
+                        checked={task.acknowledged}
+                        // Saved on the spot rather than with the form: it is an
+                        // approval, and holding it behind Save meant it reverted
+                        // silently whenever the dialog was closed with Cancel.
+                        onChange={e => void onSubmit({ acknowledged: e.target.checked })}
+                      />
+                      &#10003; Done
+                    </label>
+                  )}
                   {task && onDeploy && (
                     <button
                       type="button"
@@ -413,6 +475,29 @@ export function TaskFormModal({
           )}
         </div>
       </div>
+
+      {expanded && (
+        <div className={styles.expandedOverlay} onMouseDown={() => setExpanded(false)}>
+          <div className={styles.expandedEditor} onMouseDown={e => e.stopPropagation()}>
+            <div className={styles.expandedHeader}>
+              <h4>Edit Description</h4>
+              <button type="button" className={styles.closeBtn} onClick={() => setExpanded(false)}>&times;</button>
+            </div>
+            <div className={styles.expandedContent}>
+              <RichTextEditor
+                value={form.description}
+                onChange={html => set('description', html)}
+                placeholder="Write your description..."
+                minHeight={420}
+                people={people}
+              />
+            </div>
+            <div className={styles.expandedActions}>
+              <button type="button" className={styles.submitBtn} onClick={() => setExpanded(false)}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
