@@ -1,6 +1,16 @@
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { useParams, Navigate, Routes, Route } from 'react-router-dom';
 
 import { ThemeProvider, AgentProvider } from '../context';
+
+// Lazy for the same reason every other heavy subtree here is: an agent whose
+// Task Board module is switched off must not download it.
+const AspectTaskBoard = lazy(() =>
+  import('../taskboard/components/TaskBoardPage/TaskBoardPage').then(m => ({ default: m.TaskBoardPage })));
+// The api module only, NOT the package barrel: the barrel re-exports the board
+// component, so importing from it would pull the whole board into the main
+// bundle and undo the lazy() below.
+import { api as taskboardApi } from '../taskboard/api';
 import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { FeedbackPage } from '../components/dashboard/FeedbackPage';
 import { UsersPage } from '../components/dashboard/UsersPage';
@@ -39,6 +49,22 @@ export function DashboardPage() {
   const { agent } = useParams<{ agent: string }>();
   const config = getAgentConfig(agent);
 
+  // Declared BEFORE the early returns below. This component returns early for an
+  // unknown agent, and a hook placed after that changes the hook count between
+  // renders, which React treats as fatal.
+  //
+  // Whether our own task board is switched on for this client — asked of the
+  // server rather than hardcoded, since that switch is the point of the module.
+  const [showTaskboard, setShowTaskboard] = useState(false);
+  useEffect(() => {
+    if (!agent) return;
+    let cancelled = false;
+    taskboardApi.isEnabledFor(agent)
+      .then(on => { if (!cancelled) setShowTaskboard(on); })
+      .catch(() => { /* not enabled, or unreachable — either way, no nav item */ });
+    return () => { cancelled = true; };
+  }, [agent]);
+
   if (!config) {
     // Browser may have cached old JS bundle that doesn't know this agent.
     // Try one hard reload to fetch the latest bundle before giving up.
@@ -66,6 +92,7 @@ export function DashboardPage() {
   // are exactly that. The server decides what is attachable and returns only
   // those, so showing the tab cannot offer a switch that will not work.
   const showModules = true;
+
   const showPodcast = agent?.toLowerCase() === 'freeda';
   const showConversationTrends = agent?.toLowerCase() === 'banking-v2';
 
@@ -79,6 +106,7 @@ export function DashboardPage() {
           basePath={basePath}
           showQueryOptimizer={showQueryOptimizer}
           showModules={showModules}
+          showTaskboard={showTaskboard}
           showPodcast={showPodcast}
           showConversationTrends={showConversationTrends}
         >
@@ -148,6 +176,18 @@ export function DashboardPage() {
               <Route
                 path="data-loader"
                 element={<DataLoaderPage agentName={config.agentName} baseURL={config.baseURL} schemaName={config.database!.schema} />}
+              />
+            )}
+            {showTaskboard && (
+              <Route
+                path="taskboard"
+                element={
+                  <div className={dashStyles.taskBoardWrapper} dir="ltr">
+                    <Suspense fallback={null}>
+                      <AspectTaskBoard />
+                    </Suspense>
+                  </div>
+                }
               />
             )}
             {showModules && (

@@ -194,6 +194,9 @@ function ModuleCard({ mod, busy, onToggle, onSettings, onRunReport }: {
   onSettings: () => void;
   onRunReport: () => void;
 }) {
+  // An app module owns its own storage: no init pipeline, no binding, no
+  // nightly build. Several controls below exist only for data modules.
+  const isApp = mod.kind === 'app';
   const hasBinding = Boolean(mod.binding);
   // "Never initialized" and "initialized and it failed" are different
   // situations and must not share a message — a failed module was showing
@@ -225,7 +228,11 @@ function ModuleCard({ mod, busy, onToggle, onSettings, onRunReport }: {
       </div>
 
       <div className={styles.meta}>
-        {hasBinding ? (
+        {isApp ? (
+          mod.live
+            ? 'Switched on. This module brings its own storage, so there is nothing to initialize.'
+            : 'Switch it on to make it available for this client. There is nothing to initialize.'
+        ) : hasBinding ? (
           <>
             Binding stored
             {mod.initModel ? ` · model ${mod.initModel}` : ''}
@@ -239,8 +246,9 @@ function ModuleCard({ mod, busy, onToggle, onSettings, onRunReport }: {
       </div>
 
       {/* Enabled but not ready is a legitimate, and confusing, state — say so
-          rather than leaving the operator to infer it from two controls. */}
-      {mod.enabled && mod.status !== 'ready' && (
+          rather than leaving the operator to infer it from two controls. It
+          cannot happen to an app module, whose switch sets both at once. */}
+      {!isApp && mod.enabled && mod.status !== 'ready' && (
         <div className={styles.inlineHint}>
           Enabled, but not live yet — initialization has not completed successfully.
         </div>
@@ -253,9 +261,13 @@ function ModuleCard({ mod, busy, onToggle, onSettings, onRunReport }: {
 
       <div className={styles.cardActions}>
         <button type="button" className={styles.btnGhost} onClick={onSettings}>Settings</button>
-        <button type="button" className={styles.btnGhost} onClick={onRunReport}>
-          {everRun ? 'Re-init / run report' : 'Init infrastructure'}
-        </button>
+        {/* No init for an app module: the server refuses it, so offering the
+            button would only ever produce an error. */}
+        {!isApp && (
+          <button type="button" className={styles.btnGhost} onClick={onRunReport}>
+            {everRun ? 'Re-init / run report' : 'Init infrastructure'}
+          </button>
+        )}
       </div>
     </section>
   );
@@ -313,7 +325,13 @@ function SettingsModal({ datasetId, baseURL, mod, onClose, onSaved }: {
         <div className={styles.noticeSlot}>
           {notice
             ? <div className={styles.noticeError}>{notice}</div>
-            : <div className={styles.noticeInfo}>Saved settings apply from the next init or nightly build.</div>}
+            : (
+              <div className={styles.noticeInfo}>
+                {mod.kind === 'app'
+                  ? 'Saved settings take effect immediately.'
+                  : 'Saved settings apply from the next init or nightly build.'}
+              </div>
+            )}
         </div>
 
         <div className={styles.modalActions}>
