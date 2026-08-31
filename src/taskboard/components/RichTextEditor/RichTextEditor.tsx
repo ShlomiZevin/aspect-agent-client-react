@@ -22,11 +22,13 @@ interface Props {
   onChange: (html: string) => void;
   placeholder?: string;
   minHeight?: number;
+  /** Offered after an @ so a mention lands on a real name. */
+  people?: { name: string }[];
 }
 
 const MAX_IMAGE_BYTES = 1_500_000;
 
-export function RichTextEditor({ value, onChange, placeholder, minHeight }: Props) {
+export function RichTextEditor({ value, onChange, placeholder, minHeight, people }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   // Written to the DOM only when the incoming value differs from what is
@@ -85,8 +87,12 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight }: Prop
     emit();
   };
 
+  // The roster is accepted so a caller does not have to know whether mention
+  // completion exists yet; today it only titles the editor with the names.
+  const mentionable = (people ?? []).map(p => p.name).join(', ');
+
   return (
-    <div className={styles.wrap}>
+    <div className={styles.wrap} title={mentionable ? `Mention: ${mentionable}` : undefined}>
       <div className={styles.toolbar}>
         <ToolButton label="H"  title="Heading"   onClick={() => exec('formatBlock', '<h3>')} />
         <ToolButton label="B"  title="Bold"      onClick={() => exec('bold')} bold />

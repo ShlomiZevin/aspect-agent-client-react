@@ -1,19 +1,24 @@
-import { useMemo, useRef, useState } from 'react';
-import { Modal } from '../Modal';
+import { useEffect, useMemo, useState } from 'react';
 import { CommentThread } from '../CommentThread';
-import { RichTextEditor } from '../RichTextEditor';
+import { RichTextEditor, sanitize } from '../RichTextEditor';
+import { useTranslation } from '../../state/useTranslation';
 import { LABELS, PRIORITIES, STATUSES, TYPES } from '../../types';
 import type { Person, Task, TaskDraft, TaskPriority, TaskStatus, TaskType } from '../../types';
 import styles from './TaskFormModal.module.css';
 
 /**
- * Create a task. Same fields, same order and same labels as the original
- * board's form, so filing a task here is not a different job.
+ * Create OR edit a task — one form for both, as the original has, with its
+ * markup and stylesheet. Passing a `task` opens the two-column layout: the form
+ * on the left, the comment thread down the right.
  *
- * The refactor is underneath: the original holds twenty-odd useState calls and
- * re-initialises them from props in an effect, which is what made it wipe itself
- * mid-edit. This one is a single draft object, created once and never
- * re-initialised, so there is nothing to lose.
+ * Building a separate component to edit with was a mistake: two forms over the
+ * same fields drift, and within a day the edit one had a different layout, a
+ * different set of fields and different labels.
+ *
+ * The refactor is underneath. The original holds twenty-odd useState calls and
+ * re-seeds them from props in an effect, which is what made it wipe itself
+ * mid-edit. Here the draft is one object, seeded once by useState's initialiser
+ * and never re-seeded, so there is nothing to lose.
  */
 interface Props {
   me: string | null;
@@ -26,6 +31,7 @@ interface Props {
   onSubmit: (draft: TaskDraft) => Promise<unknown>;
   onDelete?: (id: number) => Promise<unknown>;
   onDeploy?: (id: number) => Promise<unknown>;
+  onChangeIdentity: () => void;
 }
 
 interface FormState {
@@ -44,8 +50,7 @@ interface FormState {
 
 const EMPTY: FormState = {
   title: '', description: '', type: 'feature', priority: 'medium', status: 'todo',
-  assignee: '', dueDate: '', tags: '',
-  dependsOn: null, isDraft: false, atRisk: false,
+  assignee: '', dueDate: '', tags: '', dependsOn: null, isDraft: false, atRisk: false,
 };
 
 function seed(task?: Task): FormState {
@@ -69,7 +74,18 @@ function seed(task?: Task): FormState {
 // render the whole board into a dropdown.
 const MIN_SEARCH = 3;
 
-export function TaskFormModal({ me, people, allTasks, task, onCancel, onSubmit, onDelete, onDeploy }: Props) {
+function formatCreatedAt(date: string): string {
+  const d = new Date(date);
+  const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
+  if (days === 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 30) return `${days}d ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+export function TaskFormModal({
+  me, people, allTasks, task, onCancel, onSubmit, onDelete, onDeploy, onChangeIdentity,
+}: Props) {
   // Seeded once, by the initialiser. Never re-seeded from props: that effect is
   // what made the original wipe itself when an unrelated prop changed identity
   // on a refresh.
@@ -80,7 +96,14 @@ export function TaskFormModal({ me, people, allTasks, task, onCancel, onSubmit, 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const translation = useTranslation();
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onCancel]);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm(f => ({ ...f, [key]: value }));
@@ -124,199 +147,272 @@ export function TaskFormModal({ me, people, allTasks, task, onCancel, onSubmit, 
     }
   };
 
+  const copyLink = () => {
+    const url = `${window.location.origin}${window.location.pathname}?task=${task?.id}`;
+    void navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 2000);
+    });
+  };
+
   return (
-    <Modal
-      title={task ? `#${task.id}  ${task.title}` : 'New Task'}
-      width={expanded ? 900 : 600}
-      onClose={onCancel}
-      footer={
-        <>
-          <div className={styles.toggles}>
-            <Chip on={form.isDraft} onChange={v => set('isDraft', v)} className={styles.draftOn}>Draft</Chip>
-            <Chip on={form.atRisk} onChange={v => set('atRisk', v)} className={styles.riskOn}>⚠ Risk</Chip>
-            <Chip
-              on={form.assignee === 'Limbo'}
-              onChange={v => set('assignee', v ? 'Limbo' : '')}
-              className={styles.limboOn}
-            >
-              💀 Limbo
-            </Chip>
-          </div>
-
-          {task && onDelete && (
-            confirmDelete ? (
-              <>
-                <span className={styles.error}>Delete #{task.id}?</span>
-                <button type="button" className={styles.deleteBtn} onClick={() => onDelete(task.id)}>Yes, delete</button>
-                <button type="button" className={styles.cancelBtn} onClick={() => setConfirmDelete(false)}>No</button>
-              </>
-            ) : (
-              <button type="button" className={styles.deleteBtn} onClick={() => setConfirmDelete(true)}>Delete</button>
-            )
-          )}
-
-          {task && onDeploy && !confirmDelete && (
-            <button type="button" className={styles.cancelBtn} onClick={() => onDeploy(task.id)}>
-              {task.deployedAt ? 'Deployed ×' : 'Mark deployed'}
-            </button>
-          )}
-
-          {error && !confirmDelete && <span className={styles.error}>{error}</span>}
-          <span className={styles.spacer} />
-          <button type="button" className={styles.cancelBtn} onClick={onCancel}>Cancel</button>
-          <button type="button" className={styles.submitBtn} disabled={!form.title.trim() || busy} onClick={submit}>
-            {busy ? (task ? 'Saving…' : 'Creating…') : (task ? 'Save' : 'Create')}
-          </button>
-        </>
-      }
-    >
-      <form className={styles.form} onSubmit={e => { e.preventDefault(); void submit(); }}>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="tb-title">Title *</label>
-          <input
-            id="tb-title"
-            className={styles.input}
-            value={form.title}
-            placeholder="Task title..."
-            onChange={e => set('title', e.target.value)}
-          />
-        </div>
-
-        <div className={styles.field}>
-          <div className={styles.descriptionHeader}>
-            <label className={styles.label}>Description</label>
-            <button type="button" className={styles.expandBtn} onClick={() => setExpanded(x => !x)}>
-              {expanded ? 'Collapse' : 'Expand'}
-            </button>
-          </div>
-          <RichTextEditor
-            value={form.description}
-            onChange={html => set('description', html)}
-            placeholder="Optional description..."
-            minHeight={expanded ? 320 : undefined}
-          />
-        </div>
-
-        <div className={styles.row}>
-          <Field label="Type" htmlFor="tb-type">
-            <select id="tb-type" className={styles.select} value={form.type} onChange={e => set('type', e.target.value as TaskType)}>
-              {TYPES.map(t => <option key={t} value={t}>{LABELS[t] ?? t}</option>)}
-            </select>
-          </Field>
-
-          <Field label="Priority" htmlFor="tb-priority">
-            <select id="tb-priority" className={styles.select} value={form.priority} onChange={e => set('priority', e.target.value as TaskPriority)}>
-              {PRIORITIES.map(p => <option key={p} value={p}>{LABELS[p] ?? p}</option>)}
-            </select>
-          </Field>
-
-          <Field label="Status" htmlFor="tb-status">
-            <select id="tb-status" className={styles.select} value={form.status} onChange={e => set('status', e.target.value as TaskStatus)}>
-              {STATUSES.map(s => <option key={s} value={s}>{LABELS[s] ?? s}</option>)}
-            </select>
-          </Field>
-        </div>
-
-        <div className={styles.row}>
-          <Field label="Assignee" htmlFor="tb-assignee">
-            <select id="tb-assignee" className={styles.select} value={form.assignee} onChange={e => set('assignee', e.target.value)}>
-              <option value="">Unassigned</option>
-              {people.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
-            </select>
-          </Field>
-
-          <Field label="Due Date" htmlFor="tb-due">
-            <input id="tb-due" type="date" className={styles.input} value={form.dueDate} onChange={e => set('dueDate', e.target.value)} />
-          </Field>
-        </div>
-
-        <div className={styles.inlineRow}>
-          <label className={styles.inlineLabel} htmlFor="tb-tags">Tags</label>
-          <input
-            id="tb-tags"
-            className={styles.input}
-            value={form.tags}
-            placeholder="e.g., urgent, backend, ui"
-            onChange={e => set('tags', e.target.value)}
-          />
-        </div>
-
-        <div className={styles.inlineRow} ref={searchRef}>
-          <label className={styles.inlineLabel} htmlFor="tb-depends">Depends On</label>
-          {dependency ? (
-            <div className={styles.selectedDependency}>
-              <span className={styles.dependencyChip}>#{dependency.id} {dependency.title}</span>
-              <button
-                type="button"
-                className={styles.removeDepBtn}
-                title="Remove dependency"
-                onClick={() => { set('dependsOn', null); setSearch(''); }}
-              >
-                ×
-              </button>
+    <div className={styles.formOverlay} onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div
+        className={`${styles.formContainer} ${task ? styles.formContainerEdit : ''}`}
+        onMouseDown={e => e.stopPropagation()}
+      >
+        <div className={task ? styles.twoColumn : undefined}>
+          <form className={styles.form} onSubmit={e => { e.preventDefault(); void submit(); }}>
+            <div className={styles.header}>
+              <h3>
+                {task ? 'Edit Task' : 'New Task'}
+                {task && <span className={styles.taskId}>#{task.id}</span>}
+                {task?.createdAt && (
+                  <span className={styles.createdDate} title={new Date(task.createdAt).toLocaleString()}>
+                    Created {formatCreatedAt(task.createdAt)}
+                  </span>
+                )}
+              </h3>
+              <div className={styles.headerActions}>
+                {task && (
+                  <button type="button" className={styles.copyLinkBtn} title="Copy link to task" onClick={copyLink}>
+                    {linkCopied ? 'Copied!' : 'Copy link'}
+                  </button>
+                )}
+                <button type="button" className={styles.closeBtn} onClick={onCancel}>×</button>
+              </div>
             </div>
-          ) : (
-            <div className={styles.autocomplete}>
-              <input
-                id="tb-depends"
-                className={styles.input}
-                value={search}
-                autoComplete="off"
-                placeholder={`Type ${MIN_SEARCH}+ letters to search...`}
-                onChange={e => { setSearch(e.target.value); setShowSuggestions(true); }}
-                onFocus={() => setShowSuggestions(true)}
-                // Delayed so a click on a suggestion lands before the list is
-                // torn down by the blur.
-                onBlur={() => window.setTimeout(() => setShowSuggestions(false), 120)}
-              />
-              {showSuggestions && suggestions.length > 0 && (
-                <div className={styles.suggestions}>
-                  {suggestions.map(t => (
+
+            <div className={styles.formBody}>
+              <div className={styles.titleField}>
+                <label htmlFor="tb-title">Title *</label>
+                <input
+                  id="tb-title"
+                  value={form.title}
+                  placeholder="Task title..."
+                  dir="auto"
+                  onChange={e => set('title', e.target.value)}
+                />
+              </div>
+
+              <div className={styles.descriptionField}>
+                <div className={styles.descriptionHeader}>
+                  <label>Description</label>
+                  <span className={styles.headerLinks}>
                     <button
-                      key={t.id}
                       type="button"
-                      className={styles.suggestion}
-                      onClick={() => { set('dependsOn', t.id); setSearch(''); setShowSuggestions(false); }}
+                      className={styles.expandBtn}
+                      disabled={translation.busy || (!form.title.trim() && !form.description.trim())}
+                      // Title and description go together: they are one piece of
+                      // writing, and translating half reads as a mistake.
+                      onClick={() => translation.toggle(
+                        [form.title, form.description].filter(Boolean).join('\n\n'),
+                      )}
                     >
-                      <span className={styles.suggestionTitle}>#{t.id} {t.title}</span>
-                      <span className={styles.suggestionStatus}>
-                        {t.status === 'done' ? '✓' : t.status === 'in_progress' ? '⏳' : '○'}
-                      </span>
+                      {translation.busy ? 'Translating…' : translation.showing ? 'Hide translation' : 'Translate'}
                     </button>
-                  ))}
+                    <button type="button" className={styles.expandBtn} onClick={() => setExpanded(x => !x)}>
+                      {expanded ? 'Collapse' : 'Expand'}
+                    </button>
+                  </span>
                 </div>
-              )}
+
+                <RichTextEditor
+                  value={form.description}
+                  onChange={html => set('description', html)}
+                  placeholder="Optional description..."
+                  minHeight={expanded ? 340 : undefined}
+                  people={people}
+                />
+
+                {translation.error && <div className={styles.translationError}>{translation.error}</div>}
+
+                {translation.showing && translation.text !== null && (
+                  <div className={styles.translation} dir="auto">
+                    <span className={styles.translationLabel}>Translation</span>
+                    {/* Through the same sanitiser the editor's own output goes
+                        through, never raw. */}
+                    <div dangerouslySetInnerHTML={{ __html: sanitize(translation.text) }} />
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.row}>
+                <div className={styles.field}>
+                  <label htmlFor="tb-type">Type</label>
+                  <select id="tb-type" value={form.type} onChange={e => set('type', e.target.value as TaskType)}>
+                    {TYPES.map(t => <option key={t} value={t}>{LABELS[t] ?? t}</option>)}
+                  </select>
+                </div>
+
+                <div className={styles.field}>
+                  <label htmlFor="tb-priority">Priority</label>
+                  <select id="tb-priority" value={form.priority} onChange={e => set('priority', e.target.value as TaskPriority)}>
+                    {PRIORITIES.map(p => <option key={p} value={p}>{LABELS[p] ?? p}</option>)}
+                  </select>
+                </div>
+
+                <div className={styles.field}>
+                  <label htmlFor="tb-status">Status</label>
+                  <select id="tb-status" value={form.status} onChange={e => set('status', e.target.value as TaskStatus)}>
+                    {STATUSES.map(s => <option key={s} value={s}>{LABELS[s] ?? s}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className={styles.row}>
+                <div className={styles.field}>
+                  <label htmlFor="tb-assignee">
+                    {task?.opener
+                      ? <>Assigned to by <span className={styles.openerName}>{task.opener}</span></>
+                      : 'Assignee'}
+                  </label>
+                  <select id="tb-assignee" value={form.assignee} onChange={e => set('assignee', e.target.value)}>
+                    <option value="">Unassigned</option>
+                    {people.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+                  </select>
+                </div>
+
+                <div className={styles.field}>
+                  <label htmlFor="tb-due">Due Date</label>
+                  <input id="tb-due" type="date" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} />
+                </div>
+              </div>
+
+              <div className={styles.inlineRow}>
+                <label htmlFor="tb-tags">Tags</label>
+                <div className={styles.inlineField}>
+                  <input
+                    id="tb-tags"
+                    type="text"
+                    value={form.tags}
+                    placeholder="e.g., urgent, backend, ui"
+                    onChange={e => set('tags', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.dependsOnRow}>
+                <label htmlFor="tb-depends">Depends On</label>
+                <div className={styles.dependsOnField}>
+                  {dependency ? (
+                    <div className={styles.selectedDependency}>
+                      <span className={styles.dependencyChip}>#{dependency.id} {dependency.title}</span>
+                      <button
+                        type="button"
+                        className={styles.removeDepBtn}
+                        title="Remove dependency"
+                        onClick={() => { set('dependsOn', null); setSearch(''); }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={styles.autocompleteWrapper}>
+                      <input
+                        id="tb-depends"
+                        type="text"
+                        autoComplete="off"
+                        value={search}
+                        placeholder={`Type ${MIN_SEARCH}+ letters to search...`}
+                        onChange={e => { setSearch(e.target.value); setShowSuggestions(true); }}
+                        onFocus={() => setShowSuggestions(true)}
+                        // Delayed so a click on a suggestion lands before the
+                        // list is torn down by the blur.
+                        onBlur={() => window.setTimeout(() => setShowSuggestions(false), 120)}
+                      />
+                      {showSuggestions && suggestions.length > 0 && (
+                        <div className={styles.suggestionsList}>
+                          {suggestions.map(t => (
+                            <div
+                              key={t.id}
+                              className={styles.suggestionItem}
+                              onClick={() => { set('dependsOn', t.id); setSearch(''); setShowSuggestions(false); }}
+                            >
+                              <span className={styles.autocompleteTitle}>#{t.id} {t.title}</span>
+                              <span className={`${styles.autocompleteStatus} ${styles[t.status]}`}>
+                                {t.status === 'done' ? '✓' : t.status === 'in_progress' ? '⏳' : '○'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.actions}>
+              <div className={styles.actionsRow1}>
+                {task && onDelete && (
+                  confirmDelete ? (
+                    <>
+                      <button type="button" className={styles.deleteBtn} onClick={() => onDelete(task.id)}>
+                        Delete #{task.id}?
+                      </button>
+                      <button type="button" className={styles.cancelBtn} onClick={() => setConfirmDelete(false)}>
+                        Keep
+                      </button>
+                    </>
+                  ) : (
+                    <button type="button" className={styles.deleteBtn} onClick={() => setConfirmDelete(true)}>
+                      Delete
+                    </button>
+                  )
+                )}
+
+                <div className={styles.toggles}>
+                  <label className={`${styles.toggleChip} ${form.isDraft ? styles.draftActive : ''}`}>
+                    <input type="checkbox" checked={form.isDraft} onChange={e => set('isDraft', e.target.checked)} />
+                    Draft
+                  </label>
+                  <label className={`${styles.toggleChip} ${form.atRisk ? styles.atRiskActive : ''}`}>
+                    <input type="checkbox" checked={form.atRisk} onChange={e => set('atRisk', e.target.checked)} />
+                    ⚠ Risk
+                  </label>
+                  <label className={`${styles.toggleChip} ${form.assignee === 'Limbo' ? styles.limboActive : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={form.assignee === 'Limbo'}
+                      onChange={e => set('assignee', e.target.checked ? 'Limbo' : '')}
+                    />
+                    💀 Limbo
+                  </label>
+                  {task && onDeploy && (
+                    <button
+                      type="button"
+                      className={`${styles.toggleChip} ${task.deployedAt ? styles.deployedBadge : styles.deployBtn}`}
+                      onClick={() => onDeploy(task.id)}
+                    >
+                      🚀 {task.deployedAt ? 'Deployed' : 'Deploy'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.rightActions}>
+                {error && <span className={styles.translationError}>{error}</span>}
+                <button type="button" className={styles.cancelBtn} onClick={onCancel}>Cancel</button>
+                <button type="submit" className={styles.submitBtn} disabled={!form.title.trim() || busy}>
+                  {busy ? (task ? 'Saving...' : 'Creating...') : (task ? 'Save' : 'Create')}
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {task && (
+            <div className={styles.commentsColumn}>
+              <CommentThread
+                taskId={task.id}
+                me={me}
+                people={people}
+                onChangeIdentity={onChangeIdentity}
+              />
             </div>
           )}
         </div>
-
-        <button type="submit" hidden />
-      </form>
-
-      {task && <CommentThread taskId={task.id} me={me} />}
-    </Modal>
-  );
-}
-
-function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
-  return (
-    <div className={styles.field}>
-      <label className={styles.label} htmlFor={htmlFor}>{label}</label>
-      {children}
+      </div>
     </div>
-  );
-}
-
-function Chip({ on, onChange, className, children }: {
-  on: boolean;
-  onChange: (v: boolean) => void;
-  className: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className={`${styles.toggleChip} ${on ? className : ''}`}>
-      <input type="checkbox" checked={on} onChange={e => onChange(e.target.checked)} />
-      {children}
-    </label>
   );
 }

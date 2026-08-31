@@ -390,6 +390,7 @@ export function TaskBoardPage() {
           people={people}
           allTasks={[...tasks.values()]}
           onCancel={() => setCreating(false)}
+          onChangeIdentity={() => setAskingName(true)}
           // Closes and leaves you on the board, as the original does. Opening
           // the new task straight away meant every creation ended in a dialog
           // nobody asked for.
@@ -424,6 +425,7 @@ export function TaskBoardPage() {
           people={people}
           allTasks={[...tasks.values()]}
           onCancel={() => { setOpenId(null); void refreshAttention(); }}
+          onChangeIdentity={() => setAskingName(true)}
           onSubmit={async draft => {
             await update(open.id, draft);
             setOpenId(null);

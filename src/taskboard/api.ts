@@ -138,6 +138,19 @@ export const api = {
     }).then(r => r.marked),
 
   /**
+   * Hebrew <-> English, direction detected from the text.
+   *
+   * Returns the translation and never stores it: a translation is a reading
+   * aid, and keeping one on the task would mean two versions of a title that
+   * drift apart the next time someone edits one of them.
+   */
+  translate: (text: string) =>
+    request<{ translated: string; to: 'he' | 'en' }>('/translate', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    }),
+
+  /**
    * Whether the board is switched on for this client.
    *
    * Reads the PUBLIC module status (`GET /api/modules/:client`), not the admin

@@ -1,238 +1,1134 @@
-.form { display: flex; flex-direction: column; gap: var(--spacing-md); }
-
-.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-
-/* Title Case, left-aligned, normal weight — as the original labels its fields.
-   Not the uppercase micro-caps this board had before. */
-.label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.input,
-.select {
-  font-family: inherit;
-  font-size: 13.5px;
-  color: var(--text-primary);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 11px;
-  min-width: 0;
-  width: 100%;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.input:focus,
-.select:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px var(--primary-light);
-}
-
-/* Three across, as the original's field rows are. */
-.row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--spacing-sm);
-}
-
-/* Label beside the control rather than above, for the single-field rows. */
-.inlineRow {
+/* Two-column wrapper: form left, comments right */
+.twoColumn {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
+  align-items: stretch;
+  max-height: 70vh;
+  overflow: hidden;
+}
+
+/* Test task layout: form + checklist sidebar side by side, comments below */
+.testLayout {
+  display: flex;
+  flex-wrap: wrap;
+  max-height: 70vh;
+  overflow: hidden;
+}
+
+.testLayout > form {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Checklist sidebar for test tasks */
+.checklistSidebar {
+  width: 240px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.checklistSidebarHeader {
+  padding: 8px 12px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-light);
+}
+
+.checklistSidebarList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.checklistSidebarItem {
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.checklistSidebarItem:last-child {
+  border-bottom: none;
+}
+
+.checklistSidebarRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.checklistSidebarIcon {
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+  width: 18px;
+  text-align: center;
+}
+
+.checklistSidebarText {
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.checklistPass {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.checklistSidebarNote {
+  margin-top: 3px;
+  padding-left: 24px;
+  font-size: 11px;
+  color: #ef4444;
+  font-style: italic;
+}
+
+.checklistSidebarNoteInput {
+  display: block;
+  width: calc(100% - 24px);
+  margin-top: 3px;
+  margin-left: 24px;
+  border: 1px solid #fca5a5;
+  border-radius: 3px;
+  padding: 2px 5px;
+  font-size: 11px;
+  color: #ef4444;
+  background: #fef2f2;
+  outline: none;
+}
+
+.checklistSidebarNoteInput:focus {
+  border-color: #ef4444;
+}
+
+.checklistSidebarNoteInput::placeholder {
+  color: #fca5a5;
+}
+
+/* Comments below (for test tasks) */
+.commentsBelow {
+  width: 100%;
+  border-top: 1px solid var(--border);
+  max-height: 180px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.commentsColumn {
+  width: 300px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: var(--spacing-md);
+  background: var(--surface-light, #f9fafb);
+}
+
+.form {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
   position: relative;
 }
 
-.inlineLabel {
-  font-size: 13px;
-  font-weight: 600;
+/* When inside twoColumn, form fills height naturally */
+.twoColumn .form {
+  flex: 1;
+  min-width: 0;
+  max-height: none;
+  overflow: hidden;
+  border-radius: 0;
+}
+
+/* Read-only content for "read" type tasks */
+.readAssignee {
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  color: var(--primary-color);
+  margin-left: 6px;
+}
+
+.readContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
   color: var(--text-primary);
-  width: 88px;
+}
+
+.readContent h3 {
+  font-size: var(--font-size-base);
+  margin: var(--spacing-md) 0 var(--spacing-sm);
+}
+
+.readContent ul, .readContent ol {
+  padding-left: var(--spacing-lg);
+  margin: var(--spacing-sm) 0;
+}
+
+.readContent li {
+  margin-bottom: var(--spacing-xs);
+}
+
+.readContent p {
+  margin: var(--spacing-sm) 0;
+}
+
+.readContent strong, .readContent b {
+  font-weight: 600;
+}
+
+.formBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
-.descriptionHeader {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.expandBtn {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 12px;
+.header h3 {
+  margin: 0;
+  font-size: var(--font-size-base);
   font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.expandBtn:hover { color: var(--primary-color); }
-
-/* --- depends on ---------------------------------------------------------- */
-
-.autocomplete { position: relative; flex: 1; min-width: 0; }
-
-.suggestions {
-  position: absolute;
-  top: calc(100% + 4px);
-  inset-inline: 0;
-  max-height: 220px;
-  overflow-y: auto;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-lg);
-  z-index: 20;
-}
-
-.suggestion {
+  color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  width: 100%;
-  text-align: start;
-  background: none;
-  border: none;
-  border-bottom: 1px solid var(--border);
-  padding: 8px 11px;
-  cursor: pointer;
-  transition: background var(--transition-fast);
+  gap: 8px;
 }
 
-.suggestion:last-child { border-bottom: none; }
-.suggestion:hover { background: var(--surface-light); }
-
-.suggestionTitle {
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-  color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.taskId {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface-light);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
 }
 
-.suggestionStatus { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+.createdDate {
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  color: var(--text-muted);
+  opacity: 0.75;
+}
 
-.selectedDependency {
+.headerActions {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex: 1;
-  min-width: 0;
+  flex-shrink: 0;
 }
 
-.dependencyChip {
-  flex: 1;
-  min-width: 0;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--primary-color);
-  background: var(--primary-light);
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  line-height: 1;
+}
+
+.closeBtn:hover {
+  color: var(--text-primary);
+}
+
+.copyLinkBtn {
+  background: none;
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 7px 11px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 3px 8px;
   white-space: nowrap;
 }
 
-.removeDepBtn {
-  width: 26px;
-  height: 26px;
-  flex-shrink: 0;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-muted);
-  font-size: 15px;
-  line-height: 1;
-  cursor: pointer;
+.copyLinkBtn:hover {
+  background: var(--surface-light);
+  color: var(--text-primary);
 }
 
-.removeDepBtn:hover { background: var(--surface-light); color: var(--text-primary); }
+/* Title field - inline editable */
+.titleField {
+  margin-bottom: var(--spacing-sm);
+}
 
-/* --- footer -------------------------------------------------------------- */
+.titleField label {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
 
-.toggles { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.titleTextarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast);
+  resize: none;
+  overflow: hidden;
+  min-height: 36px;
+  line-height: 1.4;
+}
+
+.titleTextarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.titleDisplay {
+  padding: 8px 10px;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--surface-light);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.titleDisplay:hover {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.titlePlaceholder {
+  color: var(--text-muted);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.field {
+  margin-bottom: var(--spacing-sm);
+}
+
+.field label {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.openerName {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast);
+}
+
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+}
 
 .toggleChip {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-full);
-  padding: 4px 11px;
+  gap: 3px;
   cursor: pointer;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  transition: all var(--transition-fast);
   user-select: none;
-  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  white-space: nowrap;
 }
 
-/* The checkbox drives the state but is not the affordance — the chip is. */
-.toggleChip input { position: absolute; opacity: 0; width: 0; height: 0; }
+.toggleChip:hover {
+  background: var(--surface-light);
+  color: var(--text-secondary);
+}
 
-.toggleChip:hover { border-color: var(--text-muted); }
+.toggleChip input {
+  display: none;
+}
 
-.draftOn { background: var(--surface-light); color: var(--text-primary); border-color: var(--text-muted); }
-.riskOn  { background: rgba(239, 68, 68, 0.12); color: #b91c1c; border-color: rgba(239, 68, 68, 0.45); }
-.limboOn { background: rgba(100, 116, 139, 0.16); color: var(--text-primary); border-color: var(--text-muted); }
+.toggleChip.atRiskActive {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
 
-.spacer { margin-inline-start: auto; }
+.toggleChip.completedActive {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
 
-.error { font-size: 12.5px; color: var(--error-color); }
+.toggleChip.limboActive {
+  background: rgba(100, 116, 139, 0.1);
+  border-color: rgba(100, 116, 139, 0.3);
+  color: #64748b;
+}
+
+.toggleChip.deployBtn {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+  cursor: pointer;
+}
+
+.toggleChip.deployBtn:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.toggleChip.deployedBadge {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+  cursor: pointer;
+}
+
+.toggleChip.deployedBadge:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.toggleChip.draftActive {
+  background: rgba(168, 85, 247, 0.1);
+  border-color: rgba(168, 85, 247, 0.3);
+  color: #a855f7;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-top: 1px solid var(--border);
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+  background: var(--surface);
+}
+
+/* On desktop, actionsRow1 is transparent — children remain direct flex items of .actions */
+.actionsRow1 {
+  display: contents;
+}
+
+.toggles {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.rightActions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-left: auto;
+}
+
+
+.cancelBtn,
+.submitBtn,
+.deleteBtn {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
 
 .cancelBtn {
   background: none;
   border: 1px solid var(--border);
   color: var(--text-secondary);
-  border-radius: var(--radius-sm);
-  padding: 8px 16px;
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-.cancelBtn:hover { background: var(--surface-light); color: var(--text-primary); }
+.cancelBtn:hover {
+  background: var(--surface-light);
+}
 
 .submitBtn {
   background: var(--primary-color);
-  color: #fff;
   border: none;
-  border-radius: var(--radius-sm);
-  padding: 8px 20px;
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background var(--transition-fast);
+  color: white;
 }
 
-.submitBtn:hover:not(:disabled) { background: var(--primary-hover); }
-.submitBtn:disabled { opacity: 0.5; cursor: default; }
+.submitBtn:hover {
+  background: var(--primary-hover);
+}
 
-@media (max-width: 560px) {
-  .row { grid-template-columns: minmax(0, 1fr); }
-  .inlineRow { align-items: stretch; flex-direction: column; gap: 5px; }
-  .inlineLabel { width: auto; }
+/* Gray out save button when there are no unsaved changes */
+.submitBtnClean {
+  background: var(--surface-light, #e0e0e0);
+  color: var(--text-secondary, #888);
+}
+
+.submitBtnClean:hover {
+  background: var(--surface-light, #e0e0e0);
 }
 
 .deleteBtn {
   background: none;
-  border: 1px solid var(--border);
-  color: var(--error-color);
-  border-radius: var(--radius-sm);
-  padding: 8px 16px;
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  border: 1px solid #ef4444;
+  color: #ef4444;
 }
 
-.deleteBtn:hover { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.4); }
+.deleteBtn:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Description field with expand option */
+.descriptionField {
+  position: relative;
+  margin-bottom: var(--spacing-sm);
+}
+
+.descriptionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.descriptionHeader label {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.expandBtn {
+  background: none;
+  border: none;
+  font-size: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.expandBtn:hover {
+  background: var(--surface-light);
+  color: var(--text-primary);
+}
+
+/* Expanded editor overlay */
+.expandedOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
+
+.expandedEditor {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+}
+
+.expandedHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--border);
+}
+
+.expandedHeader h4 {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.expandedContent {
+  flex: 1;
+  padding: var(--spacing-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.expandedContent .editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.expandedContent .content {
+  flex: 1;
+  min-height: 300px;
+  max-height: none;
+}
+
+.expandedActions {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--border);
+  gap: var(--spacing-sm);
+}
+
+/* Inline row layout (shared by crew, tags, depends on) */
+.inlineRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.inlineRow > label {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.inlineField {
+  flex: 1;
+  position: relative;
+}
+
+.inlineField select,
+.inlineField input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.inlineField select:focus,
+.inlineField input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+/* Depends On - inline row layout */
+.dependsOnRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.dependsOnRow > label {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 70px;
+  margin-top: 6px;
+}
+
+.dependsOnField {
+  flex: 1;
+  position: relative;
+}
+
+/* Selected dependency chip */
+.linkedChips {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+  max-height: 90px;
+  overflow-y: auto;
+}
+
+.selectedDependency {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dependencyChip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--primary-color);
+  color: white;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dependencyChipClickable {
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.dependencyChipClickable:hover {
+  opacity: 0.85;
+}
+
+.removeDepBtn {
+  background: var(--surface-light);
+  border: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.removeDepBtn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+/* Autocomplete for Depends On */
+.autocompleteWrapper {
+  position: relative;
+}
+
+.autocompleteWrapper input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.autocompleteWrapper input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.suggestionsList {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.suggestionItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  direction: ltr;
+  gap: 8px;
+  min-width: 0;
+}
+
+.suggestionItem .autocompleteTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.suggestionItem .autocompleteStatus {
+  flex-shrink: 0;
+}
+
+.suggestionItem:hover,
+.suggestionItem.highlighted {
+  background: var(--surface-hover, rgba(0, 0, 0, 0.04));
+}
+
+.autocompleteDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 2px;
+}
+
+.autocompleteItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.autocompleteItem:hover,
+.autocompleteItem.highlighted {
+  background: var(--surface-light);
+}
+
+.autocompleteTitle {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  margin-right: 8px;
+}
+
+.autocompleteStatus {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.autocompleteStatus.done {
+  color: #10b981;
+}
+
+.autocompleteStatus.in_progress {
+  color: #f59e0b;
+}
+
+.autocompleteStatus.todo {
+  color: var(--text-muted);
+}
+
+/* Hidden on desktop */
+.mobileMeta { display: none; }
+.mobileCommentsBtn { display: none; }
+.mobileCommentsOverlay { display: none; }
+
+/* ── Mobile ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Stack form + comments vertically */
+  .twoColumn,
+  .testLayout {
+    flex-direction: column;
+    max-height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .twoColumn .form,
+  .testLayout > form {
+    max-height: none;
+    overflow: visible;
+    border-radius: var(--radius-md);
+  }
+
+  /* Form itself: fills full height */
+  .form {
+    max-height: none;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  /* FormBody fills remaining space and scrolls */
+  .formBody {
+    flex: 1;
+    overflow-y: auto;
+    max-height: none;
+  }
+
+  /* Header: compact, title truncates */
+  .header {
+    padding: 8px 12px;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .header h3 {
+    font-size: 13px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  /* Truncate long title text */
+  .header h3 > span:first-child,
+  .header h3 > :not(.taskId):not(.createdDate) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Hide "Created ..." date in header on mobile — saves space */
+  .createdDate {
+    display: none;
+  }
+
+  /* Checklist sidebar: full width below form on mobile */
+  .checklistSidebar {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    max-height: 200px;
+  }
+
+  /* Actions bar: two rows on mobile */
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  /* Row 1: Delete + toggles in one flex row */
+  .actionsRow1 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+
+  /* Row 2: Comments left + Cancel/Save right */
+  .rightActions {
+    margin-left: 0;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  /* Comments button: push to left within rightActions row */
+  .mobileCommentsBtn {
+    margin-right: auto;
+  }
+
+  /* Type/Priority/Status row: 2 columns instead of 3 */
+  .row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* All select/input fields: full width, 13px font */
+  .formBody select,
+  .formBody input[type="text"],
+  .formBody input[type="date"] {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 13px !important;
+  }
+
+  /* Labels: smaller */
+  .formBody label {
+    font-size: 11px;
+  }
+
+  /* Hide desktop comments column */
+  .commentsColumn {
+    display: none;
+  }
+
+  /* Show Comments button */
+  .mobileCommentsBtn {
+    display: inline-flex;
+  }
+
+  /* Comments overlay */
+  .mobileCommentsOverlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 300;
+    align-items: flex-end;
+  }
+
+  .mobileCommentsPanel {
+    background: var(--surface-light, #f9fafb);
+    width: 100%;
+    height: 80dvh;
+    border-radius: 16px 16px 0 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .mobileCommentsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 16px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-radius: 16px 16px 0 0;
+  }
+
+  .mobileCommentsBody {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 16px 16px;
+    background: var(--surface-light, #f9fafb);
+    overflow: hidden;
+  }
+}
+
+
+/* Overlay and container lifted from the board's stylesheet, so the form owns
+   its own shell instead of depending on the page's. */
+.formOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  animation: fadeIn 0.15s ease;
+}
+
+.formOverlayWithSide {
+  gap: 12px;
+  align-items: flex-start;
+  padding: 40px 20px;
+}
+
+.formContainer {
+  width: 90%;
+  max-width: 480px;
+  max-height: 85%;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  animation: scaleIn 0.15s ease;
+}
+
+.formContainerEdit {
+  max-width: 1100px;
+  flex: 1;
+  min-width: 0;
+}
+
+.formContainerEdit {
+  max-width: 1100px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* --- translation ---------------------------------------------------------- */
+
+.headerLinks { display: inline-flex; gap: var(--spacing-md); }
+
+.expandBtn:disabled { opacity: 0.5; cursor: default; }
+
+/* The translation sits beside the text, never over it: what someone wrote is
+   the authoritative version, and a machine translation is a reading aid. */
+.translation {
+  margin-top: var(--spacing-sm);
+  padding: 10px 12px;
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--primary-color);
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text-primary);
+}
+
+.translationLabel {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.translation img { max-width: 100%; border-radius: var(--radius-sm); }
+.translation pre { white-space: pre-wrap; overflow-x: auto; }
+
+.translationError { font-size: 12.5px; color: var(--error-color); }
