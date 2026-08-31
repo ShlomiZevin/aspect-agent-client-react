@@ -862,3 +862,26 @@
 .sendBtn:hover {
   filter: brightness(1.05);
 }
+
+/* Task #816: replaces Send while a turn is running. */
+.stopBtn {
+  align-self: stretch;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--surface, #fff);
+  color: var(--text-primary, #111827);
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.stopBtn:hover:not(:disabled) {
+  border-color: var(--text-primary, #111827);
+}
+
+.stopBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

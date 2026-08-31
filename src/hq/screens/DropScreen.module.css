@@ -166,3 +166,48 @@
   background: var(--ok);
   flex-shrink: 0;
 }
+
+/* ── File drop (task #815) ─────────────────────────────────────────── */
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 14px 0;
+  font-size: 13px;
+}
+.fileName { font-weight: 600; color: var(--text); }
+.fileSize { color: var(--text-3); font-size: 12px; }
+.captionInput {
+  flex: 1 1 260px;
+  min-width: 200px;
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+}
+.captionInput:focus { outline: none; border-color: var(--mag); }
+.fileRemove {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-3);
+  cursor: pointer;
+  padding: 2px 7px;
+  font-size: 12px;
+}
+.fileRemove:hover { color: var(--mag); border-color: var(--mag); }
+.attachBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-2);
+  cursor: pointer;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+}
+.attachBtn:hover:not(:disabled) { color: var(--mag); border-color: var(--mag); }

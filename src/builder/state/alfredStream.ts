@@ -16,6 +16,8 @@ export type AlfredEvent =
   | { type: 'alfred.tool-result'; toolUseId: string; preview: string }
   | { type: 'alfred.message'; messageId: number; text: string }
   | { type: 'alfred.error'; error: { code: string; message: string } }
+  /** Task #816: the turn was stopped by the user — nothing persisted. */
+  | { type: 'alfred.stopped' }
   | { type: 'done'; totalMs: number };
 
 export interface SendArgs {

@@ -1,0 +1,335 @@
+/**
+ * "We Are Your AI" — the investor/marketing narrative deck.
+ *
+ * Design: the product's own identity, scaled up. Same faces the Intelligence
+ * client already ships (Schibsted Grotesk / Public Sans) and the same violet,
+ * on a near-white ground with hairline rules — precise and engineered rather
+ * than decorative. Type does the work: the ask is set large in the grotesque,
+ * the answer small in a mono. You ask; the machine answers "Built."
+ *
+ * Deliberately light-only. This gets presented on someone else's laptop in a
+ * meeting, and a dark-mode OS must not repaint the pitch mid-sentence — so
+ * every colour is stated outright rather than following the viewer's theme.
+ *
+ * Every text rule sets `color` explicitly: styles/global.css styles h1-h6 by
+ * element, which beats anything this page merely inherits down from .deck.
+ */
+
+.deck {
+  --ground: #fbfafd;
+  --ground-alt: #f4f1f9;
+  --ink: #1a1327;
+  --ink-soft: #4a4159;
+  --muted: #7a7189;
+  --rule: #e6e1ee;
+  --rule-strong: #cfc7dd;
+  --accent: #6d28d9;
+  --accent-wash: #f1ebfd;
+
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-snap-type: y proximity;
+  scroll-behavior: smooth;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: 'Public Sans', system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  direction: ltr;
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck { scroll-behavior: auto; }
+}
+
+/* ── Top bar: progress, and the name of the beat you're on ───────────── */
+
+.bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  height: 52px;
+  padding: 0 clamp(1.25rem, 4vw, 3rem);
+  background: rgba(251, 250, 253, 0.86);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--rule);
+}
+
+.barLabel {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barLabel b { color: var(--accent); font-weight: 500; }
+
+.ticks { display: flex; align-items: center; gap: 7px; flex: none; }
+
+.tick {
+  width: 22px;
+  height: 3px;
+  border: 0;
+  padding: 0;
+  border-radius: 2px;
+  background: var(--rule-strong);
+  cursor: pointer;
+  transition: background 0.25s ease, width 0.25s ease;
+}
+
+.tick:hover { background: var(--muted); }
+.tick[aria-current='true'] { background: var(--accent); width: 34px; }
+.tick:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+
+/* ── Beats ───────────────────────────────────────────────────────────── */
+
+.beat {
+  min-height: 100svh;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(6rem, 14svh, 10rem) clamp(1.5rem, 6vw, 4rem) clamp(4rem, 12svh, 8rem);
+  border-bottom: 1px solid var(--rule);
+}
+
+.beat:last-of-type { border-bottom: 0; }
+
+.beatHero { background: linear-gradient(180deg, var(--accent-wash) 0%, var(--ground) 62%); }
+.beatClose { background: var(--ground-alt); }
+
+.inner {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.71rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 1.7rem;
+}
+
+.eyebrow::before {
+  content: '';
+  display: block;
+  width: 26px;
+  height: 2px;
+  flex: none;
+  background: var(--accent);
+}
+
+.head {
+  font-family: 'Schibsted Grotesk', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(2.3rem, 5.4vw, 4.6rem);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+  max-width: 17ch;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.head em { font-style: normal; color: var(--accent); }
+
+.headWide { max-width: 22ch; }
+
+.headHero {
+  font-size: clamp(3rem, 8.4vw, 7.2rem);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  max-width: 14ch;
+}
+
+.copy {
+  font-size: clamp(1.05rem, 1.25vw, 1.28rem);
+  line-height: 1.6;
+  color: var(--ink-soft);
+  max-width: 54ch;
+  margin: 1.9rem 0 0;
+}
+
+.copy strong { color: var(--ink); font-weight: 600; }
+
+.lede {
+  font-size: clamp(1.15rem, 1.7vw, 1.55rem);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 40ch;
+  margin: 2rem 0 0;
+  font-weight: 400;
+}
+
+.lede strong { color: var(--ink); font-weight: 600; }
+
+.cue {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.71rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 3.4rem 0 0;
+}
+
+.cue::before {
+  content: '';
+  display: block;
+  width: 30px;
+  height: 1px;
+  background: var(--rule-strong);
+}
+
+/* ── The ask / answer ledger ─────────────────────────────────────────── */
+
+.ledger {
+  margin: 2rem 0 0;
+  max-width: 46ch;
+  border-top: 1px solid var(--rule);
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.ask {
+  font-family: 'Schibsted Grotesk', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.2rem, 2.2vw, 1.75rem);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.leader { flex: 1; height: 1px; background: var(--rule); }
+
+.said {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.86rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.said::before {
+  content: '';
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.kicker {
+  font-family: 'Schibsted Grotesk', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.3rem, 2.4vw, 1.9rem);
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  color: var(--ink);
+  max-width: 26ch;
+  margin: 2.6rem 0 0;
+}
+
+.kicker i { font-style: normal; color: var(--accent); }
+
+.stamp {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.8rem;
+  line-height: 1.8;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  max-width: 52ch;
+  margin: 2.8rem 0 0;
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--accent);
+}
+
+.stampNote {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.76rem;
+  line-height: 1.8;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  max-width: 52ch;
+  margin: 0.9rem 0 0;
+}
+
+/* ── Reveal ──────────────────────────────────────────────────────────── */
+
+.rise {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.seen .rise { opacity: 1; transform: none; }
+.seen .rise:nth-child(2) { transition-delay: 0.07s; }
+.seen .rise:nth-child(3) { transition-delay: 0.14s; }
+.seen .rise:nth-child(4) { transition-delay: 0.21s; }
+
+.line {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.seen .line { opacity: 1; transform: none; }
+.seen .line:nth-child(1) { transition-delay: 0.18s; }
+.seen .line:nth-child(2) { transition-delay: 0.3s; }
+.seen .line:nth-child(3) { transition-delay: 0.42s; }
+.seen .line:nth-child(4) { transition-delay: 0.54s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .line {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ── Small screens ───────────────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  .barLabel { display: none; }
+  .bar { justify-content: flex-end; }
+  .head,
+  .headWide,
+  .headHero { max-width: none; }
+  .line { flex-wrap: wrap; gap: 0.6rem; }
+  .leader { display: none; }
+}

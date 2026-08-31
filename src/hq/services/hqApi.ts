@@ -50,6 +50,25 @@ export interface DropDone {
  * an `app.notion.com` link was treated as text here and as Notion there, so the
  * client tried to JSON.parse an event stream ("Unexpected token 'e'").
  */
+/** Drop a FILE (task #815). Documents are read; images are indexed by name + caption. */
+export async function dropFile(
+  file: File,
+  kind = 'auto',
+  caption = '',
+): Promise<{ ok: boolean; type: 'file'; atom?: { id: number; title: string }; extracted: number; isImage: boolean }> {
+  const form = new FormData();
+  form.append('file', file, file.name);
+  form.append('kind', kind);
+  if (caption.trim()) form.append('caption', caption.trim());
+  const res = await fetch(`${getBaseURL()}/api/hq/drop/file`, { method: 'POST', body: form });
+  if (!res.ok) {
+    let message = `Upload failed (${res.status})`;
+    try { message = (await res.json()).error || message; } catch { /* keep default */ }
+    throw new Error(message);
+  }
+  return res.json();
+}
+
 export async function drop(
   input: string,
   kind = 'auto',

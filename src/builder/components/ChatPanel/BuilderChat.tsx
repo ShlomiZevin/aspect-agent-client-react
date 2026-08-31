@@ -22,6 +22,7 @@ import {
   fetchAlfredMessages,
   listAlfredChats,
   renameAlfredChat,
+  stopAlfredChat,
   type AlfredChatListItem,
   type AlfredMessage,
 } from '../../state/builderApi';
@@ -83,6 +84,8 @@ export function BuilderChat() {
   const [chats, setChats] = useState<AlfredChatListItem[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  // Task #816: Stop pressed, waiting for the server's `alfred.stopped`.
+  const [stopping, setStopping] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [applyOpen, setApplyOpen] = useState(false);
@@ -196,6 +199,13 @@ export function BuilderChat() {
         setToolNote(null);
         setErrorMsg(e.error.message || 'Alfred ran into a problem');
         return;
+      case 'alfred.stopped':
+        // Server confirmed the stop. The partial text stays on screen
+        // (marked) but was not saved — it disappears on reload.
+        setToolNote(null);
+        setStopping(false);
+        updateLast(m => ({ ...m, text: `${m.text}${m.text ? '\n\n' : ''}⏹ stopped — not saved` }));
+        return;
       case 'done':
         setToolNote(null);
         reloadChatList();
@@ -239,12 +249,21 @@ export function BuilderChat() {
       setErrorMsg(err instanceof Error ? err.message : 'Send failed');
     } finally {
       setBusy(false);
+      setStopping(false);
       // Return focus to the composer so the user can keep typing
-      // without reaching for the mouse. Defer one frame because the
-      // textarea is `disabled` while `busy` is true — focus() on a
-      // disabled element is a no-op, so we wait for the re-render.
+      // without reaching for the mouse (deferred one frame so it lands
+      // after the re-render).
       requestAnimationFrame(() => inputRef.current?.focus());
     }
+  };
+
+  // Task #816: flip the server-side stop flag for this chat's running
+  // turn. The stream itself confirms with `alfred.stopped`, then ends.
+  const stop = async () => {
+    if (!busy || stopping || chatId === null) return;
+    setStopping(true);
+    try { await stopAlfredChat(chatId); }
+    catch { setStopping(false); }
   };
 
   const onNewChat = () => {
@@ -495,17 +514,28 @@ export function BuilderChat() {
           }}
           placeholder="Brainstorm with Alfred…"
           rows={2}
-          disabled={busy}
           autoFocus
         />
-        <button
-          type="button"
-          className={styles.sendBtn}
-          onClick={send}
-          disabled={busy || !input.trim()}
-        >
-          {busy ? '…' : 'Send'}
-        </button>
+        {busy ? (
+          <button
+            type="button"
+            className={styles.stopBtn}
+            onClick={stop}
+            disabled={stopping || chatId === null}
+            title="Stop Alfred — the partial answer is not saved"
+          >
+            {stopping ? 'Stopping…' : 'Stop'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={styles.sendBtn}
+            onClick={send}
+            disabled={!input.trim()}
+          >
+            Send
+          </button>
+        )}
       </div>
     </div>
   );

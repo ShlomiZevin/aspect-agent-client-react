@@ -959,6 +959,22 @@ export async function createAlfredChat(args: {
   });
 }
 
+/** Task #816: flag the in-flight Alfred turn of this chat to stop. */
+export async function stopAlfredChat(chatId: number): Promise<{ ok: boolean; running: boolean }> {
+  return http<{ ok: boolean; running: boolean }>(`/api/builder/alfred/chats/${chatId}/stop`, { method: 'POST' });
+}
+
+/** Task #816: flag the in-flight preview-chat turn to stop. */
+export async function stopRuntimeTurn(args: {
+  agentSlug: string;
+  conversationId: number;
+}): Promise<{ ok: boolean; running: boolean }> {
+  return http<{ ok: boolean; running: boolean }>(
+    `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/stop`,
+    { method: 'POST' },
+  );
+}
+
 export async function listAlfredChats(args: {
   agentSlug: string;
   ownerUserId: string;

@@ -22,6 +22,7 @@ import {
   fetchRunsForMessage,
   listConversations,
   renameConversation,
+  stopRuntimeTurn,
   type ConversationListItem,
   type ConversationMessage,
   type PersistedAddonRun,
@@ -188,6 +189,8 @@ export function UserChat() {
   //    running (each turn opens one). New sends are dropped when this
   //    hits MAX_INFLIGHT so offline work can't pile up indefinitely.
   const [awaitingTalker, setAwaitingTalker] = useState(false);
+  // Task #816: Stop pressed, waiting for the server's `turn.stopped`.
+  const [stopping, setStopping] = useState(false);
   const [inFlightCount, setInFlightCount] = useState(0);
   const [conversationId, setConversationIdLocal] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -558,11 +561,35 @@ export function UserChat() {
         // Same, for the Profiler authoring screen's preview.
         applyProfilerPanel(e.panelId, e.panel);
         return;
+      case 'turn.stopped':
+        // Server confirmed the stop: the reply was dropped (not saved),
+        // no transition fired. Release the composer right away.
+        setStopping(false);
+        if (latestSendTurnIdRef.current === turnId) {
+          setAwaitingTalker(false);
+          latestSendTurnIdRef.current = null;
+        }
+        // Same look as Alfred: the marker lands in the bubble itself —
+        // a stop is a normal outcome, not an error banner.
+        updateTurn(turnId, t => ({
+          ...t,
+          assistantText: `${t.assistantText}${t.assistantText ? '\n\n' : ''}⏹ stopped — not saved`,
+        }));
+        return;
       case 'done':
         refreshConversationMemory();
         reloadConvList();
         return;
     }
+  };
+
+  // Task #816: flip the server-side stop flag for this conversation's
+  // running turn. The stream itself confirms with `turn.stopped`.
+  const stop = async () => {
+    if (!awaitingTalker || stopping || conversationId === null || !slug) return;
+    setStopping(true);
+    try { await stopRuntimeTurn({ agentSlug: slug, conversationId }); }
+    catch { setStopping(false); }
   };
 
   const send = async () => {
@@ -946,16 +973,27 @@ export function UserChat() {
           }}
           placeholder="Type as the user…"
           rows={2}
-          disabled={awaitingTalker}
         />
-        <button
-          type="button"
-          className={styles.sendBtn}
-          onClick={send}
-          disabled={awaitingTalker || !input.trim() || inFlightCount >= MAX_INFLIGHT}
-        >
-          {awaitingTalker ? '…' : 'Send'}
-        </button>
+        {awaitingTalker ? (
+          <button
+            type="button"
+            className={styles.stopBtn}
+            onClick={stop}
+            disabled={stopping || conversationId === null}
+            title="Stop this turn — the reply is not saved, the flow does not change"
+          >
+            {stopping ? 'Stopping…' : 'Stop'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={styles.sendBtn}
+            onClick={send}
+            disabled={!input.trim() || inFlightCount >= MAX_INFLIGHT}
+          >
+            Send
+          </button>
+        )}
       </div>
     </div>
   );

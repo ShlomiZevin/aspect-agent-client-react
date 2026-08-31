@@ -63,4 +63,5 @@ export { ZolstockPurchasingClientPage } from './ZolstockPurchasingClientPage';
 export { TaskBoardPage } from './TaskBoardPage';
 export { TechBacklogPage } from './TechBacklogPage';
 export { TiktokPage } from './TiktokPage';
+export { WeAreYourAIPage } from './WeAreYourAIPage';
 export { FreedaLegacyFlowPage } from './FreedaLegacyFlowPage';

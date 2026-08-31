@@ -151,6 +151,8 @@ export type RuntimeEvent =
       matched: string | null;
       text: string;
     }
+  /** Task #816: the turn was stopped by the user — no reply persisted. */
+  | { type: 'turn.stopped' }
   | { type: 'done'; totalMs: number };
 
 export interface SendArgs {

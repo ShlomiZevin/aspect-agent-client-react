@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { drop, getStatus, inspectDrop } from '../services/hqApi';
+import { drop, dropFile, getStatus, inspectDrop } from '../services/hqApi';
 import type { DropInspection } from '../types';
 import styles from './DropScreen.module.css';
 
@@ -37,6 +37,13 @@ export function DropScreen({ onIngested }: Props) {
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notionReady, setNotionReady] = useState<boolean | null>(null);
+  // A file to drop (task #815). Images can't be read, so a caption is what
+  // makes them findable — the input appears once an image is picked.
+  const [file, setFile] = useState<File | null>(null);
+  const [caption, setCaption] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const ACCEPT = '.pdf,.txt,.md,.csv,.docx,.xlsx,.png,.jpg,.jpeg,.webp';
+  const fileIsImage = !!file && /^image\//.test(file.type);
   const navigate = useNavigate();
 
   // The setup guide is one-time scaffolding — hide it once the token is live.
@@ -85,12 +92,35 @@ export function DropScreen({ onIngested }: Props) {
 
   async function submit() {
     const value = input.trim();
-    if (!value) return;
+    if (!value && !file) return;
 
     setPhase('importing');
     setError(null);
     setOutcome(null);
     setProgress({ done: 0, total: 0, title: '' });
+
+    // File first: it's the explicit choice, and it doesn't mix with text.
+    if (file) {
+      try {
+        const result = await dropFile(file, kind, caption);
+        setOutcome({
+          headline: 'Saved to HQ',
+          detail: result.isImage
+            ? `HQ filed the image "${result.atom?.title}" — it's findable by its name and caption.`
+            : `HQ has read "${result.atom?.title}" (${result.extracted.toLocaleString()} characters) — you can ask about it now.`,
+          atomId: result.atom?.id,
+        });
+        setPhase('done');
+        setFile(null);
+        setCaption('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        onIngested?.();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Upload failed');
+        setPhase('error');
+      }
+      return;
+    }
 
     try {
       const result = await drop(value, kind, setProgress);
@@ -131,7 +161,7 @@ export function DropScreen({ onIngested }: Props) {
           <span className={`hqEyebrow ${styles.eyebrow}`}>Add to HQ</span>
           <h1 className={styles.title}>Add something</h1>
           <p className={styles.subtitle}>
-            A Notion link, a URL, or just type. Paste a Notion <strong>database</strong> link and
+            A Notion link, a URL, a file, or just type. Paste a Notion <strong>database</strong> link and
             every row comes in at once.
           </p>
         </div>
@@ -151,8 +181,49 @@ export function DropScreen({ onIngested }: Props) {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); }
             }}
           />
+          {file && (
+            <div className={styles.fileRow}>
+              <span className={styles.fileName}>📎 {file.name}</span>
+              <span className={styles.fileSize}>{(file.size / 1024).toFixed(0)} KB</span>
+              {fileIsImage && (
+                <input
+                  className={styles.captionInput}
+                  value={caption}
+                  disabled={busy}
+                  dir="auto"
+                  placeholder="What is this image? (caption — this is how HQ finds it)"
+                  onChange={e => setCaption(e.target.value)}
+                />
+              )}
+              <button
+                type="button"
+                className={styles.fileRemove}
+                disabled={busy}
+                onClick={() => { setFile(null); setCaption(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                aria-label="Remove file"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           <div className={styles.boxFoot}>
             <span className={styles.footHint}>⌘/Ctrl + Enter to save</span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPT}
+              style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files?.[0] || null; setFile(f); setOutcome(null); setError(null); }}
+            />
+            <button
+              type="button"
+              className={styles.attachBtn}
+              disabled={busy}
+              onClick={() => fileInputRef.current?.click()}
+              title="PDF, Word, Excel, CSV, text, or an image"
+            >
+              📎 Attach a file
+            </button>
             <select
               className={styles.kindSelect}
               value={kind}
@@ -164,7 +235,7 @@ export function DropScreen({ onIngested }: Props) {
               <option value="doc">Document</option>
               <option value="note">Note</option>
             </select>
-            <button className="hqPill" onClick={submit} disabled={busy || !input.trim()}>
+            <button className="hqPill" onClick={submit} disabled={busy || (!input.trim() && !file)}>
               {busy ? 'Importing…' : 'Save to HQ'}
             </button>
           </div>
