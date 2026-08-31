@@ -4,6 +4,10 @@ import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, Aspec
 
 // Builder lives in its own subtree — lazy so end-user routes don't pay for it.
 const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ default: m.BuilderPage })));
+
+// Our own task board — separate tool, separate database (aspect_tasks_db).
+// Lazy so the agent-chat routes don't download it.
+const AspectTaskBoard = lazy(() => import('./taskboard/components/TaskBoardRoute/TaskBoardRoute').then(m => ({ default: m.TaskBoardRoute })));
 const BuilderHomePage = lazy(() => import('./pages/BuilderHomePage').then(m => ({ default: m.BuilderHomePage })));
 // Customer-facing Live chat — its own subtree, lazy-loaded.
 const LiveChatPage = lazy(() => import('./pages/LiveChatPage').then(m => ({ default: m.LiveChatPage })));
@@ -382,6 +386,10 @@ function AppContent() {
         />
 
         {/* Task Board - standalone full page */}
+        {/* Our own board, as an Aspect Module: it renders only where a
+            super-admin has switched it on. /tasks below is the original board
+            and is untouched — a different tool against a different database. */}
+        <Route path="/:agent/taskboard" element={<AspectTaskBoard />} />
         <Route path="/tasks" element={<TaskBoardPage />} />
         <Route path="/tasks/:taskId" element={<TaskBoardPage />} />
 

@@ -1,0 +1,440 @@
+.tableWrapper {
+  overflow-y: auto;
+  overflow-x: hidden;
+  text-align: left;
+  direction: ltr !important;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-xs);
+  direction: ltr !important;
+  table-layout: fixed;
+}
+
+.table th,
+.table td {
+  padding: 8px 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Column widths */
+.titleCol { width: 35%; }
+.checkboxCol { width: 32px; padding: 4px !important; }
+.checkboxCell { width: 32px; padding: 4px !important; text-align: center; }
+
+.selectAllLabel {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.selectAllText {
+  font-size: 10px;
+  text-transform: none;
+  font-weight: 500;
+}
+
+.draftCheckbox, .exportCheckbox {
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+.draftCheckbox { accent-color: #a855f7; }
+.exportCheckbox { accent-color: #2563eb; }
+
+.table th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  background: var(--surface-light);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.table tbody tr {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.table tbody tr:hover {
+  background: var(--surface-light);
+}
+
+.table tbody tr.atRiskRow {
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.table tbody tr.atRiskRow:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Completed row — strikethrough and faded */
+.table tbody tr.completedRow {
+  opacity: 0.5;
+}
+
+.table tbody tr.completedRow .title {
+  text-decoration: line-through;
+}
+
+.titleCell { white-space: normal !important; }
+
+.titleWrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.atRiskIcon { color: #ef4444; font-size: 12px; }
+
+.title {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  white-space: normal;
+  word-break: break-word;
+}
+
+.description {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 250px;
+  margin-top: 1px;
+  direction: ltr !important;
+  text-align: left;
+}
+
+.domain { font-size: 11px; color: var(--text-muted); text-transform: capitalize; }
+.crewMember { font-size: 11px; color: #6366f1; }
+
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.badge.task { background: rgba(100, 116, 139, 0.1); color: #64748b; }
+.badge.bug { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.badge.feature { background: rgba(37, 99, 235, 0.1); color: #2563eb; }
+.badge.idea { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+
+.assignee { color: var(--primary-color); font-weight: 500; font-size: 11px; }
+.unassigned { color: var(--text-muted); }
+
+.priority {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: white;
+}
+.priority.low { background: #10b981; }
+.priority.medium { background: #f59e0b; }
+.priority.high { background: #f97316; }
+.priority.critical { background: #ef4444; }
+
+.status {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.status.todo { background: var(--surface-light); color: var(--text-secondary); }
+.status.in_progress { background: rgba(37, 99, 235, 0.1); color: #2563eb; }
+.status.done { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+
+.dueDate { font-size: 11px; color: var(--text-secondary); }
+.dueDate.overdue { color: #ef4444; font-weight: 500; }
+.noDueDate { color: var(--text-muted); }
+.createdAt { font-size: 11px; color: var(--text-muted); }
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: all var(--transition-fast);
+  opacity: 0;
+}
+
+.table tbody tr:hover .deleteBtn { opacity: 1; }
+.deleteBtn:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+/* Filterable column header */
+.filterableTh {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.filterableTh:hover { color: var(--text-primary); }
+.filteredTh { color: var(--primary-color) !important; }
+
+.thContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.filterIcon {
+  font-size: 9px;
+  opacity: 0.4;
+}
+
+.filteredTh .filterIcon { opacity: 1; }
+
+/* Filter dropdown */
+.filterDropdown {
+  min-width: 130px;
+  direction: ltr;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 20;
+  font-weight: 400;
+  text-transform: none;
+  font-size: var(--font-size-sm);
+}
+
+.filterActions {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  direction: ltr;
+}
+
+.filterActionBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 8px;
+  transition: all var(--transition-fast);
+}
+
+.filterActionBtn:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.filterOptions {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.filterOption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: background var(--transition-fast);
+  white-space: nowrap;
+  direction: ltr;
+}
+
+.filterOption:hover { background: var(--surface-light); }
+.filterOption input { cursor: pointer; accent-color: var(--primary-color); }
+
+.filterFooter {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-top: 1px solid var(--border);
+  direction: ltr;
+}
+
+.filterCancelBtn, .filterOkBtn {
+  border: none;
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 3px 10px;
+  transition: all var(--transition-fast);
+}
+
+.filterCancelBtn {
+  background: var(--surface-light);
+  color: var(--text-secondary);
+}
+
+.filterCancelBtn:hover {
+  background: var(--border);
+}
+
+.filterOkBtn {
+  background: var(--primary-color);
+  color: white;
+}
+
+.filterOkBtn:hover {
+  background: var(--primary-hover);
+}
+
+/* Filter bar */
+.filterBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: rgba(37, 99, 235, 0.05);
+  border-bottom: 1px solid rgba(37, 99, 235, 0.15);
+  font-size: 11px;
+}
+
+.filterBarText { color: var(--primary-color); font-weight: 500; }
+
+.clearFiltersBtn {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 2px 4px;
+}
+
+.clearFiltersBtn:hover { color: var(--primary-hover); }
+
+.empty {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* Hidden on desktop, shown only in mobile media query */
+.mobileMeta {
+  display: none;
+}
+
+/* ── Mobile: card-style rows ──────────────────────────── */
+@media (max-width: 768px) {
+  .tableWrapper {
+    overflow-x: hidden;
+  }
+
+  .table thead { display: none; }
+
+  .table,
+  .table tbody,
+  .table tr {
+    display: block;
+    width: 100%;
+  }
+
+  /* Each row = card row */
+  .table tr {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .table tr:nth-child(even) {
+    background: var(--surface-light);
+  }
+
+  .table tr:hover,
+  .table tr:active {
+    background: var(--primary-light);
+  }
+
+  /* Hide ALL cells by default */
+  .table td {
+    display: none;
+    padding: 0;
+    border: none;
+  }
+
+  /* Title cell: takes all remaining space */
+  .table td.titleCell {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* Title: max 2 lines */
+  .titleCell .title {
+    font-size: 14px;
+    font-weight: 500;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: normal;
+  }
+
+  /* Hide description on mobile — too noisy */
+  .titleCell .description {
+    display: none;
+  }
+
+  /* Meta row: assignee + priority + status as inline pills */
+  .mobileMeta {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+  }
+
+  /* Shown badge cells: hidden by default, shown via mobileShow */
+  .table td.mobileShow {
+    display: none; /* we use mobileMeta instead */
+  }
+
+  /* Checkbox col */
+  .table td.checkboxCell {
+    display: block;
+    flex-shrink: 0;
+    padding: 0;
+  }
+
+  /* Delete cell */
+  .table td.deleteCell {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .deleteBtn {
+    opacity: 0.4;
+    font-size: 18px;
+  }
+}

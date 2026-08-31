@@ -13,6 +13,10 @@ interface DashboardLayoutProps {
   basePath: string;
   showQueryOptimizer?: boolean;
   showModules?: boolean;
+  /** The original board in the platform DB belongs to this client. */
+  showLegacyTaskBoard?: boolean;
+  /** The Task Board module is live for this client. */
+  showTaskboard?: boolean;
   showPodcast?: boolean;
   showConversationTrends?: boolean;
   children: ReactNode;
@@ -47,6 +51,15 @@ const MODULES_ITEM = {
   path: 'modules',
   label: 'Modules',
   icon: 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z M3.27 6.96L12 12.01l8.73-5.05 M12 22.08V12',
+};
+
+// Our own task board, when the Task Board module is switched on for this
+// client. Distinct from the hardcoded "Task Board" link above the list, which
+// is the original board against the platform database.
+const TASKBOARD_ITEM = {
+  path: 'taskboard',
+  label: 'Tasks',
+  icon: 'M9 11l3 3L22 4 M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
 };
 
 const CONVERSATION_TRENDS_ITEM = {
@@ -92,7 +105,7 @@ const CLOUD_RUN_LOGS_ITEM = {
 };
 
 
-export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showModules, showPodcast, showConversationTrends, children }: DashboardLayoutProps) {
+export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showModules, showTaskboard, showLegacyTaskBoard, showPodcast, showConversationTrends, children }: DashboardLayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userType, setUserType] = useState<UserType>(() => (localStorage.getItem('adminUserType') as UserType) || 'admin');
 
@@ -105,6 +118,7 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
     ...BASE_NAV_ITEMS,
     ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM, DATA_LOADER_ITEM] : []),
     ...(showModules ? [MODULES_ITEM] : []),
+    ...(showTaskboard ? [TASKBOARD_ITEM] : []),
     ...(showPodcast ? [PODCAST_ITEM] : []),
     ...(showConversationTrends || userType === 'business' ? [CONVERSATION_TRENDS_ITEM] : []),
     TEST_RUNNER_ITEM,
@@ -156,7 +170,10 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
         </div>
 
         <nav className={styles.nav}>
-          {userType === 'admin' && (
+          {/* The original board, in the platform DB. Shown only where it is
+              actually used — it is LYBI's board, and Hila and Noa are the people
+              on it. Everywhere else it was a link to someone else's work. */}
+          {userType === 'admin' && showLegacyTaskBoard && (
             <>
               <NavLink
                 to={`${basePath}/task-board`}

@@ -37,6 +37,14 @@ export interface ClientModule {
   id: string;
   name: LocalizedText;
   version: number;
+  /**
+   * 'data' binds to a customer schema through the init pipeline; 'app' owns its
+   * own storage and has no init, no binding and no nightly build. The card
+   * branches on this so an app module is not offered controls that can only
+   * fail.
+   */
+  kind: 'data' | 'app';
+  scope: 'dataset' | 'client';
   settingsSchema: ModuleSettingField[];
   notificationEvents: string[];
 

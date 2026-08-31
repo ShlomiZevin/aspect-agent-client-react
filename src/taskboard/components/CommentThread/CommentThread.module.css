@@ -1,0 +1,473 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  gap: 10px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.count {
+  font-weight: 400;
+  color: var(--text-muted, #6b7280);
+}
+
+.identity {
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.identity strong {
+  color: var(--text-primary, #111827);
+  font-weight: 500;
+}
+
+.changeIdentityBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  color: var(--color-primary, #4f46e5);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.changeIdentityBtn:hover {
+  opacity: 0.8;
+}
+
+/* ─── Identity picker ─────────────────────────────────────────────────────── */
+
+.identityPicker {
+  background: var(--bg-surface, #f9fafb);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.identityPrompt {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary, #111827);
+}
+
+.identityList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.identityOption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 20px;
+  padding: 4px 12px 4px 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.identityOption:hover {
+  border-color: var(--color-primary, #4f46e5);
+}
+
+.identityAvatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cancelIdentityBtn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ─── Comment list ─────────────────────────────────────────────────────────── */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.empty {
+  font-size: 12px;
+  color: var(--text-muted, #9ca3af);
+  padding: 8px 0;
+}
+
+.comment {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: white;
+  border-radius: 6px;
+  padding: 6px 8px;
+  padding-bottom: 10px;
+  border: 1px solid #f0f2f5;
+  transition: border-color 0.15s;
+  position: relative;
+}
+
+.comment:hover {
+  border-color: #e5e7eb;
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.commentBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.commentMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.commentAuthor {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.commentTime {
+  font-size: 11px;
+  color: var(--text-muted, #9ca3af);
+}
+
+.deleteBtn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 14px;
+  color: var(--text-muted, #9ca3af);
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.comment:hover .deleteBtn {
+  opacity: 1;
+}
+
+.deleteBtn:hover {
+  color: #dc2626;
+}
+
+.commentContent {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary, #374151);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* Images pasted into comments */
+.commentContent img {
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 4px 0;
+  display: block;
+  cursor: zoom-in;
+}
+
+/* Rich text formatting in comments */
+.commentContent strong, .commentContent b {
+  font-weight: 600;
+}
+
+.commentContent u {
+  text-decoration: underline;
+}
+
+.commentContent ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+.commentContent li {
+  margin: 2px 0;
+}
+
+.commentContent code {
+  background: #f3f4f6;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+  font-size: 0.9em;
+  color: #4f46e5;
+}
+
+/* ─── Input area — sticky at bottom ──────────────────────────────────────── */
+
+.inputArea {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.submitError {
+  font-size: 12px;
+  color: var(--error-color, #dc2626);
+  padding: 4px 0 2px;
+}
+
+.inputActions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* ─── Mention picker ─────────────────────────────────────────────────────── */
+
+.mentionPickerWrapper {
+  position: relative;
+}
+
+.mentionBtn {
+  padding: 5px 10px;
+  background: none;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, #374151);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.mentionBtn:hover {
+  border-color: var(--color-primary, #4f46e5);
+  color: var(--color-primary, #4f46e5);
+}
+
+.mentionDropdown {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  min-width: 140px;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.mentionOption {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.mentionOption:hover {
+  background: var(--surface-hover, rgba(0,0,0,0.04));
+}
+
+.mentionAvatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* @mention chip in rendered comment content */
+:global(.mention) {
+  display: inline-block;
+  background: rgba(79, 70, 229, 0.1);
+  color: #4f46e5;
+  border-radius: 4px;
+  padding: 0 4px;
+  font-weight: 500;
+  font-size: 0.95em;
+}
+
+.submitBtn {
+  padding: 5px 14px;
+  background: var(--color-primary, #4f46e5);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.submitBtn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.submitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Like button — floats on bottom-right border of comment */
+.likeBtn {
+  position: absolute;
+  bottom: -10px;
+  right: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  z-index: 1;
+}
+
+.comment:hover .likeBtn {
+  opacity: 1;
+}
+
+.likeBtn.liked {
+  opacity: 1;
+}
+
+.likeBtn:hover {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.likeCount {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Image lightbox */
+.lightboxOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  cursor: pointer;
+}
+
+.lightboxImage {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  cursor: default;
+}
+
+.lightboxClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.lightboxClose:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Translate sits with the metadata rather than the actions: it changes what you
+   are reading, it does not act on the comment. */
+.translateBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.translateBtn:hover { color: var(--primary-color); }
+.translateBtn:disabled { opacity: 0.5; cursor: default; text-decoration: none; }
