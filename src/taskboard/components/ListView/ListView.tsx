@@ -4,15 +4,19 @@ import styles from './ListView.module.css';
 /**
  * The board as a table. Markup and stylesheet are the original board's.
  *
- * The Domain and Crew columns are gone with the fields behind them; the
- * per-column filter dropdowns are gone too, because filtering already lives in
- * the toolbar above and having the same filter in two places is how two filters
- * end up disagreeing.
+ * Domain and Crew are gone with the fields behind them, and the per-column
+ * filter dropdowns with the toolbar that already filters — the same filter in
+ * two places is how two filters end up disagreeing.
  */
 interface Props {
   tasks: Task[];
   onTaskClick: (task: Task) => void;
   onDeleteTask: (task: Task) => void;
+  /** Selection column: 'export' for Select mode, 'draft' in the drafts view. */
+  selectMode?: 'export' | 'draft' | null;
+  selected?: Set<number>;
+  onToggleSelect?: (taskId: number) => void;
+  onToggleSelectAll?: (select: boolean) => void;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -49,10 +53,12 @@ function formatDueDate(dateStr?: string): { text: string; isOverdue: boolean } |
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const isOverdue = dateOnly < today;
   if (dateOnly.getTime() === today.getTime()) return { text: 'Today', isOverdue: false };
   if (dateOnly.getTime() === tomorrow.getTime()) return { text: 'Tomorrow', isOverdue: false };
-  return { text: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), isOverdue };
+  return {
+    text: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    isOverdue: dateOnly < today,
+  };
 }
 
 function formatCreatedAt(date: string): string {
@@ -68,16 +74,32 @@ function formatCreatedAt(date: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function ListView({ tasks, onTaskClick, onDeleteTask }: Props) {
+export function ListView({
+  tasks, onTaskClick, onDeleteTask, selectMode, selected, onToggleSelect, onToggleSelectAll,
+}: Props) {
   if (tasks.length === 0) {
-    return <div className={styles.empty}>No tasks yet. Click &quot;New Task&quot; to create one.</div>;
+    return <div className={styles.empty}>No tasks yet. Click &quot;+ Add Task&quot; to create one.</div>;
   }
+
+  const allSelected = Boolean(selected && selected.size === tasks.length && tasks.length > 0);
+  const checkboxClass = selectMode === 'draft' ? styles.draftCheckbox : styles.exportCheckbox;
 
   return (
     <div className={styles.tableWrapper} dir="ltr">
       <table className={styles.table}>
         <thead>
           <tr>
+            {selectMode && (
+              <th className={styles.checkboxCol}>
+                <input
+                  type="checkbox"
+                  title="Select all"
+                  checked={allSelected}
+                  onChange={e => onToggleSelectAll?.(e.target.checked)}
+                  className={checkboxClass}
+                />
+              </th>
+            )}
             <th className={styles.titleCol}>Title</th>
             <th>Type</th>
             <th>Assignee</th>
@@ -98,6 +120,19 @@ export function ListView({ tasks, onTaskClick, onDeleteTask }: Props) {
                   .filter(Boolean).join(' ')}
                 onClick={() => onTaskClick(task)}
               >
+                {selectMode && (
+                  <td className={styles.checkboxCell}>
+                    <input
+                      type="checkbox"
+                      className={checkboxClass}
+                      checked={selected?.has(task.id) ?? false}
+                      onChange={e => { e.stopPropagation(); onToggleSelect?.(task.id); }}
+                      // Stopped on the click too: without it the row's own
+                      // handler opens the task every time a box is ticked.
+                      onClick={e => e.stopPropagation()}
+                    />
+                  </td>
+                )}
                 <td className={styles.titleCell}>
                   <span className={styles.titleWrapper}>
                     {task.atRisk && <span className={styles.atRiskIcon}>⚠</span>}

@@ -1,4 +1,4 @@
-import { useMemo, useReducer, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { TaskColumns } from '../TaskColumns';
 import { TaskFormModal } from '../TaskFormModal';
 import { IdentityModal } from '../IdentityModal';
@@ -40,6 +40,10 @@ export function TaskBoardPage() {
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [idSearch, setIdSearch] = useState('');
+  const [exportMode, setExportMode] = useState(false);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [copied, setCopied] = useState(false);
 
   const [view, setView] = useState<'board' | 'list'>(() => {
     try {
@@ -68,6 +72,72 @@ export function TaskBoardPage() {
   const moveTask = (id: number, status: TaskStatus) => {
     void update(id, { status }).then(refreshAttention);
   };
+
+  // Everyone who has opened a task, for the By Creator filter. Derived rather
+  // than fetched: the openers ARE whoever appears on the board.
+  const openers = useMemo(() => {
+    const names = new Set<string>();
+    for (const t of tasks.values()) if (t.opener) names.add(t.opener);
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }, [tasks]);
+
+  const draftCount = useMemo(
+    () => [...tasks.values()].filter(t => t.isDraft).length,
+    [tasks],
+  );
+
+  const toggleSelected = useCallback((id: number) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  /** Copies the chosen tasks as markdown, in the original's shape. */
+  const copySelected = async () => {
+    const chosen = visible.filter(t => selected.has(t.id));
+    if (chosen.length === 0) return;
+
+    const lines: string[] = ['## Tasks', ''];
+    chosen.forEach((task, i) => {
+      lines.push(`### ${i + 1}. [#${task.id}] ${task.title}`);
+      if (task.description) {
+        const div = document.createElement('div');
+        div.innerHTML = task.description;
+        lines.push(div.textContent || '');
+      }
+      lines.push('');
+    });
+
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard access can be refused; failing quietly beats an alert.
+    }
+  };
+
+  /** Promotes the chosen drafts to real tasks. */
+  const fireDrafts = async () => {
+    const ids = [...selected];
+    setSelected(new Set());
+    await Promise.all(ids.map(id => update(id, { isDraft: false }).catch(() => { /* resynced */ })));
+  };
+
+  // Ctrl+Shift+L toggles the drafts view, as in the original.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        dispatch({ type: 'toggle', key: 'draftsOnly' });
+        setSelected(new Set());
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   return (
     <div className={styles.modal} dir="ltr">
@@ -153,6 +223,21 @@ export function TaskBoardPage() {
           )}
         </div>
 
+        <input
+          className={styles.idSearch}
+          type="text"
+          placeholder="#ID"
+          value={idSearch}
+          onChange={e => setIdSearch(e.target.value)}
+          // Enter jumps to the task rather than filtering to it: an id is an
+          // exact address, and opening it is what anyone typing one wants.
+          onKeyDown={e => {
+            if (e.key !== 'Enter') return;
+            const id = parseInt(idSearch.replace('#', ''), 10);
+            if (Number.isFinite(id) && tasks.has(id)) { setOpenId(id); setIdSearch(''); }
+          }}
+        />
+
         <button className={styles.filtersToggleBtn} onClick={() => setShowFilters(v => !v)}>
           {showFilters ? 'Filters ▴' : 'Filters ▾'}
           {activeCount(filters) > 0 ? ` (${activeCount(filters)})` : ''}
@@ -187,18 +272,47 @@ export function TaskBoardPage() {
           {TYPES.map(t => <option key={t} value={t}>{LABELS[t] ?? t}</option>)}
         </select>
 
+        <select
+          className={styles.crewFilter}
+          value={filters.opener ?? ''}
+          onChange={e => dispatch({ type: 'set', patch: { opener: e.target.value || null } })}
+        >
+          <option value="">By Creator</option>
+          {openers.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+
+        {view === 'list' && !filters.draftsOnly && (
+          <button
+            className={`${styles.selectToggleBtn} ${exportMode ? styles.selectActive : ''}`}
+            onClick={() => { setExportMode(m => !m); setSelected(new Set()); }}
+          >
+            {exportMode ? '✓ Select' : 'Select'}
+          </button>
+        )}
+
+        <button
+          className={`${styles.selectToggleBtn} ${filters.needsAttention ? styles.selectActive : ''}`}
+          disabled={!me}
+          onClick={() => dispatch({ type: 'toggle', key: 'needsAttention' })}
+          title="Tasks where someone spoke after you last did and you have not replied"
+        >
+          {filters.needsAttention && attentionIds
+            ? `🔔 Attention (${attentionIds.size})`
+            : '🔔 Needs my attention'}
+        </button>
+
         <div className={styles.toggleGroup}>
-          <Toggle on={filters.needsAttention} disabled={!me} onClick={() => dispatch({ type: 'toggle', key: 'needsAttention' })}>
-            Needs Me
+          <Toggle on={filters.draftsOnly} onClick={() => { dispatch({ type: 'toggle', key: 'draftsOnly' }); setSelected(new Set()); }}>
+            Drafts{draftCount > 0 ? ` (${draftCount})` : ''}
+          </Toggle>
+          <Toggle on={filters.showCompleted} onClick={() => dispatch({ type: 'toggle', key: 'showCompleted' })}>
+            Completed
+          </Toggle>
+          <Toggle on={filters.limbo} onClick={() => dispatch({ type: 'toggle', key: 'limbo' })}>
+            💀 Limbo
           </Toggle>
           <Toggle on={filters.unassignedOnly} onClick={() => dispatch({ type: 'toggle', key: 'unassignedOnly' })}>
             Unassigned
-          </Toggle>
-          <Toggle on={filters.showDone} onClick={() => dispatch({ type: 'toggle', key: 'showDone' })}>
-            Show Done
-          </Toggle>
-          <Toggle on={filters.draftsOnly} onClick={() => dispatch({ type: 'toggle', key: 'draftsOnly' })}>
-            Drafts
           </Toggle>
         </div>
 
@@ -208,6 +322,38 @@ export function TaskBoardPage() {
           </button>
         )}
       </div>
+
+      {/* Bulk promote, in the drafts view */}
+      {filters.draftsOnly && visible.length > 0 && (
+        <div className={styles.bulkActions}>
+          <div className={styles.bulkInfo}>
+            <label className={styles.selectAllLabel}>
+              <input
+                type="checkbox"
+                checked={selected.size === visible.length && visible.length > 0}
+                onChange={e => setSelected(e.target.checked ? new Set(visible.map(t => t.id)) : new Set())}
+              />
+              Select All ({visible.length})
+            </label>
+            {selected.size > 0 && <span className={styles.selectedCount}>{selected.size} selected</span>}
+          </div>
+          {selected.size > 0 && (
+            <button className={styles.fireBtn} onClick={fireDrafts}>
+              🔥 Fire {selected.size} Draft{selected.size > 1 ? 's' : ''}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Copy for Claude Code, in Select mode */}
+      {view === 'list' && exportMode && selected.size > 0 && (
+        <div className={styles.exportActions}>
+          <span className={styles.exportSelectedCount}>{selected.size} selected</span>
+          <button className={styles.exportBtn} onClick={copySelected}>
+            {copied ? 'Copied!' : `Copy ${selected.size} for Claude Code`}
+          </button>
+        </div>
+      )}
 
       {error && <div className={styles.errorBar}>{error}</div>}
 
@@ -229,6 +375,10 @@ export function TaskBoardPage() {
               tasks={visible}
               onTaskClick={(t: Task) => setOpenId(t.id)}
               onDeleteTask={(t: Task) => { void remove(t.id); }}
+              selectMode={filters.draftsOnly ? 'draft' : exportMode ? 'export' : null}
+              selected={selected}
+              onToggleSelect={toggleSelected}
+              onToggleSelectAll={all => setSelected(all ? new Set(visible.map(t => t.id)) : new Set())}
             />
           )}
         </div>
