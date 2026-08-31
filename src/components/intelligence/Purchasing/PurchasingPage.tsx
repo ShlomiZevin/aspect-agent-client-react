@@ -98,6 +98,10 @@ export function PurchasingPage({ datasetId, baseURL }: Props) {
   const [suppliers, setSuppliers] = useState<SupplierRow[]>([]);
   const [recs, setRecs] = useState<Recommendation[]>([]);
   const [summary, setSummary] = useState<RecommendationSummary | null>(null);
+  // What the server left out on purpose, so the page can account for it rather
+  // than a buyer noticing a supplier they know is missing.
+  const [excludedInfo, setExcludedInfo] = useState<{ items: number; suppliers: string[] }>(
+    { items: 0, suppliers: [] });
   const [dataThrough, setDataThrough] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +124,7 @@ export function PurchasingPage({ datasetId, baseURL }: Props) {
       setSuppliers(s);
       setRecs(r.recommendations);
       setSummary(r.summary);
+      setExcludedInfo(r.excluded ?? { items: 0, suppliers: [] });
       setDataThrough(r.dataThrough);
       setError(null);
     } catch (e) {
@@ -200,6 +205,19 @@ export function PurchasingPage({ datasetId, baseURL }: Props) {
               <Tile n={summary.noDemand} label={t('purchasing.tile.noDemand')} tone="muted" />
             </div>
           )}
+
+          {/* Says out loud what the numbers above actually cover. Without it the
+              headline reads as a chain-wide crisis: the measured decomposition
+              showed most "order now" items either have branch stock or are only
+              late because no real delivery time has been entered. */}
+          <p className={styles.scopeLine}>
+            {t('purchasing.scopeWarehouseOnly')}
+            {excludedInfo.items > 0 && (
+              <> {t('purchasing.excludedNote')
+                .replace('{n}', String(excludedInfo.items))
+                .replace('{suppliers}', excludedInfo.suppliers.join(', '))}</>
+            )}
+          </p>
 
           <div className={styles.table}>
             <div className={styles.head}>
@@ -450,6 +468,16 @@ function ItemRow({ rec, open, onToggle, t }: {
           <div className={styles.trustGrid}>
             <Fact label={t('purchasing.f.pace')} value={`${pace(rec.velocityDaily)} / ${t('purchasing.perDay')}`} note={rec.velocityBasis} />
             <Fact label={t('purchasing.f.inStock')} value={nf(rec.warehouseQty)} note={t('purchasing.warehouse')} />
+            {/* The engine already returns this and the UI used to drop it. It is
+                the single fact that turns a suspicious row into an explained
+                one: availability counts warehouse stock only, so an item can
+                read "out of stock" with hundreds of units sitting in branches. */}
+            <Fact
+              label={t('purchasing.f.inBranches')}
+              value={nf(rec.storeQty)}
+              note={t('purchasing.notCounted')}
+              warn={rec.storeQty > 0}
+            />
             <Fact
               label={t('purchasing.f.onTheWay')}
               value={nf(rec.onOrderQty)}

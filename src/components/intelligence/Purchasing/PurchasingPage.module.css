@@ -447,3 +447,16 @@
   color: var(--ai-text-muted, var(--text-muted, #94a3b8));
   font-variant-numeric: tabular-nums;
 }
+
+/* Says out loud what the tiles above actually cover. The review found the
+   headline reads as a chain-wide crisis without it. */
+.scopeLine {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  background: var(--ai-surface-alt, var(--surface-light, #f8fafc));
+  border-inline-start: 3px solid var(--ai-accent, var(--primary-color, #2563eb));
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ai-text-muted, var(--text-secondary, #64748b));
+}
