@@ -226,7 +226,16 @@ export function DashboardPage() {
             {showModules && (
               <Route
                 path="modules"
-                element={<ModulesPage datasetId={config.database!.schema} baseURL={config.baseURL} />}
+                // The schema where the agent has one, else the slug. The `!` here
+                // was safe only while showModules implied a dataset; making the
+                // tab available everywhere turned it into a crash that unmounted
+                // the whole dashboard for freeda and every other agent with no
+                // customer schema.
+                //
+                // Not simply the slug: the `aspect` agent runs on zer4u's
+                // schema, so switching it would silently move which dataset its
+                // Modules tab configures.
+                element={<ModulesPage datasetId={config.database?.schema ?? agent ?? ''} baseURL={config.baseURL} />}
               />
             )}
             {showPodcast && (
