@@ -1,0 +1,224 @@
+.form { display: flex; flex-direction: column; gap: var(--spacing-md); }
+
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+
+/* Title Case, left-aligned, normal weight — as the original labels its fields.
+   Not the uppercase micro-caps this board had before. */
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.input,
+.select {
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 11px;
+  min-width: 0;
+  width: 100%;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+/* Three across, as the original's field rows are. */
+.row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+}
+
+/* Label beside the control rather than above, for the single-field rows. */
+.inlineRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  position: relative;
+}
+
+.inlineLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  width: 88px;
+  flex-shrink: 0;
+}
+
+.descriptionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.expandBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.expandBtn:hover { color: var(--primary-color); }
+
+/* --- depends on ---------------------------------------------------------- */
+
+.autocomplete { position: relative; flex: 1; min-width: 0; }
+
+.suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  inset-inline: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  z-index: 20;
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  text-align: start;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 11px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.suggestion:last-child { border-bottom: none; }
+.suggestion:hover { background: var(--surface-light); }
+
+.suggestionTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestionStatus { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+
+.selectedDependency {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.dependencyChip {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--primary-color);
+  background: var(--primary-light);
+  border-radius: var(--radius-sm);
+  padding: 7px 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.removeDepBtn {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.removeDepBtn:hover { background: var(--surface-light); color: var(--text-primary); }
+
+/* --- footer -------------------------------------------------------------- */
+
+.toggles { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.toggleChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 4px 11px;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+/* The checkbox drives the state but is not the affordance — the chip is. */
+.toggleChip input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+.toggleChip:hover { border-color: var(--text-muted); }
+
+.draftOn { background: var(--surface-light); color: var(--text-primary); border-color: var(--text-muted); }
+.riskOn  { background: rgba(239, 68, 68, 0.12); color: #b91c1c; border-color: rgba(239, 68, 68, 0.45); }
+.limboOn { background: rgba(100, 116, 139, 0.16); color: var(--text-primary); border-color: var(--text-muted); }
+
+.spacer { margin-inline-start: auto; }
+
+.error { font-size: 12.5px; color: var(--error-color); }
+
+.cancelBtn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.cancelBtn:hover { background: var(--surface-light); color: var(--text-primary); }
+
+.submitBtn {
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.submitBtn:hover:not(:disabled) { background: var(--primary-hover); }
+.submitBtn:disabled { opacity: 0.5; cursor: default; }
+
+@media (max-width: 560px) {
+  .row { grid-template-columns: minmax(0, 1fr); }
+  .inlineRow { align-items: stretch; flex-direction: column; gap: 5px; }
+  .inlineLabel { width: auto; }
+}

@@ -1,7 +1,7 @@
 import { useMemo, useReducer, useState } from 'react';
 import { BoardView } from '../BoardView';
 import { TaskDialog } from '../TaskDialog';
-import { NewTaskModal } from '../NewTaskModal';
+import { TaskFormModal } from '../TaskFormModal';
 import { IdentityModal } from '../IdentityModal';
 import { ListView } from '../ListView';
 import { NotificationBell } from '../NotificationBell';
@@ -208,9 +208,10 @@ export function TaskBoardPage() {
       </main>
 
       {creating && (
-        <NewTaskModal
+        <TaskFormModal
           me={me}
           people={people}
+          allTasks={[...tasks.values()]}
           onCancel={() => setCreating(false)}
           onCreate={async draft => {
             const task = await create(draft);

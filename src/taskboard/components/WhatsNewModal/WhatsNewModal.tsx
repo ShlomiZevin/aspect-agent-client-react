@@ -1,6 +1,6 @@
 import { Modal } from '../Modal';
 import type { Task } from '../../types';
-import styles from '../NewTaskModal/NewTaskModal.module.css';
+import styles from '../shared/form.module.css';
 import own from './WhatsNewModal.module.css';
 
 /**

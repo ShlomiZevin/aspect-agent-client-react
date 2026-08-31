@@ -1,1 +1,0 @@
-export { NewTaskModal } from './NewTaskModal';

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CommentThread } from '../CommentThread';
-import { PRIORITIES, STATUSES, TYPES } from '../../types';
+import { RichTextEditor } from '../RichTextEditor';
+import { DOMAINS, LABELS, PRIORITIES, STATUSES, TYPES } from '../../types';
 import type { Person, Task, TaskDraft } from '../../types';
 import styles from './TaskDialog.module.css';
 
@@ -105,7 +106,28 @@ export function TaskDialog({ task, me, people, allTasks, onClose, onSave, onDele
             </label>
 
             <label className={styles.field}>
-              <span className={styles.label}>Blocked by</span>
+              <span className={styles.label}>Domain</span>
+              <select
+                className={styles.control}
+                value={task.domain}
+                onChange={e => save({ domain: e.target.value })}
+              >
+                {DOMAINS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+              </select>
+            </label>
+
+            <label className={styles.field}>
+              <span className={styles.label}>Crew</span>
+              <input
+                className={styles.control}
+                defaultValue={task.crewMember ?? ''}
+                placeholder="None"
+                onBlur={e => saveIfChanged('crewMember', e.target.value.trim() || undefined)}
+              />
+            </label>
+
+            <label className={styles.field}>
+              <span className={styles.label}>Depends On</span>
               <select
                 className={styles.control}
                 value={task.dependsOn ?? ''}
@@ -155,12 +177,17 @@ export function TaskDialog({ task, me, people, allTasks, onClose, onSave, onDele
             />
           </label>
 
-          <textarea
-            className={styles.description}
-            defaultValue={task.description ?? ''}
-            placeholder="Description"
-            onBlur={e => saveIfChanged('description', e.target.value)}
-          />
+          <div className={styles.field}>
+            <span className={styles.label}>Description</span>
+            <RichTextEditor
+              value={task.description ?? ''}
+              placeholder="Optional description..."
+              // The editor emits on blur as well as on input; the equality check
+              // in saveIfChanged is what stops a blur with no edit becoming a
+              // write, and with it an SSE event to everyone.
+              onChange={html => saveIfChanged('description', html)}
+            />
+          </div>
 
           <CommentThread taskId={task.id} me={me} />
         </div>
@@ -206,7 +233,7 @@ function Select<T extends string>({ label, value, options, onChange }: {
     <label className={styles.field}>
       <span className={styles.label}>{label}</span>
       <select className={styles.control} value={value} onChange={e => onChange(e.target.value as T)}>
-        {options.map(o => <option key={o} value={o}>{o.replace('_', ' ')}</option>)}
+        {options.map(o => <option key={o} value={o}>{LABELS[o] ?? o}</option>)}
       </select>
     </label>
   );

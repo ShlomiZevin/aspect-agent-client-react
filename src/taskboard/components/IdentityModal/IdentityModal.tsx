@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '../Modal';
 import type { Person } from '../../types';
-import styles from '../NewTaskModal/NewTaskModal.module.css';
+import styles from '../shared/form.module.css';
 
 /**
  * Asks who is using the board.
