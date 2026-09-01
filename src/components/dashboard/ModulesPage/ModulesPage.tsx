@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './ModulesPage.module.css';
 import { modulesService } from '../../../services/modulesService';
+import { useDialogChrome } from '../../../hooks/useDialogChrome';
 import type {
   ClientModule, LocalizedText, ModuleRun, ModuleProgress, ModuleSettingField,
 } from '../../../types/modules';
@@ -49,10 +50,19 @@ export function ModulesPage({ datasetId, baseURL }: ModulesPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyModule, setBusyModule] = useState<string | null>(null);
-  const [settingsFor, setSettingsFor] = useState<ClientModule | null>(null);
-  const [runFor, setRunFor] = useState<ClientModule | null>(null);
+  // The id, not the module. Holding the object froze whatever the card looked
+  // like at the moment it was clicked: a run that finished while its modal was
+  // open updated the list behind it and left the modal describing a state that
+  // no longer existed. Deriving it from the list on every render means the
+  // modal cannot disagree with the card underneath, and a module that vanishes
+  // from the list closes its modal instead of stranding it.
+  const [settingsForId, setSettingsForId] = useState<string | null>(null);
+  const [runForId, setRunForId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ text: string; onYes: () => void } | null>(null);
   const loadedFor = useRef<string | null>(null);
+
+  const settingsFor = settingsForId ? modules.find(m => m.id === settingsForId) ?? null : null;
+  const runFor = runForId ? modules.find(m => m.id === runForId) ?? null : null;
 
   const load = useCallback(async () => {
     try {
@@ -136,8 +146,8 @@ export function ModulesPage({ datasetId, baseURL }: ModulesPageProps) {
           mod={mod}
           busy={busyModule === mod.id}
           onToggle={() => void toggleEnabled(mod)}
-          onSettings={() => setSettingsFor(mod)}
-          onRunReport={() => setRunFor(mod)}
+          onSettings={() => setSettingsForId(mod.id)}
+          onRunReport={() => setRunForId(mod.id)}
         />
       ))}
 
@@ -146,10 +156,10 @@ export function ModulesPage({ datasetId, baseURL }: ModulesPageProps) {
           datasetId={datasetId}
           baseURL={baseURL}
           mod={settingsFor}
-          onClose={() => setSettingsFor(null)}
+          onClose={() => setSettingsForId(null)}
           onSaved={updated => {
             setModules(prev => prev.map(m => (m.id === updated.id ? updated : m)));
-            setSettingsFor(null);
+            setSettingsForId(null);
           }}
         />
       )}
@@ -159,7 +169,7 @@ export function ModulesPage({ datasetId, baseURL }: ModulesPageProps) {
           datasetId={datasetId}
           baseURL={baseURL}
           mod={runFor}
-          onClose={() => setRunFor(null)}
+          onClose={() => setRunForId(null)}
           onModuleChanged={updated =>
             setModules(prev => prev.map(m => (m.id === updated.id ? updated : m)))}
         />
@@ -167,20 +177,89 @@ export function ModulesPage({ datasetId, baseURL }: ModulesPageProps) {
 
       {/* House rule: a custom confirm modal, never browser confirm(). */}
       {confirm && (
-        <div className={styles.overlay} role="dialog" aria-modal="true">
-          <div className={styles.confirmBox}>
-            <p className={styles.confirmText}>{confirm.text}</p>
-            <div className={styles.modalActions}>
-              <button type="button" className={styles.btnGhost} onClick={() => setConfirm(null)}>
-                Cancel
-              </button>
-              <button type="button" className={styles.btnDanger} onClick={confirm.onYes}>
-                Turn off
-              </button>
-            </div>
+        <ConfirmOverlay onClose={() => setConfirm(null)}>
+          <p className={styles.confirmText}>{confirm.text}</p>
+          <div className={styles.modalActions}>
+            <button type="button" className={styles.btnGhost} onClick={() => setConfirm(null)}>
+              Cancel
+            </button>
+            <button type="button" className={styles.btnDanger} onClick={confirm.onYes}>
+              Turn off
+            </button>
           </div>
-        </div>
+        </ConfirmOverlay>
       )}
+    </div>
+  );
+}
+
+/**
+ * A number field that lets you type a number.
+ *
+ * The box used to render `String(value)` straight from the parsed number, so
+ * every keystroke round-tripped through `Number()`. Typing "1.5" got as far as
+ * "1." — which parses to 1, renders back as "1", and eats the decimal point as
+ * you type it. Anything fractional was simply unreachable, and the field it
+ * matters most for is a delivery time in days.
+ *
+ * So the TEXT is the state and the number is derived from it. Empty stays empty
+ * rather than collapsing to 0: clearing a field means "use the default", and 0
+ * is a real value a buyer might mean.
+ */
+function NumberInput({ value, onChange }: {
+  value: number | null;
+  onChange: (v: number | null) => void;
+}) {
+  const [text, setText] = useState(value === null || value === undefined ? '' : String(value));
+
+  // Re-seed only when the value changed OUTSIDE this box -- a reset, a reload.
+  // Comparing against what the text already parses to is what keeps a half-typed
+  // "1." alive: the parent holds 1, the box holds "1.", and they agree.
+  //
+  // Done during render rather than in an effect: React supports adjusting state
+  // when a prop changes this way, and it re-renders before committing, so the
+  // box never paints the stale text for a frame.
+  const [seen, setSeen] = useState(value);
+  if (value !== seen) {
+    setSeen(value);
+    const asNumber = text.trim() === '' ? null : Number(text);
+    if (value !== asNumber) setText(value === null || value === undefined ? '' : String(value));
+  }
+
+  return (
+    <input
+      className={styles.input}
+      type="text"
+      inputMode="decimal"
+      value={text}
+      onChange={e => {
+        const raw = e.target.value;
+        if (raw !== '' && !/^-?\d*[.,]?\d*$/.test(raw)) return;
+        // A comma is what an Israeli keyboard puts under the thumb; Number()
+        // reads it as NaN, so it is normalised rather than rejected.
+        const normalised = raw.replace(',', '.');
+        setText(raw);
+        if (normalised === '' || normalised === '-') onChange(null);
+        else if (!Number.isNaN(Number(normalised))) onChange(Number(normalised));
+      }}
+    />
+  );
+}
+
+/**
+ * The confirm dialog's own chrome.
+ *
+ * A component rather than a ref on the markup above, because the hook has to
+ * run on mount and this dialog only exists while `confirm` is set -- mounting
+ * it IS the open event.
+ */
+function ConfirmOverlay({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  const dialogRef = useDialogChrome<HTMLDivElement>(onClose);
+  return (
+    <div className={styles.overlay}>
+      <div className={styles.confirmBox} ref={dialogRef} role="dialog" aria-modal="true">
+        {children}
+      </div>
     </div>
   );
 }
@@ -300,9 +379,11 @@ function SettingsModal({ datasetId, baseURL, mod, onClose, onSaved }: {
     }
   };
 
+  const dialogRef = useDialogChrome<HTMLDivElement>(onClose);
+
   return (
-    <div className={styles.overlay} role="dialog" aria-modal="true">
-      <div className={styles.modal}>
+    <div className={styles.overlay}>
+      <div className={styles.modal} ref={dialogRef} role="dialog" aria-modal="true">
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>{localized(mod.name)} — Settings</h2>
           <button type="button" className={styles.close} onClick={onClose} aria-label="Close">✕</button>
@@ -456,21 +537,16 @@ function EmailsField({ field, value, onChange }: {
           onChange={e => onChange(e.target.checked)}
         />
       ) : (
-        <input
-          className={styles.input}
-          type={field.type === 'number' ? 'number' : 'text'}
-          value={value === null || value === undefined ? '' : String(value)}
-          onChange={e => {
-            const raw = e.target.value;
-            if (field.type === 'number') {
-              // Empty must stay empty, not collapse to 0 — otherwise clearing a
-              // field silently pins it to a real value instead of the default.
-              onChange(raw === '' ? null : Number(raw));
-            } else {
-              onChange(raw);
-            }
-          }}
-        />
+        field.type === 'number' ? (
+          <NumberInput value={value as number | null} onChange={onChange} />
+        ) : (
+          <input
+            className={styles.input}
+            type="text"
+            value={value === null || value === undefined ? '' : String(value)}
+            onChange={e => onChange(e.target.value)}
+          />
+        )
       )}
 
       {field.hint && <span className={styles.fieldHint}>{localized(field.hint)}</span>}
@@ -489,6 +565,8 @@ function RunModal({ datasetId, baseURL, mod, onClose, onModuleChanged }: {
 }) {
   const [run, setRun] = useState<ModuleRun | null>(null);
   const [progress, setProgress] = useState<ModuleProgress | null>(null);
+  const inFlight = useRef(false);
+  const dialogRef = useDialogChrome<HTMLDivElement>(onClose);
   const [notice, setNotice] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [building, setBuilding] = useState(false);
@@ -517,7 +595,16 @@ function RunModal({ datasetId, baseURL, mod, onClose, onModuleChanged }: {
   // not — a permanent interval against a finished run is pure noise.
   useEffect(() => {
     if (run?.status !== 'running') return;
-    const id = setInterval(() => { void refresh(); }, 1500);
+    const id = setInterval(() => {
+      // A tick that arrives while the previous one is still out is DROPPED,
+      // not queued. Without this, a refresh slower than the interval put two
+      // requests in the air at once and whichever answered last won -- so the
+      // progress bar could walk backwards on a run that was moving forwards.
+      // One request at a time makes the order the server's, not the network's.
+      if (inFlight.current) return;
+      inFlight.current = true;
+      void refresh().finally(() => { inFlight.current = false; });
+    }, 1500);
     return () => clearInterval(id);
   }, [run?.status, refresh]);
 
@@ -579,8 +666,8 @@ function RunModal({ datasetId, baseURL, mod, onClose, onModuleChanged }: {
   const isLive = mod.enabled && mod.status === 'ready';
 
   return (
-    <div className={styles.overlay} role="dialog" aria-modal="true">
-      <div className={styles.modal}>
+    <div className={styles.overlay}>
+      <div className={styles.modal} ref={dialogRef} role="dialog" aria-modal="true">
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>
             {localized(mod.name)} — Init infrastructure

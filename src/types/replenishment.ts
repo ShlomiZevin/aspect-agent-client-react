@@ -25,6 +25,8 @@ export interface SupplierRow {
   reviewDays: number | null;
   safetyDays: number | null;
   minOrderUnits: number | null;
+  /** Kept out of the recommendations entirely — see the settings dialog. */
+  excluded?: boolean;
 }
 
 /** One recommendation, carrying everything the trust panel needs to show. */

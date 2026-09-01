@@ -143,16 +143,41 @@
 .group:last-child { border-bottom: none; }
 
 .parentRow {
+  position: relative;
   width: 100%;
-  border: none;
-  background: none;
-  font-family: inherit;
   font-size: 13.5px;
   color: var(--ai-text, #1e293b);
-  cursor: pointer;
 }
 
 .parentRow:hover { background: var(--ai-surface-alt, #f8fafc); }
+
+/* The disclosure, laid over the whole row rather than wrapped around it, so the
+   row stays clickable end to end without nesting the Edit button inside it. */
+.rowToggle {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rowToggle:focus-visible {
+  outline: 2px solid var(--ai-primary, #4f46e5);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+/* The cells sit above the overlay so text stays selectable-looking and the
+   badges keep their colour, but let clicks through to it. The Edit button
+   takes its own clicks back. */
+.parentRow > span {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
 
 .supplierCell { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .caret { color: var(--ai-text-muted, #94a3b8); flex-shrink: 0; }
@@ -173,6 +198,11 @@
 .badgeDefault { background: #fef3c7; color: #b45309; }
 
 .editLink {
+  pointer-events: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
   font-size: 11.5px;
   font-weight: 600;
   color: var(--ai-primary, #4f46e5);
@@ -180,8 +210,20 @@
   text-decoration: underline;
 }
 
+.editLink:focus-visible {
+  outline: 2px solid var(--ai-primary, #4f46e5);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
 .countCell,
-.totalCell { font-size: 12.5px; color: var(--ai-text-muted, #475569); }
+.totalCell {
+  font-size: 12.5px;
+  color: var(--ai-text-muted, #475569);
+  /* Digits on a shared width, so a column of shekel totals lines up on the
+     decimal instead of shimmering as the rows change. */
+  font-variant-numeric: tabular-nums;
+}
 
 .emptyChild {
   padding: 10px 16px 14px 40px;
@@ -349,6 +391,39 @@
 }
 
 /* Fixed height so the modal never resizes when a message appears. */
+.modalCheck {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--ai-border, #eef2f6);
+  border-radius: 8px;
+  background: var(--ai-surface-alt, #f8fafc);
+  cursor: pointer;
+}
+
+.modalCheck input {
+  margin-top: 2px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.modalCheckLabel {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ai-text, #1e293b);
+}
+
+.modalCheckHint {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ai-text-muted, #64748b);
+}
+
 .modalNoticeSlot { min-height: 46px; display: flex; align-items: center; margin: 12px 0; }
 .modalHint { font-size: 11.5px; line-height: 1.5; color: var(--ai-text-muted, #94a3b8); }
 .modalError { font-size: 12px; color: #b91c1c; }
@@ -459,4 +534,34 @@
   font-size: 13px;
   line-height: 1.6;
   color: var(--ai-text-muted, var(--text-secondary, #64748b));
+}
+
+
+/* ── narrow phones ──────────────────────────────────────────────────────────
+   The four-column grid does not survive a 360px screen: 110px and 120px of it
+   are fixed, leaving the supplier name and its badges to fight over what is
+   left. Below 640px the row stacks -- name on its own line, then the delivery
+   time, then the count and the total side by side -- which is the order a
+   buyer reads them in anyway. */
+@media (max-width: 640px) {
+  .parentRow {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'supplier supplier'
+      'lead     lead'
+      'count    total';
+    gap: 6px 12px;
+    padding: 12px;
+  }
+
+  .supplierCell { grid-area: supplier; }
+  .leadCell { grid-area: lead; }
+  .countCell { grid-area: count; }
+  .totalCell { grid-area: total; text-align: end; }
+
+  /* The header labels a grid this row no longer has. */
+  .head { display: none; }
+
+  .childTools { flex-wrap: wrap; }
+  .emptyChild { padding-inline-start: 16px; }
 }

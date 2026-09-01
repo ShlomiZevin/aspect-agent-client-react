@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLanguage } from '../../../context/LanguageContext';
 import { replenishmentService } from '../../../services/replenishmentService';
+import { useDialogChrome } from '../../../hooks/useDialogChrome';
 import type { Recommendation, SupplierRow, RecommendationSummary } from '../../../types/replenishment';
 import styles from './PurchasingPage.module.css';
 
@@ -234,16 +235,24 @@ export function PurchasingPage({ datasetId, baseURL }: Props) {
               const isOpen = openSupplier === s.supplier;
               return (
                 <div key={s.supplier} className={styles.group}>
-                  <button
-                    type="button"
-                    className={styles.parentRow}
-                    onClick={() => {
-                      setOpenSupplier(isOpen ? null : s.supplier);
-                      setChildPage(0);
-                      setChildSearch('');
-                    }}
-                    aria-expanded={isOpen}
-                  >
+                  {/* The row is a DIV with the disclosure as a button laid over
+                      it, not a button containing one. A <button> inside a
+                      <button> is invalid: browsers recover from it differently,
+                      and the Edit control had to fake itself with role/tabIndex
+                      and stopPropagation to survive being nested. Both are real
+                      buttons now, siblings, each with its own focus ring. */}
+                  <div className={styles.parentRow}>
+                    <button
+                      type="button"
+                      className={styles.rowToggle}
+                      onClick={() => {
+                        setOpenSupplier(isOpen ? null : s.supplier);
+                        setChildPage(0);
+                        setChildSearch('');
+                      }}
+                      aria-expanded={isOpen}
+                      aria-label={`${s.supplier} — ${t(isOpen ? 'purchasing.collapse' : 'purchasing.expand')}`}
+                    />
                     <span className={styles.supplierCell}>
                       <span className={styles.caret}>{isOpen ? '▾' : '▸'}</span>
                       <span className={styles.supplierName}>{s.supplier}</span>
@@ -256,19 +265,17 @@ export function PurchasingPage({ datasetId, baseURL }: Props) {
                           ? t('purchasing.youSetThis')
                           : t('purchasing.defaultSetIt')}
                       </span>
-                      <span
-                        role="button"
-                        tabIndex={0}
+                      <button
+                        type="button"
                         className={styles.editLink}
-                        onClick={e => { e.stopPropagation(); setEditing(s); }}
-                        onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setEditing(s); } }}
-                      >{t('purchasing.edit')}</span>
+                        onClick={() => setEditing(s)}
+                      >{t('purchasing.edit')}</button>
                     </span>
                     <span className={styles.countCell}>
                       {items.length ? t('purchasing.items').replace('{n}', String(items.length)) : '—'}
                     </span>
                     <span className={styles.totalCell}>{est ? `≈ ₪${nf(est)}` : '—'}</span>
-                  </button>
+                  </div>
 
                   {isOpen && items.length === 0 && (
                     <div className={styles.emptyChild}>{t('purchasing.nothingToOrder')}</div>
@@ -561,8 +568,10 @@ function LeadTimeModal({ supplier, datasetId, baseURL, t, language, onClose, onS
   const [value, setValue] = useState<string>(
     supplier.leadTimeSource === 'supplier' && supplier.leadTimeDays !== null
       ? String(supplier.leadTimeDays) : '');
+  const [excluded, setExcluded] = useState<boolean>(Boolean(supplier.excluded));
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const dialogRef = useDialogChrome<HTMLDivElement>(onClose);
 
   const save = async () => {
     setSaving(true);
@@ -573,6 +582,7 @@ function LeadTimeModal({ supplier, datasetId, baseURL, t, language, onClose, onS
       await replenishmentService.saveSupplier(datasetId, supplier.supplier, {
         leadTimeDays: value.trim() === '' ? null : Number(value),
         supplierLabel: supplier.supplier,
+        excluded,
       }, baseURL);
       onSaved();
     } catch (e) {
@@ -582,8 +592,8 @@ function LeadTimeModal({ supplier, datasetId, baseURL, t, language, onClose, onS
   };
 
   return (
-    <div className={styles.overlay} role="dialog" aria-modal="true" dir={language === 'he' ? 'rtl' : 'ltr'}>
-      <div className={styles.modal}>
+    <div className={styles.overlay} dir={language === 'he' ? 'rtl' : 'ltr'}>
+      <div className={styles.modal} ref={dialogRef} role="dialog" aria-modal="true">
         <div className={styles.modalTitle}>{t('purchasing.modal.title')}</div>
         <div className={styles.modalSupplier}>{supplier.supplier}</div>
 
@@ -597,6 +607,21 @@ function LeadTimeModal({ supplier, datasetId, baseURL, t, language, onClose, onS
             placeholder={String(supplier.leadTimeDays ?? '')}
             onChange={e => setValue(e.target.value)}
           />
+        </label>
+
+        {/* The control the page already had the server flag and the notice for.
+            Here rather than on the row: it is a rare, deliberate act with a
+            consequence worth reading first, not a one-click filter. */}
+        <label className={styles.modalCheck}>
+          <input
+            type="checkbox"
+            checked={excluded}
+            onChange={e => setExcluded(e.target.checked)}
+          />
+          <span>
+            <span className={styles.modalCheckLabel}>{t('purchasing.excludeSupplier')}</span>
+            <span className={styles.modalCheckHint}>{t('purchasing.excludeHint')}</span>
+          </span>
         </label>
 
         {/* Fixed-height slot so the modal never resizes when a message appears. */}
@@ -618,9 +643,15 @@ function LeadTimeModal({ supplier, datasetId, baseURL, t, language, onClose, onS
 }
 
 /**
- * CSV of exactly what is on screen, including the sources and caveats — a
- * buyer takes this into a purchase order, and a number without its basis is
- * not usable there.
+ * CSV of every recommendation the page is holding, with its sources and
+ * caveats — a buyer takes this into a purchase order, and a number without its
+ * basis is not usable there.
+ *
+ * Deliberately NOT what is on screen. The table pages and filters; the export
+ * is the whole set the server returned for the current supplier and status
+ * filters, because a buyer who exports after paging to row 40 wants the list,
+ * not page 3 of it. The comment used to claim the opposite and the code has
+ * always done this.
  */
 function downloadCsv(recs: Recommendation[], datasetId: string) {
   const cols = [

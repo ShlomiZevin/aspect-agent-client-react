@@ -481,6 +481,9 @@ export const translations: LanguageConfig = {
     'purchasing.youSetThis': 'you set this',
     'purchasing.defaultSetIt': 'default — set it',
     'purchasing.edit': 'Edit',
+    // Spoken only, on the row's disclosure button: the caret carries no name.
+    'purchasing.expand': 'show items',
+    'purchasing.collapse': 'hide items',
     'purchasing.items': '{n} items',
     'purchasing.nothingToOrder': 'Nothing needs ordering from this supplier today.',
     'purchasing.noSupplier': '(no supplier)',
@@ -1194,6 +1197,8 @@ export const translations: LanguageConfig = {
     'purchasing.youSetThis': 'הגדרתם',
     'purchasing.defaultSetIt': 'ברירת מחדל — להגדיר',
     'purchasing.edit': 'עריכה',
+    'purchasing.expand': 'הצגת פריטים',
+    'purchasing.collapse': 'הסתרת פריטים',
     'purchasing.items': '{n} פריטים',
     'purchasing.nothingToOrder': 'אין מה להזמין מהספק הזה היום.',
     'purchasing.noSupplier': '(ללא ספק)',
