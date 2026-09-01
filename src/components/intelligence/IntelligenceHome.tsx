@@ -18,6 +18,7 @@ import type { IntelligenceDatasetMeta } from '../../types/insights';
 import { insightsService } from '../../services/insightsService';
 import { ensureIntelligenceFontsLoaded } from './fonts';
 import styles from './IntelligenceHome.module.css';
+import { Skeleton } from './Insights/Skeleton';
 
 const MODE_KEY = 'aspect_intelligence_mode';
 
@@ -72,7 +73,13 @@ export function IntelligenceHome() {
           <div className={styles.subtitle}>Choose a data source to see its proactive findings, tracked metrics, and data chat.</div>
         </div>
 
-        {!datasets && !error && <div className={styles.state}>Loading…</div>}
+        {/* The grid's own shape. This is the first screen of the product, and
+            a bare word in the middle of it reads as a broken build. */}
+        {!datasets && !error && (
+          <div className={styles.grid} aria-busy="true">
+            {[0, 1, 2].map(i => <Skeleton key={i} width="100%" height={168} radius={16} />)}
+          </div>
+        )}
         {error && <div className={styles.state}>⚠ {error}</div>}
 
         {datasets && (

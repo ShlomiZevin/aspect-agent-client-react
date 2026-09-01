@@ -23,14 +23,16 @@ import { getAgentConfig } from '../agents/agentRegistry';
 export function IntelligencePage() {
   const { datasetId, insightId } = useParams<{ datasetId: string; insightId?: string }>();
   const location = useLocation();
+  // Set only on /intelligence/:datasetId/apps/:appId.
+  const { appId } = useParams<{ appId?: string }>();
   const isChatRoute = location.pathname.endsWith('/chat');
   const isHistoryRoute = location.pathname.endsWith('/reports/history');
   const isReportsRoute = !isHistoryRoute && location.pathname.endsWith('/reports');
-  // Smart Replenishment's client surface. The ROUTE always resolves; whether
-  // the page renders anything is decided by the module's live state inside
-  // the shell, so a stale bookmark to a switched-off module lands on the
-  // shell rather than a broken page.
-  const isPurchasingRoute = location.pathname.endsWith('/purchasing');
+  // The Apps shelf and, one level deeper, a single app. The ROUTE always
+  // resolves; whether anything renders is decided by the live modules inside
+  // the shell, so a stale bookmark to a switched-off app lands on the shell
+  // rather than a broken page.
+  const isAppsRoute = /\/apps(\/|$)/.test(location.pathname);
   const config = getAgentConfig(datasetId);
 
   useDocumentMeta({
@@ -51,7 +53,8 @@ export function IntelligencePage() {
       chatRoute={isChatRoute}
       reportsRoute={isReportsRoute}
       historyRoute={isHistoryRoute}
-      purchasingRoute={isPurchasingRoute}
+      appsRoute={isAppsRoute}
+      appId={appId}
     />
   );
 }
