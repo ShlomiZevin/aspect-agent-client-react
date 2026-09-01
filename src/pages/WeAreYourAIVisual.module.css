@@ -1,0 +1,58 @@
+/**
+ * Photography for the ILLUSTRATED variant of the investor pitch
+ * (/aspect/investors-pitch-visual).
+ *
+ * This file adds artwork on top of WeAreYourAIPage.module.css and changes
+ * nothing else — typography, grid, colour system and the capability line all
+ * come from that stylesheet, so the two variants cannot drift apart.
+ *
+ * WHY A SECOND VARIANT EXISTS. The real pitch deliberately has no imagery;
+ * GPT-5.6 was asked directly and ruled it out. This one is a capability demo
+ * — it shows a colleague that copy, layout and artwork can all be produced
+ * end to end. Artwork comes from scripts/generate-pitch-images.js.
+ *
+ * THE PHOTOGRAPH IS A BACKGROUND, NOT AN ELEMENT — and that is a bug fix,
+ * not a preference. The previous build laid an <img> over each slide and
+ * then promoted every sibling to `position: relative` so the type would
+ * paint above it. That rule also caught the two elements in the shared
+ * stylesheet that are deliberately absolute: the capability line, which fell
+ * back into the flex flow and struck through whatever copy it landed on, and
+ * the giant WAITS., which stopped being pinned to its corner and pushed the
+ * slide taller than the viewport — so a slide no longer fit one screen and
+ * showed different content depending on which direction you scrolled in
+ * from. As a background layer there is no stacking contest to win, nothing
+ * to promote, and every slide is exactly one screen again.
+ *
+ * Each frame is composed with its left 36% already dark, so the gradient in
+ * front of it is thin insurance for wide crops rather than a scrim.
+ */
+
+.bg {
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center right;
+}
+
+/* Ink slides: the gradient protects the type, then clears out of the way. */
+.bgHero { background-image: linear-gradient(90deg, rgba(9, 9, 9, 0.74) 0%, rgba(9, 9, 9, 0.3) 34%, rgba(9, 9, 9, 0) 58%), url('/pitch/hero.png'); }
+.bgFoundation { background-image: linear-gradient(90deg, rgba(9, 9, 9, 0.74) 0%, rgba(9, 9, 9, 0.3) 34%, rgba(9, 9, 9, 0) 58%), url('/pitch/foundation.png'); }
+.bgAsk { background-image: linear-gradient(90deg, rgba(9, 9, 9, 0.74) 0%, rgba(9, 9, 9, 0.3) 34%, rgba(9, 9, 9, 0) 58%), url('/pitch/ask.png'); }
+.bgDare { background-image: linear-gradient(90deg, rgba(9, 9, 9, 0.8) 0%, rgba(9, 9, 9, 0.4) 40%, rgba(9, 9, 9, 0.05) 70%), url('/pitch/dare.png'); }
+
+/* Slide 2 is the one bone-ground slide, so its gradient runs in bone. */
+.bgWait { background-image: linear-gradient(90deg, rgba(242, 239, 230, 0.9) 0%, rgba(242, 239, 230, 0.55) 34%, rgba(242, 239, 230, 0.28) 100%), url('/pitch/wait.png'); }
+
+/* Slides 2 and 5 carry a giant word in the lower right. The heavier veil on
+   slide 5 keeps YES the loudest thing in the frame. */
+.bgYes { background-image: linear-gradient(90deg, rgba(9, 9, 9, 0.86) 0%, rgba(9, 9, 9, 0.62) 40%, rgba(9, 9, 9, 0.5) 100%), url('/pitch/yes.png'); }
+
+/* ── Small screens: the crop eats the dark left third, so the veil does more ── */
+
+@media (max-width: 860px) {
+  .bgHero,
+  .bgFoundation,
+  .bgAsk,
+  .bgDare,
+  .bgYes { background-color: rgba(9, 9, 9, 0.45); background-blend-mode: darken; }
+  .bgWait { background-color: rgba(242, 239, 230, 0.5); background-blend-mode: lighten; }
+}

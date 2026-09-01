@@ -30,6 +30,7 @@ import {
   type ProfilerFrame,
   type ProfilerAskConfig,
 } from '../builder/state/builderApi';
+import { useProactivePush } from '../builder/state/useProactivePush';
 import { sendRuntimeMessage, type RuntimeEvent } from '../builder/state/runtimeStream';
 
 export interface ThinkRun {
@@ -385,6 +386,23 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     await reloadConvList();
     if (conversationId !== null) await loadConversation(conversationId);
   }, [reloadConvList, conversationId, loadConversation]);
+
+  // ── Proactive messages ────────────────────────────────────────────
+  // The agent can now speak without being spoken to (Triggers). When one
+  // of those lands, reload the conversation through the SAME path a
+  // history load uses, so a pushed message renders identically to one
+  // that was already there.
+  //
+  // Paused while `busy`: the user's own turn is streaming its reply
+  // through handleEvent, and reloading underneath it would fight that.
+  // Nothing is lost — the message is already saved, so it appears on the
+  // next reload either way.
+  useProactivePush({
+    agentSlug: slug,
+    conversationId,
+    paused: busy,
+    onArrived: () => { void refresh(); },
+  });
 
   /** Delete one or more conversations. If the active one is among
    *  them, the chat resets to a fresh (unsaved) state. */

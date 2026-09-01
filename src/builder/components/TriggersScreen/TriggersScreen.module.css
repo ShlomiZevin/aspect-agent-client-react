@@ -1,0 +1,276 @@
+/* TriggersScreen.
+ *
+ * Numbers here are copied from ChainCanvas.module.css and
+ * AddonContextSection.module.css rather than re-chosen — the card
+ * footprint, the top bar, the enable switch and the modal rows are all
+ * meant to be the same object the author already knows from the Cortex.
+ * If those files change, this one follows. */
+
+.screen {
+  padding: 14px 22px 40px;
+  color: var(--text-primary, #111827);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.headRow { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+.sub { margin: 4px 0 0; font-size: 13px; color: var(--text-tertiary, #9ca3af); }
+
+/* Agent-level master switch (header only — the per-card one is the
+   chip switch further down). */
+.toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch {
+  width: 34px; height: 20px; border-radius: 100px; flex: none; position: relative;
+  background: var(--border-color, #d5d0e0); transition: background 150ms;
+}
+.switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+  border-radius: 50%; background: #fff; transition: transform 150ms;
+  box-shadow: 0 1px 2px rgba(0,0,0,.2);
+}
+.toggle input:checked + .switch { background: var(--primary-color, #6366f1); }
+.toggle input:checked + .switch::after { transform: translateX(14px); }
+.switchLabel { font-size: 12px; font-weight: 700; color: var(--text-tertiary, #9ca3af); min-width: 22px; }
+
+/* ── clock bar ── */
+.clock {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: var(--bg-input, #fafafa);
+  padding: 10px 14px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 14px;
+  align-items: center;
+}
+.clockOn { border-color: #bfe3cd; background: #f3fbf6; }
+.clockMain { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.clockDot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-tertiary, #c3c8d2); flex: none; }
+.clockOn .clockDot { background: #0f9d58; box-shadow: 0 0 0 3px rgba(15,157,88,.15); }
+.clockText { min-width: 0; }
+.clockTitle { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.clockScope {
+  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text-tertiary, #9ca3af); background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb); border-radius: 999px; padding: 1px 7px;
+}
+.clockSub { font-size: 12px; color: var(--text-tertiary, #9ca3af); margin-top: 2px; }
+.clockActions { display: flex; gap: 6px; align-items: center; }
+.clockFoot { grid-column: 1 / -1; font-size: 12px; border-top: 1px dashed var(--border-color, #e5e7eb); padding-top: 7px; }
+
+.ghostBtn, .pauseBtn, .startBtn {
+  padding: 6px 12px; font-size: 12px; font-weight: 600;
+  border-radius: 6px; cursor: pointer; font-family: inherit;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: #fff; color: var(--text-primary, #111827);
+}
+.ghostBtn:hover:not(:disabled) { border-color: var(--primary-color, #6366f1); color: var(--primary-color, #6366f1); }
+.startBtn { background: #0f9d58; border-color: #0f9d58; color: #fff; }
+.startBtn:hover:not(:disabled) { filter: brightness(.95); }
+.pauseBtn { border-color: #fecaca; color: #dc2626; }
+.pauseBtn:hover:not(:disabled) { background: #fef2f2; border-color: #fca5a5; }
+.ghostBtn:disabled, .pauseBtn:disabled, .startBtn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── the lane ── */
+.lane {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: var(--bg-input, #fafafa);
+  padding: 10px 14px 12px;
+}
+.laneHead { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.laneName { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-tertiary, #9ca3af); }
+.laneCount {
+  font-size: 10px; font-weight: 700; border-radius: 999px; padding: 1px 6px;
+  background: var(--bg-surface, #fff); color: var(--text-tertiary, #9ca3af);
+  border: 1px solid var(--border-color, #e5e7eb);
+}
+.laneEmpty { font-size: 12px; color: var(--text-tertiary, #9ca3af); margin: 10px 2px 0; line-height: 1.5; max-width: 520px; }
+.cards { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; }
+
+/* ── the chip — geometry copied from ChainCanvas .card ── */
+.card {
+  --card-color: #6366f1;
+  position: relative;
+  min-width: 130px;
+  max-width: 176px;
+  min-height: 86px;
+  box-sizing: border-box;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  transition: border-color 120ms, transform 120ms, box-shadow 120ms;
+}
+.card::before {
+  content: '';
+  position: absolute; top: 0; left: 12px; right: 12px; height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: var(--card-color);
+}
+.card:hover {
+  border-color: var(--card-color);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+}
+
+/* Off = washed out + dashed, exactly like a disabled addon. */
+.cardDisabled { opacity: .55; background: var(--bg-input, #fafafa); border-style: dashed; }
+.cardDisabled::before { opacity: .4; }
+
+/* The whole face is the open button, so the chip has one obvious action. */
+.cardOpen {
+  width: 100%; height: 100%; min-height: 86px;
+  box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  padding: 14px 14px 12px;
+  background: none; border: 0; border-radius: 10px;
+  font-family: inherit; text-align: center; cursor: pointer;
+}
+.cardIcon { font-size: 22px; margin-bottom: 2px; }
+.cardName { font-size: 13px; font-weight: 600; color: var(--text-primary, #111827); }
+.cardSub {
+  font-size: 11px; line-height: 1.35; min-height: 15px;
+  color: var(--text-tertiary, #9ca3af);
+}
+.cardDot { margin: 0 4px; }
+.cardWarn { color: #b45309; font-weight: 700; }
+
+/* ── enable switch — same pill, same corner, same hover rule ── */
+.enableSwitchOn, .enableSwitchOff {
+  position: absolute; top: 6px; left: 6px;
+  display: inline-flex; align-items: center;
+  height: 16px; padding: 2px 6px 2px 2px;
+  border: 1px solid transparent; border-radius: 999px;
+  font-family: inherit; font-size: 9px; font-weight: 800; letter-spacing: .06em;
+  cursor: pointer; user-select: none; z-index: 2;
+  transition: background 120ms, color 120ms, border-color 120ms, opacity 120ms;
+}
+/* Hidden while ON — the resting case, so the chip reads as just the
+   trigger. Fades in on hover. */
+.enableSwitchOn {
+  opacity: 0; pointer-events: none;
+  background: rgba(99,102,241,.85); border-color: rgba(99,102,241,.95); color: #fff;
+}
+.card:hover .enableSwitchOn, .enableSwitchOn:focus-visible { opacity: 1; pointer-events: auto; }
+.enableSwitchOn:hover { background: rgba(79,82,221,.95); }
+
+/* OFF stays visible: a trigger that isn't watching should say so. */
+.enableSwitchOff {
+  background: rgba(245,158,11,.18); border-color: rgba(245,158,11,.55); color: #b45309;
+  flex-direction: row-reverse; padding: 2px 2px 2px 6px; opacity: 1;
+}
+.enableSwitchOff:hover { background: rgba(245,158,11,.28); }
+.enableSwitchThumb {
+  flex: 0 0 auto; width: 10px; height: 10px; border-radius: 999px;
+  background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.18); margin-right: 4px;
+}
+.enableSwitchOff .enableSwitchThumb { margin-right: 0; margin-left: 4px; background: #b45309; }
+.enableSwitchLabel { flex: 0 0 auto; line-height: 1; }
+
+/* ── add card — same footprint, same dashed treatment ── */
+.addCard {
+  min-width: 130px; min-height: 86px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  background: var(--bg-input, #fafafa);
+  border: 1px dashed var(--border-color, #d1d5db);
+  border-radius: 10px;
+  color: var(--text-secondary, #6b7280);
+  font-family: inherit; cursor: pointer;
+  transition: border-color 120ms, color 120ms;
+}
+.addCard:hover { border-color: var(--primary-color, #6366f1); color: var(--primary-color, #6366f1); }
+.addPlus { font-size: 20px; line-height: 1; }
+.addLabel { font-size: 11px; font-weight: 600; }
+
+/* ── editor modal ──
+   Two heading levels that cannot be confused with each other: the group
+   title is dark, bold and sentence case; the field label is small,
+   uppercase and grey. The first pass made both the same and they were
+   indistinguishable. */
+.editor { display: flex; flex-direction: column; gap: 6px; }
+
+.groupTitle {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  margin: 12px 0 6px;
+  font-size: 13px; font-weight: 700; color: var(--text-primary, #111827);
+}
+.optional { font-size: 11px; font-weight: 600; color: var(--text-tertiary, #9ca3af); }
+
+/* Bordered card holding the rows — mirrors AddonContextSection. */
+.group {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+}
+
+
+/* Group titles and the row body live here; every CONTROL comes from
+   TriggerRow.module.css so a trigger type and the editor cannot
+   drift apart on widths or focus. */
+.selectWarn { border-color: #fcd9a0; background: #fffaf0; }
+
+.err {
+  font-size: 12.5px; color: #b3261e; background: #fdf3f2;
+  border: 1px solid #f0d3d0; border-radius: 6px; padding: 7px 10px; margin: 0;
+}
+/* Footer — same buttons as the addon modal's. */
+.footer { display: flex; align-items: center; gap: 8px; width: 100%; }
+.spacer { flex: 1; }
+.dangerBtn {
+  padding: 8px 14px; font-size: 13px; font-weight: 600;
+  background: #fff; color: #dc2626; border: 1px solid #fecaca;
+  border-radius: 6px; cursor: pointer; font-family: inherit;
+}
+.dangerBtn:hover { background: #fef2f2; border-color: #fca5a5; }
+.primaryBtn {
+  padding: 8px 16px; font-size: 13px; font-weight: 600;
+  background: var(--primary-color, #6366f1); color: #fff;
+  border: 1px solid var(--primary-color, #6366f1);
+  border-radius: 6px; cursor: pointer; font-family: inherit;
+}
+.primaryBtn:hover { filter: brightness(.95); }
+
+@media (max-width: 720px) {
+  .clock { grid-template-columns: 1fr; }
+  .clockActions { justify-content: flex-start; flex-wrap: wrap; }
+}
+
+/* Clock bar controls — cadence + which version it reads. */
+.clockField { display: inline-flex; align-items: center; gap: 6px; }
+.clockFieldLabel {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--text-tertiary, #9ca3af);
+}
+.clockSelect {
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  color: var(--text-primary, #111827);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px; padding: 5px 8px; cursor: pointer;
+}
+.clockSelect:focus { outline: none; border-color: var(--primary-color, #6366f1); }
+.clockSelect:disabled { opacity: .5; cursor: not-allowed; }
+
+.errText   { color: #b3261e; }
+.warnText  { color: #92400e; }
+.mutedText { color: var(--text-tertiary, #9ca3af); }
+
+/* Manual refresh for the clock bar. The poll only runs while the clock
+   is on, so a paused bar's "last check" would otherwise go stale with no
+   way to update it. */
+.iconRefresh {
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-surface, #fff);
+  color: var(--text-secondary, #4b5563);
+  border-radius: 6px;
+  width: 28px; height: 28px;
+  font-family: inherit; font-size: 14px; line-height: 1;
+  cursor: pointer; flex: none;
+}
+.iconRefresh:hover:not(:disabled) { border-color: var(--primary-color, #6366f1); color: var(--primary-color, #6366f1); }
+.iconRefresh:disabled { opacity: .5; cursor: not-allowed; }

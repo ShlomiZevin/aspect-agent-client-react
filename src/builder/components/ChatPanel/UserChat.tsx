@@ -13,6 +13,7 @@
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useProactivePush } from '../../state/useProactivePush';
 import { useBuilder, useCurrentAgent, useCurrentCrew } from '../../state/BuilderContext';
 import {
   createConversation,
@@ -122,6 +123,39 @@ function messagesToTurns(messages: ConversationMessage[]): Turn[] {
     }
   }
   return turns;
+}
+
+/**
+ * Rebuild the turn list without throwing away what's already loaded.
+ *
+ * `messagesToTurns` is pure — every turn it builds starts with no addon
+ * runs and `runsLoaded: false`, because messages don't carry them. That
+ * is correct for a first load and wrong for a REFRESH: a proactive push
+ * refetches the messages, and a naive `setTurns(messagesToTurns(...))`
+ * silently reset the debug panel of every earlier turn. Two nudges in a
+ * row and only the newest one still had its addon log — which looked
+ * like the runs were being lost, though a reload brought them all back.
+ *
+ * A turn's identity is its message ids, so carry the loaded state across
+ * by id. The assistant id must match too: a turn that has GAINED its
+ * reply since the last build is genuinely unloaded, and inheriting a
+ * `runsLoaded: true` from its unanswered self would leave it stuck
+ * empty with nothing to trigger a fetch.
+ */
+function mergeLoadedState(next: Turn[], prev: Turn[]): Turn[] {
+  if (prev.length === 0) return next;
+  const before = new Map(prev.map(t => [t.id, t]));
+  return next.map(t => {
+    const old = before.get(t.id);
+    if (!old || old.assistantMessageId !== t.assistantMessageId) return t;
+    return {
+      ...t,
+      runs: old.runs,
+      runsLoaded: old.runsLoaded,
+      dcResolutions: old.dcResolutions,
+      stopped: old.stopped ?? t.stopped,
+    };
+  });
 }
 
 function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
@@ -353,6 +387,35 @@ export function UserChat() {
       setAwaitingTalker(false);
     }
   }, [slug, setConversationId, convList]);
+
+  /**
+   * Quiet refetch for a PROACTIVE message — the agent speaking without
+   * being spoken to (Triggers).
+   *
+   * Deliberately NOT `loadConversation`: that sets `awaitingTalker`,
+   * which gates the composer. A message arriving on its own must not
+   * take the keyboard away from someone mid-sentence.
+   */
+  const refreshTurns = useCallback(async () => {
+    if (conversationId === null || !slug) return;
+    try {
+      const msgs = await fetchConversationMessages({ agentSlug: slug, conversationId });
+      setTurns(prev => mergeLoadedState(messagesToTurns(msgs), prev));
+    } catch {
+      /* Best-effort. The message is already saved, so the worst case is
+         the user sees it on their next reload. */
+    }
+  }, [slug, conversationId]);
+
+  // Paused while a turn of the user's own is streaming: that path is
+  // already rendering tokens into the bubble, and refetching underneath
+  // it would fight the stream.
+  useProactivePush({
+    agentSlug: slug,
+    conversationId,
+    paused: awaitingTalker,
+    onArrived: () => { void refreshTurns(); },
+  });
 
   // Deep-link: the customer Live chat links back here with `?c=<convId>`
   // ("Open in builder"). Load that conversation once on mount so the

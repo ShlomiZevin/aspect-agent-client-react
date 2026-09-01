@@ -1,25 +1,22 @@
 /**
- * "We Are Your AI" — the six-slide investor pitch (/aspect/investors-pitch).
+ * The ILLUSTRATED variant of the investor pitch (/aspect/investors-pitch-visual).
  *
- * THE ACTOR IS THE AI, NEVER US. This is the load-bearing decision in the
- * copy. If "we" build what the customer asks for, an investor prices the
- * company as a services firm within thirty seconds of slide one and nothing
- * later undoes it. So the AI is the employee that does the work, and we are
- * the ones who make it capable of doing it — stated outright on slide 3,
- * where the AI's action is deliberately set louder than the company's role.
- * Passive voice ("it gets built") quietly breaks the same rule.
+ * WHAT THIS IS FOR. The real pitch at /aspect/investors-pitch has no imagery
+ * on purpose — GPT-5.6 was asked directly and ruled it out, on the grounds
+ * that abstract AI artwork would make it look like every other AI deck. That
+ * decision stands and this page does not replace it. This variant exists to
+ * show a marketing colleague the whole chain: the copy, the layout and the
+ * artwork all produced end to end, with the pictures generated to the same
+ * four-colour system rather than picked from a stock library.
  *
- * NO TWO SLIDES SHARE A LAYOUT: declaration, collision, preparation,
- * release, expansion, dare. Copy and art direction both come from the
- * GPT-5.6 reviews in aspect-agent-server/docs/marketing/ — including its
- * decision that this deck gets no imagery at all. See the stylesheet header.
- *
- * The deck is its own scroller (position:fixed in the stylesheet), so this
- * route never has to unwind the app's global overflow:hidden the way the
- * other landing pages do.
+ * Structure, typography and the capability line are imported from the real
+ * pitch's stylesheet, so the two cannot drift apart — only the image layers
+ * live in this page's own module. Artwork is produced by
+ * aspect-agent-server/scripts/generate-pitch-images.js into public/pitch/.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './WeAreYourAIPage.module.css';
+import art from './WeAreYourAIVisual.module.css';
 
 const FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;700;800&display=swap';
 
@@ -33,10 +30,10 @@ function ensureFontsLoaded() {
 
 const BEATS = ['We are your AI', 'The old rule', 'The foundation', 'So ask', 'Why now', 'The test'];
 
-/** Slide 2 is the only bone-ground slide, so the fixed ticks invert on it. */
+/** Slide 2 is the only bone-ground slide, so the ticks and label invert on it. */
 const BONE_SLIDE = 1;
 
-export function WeAreYourAIPage() {
+export function WeAreYourAIVisualPage() {
   const deckRef = useRef<HTMLDivElement | null>(null);
   const beatRefs = useRef<(HTMLElement | null)[]>([]);
   const [seen, setSeen] = useState<boolean[]>(() => BEATS.map(() => false));
@@ -45,7 +42,7 @@ export function WeAreYourAIPage() {
   useEffect(() => {
     ensureFontsLoaded();
     const previousTitle = document.title;
-    document.title = 'We are your AI';
+    document.title = 'We are your AI — illustrated';
     return () => { document.title = previousTitle; };
   }, []);
 
@@ -59,11 +56,6 @@ export function WeAreYourAIPage() {
       return;
     }
 
-    // `seen` only extends the capability line — the one repeating motion in
-    // the deck; everything else on a slide arrives at once, because the
-    // direction calls for hard cuts. The second, higher threshold drives the
-    // ticks and the bone-slide inversion, which would otherwise flicker
-    // between two slides mid-scroll.
     const arrive = new IntersectionObserver(
       entries => {
         entries.forEach(entry => {
@@ -95,7 +87,7 @@ export function WeAreYourAIPage() {
   }, []);
 
   const beatClass = (index: number, ...extra: (string | undefined)[]) =>
-    [styles.beat, seen[index] ? styles.seen : '', ...extra].filter(Boolean).join(' ');
+    [styles.beat, art.bg, seen[index] ? styles.seen : '', ...extra].filter(Boolean).join(' ');
 
   const setBeatRef = (index: number) => (el: HTMLElement | null) => { beatRefs.current[index] = el; };
 
@@ -116,10 +108,9 @@ export function WeAreYourAIPage() {
         ))}
       </nav>
 
-      {/* 1 — Identity. One claim, one explanation, open space. The company's
-          "we" is deliberately smaller than the customer's AI, and not green:
-          the subject of this deck is their AI, not us. */}
-      <section className={beatClass(0)} ref={setBeatRef(0)}>
+
+      {/* 1 — Identity. */}
+      <section className={beatClass(0, art.bgHero)} ref={setBeatRef(0)}>
         <p className={styles.eyebrow}>Who we are</p>
         <h1 className={styles.heroSmall}>
           We are
@@ -133,13 +124,11 @@ export function WeAreYourAIPage() {
         <p className={`${styles.copy} ${styles.beachhead}`}>
           Retail first. The same wait exists anywhere a business runs on reports.
         </p>
-        <div className={styles.line} />
+        <div className={`${styles.line}`} />
       </section>
 
-      {/* 2 — The old rule. The eye hits the enormous red WAITS. first, then
-          climbs to the headline, and only then reads the cadence. The line
-          stops dead against a hard cap: this is where software ends. */}
-      <section className={beatClass(1, styles.onBone)} ref={setBeatRef(1)}>
+      {/* 2 — The old rule. */}
+      <section className={beatClass(1, styles.onBone, art.bgWait)} ref={setBeatRef(1)}>
         <p className={styles.eyebrow}>The old rule</p>
         <h2 className={`${styles.head} ${styles.ruleHead}`}>Everything your business needs becomes a project.</h2>
         <p className={styles.alreadyBought}>You bought BI. You paid to customise software.</p>
@@ -151,10 +140,8 @@ export function WeAreYourAIPage() {
         <div className={`${styles.line} ${styles.lineStopped}`} />
       </section>
 
-      {/* 3 — The foundation. What it owns sits in its own column; the
-          conclusion is isolated at the bottom, and only the AI's half of it
-          is green and bold. */}
-      <section className={beatClass(2)} ref={setBeatRef(2)}>
+      {/* 3 — The foundation. */}
+      <section className={beatClass(2, art.bgFoundation)} ref={setBeatRef(2)}>
         <p className={styles.eyebrow}>The foundation</p>
         <div className={styles.foundationTop}>
           <h2 className={`${styles.head} ${styles.foundationHead}`}>One foundation. Anything on top.</h2>
@@ -175,10 +162,8 @@ export function WeAreYourAIPage() {
         <div className={`${styles.line} ${styles.lineHalf}`} />
       </section>
 
-      {/* 4 — The release. Same dark field as slide 3, opening outward. The
-          examples run at the right crop and the line leaves the frame: the
-          open right edge is the whole argument. */}
-      <section className={beatClass(3)} ref={setBeatRef(3)}>
+      {/* 4 — The release. */}
+      <section className={beatClass(3, art.bgAsk)} ref={setBeatRef(3)}>
         <p className={styles.eyebrow}>The idea</p>
         <p className={styles.soAsk}>So ask.</p>
         <p className={styles.category}>Claude Code, for the business.</p>
@@ -193,10 +178,8 @@ export function WeAreYourAIPage() {
         <div className={`${styles.line} ${styles.lineOpen}`} />
       </section>
 
-      {/* 5 — Why now. YES is alone on its line so the sentence reads
-          downward, not sideways. No chart: the open line already carries the
-          compounding idea. */}
-      <section className={beatClass(4)} ref={setBeatRef(4)}>
+      {/* 5 — Why now. */}
+      <section className={beatClass(4, art.bgYes)} ref={setBeatRef(4)}>
         <p className={styles.eyebrow}>Why now</p>
         <div className={styles.whyNow}>
           <p className={`${styles.copy} ${styles.whyBody}`}>
@@ -212,9 +195,8 @@ export function WeAreYourAIPage() {
         <div className={`${styles.line} ${styles.lineOpen}`} />
       </section>
 
-      {/* 6 — The dare. Nothing comes after this slide; hold it while the room
-          responds. The line leaves the frame under the challenge. */}
-      <section className={beatClass(5)} ref={setBeatRef(5)}>
+      {/* 6 — The dare. */}
+      <section className={beatClass(5, art.bgDare)} ref={setBeatRef(5)}>
         <p className={styles.eyebrow}>The test</p>
         <h2 className={`${styles.head} ${styles.dareHead}`}>Ask it for something it has never built.</h2>
         <p className={`${styles.copy} ${styles.dareBody}`}>

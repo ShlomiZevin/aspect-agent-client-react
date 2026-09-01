@@ -24,6 +24,10 @@ export default defineConfig({
       // promptTemplate / config across the React UI, the runtime,
       // and Alfred's patch generator.
       '@addons': path.resolve(__dirname, '../aspect-agent-server/builder/addons'),
+      // Same one-source-of-truth trick as @addons: a trigger type's
+      // descriptor JSON is read by the server AND the client, so the two
+      // halves can't drift on names, icons or defaults.
+      '@triggers': path.resolve(__dirname, '../aspect-agent-server/builder/triggers'),
     },
   },
   build: {

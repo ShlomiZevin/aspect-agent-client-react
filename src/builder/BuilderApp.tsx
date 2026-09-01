@@ -24,6 +24,9 @@ import { TagsScreen } from './components/TagsScreen/TagsScreen';
 import { PinnedFieldsScreen } from './components/PinnedFieldsScreen/PinnedFieldsScreen';
 import { LiveBrainScreen } from './components/LiveBrainScreen/LiveBrainScreen';
 import { ProfilerScreen } from './components/ProfilerScreen/ProfilerScreen';
+import { TriggersScreen } from './components/TriggersScreen/TriggersScreen';
+// Side-effect: register the built-in trigger types (Silence today).
+import './triggers';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
 import { BrainDockSlot, BrainFullscreenLayer } from './components/BrainPanel/BrainPanel';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
@@ -244,6 +247,11 @@ function BuilderShell() {
                 surface — a live, LLM-built customer profile. */}
             <Route path="profiler" element={<ProfilerScreen />} />
             <Route path="profiler/:panelId" element={<ProfilerScreen />} />
+
+            {/* Triggers — the proactive surface. Agent-level, sibling to
+                Live Brain and Profiler. See BUILDER_V2_TRIGGERS.md. */}
+            <Route path="triggers" element={<TriggersScreen />} />
+            <Route path="triggers/:triggerId" element={<TriggersScreen />} />
           </Routes>
           {/* Brain dock floats at the bottom-right of the canvas (just
               left of the chat column) so the chat column never

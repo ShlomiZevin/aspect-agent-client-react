@@ -159,6 +159,20 @@ export function AgentSetupArea({ agent }: Props) {
           <span className={styles.chipCount}>{(agent.profiler?.panels ?? []).length}</span>
         </button>
 
+        {/* Triggers — own page; the proactive surface. When the agent
+            should say something without being spoken to. Agent-level,
+            sibling to Live Brain and Profiler. */}
+        <button
+          type="button"
+          className={styles.chip}
+          onClick={() => navigate(`/${agent.slug}/builder/triggers`)}
+          title="When the agent should reach out on its own"
+        >
+          <span className={styles.chipIcon}>🌙</span>
+          <span className={styles.chipName}>Triggers</span>
+          <span className={styles.chipCount}>{(agent.triggers?.triggers ?? []).length}</span>
+        </button>
+
         {/* Targeted KB — own page; chip navigates instead of opening
             the section modal. The page lists agent KBs + lets the
             author edit each value's umbrella + sections. "Targeted"

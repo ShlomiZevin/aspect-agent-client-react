@@ -23,7 +23,8 @@
      * runtime resolution. */
     "baseUrl": ".",
     "paths": {
-      "@addons/*": ["../aspect-agent-server/builder/addons/*"]
+      "@addons/*": ["../aspect-agent-server/builder/addons/*"],
+      "@triggers/*": ["../aspect-agent-server/builder/triggers/*"]
     },
 
     /* Linting */

@@ -1,0 +1,101 @@
+/* The one row + control system for trigger configuration.
+   Geometry matches AddonContextSection (110px label column, 12px gutter,
+   centre-aligned) so a trigger card reads like an addon card. */
+
+.row {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary, #9ca3af);
+  cursor: default;
+  line-height: 1.2;
+}
+
+/* min-width:0 is load-bearing: without it a grid item refuses to shrink
+   and inline controls push past the card's right edge. */
+.body { min-width: 0; }
+
+/* Inline cluster (number + unit + trailing words). `nowrap` keeps the
+   trailing phrase on the control's line instead of dropping it below. */
+.inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.input, .select, .selectFull, .number, .time, .textarea {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-primary, #111827);
+  background: var(--bg-input, #fafafa);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-width: 0;
+}
+
+.input:focus, .select:focus, .selectFull:focus, .number:focus,
+.time:focus, .textarea:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  background: #fff;
+}
+
+.input { width: 100%; }
+.number { width: 68px; flex: 0 0 68px; text-align: center; }
+.select { cursor: pointer; }
+/* Full-width select. Must appear in the base + focus lists above —
+   left out of them once, it fell back to the browser's native border
+   and read as an unstyled control dropped into a styled form. */
+.selectFull { width: 100%; cursor: pointer; }
+.unit { flex: 0 0 auto; width: auto; cursor: pointer; }
+.time { flex: 0 0 auto; width: auto; padding: 6px 8px; }
+.textarea { width: 100%; min-height: 62px; line-height: 1.5; resize: vertical; padding: 8px 10px; }
+
+.trail {
+  flex: 0 1 auto;
+  font-size: 12px;
+  color: var(--text-tertiary, #9ca3af);
+  white-space: nowrap;
+}
+
+
+/* On/off switch for a form row.
+
+   A checkbox was wrong here: a checkbox sitting beside the words "Any
+   hour" reads as "tick this to get any hour", when ticking it does the
+   exact opposite. A switch means "this row is on or off" and the row
+   label says what the thing is, so the two cannot be misread. */
+.switchWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  flex: none;
+}
+.switchWrap input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+.switchTrack {
+  width: 32px; height: 18px; border-radius: 100px; flex: none; position: relative;
+  background: var(--border-color, #d5d0e0);
+  transition: background 150ms;
+}
+.switchTrack::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2);
+  transition: transform 150ms;
+}
+.switchWrap input:checked + .switchTrack { background: var(--primary-color, #6366f1); }
+.switchWrap input:checked + .switchTrack::after { transform: translateX(14px); }

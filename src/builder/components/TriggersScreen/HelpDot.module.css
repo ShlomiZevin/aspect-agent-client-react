@@ -1,0 +1,50 @@
+.wrap { display: contents; }
+
+.dot, .dotOpen {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-input, #f3f4f6);
+  color: var(--text-tertiary, #9ca3af);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.dot:hover { color: var(--text-primary, #111827); border-color: var(--text-tertiary, #9ca3af); }
+
+.dotOpen {
+  background: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
+  color: #fff;
+}
+
+/* Sits on its own row inside the grid-ish flex parents used by the
+   editor, so opening it never reflows the control beside the label. */
+.body {
+  flex-basis: 100%;
+  margin-top: 6px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: var(--bg-input, #fafafa);
+  border: 1px solid var(--border-color, #e5e7eb);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-secondary, #4b5563);
+}
+
+.body code {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 4px;
+  padding: 0 4px;
+  font-size: 11px;
+}

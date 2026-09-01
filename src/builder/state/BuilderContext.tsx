@@ -159,6 +159,11 @@ export function bodyOfAgent(agent: AgentDoc): AgentBody {
     // with a profiler shows a permanent phantom "unsaved changes" (the
     // working copy carries `profiler`, the compared body wouldn't).
     ...((agent.profiler?.panels?.length || agent.profiler?.frame || agent.profiler?.ask || agent.profiler?.enabled === false) ? { profiler: agent.profiler } : {}),
+    // Same empty==absent trick for Triggers. Without it every agent that
+    // has never used the feature would carry an empty `triggers` key the
+    // saved version body doesn't have, and show a permanent phantom
+    // "unsaved changes" the moment the builder loads.
+    ...((agent.triggers?.triggers?.length || agent.triggers?.enabled === false) ? { triggers: agent.triggers } : {}),
   };
 }
 
@@ -344,7 +349,7 @@ interface BuilderState {
   // Agent-level
   updateAgent: (
     agentId: ID,
-    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets' | 'liveBrain' | 'profiler'>>,
+    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets' | 'liveBrain' | 'profiler' | 'triggers'>>,
   ) => void;
   /**
    * Rename a declared domain. Cascades through `agent.domains`,
@@ -1000,7 +1005,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
 
   // ── Agent ──
   const updateAgent = useCallback(
-    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets' | 'liveBrain' | 'profiler'>>) => {
+    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets' | 'liveBrain' | 'profiler' | 'triggers'>>) => {
       setDoc(d => ({
         ...d,
         agents: d.agents.map(a => (a.id === agentId ? { ...a, ...patch } : a)),
@@ -1620,6 +1625,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
               ...(Array.isArray(ab.personas)   && { personas: ab.personas as AgentDoc['personas'] }),
               ...(ab.liveBrain !== undefined   && { liveBrain: ab.liveBrain as AgentDoc['liveBrain'] }),
               ...(ab.profiler !== undefined    && { profiler: ab.profiler as AgentDoc['profiler'] }),
+              ...(ab.triggers !== undefined    && { triggers: ab.triggers as AgentDoc['triggers'] }),
             };
           }
           agent = {

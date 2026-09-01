@@ -64,4 +64,5 @@ export { TaskBoardPage } from './TaskBoardPage';
 export { TechBacklogPage } from './TechBacklogPage';
 export { TiktokPage } from './TiktokPage';
 export { WeAreYourAIPage } from './WeAreYourAIPage';
+export { WeAreYourAIVisualPage } from './WeAreYourAIVisualPage';
 export { FreedaLegacyFlowPage } from './FreedaLegacyFlowPage';

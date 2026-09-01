@@ -91,12 +91,20 @@ export function TopBar() {
 /**
  * Context-aware VersionMenu hosted in the TopBar — global Save / Save
  * as / Discard / ⭐ Set as active for whichever entity the user is
- * editing. Picks the right entity based on selection + URL:
+ * editing.
  *
- *   - `selection.level === 'crew'` AND the URL is the default builder
- *     route → crew controls (with cross-dirty agent save folded in).
- *   - Otherwise (agent view, project view, or any of the
- *     `/dynamic-context/*` routes) → agent controls.
+ * THE RULE: crew controls only on the builder's INDEX route (the
+ * Cortex canvas). Every nested screen — enums, personas, fields, tags,
+ * pinned, live-brain, profiler, triggers — edits the AGENT body, so
+ * they all need agent controls.
+ *
+ * Stated as "index means crew" rather than a list of agent routes,
+ * because the list version was already wrong. It matched only the
+ * dynamic-context route, so on any OTHER agent-level screen with a crew
+ * still selected in the sidebar (the normal state), Save targeted the
+ * crew and the agent edit was never written. That is how a trigger
+ * could be authored, appear saved, and simply not be there — and the
+ * same trap was waiting for Live Brain and Profiler.
  *
  * Both `useAgentVersion` and `useCrewVersion` are called every render
  * to satisfy the rules of hooks; whichever doesn't apply returns null
@@ -106,16 +114,13 @@ function TopBarVersionMenu() {
   const { selection } = useBuilder();
   const agentId = selection.agentId ?? '';
   const crewId  = selection.crewId  ?? '';
-  // The DC route lives on the agent body even when selection.level
-  // still says 'crew' (the user can navigate via the schema panel's
-  // 🎯 chip without changing crew selection). Match the URL to force
-  // agent-mode in that case.
-  const onDcRoute = useMatch('/:agent/builder/dynamic-context/*');
+  // Exact match — the canvas, with no sub-route after it.
+  const onCanvas = useMatch('/:agent/builder');
 
   const agentVersion = useAgentVersion(agentId);
   const crewVersion  = useCrewVersion(agentId, crewId);
 
-  const useCrew = selection.level === 'crew' && !onDcRoute && crewVersion;
+  const useCrew = selection.level === 'crew' && !!onCanvas && crewVersion;
   const state   = useCrew ? crewVersion! : agentVersion;
   if (!state) return null;
   return <VersionMenu state={state} />;

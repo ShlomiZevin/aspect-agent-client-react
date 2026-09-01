@@ -1,0 +1,1 @@
+export { TriggersScreen } from './TriggersScreen';

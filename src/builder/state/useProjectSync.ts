@@ -55,6 +55,11 @@ export function bodyOfAgent(agent: AgentDoc): AgentBody {
     // (no auto-update, no runs). Empty == absent. `enabled:false` also
     // persists so a disabled surface stays disabled.
     ...((agent.profiler?.panels?.length || agent.profiler?.frame || agent.profiler?.ask || agent.profiler?.enabled === false) ? { profiler: agent.profiler } : {}),
+    // Triggers (proactive). Same rule, same reason — and this is THE
+    // copy that persists: omitting it here means a trigger you author
+    // is never written to the server at all, while the builder keeps
+    // showing it from the in-memory working copy until you reload.
+    ...((agent.triggers?.triggers?.length || agent.triggers?.enabled === false) ? { triggers: agent.triggers } : {}),
   };
 }
 

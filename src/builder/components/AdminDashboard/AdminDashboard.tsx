@@ -35,6 +35,7 @@ import { BillingPage } from '../../../components/dashboard/BillingPage';
 import { SettingsPage } from '../../../components/dashboard/SettingsPage';
 import { TestRunnerPage } from '../../../components/dashboard/TestRunnerPage';
 import { ConversationsTab } from './ConversationsTab';
+import { TriggersTab } from './TriggersTab';
 import { KBWorkbench } from './KBWorkbench';
 import styles from './AdminDashboard.module.css';
 
@@ -67,6 +68,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: 'feedback',      icon: '💬', label: 'Feedback' },
   { to: 'users',         icon: '👥', label: 'Users' },
   { to: 'conversations', icon: '🗨️', label: 'Conversations' },
+  { to: 'triggers',      icon: '🌙', label: 'Triggers' },
   { to: 'knowledge-base', icon: '📚', label: 'Knowledge Base' },
   { to: 'usage',         icon: '📊', label: 'LLM Usage' },
   { to: 'billing',       icon: '💳', label: 'Billing' },
@@ -146,6 +148,10 @@ export function AdminDashboard() {
           <Route
             path="conversations"
             element={<ConversationsTab agentSlug={slug} />}
+          />
+          <Route
+            path="triggers"
+            element={<TriggersTab agentSlug={slug} />}
           />
           <Route
             path="knowledge-base"

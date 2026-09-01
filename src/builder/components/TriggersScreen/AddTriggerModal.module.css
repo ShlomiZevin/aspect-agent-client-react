@@ -1,0 +1,49 @@
+/* Mirrors AddStepModal.module.css — adding a trigger and adding an addon
+   are the same gesture, so they use the same rows. */
+
+.section { display: flex; flex-direction: column; gap: 6px; }
+
+.empty {
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px dashed var(--border-color, #e5e7eb);
+  background: var(--bg-input, #fafafa);
+  color: var(--text-tertiary, #9ca3af);
+  font-size: 13px;
+  text-align: center;
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 120ms, background 120ms;
+}
+
+.item:hover {
+  border-color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.04);
+}
+
+.icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 18px;
+  flex: 0 0 auto;
+}
+
+.text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.name { font-size: 13px; font-weight: 600; color: var(--text-primary, #111827); }
+.desc { font-size: 12px; color: var(--text-tertiary, #9ca3af); line-height: 1.4; }
