@@ -524,6 +524,18 @@ export const translations: LanguageConfig = {
     'procurement.hide': 'Hide',
     'procurement.unattributed': 'No supplier on the record',
     'procurement.preparing': 'Preparing…',
+    'procurement.askInChat': 'Discuss this in Data Chat',
+    'procurement.askHint': 'Opens the chat and asks straight away.',
+    // Grounded in the row's own figures so the answer either agrees with the
+    // screen or explains why not.
+    //
+    // BOTH identifiers, each labelled. The replenishment tool keys on `sku`
+    // while the screen shows the item code a buyer recognises, and they are
+    // different numbers: this row is SKU 1002 / item code 93987. Sending only
+    // the visible code made the agent look up 93987, find nothing, and answer
+    // "I cannot verify this order" about an order that is perfectly real —
+    // the same key confusion the dataset notes warn about, in reverse.
+    'procurement.askTemplate': 'Let us go through the order for {name} — replenishment SKU {sku}, item code {code} — from {supplier}. The plan says order {qty} units by {date}, about ₪{cost}. Is that the right call, what is it based on, and what should I watch out for before I send it?',
     'procurement.exportFailed': 'The export could not be prepared. Try again in a moment.',
     // The recalculation panel. Every label describes what the engine actually
     // does, and the progress itself is reported by the engine, never timed.
@@ -1314,6 +1326,9 @@ export const translations: LanguageConfig = {
     'procurement.hide': 'הסתרה',
     'procurement.unattributed': 'ללא ספק רשום',
     'procurement.preparing': 'מכינים…',
+    'procurement.askInChat': 'לדיון בצ׳אט הנתונים',
+    'procurement.askHint': 'נפתח הצ׳אט והשאלה נשלחת מיד.',
+    'procurement.askTemplate': 'בואו נעבור על ההזמנה של {name} — מק״ט חידוש מלאי {sku}, קוד פריט {code} — מהספק {supplier}. התוכנית ממליצה להזמין {qty} יחידות עד {date}, בערך ₪{cost}. האם זו ההחלטה הנכונה, על מה היא מתבססת, ולמה כדאי לשים לב לפני שליחת ההזמנה?',
     'procurement.exportFailed': 'לא ניתן היה להכין את הקובץ. נסו שוב בעוד רגע.',
     'procurement.recalcKicker': 'מחשבים מחדש את תוכנית ההזמנות',
     'procurement.step1': 'קריאת היסטוריית מכירות',

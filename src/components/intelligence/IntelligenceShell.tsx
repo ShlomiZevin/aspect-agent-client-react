@@ -354,7 +354,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
             what the client calls it. A second app gets a branch here and
             nothing else in the shell has to change. */}
         {view === 'app' && hasApps === true && appId === 'replenishment' && (
-          <ProcurementPage datasetId={datasetId} baseURL={baseURL} />
+          <ProcurementPage datasetId={datasetId} baseURL={baseURL} onAskInChat={askFollowUp} />
         )}
         {view === 'app' && hasApps === true && appId !== 'replenishment' && (
           <AppsPage

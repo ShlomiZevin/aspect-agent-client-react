@@ -11,6 +11,15 @@ import type { Recommendation, PlanResponse, PlanSupplier } from '../../../types/
 interface Props {
   datasetId: string;
   baseURL?: string;
+  /**
+   * Open Data Chat on this item and ask about it straight away.
+   *
+   * The same door Insights uses: it opens the widget expanded and SENDS the
+   * question, rather than prefilling a box for the buyer to press enter on.
+   * A row here is a decision — order 688 units, ship by the 1st — and the
+   * question a buyer has next is rarely one this table can answer.
+   */
+  onAskInChat?: (question: string) => void;
 }
 
 /** How many item rows one supplier shows at a time. The mockup's number. */
@@ -62,7 +71,7 @@ interface OpenRows {
  * check, and a screen that paraphrases its own warnings has stopped being
  * checkable.
  */
-export function ProcurementPage({ datasetId, baseURL }: Props) {
+export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
   const { t, language } = useLanguage();
   const he = language === 'he';
 
@@ -345,11 +354,11 @@ export function ProcurementPage({ datasetId, baseURL }: Props) {
                   aria-label={`${sp.supplier} — ${t(isOpen ? 'purchasing.collapse' : 'purchasing.expand')}`}
                 />
                 <span className={styles.chev} aria-hidden="true">{isOpen ? '▼' : '▶'}</span>
-                <span className={styles.supName} dir="auto">
+                <span className={styles.supName}>
                   {/* The server COALESCEs a missing supplier to this literal so
                       the rows are never dropped; it is a bucket, not a company,
                       and it should read as one in either language. */}
-                  {sp.supplier === UNATTRIBUTED ? t('procurement.unattributed') : sp.supplier}
+                  <bdi>{sp.supplier === UNATTRIBUTED ? t('procurement.unattributed') : sp.supplier}</bdi>
                 </span>
 
                 <span className={`${styles.lead} ${styles.interactive}`}>
@@ -458,6 +467,7 @@ export function ProcurementPage({ datasetId, baseURL }: Props) {
                         t={t}
                         nf={nf}
                         language={he ? 'he' : 'en'}
+                        onAsk={onAskInChat}
                       />
                     ))}
                   </div>
@@ -539,9 +549,33 @@ function Step({ n, state, title, sub }: {
   );
 }
 
+/**
+ * The question the chat is asked about one row.
+ *
+ * Grounded in the figures on screen rather than a bare "tell me about this
+ * item": the agent has the replenishment tool and can look the SKU up itself,
+ * and quoting the numbers the buyer is looking at means the answer either
+ * agrees with the screen or explains why it does not — which is the useful
+ * outcome either way.
+ *
+ * Composed at click time, so it is in whatever language the page is in.
+ */
+function chatQuestion(rec: Recommendation, t: (k: string) => string, nf: (n: number | null | undefined, d?: number) => string) {
+  return t('procurement.askTemplate')
+    .replace('{name}', rec.itemName ?? rec.sku)
+    // The key the replenishment tool accepts. Different from the code on the
+    // row - see the note beside the template.
+    .replace('{sku}', rec.sku)
+    .replace('{code}', rec.itemNumber ?? rec.sku)
+    .replace('{supplier}', rec.supplier ?? '')
+    .replace('{qty}', nf(rec.orderQty))
+    .replace('{date}', rec.orderByDate ?? '')
+    .replace('{cost}', nf(rec.estimatedCostExVat));
+}
+
 /* -- one item, and its working ------------------------------------------- */
 
-function ItemRow({ rec, leadSetByUser, open, onToggle, t, nf, language }: {
+function ItemRow({ rec, leadSetByUser, open, onToggle, t, nf, language, onAsk }: {
   rec: Recommendation;
   leadSetByUser: boolean;
   open: boolean;
@@ -550,6 +584,7 @@ function ItemRow({ rec, leadSetByUser, open, onToggle, t, nf, language }: {
   /** The page's own formatter, so every number on screen groups the same way. */
   nf: (n: number | null | undefined, digits?: number) => string;
   language: 'en' | 'he';
+  onAsk?: (question: string) => void;
 }) {
   const late = rec.daysLate ?? 0;
   const pillClass = late > 60 ? styles.pillLate : late > 0 ? styles.pillDue : styles.pillOk;
@@ -565,7 +600,17 @@ function ItemRow({ rec, leadSetByUser, open, onToggle, t, nf, language }: {
         aria-expanded={open}
       >
         <span style={{ minWidth: 0 }}>
-          <span className={styles.itemName} dir="auto" style={{ display: 'block' }}>{rec.itemName ?? rec.sku}</span>
+          {/* <bdi>, not dir="auto" on the cell.
+              dir="auto" makes the ELEMENT right-to-left when its text is
+              Hebrew, so `text-align: start` inside it resolves to the right —
+              and on an English page the name floated to the far edge of the
+              column while the code under it stayed left, with a hand's width of
+              nothing between them. <bdi> isolates the text for correct bidi
+              rendering without touching the block's direction, so the name and
+              the code line up under the ITEM heading in either language. */}
+          <span className={styles.itemName} style={{ display: 'block' }}>
+            <bdi>{rec.itemName ?? rec.sku}</bdi>
+          </span>
           <span className={styles.itemCode} style={{ display: 'block' }}>{rec.itemNumber ?? rec.sku}</span>
         </span>
         <span>
@@ -640,6 +685,23 @@ function ItemRow({ rec, leadSetByUser, open, onToggle, t, nf, language }: {
             <ul className={styles.reasons}>
               {rec.notes.map((note, i) => <li key={i}>{note}</li>)}
             </ul>
+          )}
+
+          {/* At the END of the explanation, which is where the next question
+              actually forms: the buyer has read what the number is built on and
+              now wants to argue with it. */}
+          {onAsk && (
+            <div className={styles.askRow}>
+              <button
+                type="button"
+                className={styles.askBtn}
+                onClick={() => onAsk(chatQuestion(rec, t, nf))}
+              >
+                <span aria-hidden="true">✦</span>
+                {t('procurement.askInChat')}
+              </button>
+              <span className={styles.askHint}>{t('procurement.askHint')}</span>
+            </div>
           )}
         </div>
       )}
