@@ -204,11 +204,14 @@
   overflow: hidden;
 }
 
+/* Label column sized to the labels, not to a round number. 148px left
+   a gutter wide enough to read as a gap between two unrelated columns;
+   the eye should travel from label to text, not jump. */
 .point {
   display: grid;
-  grid-template-columns: 148px 1fr;
-  gap: 12px;
-  padding: 9px 12px;
+  grid-template-columns: 116px 1fr;
+  gap: 14px;
+  padding: 10px 13px;
   border-top: 1px solid var(--border-color, #f1f3f5);
   background: var(--bg-surface, #fff);
 }
@@ -220,7 +223,10 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--text-primary, #111827);
-  line-height: 1.55;
+  line-height: 1.5;
+  /* Optical alignment: 700-weight 12px sits slightly high against
+     12.5px body text on the same baseline. */
+  padding-top: 1px;
 }
 
 .pointText {
@@ -231,15 +237,20 @@
 }
 
 /* The second half of a setting's explanation — the part that is only
-   interesting once the first half has landed. */
+   interesting once the first half has landed.
+   Flush with the text above it rather than indented behind a rule: the
+   indent added a third left edge to a row that already had two, which
+   is what made these rows read as a staircase. It separates by TONE
+   (tinted panel, quieter colour), not by position. */
 .tip {
   display: block;
-  margin-top: 6px;
-  padding-inline-start: 10px;
-  border-inline-start: 2px solid var(--border-color, #e5e7eb);
+  margin-top: 7px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--text-tertiary, #9ca3af) 7%, transparent);
   font-size: 12px;
-  line-height: 1.58;
-  color: var(--text-tertiary, #9ca3af);
+  line-height: 1.55;
+  color: var(--text-secondary, #6b7280);
 }
 
 .note {

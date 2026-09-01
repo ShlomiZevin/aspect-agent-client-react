@@ -338,21 +338,25 @@
 .runBad   { color: #c5221f; font-weight: 600; }
 .runNote  { color: var(--text-tertiary, #9ca3af); font-weight: 400; }
 
-/* ── clock bar: the test cluster ──
-   The caption states the scope once so both buttons can be plain verbs.
-   Boxed together so they read as one control with two outcomes rather
-   than two unrelated buttons that happen to sit side by side. */
-.testGroup {
-  display: inline-flex; flex-direction: column; gap: 3px; flex: none;
-  padding: 4px 8px 5px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 9px;
+/* ── clock bar: the on-this-chat segmented control ──
+   One bordered unit with a divider, not two loose buttons: they are two
+   answers to a single question, and joining them says so. Sized to sit
+   at the same height as the selects beside it — an earlier version was
+   a boxed cluster with a caption stacked above, which was taller than
+   everything else and broke the strip into two visual rows. */
+.segment {
+  display: inline-flex; align-items: stretch; flex: none;
+  border: 1px solid var(--border-color, #d8dbe0);
+  border-radius: 7px;
+  overflow: hidden;
   background: var(--bg-surface, #fff);
 }
-.testLabel {
-  font-size: 9px; font-weight: 800; text-transform: uppercase;
-  letter-spacing: .06em; color: var(--text-tertiary, #9ca3af);
-  white-space: nowrap;
+.segBtn {
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  padding: 4px 11px; white-space: nowrap;
+  border: 0; background: transparent; cursor: pointer;
+  color: var(--text-primary, #111827);
 }
-.testBtns { display: inline-flex; align-items: center; gap: 5px; }
-.testBtns .ghostBtn { padding: 3px 10px; }
+.segBtn + .segBtn { border-inline-start: 1px solid var(--border-color, #e5e7eb); }
+.segBtn:hover:not(:disabled) { background: var(--bg-input, #f4f5f7); }
+.segBtn:disabled { cursor: not-allowed; color: var(--text-tertiary, #b6bcc7); }
