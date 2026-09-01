@@ -156,6 +156,26 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
   // Closing the page mid-recalculation must not leave a stream open.
   useEffect(() => recalc.stop, [recalc.stop]);
 
+  /**
+   * Switching language has to re-ask for the open supplier's rows.
+   *
+   * The caveats under an item are rendered by the SERVER, in the language the
+   * request asked for — that is what stops the same warning being worded three
+   * different ways by the screen, the chat and the export. The consequence is
+   * that rows already on screen are frozen in the language they arrived in:
+   * switch to Hebrew with a supplier open and the page turned Hebrew around a
+   * panel still explaining itself in English.
+   *
+   * The plan reloads on its own (its effect is keyed on the language). This is
+   * the rows.
+   */
+  const rowsLanguage = useRef(language);
+  useEffect(() => {
+    if (rowsLanguage.current === language) return;
+    rowsLanguage.current = language;
+    if (open) void loadRows(open.supplier, open.page, open.search);
+  }, [language, open, loadRows]);
+
   const suppliers = plan?.suppliers ?? [];
   const summary = plan?.summary ?? null;
   const excludedInfo = plan?.excluded ?? { items: 0, suppliers: [] };
