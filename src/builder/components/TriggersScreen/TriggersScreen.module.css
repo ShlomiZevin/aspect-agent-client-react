@@ -35,6 +35,28 @@
 .toggle input:checked + .switch::after { transform: translateX(14px); }
 .switchLabel { font-size: 12px; font-weight: 700; color: var(--text-tertiary, #9ca3af); min-width: 22px; }
 
+/* The guide button. Ghost-weight on purpose: it sits beside the master
+   switch, which is the control that actually does something. */
+.guideBtn {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  padding: 6px 11px; margin-inline-start: auto;
+  color: var(--text-secondary, #4b5563);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px; cursor: pointer; white-space: nowrap;
+}
+.guideBtn:hover { background: var(--bg-input, #fafafa); color: var(--text-primary, #111827); }
+
+/* Inline link in the empty state — a button, because it opens a modal
+   rather than navigating. */
+.emptyLink {
+  font-family: inherit; font-size: inherit; font-weight: 600;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  color: var(--primary-color, #6366f1); text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* ── clock bar ── */
 .clock {
   border: 1px solid var(--border-color, #e5e7eb);
@@ -274,3 +296,63 @@
 }
 .iconRefresh:hover:not(:disabled) { border-color: var(--primary-color, #6366f1); color: var(--primary-color, #6366f1); }
 .iconRefresh:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── manual run, in the editor footer ──
+   Secondary weight: Done is the button you press to finish, this is the
+   one you press on purpose. Disabled state stays legible rather than
+   fading out, because its tooltip is the whole explanation of why. */
+.runWrap { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+
+.runBtn {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  padding: 7px 13px; white-space: nowrap;
+  color: var(--text-primary, #111827);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #d8dbe0);
+  border-radius: 8px; cursor: pointer;
+}
+.runBtn:hover:not(:disabled) { background: var(--bg-input, #fafafa); border-color: #c4c8d0; }
+.runBtn:disabled { cursor: not-allowed; opacity: .55; }
+
+.runIcon { font-size: 10px; line-height: 1; opacity: .75; }
+
+/* Result line: a status dot then the words, so the outcome is readable
+   at a glance before anything is actually read. */
+.runLine {
+  display: inline-flex; align-items: center; gap: 6px; min-width: 0;
+  max-width: 320px;
+}
+.runDotOk, .runDotQuiet, .runDotBad {
+  width: 7px; height: 7px; border-radius: 50%; flex: none;
+}
+.runDotOk    { background: #0f9d58; box-shadow: 0 0 0 3px rgba(15,157,88,.14); }
+.runDotQuiet { background: var(--text-tertiary, #c3c8d2); }
+.runDotBad   { background: #c5221f; box-shadow: 0 0 0 3px rgba(197,34,31,.12); }
+
+.runOk, .runQuiet, .runBad, .runNote {
+  font-size: 11.5px; line-height: 1.35; min-width: 0;
+}
+.runOk    { color: #0f9d58; font-weight: 600; }
+.runQuiet { color: var(--text-secondary, #6b7280); font-weight: 600; }
+.runBad   { color: #c5221f; font-weight: 600; }
+.runNote  { color: var(--text-tertiary, #9ca3af); font-weight: 400; }
+
+/* ── clock bar: the test cluster ──
+   The caption states the scope once so both buttons can be plain verbs.
+   Boxed together so they read as one control with two outcomes rather
+   than two unrelated buttons that happen to sit side by side. */
+.testGroup {
+  display: inline-flex; flex-direction: column; gap: 3px; flex: none;
+  padding: 4px 8px 5px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 9px;
+  background: var(--bg-surface, #fff);
+}
+.testLabel {
+  font-size: 9px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-tertiary, #9ca3af);
+  white-space: nowrap;
+}
+.testBtns { display: inline-flex; align-items: center; gap: 5px; }
+.testBtns .ghostBtn { padding: 3px 10px; }

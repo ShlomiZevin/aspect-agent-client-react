@@ -21,6 +21,7 @@ registerTriggerType<SilenceConfig>({
   defaultConfig: descriptor.defaultConfig as SilenceConfig,
   ConfigComponent: SilenceConfigComponent,
   summarize:     summarizeSilence,
+  guide:         descriptor.guide,
 });
 
 export type { SilenceConfig };

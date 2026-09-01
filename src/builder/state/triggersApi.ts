@@ -295,3 +295,103 @@ export async function testFire(args: {
     }
   }
 }
+
+/** What one manual run reports back. */
+export interface FireResult {
+  outcome: 'spoke' | 'silent' | 'filtered' | 'quiet_hours' | 'error';
+  why?: string;
+  eventId?: number | null;
+  messageId?: number | null;
+  conversationId: number;
+  /** Would the clock have picked this conversation on its own? */
+  wouldFire: boolean | null;
+  clauses?: { name: string; ok: boolean; why: string }[];
+}
+
+/**
+ * Run one trigger against ONE conversation, now.
+ *
+ * The same `fireOne` the clock's sweep calls per matched conversation —
+ * same gates, same proactive turn, same event row — so what you see here
+ * is what the clock will do. The timing clauses are the only thing not
+ * required to pass; pressing the button means "pretend this one is due".
+ */
+export function fireTrigger(args: {
+  agentSlug: string;
+  trigger: AgentTrigger;
+  conversationId: number;
+  /** Working copies — the same ones the builder chat sends on a user
+   *  turn, so both paths run identical bodies. */
+  overrideAgentBody?: unknown;
+  overrideCrewBody?: unknown;
+}) {
+  return http<FireResult>(`/api/agents/${args.agentSlug}/triggers/${args.trigger.id}/fire`, {
+    method: 'POST',
+    body: JSON.stringify({
+      conversationId: args.conversationId,
+      trigger: args.trigger,
+      overrideAgentBody: args.overrideAgentBody ?? null,
+      overrideCrewBody: args.overrideCrewBody ?? null,
+    }),
+  });
+}
+
+/** One trigger's slot in a one-conversation round. */
+export interface RoundEntry {
+  triggerId: string;
+  name?: string;
+  /**
+   * `would_run` / `not_due` come back from a simulation; the rest are
+   * real outcomes. `silent` means the chain RAN and produced no
+   * message — a normal result, not a failure.
+   */
+  outcome: 'spoke' | 'silent' | 'filtered' | 'quiet_hours' | 'error' | 'not_due' | 'would_run' | 'skipped';
+  why?: string;
+  messageId?: number | null;
+  /** Force mode only: would the clock have chosen this on its own? */
+  wouldRun?: boolean;
+  notDueWhy?: string | null;
+  clauses?: { name: string; ok: boolean; why: string }[];
+}
+
+export interface RoundResult {
+  conversationId: number;
+  mode: 'simulate' | 'force';
+  /** The agent's master switch is off — reported, not enforced. */
+  masterOff: boolean;
+  considered: number;
+  skipped: number;
+  /** Chains that produced a message. */
+  fired: number;
+  /** Chains that ran at all, message or not. */
+  ran: number;
+  results: RoundEntry[];
+}
+
+/**
+ * Every trigger on this agent, against ONE conversation.
+ *
+ * `simulate` asks each trigger the question the clock asks and runs
+ * nothing — the tick simulation. `force` runs them all whether or not
+ * they are due. Neither is ever agent-wide or system-wide: the
+ * conversation is always named.
+ */
+export function fireRound(args: {
+  agentSlug: string;
+  conversationId: number;
+  mode: 'simulate' | 'force';
+  triggers?: AgentTrigger[];
+  overrideAgentBody?: unknown;
+  overrideCrewBodies?: Record<string, unknown>;
+}) {
+  return http<RoundResult>(`/api/agents/${args.agentSlug}/triggers/round`, {
+    method: 'POST',
+    body: JSON.stringify({
+      conversationId: args.conversationId,
+      mode: args.mode,
+      triggers: args.triggers,
+      overrideAgentBody: args.overrideAgentBody ?? null,
+      overrideCrewBodies: args.overrideCrewBodies ?? null,
+    }),
+  });
+}

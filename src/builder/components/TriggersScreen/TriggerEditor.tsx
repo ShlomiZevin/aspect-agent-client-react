@@ -22,6 +22,7 @@
 import { useMemo } from 'react';
 import { Modal } from '../Modal/Modal';
 import { HelpDot } from './HelpDot';
+import { RunOnConversation } from './RunOnConversation';
 import { getTriggerType } from '../../triggers';
 import { TriggerRow } from '../../triggers/TriggerRow';
 import { rowStyles as s } from '../../triggers/triggerRowStyles';
@@ -34,10 +35,14 @@ interface Props {
   trigger: AgentTrigger;
   onChange: (patch: Partial<AgentTrigger>) => void;
   onDelete: () => void;
+  /** Needed by the manual run — the URL slug, not the doc id. */
+  agentSlug?: string;
+  /** A manual run writes a real event; refresh the heartbeat after it. */
+  onRan?: () => void;
   onClose: () => void;
 }
 
-export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose }: Props) {
+export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose, agentSlug, onRan }: Props) {
   const type = getTriggerType(trigger.typeId);
   const quiet = trigger.quietHours;
   const crewMissing = !agent.crews.some(c => c.id === trigger.run?.crewId);
@@ -56,6 +61,9 @@ export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose }: P
         <div className={styles.footer}>
           <button type="button" className={styles.dangerBtn} onClick={onDelete}>Delete</button>
           <span className={styles.spacer} />
+          {agentSlug && (
+            <RunOnConversation agentSlug={agentSlug} agent={agent} trigger={trigger} onRan={onRan} />
+          )}
           <button type="button" className={styles.primaryBtn} onClick={onClose}>Done</button>
         </div>
       }

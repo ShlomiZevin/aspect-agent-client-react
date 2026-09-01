@@ -22,6 +22,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ClockBar } from '../TriggersScreen/ClockBar';
+import { TriggersGuideModal } from '../TriggersGuide';
 import {
   fetchAgentTriggerEvents,
   fetchTriggerStatus,
@@ -76,6 +77,7 @@ export function TriggersTab({ agentSlug }: Props) {
   const [filter, setFilter] = useState<string>('all');
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
+  const [guideOpen, setGuideOpen] = useState(false);
   const reload = useCallback(() => setNonce(n => n + 1), []);
 
   // Fetch in an async continuation, deduped by key — React 19's
@@ -125,8 +127,19 @@ export function TriggersTab({ agentSlug }: Props) {
             <a className={styles.link} href={`/${agentSlug}/builder/triggers`}>Triggers screen</a>.
           </p>
         </div>
-        <button type="button" className={styles.refresh} onClick={reload}>Refresh</button>
+        <div className={styles.headActions}>
+          {/* The outcome words on this page — "stayed quiet", "held",
+              "blocked by conditions" — only mean something once you know
+              what a trigger does between matching and speaking. */}
+          <button type="button" className={styles.guideBtn} onClick={() => setGuideOpen(true)}
+                  title="What triggers are, how the clock works, and what each outcome means">
+            <span aria-hidden>📖</span> How triggers work
+          </button>
+          <button type="button" className={styles.refresh} onClick={reload}>Refresh</button>
+        </div>
       </header>
+
+      <TriggersGuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
 
       {error && <div className={styles.error}>{error}</div>}
 

@@ -22,6 +22,7 @@ import { ClockBar } from './ClockBar';
 import { TriggerCard } from './TriggerCard';
 import { TriggerEditor } from './TriggerEditor';
 import { AddTriggerModal } from './AddTriggerModal';
+import { TriggersGuideModal } from '../TriggersGuide';
 import { fetchTriggerStatus, type TriggerStatusRow } from '../../state/triggersApi';
 import type { AgentTrigger, ID } from '../../types';
 import styles from './TriggersScreen.module.css';
@@ -39,6 +40,7 @@ export function TriggersScreen() {
   const [editingId, setEditingId] = useState<ID | null>(null);
   const [status, setStatus] = useState<Record<string, TriggerStatusRow>>({});
   const [picking, setPicking] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const def = agent?.triggers;
   const triggers = useMemo(() => def?.triggers ?? [], [def]);
@@ -131,6 +133,18 @@ export function TriggersScreen() {
           <h1 className={styles.h1}>Triggers</h1>
           <p className={styles.sub}>When the agent should say something without being spoken to.</p>
         </div>
+        {/* Next to the master switch rather than tucked in a corner:
+            this screen's own vocabulary ("quiet", "attempts", "reads
+            active") is the thing a first-time author is missing, and
+            the guide is where it is defined. */}
+        <button
+          type="button"
+          className={styles.guideBtn}
+          onClick={() => setGuideOpen(true)}
+          title="What triggers are, how the clock works, and why one might not be firing"
+        >
+          <span aria-hidden>📖</span> How triggers work
+        </button>
         <label className={styles.toggle} title="Turn every trigger on this agent on or off at once">
           <input
             type="checkbox"
@@ -174,14 +188,21 @@ export function TriggersScreen() {
         {triggers.length === 0 && (
           <p className={styles.laneEmpty}>
             A trigger watches this agent's conversations and starts a crew on the ones that
-            match — no customer message involved.
+            match — no customer message involved.{' '}
+            <button type="button" className={styles.emptyLink} onClick={() => setGuideOpen(true)}>
+              Read how they work
+            </button>
           </p>
         )}
       </div>
 
+      <TriggersGuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
+
       {editing && (
         <TriggerEditor
           agent={agent}
+          agentSlug={slug}
+          onRan={loadStatus}
           trigger={editing}
           onChange={patch => patchTrigger(editing.id, patch)}
           onDelete={() => void removeTrigger(editing)}

@@ -10,6 +10,27 @@
  * agent's screen. That's in the copy rather than hidden, because
  * somebody pausing it here needs to know they just paused it everywhere.
  *
+ * ── The test buttons ───────────────────────────────────────────────
+ *
+ * Both act on THIS agent and on the ONE chat open in the builder chat
+ * panel. Neither is system-wide, and that is the point: a button that
+ * could message everyone who happens to be due, across every agent, is
+ * not something a person should be able to press while building.
+ * Sweeping the world is the clock's job, and the clock alone does it.
+ *
+ *   Check     ask every trigger on this agent whether the open chat is
+ *             due, and show the arithmetic. Runs nothing.
+ *   Run all   run them all on that chat, due or not, to see what the
+ *             chains actually produce.
+ *
+ * A third, narrower one lives inside each trigger: run just that one.
+ *
+ * The scope lives in the group's CAPTION, not in the button labels, so
+ * the buttons can be plain verbs. An earlier version put it in the
+ * label — "Round on #2342" — which was both long and meaningless: a
+ * conversation id means nothing to anyone who has not opened the
+ * database.
+ *
  * While it's running this polls, so both hosting screens refresh on
  * their own as fires land. It stops polling the moment the clock is
  * paused or the tab is hidden: a paused clock produces nothing to see,
@@ -18,9 +39,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  fetchClockHealth, setClockEnabled, updateClockSettings, stepClock,
+  fetchClockHealth, setClockEnabled, updateClockSettings, fireRound,
   type ClockHealth,
 } from '../../state/triggersApi';
+import { useBuilder } from '../../state/BuilderContext';
+import { bodyOfAgent, bodyOfCrew } from '../../state/useProjectSync';
 import styles from './TriggersScreen.module.css';
 
 interface Props {
@@ -47,6 +70,9 @@ function intervalLabel(sec: number): string {
 }
 
 export function ClockBar({ agentSlug, onTicked }: Props) {
+  // The conversation the builder chat currently has open — the only one
+  // the per-conversation round is allowed to touch.
+  const { doc, previewConversationId } = useBuilder();
   const [health, setHealth] = useState<ClockHealth | null>(null);
   const [busy, setBusy] = useState(false);
   const [lastRun, setLastRun] = useState<string | null>(null);
@@ -100,17 +126,47 @@ export function ClockBar({ agentSlug, onTicked }: Props) {
     }
   };
 
-  const step = async (dryRun: boolean) => {
+  // Act on ONLY the chat open beside this screen. Sends the working
+  // copies, so it exercises exactly what is on screen.
+  const roundOnConversation = async (mode: 'simulate' | 'force') => {
+    if (previewConversationId === null) return;
     setBusy(true);
     setLastRun(null);
     try {
-      const r = await stepClock(agentSlug, dryRun);
+      const agent = doc.agents.find(a => a.slug === agentSlug) || doc.agents[0];
+      const r = await fireRound({
+        agentSlug,
+        mode,
+        conversationId: previewConversationId,
+        triggers: agent?.triggers?.triggers,
+        overrideAgentBody: agent ? bodyOfAgent(agent) : undefined,
+        overrideCrewBodies: agent
+          ? Object.fromEntries(agent.crews.map(c => [c.id, bodyOfCrew(c)]))
+          : undefined,
+      });
+      // Name what happened per trigger. A bare "0 sent" is the least
+      // useful thing it could say — the reason each one stood down is
+      // the answer the author came for.
+      //
+      // "ran → no message" is a normal outcome and is worded so it
+      // reads that way: a trigger starts a CHAIN, and whether that
+      // chain ends in a message is the chain's business, not the
+      // trigger's.
+      const parts = r.results.map(x => `${x.name || x.triggerId}: ${
+        x.outcome === 'spoke'       ? 'ran → sent a message'
+        : x.outcome === 'silent'    ? 'ran → no message'
+        : x.outcome === 'would_run' ? `would run now — ${x.why}`
+        : x.outcome === 'not_due'   ? `not due yet — ${x.why}`
+        : x.outcome === 'skipped'   ? `skipped — ${x.why}`
+        : x.outcome === 'filtered'  ? 'blocked by conditions'
+        : x.outcome === 'quiet_hours' ? 'held — quiet hours'
+        : `failed — ${x.why || 'unknown'}`}`);
+      const head = mode === 'simulate' ? 'Checked the open chat' : 'Ran on the open chat';
       setLastRun(
-        r.skipped
-          ? r.skipped
-          : dryRun
-            ? `Dry run: checked ${r.agents} agent${r.agents === 1 ? '' : 's'}, nothing sent.`
-            : `Checked ${r.agents} agent${r.agents === 1 ? '' : 's'} · ${r.fired} message${r.fired === 1 ? '' : 's'} sent · ${r.durationMs}ms`,
+        (r.masterOff ? 'This agent’s Triggers switch is off — the clock would skip it. ' : '')
+        + (r.results.length === 0
+            ? `${head}: this agent has no triggers yet.`
+            : `${head} — ${parts.join(' · ')}`),
       );
       setError(null);
       onTickedRef.current?.();
@@ -138,7 +194,7 @@ export function ClockBar({ agentSlug, onTicked }: Props) {
           <div className={styles.clockSub}>
             {on
               ? <>Last check {relative(health?.lastClaimedAt ?? null)} · watching {watching} agent{watching === 1 ? '' : 's'}</>
-              : <>Nothing fires on its own while this is off. Step once and Dry run still work.</>}
+              : <>Nothing runs on its own while this is off. The test buttons still work.</>}
           </div>
         </div>
       </div>
@@ -171,14 +227,37 @@ export function ClockBar({ agentSlug, onTicked }: Props) {
           </select>
         </label>
 
-        <button className={styles.ghostBtn} disabled={busy} onClick={() => void step(true)}
-          title="Check who would be nudged right now, and send nothing">
-          Dry run
-        </button>
-        <button className={styles.ghostBtn} disabled={busy} onClick={() => void step(false)}
-          title="Run one check now, even while paused">
-          Step once
-        </button>
+        {/* Same shape as Every and Reads — a small label and one
+            control — so the strip stays a single row of equal-height
+            things. The two verbs are joined into one segmented control
+            because they are two answers to one question ("do it on this
+            chat"), not two unrelated buttons.
+
+            The label carries the scope, which is why the buttons can be
+            bare verbs. It does NOT change when no chat is open: a label
+            that swaps between two lengths made the whole strip jump. */}
+        <span className={styles.clockField}
+          title={previewConversationId === null
+            ? 'Start or open a chat in the builder chat panel first. These only ever act on that one chat.'
+            : 'These act on the chat open beside this screen, and on nothing else.'}>
+          <span className={styles.clockFieldLabel}>On this chat</span>
+          <span className={styles.segment}>
+            <button className={styles.segBtn} disabled={busy || previewConversationId === null}
+              onClick={() => void roundOnConversation('simulate')}
+              title={previewConversationId === null
+                ? 'Start or open a chat in the builder chat panel first.'
+                : 'Ask every trigger on this agent whether the open chat is due right now, and show the numbers. Nothing runs and nothing is sent.'}>
+              Check
+            </button>
+            <button className={styles.segBtn} disabled={busy || previewConversationId === null}
+              onClick={() => void roundOnConversation('force')}
+              title={previewConversationId === null
+                ? 'Start or open a chat in the builder chat panel first.'
+                : 'Run every trigger on this agent against the open chat now, even the ones that are not due yet. Real runs: they use up attempts and appear in Admin.'}>
+              Run all
+            </button>
+          </span>
+        </span>
         <button className={styles.iconRefresh} disabled={busy} onClick={() => { void load(); onTickedRef.current?.(); }}
           title="Refresh now — 'last check' is when a tick last ran, and it only updates on its own while the clock is running">
           ⟳

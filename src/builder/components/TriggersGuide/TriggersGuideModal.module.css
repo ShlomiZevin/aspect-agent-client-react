@@ -1,0 +1,338 @@
+/* TriggersGuideModal.
+ *
+ * Reading layout, not a form: a measured column beside a sticky
+ * contents rail. Tokens and hairlines are the builder's usual ones
+ * (--border-color #e5e7eb, --text-*, --bg-input) so the guide reads as
+ * part of the app rather than a docs page dropped into it.
+ *
+ * HEIGHT. `.wrap` is a FIXED height and owns the overflow; `.page` is
+ * the only scroller, and needs `min-height: 0` to be allowed to scroll
+ * at all as a grid child. Using max-height here instead let the modal
+ * box scroll, which unstuck the rail and clipped the last section. */
+
+.badge {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-tertiary, #9ca3af);
+  background: var(--bg-input, #fafafa);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+.wrap {
+  display: grid;
+  grid-template-columns: 208px 1fr;
+  height: min(74vh, 720px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── contents rail ── */
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 12px 18px 18px;
+  background: var(--bg-input, #fafafa);
+  border-inline-end: 1px solid var(--border-color, #e5e7eb);
+}
+
+.railGroup { display: flex; flex-direction: column; gap: 1px; }
+
+.railGroupName {
+  padding: 0 8px 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-tertiary, #b6bcc7);
+}
+
+.railItem,
+.railItemOn {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: start;
+  gap: 8px;
+  width: 100%;
+  text-align: start;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary, #6b7280);
+  cursor: pointer;
+}
+.railItem:hover { background: var(--bg-surface, #fff); color: var(--text-primary, #111827); }
+.railItemOn {
+  background: var(--bg-surface, #fff);
+  color: var(--text-primary, #111827);
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .06);
+}
+
+/* The number/icon chip. Fixed width so labels align into a column
+   however many digits the number has. */
+.railBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-tertiary, #9ca3af);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+}
+.railItemOn .railBadge {
+  color: #fff;
+  background: var(--primary-color, #6366f1);
+  border-color: var(--primary-color, #6366f1);
+}
+.railLabel { padding-top: 1px; }
+
+/* ── the page ── */
+.page {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 22px 26px;
+}
+
+/* A reading measure. Long lines are the fastest way to make a guide
+   feel like documentation nobody reads. */
+.column { max-width: 64ch; }
+
+.intro {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--text-primary, #111827);
+}
+
+.section {
+  padding-top: 22px;
+  margin-top: 22px;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+  /* Anchored jumps otherwise land with the heading flush against the
+     scroller's top edge. */
+  scroll-margin-top: 22px;
+}
+
+.h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--text-primary, #111827);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+/* Section number, matching the rail chip so the two read as the same
+   list seen from two places. */
+.h3Num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--primary-color, #6366f1);
+  background: color-mix(in srgb, var(--primary-color, #6366f1) 10%, transparent);
+}
+
+.advTag {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-tertiary, #9ca3af);
+  background: var(--bg-input, #fafafa);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+.typeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 8px;
+  font-size: 14px;
+  background: color-mix(in srgb, var(--type-color, #6366f1) 13%, transparent);
+}
+
+.h4 {
+  margin: 20px 0 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.p {
+  margin: 0 0 11px;
+  font-size: 13px;
+  line-height: 1.72;
+  color: var(--text-secondary, #4b5563);
+}
+.p:last-of-type { margin-bottom: 0; }
+
+/* ── labelled points ── */
+.points {
+  margin: 14px 0 0;
+  border: 1px solid var(--border-color, #eef0f3);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.point {
+  display: grid;
+  grid-template-columns: 148px 1fr;
+  gap: 12px;
+  padding: 9px 12px;
+  border-top: 1px solid var(--border-color, #f1f3f5);
+  background: var(--bg-surface, #fff);
+}
+.point:first-child { border-top: 0; }
+.point:nth-child(even) { background: var(--bg-input, #fcfcfd); }
+
+.pointLabel {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  line-height: 1.55;
+}
+
+.pointText {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.62;
+  color: var(--text-secondary, #4b5563);
+}
+
+/* The second half of a setting's explanation — the part that is only
+   interesting once the first half has landed. */
+.tip {
+  display: block;
+  margin-top: 6px;
+  padding-inline-start: 10px;
+  border-inline-start: 2px solid var(--border-color, #e5e7eb);
+  font-size: 12px;
+  line-height: 1.58;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.note {
+  margin: 14px 0 0;
+  padding: 11px 13px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--primary-color, #6366f1) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary-color, #6366f1) 16%, transparent);
+  font-size: 12.5px;
+  line-height: 1.62;
+  color: var(--text-secondary, #4b5563);
+}
+
+/* ── good-for / not-for ── */
+.forGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 16px 0 4px;
+}
+
+.forGood,
+.forBad {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 11px 13px;
+}
+.forGood { border-color: #cfe9da; background: #f6fbf8; }
+.forBad  { border-color: #f0dcdc; background: #fdf7f7; }
+
+.forHead {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.list {
+  margin: 0;
+  padding-inline-start: 17px;
+  font-size: 12.5px;
+  line-height: 1.62;
+  color: var(--text-secondary, #4b5563);
+}
+.list li { margin-bottom: 6px; }
+.list li:last-child { margin-bottom: 0; }
+
+.example {
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px dashed var(--border-color, #d8dbe0);
+  background: var(--bg-input, #fcfcfd);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-secondary, #4b5563);
+}
+
+.exampleTag {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+/* Lets the final paragraph scroll clear of the bottom edge. */
+.tail { height: 28px; }
+
+/* Narrow: the rail becomes a scrolling strip above the page, since a
+   208px column plus a reading measure does not fit. */
+@media (max-width: 760px) {
+  .wrap { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .rail {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px 14px;
+    border-inline-end: 0;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+  }
+  .railGroup { flex-direction: row; align-items: center; gap: 4px; }
+  .railGroupName { padding: 0 4px 0 0; white-space: nowrap; }
+  .railItem, .railItemOn { width: auto; white-space: nowrap; }
+  .railLabel { display: none; }
+  .page { padding: 16px 18px; }
+  .forGrid { grid-template-columns: 1fr; }
+  .point { grid-template-columns: 1fr; gap: 3px; }
+}

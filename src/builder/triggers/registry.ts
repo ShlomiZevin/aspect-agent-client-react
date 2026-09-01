@@ -21,6 +21,28 @@ export interface TriggerTypeConfigProps<TConfig = Record<string, unknown>> {
   onChange: (next: TConfig) => void;
 }
 
+/**
+ * A type's own section in the Triggers guide, in plain language for a
+ * non-technical author.
+ *
+ * It lives on the descriptor rather than in the guide's content file so
+ * that adding a trigger type means writing its explanation beside its
+ * defaults — the guide can then never be missing a type, or still be
+ * describing one that was removed.
+ */
+export interface TriggerTypeGuide {
+  /** One sentence: the situation this type is for. */
+  inOneLine: string;
+  goodFor: string[];
+  notFor: string[];
+  /** One per authored setting, named as the form labels it. */
+  settings: { label: string; what: string; tip?: string }[];
+  /** Behaviour the author never configures but should still know about. */
+  alsoDoes?: string[];
+  /** A worked example with real numbers. */
+  example?: string;
+}
+
 export interface TriggerTypeDescriptor<TConfig = Record<string, unknown>> {
   typeId: string;
   displayName: string;
@@ -37,6 +59,8 @@ export interface TriggerTypeDescriptor<TConfig = Record<string, unknown>> {
    * type because only it knows what its numbers mean.
    */
   summarize: (config: TConfig) => string;
+  /** Plain-language explanation for the Triggers guide. */
+  guide?: TriggerTypeGuide;
 }
 
 const registry = new Map<string, TriggerTypeDescriptor<never>>();
