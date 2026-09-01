@@ -48,6 +48,47 @@ const pace = (n: number) => {
   return n.toLocaleString('en-GB', { maximumFractionDigits: 3, minimumFractionDigits: 2 });
 };
 
+/**
+ * The label the server gives rows with no supplier — see the COALESCE in the
+ * replenishment templates. The client must group on this exact string, not on a
+ * translated one, or the bucket and the supplier list can never meet.
+ */
+const UNATTRIBUTED = '(unattributed)';
+
+/**
+ * How many item rows a supplier shows at once.
+ *
+ * Expanding the largest supplier used to mount every one of its items — 5,126
+ * rows with pills and expandable panels — on a page that opens on a phone.
+ * Twenty is the number the review asked for.
+ */
+const CHILD_PAGE_SIZE = 20;
+
+/**
+ * A stand-in row for a bucket the supplier list does not mention, so it can be
+ * rendered beside the real ones. Everything a supplier row carries about stock
+ * and lead time is genuinely unknown here, so it is null rather than zero — a
+ * zero would read as a measurement.
+ */
+function asUnlistedSupplier(supplier: string): SupplierRow {
+  return {
+    supplier,
+    supplierCode: null,
+    skuItemCount: 0,
+    skusWithStock: 0,
+    skusSold365d: 0,
+    warehouseUnits: 0,
+    warehouseValueExVat: 0,
+    unitsSold365d: 0,
+    dataThrough: null,
+    leadTimeDays: null,
+    leadTimeSource: 'code',
+    reviewDays: null,
+    safetyDays: null,
+    minOrderUnits: null,
+  };
+}
+
 export function PurchasingPage({ datasetId, baseURL }: Props) {
   const { t, language } = useLanguage();
 
@@ -57,12 +98,21 @@ export function PurchasingPage({ datasetId, baseURL }: Props) {
   const [suppliers, setSuppliers] = useState<SupplierRow[]>([]);
   const [recs, setRecs] = useState<Recommendation[]>([]);
   const [summary, setSummary] = useState<RecommendationSummary | null>(null);
+  // What the server left out on purpose, so the page can account for it rather
+  // than a buyer noticing a supplier they know is missing.
+  const [excludedInfo, setExcludedInfo] = useState<{ items: number; suppliers: string[] }>(
+    { items: 0, suppliers: [] });
   const [dataThrough, setDataThrough] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openSupplier, setOpenSupplier] = useState<string | null>(null);
   const [openWhy, setOpenWhy] = useState<string | null>(null);
   const [editing, setEditing] = useState<SupplierRow | null>(null);
+
+  // Paging and search for the OPEN supplier only. Reset when a different one is
+  // opened, since page 3 of the last supplier means nothing here.
+  const [childPage, setChildPage] = useState(0);
+  const [childSearch, setChildSearch] = useState('');
   const loadedFor = useRef<string | null>(null);
 
   const load = useCallback(async () => {
@@ -74,6 +124,7 @@ export function PurchasingPage({ datasetId, baseURL }: Props) {
       setSuppliers(s);
       setRecs(r.recommendations);
       setSummary(r.summary);
+      setExcludedInfo(r.excluded ?? { items: 0, suppliers: [] });
       setDataThrough(r.dataThrough);
       setError(null);
     } catch (e) {
@@ -92,14 +143,34 @@ export function PurchasingPage({ datasetId, baseURL }: Props) {
   }, [datasetId, load]);
 
   if (loading) return <div className={styles.page}><div className={styles.muted}>{t('purchasing.loading')}</div></div>;
-  if (error) return <div className={styles.page}><div className={styles.error}>{error}</div></div>;
+  // The server's message is English and this page is bilingual, so it is shown
+  // only in the console. A buyer reading Hebrew got a raw English 404 here.
+  if (error) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.error}>{t('purchasing.error')}</div>
+      </div>
+    );
+  }
 
+  // Bucketed on the key the SERVER uses. Bucketing on a translated label meant
+  // items with no supplier landed under "(no supplier)" while the supplier list
+  // called that bucket "(unattributed)" — so the rows were invisible in the
+  // table while still counting in the tiles, the footer and the CSV. Latent on
+  // ZolStock today, since supplier is fully populated, but this is the one page
+  // whose whole job is numbers that reconcile.
   const bySupplier = new Map<string, Recommendation[]>();
   for (const r of recs) {
-    const k = r.supplier || t('purchasing.noSupplier');
+    const k = r.supplier || UNATTRIBUTED;
     if (!bySupplier.has(k)) bySupplier.set(k, []);
     bySupplier.get(k)!.push(r);
   }
+
+  // Anything the supplier list does not mention. Rendered after the known
+  // suppliers rather than dropped, so the table can never disagree with the
+  // tiles above it whatever the data does.
+  const listed = new Set(suppliers.map(x => x.supplier));
+  const orphanKeys = [...bySupplier.keys()].filter(k => !listed.has(k));
 
   const setWithLeadTime = suppliers.filter(s => s.leadTimeSource === 'supplier').length;
 
@@ -135,6 +206,19 @@ export function PurchasingPage({ datasetId, baseURL }: Props) {
             </div>
           )}
 
+          {/* Says out loud what the numbers above actually cover. Without it the
+              headline reads as a chain-wide crisis: the measured decomposition
+              showed most "order now" items either have branch stock or are only
+              late because no real delivery time has been entered. */}
+          <p className={styles.scopeLine}>
+            {t('purchasing.scopeWarehouseOnly')}
+            {excludedInfo.items > 0 && (
+              <> {t('purchasing.excludedNote')
+                .replace('{n}', String(excludedInfo.items))
+                .replace('{suppliers}', excludedInfo.suppliers.join(', '))}</>
+            )}
+          </p>
+
           <div className={styles.table}>
             <div className={styles.head}>
               <span>{t('purchasing.col.supplier')}</span>
@@ -143,7 +227,7 @@ export function PurchasingPage({ datasetId, baseURL }: Props) {
               <span>{t('purchasing.col.estTotal')}</span>
             </div>
 
-            {suppliers.map(s => {
+            {[...suppliers, ...orphanKeys.map(asUnlistedSupplier)].map(s => {
               const items = (bySupplier.get(s.supplier) || [])
                 .filter(r => r.status === 'overdue' || r.status === 'due_soon');
               const est = items.reduce((sum, r) => sum + (r.estimatedCostExVat || 0), 0);
@@ -153,7 +237,11 @@ export function PurchasingPage({ datasetId, baseURL }: Props) {
                   <button
                     type="button"
                     className={styles.parentRow}
-                    onClick={() => setOpenSupplier(isOpen ? null : s.supplier)}
+                    onClick={() => {
+                      setOpenSupplier(isOpen ? null : s.supplier);
+                      setChildPage(0);
+                      setChildSearch('');
+                    }}
                     aria-expanded={isOpen}
                   >
                     <span className={styles.supplierCell}>
@@ -186,15 +274,88 @@ export function PurchasingPage({ datasetId, baseURL }: Props) {
                     <div className={styles.emptyChild}>{t('purchasing.nothingToOrder')}</div>
                   )}
 
-                  {isOpen && items.map(r => (
-                    <ItemRow
-                      key={r.sku}
-                      rec={r}
-                      open={openWhy === r.sku}
-                      onToggle={() => setOpenWhy(openWhy === r.sku ? null : r.sku)}
-                      t={t}
-                    />
-                  ))}
+                  {isOpen && items.length > 0 && (() => {
+                    // Filtered and paged in the browser: the whole supplier is
+                    // already in hand, so a round trip per keystroke would be
+                    // slower and would make the count disagree with the parent
+                    // row mid-flight.
+                    const term = childSearch.trim().toLowerCase();
+                    const matched = term
+                      ? items.filter(r =>
+                        `${r.itemName ?? ''} ${r.sku} ${r.itemNumber ?? ''}`.toLowerCase().includes(term))
+                      : items;
+
+                    const pages = Math.max(1, Math.ceil(matched.length / CHILD_PAGE_SIZE));
+                    // Clamped rather than reset: a search that shortens the list
+                    // while you are on page 5 should land on the last page, not
+                    // silently on an empty one.
+                    const page = Math.min(childPage, pages - 1);
+                    const from = page * CHILD_PAGE_SIZE;
+                    const shown = matched.slice(from, from + CHILD_PAGE_SIZE);
+
+                    return (
+                      <>
+                        {items.length > CHILD_PAGE_SIZE && (
+                          <div className={styles.childTools}>
+                            <input
+                              className={styles.childSearch}
+                              type="search"
+                              value={childSearch}
+                              placeholder={t('purchasing.searchItems')}
+                              onChange={e => { setChildSearch(e.target.value); setChildPage(0); }}
+                            />
+                            {/* Always present, so nothing is ever silently
+                                truncated — the house rule for this page. */}
+                            <span className={styles.childCount}>
+                              {t('purchasing.showingXofY')
+                                .replace('{x}', String(shown.length ? `${from + 1}–${from + shown.length}` : '0'))
+                                .replace('{y}', String(matched.length))}
+                            </span>
+                          </div>
+                        )}
+
+                        {shown.map(r => (
+                          <ItemRow
+                            key={r.sku}
+                            rec={r}
+                            open={openWhy === r.sku}
+                            onToggle={() => setOpenWhy(openWhy === r.sku ? null : r.sku)}
+                            t={t}
+                          />
+                        ))}
+
+                        {matched.length === 0 && (
+                          <div className={styles.emptyChild}>{t('purchasing.noMatches')}</div>
+                        )}
+
+                        {pages > 1 && (
+                          <div className={styles.pager}>
+                            <button
+                              type="button"
+                              className={styles.pagerBtn}
+                              disabled={page === 0}
+                              onClick={() => setChildPage(page - 1)}
+                            >
+                              {t('purchasing.prev')}
+                            </button>
+                            <span className={styles.pagerLabel}>
+                              {t('purchasing.pageXofY')
+                                .replace('{x}', String(page + 1))
+                                .replace('{y}', String(pages))}
+                            </span>
+                            <button
+                              type="button"
+                              className={styles.pagerBtn}
+                              disabled={page >= pages - 1}
+                              onClick={() => setChildPage(page + 1)}
+                            >
+                              {t('purchasing.next')}
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               );
             })}
@@ -307,6 +468,16 @@ function ItemRow({ rec, open, onToggle, t }: {
           <div className={styles.trustGrid}>
             <Fact label={t('purchasing.f.pace')} value={`${pace(rec.velocityDaily)} / ${t('purchasing.perDay')}`} note={rec.velocityBasis} />
             <Fact label={t('purchasing.f.inStock')} value={nf(rec.warehouseQty)} note={t('purchasing.warehouse')} />
+            {/* The engine already returns this and the UI used to drop it. It is
+                the single fact that turns a suspicious row into an explained
+                one: availability counts warehouse stock only, so an item can
+                read "out of stock" with hundreds of units sitting in branches. */}
+            <Fact
+              label={t('purchasing.f.inBranches')}
+              value={nf(rec.storeQty)}
+              note={t('purchasing.notCounted')}
+              warn={rec.storeQty > 0}
+            />
             <Fact
               label={t('purchasing.f.onTheWay')}
               value={nf(rec.onOrderQty)}

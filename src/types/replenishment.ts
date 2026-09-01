@@ -97,4 +97,6 @@ export interface RecommendationsResponse {
   dataThrough: string | null;
   total: number;
   recommendations: Recommendation[];
+  /** Suppliers kept out of the list on purpose, and how many items that removed. */
+  excluded?: { items: number; suppliers: string[] };
 }

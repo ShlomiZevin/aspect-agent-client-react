@@ -383,25 +383,58 @@ function SettingField({ field, value, source, events, onChange }: {
 
   // Multi-value email field — stored as an array, edited as one line.
   if (field.type === 'emails') {
-    const list = Array.isArray(value) ? value : [];
-    return (
-      <label className={`${styles.field} ${styles.fieldWide}`}>
-        <span className={styles.fieldLabel}>
-          {localized(field.label)}
-          {field.required && <span className={styles.req}> *</span>}
-        </span>
-        <input
-          className={styles.input}
-          type="text"
-          value={list.join(', ')}
-          placeholder="name@example.com, other@example.com"
-          onChange={e => onChange(
-            e.target.value.split(/[,;]/).map(s => s.trim()).filter(Boolean))}
-        />
-        {field.hint && <span className={styles.fieldHint}>{localized(field.hint)}</span>}
-      </label>
-    );
+    return <EmailsField field={field} value={value} onChange={onChange} />;
   }
+
+/**
+ * Emails, edited as one line.
+ *
+ * The raw text is the state; the array is derived on blur. Deriving it on every
+ * keystroke — `value={list.join(', ')}` with a parse-on-change — made the field
+ * impossible to type a second address into: the comma you type is split away,
+ * React re-renders without it, and the next character merges into the first
+ * address (a@b.comc…). Addresses could only be pasted in as a finished list,
+ * and this is a REQUIRED setting.
+ *
+ * Seeded once from the stored value, like the LeadTimeModal in this same build
+ * already does. Re-seeding on every render would put the bug straight back.
+ */
+function EmailsField({ field, value, onChange }: {
+  field: ModuleSettingField;
+  value: unknown;
+  onChange: (next: string[]) => void;
+}) {
+  const stored = Array.isArray(value) ? (value as string[]) : [];
+  const [text, setText] = useState(() => stored.join(', '));
+
+  const commit = (raw: string) => {
+    const list = raw.split(/[,;]/).map(x => x.trim()).filter(Boolean);
+    // Normalised back into the box so what is shown is what will be saved.
+    setText(list.join(', '));
+    onChange(list);
+  };
+
+  return (
+    <label className={`${styles.field} ${styles.fieldWide}`}>
+      <span className={styles.fieldLabel}>
+        {localized(field.label)}
+        {field.required && <span className={styles.req}> *</span>}
+      </span>
+      <input
+        className={styles.input}
+        type="text"
+        value={text}
+        placeholder="name@example.com, other@example.com"
+        onChange={e => setText(e.target.value)}
+        onBlur={e => commit(e.target.value)}
+        // Enter commits too: a dialog whose save button is a click away should
+        // not need the field to lose focus first.
+        onKeyDown={e => { if (e.key === 'Enter') commit((e.target as HTMLInputElement).value); }}
+      />
+      {field.hint && <span className={styles.fieldHint}>{localized(field.hint)}</span>}
+    </label>
+  );
+}
 
   return (
     <label className={styles.field}>

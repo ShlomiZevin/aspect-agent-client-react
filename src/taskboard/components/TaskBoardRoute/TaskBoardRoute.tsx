@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { SignInGate } from '../../../auth';
 import { api } from '../../api';
 import { TaskBoardPage } from '../TaskBoardPage';
 
@@ -49,5 +50,11 @@ export function TaskBoardRoute() {
     );
   }
 
-  return <TaskBoardPage />;
+  // Behind the Sign-In module where a client has one. Where they do not, the
+  // gate renders its children and nothing changes.
+  return (
+    <SignInGate tenant={agent} agentName="Task Board">
+      {() => <TaskBoardPage />}
+    </SignInGate>
+  );
 }

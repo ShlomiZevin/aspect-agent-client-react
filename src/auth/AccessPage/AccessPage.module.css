@@ -1,0 +1,170 @@
+.page { padding: var(--spacing-lg); }
+
+.title { font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px; }
+
+.sub {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-lg);
+  max-width: 720px;
+}
+
+/* The generated password appears here once and only once. Deliberately loud:
+   it cannot be recovered, and a quiet toast would be missed. */
+.issued {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  color: var(--text-primary);
+}
+
+.issuedNote { font-size: 12px; color: var(--text-secondary); }
+
+.code {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  user-select: all;
+}
+
+.inviteRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  padding: var(--spacing-md);
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.input, .select {
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 11px;
+  min-width: 0;
+}
+
+.input { flex: 1 1 200px; }
+
+.input:focus, .select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.checkbox input { accent-color: var(--primary-color); }
+
+.primary {
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.primary:hover:not(:disabled) { background: var(--primary-hover); }
+.primary:disabled { opacity: 0.5; cursor: default; }
+
+.ghost {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ghost:hover { color: var(--text-primary); }
+
+.table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+.th {
+  text-align: start;
+  padding: 8px 10px;
+  border-bottom: 2px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+
+.revoked { opacity: 0.5; }
+.revoked .td:first-child { text-decoration: line-through; }
+
+.chip {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-full);
+  padding: 2px 8px;
+  background: var(--surface-light);
+  color: var(--text-secondary);
+}
+
+.admin { background: var(--primary-light); color: var(--primary-color); }
+
+.muted { color: var(--text-muted); }
+
+.link, .linkDanger {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-inline-end: var(--spacing-md);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.link { color: var(--primary-color); }
+.linkDanger { color: var(--error-color); }
+
+.error {
+  padding: 9px 12px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--error-color);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  margin: 0 0 var(--spacing-md);
+}
+
+.empty { padding: var(--spacing-xl); text-align: center; color: var(--text-muted); font-size: 14px; }

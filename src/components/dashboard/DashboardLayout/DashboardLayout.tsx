@@ -15,6 +15,8 @@ interface DashboardLayoutProps {
   showModules?: boolean;
   /** The original board in the platform DB belongs to this client. */
   showLegacyTaskBoard?: boolean;
+  /** The Sign-In module is live for this client. */
+  showAccess?: boolean;
   /** The Task Board module is live for this client. */
   showTaskboard?: boolean;
   showPodcast?: boolean;
@@ -62,6 +64,13 @@ const TASKBOARD_ITEM = {
   icon: 'M9 11l3 3L22 4 M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
 };
 
+// Who may sign in here, when the Sign-In module is switched on for this client.
+const ACCESS_ITEM = {
+  path: 'access',
+  label: 'Access',
+  icon: 'M12 1a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z M19 11v1a7 7 0 0 1-14 0v-1 M5 11h14 M7 21h10 M12 18v3',
+};
+
 const CONVERSATION_TRENDS_ITEM = {
   path: 'conversation-trends',
   label: 'Conversation Trends',
@@ -105,7 +114,7 @@ const CLOUD_RUN_LOGS_ITEM = {
 };
 
 
-export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showModules, showTaskboard, showLegacyTaskBoard, showPodcast, showConversationTrends, children }: DashboardLayoutProps) {
+export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showModules, showTaskboard, showAccess, showLegacyTaskBoard, showPodcast, showConversationTrends, children }: DashboardLayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userType, setUserType] = useState<UserType>(() => (localStorage.getItem('adminUserType') as UserType) || 'admin');
 
@@ -119,6 +128,7 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
     ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM, DATA_LOADER_ITEM] : []),
     ...(showModules ? [MODULES_ITEM] : []),
     ...(showTaskboard ? [TASKBOARD_ITEM] : []),
+    ...(showAccess ? [ACCESS_ITEM] : []),
     ...(showPodcast ? [PODCAST_ITEM] : []),
     ...(showConversationTrends || userType === 'business' ? [CONVERSATION_TRENDS_ITEM] : []),
     TEST_RUNNER_ITEM,
