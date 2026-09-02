@@ -3,7 +3,7 @@
  * hands off to JobsContext — the running/completed/error state now lives as a
  * header badge (see jobs/JobBadges.tsx + jobs/JobSidebar.tsx), not inline here.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useJobs } from '../jobs/JobsContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { insightsService } from '../../../services/insightsService';
@@ -17,7 +17,16 @@ import styles from './InvestigateHero.module.css';
 // example chip here has been run for real and confirmed to actually work
 // (translation keys, not hardcoded English — the plan step is an LLM call
 // that turns either language into the same kind of concrete data question).
-const EXAMPLE_PROMPT_KEYS = ['intel.hero.example1', 'intel.hero.example2', 'intel.hero.example3'];
+// The FALLBACK only. Each dataset configures its own in the Intelligence admin
+// (registry defaultExamplePrompts -> provider_config), and these generic three
+// are what a dataset that has not been given any still shows.
+//
+// They were the only thing on offer until 2026-09-02, identical for every
+// client — so an online grocery with no branches and no cost data was inviting
+// its buyer to ask "which stores will miss Q3 target" and "which product family
+// has the steepest margin decline". Its own manifest refuses both. A chip the
+// product then declines teaches a client to distrust the rest of the screen.
+const FALLBACK_PROMPT_KEYS = ['intel.hero.example1', 'intel.hero.example2', 'intel.hero.example3'];
 
 const SKIP_HELPER_KEY = 'aspect_intel_skip_query_helper';
 
@@ -37,6 +46,17 @@ export function InvestigateHero({ datasetId, userId, onAskInChat }: Props) {
   const [helperPrompt, setHelperPrompt] = useState<string | null>(null);
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const { startJob, jobs } = useJobs();
+
+  // This dataset's own suggestions, empty until they arrive; the generic three
+  // stand in meanwhile and for any dataset that configures none.
+  const [configured, setConfigured] = useState<string[]>([]);
+  useEffect(() => {
+    let alive = true;
+    insightsService.getExamplePrompts(datasetId)
+      .then(p => { if (alive && p.length) setConfigured(p); })
+      .catch(() => { /* the fallback is already on screen */ });
+    return () => { alive = false; };
+  }, [datasetId]);
 
   // Same question already running for this dataset — used to grey out its
   // chip and block resubmitting it, rather than silently letting a
@@ -120,11 +140,10 @@ export function InvestigateHero({ datasetId, userId, onAskInChat }: Props) {
         <div className={styles.chipsBlock}>
           <div className={styles.chipsLabel}>{t('intel.hero.possible')}</div>
           <div className={styles.chips}>
-            {EXAMPLE_PROMPT_KEYS.map(key => {
-              const prompt = t(key);
+            {(configured.length ? configured : FALLBACK_PROMPT_KEYS.map(k => t(k))).map(prompt => {
               const running = isRunning(prompt);
               return (
-                <button key={key} className={styles.chip} onClick={() => startFromChip(prompt)} disabled={running} title={running ? t('intel.hero.alreadyRunning') : undefined}>
+                <button key={prompt} className={styles.chip} onClick={() => startFromChip(prompt)} disabled={running} title={running ? t('intel.hero.alreadyRunning') : undefined}>
                   {prompt}
                 </button>
               );

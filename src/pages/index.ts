@@ -37,6 +37,7 @@ export { HyperToyPage } from './HyperToyPage';
 export { AgentChatWidgetPage } from './AgentChatWidgetPage';
 export { IntelligenceAdminPage } from './IntelligenceAdminPage';
 export { ZolStockPage } from './ZolStockPage';
+export { SuperHistPage } from './SuperHistPage';
 export { TevaNaotPage } from './TevaNaotPage';
 export { CrewBuilderMockupPage } from './CrewBuilderMockupPage';
 export { BuilderPage } from './BuilderPage';

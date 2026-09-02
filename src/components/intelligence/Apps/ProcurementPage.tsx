@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './ProcurementPage.module.css';
 import { AppGlyph } from './AppIcon';
 import { useRecalcStream } from './useRecalcStream';
+import { useJobs } from '../jobs/JobsContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { replenishmentService } from '../../../services/replenishmentService';
 import { formatDateOnly } from '../dateFormat';
@@ -115,6 +116,12 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
     [locale],
   );
   const recalc = useRecalcStream(datasetId, baseURL, language);
+  // The Intelligence Center already has one way to say that something is taking
+  // time: the header badges and the sidebar every report uses. An app must not
+  // invent a second one, so this registers there like any other long job. The
+  // panel on this page stays as the DETAIL for whoever is watching it; the
+  // badge is what tells someone who navigated away that it is still running.
+  const { startTask } = useJobs();
 
   const load = useCallback(async () => {
     try {
@@ -232,7 +239,24 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
     // The save landed; now rebuild the plan it changed. The stream carries the
     // whole screen back — tiles, totals and every supplier row, including this
     // one's new delivery time — so there is nothing else to re-read.
-    const fresh = await recalc.recalculate();
+    //
+    // One run, two audiences: the job badge follows it for anyone who leaves
+    // the page, and this promise resolves for the rows in front of us. The
+    // badge's percentage is the panel's own, passed straight through, so the
+    // two can never disagree about the same work.
+    const fresh = await new Promise<Awaited<ReturnType<typeof recalc.recalculate>>>(resolve => {
+      startTask(
+        datasetId,
+        t('procurement.jobLabel').replace('{supplier}', sp.supplier),
+        async (report) => {
+          const result = await recalc.recalculate(report);
+          resolve(result);
+          // Rejecting is what turns the badge red; the page shows its own
+          // error separately.
+          if (!result) throw new Error('recalculation failed');
+        },
+      );
+    });
     if (fresh) setPlan(fresh);
     // The rows on screen were computed with the OLD delivery time; their send-by
     // dates have just moved.

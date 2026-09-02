@@ -57,6 +57,21 @@
   --ai-grad-mark: linear-gradient(135deg, #0a40a8, #ffd400);
 }
 
+/* The Social Supermarket brand override — the blue of the shield-and-cart mark
+ * on super-hist.co.il, with the logotype's red kept for the small logo badge
+ * only. Same restraint as zolstock above: the page gradient stays monochromatic
+ * blue, because a blue-to-red sweep across buttons and panels reads as garish
+ * rather than as their brand. Without this block the shell falls back to the
+ * platform's purple, which is nobody's brand. */
+.shell[data-brand='superhist'] {
+  --ai-accent: #1b4f9c;
+  --ai-accent-2: #2f6fb0;
+  --ai-accent-soft: rgba(27, 79, 156, 0.1);
+  --ai-accent-soft-2: rgba(47, 111, 176, 0.12);
+  --ai-grad: linear-gradient(135deg, #1b4f9c, #2f6fb0);
+  --ai-grad-mark: linear-gradient(135deg, #2f6fb0, #d81e28);
+}
+
 .shell[data-mode='dark'] {
   --ai-bg: #100b1c;
   --ai-shell-bg: #17111f;

@@ -20,8 +20,15 @@ export function JobBadges({ datasetId, onReviewCompleted }: Props) {
   const visible = ordered.slice(0, 2);
   const overflow = ordered.slice(2);
 
-  const openJob = (job: import('./JobsContext').Job) =>
-    job.status === 'completed' ? onReviewCompleted(job) : selectJob(job.id);
+  const openJob = (job: import('./JobsContext').Job) => {
+    // A task is work, not a report: there is no result behind it to review and
+    // no sidebar entry worth opening, so clicking it does nothing. It still
+    // shows in the same badges, which is the whole point — an app announces a
+    // long operation the way the Intelligence Center already does.
+    if (job.kind === 'task') return;
+    if (job.status === 'completed') onReviewCompleted(job);
+    else selectJob(job.id);
+  };
 
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', position: 'relative' }}>

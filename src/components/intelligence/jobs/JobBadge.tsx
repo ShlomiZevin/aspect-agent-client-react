@@ -13,7 +13,8 @@ interface Props {
 // status shows up (this badge, ReportProgressCard, JobSidebar).
 export function JobBadge({ job, onClick, onRestart }: Props) {
   const { t } = useLanguage();
-  const label = job.prompt || t('intel.badge.pickingAngle');
+  const isTask = job.kind === 'task';
+  const label = (isTask ? job.label : job.prompt) || t('intel.badge.pickingAngle');
 
   if (job.status === 'completed') {
     return (
@@ -23,7 +24,9 @@ export function JobBadge({ job, onClick, onRestart }: Props) {
           <div className={styles.kicker}>{t('intel.badge.ready')}</div>
           <div className={styles.label}>{label}</div>
         </div>
-        <span className={styles.reviewLink}>{t('intel.badge.view')} →</span>
+        {/* Nothing to open for a task — offering "View" would promise a
+            screen that does not exist. */}
+        {!isTask && <span className={styles.reviewLink}>{t('intel.badge.view')} →</span>}
         <span className={styles.doneBar} />
       </button>
     );
@@ -37,7 +40,9 @@ export function JobBadge({ job, onClick, onRestart }: Props) {
           <div className={styles.kicker}>{t('intel.badge.failed')}</div>
           <div className={styles.label}>{label}</div>
         </div>
-        <span className={styles.restartLink} onClick={onRestart}>{t('intel.sidebar.restart')} ↻</span>
+        {/* Restart re-runs an investigation; a task belongs to the app that
+            started it and has no meaning here. */}
+        {!isTask && <span className={styles.restartLink} onClick={onRestart}>{t('intel.sidebar.restart')} ↻</span>}
         <span className={styles.errBar} />
       </button>
     );

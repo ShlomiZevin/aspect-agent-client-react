@@ -18,8 +18,23 @@ import type { InvestigateResult } from '../../../types/insights';
 
 export type JobStatus = 'running' | 'completed' | 'error';
 
+/**
+ * What kind of long-running thing this is.
+ *
+ * 'investigation' is a report: it polls the server for its pipeline stage and
+ * ends with a result someone opens. 'task' is anything else an app needs to run
+ * for a while — rebuilding a purchase plan, for instance. Both appear in the
+ * same header badges and the same sidebar, which is the point: an app should
+ * not invent its own way of showing that something is taking time.
+ */
+export type JobKind = 'investigation' | 'task';
+
 export interface Job {
   id: string;
+  /** Defaults to 'investigation' so every existing job keeps its behaviour. */
+  kind?: JobKind;
+  /** For a task: what to call it in the badge. Investigations use `prompt`. */
+  label?: string;
   datasetId: string;
   /** The anon session that started this job — reports are private per user, see insightsService. */
   userId: string;
@@ -49,6 +64,20 @@ interface JobsContextValue {
   selectedJobId: string | null;
   selectJob: (id: string | null) => void;
   startJob: (datasetId: string, userId: string, prompt: string) => string;
+  /**
+   * Run any long piece of work as a job, so it shows up in the header badges
+   * and the sidebar exactly like a report does.
+   *
+   * `run` is handed a `report(percent, detail?)` callback; call it as the work
+   * progresses and the badge follows. Whatever it resolves to is ignored — a
+   * task has no result to open — and a rejection marks the badge failed with
+   * the error's message.
+   */
+  startTask: (
+    datasetId: string,
+    label: string,
+    run: (report: (percent: number, detail?: string) => void) => Promise<unknown>,
+  ) => string;
   cancelJob: (id: string) => void;
   restartJob: (datasetId: string, id: string) => void;
 }
@@ -69,6 +98,28 @@ const PROGRESS_POLL_MS = 1500;
 const FALLBACK_DURATION_MS = 60000;
 const STORAGE_KEY = 'aspect-intel-jobs';
 const RESUME_POLL_MS = 3000;
+
+/**
+ * How long a task's badge stays on screen at the very least.
+ *
+ * App work can be quick — rebuilding a purchase plan is about four hundred
+ * milliseconds of computation — and a badge that appears and vanishes inside
+ * a second is not information, it is a flicker in the corner of someone's eye.
+ * Completion is held back until the badge has been up this long, so it is
+ * always readable. The PAGE is never held: it gets its result the moment the
+ * work finishes, and only the badge waits.
+ */
+const MIN_TASK_VISIBLE_MS = 4000;
+
+/**
+ * How long a finished task's badge lingers before clearing itself.
+ *
+ * A report badge stays until someone reviews it, because there is something to
+ * open. A task has no result, so leaving it would just accumulate: five
+ * recalculations, five permanent badges nobody can dismiss. A FAILED task is
+ * never auto-cleared — a failure has to be seen.
+ */
+const TASK_DONE_LINGER_MS = 6000;
 const RESUME_MAX_ATTEMPTS = 40; // ~2 minutes of polling after a reload
 
 function loadStoredJobs(): Job[] {
@@ -277,9 +328,71 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     return id;
   }, [runJob, jobs]);
 
+  /**
+   * A long task that is not an investigation.
+   *
+   * Deliberately does NOT poll /progress: there is no server-side pipeline to
+   * ask about, and the caller already knows where its own work has got to. It
+   * reports, we render — the same badge, the same sidebar, no second mechanism.
+   */
+  const startTask = useCallback((
+    datasetId: string,
+    label: string,
+    run: (report: (percent: number, detail?: string) => void) => Promise<unknown>,
+  ) => {
+    const id = crypto.randomUUID();
+    setJobs(js => [...js, {
+      id, kind: 'task', label, datasetId, userId: '', prompt: label,
+      status: 'running', progress: 0, startedAt: Date.now(),
+    }]);
+
+    const report = (percent: number, detail?: string) => {
+      setJobs(js => js.map(j => (
+        j.id === id && j.status === 'running'
+          // Monotonic, like the investigation path: a late or out-of-order
+          // report must never walk the bar backwards under the reader.
+          ? { ...j, progress: Math.max(j.progress, Math.min(100, Math.round(percent))), stageDetail: detail ?? j.stageDetail }
+          : j
+      )));
+    };
+
+    const startedAt = Date.now();
+    /** Hold the finish until the badge has been legible for its minimum. */
+    const settle = (finish: () => void) => {
+      const waited = Date.now() - startedAt;
+      const remaining = Math.max(0, MIN_TASK_VISIBLE_MS - waited);
+      const timer = setTimeout(finish, remaining);
+      timers.current.set(`${id}:settle`, timer);
+    };
+
+    run(report)
+      .then(() => settle(() => {
+        setJobs(js => js.map(j => (
+          j.id === id ? { ...j, status: 'completed' as JobStatus, progress: 100 } : j)));
+        // Then clear itself: there is nothing to open, so a task badge that
+        // stayed would only pile up behind the next one.
+        const timer = setTimeout(
+          () => setJobs(js => js.filter(j => j.id !== id)),
+          TASK_DONE_LINGER_MS,
+        );
+        timers.current.set(`${id}:clear`, timer);
+      }))
+      .catch((e: unknown) => settle(() => setJobs(js => js.map(j => (
+        j.id === id
+          ? { ...j, status: 'error' as JobStatus, errorMessage: e instanceof Error ? e.message : String(e) }
+          : j)))));
+
+    return id;
+  }, []);
+
   const cancelJob = useCallback((id: string) => {
-    const t = timers.current.get(id);
-    if (t) { clearInterval(t); clearTimeout(t); timers.current.delete(id); }
+    // A task owns more than one timer — the minimum-visible hold and the
+    // self-clear — and they are keyed by suffix. Clearing only `id` would leave
+    // them to fire after the job is gone and put the badge back on screen.
+    for (const key of [id, `${id}:settle`, `${id}:clear`]) {
+      const t = timers.current.get(key);
+      if (t) { clearInterval(t); clearTimeout(t); timers.current.delete(key); }
+    }
     stopProgressTicker(id);
     setJobs(js => {
       const job = js.find(j => j.id === id);
@@ -301,7 +414,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
   }, [jobs, runJob]);
 
   return (
-    <JobsContext.Provider value={{ jobs, selectedJobId, selectJob: setSelectedJobId, startJob, cancelJob, restartJob }}>
+    <JobsContext.Provider value={{ jobs, selectedJobId, selectJob: setSelectedJobId, startJob, startTask, cancelJob, restartJob }}>
       {children}
     </JobsContext.Provider>
   );

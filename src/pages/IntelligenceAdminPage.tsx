@@ -732,11 +732,18 @@ function PromptChipList({
 
 function DatasetPromptsPage() {
   const { dataset, reload } = useOutletContext<DatasetOutletContext>();
-  const [examplePrompts, setExamplePrompts] = useState(dataset.config.examplePrompts);
+  // Defaulted to an empty array, not passed straight through. A dataset whose
+  // registry entry has no defaultExamplePrompts arrives with the field absent,
+  // PromptChipList then reads `.length` of undefined, and the whole admin page
+  // white-screens on an uncaught TypeError — a config gap taking down the one
+  // screen you would use to fix it. superhist did exactly that on its first
+  // day. The fix belongs in both places: the registry entry now has its
+  // prompts, and this can no longer be broken by the next one that does not.
+  const [examplePrompts, setExamplePrompts] = useState(dataset.config.examplePrompts ?? []);
   const [saving, setSaving] = useState(false);
 
   const resetLocal = () => {
-    setExamplePrompts(dataset.config.examplePrompts);
+    setExamplePrompts(dataset.config.examplePrompts ?? []);
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
