@@ -98,6 +98,28 @@ const PROGRESS_POLL_MS = 1500;
 const FALLBACK_DURATION_MS = 60000;
 const STORAGE_KEY = 'aspect-intel-jobs';
 const RESUME_POLL_MS = 3000;
+
+/**
+ * How long a task's badge stays on screen at the very least.
+ *
+ * App work can be quick — rebuilding a purchase plan is about four hundred
+ * milliseconds of computation — and a badge that appears and vanishes inside
+ * a second is not information, it is a flicker in the corner of someone's eye.
+ * Completion is held back until the badge has been up this long, so it is
+ * always readable. The PAGE is never held: it gets its result the moment the
+ * work finishes, and only the badge waits.
+ */
+const MIN_TASK_VISIBLE_MS = 4000;
+
+/**
+ * How long a finished task's badge lingers before clearing itself.
+ *
+ * A report badge stays until someone reviews it, because there is something to
+ * open. A task has no result, so leaving it would just accumulate: five
+ * recalculations, five permanent badges nobody can dismiss. A FAILED task is
+ * never auto-cleared — a failure has to be seen.
+ */
+const TASK_DONE_LINGER_MS = 6000;
 const RESUME_MAX_ATTEMPTS = 40; // ~2 minutes of polling after a reload
 
 function loadStoredJobs(): Job[] {
@@ -334,20 +356,43 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       )));
     };
 
+    const startedAt = Date.now();
+    /** Hold the finish until the badge has been legible for its minimum. */
+    const settle = (finish: () => void) => {
+      const waited = Date.now() - startedAt;
+      const remaining = Math.max(0, MIN_TASK_VISIBLE_MS - waited);
+      const timer = setTimeout(finish, remaining);
+      timers.current.set(`${id}:settle`, timer);
+    };
+
     run(report)
-      .then(() => setJobs(js => js.map(j => (
-        j.id === id ? { ...j, status: 'completed' as JobStatus, progress: 100 } : j))))
-      .catch((e: unknown) => setJobs(js => js.map(j => (
+      .then(() => settle(() => {
+        setJobs(js => js.map(j => (
+          j.id === id ? { ...j, status: 'completed' as JobStatus, progress: 100 } : j)));
+        // Then clear itself: there is nothing to open, so a task badge that
+        // stayed would only pile up behind the next one.
+        const timer = setTimeout(
+          () => setJobs(js => js.filter(j => j.id !== id)),
+          TASK_DONE_LINGER_MS,
+        );
+        timers.current.set(`${id}:clear`, timer);
+      }))
+      .catch((e: unknown) => settle(() => setJobs(js => js.map(j => (
         j.id === id
           ? { ...j, status: 'error' as JobStatus, errorMessage: e instanceof Error ? e.message : String(e) }
-          : j))));
+          : j)))));
 
     return id;
   }, []);
 
   const cancelJob = useCallback((id: string) => {
-    const t = timers.current.get(id);
-    if (t) { clearInterval(t); clearTimeout(t); timers.current.delete(id); }
+    // A task owns more than one timer — the minimum-visible hold and the
+    // self-clear — and they are keyed by suffix. Clearing only `id` would leave
+    // them to fire after the job is gone and put the badge back on screen.
+    for (const key of [id, `${id}:settle`, `${id}:clear`]) {
+      const t = timers.current.get(key);
+      if (t) { clearInterval(t); clearTimeout(t); timers.current.delete(key); }
+    }
     stopProgressTicker(id);
     setJobs(js => {
       const job = js.find(j => j.id === id);
