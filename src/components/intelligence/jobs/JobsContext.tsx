@@ -18,8 +18,23 @@ import type { InvestigateResult } from '../../../types/insights';
 
 export type JobStatus = 'running' | 'completed' | 'error';
 
+/**
+ * What kind of long-running thing this is.
+ *
+ * 'investigation' is a report: it polls the server for its pipeline stage and
+ * ends with a result someone opens. 'task' is anything else an app needs to run
+ * for a while — rebuilding a purchase plan, for instance. Both appear in the
+ * same header badges and the same sidebar, which is the point: an app should
+ * not invent its own way of showing that something is taking time.
+ */
+export type JobKind = 'investigation' | 'task';
+
 export interface Job {
   id: string;
+  /** Defaults to 'investigation' so every existing job keeps its behaviour. */
+  kind?: JobKind;
+  /** For a task: what to call it in the badge. Investigations use `prompt`. */
+  label?: string;
   datasetId: string;
   /** The anon session that started this job — reports are private per user, see insightsService. */
   userId: string;
@@ -49,6 +64,20 @@ interface JobsContextValue {
   selectedJobId: string | null;
   selectJob: (id: string | null) => void;
   startJob: (datasetId: string, userId: string, prompt: string) => string;
+  /**
+   * Run any long piece of work as a job, so it shows up in the header badges
+   * and the sidebar exactly like a report does.
+   *
+   * `run` is handed a `report(percent, detail?)` callback; call it as the work
+   * progresses and the badge follows. Whatever it resolves to is ignored — a
+   * task has no result to open — and a rejection marks the badge failed with
+   * the error's message.
+   */
+  startTask: (
+    datasetId: string,
+    label: string,
+    run: (report: (percent: number, detail?: string) => void) => Promise<unknown>,
+  ) => string;
   cancelJob: (id: string) => void;
   restartJob: (datasetId: string, id: string) => void;
 }
@@ -277,6 +306,45 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     return id;
   }, [runJob, jobs]);
 
+  /**
+   * A long task that is not an investigation.
+   *
+   * Deliberately does NOT poll /progress: there is no server-side pipeline to
+   * ask about, and the caller already knows where its own work has got to. It
+   * reports, we render — the same badge, the same sidebar, no second mechanism.
+   */
+  const startTask = useCallback((
+    datasetId: string,
+    label: string,
+    run: (report: (percent: number, detail?: string) => void) => Promise<unknown>,
+  ) => {
+    const id = crypto.randomUUID();
+    setJobs(js => [...js, {
+      id, kind: 'task', label, datasetId, userId: '', prompt: label,
+      status: 'running', progress: 0, startedAt: Date.now(),
+    }]);
+
+    const report = (percent: number, detail?: string) => {
+      setJobs(js => js.map(j => (
+        j.id === id && j.status === 'running'
+          // Monotonic, like the investigation path: a late or out-of-order
+          // report must never walk the bar backwards under the reader.
+          ? { ...j, progress: Math.max(j.progress, Math.min(100, Math.round(percent))), stageDetail: detail ?? j.stageDetail }
+          : j
+      )));
+    };
+
+    run(report)
+      .then(() => setJobs(js => js.map(j => (
+        j.id === id ? { ...j, status: 'completed' as JobStatus, progress: 100 } : j))))
+      .catch((e: unknown) => setJobs(js => js.map(j => (
+        j.id === id
+          ? { ...j, status: 'error' as JobStatus, errorMessage: e instanceof Error ? e.message : String(e) }
+          : j))));
+
+    return id;
+  }, []);
+
   const cancelJob = useCallback((id: string) => {
     const t = timers.current.get(id);
     if (t) { clearInterval(t); clearTimeout(t); timers.current.delete(id); }
@@ -301,7 +369,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
   }, [jobs, runJob]);
 
   return (
-    <JobsContext.Provider value={{ jobs, selectedJobId, selectJob: setSelectedJobId, startJob, cancelJob, restartJob }}>
+    <JobsContext.Provider value={{ jobs, selectedJobId, selectJob: setSelectedJobId, startJob, startTask, cancelJob, restartJob }}>
       {children}
     </JobsContext.Provider>
   );

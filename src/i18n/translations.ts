@@ -544,6 +544,7 @@ export const translations: LanguageConfig = {
     'procurement.hide': 'Hide',
     'procurement.unattributed': 'No supplier on the record',
     'procurement.preparing': 'Preparing…',
+    'procurement.jobLabel': 'Rebuilding the order plan for {supplier}',
     'procurement.askInChat': 'Discuss this in Data Chat',
     'procurement.askHint': 'Opens the chat and asks straight away.',
     // Grounded in the row's own figures so the answer either agrees with the
@@ -1366,6 +1367,7 @@ export const translations: LanguageConfig = {
     'procurement.hide': 'הסתרה',
     'procurement.unattributed': 'ללא ספק רשום',
     'procurement.preparing': 'מכינים…',
+    'procurement.jobLabel': 'בונים מחדש את תוכנית ההזמנות עבור {supplier}',
     'procurement.askInChat': 'לדיון בצ׳אט הנתונים',
     'procurement.askHint': 'נפתח הצ׳אט והשאלה נשלחת מיד.',
     'procurement.askTemplate': 'בואו נעבור על ההזמנה של {name} — מק״ט חידוש מלאי {sku}, קוד פריט {code} — מהספק {supplier}. התוכנית ממליצה להזמין {qty} יחידות עד {date}, בערך ₪{cost}. האם זו ההחלטה הנכונה, על מה היא מתבססת, ולמה כדאי לשים לב לפני שליחת ההזמנה?',

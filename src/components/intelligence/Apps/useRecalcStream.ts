@@ -73,8 +73,14 @@ export function useRecalcStream(datasetId: string, baseURL?: string, lang?: stri
 
   useEffect(() => stop, [stop]);
 
-  /** @returns the fresh recommendations, or null if it failed. */
-  const recalculate = useCallback(() => {
+  /**
+   * @param onProgress optional mirror of the displayed percentage, so the
+   *   Intelligence Center's job badge can follow the same run this panel is
+   *   drawing. It receives exactly what the panel shows — never a second,
+   *   differently-paced number for the same work.
+   * @returns the fresh plan, or null if it failed.
+   */
+  const recalculate = useCallback((onProgress?: (percent: number) => void) => {
     stop();
     setState({ ...IDLE, running: true });
 
@@ -100,7 +106,9 @@ export function useRecalcStream(datasetId: string, baseURL?: string, lang?: stri
       tickRef.current = setInterval(() => {
         const playback = ((Date.now() - startedAt) / PLAYBACK_MS) * 100;
         const shown = Math.min(real, playback);
-        setState(s => (s.running ? { ...s, pct: Math.min(100, Math.round(shown)) } : s));
+        const pct = Math.min(100, Math.round(shown));
+        setState(s => (s.running ? { ...s, pct } : s));
+        onProgress?.(pct);
         // Done only when BOTH are done: the work has landed and the panel has
         // been on screen long enough to read.
         if (result && shown >= 100) finish(result, null);
