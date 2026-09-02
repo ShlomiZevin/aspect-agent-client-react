@@ -1,0 +1,134 @@
+/*
+ * The Apps shelf — an iOS home screen, which is the design's own metaphor:
+ * icons in a row, a red badge for what needs attention, a label and a
+ * last-researched line under each.
+ */
+
+.page {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 26px 32px 64px;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ai-text, #29304a);
+}
+
+.lede {
+  margin: 6px 0 32px;
+  color: var(--ai-text-muted, #6e7691);
+  font-size: 13px;
+}
+
+.grid {
+  display: flex;
+  gap: 36px;
+  flex-wrap: wrap;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  width: 96px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: center;
+}
+
+.live { cursor: pointer; }
+
+.tile {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow var(--transition-fast, 0.15s) ease, transform var(--transition-fast, 0.15s) ease;
+}
+
+.tileLive {
+  background: linear-gradient(145deg, #8b5cf6, #6d28d9);
+  box-shadow: 0 6px 14px rgba(109, 40, 217, 0.24);
+}
+
+.live:hover .tileLive { box-shadow: 0 8px 20px rgba(109, 40, 217, 0.36); }
+.live:active .tileLive { transform: scale(0.97); }
+
+.live:focus-visible .tile {
+  outline: 2px solid var(--ai-primary, #7c3aed);
+  outline-offset: 4px;
+}
+
+.tileSoon {
+  background: linear-gradient(145deg, #e6e8f0, #d3d7e3);
+  opacity: 0.8;
+}
+
+/* Top-right, and outside the tile's corner radius — the iOS position. The
+   border is the page colour so the badge reads as lifted off the icon. */
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 10px;
+  border: 2px solid var(--ai-bg, #f6f4fb);
+  background: #dc2f34;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ai-text, #29304a);
+}
+
+.nameSoon { color: var(--ai-text-muted, #8a90a3); }
+
+.sub {
+  font-size: 10px;
+  color: var(--ai-text-muted, #8a90a3);
+}
+
+.subSoon { color: #b3b8c8; }
+
+.empty {
+  border: 1px dashed var(--ai-border, #e8e9f2);
+  border-radius: 14px;
+  padding: 28px;
+  text-align: center;
+  color: var(--ai-text-muted, #6e7691);
+  font-size: 13px;
+}
+
+/* A phone fits three across at this size; the 36px gap does not. */
+@media (max-width: 520px) {
+  .page { padding: 20px 16px 48px; }
+  .grid { gap: 22px 18px; }
+}
+
+/* The two text lines under a loading tile, stacked like the real label. */
+.skelLines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
