@@ -25,6 +25,17 @@ interface Props {
 /** How many item rows one supplier shows at a time. The mockup's number. */
 const PAGE_SIZE = 10;
 
+/**
+ * The "discuss this row in Data Chat" button, switched off for now.
+ *
+ * Built and working — it opens the chat and sends a question carrying both the
+ * SKU the replenishment tool keys on and the item code the buyer reads, which
+ * is what makes the answer agree with the screen. Held back from the first
+ * release rather than deleted: everything behind this flag is exercised by the
+ * page's own code paths, so turning it on is one word, not a rebuild.
+ */
+const SHOW_ASK_IN_CHAT = false;
+
 /** The server coalesces a missing supplier to this, and the page groups on it. */
 const UNATTRIBUTED = '(unattributed)';
 
@@ -710,7 +721,7 @@ function ItemRow({ rec, leadSetByUser, open, onToggle, t, nf, language, onAsk }:
           {/* At the END of the explanation, which is where the next question
               actually forms: the buyer has read what the number is built on and
               now wants to argue with it. */}
-          {onAsk && (
+          {SHOW_ASK_IN_CHAT && onAsk && (
             <div className={styles.askRow}>
               <button
                 type="button"
