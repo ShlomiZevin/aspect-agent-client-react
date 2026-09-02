@@ -18,9 +18,13 @@
  * not something a person should be able to press while building.
  * Sweeping the world is the clock's job, and the clock alone does it.
  *
- *   Will any run?      asks. Reports whether that chat is due and
- *                      shows the numbers. Runs nothing.
+ *   Will any trigger?   asks. Reports whether that chat is due and
+ *                      shows the numbers. Starts nothing.
  *   Run them all now   does. Runs them whether or not they are due.
+ *
+ * The verbs differ on purpose: "Will any run?" sat next to "Run them
+ * all now" and could be read as asking whether pressing the button
+ * runs something. "Trigger" asks about the triggers themselves.
  *
  * They sit on their OWN line, not among the schedule controls. The
  * schedule row answers "when does this run on its own"; these answer
@@ -277,8 +281,8 @@ export function ClockBar({ agentSlug, onTicked }: Props) {
             onClick={() => void roundOnConversation('simulate')}
             title={previewConversationId === null
               ? 'Open a chat in the chat panel first — these only ever act on that one chat.'
-              : 'Just tells you. Asks every trigger on this agent whether that chat is due right now and shows the numbers. Nothing runs and nothing is sent.'}>
-            Will any run?
+              : 'Just tells you. Asks every trigger on this agent whether it would go off for that chat right now, and shows the numbers. It starts nothing: nothing runs and nothing is sent.'}>
+            Will any trigger?
           </button>
           <button className={styles.forceBtn} disabled={busy || previewConversationId === null}
             onClick={() => void roundOnConversation('force')}

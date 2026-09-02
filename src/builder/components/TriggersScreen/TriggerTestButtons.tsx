@@ -8,8 +8,15 @@
  * like they do something, and neither says which one actually messages
  * a person. The labels now name the CONSEQUENCE rather than the action:
  *
- *   Will it run?   a question. Reads, answers, changes nothing.
- *   Run it now     a command. It happens whether or not it was due.
+ *   Will it trigger?   a question. Reads, answers, changes nothing.
+ *   Run it now         a command. It happens whether or not it would
+ *                      have triggered by itself.
+ *
+ * The two verbs differ deliberately. "Will it run?" was ambiguous
+ * against "Run it now" beside it — read quickly, it asks whether
+ * pressing the BUTTON runs something. "Trigger" asks about the thing
+ * itself, in the word the screen already uses for it, and cannot be
+ * confused with the action on the other button.
  *
  * Both avoid jargon. Earlier tries — "Check", "What's due", "Force run"
  * — each assumed the reader already knew what "due" meant, or that
@@ -161,9 +168,9 @@ export function TriggerTestButtons({ agentSlug, agent, trigger, onRan }: Props) 
           onClick={check}
           disabled={noConv || busy !== null}
           title={noConv ? scopeWhy
-            : 'Just tells you. Asks whether this trigger is due for the chat you have open, and shows the numbers. Nothing runs and nothing is sent.'}
+            : 'Just tells you. Asks whether this trigger would go off for the chat you have open right now, and shows the numbers. It does not start it: nothing runs and nothing is sent.'}
         >
-          {busy === 'check' ? 'Checking…' : 'Will it run?'}
+          {busy === 'check' ? 'Checking…' : 'Will it trigger?'}
         </button>
 
         <button

@@ -158,8 +158,8 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     ],
     points: [
       {
-        label: 'Will it run?',
-        text: 'ASKS, and that is all. It tells you whether the chat is due right now and shows the numbers — "quiet 4 hours, needs 2 days". It does NOT start the trigger: no crew runs, no chain runs, no message goes anywhere, and nothing is recorded. Press it as often as you like. Start here.',
+        label: 'Will it trigger?',
+        text: 'ASKS, and that is all. It tells you whether the trigger would go off for that chat right now and shows the numbers — "quiet 4 hours, needs 2 days". It does NOT start it: no crew runs, no chain runs, no message goes anywhere, and nothing is recorded. Press it as often as you like. Start here.',
       },
       {
         label: 'Run it now',
@@ -167,7 +167,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       },
       {
         label: 'On the clock bar',
-        text: 'Under the heading "Try it on the chat you have open". This pair covers EVERY trigger on the agent at once, so it reads "Will any run?" and "Run them all now".',
+        text: 'Under the heading "Try it on the chat you have open". This pair covers EVERY trigger on the agent at once, so it reads "Will any trigger?" and "Run them all now".',
       },
       {
         label: 'No chat open?',
@@ -364,6 +364,6 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         text: 'A trigger only reaches conversations where the customer has spoken since you switched it on. It will never go back and nudge your history, so just after switching on there may genuinely be nobody to reach yet.',
       },
     ],
-    note: 'Still stuck? Open a chat in the chat panel and press "Will any run?" on the clock bar. It asks every trigger whether that one chat is due and tells you what each decided, with the numbers — in seconds, and without running or sending anything.',
+    note: 'Still stuck? Open a chat in the chat panel and press "Will any trigger?" on the clock bar. It asks every trigger whether that one chat is due and tells you what each decided, with the numbers — in seconds, and without starting or sending anything.',
   },
 ];
