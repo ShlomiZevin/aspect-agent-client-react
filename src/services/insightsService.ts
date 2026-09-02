@@ -25,6 +25,18 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const insightsService = {
+  /**
+   * The example questions this dataset's hero should offer.
+   *
+   * Per dataset, because the chips used to be the same three for everyone —
+   * and two of them ask about stores and margins, which some clients simply do
+   * not have. A suggestion the product then refuses is worse than none.
+   */
+  getExamplePrompts: (datasetId: string) =>
+    request<{ examplePrompts: string[] }>(`/${encodeURIComponent(datasetId)}/prompts`)
+      .then(r => r.examplePrompts)
+      .catch(() => []),
+
   listDatasets: () => request<{ datasets: IntelligenceDatasetMeta[] }>('').then(r => r.datasets),
 
   // Reports are private per anonymous browser session — every call below
