@@ -151,26 +151,34 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     group: 'Running it',
     title: 'Testing without waiting for the clock',
     body: [
-      'Three buttons run things by hand. Every one of them acts on the chat you have '
-      + 'open in the builder chat panel and on nothing else — there is no button '
-      + 'anywhere that messages everybody. All three work while the clock is switched '
-      + 'off.',
+      'There are two things you can do by hand, and they appear as the same pair of '
+      + 'buttons in two places. Every one of them acts on the chat you have open in the '
+      + 'builder chat panel and on nothing else — there is no button anywhere that '
+      + 'messages everybody. All of them work while the clock is switched off.',
     ],
     points: [
       {
-        label: 'Check',
-        text: 'On the clock bar. Asks every trigger on this agent whether the open chat is due right now and shows you the numbers — "quiet 4 hours, needs 2 days". Runs nothing, sends nothing, changes nothing. Start here.',
+        label: 'Will it run?',
+        text: 'ASKS, and that is all. It tells you whether the chat is due right now and shows the numbers — "quiet 4 hours, needs 2 days". It does NOT start the trigger: no crew runs, no chain runs, no message goes anywhere, and nothing is recorded. Press it as often as you like. Start here.',
       },
       {
-        label: 'Run all',
-        text: 'On the clock bar. Runs every trigger on this agent against the open chat, including the ones not due yet — for seeing what the chains actually produce without waiting two days for "due" to arrive.',
+        label: 'Run it now',
+        text: 'DOES it. The trigger runs on that chat straight away, even if it is not due yet — so you can see what the chain actually produces instead of waiting two days for "due" to arrive.',
       },
       {
-        label: 'Run on the open chat',
-        text: 'Inside a trigger, beside Delete. The same as Run all, narrowed to that one trigger — for when you are working on one and do not want the others running too.',
+        label: 'On the clock bar',
+        text: 'Under the heading "Try it on the chat you have open". This pair covers EVERY trigger on the agent at once, so it reads "Will any run?" and "Run them all now".',
+      },
+      {
+        label: 'No chat open?',
+        text: 'Both are greyed out, and the line above them says so — start a chat in the chat panel, or open one from history, and they come alive. They can only ever act on the chat you are looking at.',
+      },
+      {
+        label: 'Inside a trigger',
+        text: 'The same pair, beside Delete, covering only that one trigger — for when you are working on one and do not want the others running too.',
       },
     ],
-    note: 'The two that RUN use exactly what you have on screen, unsaved edits included — trigger, agent and crew — the same as sending a message in the builder chat yourself. They are real runs: each uses up one of the trigger’s attempts and appears in Admin. "Check" changes nothing at all.',
+    note: 'Running it by hand is a REAL run: it uses up one of the trigger’s attempts and appears in Admin → Triggers, exactly like one the clock started. It also uses what you have on screen, unsaved edits included — trigger, agent and crew — the same as sending a message in the builder chat yourself. Asking whether it will run changes nothing at all, ever.',
   },
 
   {
@@ -356,6 +364,6 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         text: 'A trigger only reaches conversations where the customer has spoken since you switched it on. It will never go back and nudge your history, so just after switching on there may genuinely be nobody to reach yet.',
       },
     ],
-    note: 'Still stuck? Open a chat in the builder chat panel and press "Check" on the clock bar. It asks every trigger whether that one chat is due and tells you what each decided, with the numbers — in seconds, and without running or sending anything.',
+    note: 'Still stuck? Open a chat in the chat panel and press "Will any run?" on the clock bar. It asks every trigger whether that one chat is due and tells you what each decided, with the numbers — in seconds, and without running or sending anything.',
   },
 ];

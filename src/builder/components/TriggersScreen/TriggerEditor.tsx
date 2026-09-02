@@ -22,7 +22,7 @@
 import { useMemo } from 'react';
 import { Modal } from '../Modal/Modal';
 import { HelpDot } from './HelpDot';
-import { RunOnConversation } from './RunOnConversation';
+import { TriggerTestButtons } from './TriggerTestButtons';
 import { getTriggerType } from '../../triggers';
 import { TriggerRow } from '../../triggers/TriggerRow';
 import { rowStyles as s } from '../../triggers/triggerRowStyles';
@@ -62,7 +62,7 @@ export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose, age
           <button type="button" className={styles.dangerBtn} onClick={onDelete}>Delete</button>
           <span className={styles.spacer} />
           {agentSlug && (
-            <RunOnConversation agentSlug={agentSlug} agent={agent} trigger={trigger} onRan={onRan} />
+            <TriggerTestButtons agentSlug={agentSlug} agent={agent} trigger={trigger} onRan={onRan} />
           )}
           <button type="button" className={styles.primaryBtn} onClick={onClose}>Done</button>
         </div>

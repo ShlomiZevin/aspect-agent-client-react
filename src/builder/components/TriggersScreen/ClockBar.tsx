@@ -18,18 +18,21 @@
  * not something a person should be able to press while building.
  * Sweeping the world is the clock's job, and the clock alone does it.
  *
- *   Check     ask every trigger on this agent whether the open chat is
- *             due, and show the arithmetic. Runs nothing.
- *   Run all   run them all on that chat, due or not, to see what the
- *             chains actually produce.
+ *   Will any run?      asks. Reports whether that chat is due and
+ *                      shows the numbers. Runs nothing.
+ *   Run them all now   does. Runs them whether or not they are due.
  *
- * A third, narrower one lives inside each trigger: run just that one.
+ * They sit on their OWN line, not among the schedule controls. The
+ * schedule row answers "when does this run on its own"; these answer
+ * "try it right now". Two different jobs in one row is what made every
+ * earlier attempt look cramped, and no styling fixes that.
  *
- * The scope lives in the group's CAPTION, not in the button labels, so
- * the buttons can be plain verbs. An earlier version put it in the
- * label — "Round on #2342" — which was both long and meaningless: a
- * conversation id means nothing to anyone who has not opened the
- * database.
+ * The same pair, narrowed to one trigger, lives in the trigger editor.
+ *
+ * Both the label and the buttons avoid jargon and avoid ids. Earlier
+ * tries — "Round on #2342", "Check", "What's due", "On the open chat"
+ * — each assumed the reader already knew something: what a round is,
+ * what due means, or which chat "this" refers to.
  *
  * While it's running this polls, so both hosting screens refresh on
  * their own as fires land. It stops polling the moment the clock is
@@ -236,28 +239,6 @@ export function ClockBar({ agentSlug, onTicked }: Props) {
             The label carries the scope, which is why the buttons can be
             bare verbs. It does NOT change when no chat is open: a label
             that swaps between two lengths made the whole strip jump. */}
-        <span className={styles.clockField}
-          title={previewConversationId === null
-            ? 'Start or open a chat in the builder chat panel first. These only ever act on that one chat.'
-            : 'These act on the chat open beside this screen, and on nothing else.'}>
-          <span className={styles.clockFieldLabel}>On this chat</span>
-          <span className={styles.segment}>
-            <button className={styles.segBtn} disabled={busy || previewConversationId === null}
-              onClick={() => void roundOnConversation('simulate')}
-              title={previewConversationId === null
-                ? 'Start or open a chat in the builder chat panel first.'
-                : 'Ask every trigger on this agent whether the open chat is due right now, and show the numbers. Nothing runs and nothing is sent.'}>
-              Check
-            </button>
-            <button className={styles.segBtn} disabled={busy || previewConversationId === null}
-              onClick={() => void roundOnConversation('force')}
-              title={previewConversationId === null
-                ? 'Start or open a chat in the builder chat panel first.'
-                : 'Run every trigger on this agent against the open chat now, even the ones that are not due yet. Real runs: they use up attempts and appear in Admin.'}>
-              Run all
-            </button>
-          </span>
-        </span>
         <button className={styles.iconRefresh} disabled={busy} onClick={() => { void load(); onTickedRef.current?.(); }}
           title="Refresh now — 'last check' is when a tick last ran, and it only updates on its own while the clock is running">
           ⟳
@@ -266,6 +247,48 @@ export function ClockBar({ agentSlug, onTicked }: Props) {
           onClick={() => void patch(() => setClockEnabled(agentSlug, !on))}>
           {on ? 'Pause' : 'Start clock'}
         </button>
+      </div>
+
+      {/* Its own line, under the schedule row.
+          The schedule row answers "when does this run on its own"; this
+          one answers "try it right now". Cramming them together is what
+          made every earlier version look wrong — no amount of styling
+          fixes two different jobs sharing one row.
+
+          The label is a plain sentence, not a field name. "On this
+          chat" and "On the open chat" both assume the reader knows
+          which chat is meant; "the chat you have open" simply says it.
+
+          The buttons are a question and a command, and they look
+          unalike on purpose: the one that can message a real person
+          carries the accent, the one that only reads does not. */}
+      <div className={styles.testRow}>
+        {/* Follows the state rather than assuming one. "Try it on the
+            chat you have open" is a lie when there is no chat open, and
+            it leaves the reader to work out why the buttons are grey.
+            Saying what to do instead is the same sentence's job. */}
+        <span className={styles.testRowLabel}>
+          {previewConversationId === null
+            ? 'Start a chat, or open one from history, to try your triggers on it'
+            : 'Try it on the chat you have open'}
+        </span>
+        <span className={styles.testRowBtns}>
+          <button className={styles.checkBtn} disabled={busy || previewConversationId === null}
+            onClick={() => void roundOnConversation('simulate')}
+            title={previewConversationId === null
+              ? 'Open a chat in the chat panel first — these only ever act on that one chat.'
+              : 'Just tells you. Asks every trigger on this agent whether that chat is due right now and shows the numbers. Nothing runs and nothing is sent.'}>
+            Will any run?
+          </button>
+          <button className={styles.forceBtn} disabled={busy || previewConversationId === null}
+            onClick={() => void roundOnConversation('force')}
+            title={previewConversationId === null
+              ? 'Open a chat in the chat panel first — these only ever act on that one chat.'
+              : 'Actually runs every trigger on this agent against that chat now, even ones that are not due yet. It counts as a real run: it uses up an attempt and appears in Admin.'}>
+            <span className={styles.runIcon} aria-hidden>▶</span>
+            Run them all now
+          </button>
+        </span>
       </div>
 
       {(lastRun || error || health?.modeHint || health?.precisionNote) && (
