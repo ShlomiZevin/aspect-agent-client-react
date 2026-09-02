@@ -6,3 +6,4 @@ export { StatusIndicator } from './StatusIndicator';
 export { ConfirmDialog } from './ConfirmDialog';
 export { FloatingChatWidget, type FloatingChatWidgetProps } from './FloatingChatWidget';
 export { PageCommentsProvider, SectionComments, type CommentTokens, type PageComment } from './PageComments';
+export { PageLoader } from './PageLoader';

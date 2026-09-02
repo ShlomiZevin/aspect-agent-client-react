@@ -1,0 +1,726 @@
+/*
+ * Procurement - the Purchase section.
+ *
+ * Values here are the mockup's, not approximations of it: the grid columns,
+ * the radii, the chip paddings and the six-column why panel all come from
+ * "Zol Stock - Apps Final". Where a token exists for a colour that matches, the
+ * token is used so the page follows the light/dark switch; the purples and the
+ * status colours are the design's own and are written literally.
+ */
+
+.page {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 24px 32px 64px;
+}
+
+/* -- header: icon, title, section chips ---------------------------------- */
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.headMark {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-inline-end: 14px;
+}
+
+.headIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #8b5cf6, #6d28d9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.headTitle {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ai-text, #29304a);
+}
+
+.tabOn {
+  background: #7c3aed;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 20px;
+  border-radius: 99px;
+  border: none;
+  font-family: inherit;
+}
+
+/* The later sections are announced, not disabled controls - a span, because
+   there is nothing to press. */
+.tabLater {
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e8e9f2);
+  color: var(--ai-text, #3c455f);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 17px;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.laterPill {
+  background: var(--ai-surface-alt, #f1f2f7);
+  color: var(--ai-text-muted, #8a90a3);
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 99px;
+}
+
+/* -- status band --------------------------------------------------------- */
+
+.band {
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e8e9f2);
+  border-radius: 16px;
+  padding: 18px 26px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.attention {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fdeeee;
+  border: 1px solid #f6cfcf;
+  color: #c03434;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 7px 15px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.attentionOk {
+  background: #ebf9f1;
+  border-color: #bfe8d0;
+  color: #137a41;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.stats {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.statN {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ai-text, #29304a);
+  font-variant-numeric: tabular-nums;
+}
+
+.statAlarm { color: #dc2f34; }
+.statWarn { color: #de8500; }
+
+.statLabel {
+  font-size: 11.5px;
+  color: var(--ai-text-muted, #8a90a3);
+}
+
+.csvBtn {
+  margin-inline-start: auto;
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e2e4ee);
+  border-radius: 11px;
+  padding: 11px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--ai-text, #3c455f);
+  cursor: pointer;
+}
+
+.csvBtn:hover { background: var(--ai-surface-alt, #f7f8fb); }
+
+/* -- the recalculation panel --------------------------------------------- */
+
+.recalc {
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid #d9cdf5;
+  border-radius: 16px;
+  padding: 20px 26px;
+  margin-bottom: 14px;
+}
+
+.recalcHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.recalcKicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #7c3aed;
+}
+
+.recalcPct {
+  margin-inline-start: auto;
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ai-text, #29304a);
+}
+
+.bar {
+  height: 8px;
+  background: #f1eafc;
+  border-radius: 99px;
+  margin: 12px 0 20px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #7c3aed, #a78bfa);
+  transition: width 0.2s linear;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.step {
+  display: flex;
+  gap: 10px;
+}
+
+.stepMark {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.stepTitle {
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--ai-text, #29304a);
+}
+
+.stepSub {
+  font-size: 11.5px;
+  color: var(--ai-text-muted, #6e7691);
+  margin-top: 2px;
+  line-height: 1.45;
+}
+
+.doneBanner {
+  background: #ebf9f1;
+  border: 1px solid #bfe8d0;
+  border-radius: 14px;
+  padding: 13px 20px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: #137a41;
+  font-weight: 600;
+}
+
+.notice {
+  background: #f2edfd;
+  border-radius: 14px;
+  padding: 13px 20px;
+  margin-bottom: 14px;
+  font-size: 12.5px;
+  color: #4c3a75;
+  line-height: 1.55;
+}
+
+/* -- suppliers ----------------------------------------------------------- */
+
+.suppliers {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.group {
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e8e9f2);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.supRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 22px;
+}
+
+.supRow:hover { background: var(--ai-surface-alt, #fafafd); }
+
+/* The disclosure covers the row rather than wrapping it: the delivery-time
+   controls are real buttons and cannot be nested inside another one. */
+.supToggle {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.supToggle:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+.supRow > *:not(.supToggle) {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.supRow .interactive { pointer-events: auto; }
+
+.chev {
+  color: var(--ai-text-muted, #8a90a3);
+  font-size: 10px;
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.supName {
+  font-weight: 700;
+  font-size: 14.5px;
+  text-align: start;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ai-text, #29304a);
+}
+
+.lead {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+}
+
+.leadDays {
+  font-weight: 700;
+  color: var(--ai-text, #29304a);
+}
+
+.chipSet,
+.chipDefault {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.chipSet { background: #ebf9f1; color: #137a41; }
+.chipDefault { background: #fcf3d7; color: #a8811c; }
+
+.linkBtn {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: #7c3aed;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.linkStrong { font-weight: 700; text-decoration: none; }
+
+.linkMuted {
+  color: var(--ai-text-muted, #8a90a3);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.linkBtn:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.leadInput {
+  width: 54px;
+  padding: 6px 9px;
+  border: 1px solid var(--ai-border, #e2e4ee);
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-family: inherit;
+}
+
+.supCount {
+  font-size: 13px;
+  font-weight: 700;
+  width: 110px;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+  color: var(--ai-text, #29304a);
+}
+
+.supTotal {
+  font-size: 13px;
+  font-weight: 700;
+  width: 140px;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+  color: var(--ai-text, #29304a);
+}
+
+/* -- expanded supplier --------------------------------------------------- */
+
+.child {
+  border-top: 1px solid var(--ai-border, #f0f1f6);
+  background: var(--ai-surface-alt, #fafafd);
+  padding: 16px 24px 20px;
+}
+
+.childTools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.search {
+  flex: 1;
+  min-width: 260px;
+  max-width: 400px;
+  padding: 10px 15px;
+  border: 1px solid var(--ai-border, #e2e4ee);
+  border-radius: 11px;
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--ai-surface, #ffffff);
+}
+
+.shown {
+  font-size: 12.5px;
+  color: var(--ai-text-muted, #6e7691);
+}
+
+.pager {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pagerBtn {
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e2e4ee);
+  border-radius: 10px;
+  padding: 8px 15px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--ai-text, #3c455f);
+  cursor: pointer;
+}
+
+.pagerBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.table {
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e8e9f2);
+  border-radius: 13px;
+  overflow: hidden;
+}
+
+.thead,
+.trow {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) 110px 130px 110px 110px 70px;
+  gap: 12px;
+}
+
+.thead {
+  padding: 11px 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ai-text-muted, #8a90a3);
+  background: var(--ai-surface-alt, #fafafd);
+}
+
+.itemWrap { border-top: 1px solid var(--ai-border, #f0f1f6); }
+
+.trow {
+  align-items: center;
+  padding: 12px 20px;
+  cursor: pointer;
+  width: 100%;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: start;
+}
+
+.trow:hover { background: var(--ai-surface-alt, #fafafd); }
+.trowOpen { background: #fafafd; }
+
+.itemName {
+  font-weight: 600;
+  font-size: 13px;
+  text-align: start;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ai-text, #29304a);
+}
+
+.itemCode {
+  font-size: 11px;
+  color: #a4a9ba;
+}
+
+.pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.pillLate { background: #fdeeee; color: #c03434; }
+.pillDue { background: #fdf3e4; color: #b0620e; }
+.pillOk { background: #ebf9f1; color: #137a41; }
+
+.qtyMain {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ai-text, #29304a);
+}
+
+.qtySub {
+  font-size: 11px;
+  color: var(--ai-text-muted, #8a90a3);
+}
+
+.cell {
+  font-size: 12.5px;
+  color: var(--ai-text, #3c455f);
+  font-variant-numeric: tabular-nums;
+}
+
+.whyCell {
+  font-size: 12.5px;
+  color: #7c3aed;
+  font-weight: 600;
+}
+
+/* -- why panel ----------------------------------------------------------- */
+
+.why {
+  padding: 16px 22px;
+  background: #fcfbfe;
+  border-top: 1px solid var(--ai-border, #f0f1f6);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+}
+
+.factLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--ai-text-muted, #8a90a3);
+}
+
+.factValue {
+  font-size: 14px;
+  font-weight: 800;
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ai-text, #29304a);
+}
+
+.factSub {
+  font-size: 11px;
+  color: var(--ai-text-muted, #6e7691);
+}
+
+.factSubSet { color: #169e4d; }
+.factSubDefault { color: #c2410c; }
+
+.para {
+  font-size: 12.5px;
+  color: var(--ai-text, #3c455f);
+  line-height: 1.55;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ai-border, #f0f1f6);
+}
+
+.reasons {
+  margin: 10px 0 0;
+  padding-inline-start: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.reasons li {
+  font-size: 12.5px;
+  color: #4b5470;
+  line-height: 1.5;
+}
+
+.muted {
+  color: var(--ai-text-muted, #6e7691);
+  font-size: 13px;
+}
+
+.errorBox {
+  background: #fdeeee;
+  border: 1px solid #f6cfcf;
+  border-radius: 14px;
+  padding: 16px 20px;
+  color: #c03434;
+  font-size: 13px;
+}
+
+/* -- narrow -------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .steps { grid-template-columns: repeat(2, 1fr); }
+  .facts { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .page { padding: 18px 14px 48px; }
+  .steps { grid-template-columns: 1fr; }
+  .facts { grid-template-columns: repeat(2, 1fr); }
+
+  .supRow {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 12px 14px;
+  }
+
+  .supName {
+    flex-basis: 100%;
+    white-space: normal;
+  }
+
+  .supCount,
+  .supTotal { width: auto; }
+
+  /* The six-column table does not survive a phone, so it scrolls as a unit
+     and no column is silently dropped. */
+  .table { overflow-x: auto; }
+
+  .thead,
+  .trow,
+  .why { min-width: 720px; }
+}
+
+/* -- loading placeholders ------------------------------------------------ */
+
+.skelStat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skelCsv { margin-inline-start: auto; }
+
+/* Three row-height bars while a supplier's items are fetched, so the table does
+   not collapse to nothing and then jump back open. */
+.emptyRows {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--ai-border, #f0f1f6);
+}
+
+/* -- discuss in chat ----------------------------------------------------- */
+
+.askRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ai-border, #f0f1f6);
+}
+
+.askBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid #d9cdf5;
+  border-radius: 10px;
+  background: var(--ai-surface, #ffffff);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #7c3aed;
+  cursor: pointer;
+  transition: background var(--transition-fast, 0.15s) ease;
+}
+
+.askBtn:hover { background: #f6f4fd; }
+
+.askBtn:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}
+
+.askHint {
+  font-size: 11.5px;
+  color: var(--ai-text-muted, #8a90a3);
+}

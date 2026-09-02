@@ -12,8 +12,9 @@ import { HomePage } from './Home/HomePage';
 import { ReportsPage } from './Reports/ReportsPage';
 import { ReportHistoryPage } from './Reports/ReportHistoryPage';
 import { InsightDetail } from './Insights/InsightDetail';
-import { PurchasingPage } from './Purchasing/PurchasingPage';
-import { replenishmentService } from '../../services/replenishmentService';
+import { AppsPage } from './Apps/AppsPage';
+import { ProcurementPage } from './Apps/ProcurementPage';
+import { appsService } from '../../services/appsService';
 import { ChatWidget } from './ChatWidget';
 import { DataHealthTrigger } from '../chat/DataHealthModal';
 import { FeedbackTrigger } from '../chat/GeneralFeedbackModal';
@@ -40,8 +41,10 @@ interface Props {
   reportsRoute: boolean;
   /** True on /intelligence/:datasetId/reports/history — Report history (design turn 12a). */
   historyRoute: boolean;
-  /** True on /intelligence/:datasetId/purchasing — the Smart Replenishment module's client surface. */
-  purchasingRoute?: boolean;
+  /** True on /intelligence/:datasetId/apps — the Apps shelf. */
+  appsRoute?: boolean;
+  /** True on /intelligence/:datasetId/apps/:appId — one app's own page. */
+  appId?: string;
 }
 
 export function IntelligenceShell(props: Props) {
@@ -66,7 +69,7 @@ export function IntelligenceShell(props: Props) {
   );
 }
 
-function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute, historyRoute, purchasingRoute }: Props) {
+function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute, historyRoute, appsRoute, appId }: Props) {
   const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
   const { userId } = useUserContext();
@@ -118,17 +121,20 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   const datasetAgent = getAgentConfig(datasetId);
   const baseURL = datasetAgent?.baseURL;
 
-  // Is the Smart Replenishment module live for this dataset? Resolved from
-  // the public module-status endpoint, so switching the module off in the
-  // admin tab removes the nav item and nothing else has to be updated. It
-  // starts false and only ever turns on: a nav item that flickers in and out
-  // is worse than one that appears a beat late.
-  const [purchasingLive, setPurchasingLive] = useState<boolean | null>(null);
+  // Does this dataset have an Apps shelf at all? The nav item appears when at
+  // least ONE app-group module is live, which is what makes Apps a shelf rather
+  // than a hardcoded route: switching Procurement off in the admin tab empties
+  // the shelf and the nav item goes with it, and adding a second app later
+  // needs no change here.
+  //
+  // Asked without headlines — this only needs to know whether the shelf is
+  // empty, and the numbers behind it cost a full pass over every tracked SKU.
+  const [hasApps, setHasApps] = useState<boolean | null>(null);
   useEffect(() => {
     let alive = true;
-    replenishmentService.isLive(datasetId, baseURL)
-      .then(live => { if (alive) setPurchasingLive(live); })
-      .catch(() => { if (alive) setPurchasingLive(false); });
+    appsService.hasApps(datasetId, baseURL)
+      .then(v => { if (alive) setHasApps(v); })
+      .catch(() => { if (alive) setHasApps(false); });
     return () => { alive = false; };
   }, [datasetId, baseURL]);
   const [syncInfo, setSyncInfo] = useState<{ lastSync: string; dataFrom: string | null; dataThrough: string } | null>(null);
@@ -216,8 +222,13 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
     handleChatExpandedChange(true);
     setPendingChatQuestion(question);
   };
-  const view: 'home' | 'reports' | 'history' | 'detail' | 'chat' | 'purchasing' =
-    chatRoute ? 'chat' : purchasingRoute ? 'purchasing' : insightId ? 'detail' : historyRoute ? 'history' : reportsRoute ? 'reports' : 'home';
+  const view: 'home' | 'reports' | 'history' | 'detail' | 'chat' | 'apps' | 'app' =
+    chatRoute ? 'chat'
+      : appId ? 'app'
+        : appsRoute ? 'apps'
+          : insightId ? 'detail' : historyRoute ? 'history' : reportsRoute ? 'reports' : 'home';
+
+  const goApps = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}/apps`));
 
   return (
     <div className={styles.shell} data-mode={mode} data-brand={datasetId}>
@@ -239,8 +250,8 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
                 ready for this dataset. Turning the module off removes the page
                 from the navigation cleanly, with no separate config to keep in
                 step. */}
-            {purchasingLive === true && (
-              <button className={`${styles.navBtn} ${view === 'purchasing' ? styles.navActive : ''}`} onClick={() => navigate(`/intelligence/${datasetId}/purchasing`)}>{t('intel.nav.purchasing')}</button>
+            {hasApps === true && (
+              <button className={`${styles.navBtn} ${(view === 'apps' || view === 'app') ? styles.navActive : ''}`} onClick={goApps}>{t('apps.title')}</button>
             )}
           </nav>
 
@@ -264,6 +275,22 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
             <>
               <span className={styles.crumbSep}>/</span>
               <span className={`${styles.crumb} ${styles.crumbActive}`}>{t('intel.nav.chat')}</span>
+            </>
+          )}
+          {(view === 'apps' || view === 'app') && (
+            <>
+              <span className={styles.crumbSep}>/</span>
+              <span
+                className={`${styles.crumb} ${view === 'apps' ? styles.crumbActive : ''}`}
+                onClick={goApps}
+                style={{ cursor: 'pointer' }}
+              >{t('apps.title')}</span>
+            </>
+          )}
+          {view === 'app' && (
+            <>
+              <span className={styles.crumbSep}>/</span>
+              <span className={`${styles.crumb} ${styles.crumbActive}`}>{t('procurement.title')}</span>
             </>
           )}
           {(view === 'reports' || view === 'history' || view === 'detail') && (
@@ -316,10 +343,27 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
             the page printed the server's untranslated message to a customer
             reading Hebrew. `null` means the answer has not arrived yet, so
             nothing is rendered rather than a flash of home. */}
-        {view === 'purchasing' && purchasingLive === true && (
-          <PurchasingPage datasetId={datasetId} baseURL={baseURL} />
+        {view === 'apps' && hasApps === true && (
+          <AppsPage
+            datasetId={datasetId}
+            baseURL={baseURL}
+            onOpenApp={(id) => navigate(`/intelligence/${datasetId}/apps/${id}`)}
+          />
         )}
-        {view === 'purchasing' && purchasingLive === false && (
+        {/* One app's own page. `replenishment` is the module id; Procurement is
+            what the client calls it. A second app gets a branch here and
+            nothing else in the shell has to change. */}
+        {view === 'app' && hasApps === true && appId === 'replenishment' && (
+          <ProcurementPage datasetId={datasetId} baseURL={baseURL} onAskInChat={askFollowUp} />
+        )}
+        {view === 'app' && hasApps === true && appId !== 'replenishment' && (
+          <AppsPage
+            datasetId={datasetId}
+            baseURL={baseURL}
+            onOpenApp={(id) => navigate(`/intelligence/${datasetId}/apps/${id}`)}
+          />
+        )}
+        {(view === 'apps' || view === 'app') && hasApps === false && (
           <HomePage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onAskInChat={askFollowUp} onSeeAllReports={goReports} onOpenHistory={goHistory} />
         )}
         {view === 'home' && <HomePage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onAskInChat={askFollowUp} onSeeAllReports={goReports} onOpenHistory={goHistory} />}

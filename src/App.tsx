@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
+import { PageLoader } from './components/common/PageLoader';
 import { lazy, Suspense } from 'react';
 import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, AspectAgentsHomePage, ArchitecturePage, AspectBattleCardPage, AspectMarketingSalesPage, AspectPage, AspectLandingPage, AspectPlatformLandingPage, AspectPlatformSalesPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaNextPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, EnterpriseReadinessPage, LybiArchitecturePage, LybiTechnologyPage, LybiBankingDeckPage, LybiDecisionResearchPage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiBrainPage, LybiKnowledgePage, LybiCostPage, LybiInstallPage, LybiSupportPage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TeamPlanPage, ZolstockPurchasingSpecPage, ZolstockPurchasingClientPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage, AgentChatWidgetPage, IntelligenceAdminPage, ZolStockPage, TevaNaotPage, WeAreYourAIPage, WeAreYourAIVisualPage } from './pages';
 
@@ -162,7 +163,7 @@ function AppContent() {
         <Route
           path="/lybi/live"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <LiveChatPage />
             </Suspense>
           }
@@ -170,7 +171,7 @@ function AppContent() {
         <Route
           path="/lybi/live/c/:convId"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <LiveChatPage />
             </Suspense>
           }
@@ -178,7 +179,7 @@ function AppContent() {
         <Route
           path="/lybi/embed"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <EmbedPage />
             </Suspense>
           }
@@ -187,7 +188,7 @@ function AppContent() {
         <Route
           path="/lybi/brain-mock"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <LiveBrainMockPage />
             </Suspense>
           }
@@ -201,7 +202,7 @@ function AppContent() {
         <Route
           path="/:agent/live"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <LiveChatPage />
             </Suspense>
           }
@@ -211,7 +212,7 @@ function AppContent() {
         <Route
           path="/:agent/go"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <CustomerChatPage />
             </Suspense>
           }
@@ -219,7 +220,7 @@ function AppContent() {
         <Route
           path="/:agent/go/c/:convId"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <CustomerChatPage />
             </Suspense>
           }
@@ -227,7 +228,7 @@ function AppContent() {
         <Route
           path="/:agent/live/c/:convId"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <LiveChatPage />
             </Suspense>
           }
@@ -235,7 +236,7 @@ function AppContent() {
         <Route
           path="/:agent/embed"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <EmbedPage />
             </Suspense>
           }
@@ -243,7 +244,7 @@ function AppContent() {
         <Route
           path="/:agent/brain-mock"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <LiveBrainMockPage />
             </Suspense>
           }
@@ -331,7 +332,7 @@ function AppContent() {
         <Route
           path="/intelligence"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <IntelligenceHomePage />
             </Suspense>
           }
@@ -339,7 +340,7 @@ function AppContent() {
         <Route
           path="/intelligence/:datasetId"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <IntelligencePage />
             </Suspense>
           }
@@ -347,7 +348,7 @@ function AppContent() {
         <Route
           path="/intelligence/:datasetId/insight/:insightId"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <IntelligencePage />
             </Suspense>
           }
@@ -355,7 +356,7 @@ function AppContent() {
         <Route
           path="/intelligence/:datasetId/reports"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <IntelligencePage />
             </Suspense>
           }
@@ -363,7 +364,7 @@ function AppContent() {
         <Route
           path="/intelligence/:datasetId/reports/history"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <IntelligencePage />
             </Suspense>
           }
@@ -371,7 +372,7 @@ function AppContent() {
         <Route
           path="/intelligence/:datasetId/chat"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <IntelligencePage />
             </Suspense>
           }
@@ -380,12 +381,28 @@ function AppContent() {
             page and its nav item only appear when the module is enabled and
             ready for this dataset (see IntelligenceShell). */}
         <Route
-          path="/intelligence/:datasetId/purchasing"
+          path="/intelligence/:datasetId/apps"
           element={
-            <Suspense fallback={<div style={{ padding: 40 }}>Loading…</div>}>
+            <Suspense fallback={<PageLoader />}>
               <IntelligencePage />
             </Suspense>
           }
+        />
+        <Route
+          path="/intelligence/:datasetId/apps/:appId"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <IntelligencePage />
+            </Suspense>
+          }
+        />
+        {/* The old address for what is now Apps / Procurement. Kept as a
+            redirect rather than deleted: it is in browser histories and in at
+            least one shared link, and a dead URL would read as the feature
+            having been withdrawn. */}
+        <Route
+          path="/intelligence/:datasetId/purchasing"
+          element={<PurchasingRedirect />}
         />
 
         {/* Task Board - standalone full page */}
@@ -425,6 +442,19 @@ function AppContent() {
       </Routes>
     </>
   );
+}
+
+/**
+ * /intelligence/:datasetId/purchasing -> /intelligence/:datasetId/apps/replenishment
+ *
+ * The screen moved onto the Apps shelf and was renamed Procurement. The old
+ * address stays alive because it is in browser histories and in at least one
+ * link that was shared with the client, and a dead URL would read as the
+ * feature having been withdrawn rather than moved.
+ */
+function PurchasingRedirect() {
+  const { datasetId } = useParams<{ datasetId: string }>();
+  return <Navigate to={`/intelligence/${datasetId}/apps/replenishment`} replace />;
 }
 
 function App() {
