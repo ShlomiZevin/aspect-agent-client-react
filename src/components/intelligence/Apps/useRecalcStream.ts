@@ -56,7 +56,7 @@ const IDLE: RecalcState = {
  * That asymmetry is the whole point. A progress bar that runs ahead of its work
  * is a lie, and this one cannot: every frame it draws has already happened.
  */
-export function useRecalcStream(datasetId: string, baseURL?: string, lang?: string) {
+export function useRecalcStream(datasetId: string, baseURL?: string, lang?: string, group?: string) {
   const [state, setState] = useState<RecalcState>(IDLE);
   const sourceRef = useRef<EventSource | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -114,8 +114,13 @@ export function useRecalcStream(datasetId: string, baseURL?: string, lang?: stri
         if (result && shown >= 100) finish(result, null);
       }, 60);
 
-      const qs = lang ? `?lang=${encodeURIComponent(lang)}` : '';
-      const url = `${baseURL ?? ''}/api/modules/replenishment/${encodeURIComponent(datasetId)}/plan/stream${qs}`;
+      // The active group chip rides along so the plan that streams back is the
+      // same filtered view the page is showing — a pre-groups server ignores it.
+      const q = new URLSearchParams();
+      if (lang) q.set('lang', lang);
+      if (group) q.set('group', group);
+      const qs = q.toString();
+      const url = `${baseURL ?? ''}/api/modules/replenishment/${encodeURIComponent(datasetId)}/plan/stream${qs ? `?${qs}` : ''}`;
       const es = new EventSource(url);
       sourceRef.current = es;
 
@@ -145,7 +150,7 @@ export function useRecalcStream(datasetId: string, baseURL?: string, lang?: stri
       // saved value and only the recalculated view is missing.
       es.onerror = () => { if (!result) finish(null, 'connection-lost'); };
     });
-  }, [datasetId, baseURL, lang, stop]);
+  }, [datasetId, baseURL, lang, group, stop]);
 
   const dismissDone = useCallback(() => {
     setState(s => (s.finished ? { ...s, finished: false } : s));

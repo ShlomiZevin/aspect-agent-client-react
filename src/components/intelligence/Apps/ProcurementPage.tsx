@@ -2,12 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './ProcurementPage.module.css';
 import { AppGlyph } from './AppIcon';
 import { useRecalcStream } from './useRecalcStream';
+import { SmartTunePanel } from './SmartTunePanel';
 import { useJobs } from '../jobs/JobsContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { replenishmentService } from '../../../services/replenishmentService';
+import { getAgentConfig } from '../../../agents/agentRegistry';
 import { formatDateOnly } from '../dateFormat';
 import { Skeleton } from '../Insights/Skeleton';
-import type { Recommendation, PlanResponse, PlanSupplier } from '../../../types/replenishment';
+import { PROCUREMENT_GROUPS } from '../../../types/replenishment';
+import type { Recommendation, PlanResponse, PlanSupplier, ProcurementGroup } from '../../../types/replenishment';
 
 interface Props {
   datasetId: string;
@@ -39,6 +42,9 @@ const SHOW_ASK_IN_CHAT = false;
 
 /** The server coalesces a missing supplier to this, and the page groups on it. */
 const UNATTRIBUTED = '(unattributed)';
+
+/** The chip the page opens on — the buyer's working set. */
+const DEFAULT_GROUP: ProcurementGroup = 'order_now';
 
 /**
  * Grouped digits in the reader's locale.
@@ -109,13 +115,37 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
   // language toggle like everything else on the page.
   const [lastRecalc, setLastRecalc] = useState<{ days: string; supplier: string; items: number } | null>(null);
 
+  // ── Procurement Groups ──
+  const [activeGroup, setActiveGroup] = useState<ProcurementGroup>(DEFAULT_GROUP);
+  // The group-filtered ask failed but the plain plan works — a server mid-way
+  // through the migration. The page then runs exactly as it did before groups.
+  const [groupsBroken, setGroupsBroken] = useState(false);
+  // sku → the group the buyer moved it to in THIS session. Drives the row's
+  // "moved to … · Undo" state without refetching the page out from under them.
+  const [movedMap, setMovedMap] = useState<Record<string, ProcurementGroup>>({});
+  const [verdictError, setVerdictError] = useState(false);
+  // Which row's "Move to…" menu is open — one at a time, page-wide.
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+
+  // ── Smart Tune ── mounted survives minimize (the conversation stays);
+  // Close unmounts and throws it away.
+  const [tuneOpen, setTuneOpen] = useState(false);
+  const [tuneMounted, setTuneMounted] = useState(false);
+
   const loadedFor = useRef<string | null>(null);
   const locale = he ? 'he-IL' : 'en-GB';
   const nf = useCallback(
     (n: number | null | undefined, digits = 0) => fmt(n, locale, digits),
     [locale],
   );
-  const recalc = useRecalcStream(datasetId, baseURL, language);
+
+  // Groups are ON only when the server answered with the chip counts — a
+  // pre-migration server never sends groupSummary and the page renders
+  // exactly as it always did.
+  const groupsActive = !groupsBroken && Boolean(plan?.groupSummary);
+  const groupLabel = useCallback((g: ProcurementGroup) => t(`procurement.groups.${g}`), [t]);
+
+  const recalc = useRecalcStream(datasetId, baseURL, language, groupsActive ? activeGroup : undefined);
   // The Intelligence Center already has one way to say that something is taking
   // time: the header badges and the sidebar every report uses. An app must not
   // invent a second one, so this registers there like any other long job. The
@@ -123,11 +153,23 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
   // badge is what tells someone who navigated away that it is still running.
   const { startTask } = useJobs();
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (group: ProcurementGroup | null) => {
     try {
-      setPlan(await replenishmentService.plan(datasetId, language, baseURL));
+      setPlan(await replenishmentService.plan(datasetId, language, baseURL, group ?? undefined));
       setError(null);
     } catch (e) {
+      // The groups columns are DB-backed and land after a migration, so a
+      // server can be mid-way: the group-filtered ask 4xx/5xxes while the
+      // plain plan is fine. Fall back to the base screen without groups
+      // rather than breaking the page.
+      if (group) {
+        try {
+          setPlan(await replenishmentService.plan(datasetId, language, baseURL));
+          setGroupsBroken(true);
+          setError(null);
+          return;
+        } catch { /* the base plan is broken too — report that */ }
+      }
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
@@ -143,8 +185,8 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
     const key = `${datasetId}/${language}`;
     if (loadedFor.current === key) return;
     loadedFor.current = key;
-    void load();
-  }, [datasetId, language, load]);
+    void load(groupsBroken ? null : activeGroup);
+  }, [datasetId, language, load, groupsBroken, activeGroup]);
 
   /**
    * Fetch one page of one supplier's items.
@@ -160,6 +202,8 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
       const r = await replenishmentService.recommendations(datasetId, {
         supplier, onlyDue: true, limit: PAGE_SIZE, offset: page * PAGE_SIZE,
         search: search || undefined, lang: language,
+        // The rows follow the active chip — the same filter the plan above used.
+        group: groupsActive ? activeGroup : undefined,
       }, baseURL);
       setOpen(o => (o && o.supplier === supplier && o.page === page && o.search === search
         ? { ...o, rows: r.recommendations, total: r.total, loading: false }
@@ -169,10 +213,19 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
       // the rest of the screen is still correct and still useful.
       setOpen(o => (o && o.supplier === supplier ? { ...o, rows: [], loading: false } : o));
     }
-  }, [datasetId, baseURL, language]);
+  }, [datasetId, baseURL, language, groupsActive, activeGroup]);
 
   // Closing the page mid-recalculation must not leave a stream open.
   useEffect(() => recalc.stop, [recalc.stop]);
+
+  // One "Move to…" menu at a time, and any click elsewhere closes it. The
+  // toggle itself stops propagation so opening is not instantly undone.
+  useEffect(() => {
+    if (!menuFor) return;
+    const close = () => setMenuFor(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [menuFor]);
 
   /**
    * Switching language has to re-ask for the open supplier's rows.
@@ -272,6 +325,57 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
     void loadRows(name, 0, '');
   };
 
+  /** Refetch the plan under the current chip — how the chip counts refresh. */
+  const refreshPlan = () => void load(groupsActive ? activeGroup : null);
+
+  const switchGroup = (g: ProcurementGroup) => {
+    if (g === activeGroup) return;
+    setActiveGroup(g);
+    // The accordion's context just changed groups — the open supplier's rows
+    // (and the session's moved-state) belong to the old one.
+    setOpen(null);
+    setOpenWhy(null);
+    setMenuFor(null);
+    setMovedMap({});
+    void load(g);
+  };
+
+  /**
+   * The buyer's verdict on one item — Move to…, Reject, or Undo (null clears
+   * the verdict and the item follows the suggestion again). Optimistic: the
+   * row flips to its moved state at once and flips back if the save fails;
+   * the chips refresh from the server either way, never by client arithmetic.
+   */
+  const applyVerdict = async (rec: Recommendation, group: ProcurementGroup | null) => {
+    setVerdictError(false);
+    setMenuFor(null);
+    const before = movedMap;
+    setMovedMap(m => {
+      const next = { ...m };
+      if (group === null) delete next[rec.sku];
+      else next[rec.sku] = group;
+      return next;
+    });
+    try {
+      await replenishmentService.saveVerdict(datasetId, rec.sku, {
+        group,
+        // What the screen showed when the buyer decided — recorded so a later
+        // recompute that disagrees flags for review instead of silently winning.
+        suggestedGroup: rec.suggestedGroup ?? null,
+      }, baseURL);
+      refreshPlan();
+    } catch (e) {
+      console.error('[procurement] verdict save failed:', e);
+      setMovedMap(before);
+      setVerdictError(true);
+    }
+  };
+
+  // Smart Tune needs the agent's chat identity; resolved from the registry,
+  // never from useAgentContext — Intelligence has no AgentProvider.
+  const agentCfg = getAgentConfig(datasetId);
+  const activeGroupInfo = plan?.groupSummary?.[activeGroup];
+
   return (
     <div className={styles.page} dir={he ? 'rtl' : 'ltr'}>
       {/* -- header ------------------------------------------------------- */}
@@ -290,6 +394,53 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
           <span className={styles.laterPill}>{t('procurement.later')}</span>
         </span>
       </div>
+
+      {/* -- group bar ----------------------------------------------------- */}
+      {/* Only when the server sent chip counts. Counts are over the WHOLE due
+          set, so a chip always says what is behind it regardless of which one
+          is active. */}
+      {groupsActive && (
+        <div className={styles.groupBar}>
+          <div className={styles.groupChips}>
+            {PROCUREMENT_GROUPS.map(g => {
+              const on = g === activeGroup;
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  className={`${styles.groupChip} ${on ? styles.groupChipOn : ''}`}
+                  onClick={() => switchGroup(g)}
+                  aria-pressed={on}
+                >
+                  {groupLabel(g)}
+                  <span className={`${styles.groupCount} ${on ? styles.groupCountOn : ''}`}>
+                    {nf(plan?.groupSummary?.[g]?.count ?? 0)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <span className={styles.groupSummaryText}>
+            {t('procurement.groups.summary')
+              .replace('{group}', groupLabel(activeGroup))
+              .replace('{value}', money(activeGroupInfo?.estimatedCostExVat ?? 0, locale))
+              .replace('{n}', nf(plan?.supplierCount ?? 0))}
+          </span>
+          <button
+            type="button"
+            className={styles.tuneBtn}
+            onClick={() => { setTuneMounted(true); setTuneOpen(true); }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <path d="M4 6h16M4 12h16M4 18h16" opacity="0.45" />
+              <circle cx="14" cy="6" r="2.6" fill="currentColor" stroke="none" />
+              <circle cx="8" cy="12" r="2.6" fill="currentColor" stroke="none" />
+              <circle cx="17" cy="18" r="2.6" fill="currentColor" stroke="none" />
+            </svg>
+            {t('procurement.tune.button')}
+          </button>
+        </div>
+      )}
 
       {/* -- status band -------------------------------------------------- */}
       <div className={styles.band}>
@@ -375,6 +526,7 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
         <div className={styles.errorBox}>{t('procurement.recalcFailed')}</div>
       )}
       {exportFailed && <div className={styles.errorBox}>{t('procurement.exportFailed')}</div>}
+      {verdictError && <div className={styles.errorBox}>{t('procurement.groups.moveFailed')}</div>}
 
       {/* -- the delivery-time notice ------------------------------------- */}
       <div className={styles.notice}>
@@ -497,7 +649,7 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
                   </div>
 
                   <div className={styles.table}>
-                    <div className={styles.thead}>
+                    <div className={`${styles.thead} ${groupsActive ? styles.rowGrouped : ''}`}>
                       <div>{t('procurement.col.item')}</div>
                       <div>{t('procurement.col.status')}</div>
                       <div>{t('procurement.col.order')}</div>
@@ -523,6 +675,13 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
                         nf={nf}
                         language={he ? 'he' : 'en'}
                         onAsk={onAskInChat}
+                        groupsActive={groupsActive}
+                        activeGroup={activeGroup}
+                        movedTo={movedMap[r.sku]}
+                        groupLabel={groupLabel}
+                        menuOpen={menuFor === r.sku}
+                        onMenuToggle={() => setMenuFor(menuFor === r.sku ? null : r.sku)}
+                        onVerdict={g => void applyVerdict(r, g)}
                       />
                     ))}
                   </div>
@@ -532,6 +691,34 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
           );
         })}
       </div>
+
+      {/* -- Smart Tune --------------------------------------------------- */}
+      {/* Keyed on the group: switching chips starts a fresh conversation in
+          the new scope rather than continuing one about the old set. Kept
+          mounted while minimized so the conversation survives; Close unmounts. */}
+      {tuneMounted && groupsActive && (
+        <SmartTunePanel
+          key={activeGroup}
+          datasetId={datasetId}
+          baseURL={baseURL}
+          agentName={agentCfg?.agentName ?? null}
+          brand={agentCfg?.displayName ?? datasetId}
+          group={activeGroup}
+          groupLabel={groupLabel(activeGroup)}
+          itemCount={activeGroupInfo?.count ?? 0}
+          supplierCount={plan?.supplierCount ?? 0}
+          dataThrough={plan?.dataThrough ?? null}
+          open={tuneOpen}
+          onMinimize={() => setTuneOpen(false)}
+          onClose={() => { setTuneOpen(false); setTuneMounted(false); }}
+          onPlanChanged={() => {
+            // Items just moved (or a move was undone) — the chips and the
+            // open supplier's rows are stale.
+            refreshPlan();
+            if (open) void loadRows(open.supplier, open.page, open.search);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -630,7 +817,10 @@ function chatQuestion(rec: Recommendation, t: (k: string) => string, nf: (n: num
 
 /* -- one item, and its working ------------------------------------------- */
 
-function ItemRow({ rec, leadSetByUser, open, onToggle, t, nf, language, onAsk }: {
+function ItemRow({
+  rec, leadSetByUser, open, onToggle, t, nf, language, onAsk,
+  groupsActive, activeGroup, movedTo, groupLabel, menuOpen, onMenuToggle, onVerdict,
+}: {
   rec: Recommendation;
   leadSetByUser: boolean;
   open: boolean;
@@ -640,20 +830,40 @@ function ItemRow({ rec, leadSetByUser, open, onToggle, t, nf, language, onAsk }:
   nf: (n: number | null | undefined, digits?: number) => string;
   language: 'en' | 'he';
   onAsk?: (question: string) => void;
+  groupsActive: boolean;
+  activeGroup: ProcurementGroup;
+  /** The group the buyer moved this row to in this session, if any. */
+  movedTo?: ProcurementGroup;
+  groupLabel: (g: ProcurementGroup) => string;
+  menuOpen: boolean;
+  onMenuToggle: () => void;
+  /** null = Undo: clear the verdict, follow the suggestion again. */
+  onVerdict: (group: ProcurementGroup | null) => void;
 }) {
   const late = rec.daysLate ?? 0;
   const pillClass = late > 60 ? styles.pillLate : late > 0 ? styles.pillDue : styles.pillOk;
   const cartons = rec.unitsPerCarton && rec.unitsPerCarton > 0
     ? Math.round(rec.orderQty / rec.unitsPerCarton) : null;
 
+  // The group this row is IN right now, as far as this screen knows: the
+  // session's optimistic move wins over what the server sent.
+  const rowGroup = movedTo ?? rec.group;
+  // A row whose group differs from the chip it is listed under says so.
+  const showBadge = groupsActive && rowGroup !== undefined && rowGroup !== activeGroup;
+
   return (
     <div className={styles.itemWrap}>
-      <button
-        type="button"
-        className={`${styles.trow} ${open ? styles.trowOpen : ''}`}
-        onClick={onToggle}
-        aria-expanded={open}
-      >
+      {/* The row is a div with the disclosure laid over it, the same pattern
+          as the supplier row above: Move to…/Reject are real buttons and a
+          button cannot nest inside another one. */}
+      <div className={`${styles.trow} ${groupsActive ? styles.rowGrouped : ''} ${open ? styles.trowOpen : ''}`}>
+        <button
+          type="button"
+          className={styles.rowToggle}
+          onClick={onToggle}
+          aria-expanded={open}
+          aria-label={`${rec.itemName ?? rec.sku} — ${t(open ? 'procurement.hide' : 'procurement.why')}`}
+        />
         <span style={{ minWidth: 0 }}>
           {/* <bdi>, not dir="auto" on the cell.
               dir="auto" makes the ELEMENT right-to-left when its text is
@@ -665,6 +875,17 @@ function ItemRow({ rec, leadSetByUser, open, onToggle, t, nf, language, onAsk }:
               the code line up under the ITEM heading in either language. */}
           <span className={styles.itemName} style={{ display: 'block' }}>
             <bdi>{rec.itemName ?? rec.sku}</bdi>
+            {showBadge && rowGroup && (
+              <span className={styles.groupBadge}>{groupLabel(rowGroup)}</span>
+            )}
+            {/* A recompute moved the suggestion under a standing verdict —
+                flagged for review, never silently reverted. */}
+            {groupsActive && rec.suggestionChanged && rec.suggestedGroup && (
+              <span
+                className={styles.reviewDot}
+                title={t('procurement.groups.reviewDot').replace('{group}', groupLabel(rec.suggestedGroup))}
+              />
+            )}
           </span>
           <span className={styles.itemCode} style={{ display: 'block' }}>{rec.itemNumber ?? rec.sku}</span>
         </span>
@@ -693,8 +914,61 @@ function ItemRow({ rec, leadSetByUser, open, onToggle, t, nf, language, onAsk }:
         <span className={styles.cell}>
           {rec.orderByDate ? formatDateOnly(rec.orderByDate, language) : '—'}
         </span>
-        <span className={styles.whyCell}>{open ? t('procurement.hide') : t('procurement.why')}</span>
-      </button>
+
+        {!groupsActive ? (
+          <span className={styles.whyCell}>{open ? t('procurement.hide') : t('procurement.why')}</span>
+        ) : movedTo ? (
+          <span className={`${styles.actionsCell} ${styles.rowInteractive}`}>
+            <span className={styles.movedText}>
+              {t('procurement.groups.movedTo').replace('{group}', groupLabel(movedTo))}
+            </span>
+            <button type="button" className={styles.rowLink} onClick={() => onVerdict(null)}>
+              {t('procurement.groups.undo')}
+            </button>
+            <button type="button" className={styles.rowLink} onClick={onToggle}>
+              {open ? t('procurement.hide') : t('procurement.why')}
+            </button>
+          </span>
+        ) : (
+          <span className={`${styles.actionsCell} ${styles.rowInteractive}`}>
+            <span className={styles.moveWrap}>
+              <button
+                type="button"
+                className={styles.moveBtn}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={e => { e.stopPropagation(); onMenuToggle(); }}
+              >
+                {t('procurement.groups.moveTo')} <span aria-hidden="true">▾</span>
+              </button>
+              {menuOpen && (
+                <span className={styles.moveMenu} role="menu">
+                  {PROCUREMENT_GROUPS.map(g => (
+                    <button
+                      key={g}
+                      type="button"
+                      role="menuitem"
+                      className={styles.moveMenuItem}
+                      onClick={() => { if (g !== rowGroup) onVerdict(g); }}
+                    >
+                      <span className={styles.moveCheck} aria-hidden="true">{g === rowGroup ? '✓' : ''}</span>
+                      {groupLabel(g)}
+                    </button>
+                  ))}
+                </span>
+              )}
+            </span>
+            {/* The shortcut for "this number smells wrong": park it in
+                Needs checking. */}
+            <button type="button" className={styles.rejectBtn} onClick={() => onVerdict('suspicious')}>
+              {t('procurement.groups.reject')}
+            </button>
+            <button type="button" className={styles.rowLink} onClick={onToggle}>
+              {open ? t('procurement.hide') : t('procurement.why')}
+            </button>
+          </span>
+        )}
+      </div>
 
       {open && (
         <div className={styles.why}>
@@ -703,7 +977,20 @@ function ItemRow({ rec, leadSetByUser, open, onToggle, t, nf, language, onAsk }:
               // The engine's own description of how it measured the pace -
               // never a claim about weighting or seasonality it does not do.
               sub={rec.velocityBasis} />
-            <Fact label={t('procurement.f.inStock')} value={nf(rec.warehouseQty)} sub={t('procurement.f.warehouse')} />
+            {/* Stock honesty: false = the warehouse file does not carry this
+                item, and the tile says so instead of asserting a zero it
+                cannot verify. null = the signals view is not built yet —
+                exactly the old behavior. */}
+            {rec.stockTracked === false ? (
+              <Fact
+                label={t('procurement.f.inStock')}
+                value="—"
+                sub={t('procurement.groups.notInStockFile')}
+                title={t('procurement.groups.notInStockTip')}
+              />
+            ) : (
+              <Fact label={t('procurement.f.inStock')} value={nf(rec.warehouseQty)} sub={t('procurement.f.warehouse')} />
+            )}
             <Fact label={t('procurement.f.onWay')} value={nf(rec.onOrderQty)}
               sub={rec.onOrderIsUnverified && rec.onOrderQty > 0
                 ? t('procurement.f.onWayUnverified') : t('procurement.f.openOrders')} />
@@ -764,14 +1051,16 @@ function ItemRow({ rec, leadSetByUser, open, onToggle, t, nf, language, onAsk }:
   );
 }
 
-function Fact({ label, value, sub, subClass }: {
+function Fact({ label, value, sub, subClass, title }: {
   label: string;
   value: string;
   sub: string;
   subClass?: string;
+  /** A hover explanation — the "not in stock file" tile carries one. */
+  title?: string;
 }) {
   return (
-    <div>
+    <div title={title}>
       <div className={styles.factLabel}>{label}</div>
       <div className={styles.factValue}>{value}</div>
       <div className={`${styles.factSub} ${subClass ?? ''}`}>{sub}</div>

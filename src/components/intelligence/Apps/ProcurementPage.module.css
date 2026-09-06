@@ -82,6 +82,99 @@
   border-radius: 99px;
 }
 
+/* -- group bar ------------------------------------------------------------ */
+
+.groupBar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.groupChips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.groupChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e2e4ee);
+  border-radius: 99px;
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ai-text, #3c455f);
+  cursor: pointer;
+}
+
+.groupChip:hover { background: var(--ai-surface-alt, #f7f8fb); }
+
+.groupChip:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}
+
+.groupChipOn {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.groupChipOn:hover { background: #6d28d9; }
+
+.groupCount {
+  background: var(--ai-surface-alt, #f1f2f7);
+  color: var(--ai-text-muted, #6e7691);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-variant-numeric: tabular-nums;
+}
+
+.groupCountOn {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.groupSummaryText {
+  margin-inline-start: auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ai-text-muted, #6e7691);
+  white-space: nowrap;
+}
+
+.tuneBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #7c3aed;
+  border: none;
+  border-radius: 11px;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 18px;
+  cursor: pointer;
+}
+
+.tuneBtn:hover { background: #6d28d9; }
+
+.tuneBtn:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}
+
 /* -- status band --------------------------------------------------------- */
 
 .band {
@@ -490,9 +583,15 @@
   background: var(--ai-surface-alt, #fafafd);
 }
 
+/* With groups on, the trailing column holds real controls, not one word. */
+.rowGrouped {
+  grid-template-columns: minmax(200px, 1.4fr) 100px 120px 100px 100px 230px;
+}
+
 .itemWrap { border-top: 1px solid var(--ai-border, #f0f1f6); }
 
 .trow {
+  position: relative;
   align-items: center;
   padding: 12px 20px;
   cursor: pointer;
@@ -505,6 +604,34 @@
 
 .trow:hover { background: var(--ai-surface-alt, #fafafd); }
 .trowOpen { background: #fafafd; }
+
+/* Same pattern as .supToggle: the disclosure covers the row rather than
+   wrapping it, because Move to…/Reject are real buttons and buttons cannot
+   nest. */
+.rowToggle {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rowToggle:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+.trow > *:not(.rowToggle) {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.trow .rowInteractive { pointer-events: auto; }
 
 .itemName {
   font-weight: 600;
@@ -555,6 +682,144 @@
   font-size: 12.5px;
   color: #7c3aed;
   font-weight: 600;
+}
+
+/* -- row verdicts: Move to…, Reject, moved-state ------------------------- */
+
+.actionsCell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.moveWrap { position: relative; display: inline-flex; }
+
+.moveBtn {
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e2e4ee);
+  border-radius: 9px;
+  padding: 6px 11px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ai-text, #3c455f);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.moveBtn:hover { background: var(--ai-surface-alt, #f7f8fb); }
+
+.moveBtn:focus-visible,
+.rejectBtn:focus-visible,
+.rowLink:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 1px;
+}
+
+.moveMenu {
+  position: absolute;
+  top: calc(100% + 5px);
+  inset-inline-end: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e2e4ee);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(41, 48, 74, 0.16);
+  padding: 5px;
+}
+
+.moveMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ai-text, #3c455f);
+  cursor: pointer;
+  text-align: start;
+}
+
+.moveMenuItem:hover { background: #f6f4fd; }
+
+.moveCheck {
+  width: 14px;
+  flex-shrink: 0;
+  color: #7c3aed;
+  font-weight: 700;
+}
+
+.rejectBtn {
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid #f6cfcf;
+  border-radius: 9px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #c03434;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.rejectBtn:hover { background: #fdeeee; }
+
+.rowLink {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  color: #7c3aed;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.movedText {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ai-text-muted, #6e7691);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* The row's group, shown when it differs from the chip it is listed under. */
+.groupBadge {
+  display: inline-block;
+  margin-inline-start: 8px;
+  vertical-align: 1px;
+  background: #f2edfd;
+  color: #6d28d9;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+/* The recompute disagrees with a standing verdict — worth a look. */
+.reviewDot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-inline-start: 7px;
+  vertical-align: 2px;
+  border-radius: 50%;
+  background: #de8500;
+  cursor: help;
 }
 
 /* -- why panel ----------------------------------------------------------- */
@@ -664,6 +929,11 @@
   .thead,
   .trow,
   .why { min-width: 720px; }
+
+  /* The verdict controls need their own room. */
+  .rowGrouped { min-width: 880px; }
+
+  .groupSummaryText { margin-inline-start: 0; }
 }
 
 /* -- loading placeholders ------------------------------------------------ */
