@@ -4,8 +4,9 @@
  * Values here are the mockup's, not approximations of it: the grid columns,
  * the radii, the chip paddings and the six-column why panel all come from
  * "Zol Stock - Apps Final". Where a token exists for a colour that matches, the
- * token is used so the page follows the light/dark switch; the purples and the
- * status colours are the design's own and are written literally.
+ * token is used so the page follows the light/dark switch; the accent runs on the
+ * shell's brand tokens (--ai-accent / -soft / -2), so each client's page wears
+ * its own colour; only the status reds/greens/ambers are written literally.
  */
 
 .page {
@@ -19,8 +20,8 @@
 .head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 14px;
+  margin-bottom: 14px;
   flex-wrap: wrap;
 }
 
@@ -35,7 +36,7 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: linear-gradient(145deg, #8b5cf6, #6d28d9);
+  background: var(--ai-grad-mark, linear-gradient(145deg, #8b5cf6, #6d28d9));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -43,36 +44,41 @@
 }
 
 .headTitle {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 800;
   color: var(--ai-text, #29304a);
 }
 
-.tabOn {
-  background: #7c3aed;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 8px 20px;
-  border-radius: 99px;
-  border: none;
-  font-family: inherit;
+/* -- underlined section tabs, per the updated design --------------------- */
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  border-bottom: 1px solid var(--ai-border, #e8e9f2);
+  margin-bottom: 16px;
 }
 
-/* The later sections are announced, not disabled controls - a span, because
-   there is nothing to press. */
-.tabLater {
-  background: var(--ai-surface, #ffffff);
-  border: 1px solid var(--ai-border, #e8e9f2);
-  color: var(--ai-text, #3c455f);
-  font-size: 13px;
-  font-weight: 600;
-  padding: 7px 17px;
-  border-radius: 99px;
+.tab {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 7px;
+  padding: 8px 2px 11px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ai-text-muted, #6e7691);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
 }
+
+.tabActive {
+  color: var(--ai-text, #29304a);
+  font-weight: 700;
+  border-bottom-color: var(--ai-accent, #7c3aed);
+}
+
+.tabActive svg { color: var(--ai-accent, #7c3aed); }
 
 .laterPill {
   background: var(--ai-surface-alt, #f1f2f7);
@@ -92,21 +98,27 @@
   margin-bottom: 14px;
 }
 
+/* One bordered rail holding every chip — the updated design's segmented
+   control, not five free-floating pills. */
 .groupChips {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   flex-wrap: wrap;
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e2e4ee);
+  border-radius: 12px;
+  padding: 4px;
 }
 
 .groupChip {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: var(--ai-surface, #ffffff);
-  border: 1px solid var(--ai-border, #e2e4ee);
-  border-radius: 99px;
-  padding: 7px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  padding: 7px 13px;
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 600;
@@ -117,18 +129,18 @@
 .groupChip:hover { background: var(--ai-surface-alt, #f7f8fb); }
 
 .groupChip:focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid var(--ai-accent, #7c3aed);
   outline-offset: 2px;
 }
 
+/* The active chip is a soft tint, not a solid fill — the design's own state. */
 .groupChipOn {
-  background: #7c3aed;
-  border-color: #7c3aed;
-  color: #ffffff;
+  background: var(--ai-accent-soft, #f2edfd);
+  color: var(--ai-text, #29304a);
   font-weight: 700;
 }
 
-.groupChipOn:hover { background: #6d28d9; }
+.groupChipOn:hover { background: var(--ai-accent-soft, #f2edfd); }
 
 .groupCount {
   background: var(--ai-surface-alt, #f1f2f7);
@@ -141,8 +153,8 @@
 }
 
 .groupCountOn {
-  background: rgba(255, 255, 255, 0.22);
-  color: #ffffff;
+  background: var(--ai-surface, #ffffff);
+  color: var(--ai-text, #29304a);
 }
 
 .groupSummaryText {
@@ -157,7 +169,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #7c3aed;
+  background: var(--ai-accent, #7c3aed);
   border: none;
   border-radius: 11px;
   color: #ffffff;
@@ -168,10 +180,10 @@
   cursor: pointer;
 }
 
-.tuneBtn:hover { background: #6d28d9; }
+.tuneBtn:hover { background: var(--ai-accent-2, #6d28d9); }
 
 .tuneBtn:focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid var(--ai-accent, #7c3aed);
   outline-offset: 2px;
 }
 
@@ -256,7 +268,7 @@
 
 .recalc {
   background: var(--ai-surface, #ffffff);
-  border: 1px solid #d9cdf5;
+  border: 1px solid var(--ai-accent-soft, #d9cdf5);
   border-radius: 16px;
   padding: 20px 26px;
   margin-bottom: 14px;
@@ -272,7 +284,7 @@
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: #7c3aed;
+  color: var(--ai-accent, #7c3aed);
 }
 
 .recalcPct {
@@ -285,7 +297,7 @@
 
 .bar {
   height: 8px;
-  background: #f1eafc;
+  background: var(--ai-accent-soft, #f1eafc);
   border-radius: 99px;
   margin: 12px 0 20px;
   overflow: hidden;
@@ -294,7 +306,7 @@
 .barFill {
   height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, #7c3aed, #a78bfa);
+  background: linear-gradient(90deg, var(--ai-accent, #7c3aed), var(--ai-accent-2, #a78bfa));
   transition: width 0.2s linear;
 }
 
@@ -346,12 +358,12 @@
 }
 
 .notice {
-  background: #f2edfd;
+  background: var(--ai-accent-soft, #f2edfd);
   border-radius: 14px;
   padding: 13px 20px;
   margin-bottom: 14px;
   font-size: 12.5px;
-  color: #4c3a75;
+  color: var(--ai-text, #4c3a75);
   line-height: 1.55;
 }
 
@@ -394,7 +406,7 @@
 }
 
 .supToggle:focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid var(--ai-accent, #7c3aed);
   outline-offset: -2px;
   border-radius: 8px;
 }
@@ -456,7 +468,7 @@
   background: none;
   font-family: inherit;
   font-size: 13px;
-  color: #7c3aed;
+  color: var(--ai-accent, #7c3aed);
   font-weight: 600;
   cursor: pointer;
   text-decoration: underline;
@@ -471,7 +483,7 @@
 }
 
 .linkBtn:focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid var(--ai-accent, #7c3aed);
   outline-offset: 2px;
   border-radius: 3px;
 }
@@ -620,7 +632,7 @@
 }
 
 .rowToggle:focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid var(--ai-accent, #7c3aed);
   outline-offset: -2px;
   border-radius: 8px;
 }
@@ -680,7 +692,7 @@
 
 .whyCell {
   font-size: 12.5px;
-  color: #7c3aed;
+  color: var(--ai-accent, #7c3aed);
   font-weight: 600;
 }
 
@@ -715,7 +727,7 @@
 .moveBtn:focus-visible,
 .rejectBtn:focus-visible,
 .rowLink:focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid var(--ai-accent, #7c3aed);
   outline-offset: 1px;
 }
 
@@ -750,12 +762,12 @@
   text-align: start;
 }
 
-.moveMenuItem:hover { background: #f6f4fd; }
+.moveMenuItem:hover { background: var(--ai-accent-soft, #f6f4fd); }
 
 .moveCheck {
   width: 14px;
   flex-shrink: 0;
-  color: #7c3aed;
+  color: var(--ai-accent, #7c3aed);
   font-weight: 700;
 }
 
@@ -780,7 +792,7 @@
   background: none;
   font-family: inherit;
   font-size: 12px;
-  color: #7c3aed;
+  color: var(--ai-accent, #7c3aed);
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -801,8 +813,8 @@
   display: inline-block;
   margin-inline-start: 8px;
   vertical-align: 1px;
-  background: #f2edfd;
-  color: #6d28d9;
+  background: var(--ai-accent-soft, #f2edfd);
+  color: var(--ai-accent-2, #6d28d9);
   font-size: 10.5px;
   font-weight: 700;
   padding: 2px 9px;
@@ -972,21 +984,21 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  border: 1px solid #d9cdf5;
+  border: 1px solid var(--ai-accent-soft, #d9cdf5);
   border-radius: 10px;
   background: var(--ai-surface, #ffffff);
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 700;
-  color: #7c3aed;
+  color: var(--ai-accent, #7c3aed);
   cursor: pointer;
   transition: background var(--transition-fast, 0.15s) ease;
 }
 
-.askBtn:hover { background: #f6f4fd; }
+.askBtn:hover { background: var(--ai-accent-soft, #f6f4fd); }
 
 .askBtn:focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid var(--ai-accent, #7c3aed);
   outline-offset: 2px;
 }
 

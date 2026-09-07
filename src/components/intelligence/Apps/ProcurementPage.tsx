@@ -379,17 +379,54 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
   return (
     <div className={styles.page} dir={he ? 'rtl' : 'ltr'}>
       {/* -- header ------------------------------------------------------- */}
+      {/* The updated design's title row: the state pill sits beside the name
+          and the export lives up here, not in a band of its own. */}
       <div className={styles.head}>
         <div className={styles.headMark}>
           <span className={styles.headIcon}><AppGlyph icon="procurement" size={19} /></span>
           <span className={styles.headTitle}>{t('procurement.title')}</span>
         </div>
-        <span className={styles.tabOn}>{t('procurement.tab.purchase')}</span>
-        <span className={styles.tabLater}>
+        <span className={`${styles.attention} ${(summary?.orderNow ?? 0) === 0 ? styles.attentionOk : ''}`}>
+          <span className={styles.dot} />
+          {(summary?.orderNow ?? 0) > 0 ? t('procurement.attention') : t('procurement.allClear')}
+        </span>
+        {/* Fetched on demand. The page holds ten rows; the export is the
+            whole list, which is what a buyer taking this into a purchase order
+            wants — and which is exactly why it is not kept in memory. */}
+        <button
+          type="button"
+          className={styles.csvBtn}
+          disabled={exporting}
+          onClick={() => {
+            setExporting(true);
+            setExportFailed(false);
+            replenishmentService.recommendations(datasetId, { onlyDue: true, lang: language }, baseURL)
+              .then(r => downloadCsv(r.recommendations, datasetId))
+              .catch(() => setExportFailed(true))
+              .finally(() => setExporting(false));
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 4v11M7 10l5 5 5-5M4 19h16" />
+          </svg>
+          {exporting ? t('procurement.preparing') : t('procurement.downloadCsv')}
+        </button>
+      </div>
+
+      {/* Underlined section tabs — the later sections are announced, not
+          disabled controls: a span, because there is nothing to press. */}
+      <div className={styles.tabs}>
+        <span className={`${styles.tab} ${styles.tabActive}`}>
+          <TabGlyph kind="purchase" />
+          {t('procurement.tab.purchase')}
+        </span>
+        <span className={styles.tab}>
+          <TabGlyph kind="warehouse" />
           {t('procurement.tab.warehouse')}
           <span className={styles.laterPill}>{t('procurement.later')}</span>
         </span>
-        <span className={styles.tabLater}>
+        <span className={styles.tab}>
+          <TabGlyph kind="branches" />
           {t('procurement.tab.branches')}
           <span className={styles.laterPill}>{t('procurement.later')}</span>
         </span>
@@ -442,49 +479,32 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
         </div>
       )}
 
-      {/* -- status band -------------------------------------------------- */}
-      <div className={styles.band}>
-        <span className={`${styles.attention} ${(summary?.orderNow ?? 0) === 0 ? styles.attentionOk : ''}`}>
-          <span className={styles.dot} />
-          {(summary?.orderNow ?? 0) > 0 ? t('procurement.attention') : t('procurement.allClear')}
-        </span>
-        <div className={styles.stats}>
-          <div>
-            <div className={`${styles.statN} ${styles.statAlarm}`}>{nf(summary?.orderNow)}</div>
-            <div className={styles.statLabel}>{t('procurement.stat.orderNow')}</div>
-          </div>
-          <div>
-            <div className={styles.statN}>{money(summary?.estimatedTotalExVat ?? 0, locale)}</div>
-            <div className={styles.statLabel}>{t('procurement.stat.value')}</div>
-          </div>
-          <div>
-            <div className={styles.statN}>{nf(plan?.supplierCount ?? 0)}</div>
-            <div className={styles.statLabel}>{t('procurement.stat.suppliers')}</div>
-          </div>
-          <div>
-            <div className={`${styles.statN} ${styles.statWarn}`}>{nf(summary?.dueSoon)}</div>
-            <div className={styles.statLabel}>{t('procurement.stat.dueSoon')}</div>
+      {/* -- status band — the pre-groups fallback only ------------------- */}
+      {/* With the chips on, the band's figures live in the chip counts and
+          the summary text beside them; without them (a server mid-migration)
+          the four tiles are still the only place these numbers appear. */}
+      {!groupsActive && (
+        <div className={styles.band}>
+          <div className={styles.stats}>
+            <div>
+              <div className={`${styles.statN} ${styles.statAlarm}`}>{nf(summary?.orderNow)}</div>
+              <div className={styles.statLabel}>{t('procurement.stat.orderNow')}</div>
+            </div>
+            <div>
+              <div className={styles.statN}>{money(summary?.estimatedTotalExVat ?? 0, locale)}</div>
+              <div className={styles.statLabel}>{t('procurement.stat.value')}</div>
+            </div>
+            <div>
+              <div className={styles.statN}>{nf(plan?.supplierCount ?? 0)}</div>
+              <div className={styles.statLabel}>{t('procurement.stat.suppliers')}</div>
+            </div>
+            <div>
+              <div className={`${styles.statN} ${styles.statWarn}`}>{nf(summary?.dueSoon)}</div>
+              <div className={styles.statLabel}>{t('procurement.stat.dueSoon')}</div>
+            </div>
           </div>
         </div>
-        {/* Fetched on demand. The page holds ten rows; the export is the
-            whole list, which is what a buyer taking this into a purchase order
-            wants — and which is exactly why it is not kept in memory. */}
-        <button
-          type="button"
-          className={styles.csvBtn}
-          disabled={exporting}
-          onClick={() => {
-            setExporting(true);
-            setExportFailed(false);
-            replenishmentService.recommendations(datasetId, { onlyDue: true, lang: language }, baseURL)
-              .then(r => downloadCsv(r.recommendations, datasetId))
-              .catch(() => setExportFailed(true))
-              .finally(() => setExporting(false));
-          }}
-        >
-          {exporting ? t('procurement.preparing') : t('procurement.downloadCsv')}
-        </button>
-      </div>
+      )}
 
       {/* -- recalculation ------------------------------------------------ */}
       {recalc.running && (
@@ -738,27 +758,20 @@ function ProcurementSkeleton() {
       <div className={styles.head}>
         <div className={styles.headMark}>
           <Skeleton width={34} height={34} radius={10} />
-          <Skeleton width={120} height={17} radius={6} />
+          <Skeleton width={130} height={19} radius={6} />
         </div>
-        <Skeleton width={96} height={34} radius={99} />
-        <Skeleton width={130} height={34} radius={99} />
-        <Skeleton width={120} height={34} radius={99} />
+        <Skeleton width={140} height={30} radius={99} />
+        <span className={styles.skelCsv}><Skeleton width={200} height={40} radius={11} /></span>
       </div>
 
-      <div className={styles.band}>
-        <Skeleton width={150} height={32} radius={99} />
-        <div className={styles.stats}>
-          {[0, 1, 2, 3].map(i => (
-            <div key={i} className={styles.skelStat}>
-              <Skeleton width={70} height={17} radius={5} />
-              <Skeleton width={54} height={10} radius={4} />
-            </div>
-          ))}
-        </div>
-        <span className={styles.skelCsv}><Skeleton width={190} height={40} radius={11} /></span>
+      <div className={styles.tabs} style={{ paddingBottom: 10 }}>
+        <Skeleton width={92} height={20} radius={6} />
+        <Skeleton width={120} height={20} radius={6} />
+        <Skeleton width={110} height={20} radius={6} />
       </div>
 
-      <Skeleton width="100%" height={44} radius={14} />
+      {/* The chip bar's footprint, so the page does not jump when it lands. */}
+      <Skeleton width="100%" height={46} radius={12} />
 
       <div className={styles.suppliers} style={{ marginTop: 14 }}>
         {[0, 1, 2, 3, 4].map(i => (
@@ -766,6 +779,23 @@ function ProcurementSkeleton() {
         ))}
       </div>
     </div>
+  );
+}
+
+/* -- the section-tab icons ------------------------------------------------ */
+
+function TabGlyph({ kind }: { kind: 'purchase' | 'warehouse' | 'branches' }) {
+  const path = kind === 'purchase'
+    // a cart
+    ? 'M3 4h2l2.4 10.2a1.4 1.4 0 0 0 1.37 1.08h7.9a1.4 1.4 0 0 0 1.36-1.05L20 8H6.2M9.5 19.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm8.5 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z'
+    // a warehouse roofline / a row of branch buildings
+    : kind === 'warehouse'
+      ? 'M3 9.5 12 4l9 5.5V20h-4v-6H7v6H3V9.5M7 20h10'
+      : 'M3 20h18M5 20V8h6v12M13 20V4h6v16M8 11.5h.01M8 15h.01M16 8h.01M16 11.5h.01M16 15h.01';
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={path} />
+    </svg>
   );
 }
 
@@ -778,7 +808,7 @@ function Step({ n, state, title, sub }: {
   sub: string;
 }) {
   const mark = state === 'done' ? '✓' : state === 'active' ? '●' : String(n);
-  const bg = state === 'done' ? '#169e4d' : state === 'active' ? '#7c3aed' : '#e8e9f2';
+  const bg = state === 'done' ? '#169e4d' : state === 'active' ? 'var(--ai-accent, #7c3aed)' : '#e8e9f2';
   const fg = state === 'todo' ? '#8a90a3' : '#ffffff';
   return (
     <div className={styles.step} style={{ opacity: state === 'todo' ? 0.55 : 1 }}>
