@@ -182,6 +182,7 @@ export const translations: LanguageConfig = {
     // Chat table export + full-data viewer
     'chat.exportToExcel': 'Export to Excel',
     'chat.viewFullTable': 'View full table',
+    'chat.scopedSession': 'Scoped session',
     'chat.dataTableTitle': 'Data table',
     'chat.filterRows': 'Filter rows…',
     'chat.rows': 'rows',
@@ -1058,6 +1059,7 @@ export const translations: LanguageConfig = {
     // Chat table export + full-data viewer
     'chat.exportToExcel': 'ייצוא לאקסל',
     'chat.viewFullTable': 'הצג טבלה מלאה',
+    'chat.scopedSession': 'שיחה ממוקדת',
     'chat.dataTableTitle': 'טבלת נתונים',
     'chat.filterRows': 'סינון שורות…',
     'chat.rows': 'שורות',
@@ -1775,6 +1777,7 @@ export const translations: LanguageConfig = {
     'chat.sendWithCtrlEnter': 'Enviar con Ctrl+Enter',
     'chat.exportToExcel': 'Exportar a Excel',
     'chat.viewFullTable': 'Ver tabla completa',
+    'chat.scopedSession': 'Sesión enfocada',
     'chat.dataTableTitle': 'Tabla de datos',
     'chat.filterRows': 'Filtrar filas…',
     'chat.rows': 'filas',

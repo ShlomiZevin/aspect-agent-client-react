@@ -122,6 +122,21 @@ export const replenishmentService = {
 
   // ── Smart Tune: the preview's two buttons, and Undo ───────────────────
 
+  /** Current server-side state of one proposal — a card re-rendered from an
+   *  old conversation asks this before offering Process/Undo. */
+  proposalStatus: (datasetId: string, proposalId: number, baseURL?: string) =>
+    apiRequest<{
+      proposalId: number;
+      status: 'proposed' | 'executed' | 'cancelled' | 'expired';
+      expiresAt: string;
+      targetGroup: ProcurementGroup | null;
+      operation: { operationId: number; status: string; applied: number; skipped: number } | null;
+    }>(
+      `${base(datasetId)}/proposals/${encodeURIComponent(String(proposalId))}`,
+      { method: 'GET' },
+      baseURL,
+    ),
+
   executeProposal: (datasetId: string, proposalId: number, baseURL?: string) =>
     apiRequest<TuneExecuteResult>(
       `${base(datasetId)}/proposals/${encodeURIComponent(String(proposalId))}/execute`,

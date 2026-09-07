@@ -22,7 +22,7 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
   const { conversations, conversationId, switchToChat, deleteChat, deleteAllChats, duplicateChat, updateChatTitle } = useChatContext();
   const config = useAgentConfig();
   const showHistoryMgmt = !config.features.hideHistoryManagement;
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -285,6 +285,13 @@ export function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
                       <span className={styles.itemDate}>
                         {formatDate(conv.updatedAt)}
                       </span>
+                      {/* Module-scoped conversation (Aspect Modules — e.g.
+                          Smart Tune), same treatment as the channel badge. */}
+                      {conv.moduleScope && (
+                        <span className={styles.scopeBadge}>
+                          {conv.moduleScope.title?.[language === 'he' ? 'he' : 'en'] || t('chat.scopedSession')}
+                        </span>
+                      )}
                       {isWhatsApp && (
                         <span className={styles.whatsappBadge}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">

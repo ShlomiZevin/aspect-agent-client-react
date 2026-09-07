@@ -128,6 +128,14 @@ export interface Conversation {
   channel?: 'web' | 'whatsapp';
   createdAt: Date;
   updatedAt: Date;
+  /** The module scope this conversation ran in (Aspect Modules — e.g. Smart
+   *  Tune), from the server's metadata stamp. Drives the history-list tag. */
+  moduleScope?: {
+    moduleId: string;
+    scopeId: string;
+    context?: Record<string, unknown>;
+    title?: { en?: string; he?: string } | null;
+  } | null;
 }
 
 export interface ConversationHistory {

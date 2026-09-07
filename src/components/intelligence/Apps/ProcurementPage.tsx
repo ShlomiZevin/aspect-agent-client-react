@@ -2,11 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './ProcurementPage.module.css';
 import { AppGlyph } from './AppIcon';
 import { useRecalcStream } from './useRecalcStream';
-import { SmartTunePanel } from './SmartTunePanel';
 import { useJobs } from '../jobs/JobsContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { replenishmentService } from '../../../services/replenishmentService';
-import { getAgentConfig } from '../../../agents/agentRegistry';
+import type { ModuleScope } from '../../../services/chatService';
 import { formatDateOnly } from '../dateFormat';
 import { Skeleton } from '../Insights/Skeleton';
 import { PROCUREMENT_GROUPS } from '../../../types/replenishment';
@@ -24,6 +23,12 @@ interface Props {
    * question a buyer has next is rarely one this table can answer.
    */
   onAskInChat?: (question: string) => void;
+  /**
+   * Open the REAL chat widget on a module-scoped conversation (Smart Tune).
+   * Provided by the shell; the button hides without it, the same way the
+   * whole group bar hides without groupSummary.
+   */
+  onOpenScopedChat?: (scope: ModuleScope) => void;
 }
 
 /** How many item rows one supplier shows at a time. The mockup's number. */
@@ -89,7 +94,7 @@ interface OpenRows {
  * check, and a screen that paraphrases its own warnings has stopped being
  * checkable.
  */
-export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
+export function ProcurementPage({ datasetId, baseURL, onAskInChat, onOpenScopedChat }: Props) {
   const { t, language } = useLanguage();
   const he = language === 'he';
 
@@ -126,11 +131,6 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
   const [verdictError, setVerdictError] = useState(false);
   // Which row's "Move to…" menu is open — one at a time, page-wide.
   const [menuFor, setMenuFor] = useState<string | null>(null);
-
-  // ── Smart Tune ── mounted survives minimize (the conversation stays);
-  // Close unmounts and throws it away.
-  const [tuneOpen, setTuneOpen] = useState(false);
-  const [tuneMounted, setTuneMounted] = useState(false);
 
   const loadedFor = useRef<string | null>(null);
   const locale = he ? 'he-IL' : 'en-GB';
@@ -226,6 +226,24 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
     document.addEventListener('click', close);
     return () => document.removeEventListener('click', close);
   }, [menuFor]);
+
+  // Smart Tune executed (or reverted) a bulk move inside the chat widget —
+  // the chips and the open supplier's rows just went stale. The action card
+  // posts from the widget's iframe; this page listens. Same-origin only.
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      const d = e.data as { type?: string; module?: string; datasetId?: string } | null;
+      if (!d || d.type !== 'aspect:module-action' || d.module !== 'replenishment' || d.datasetId !== datasetId) return;
+      void load(groupsActive ? activeGroup : null);
+      setOpen(o => {
+        if (o) void loadRows(o.supplier, o.page, o.search);
+        return o;
+      });
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, [datasetId, load, loadRows, groupsActive, activeGroup]);
 
   /**
    * Switching language has to re-ask for the open supplier's rows.
@@ -370,9 +388,6 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
     }
   };
 
-  // Smart Tune needs the agent's chat identity; resolved from the registry,
-  // never from useAgentContext — Intelligence has no AgentProvider.
-  const agentCfg = getAgentConfig(datasetId);
   const activeGroupInfo = plan?.groupSummary?.[activeGroup];
 
   return (
@@ -462,10 +477,22 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
               .replace('{value}', money(activeGroupInfo?.estimatedCostExVat ?? 0, locale))
               .replace('{n}', nf(plan?.supplierCount ?? 0))}
           </span>
+          {onOpenScopedChat && (
           <button
             type="button"
             className={styles.tuneBtn}
-            onClick={() => { setTuneMounted(true); setTuneOpen(true); }}
+            // Opens the REAL chat widget on a conversation scoped to this
+            // module + the active group — the same chat, extended, never a
+            // second chat implementation. The bilingual title matches the
+            // scope's own declaration in the module descriptor; the label
+            // says which concrete set the conversation is about.
+            onClick={() => onOpenScopedChat({
+              moduleId: 'replenishment',
+              scopeId: 'tune',
+              context: { group: activeGroup, datasetId },
+              title: { en: 'Smart Tune', he: 'כוונון חכם' },
+              contextLabel: `${groupLabel(activeGroup)} · ${nf(activeGroupInfo?.count ?? 0)}`,
+            })}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
               <path d="M4 6h16M4 12h16M4 18h16" opacity="0.45" />
@@ -475,6 +502,7 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
             </svg>
             {t('procurement.tune.button')}
           </button>
+          )}
         </div>
       )}
 
@@ -711,33 +739,10 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
         })}
       </div>
 
-      {/* -- Smart Tune --------------------------------------------------- */}
-      {/* Keyed on the group: switching chips starts a fresh conversation in
-          the new scope rather than continuing one about the old set. Kept
-          mounted while minimized so the conversation survives; Close unmounts. */}
-      {tuneMounted && groupsActive && (
-        <SmartTunePanel
-          key={activeGroup}
-          datasetId={datasetId}
-          baseURL={baseURL}
-          agentName={agentCfg?.agentName ?? null}
-          brand={agentCfg?.displayName ?? datasetId}
-          group={activeGroup}
-          groupLabel={groupLabel(activeGroup)}
-          itemCount={activeGroupInfo?.count ?? 0}
-          supplierCount={plan?.supplierCount ?? 0}
-          dataThrough={plan?.dataThrough ?? null}
-          open={tuneOpen}
-          onMinimize={() => setTuneOpen(false)}
-          onClose={() => { setTuneOpen(false); setTuneMounted(false); }}
-          onPlanChanged={() => {
-            // Items just moved (or a move was undone) — the chips and the
-            // open supplier's rows are stale.
-            refreshPlan();
-            if (open) void loadRows(open.supplier, open.page, open.search);
-          }}
-        />
-      )}
+      {/* Smart Tune lives in the REAL chat now: the button above opens the
+          shell's chat widget on a module-scoped conversation, and executed
+          moves come back to this page via the aspect:module-action message
+          listener — no second chat implementation on this page. */}
     </div>
   );
 }

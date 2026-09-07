@@ -24,6 +24,22 @@ export interface StreamChatOptions {
   profilerFreshStart?: boolean; // Debug: ignore existing profile, start from scratch
   profilerEnabled?: boolean; // Debug: enable profiler (disabled by default)
   restrictedMode?: boolean; // Outside-user chat: use published crew version instead of active
+  moduleScope?: ModuleScope | null; // Aspect Modules scoped session (e.g. Smart Tune) — inert unless a live module validates it server-side
+}
+
+/**
+ * A module-scoped chat session (Aspect Modules — e.g. Smart Tune). Only
+ * moduleId/scopeId/context travel to the server; the display fields ride
+ * along for the banner and the history tag, and the server ignores them.
+ */
+export interface ModuleScope {
+  moduleId: string;
+  scopeId: string;
+  context?: Record<string, unknown>;
+  /** Bilingual scope name, as the module's chatScopes hook declares it. */
+  title?: { en?: string; he?: string } | null;
+  /** One human line about the concrete scope ("Order now · 2,934 items"). */
+  contextLabel?: string | null;
 }
 
 export interface CrewTransition {
@@ -69,7 +85,7 @@ export async function streamChat(
   options: StreamChatOptions,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const { message, conversationId, agentName, userId, baseURL, language, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, profilerFreshStart, profilerEnabled, restrictedMode } = options;
+  const { message, conversationId, agentName, userId, baseURL, language, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, profilerFreshStart, profilerEnabled, restrictedMode, moduleScope } = options;
   const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onModelUsed, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onReplaceMessage, onFieldExtracted, onProfileUpdate, onProfilerRaw } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
@@ -99,6 +115,14 @@ export async function streamChat(
         ...(profilerFreshStart && { profilerFreshStart: true }),
         ...(profilerEnabled && { profilerEnabled: true }),
         ...(restrictedMode && { restrictedMode: true }),
+        // Only the addressing fields — the display extras stay client-side.
+        ...(moduleScope && {
+          moduleScope: {
+            moduleId: moduleScope.moduleId,
+            scopeId: moduleScope.scopeId,
+            context: moduleScope.context || {},
+          },
+        }),
       }),
     });
 

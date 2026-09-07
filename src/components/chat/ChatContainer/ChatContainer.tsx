@@ -82,9 +82,10 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     setProfilerEnabled,
     conversationMetadata,
     restrictedMode,
+    moduleScope,
   } = useChatContext();
   const { config } = useAgentContext();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -227,6 +228,21 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
 
         {config.database?.schema && (
           <ImportingBanner baseURL={baseURL} schema={config.database.schema} />
+        )}
+
+        {/* Module-scoped session (Aspect Modules — e.g. Smart Tune): the
+            conversation runs against one module scope, and the banner says so
+            for its whole life — including when it is reopened from history,
+            where the scope comes from the conversation's own metadata stamp. */}
+        {moduleScope && (
+          <div className={styles.scopeBanner}>
+            <span className={styles.scopeBadge}>
+              ✦ {moduleScope.title?.[language === 'he' ? 'he' : 'en'] || t('chat.scopedSession')}
+            </span>
+            {moduleScope.contextLabel && (
+              <span className={styles.scopeContext}>{moduleScope.contextLabel}</span>
+            )}
+          </div>
         )}
 
         <div className={styles.messages} ref={messagesContainerRef}>
