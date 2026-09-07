@@ -1,20 +1,22 @@
 /**
  * Smart Tune — the scoped chat transport.
  *
- * Posts one turn to POST /api/agents/:agentName/chat with the standard chat
- * body (message / conversationId / userId / agentName / language — the same
- * fields the data chat sends, see chatService.ts) PLUS `moduleScope`, which is
- * what tells the server to run the module-scoped crew with the module's tools
- * (fetch_replenishment + propose_group_change) instead of the general chat.
+ * Posts one turn to POST /api/finance-assistant/turn — the server's buffered
+ * JSON chat entry (same pipeline and DB writes as the SSE /stream the main
+ * data chat uses; the legacy path name serves every agent) — with the
+ * standard body PLUS `moduleScope`, which tells the dispatcher to run the
+ * module-scoped crew with the scope's tools only (fetch_replenishment +
+ * propose_group_change) and inject the Smart Tune prompt fragment.
  *
- * The reply is parsed defensively: the endpoint is landing on the server next,
- * so a server that does not know it yet answers 404/405 — that is reported as
- * `unavailable: true` and the panel says so honestly rather than crashing.
+ * The turn response carries `toolResults` — structured tool payloads surfaced
+ * exactly for JSON clients like this panel; a result carrying `proposal` is
+ * the PREVIEW of a change: the panel renders it as a card with Process/Cancel
+ * buttons, and nothing moves until Process posts to the module's own
+ * /proposals/:id/execute route (replenishmentService) — never through chat.
  *
- * A tool result carrying `proposal` is the PREVIEW of a change: the panel
- * renders it as a card with Process/Cancel buttons, and nothing moves until
- * Process posts to the module's own /proposals/:id/execute route
- * (replenishmentService) — never through this chat.
+ * Parsed defensively all the same: a server predating the wiring answers with
+ * an ordinary un-scoped reply (moduleScope is inert there), and 404/405/501
+ * report as TuneChatUnavailableError so the panel says so honestly.
  */
 
 import { getBaseURL } from './api';
@@ -112,7 +114,7 @@ export const tuneChatService = {
     // the chat transport needs the raw STATUS to tell "this server has no tune
     // chat" (404/405/501 → the honest not-enabled bubble) from "this turn
     // failed" — apiRequest collapses both into one thrown message.
-    const url = `${req.baseURL || getBaseURL()}/api/agents/${encodeURIComponent(req.agentName)}/chat`;
+    const url = `${req.baseURL || getBaseURL()}/api/finance-assistant/turn`;
     const superKey = getSuperAdminKey();
     const response = await fetch(url, {
       method: 'POST',
