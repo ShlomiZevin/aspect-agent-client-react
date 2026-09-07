@@ -12,12 +12,22 @@
   --ai-text: #241A38;
   --ai-text-dim: #6E6584;
   --ai-text-mute: #8B80A0;
-  --ai-accent: #7C3AED;
-  --ai-accent-2: #C026D3;
-  --ai-accent-soft: #F1EAFA;
-  --ai-accent-soft-2: #FBEDFA;
-  --ai-grad: linear-gradient(135deg, #7C3AED, #C026D3);
-  --ai-grad-mark: linear-gradient(135deg, #8B5CF6, #D946EF);
+  /* Derived from the agent's own theme-<slug> class (applied to <html> by
+   * IntelligenceShell.tsx) so every dataset gets its real brand colour
+   * without a hand-written [data-brand=X] block below — that list rots
+   * (hypertoy and tevanaot both sat on the platform's default purple until
+   * this existed, unnoticed, because nothing forces a new block per client).
+   * Falls back to the platform purple for the couple of datasets with no
+   * chat theme file (e.g. superhist, which keeps its own override below). */
+  --ai-accent: var(--primary-color, #7C3AED);
+  --ai-accent-2: var(--primary-hover, #C026D3);
+  --ai-accent-soft: color-mix(in srgb, var(--ai-accent) 10%, transparent);
+  --ai-accent-soft-2: color-mix(in srgb, var(--ai-accent-2) 12%, transparent);
+  --ai-grad: var(--gradient, linear-gradient(135deg, #7C3AED, #C026D3));
+  /* The small logo-mark badge only, so the full two-colour brand (incl. a
+   * bright secondary like zolstock's yellow) is fine here even where the
+   * page-wide --ai-grad above deliberately stays monochromatic. */
+  --ai-grad-mark: linear-gradient(135deg, var(--ai-accent), var(--secondary-color, var(--ai-accent-2)));
   --ai-success: #12996B;
   --ai-success-2: #22C55E;
   --ai-negative: #C2410C;

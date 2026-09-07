@@ -121,6 +121,22 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   const datasetAgent = getAgentConfig(datasetId);
   const baseURL = datasetAgent?.baseURL;
 
+  // Every agent already ships a `theme-<slug>` class (required for its own
+  // chat page — see styles/themes/*.css) carrying --primary-color/-hover and
+  // --gradient. Applying it to <html> here lets IntelligenceShell.module.css
+  // derive this dataset's OWN brand colour generically (`var(--primary-color,
+  // <purple fallback>)`) instead of needing a hand-written `[data-brand=X]`
+  // override per client — hypertoy and tevanaot were both silently stuck on
+  // the platform's default purple for exactly that reason before this. Safe
+  // to do outside AgentProvider (unlike useAgentContext(), which throws here):
+  // this only toggles a class, it reads no context.
+  useEffect(() => {
+    const cls = datasetAgent?.themeClass;
+    if (!cls) return;
+    document.documentElement.classList.add(cls);
+    return () => { document.documentElement.classList.remove(cls); };
+  }, [datasetAgent?.themeClass]);
+
   // Does this dataset have an Apps shelf at all? The nav item appears when at
   // least ONE app-group module is live, which is what makes Apps a shelf rather
   // than a hardcoded route: switching Procurement off in the admin tab empties

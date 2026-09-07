@@ -11,14 +11,6 @@ interface DataLoaderPageProps {
   schemaName: string;
 }
 
-// Schemas whose source folder is mirrored from Google Drive. zer4u/hypertoy
-// are hardcoded in server/services/drive-to-gcs.service.js's CLIENTS map;
-// any other schema (e.g. zolstock) is supported generically there via a
-// DB-configured folder ID (Data Loader → Configuration → Drive Sync) — this
-// list only gates the button's visibility, so it must be kept in sync with
-// whichever schemas actually have a folder ID configured.
-const DRIVE_SYNC_SCHEMAS = ['zer4u', 'hypertoy', 'zolstock'];
-
 // A schedule entry is just { enabled, hour, minute } - no cron syntax
 // anywhere on the client. See services/schedule-config.service.js /
 // services/scheduler-tick.service.js on the server: one Cloud Scheduler job
@@ -91,7 +83,11 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
 
   const runStatus = currentRun?.status;
   const isBusy = runStatus === 'running' && isLive;
-  const supportsDriveSync = DRIVE_SYNC_SCHEMAS.includes(schemaName);
+  // The manual Drive-sync button shows whenever this schema has a Drive folder
+  // configured (coded default in drive-to-gcs.service.js's CLIENTS map, or a
+  // DB override set from Configuration → Drive Sync). `driveFolderId` is loaded
+  // from /settings on mount, so this is '' for the first render then resolves.
+  const supportsDriveSync = !!driveFolderId;
 
   const loadData = useCallback(async () => {
     try {
