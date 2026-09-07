@@ -58,13 +58,19 @@ export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose, age
       title={trigger.name || type?.displayName || 'Trigger'}
       badge={type?.displayName}
       footer={
-        <div className={styles.footer}>
-          <button type="button" className={styles.dangerBtn} onClick={onDelete}>Delete</button>
-          <span className={styles.spacer} />
+        /* Two rows. Testing is not a form action — sharing a line with
+           Delete and Done put three unrelated jobs side by side and made
+           "Run it now" read like a way of saving. */
+        <div className={styles.footerStack}>
           {agentSlug && (
-            <TriggerTestButtons agentSlug={agentSlug} agent={agent} trigger={trigger} onRan={onRan} />
+            <TriggerTestButtons agentSlug={agentSlug} agent={agent} trigger={trigger}
+              onRan={onRan} onDone={onClose} />
           )}
-          <button type="button" className={styles.primaryBtn} onClick={onClose}>Done</button>
+          <div className={styles.footer}>
+            <button type="button" className={styles.dangerBtn} onClick={onDelete}>Delete</button>
+            <span className={styles.spacer} />
+            <button type="button" className={styles.primaryBtn} onClick={onClose}>Done</button>
+          </div>
         </div>
       }
     >

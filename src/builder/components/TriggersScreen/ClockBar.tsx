@@ -10,33 +10,10 @@
  * agent's screen. That's in the copy rather than hidden, because
  * somebody pausing it here needs to know they just paused it everywhere.
  *
- * ── The test buttons ───────────────────────────────────────────────
- *
- * Both act on THIS agent and on the ONE chat open in the builder chat
- * panel. Neither is system-wide, and that is the point: a button that
- * could message everyone who happens to be due, across every agent, is
- * not something a person should be able to press while building.
- * Sweeping the world is the clock's job, and the clock alone does it.
- *
- *   Will any trigger?   asks. Reports whether that chat is due and
- *                      shows the numbers. Starts nothing.
- *   Run them all now   does. Runs them whether or not they are due.
- *
- * The verbs differ on purpose: "Will any run?" sat next to "Run them
- * all now" and could be read as asking whether pressing the button
- * runs something. "Trigger" asks about the triggers themselves.
- *
- * They sit on their OWN line, not among the schedule controls. The
- * schedule row answers "when does this run on its own"; these answer
- * "try it right now". Two different jobs in one row is what made every
- * earlier attempt look cramped, and no styling fixes that.
- *
- * The same pair, narrowed to one trigger, lives in the trigger editor.
- *
- * Both the label and the buttons avoid jargon and avoid ids. Earlier
- * tries — "Round on #2342", "Check", "What's due", "On the open chat"
- * — each assumed the reader already knew something: what a round is,
- * what due means, or which chat "this" refers to.
+ * Testing lives in its own panel beside this one — see AgentTestPanel.
+ * It was nested inside this box for a while, which implied the test
+ * buttons depended on the clock. They do not: they work while it is
+ * paused, and that is most of the point of them.
  *
  * While it's running this polls, so both hosting screens refresh on
  * their own as fires land. It stops polling the moment the clock is
@@ -46,11 +23,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  fetchClockHealth, setClockEnabled, updateClockSettings, fireRound,
+  fetchClockHealth, setClockEnabled, updateClockSettings,
   type ClockHealth,
 } from '../../state/triggersApi';
-import { useBuilder } from '../../state/BuilderContext';
-import { bodyOfAgent, bodyOfCrew } from '../../state/useProjectSync';
 import styles from './TriggersScreen.module.css';
 
 interface Props {
@@ -77,12 +52,8 @@ function intervalLabel(sec: number): string {
 }
 
 export function ClockBar({ agentSlug, onTicked }: Props) {
-  // The conversation the builder chat currently has open — the only one
-  // the per-conversation round is allowed to touch.
-  const { doc, previewConversationId } = useBuilder();
   const [health, setHealth] = useState<ClockHealth | null>(null);
   const [busy, setBusy] = useState(false);
-  const [lastRun, setLastRun] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Kept in a ref so the poll below doesn't restart every time the host
@@ -133,58 +104,6 @@ export function ClockBar({ agentSlug, onTicked }: Props) {
     }
   };
 
-  // Act on ONLY the chat open beside this screen. Sends the working
-  // copies, so it exercises exactly what is on screen.
-  const roundOnConversation = async (mode: 'simulate' | 'force') => {
-    if (previewConversationId === null) return;
-    setBusy(true);
-    setLastRun(null);
-    try {
-      const agent = doc.agents.find(a => a.slug === agentSlug) || doc.agents[0];
-      const r = await fireRound({
-        agentSlug,
-        mode,
-        conversationId: previewConversationId,
-        triggers: agent?.triggers?.triggers,
-        overrideAgentBody: agent ? bodyOfAgent(agent) : undefined,
-        overrideCrewBodies: agent
-          ? Object.fromEntries(agent.crews.map(c => [c.id, bodyOfCrew(c)]))
-          : undefined,
-      });
-      // Name what happened per trigger. A bare "0 sent" is the least
-      // useful thing it could say — the reason each one stood down is
-      // the answer the author came for.
-      //
-      // "ran → no message" is a normal outcome and is worded so it
-      // reads that way: a trigger starts a CHAIN, and whether that
-      // chain ends in a message is the chain's business, not the
-      // trigger's.
-      const parts = r.results.map(x => `${x.name || x.triggerId}: ${
-        x.outcome === 'spoke'       ? 'ran → sent a message'
-        : x.outcome === 'silent'    ? 'ran → no message'
-        : x.outcome === 'would_run' ? `would run now — ${x.why}`
-        : x.outcome === 'not_due'   ? `not due yet — ${x.why}`
-        : x.outcome === 'skipped'   ? `skipped — ${x.why}`
-        : x.outcome === 'filtered'  ? 'blocked by conditions'
-        : x.outcome === 'quiet_hours' ? 'held — quiet hours'
-        : `failed — ${x.why || 'unknown'}`}`);
-      const head = mode === 'simulate' ? 'Checked the open chat' : 'Ran on the open chat';
-      setLastRun(
-        (r.masterOff ? 'This agent’s Triggers switch is off — the clock would skip it. ' : '')
-        + (r.results.length === 0
-            ? `${head}: this agent has no triggers yet.`
-            : `${head} — ${parts.join(' · ')}`),
-      );
-      setError(null);
-      onTickedRef.current?.();
-      void load();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const watching = health?.agentsWithTriggers?.length ?? 0;
 
   return (
@@ -207,7 +126,12 @@ export function ClockBar({ agentSlug, onTicked }: Props) {
       </div>
 
       <div className={styles.clockActions}>
-        <label className={styles.clockField}>
+        {/* The precision caveat belongs to THIS control — it is a
+            consequence of the interval — so it hangs off it as a
+            tooltip. It used to be a permanent line under the strip,
+            which spent a full row on something that never changes and
+            that nobody needs twice. */}
+        <label className={styles.clockField} title={health?.precisionNote || undefined}>
           <span className={styles.clockFieldLabel}>Every</span>
           <select
             className={styles.clockSelect}
@@ -266,46 +190,17 @@ export function ClockBar({ agentSlug, onTicked }: Props) {
           The buttons are a question and a command, and they look
           unalike on purpose: the one that can message a real person
           carries the accent, the one that only reads does not. */}
-      <div className={styles.testRow}>
-        {/* Follows the state rather than assuming one. "Try it on the
-            chat you have open" is a lie when there is no chat open, and
-            it leaves the reader to work out why the buttons are grey.
-            Saying what to do instead is the same sentence's job. */}
-        <span className={styles.testRowLabel}>
-          {previewConversationId === null
-            ? 'Start a chat, or open one from history, to try your triggers on it'
-            : 'Try it on the chat you have open'}
-        </span>
-        <span className={styles.testRowBtns}>
-          <button className={styles.checkBtn} disabled={busy || previewConversationId === null}
-            onClick={() => void roundOnConversation('simulate')}
-            title={previewConversationId === null
-              ? 'Open a chat in the chat panel first — these only ever act on that one chat.'
-              : 'Just tells you. Asks every trigger on this agent whether it would go off for that chat right now, and shows the numbers. It starts nothing: nothing runs and nothing is sent.'}>
-            Will any trigger?
-          </button>
-          <button className={styles.forceBtn} disabled={busy || previewConversationId === null}
-            onClick={() => void roundOnConversation('force')}
-            title={previewConversationId === null
-              ? 'Open a chat in the chat panel first — these only ever act on that one chat.'
-              : 'Actually runs every trigger on this agent against that chat now, even ones that are not due yet. It counts as a real run: it uses up an attempt and appears in Admin.'}>
-            <span className={styles.runIcon} aria-hidden>▶</span>
-            Run them all now
-          </button>
-        </span>
-      </div>
-
-      {(lastRun || error || health?.modeHint || health?.precisionNote) && (
+      {/* Only things that need acting on. Run results moved to the
+          Activity panel; the precision caveat became a tooltip on the
+          interval it describes. What is left appears when there is
+          genuinely something wrong, and takes no room otherwise. */}
+      {(error || health?.modeHint) && (
         <div className={styles.clockFoot}>
           {error && <span className={styles.errText}>{error}</span>}
-          {!error && lastRun && <span>{lastRun}</span>}
           {/* A zero that explains itself. "Watching 0 agents" with no
               reason is what sent somebody hunting through the code. */}
-          {!error && !lastRun && health?.modeHint && (
+          {!error && health?.modeHint && (
             <span className={styles.warnText}>{health.modeHint}</span>
-          )}
-          {!error && !lastRun && !health?.modeHint && (
-            <span className={styles.mutedText}>{health?.precisionNote}</span>
           )}
         </div>
       )}

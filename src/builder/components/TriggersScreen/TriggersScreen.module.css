@@ -334,20 +334,13 @@
    deliberately different weight: ghost for the safe one, accent border
    for the one that acts. Shared by the clock strip and the trigger
    editor so the same pair means the same thing in both places. */
-/* Its own line under the schedule row, matching .clockFoot's hairline
-   so the box reads as stacked bands rather than a row with something
-   bolted onto the end. */
-.testRow {
-  grid-column: 1 / -1;
-  display: flex; align-items: center; gap: 12px;
-  padding-top: 9px;
-  border-top: 1px dashed var(--border-color, #e5e7eb);
-}
-.testRowLabel {
-  font-size: 12px; color: var(--text-secondary, #4b5563); min-width: 0;
-  /* Never pushes the buttons off the row; the sentence is the part that
-     can afford to be clipped. */
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+/* The agent-wide test panel: a sibling of the clock box, same visual
+   weight, its own card. Reuses .testStrip so it and the one inside a
+   trigger cannot drift apart. */
+.testPanel { display: flex; flex-direction: column; }
+.testPanel > .testStrip { margin-bottom: 0; }
+.testPanelErr {
+  margin-top: 8px; font-size: 12px; color: #c5221f;
 }
 /* Grid, not flex, so the two buttons are the SAME width — both size to
    the wider label. As a flex row they came out different lengths, which
@@ -387,3 +380,235 @@
 }
 
 
+
+/* ── Activity panel ──
+   Beside the Watching lane, not under it: the lane answers "what have I
+   set up" and this answers "what is it doing", and those are read
+   together. Fixed width so the cards never reflow when a run lands. */
+.workRow { display: flex; align-items: stretch; gap: 14px; }
+.workRow > .lane { flex: 1; min-width: 0; }
+
+.activity {
+  flex: none;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  /* Tall by default so "running now" has a fixed place to appear,
+     rather than the panel growing and shoving the page around. */
+  min-height: 320px;
+  max-height: 560px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  overflow: hidden;
+}
+
+.activityHead {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-input, #fafafa);
+}
+.activityTitle { font-size: 12px; font-weight: 700; color: var(--text-primary, #111827); }
+.activitySub { font-size: 11px; color: var(--text-tertiary, #9ca3af); }
+
+.activityErr {
+  padding: 8px 12px; font-size: 11.5px; color: #c5221f;
+  border-bottom: 1px solid var(--border-color, #f1f3f5);
+}
+
+.activityEmpty {
+  padding: 14px 12px; font-size: 11.5px; line-height: 1.6;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+/* Pinned above the list, and padded to line up with the cards below
+   so the running one reads as the newest entry rather than a banner. */
+.activityRunning {
+  padding: 8px 8px 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+/* Cards with air between them, not rows on one surface: two entries
+   with the same tint sitting flush merged into a single block, which is
+   what made the feed hard to read down. */
+.activityList {
+  margin: 0; list-style: none;
+  padding: 8px;
+  display: flex; flex-direction: column; gap: 6px;
+  overflow-y: auto; min-height: 0;
+}
+
+.aRow {
+  display: flex; gap: 9px; align-items: flex-start;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-color, #f4f5f7);
+}
+.aRow:last-child { border-bottom: 0; }
+
+.aBody { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.aLine { font-size: 11.5px; line-height: 1.45; color: var(--text-primary, #111827); }
+.aWhen { font-size: 10.5px; color: var(--text-tertiary, #9ca3af); line-height: 1.4; }
+.aAnswer { font-size: 11px; line-height: 1.5; color: var(--text-secondary, #4b5563); }
+.aAsked { color: var(--text-secondary, #4b5563); }
+.aErr { font-size: 11px; line-height: 1.5; color: #c5221f; }
+
+.aDotOk, .aDotQuiet, .aDotBad {
+  width: 7px; height: 7px; border-radius: 50%; flex: none; margin-top: 5px;
+}
+.aDotOk    { background: #0f9d58; box-shadow: 0 0 0 3px rgba(15,157,88,.14); }
+.aDotQuiet { background: var(--text-tertiary, #c3c8d2); }
+.aDotBad   { background: #c5221f; box-shadow: 0 0 0 3px rgba(197,34,31,.12); }
+
+.aDotAsk {
+  width: 14px; height: 14px; border-radius: 50%; flex: none; margin-top: 1px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 800;
+  color: var(--text-tertiary, #9ca3af);
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-input, #fafafa);
+}
+
+/* Something is happening RIGHT NOW. The only moving thing on the
+   screen, because that is exactly the message. */
+.aSpinner {
+  width: 11px; height: 11px; flex: none; margin-top: 3px;
+  border-radius: 50%;
+  border: 2px solid rgba(15,157,88,.25);
+  border-top-color: #0f9d58;
+  animation: aspin 700ms linear infinite;
+}
+@keyframes aspin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .aSpinner { animation: none; border-top-color: rgba(15,157,88,.25); }
+}
+
+@media (max-width: 1100px) {
+  .workRow { flex-direction: column; }
+  .activity { width: auto; max-height: 320px; }
+}
+
+/* ── modal footer, two rows ── */
+.footerStack { display: flex; flex-direction: column; width: 100%; }
+/* The buttons sit hard against the panel's right edge. */
+.testStrip .testRowBtns { margin-inline-start: auto; }
+
+/* The testing panel.
+   Its own tinted band with a title, rather than a hairline-separated
+   row: testing is a different job from Delete and Done, and a bare row
+   left the buttons visually unattached to the words explaining them. */
+.testStrip {
+  display: flex; align-items: center; gap: 11px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 9px;
+  background: var(--bg-input, #fafafa);
+}
+
+.testIcon {
+  flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 7px;
+  font-size: 10px;
+  color: var(--primary-color, #6366f1);
+  background: color-mix(in srgb, var(--primary-color, #6366f1) 11%, transparent);
+}
+
+.testText { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.testTitle {
+  font-size: 12px; font-weight: 700; color: var(--text-primary, #111827);
+  line-height: 1.35;
+}
+.testHint, .testHintWarn {
+  font-size: 11px; line-height: 1.4;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.testHint     { color: var(--text-tertiary, #9ca3af); }
+/* The blocking case is the one people get stuck on, so it is not grey. */
+.testHintWarn { color: #92400e; }
+
+/* ── Activity entries ──
+   Three fields in fixed places: who, what state, why. Scannable down a
+   column in a way a sentence per entry never is. */
+.aEntry {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  border-inline-start-width: 3px;
+}
+
+/* Did anything actually HAPPEN? Green ran, amber nothing yet, red
+   failed. Tint, hairline and edge stripe together — a tint alone was
+   too faint to survive against a white card, and the stripe is what
+   the eye follows down a column. */
+.entryRan  { background: #f2faf6; border-color: #d3e9dd; border-inline-start-color: #34a853; }
+.entryIdle { background: #fffbf0; border-color: #f0e2bd; border-inline-start-color: #eab308; }
+.entryBad  { background: #fdf3f3; border-color: #f2d3d2; border-inline-start-color: #c5221f; }
+
+/* TIER 1 — something YOU pressed, as opposed to something that
+   happened. Indigo and flat rather than tinted green/amber/red, because
+   an action has no outcome of its own: its outcomes are the cards under
+   it. Drawn the same as a result card, one run produced two entries you
+   could not tell apart. */
+.entryAction {
+  background: color-mix(in srgb, var(--primary-color, #6366f1) 5%, transparent);
+  border-color: color-mix(in srgb, var(--primary-color, #6366f1) 20%, transparent);
+  border-inline-start-color: var(--primary-color, #6366f1);
+}
+.entryAction .aScopeAll { color: var(--text-primary, #111827); font-weight: 600; }
+
+/* Scope: "everything on this agent" versus one named trigger. A bare
+   grey word for both left them indistinguishable at a glance, which
+   matters most when the rest of the entry says nearly the same thing. */
+/* Words, not a chip. The entry already carries one pill; a second made
+   it top-heavy. Saying "all triggers" only when it IS all of them is
+   what distinguishes the two cases. */
+.aScopeAll {
+  font-size: 10.5px; color: var(--text-secondary, #6b7280);
+  white-space: nowrap; flex: none;
+}
+.aScopeAll::before { content: '\00b7'; margin-inline-end: 5px; color: var(--text-tertiary, #b6bcc7); }
+
+/* A light meta line — who pressed what, and when. Deliberately plain
+   text: it frames the result rather than competing with it. */
+.aTop {
+  display: flex; align-items: baseline; gap: 6px;
+  margin-bottom: 3px;
+}
+.aKind, .aKindRun {
+  font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+}
+.aKind    { color: var(--text-tertiary, #9ca3af); }
+.aKindRun { color: var(--primary-color, #6366f1); }
+.aTop .aWhen { margin-inline-start: auto; flex: none; }
+.aWhen { font-size: 10.5px; color: var(--text-tertiary, #b6bcc7); }
+
+.aNote {
+  font-size: 11px; line-height: 1.5; color: #92400e;
+  background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px;
+  padding: 5px 7px; margin-bottom: 6px;
+}
+
+.aLine { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; margin-top: 3px; }
+.aLine:first-of-type { margin-top: 0; }
+.aName { font-size: 11.5px; font-weight: 700; color: var(--text-primary, #111827); }
+.aDetail {
+  flex-basis: 100%;
+  font-size: 11px; line-height: 1.5; color: var(--text-secondary, #6b7280);
+}
+
+.pill {
+  flex: none;
+  font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
+  border-radius: 999px; padding: 2px 7px; white-space: nowrap;
+}
+/* Grey is NOT one of the weights for "did not run" — grey read as
+   disabled rather than as an answer. Amber is the colour of "nothing
+   happened yet": not-due, skipped, held and blocked are all that. */
+.pillOk    { color: #0b6b3f; background: #e7f6ee; border: 1px solid #9fd6b8; }
+.pillMuted { color: #334155; background: #eef2f7; border: 1px solid #cbd5e1; }
+.pillWarn  { color: #92400e; background: #fef3c7; border: 1px solid #f0c869; }
+.pillBad   { color: #a51b18; background: #fdecec; border: 1px solid #f5c2c0; }
+.pillRun   { color: #0b6b3f; background: #d8f0e3; border: 1px solid #7cc79f; }

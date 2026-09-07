@@ -220,6 +220,14 @@ export function TriggersTab({ agentSlug }: Props) {
                     #{ev.conversationId}
                   </a>
                   <span className={styles.evName}>{nameOf(ev.triggerId)}</span>
+                  {/* "Did a person do this, or did it happen on its own?"
+                      is the question this feed exists for, and until the
+                      source column it could not be answered at all. */}
+                  {ev.source === 'manual' && (
+                    <span className={styles.byHand} title="Started by hand from the builder, not by the clock">
+                      by hand
+                    </span>
+                  )}
                   <span className={styles.evReason}>{ev.matchReason}</span>
                   <span className={styles.evWhen} title={new Date(ev.matchedAt).toLocaleString()}>
                     {relative(ev.matchedAt)}

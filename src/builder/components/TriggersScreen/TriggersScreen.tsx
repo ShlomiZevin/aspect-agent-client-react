@@ -22,6 +22,9 @@ import { ClockBar } from './ClockBar';
 import { TriggerCard } from './TriggerCard';
 import { TriggerEditor } from './TriggerEditor';
 import { AddTriggerModal } from './AddTriggerModal';
+import { TriggerActivity } from './TriggerActivity';
+import { AgentTestPanel } from './AgentTestPanel';
+import { ActivityLogProvider } from './ActivityLogProvider';
 import { TriggersGuideModal } from '../TriggersGuide';
 import { fetchTriggerStatus, type TriggerStatusRow } from '../../state/triggersApi';
 import type { AgentTrigger, ID } from '../../types';
@@ -31,8 +34,21 @@ function uid(prefix: string): ID {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`;
 }
 
+/**
+ * Wrapped so the clock strip and the trigger modal can both write to
+ * the Activity panel without being handed a logger through components
+ * that do not care about one.
+ */
 export function TriggersScreen() {
-  const { doc, updateAgent } = useBuilder();
+  return (
+    <ActivityLogProvider>
+      <TriggersScreenInner />
+    </ActivityLogProvider>
+  );
+}
+
+function TriggersScreenInner() {
+  const { doc, updateAgent, previewConversationId } = useBuilder();
   const confirm = useConfirm();
   const agent = doc.agents[0];
   const slug = agent?.slug;
@@ -158,8 +174,19 @@ export function TriggersScreen() {
         </label>
       </div>
 
+      {/* Two panels, not one inside the other. The clock is system-wide
+          operations — is the schedule on, how often, which version — and
+          is mostly a developer's concern. Testing is authoring: this
+          agent, the chat on screen, and it works while the clock is
+          paused. Nesting them implied the second depended on the first. */}
       {slug && <ClockBar agentSlug={slug} onTicked={loadStatus} />}
+      {slug && <AgentTestPanel agentSlug={slug} onRan={loadStatus} />}
 
+      {/* Cards on the left, Activity on the right. The panel is as tall
+          as the lane on purpose: "is something running right now?" is a
+          question you glance at, and a short box that grew and shrank
+          with its contents would move the cards every time. */}
+      <div className={styles.workRow}>
       <div className={styles.lane}>
         <div className={styles.laneHead}>
           <span className={styles.laneName}>Watching</span>
@@ -193,6 +220,15 @@ export function TriggersScreen() {
               Read how they work
             </button>
           </p>
+        )}
+      </div>
+
+        {slug && (
+          <TriggerActivity
+            agentSlug={slug}
+            conversationId={previewConversationId}
+            triggers={triggers}
+          />
         )}
       </div>
 

@@ -75,6 +75,12 @@ export interface TriggerEventRow {
   status: 'running' | 'done';
   outcome: TriggerOutcome | null;
   matchReason: string | null;
+  /**
+   * Who set this off: 'manual' when a person pressed a button in the
+   * builder; absent means the clock. A field rather than a phrase
+   * hidden in `matchReason`, which carries the arithmetic.
+   */
+  source?: string | null;
   filterResult: ClauseResult[] | null;
   briefUsed: string | null;
   launchedCrewId: string | null;
