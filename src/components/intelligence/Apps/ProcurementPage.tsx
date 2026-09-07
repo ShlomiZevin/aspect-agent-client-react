@@ -251,8 +251,6 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
   const summary = plan?.summary ?? null;
   const excludedInfo = plan?.excluded ?? { items: 0, suppliers: [] };
 
-  const setCount = suppliers.filter(sp => sp.leadTimeSource === 'supplier').length;
-
   if (loading) return <ProcurementSkeleton />;
   if (error) {
     // The server's message is English and this page is bilingual, so the raw
@@ -263,8 +261,9 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
 
   const openEdit = (sp: PlanSupplier) => {
     setEditingSupplier(sp.supplier);
-    setEditValue(sp.leadTimeSource === 'supplier' && sp.leadTimeDays !== null
-      ? String(sp.leadTimeDays) : '');
+    // The EFFECTIVE days, default included — the buyer edits the number they
+    // are looking at, not an empty box they must remember it into.
+    setEditValue(sp.leadTimeDays !== null ? String(sp.leadTimeDays) : '');
     setSaveError(null);
   };
 
@@ -548,17 +547,17 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
       {exportFailed && <div className={styles.errorBox}>{t('procurement.exportFailed')}</div>}
       {verdictError && <div className={styles.errorBox}>{t('procurement.groups.moveFailed')}</div>}
 
-      {/* -- the delivery-time notice ------------------------------------- */}
-      <div className={styles.notice}>
-        {t('procurement.leadNotice')
-          .replace('{set}', nf(setCount))
-          .replace('{total}', nf(suppliers.length))}
-        {excludedInfo.items > 0 && (
-          <> {t('purchasing.excludedNote')
+      {/* Excluded suppliers are still disclosed — that is a data-honesty
+          line, not decoration. The general delivery-time sentence is gone
+          per the updated design; the per-supplier "default — set it" chips
+          carry that story now. */}
+      {excludedInfo.items > 0 && (
+        <div className={styles.notice}>
+          {t('purchasing.excludedNote')
             .replace('{n}', nf(excludedInfo.items))
-            .replace('{suppliers}', excludedInfo.suppliers.join(', '))}</>
-        )}
-      </div>
+            .replace('{suppliers}', excludedInfo.suppliers.join(', '))}
+        </div>
+      )}
 
       {/* -- suppliers ---------------------------------------------------- */}
       <div className={styles.suppliers}>
@@ -604,11 +603,11 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat }: Props) {
                         aria-label={t('purchasing.modal.label')}
                       />
                       <span className={styles.statLabel}>{t('procurement.days')}</span>
-                      <button type="button" className={`${styles.linkBtn} ${styles.linkStrong}`}
+                      <button type="button" className={styles.saveBtn}
                         onClick={() => void saveLeadTime(sp)}>
                         {t('procurement.saveRecalc')}
                       </button>
-                      <button type="button" className={`${styles.linkBtn} ${styles.linkMuted}`}
+                      <button type="button" className={styles.cancelEditBtn}
                         onClick={() => setEditingSupplier(null)}>
                         {t('purchasing.cancel')}
                       </button>
