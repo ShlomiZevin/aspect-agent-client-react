@@ -83,6 +83,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     conversationMetadata,
     restrictedMode,
     moduleScope,
+    sendMessage,
   } = useChatContext();
   const { config } = useAgentContext();
   const { t, language } = useLanguage();
@@ -247,7 +248,29 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
 
         <div className={styles.messages} ref={messagesContainerRef}>
           {!hasStartedChat ? (
-            <WelcomeSection />
+            // A scoped conversation opens on ITS OWN intro — what this scope
+            // is about and what can be asked — never the agent's generic
+            // quick-question welcome, which belongs to the whole dataset. The
+            // content comes from the module surface that opened the scope.
+            moduleScope?.welcome ? (
+              <div className={styles.scopedWelcome}>
+                <div className={styles.scopedIntro}>{moduleScope.welcome.intro}</div>
+                <div className={styles.scopedHints}>
+                  {moduleScope.welcome.hints.map(h => (
+                    <button
+                      key={h}
+                      type="button"
+                      className={styles.scopedHint}
+                      onClick={() => void sendMessage(h)}
+                    >
+                      {h}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <WelcomeSection />
+            )
           ) : (
             <>
               {(() => {

@@ -40,6 +40,13 @@ export interface ModuleScope {
   title?: { en?: string; he?: string } | null;
   /** One human line about the concrete scope ("Order now · 2,934 items"). */
   contextLabel?: string | null;
+  /**
+   * What the empty scoped conversation opens with, instead of the agent's
+   * generic welcome: an intro line and click-to-send hint questions. Composed
+   * by the module surface that opened the scope (it knows the counts and the
+   * user's current language); only ever shown before the first message.
+   */
+  welcome?: { intro: string; hints: string[] } | null;
 }
 
 export interface CrewTransition {

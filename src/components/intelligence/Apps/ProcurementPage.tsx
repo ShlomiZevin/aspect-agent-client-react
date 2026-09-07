@@ -5,6 +5,7 @@ import { useRecalcStream } from './useRecalcStream';
 import { useJobs } from '../jobs/JobsContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { replenishmentService } from '../../../services/replenishmentService';
+import { getAgentConfig } from '../../../agents/agentRegistry';
 import type { ModuleScope } from '../../../services/chatService';
 import { formatDateOnly } from '../dateFormat';
 import { Skeleton } from '../Insights/Skeleton';
@@ -492,6 +493,17 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat, onOpenScopedC
               context: { group: activeGroup, datasetId },
               title: { en: 'Smart Tune', he: 'כוונון חכם' },
               contextLabel: `${groupLabel(activeGroup)} · ${nf(activeGroupInfo?.count ?? 0)}`,
+              // The empty conversation opens with THIS instead of the agent's
+              // generic welcome — composed here because this page knows the
+              // counts and the user's current language.
+              welcome: {
+                intro: t('procurement.tune.intro')
+                  .replace('{brand}', getAgentConfig(datasetId)?.displayName ?? datasetId)
+                  .replace('{group}', groupLabel(activeGroup))
+                  .replace('{n}', nf(activeGroupInfo?.count ?? 0))
+                  .replace('{m}', nf(plan?.supplierCount ?? 0)),
+                hints: [t('procurement.tune.chip1'), t('procurement.tune.chip2'), t('procurement.tune.chip3')],
+              },
             })}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
