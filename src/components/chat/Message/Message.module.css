@@ -214,12 +214,33 @@
 }
 
 /* Table styles */
+/* A bubble that carries a table stretches to the row's width (a margin is
+   kept on the opposite side) — 75% of a docked widget truncated half the
+   columns. Applied only to table-bearing bot messages, so prose bubbles
+   keep their reading measure. */
+.messageWide {
+  max-width: calc(100% - 48px);
+}
+
+/* The scroll home for every markdown table: when compactness is still not
+   enough, columns scroll INSIDE this container — never truncate, never
+   stretch the page. */
+.tableScroll {
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 0.9em 0;
+}
+
 .markdownContent table {
-  width: 100%;
   border-collapse: collapse;
-  margin: 1em 0;
-  font-size: 0.9em;
-  min-width: 500px;
+  margin: 0;
+  /* Compact by default — these tables are data-dense, not prose. */
+  font-size: 0.82em;
+  line-height: 1.35;
+  /* Natural width: fill the bubble when narrow, exceed it (and scroll in
+     .tableScroll) when the columns genuinely need more room. */
+  width: max-content;
+  min-width: 100%;
 }
 
 .markdownContent thead {
@@ -228,9 +249,12 @@
 
 .markdownContent th,
 .markdownContent td {
-  padding: 0.6em 0.8em;
+  padding: 0.35em 0.55em;
   text-align: left;
   border: 1px solid var(--border);
+  /* Cells hold their line; width pressure becomes horizontal scroll in
+     .tableScroll instead of the ragged mid-word wrapping it replaced. */
+  white-space: nowrap;
 }
 
 .markdownContent th {

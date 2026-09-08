@@ -921,7 +921,10 @@ function ItemRow({
   const showBadge = groupsActive && rowGroup !== undefined && rowGroup !== activeGroup;
 
   return (
-    <div className={styles.itemWrap}>
+    // The open Move-to menu must paint over the FOLLOWING rows — each row's
+    // cells carry z-index:1 (the disclosure-overlay pattern), so without
+    // raising this wrapper the menu threaded between later rows' buttons.
+    <div className={`${styles.itemWrap} ${menuOpen ? styles.itemWrapRaised : ''}`}>
       {/* The row is a div with the disclosure laid over it, the same pattern
           as the supplier row above: Move to…/Reject are real buttons and a
           button cannot nest inside another one. */}

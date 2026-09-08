@@ -1087,3 +1087,11 @@
   outline: 2px solid var(--ai-accent, #7c3aed);
   outline-offset: 1px;
 }
+
+/* The row whose Move-to menu is OPEN paints above its siblings — every row's
+   cells sit at z-index 1 (the disclosure-overlay pattern), so later rows
+   were threading over the dropdown. */
+.itemWrapRaised {
+  position: relative;
+  z-index: 50;
+}
