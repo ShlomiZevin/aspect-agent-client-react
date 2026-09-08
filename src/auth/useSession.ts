@@ -59,8 +59,14 @@ export function useSession(tenant: string) {
     session,
     config,
     loading,
-    /** The module is on and nobody has signed in yet. */
-    needsSignIn: Boolean(config?.enabled) && !session,
+    /**
+     * The surface must show a sign-in screen before anything else. Only 'gate'
+     * clients do this — a 'sync' client stays open and offers sign-in as an
+     * option, so it never "needs" one.
+     */
+    needsSignIn: Boolean(config?.enabled) && config?.purpose !== 'sync' && !session,
+    /** The sign-in is optional and only saves history to an account. */
+    isSync: Boolean(config?.enabled) && config?.purpose === 'sync',
     signIn,
     signOut,
   };

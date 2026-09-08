@@ -225,6 +225,23 @@ export const translations: LanguageConfig = {
     // Header — extra key
     'header.toggleMenu': 'Toggle menu',
 
+    // Sign-in (save history across devices)
+    'signIn.button': 'Sign in',
+    'signIn.title': 'Keep your chat history',
+    'signIn.subtitle': 'Sign in and your conversations follow you to any device.',
+    'signIn.google': 'Continue with Google',
+    'signIn.googleUnavailable': 'Google sign-in is not configured yet',
+    'signIn.loadingGoogle': 'Loading Google…',
+    'signIn.or': 'or',
+    'signIn.email': 'Email',
+    'signIn.password': 'Password',
+    'signIn.submit': 'Sign in',
+    'signIn.submitting': 'Signing in…',
+    'signIn.footer': 'Your history stays private to your account. You can keep using the chat without signing in.',
+    'signIn.close': 'Close',
+    'signIn.syncNote': 'Your chats sync across every device you sign in on.',
+    'signIn.signOut': 'Sign out',
+
     // Chat — extra key
     'chat.openProfilePanel': 'Open Profile Panel',
 
@@ -1116,6 +1133,23 @@ export const translations: LanguageConfig = {
 
     // Header — extra key
     'header.toggleMenu': 'הצג/הסתר תפריט',
+
+    // Sign-in (save history across devices)
+    'signIn.button': 'התחברות',
+    'signIn.title': 'שמירת היסטוריית השיחות',
+    'signIn.subtitle': 'התחברו והשיחות שלכם ימשיכו איתכם בכל מכשיר.',
+    'signIn.google': 'המשך עם Google',
+    'signIn.googleUnavailable': 'התחברות עם Google עדיין לא הוגדרה',
+    'signIn.loadingGoogle': 'טוען את Google…',
+    'signIn.or': 'או',
+    'signIn.email': 'אימייל',
+    'signIn.password': 'סיסמה',
+    'signIn.submit': 'התחברות',
+    'signIn.submitting': 'מתחבר…',
+    'signIn.footer': 'ההיסטוריה נשמרת פרטית לחשבון שלכם. אפשר להמשיך להשתמש בצ׳אט גם בלי להתחבר.',
+    'signIn.close': 'סגירה',
+    'signIn.syncNote': 'השיחות שלכם מסתנכרנות בכל מכשיר שבו תתחברו.',
+    'signIn.signOut': 'התנתקות',
 
     // Chat — extra key
     'chat.openProfilePanel': 'פתח לוח פרופיל',
