@@ -227,8 +227,15 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   // URL and nav highlighting, and collapsing it goes back to Insights.
   const handleChatExpandedChange = (expanded: boolean) => {
     setChatExpanded(expanded);
-    if (expanded) navigate(`/intelligence/${datasetId}/chat`);
-    else if (chatRoute) navigate(`/intelligence/${datasetId}`);
+    // Expanding is PURELY VISUAL — the widget is an overlay, the page
+    // underneath stays mounted and untouched, so collapsing puts the user
+    // back exactly where they were (an insight, a report, the Procurement
+    // screen). Navigating to /chat on expand — the old behavior — silently
+    // replaced that page with Home. The one case collapse must still
+    // navigate: when the CHAT ROUTE itself is the current URL (the nav's
+    // "Data Chat" item or a direct link), because that route renders an
+    // empty main with nothing to come back to.
+    if (!expanded && chatRoute) navigate(`/intelligence/${datasetId}`);
   };
 
   // "Ask a follow-up in chat" on an insight detail page — opens the same

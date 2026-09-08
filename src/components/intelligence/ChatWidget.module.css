@@ -142,3 +142,37 @@
   .panelExpanded { border-top: none; }
   .resizeHandle { display: none; }
 }
+
+/* The conversation frame's host: the veil paints in THIS document (shell
+   tokens available) while the keyed iframe loads, so a conversation switch
+   is spinner → content, never old-chat → unthemed flash → content. */
+.frameWrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  min-height: 0;
+}
+
+.frameVeil {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ai-surface, #ffffff);
+}
+
+.frameSpinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid var(--ai-accent-soft, rgba(124, 58, 237, 0.15));
+  border-top-color: var(--ai-accent, #7c3aed);
+  animation: ai-frame-spin 0.7s linear infinite;
+}
+
+@keyframes ai-frame-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .frameSpinner { animation-duration: 1.6s; }
+}

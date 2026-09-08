@@ -113,12 +113,31 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
     window.addEventListener('mouseup', onResizeUp);
   };
 
-  const selectConversation = (id: string) => setConversationId(id);
-  const newConversation = () => setConversationId(crypto.randomUUID());
+  // A prefill that never got consumed (widget closed mid-handoff, a failed
+  // mount) must not hijack the NEXT conversation opened — clearing it here is
+  // what keeps a stale question from auto-sending into an old thread.
+  const selectConversation = (id: string) => {
+    sessionStorage.removeItem(PREFILL_STORAGE_KEY);
+    setConversationId(id);
+  };
+  const newConversation = () => {
+    sessionStorage.removeItem(PREFILL_STORAGE_KEY);
+    setConversationId(crypto.randomUUID());
+  };
   const send = (question: string) => {
     sessionStorage.setItem(PREFILL_STORAGE_KEY, question);
     setConversationId(crypto.randomUUID());
   };
+
+  // The conversation frame gets a KEY (fresh iframe per conversation — the
+  // old document must not stay painted under the new one) and a veil until
+  // its load event: without both, switching conversations showed the previous
+  // chat for a beat, then a flash of unthemed content. The veil lives in the
+  // PARENT document, where the shell's tokens exist. "Loaded" is DERIVED
+  // (which conversation's load event fired vs which is current), so switching
+  // resets it with no effect involved.
+  const [frameLoadedFor, setFrameLoadedFor] = useState<string | null>(null);
+  const frameLoaded = frameLoadedFor === conversationId;
 
   // "Ask a follow-up in chat" (insight detail page) hands off a question
   // this way instead of calling send() directly — the widget may not even
@@ -202,7 +221,23 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
             </div>
           )}
           {started
-            ? <iframe className={styles.frame} src={src} title={t('intel.nav.chat')} />
+            ? (
+              <div className={styles.frameWrap}>
+                <iframe
+                  key={conversationId}
+                  className={styles.frame}
+                  src={src}
+                  title={t('intel.nav.chat')}
+                  onLoad={() => setFrameLoadedFor(conversationId)}
+                  style={{ visibility: frameLoaded ? 'visible' : 'hidden' }}
+                />
+                {!frameLoaded && (
+                  <div className={styles.frameVeil} aria-hidden="true">
+                    <span className={styles.frameSpinner} />
+                  </div>
+                )}
+              </div>
+            )
             : <ChatWelcome datasetId={datasetId} onSend={send} />}
         </div>
       </div>
