@@ -1,0 +1,823 @@
+/**
+ * Otto — the screen builder.
+ *
+ * The palette is GPT-5.6's and it is DERIVED, not chosen — see
+ * docs/design/otto-palette-answer.md in the server repo:
+ *
+ *   "Off-white stock labels, dark barcode and ledger ink, and the burnt orange
+ *    used on receiving labels and warehouse marking tape. The orange marks
+ *    where work happens; it never implies prediction or magic."
+ *
+ * That last clause is the reason violet is gone. This product's deepest claim
+ * is that every number is checkable and nothing is invented, and a violet
+ * "AI" accent quietly argued the opposite. The neutrals moved too: they carry
+ * a green-grey bias that reads as paper and ink rather than as cool software
+ * grey, and that is most of why the palette feels like the subject.
+ *
+ * Three rules that quietly get undone if nobody writes down why:
+ *
+ *   THE ACCENT IS FOR INTERACTION, NEVER ATMOSPHERE. Filled primary actions,
+ *   links, focus rings, checked controls, the current selection, an active
+ *   workflow step. Not page backgrounds, not headers, not table headers, not
+ *   KPI numbers, not skeletons, not generic badges, not gradients or glows.
+ *
+ *   THE ACCENT NEVER MEANS RISK. Orange sits closer to warning than violet
+ *   did, so late suppliers, low stock, exceptions and alerts use the status
+ *   triples with an explicit Hebrew label — never the accent. Blurring those
+ *   two is the specific way this palette fails.
+ *
+ *   ONE FILLED ACCENT ACTION PER GROUP. Repeated orange goes loud faster than
+ *   repeated blue. Everything else is surface + text + control-border.
+ *
+ *   OTTO IS A STATUS SURFACE, NOT DECORATION. He sits in one small static card
+ *   and says where you are in the loop. He REPLACED the three phase chips
+ *   rather than joining them. He never greets, congratulates or starts a
+ *   conversation, he is never called a manager (the user is the approval
+ *   authority), and he never appears inside the built screen.
+ *
+ * The figure is a keyed PNG with real alpha in its own portrait well, cropped
+ * 2px below the card's edge. That bottom anchoring is what stops it reading as
+ * a square photograph pasted onto the interface.
+ *
+ * Contrast checked, not assumed: text 16.65:1 on surface, secondary 6.94:1,
+ * accent 5.43:1 on surface and 4.90:1 on accent-subtle, white on accent
+ * 5.43:1. #d3dad3 is a PASSIVE SEPARATOR and never reaches 3:1 — it must never
+ * be the sole outline of an input or a checked control. Use #7b887f (3.70:1).
+ */
+
+.page {
+  --canvas: #f6f7f4;
+  --surface: #ffffff;
+  --surface-subtle: #eef1ed;
+  --surface-hover: #e9ede9;
+  --text: #18201b;
+  --text-2: #4f5d54;
+  --border: #d3dad3;
+  --border-control: #7b887f;
+  --accent: #b54708;
+  --accent-hover: #963a06;
+  --accent-subtle: #fff1e6;
+  --accent-border: #c56625;
+  --danger-text: #a12a2a;
+  --danger-bg: #fff1f0;
+  --danger-border: #cb5a52;
+  --success-text: #166534;
+  --success-bg: #ecfdf3;
+  --success-border: #4e9465;
+  --warning-text: #7a4a00;
+  --warning-bg: #fff8e1;
+  --warning-border: #b77900;
+
+  /* Every column's header is this tall, so the hairline under it is one
+     unbroken line across the page. Change it in one place. */
+  --head: 72px;
+  --gutter: 24px;
+
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 232px 360px;
+  background: var(--canvas);
+  color: var(--text);
+  font-family: 'Noto Sans Hebrew', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 22px;
+  direction: rtl;
+  overflow: hidden;
+}
+
+/* ── The canvas ──────────────────────────────────────────────────────────── */
+
+.canvas { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+
+.canvasBar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: var(--head);
+  padding: 0 var(--gutter);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.canvasIcon {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+}
+
+.canvasTitle {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.canvasMeta { font-size: 12px; line-height: 16px; color: var(--text-2); margin: 0; }
+
+.spacer { flex: 1; }
+
+.canvasBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--gutter);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+}
+
+@media (min-width: 1440px) { .page { --gutter: 32px; } }
+
+/* The built screen keeps its own height — stretching a six-row table to the
+   viewport only puts a blank area inside the card. The placeholder states
+   below do the opposite. */
+.frame {
+  width: 100%;
+  flex: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.preview { display: block; width: 100%; border: 0; background: var(--surface); }
+
+/* ── Empty and building states ───────────────────────────────────────────── */
+
+.empty,
+.buildBox {
+  width: 100%;
+  flex: 1;
+  min-height: 420px;
+  display: grid;
+  place-items: center;
+  padding: 40px 24px;
+}
+
+.emptyInner { max-width: 560px; text-align: center; }
+
+.emptyTitle { font-size: 22px; line-height: 30px; font-weight: 600; margin: 0 0 8px; }
+.emptyText { font-size: 14px; line-height: 22px; color: var(--text-2); margin: 0; }
+
+.examples { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 24px; }
+
+.example {
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border-control);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.example:hover { border-color: var(--accent); background: var(--surface-hover); }
+.example:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.buildInner { width: 100%; max-width: 420px; text-align: center; }
+
+/* The first build: nothing to show yet, so the arena shows the work. */
+.buildBar {
+  position: relative;
+  overflow: hidden;
+  height: 6px;
+  margin: 22px 0 10px;
+  border-radius: 3px;
+  background: var(--surface-subtle);
+}
+
+.buildNow {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-2);
+}
+
+.buildPct { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+
+/* The plan you approved, readable while it is being built. */
+.buildParts {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 14px 0 0;
+  border-block-start: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.buildParts li {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-2);
+}
+
+/* ── Building over a screen that already exists ───────────────────────────
+   The screen stays on the glass. Swapping it for a spinner threw away the one
+   thing you need in order to judge the change being made to it. */
+
+.frameWrap { display: flex; flex-direction: column; }
+
+.buildBanner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px 13px;
+  border: 1px solid var(--accent-border);
+  border-block-end: 0;
+  border-radius: 10px 10px 0 0;
+  background: var(--accent-subtle);
+}
+
+.bannerText { flex: 1; min-width: 0; }
+.bannerTitle { margin: 0; font-size: 13px; line-height: 18px; font-weight: 700; color: var(--text); }
+.bannerLine { margin: 0; font-size: 12px; line-height: 17px; color: var(--text-2); }
+
+.bannerPct {
+  flex: none;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+/* Sits on the banner's own bottom edge, so the bar IS the seam between the
+   banner and the screen it is rebuilding. */
+.bannerBar {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 3px;
+  overflow: hidden;
+  background: rgba(24, 32, 27, 0.09);
+}
+
+.frameBusy {
+  border-radius: 0 0 10px 10px;
+  border-block-start: 0;
+  /* Inert and visibly stale: it is the PREVIOUS screen, and clicking through
+     it during a rebuild would be operating on something about to be replaced. */
+  pointer-events: none;
+  opacity: 0.5;
+  filter: saturate(0.6);
+  transition: opacity 0.2s ease;
+}
+
+/* ── The rail ────────────────────────────────────────────────────────────── */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  border-inline-start: 1px solid var(--border);
+}
+
+/* ── Otto's column ───────────────────────────────────────────────────────
+   He has his own column between the conversation and the canvas, and he stays
+   inside it. Earlier versions positioned him absolutely over the seam, which
+   meant he covered the composer on one side and the built screen on the other
+   — he was standing on top of the work instead of beside it.
+
+   A real column costs the canvas 232px, which GPT-5.6 argued against. That is
+   overruled deliberately: it is almost exactly Otto's own width, so it reads as
+   the gutter that was already there rather than as a third panel, and a figure
+   that reliably occupies its own space is worth more than an empty margin.
+
+   Below the header band it has no background of its own — it shows the page
+   ground, so it stays the gap it already was. */
+
+.ottoCentre {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  min-width: 0;
+  /* In RTL inline-start is the RIGHT edge — the seam with the arena. The rail
+     draws the other one, so the gutter is bounded by a hairline on both sides. */
+  border-inline-start: 1px solid var(--border);
+  /* Bottom inset matches the canvas, so his feet land on the same baseline as
+     the arena's lower edge. */
+  padding: 16px 8px var(--gutter);
+  pointer-events: none;
+}
+
+/* Carries the header band across the gutter so the hairline is continuous. */
+.ottoCentre::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: var(--head);
+  background: var(--surface);
+  border-block-end: 1px solid var(--border);
+}
+
+/* Above him, in his column. Fixed width so a longer line cannot widen the
+   stack; it grows downward from a minimum instead. */
+.ottoStatus {
+  position: relative;
+  width: 100%;
+  max-width: 216px;
+  min-height: 84px;
+  /* It grows with the trail, so it is capped — Otto's height is what gives up
+     room otherwise, and he ends up cropped at the bottom of his own column. */
+  max-height: 40vh;
+  overflow: hidden;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px -12px rgba(24, 32, 27, 0.22);
+}
+
+/* The tail points straight down at him, dead centre. */
+.ottoStatus::before,
+.ottoStatus::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  margin-inline-start: -9px;
+  width: 0;
+  height: 0;
+  border-inline: 9px solid transparent;
+  border-block-start: 9px solid var(--border);
+}
+
+.ottoStatus::after {
+  bottom: -8px;
+  border-block-start-color: var(--surface);
+}
+
+/* ── The card's contents: an activity log, not a label ────────────────────
+   One derived sentence could not tell "he is thinking" from "he is waiting for
+   you" from "he just finished" — all three came out as the same line. These
+   parts answer three separate questions: what is happening, how long it has
+   been happening, and what already happened. */
+
+.statusHead { display: flex; align-items: center; gap: 7px; margin-block-end: 5px; }
+
+.ottoTitle {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ottoTitleRisk { color: var(--danger-text); }
+
+/* Only ever shown while he is working, so a running clock always means work is
+   running — it never sits there counting during an idle wait. */
+.clock {
+  flex: none;
+  font-size: 11px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+
+.ottoLine { margin: 0; font-size: 12px; line-height: 17px; color: var(--text-2); }
+
+/* State at a glance, before any word is read. */
+.dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--border-control); }
+.dotWait { background: var(--border-control); }
+.dotRisk { background: var(--danger-border); }
+.dotWork { background: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.78); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dotWork { animation: none; }
+}
+
+/* The build bar. Real progress from the stream — see BUILD_PHASES in the page. */
+.bar {
+  position: relative;
+  overflow: hidden;
+  height: 4px;
+  margin-block-start: 9px;
+  border-radius: 2px;
+  background: var(--surface-subtle);
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: width 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* No measurement available — an older server with no stream endpoint. It
+   sweeps rather than sitting at 0%, which reads as stalled, or at a number we
+   would have had to invent. */
+.barBusy { position: relative; overflow: hidden; }
+
+.barBusy::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inline-size: 38%;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: stepSweep 1.15s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barBusy::after { animation: none; inset-inline-start: 0; inline-size: 100%; opacity: 0.3; }
+}
+
+/* What he already did. Three at most: enough to show the process moving,
+   short enough that the card never grows into Otto's headroom. */
+.trail {
+  list-style: none;
+  margin: 9px 0 0;
+  padding: 8px 0 0;
+  border-block-start: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.trail li { display: flex; align-items: baseline; gap: 6px; font-size: 11px; line-height: 16px; color: var(--text-2); }
+
+.trailMark { flex: none; color: var(--success-text); font-size: 10px; }
+.trailRisk .trailMark { color: var(--danger-text); }
+
+.trailText { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trailTime { flex: none; font-variant-numeric: tabular-nums; color: var(--border-control); }
+
+/* Planted on the floor of his own column. Height comes from his own 0.374
+   ratio, so he is never stretched; the cap keeps him inside a short viewport
+   and `contain` keeps the ratio while he shrinks into it. */
+.ottoFigure {
+  flex: 0 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 190px;
+  height: auto;
+  max-height: 40vh;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 18px 26px rgba(24, 32, 27, 0.18));
+}
+
+/* ── The rail header: who you are talking to, and where you are ──────────── */
+
+.railHead {
+  flex: none;
+  height: var(--head);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Name and role share one line so the head fits the shared band. */
+.railWho { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+
+.railName { margin: 0; font-size: 14px; line-height: 18px; font-weight: 700; color: var(--text); }
+
+.railRole {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* All four steps, always. Where you are only means something next to where you
+   are going. Never orange — a process display is not something you can click,
+   and the accent belongs to interaction. */
+.process { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+
+.step { min-width: 0; }
+
+.stepLabel {
+  display: block;
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--border-control);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* One track per step. The build step used to sprout three sub-segments inside
+   it — a second progress display competing with the first. The build's real
+   progress now fills this track instead, so there is one bar and one meaning. */
+.stepTrack {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  height: 3px;
+  margin-block-start: 5px;
+  border-radius: 2px;
+  background: var(--surface-subtle);
+}
+
+.stepFill {
+  position: absolute;
+  inset: 0;
+  transform-origin: right center; /* RTL: growth starts at the right */
+  transform: scaleX(0);
+  background: var(--border-control);
+  transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.stepDone .stepLabel { color: var(--text-2); }
+.stepNow .stepLabel { color: var(--text); font-weight: 700; }
+.stepNow .stepFill { background: var(--text); }
+
+/* Work with no measurable end — preparing a plan, waiting on a reply. The
+   track sweeps rather than filling, because a percentage here would be made
+   up, and a still bar reads as stalled. */
+.stepBusy::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inline-size: 42%;
+  border-radius: 2px;
+  background: var(--text);
+  animation: stepSweep 1.15s ease-in-out infinite;
+}
+
+@keyframes stepSweep {
+  0% { inset-inline-start: 100%; }
+  100% { inset-inline-start: -42%; }
+}
+
+/* The step you may now move to. Outlined, not filled: it is an invitation,
+   and filling it would claim you had already been there. */
+.stepNext .stepLabel { color: var(--text-2); }
+.stepNext .stepTrack { box-shadow: inset 0 0 0 1px var(--border-control); background: transparent; }
+
+.stepFailed .stepLabel { color: var(--danger-text); }
+.stepFailed .stepFill { background: var(--danger-text); }
+
+@media (prefers-reduced-motion: reduce) {
+  .stepFill { transition: none; }
+  .stepBusy::after { animation: none; inset-inline-start: 0; inline-size: 100%; opacity: 0.35; }
+}
+
+/* ── Messages ────────────────────────────────────────────────────────────── */
+
+.messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.msg {
+  font-size: 14px;
+  line-height: 22px;
+  white-space: pre-wrap;
+  border-radius: 10px;
+  padding: 10px 12px;
+  max-width: 92%;
+  border: 1px solid var(--border);
+}
+
+/* The one tint of violet in the transcript, and it marks whose words these
+   are — not a mood. */
+.msgUser { align-self: flex-start; background: var(--accent-subtle); border-color: var(--accent-border); }
+.msgBot { align-self: flex-end; background: var(--surface-subtle); }
+
+.typing { align-self: flex-end; color: var(--text-2); font-size: 13px; padding: 0 12px; }
+
+/* ── The plan card: the approval gate ────────────────────────────────────── */
+
+.planCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--accent);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.planLabel { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--text-2); margin: 0 0 8px; }
+.planTitle { font-size: 15px; line-height: 22px; font-weight: 700; margin: 0 0 4px; }
+.planSummary { font-size: 13px; line-height: 20px; color: var(--text-2); margin: 0 0 12px; }
+
+.delta { background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 0 0 12px; }
+.delta p { margin: 0 0 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-2); }
+.delta ul { margin: 0; padding-inline-start: 16px; }
+.delta li { font-size: 13px; line-height: 20px; color: var(--text); }
+
+.planParts { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.planPart { font-size: 13px; line-height: 20px; padding-inline-start: 10px; border-inline-start: 1px solid var(--border); }
+.planPart b { display: block; font-weight: 600; }
+.planPart span { color: var(--text-2); }
+
+.planNotes {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: var(--warning-text);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 19px;
+}
+
+.planNotes p { margin: 0 0 4px; font-weight: 700; }
+.planNotes ul { margin: 0; padding-inline-start: 16px; }
+
+.planActions { display: flex; gap: 8px; }
+
+/* ── Composer and controls ──────────────────────────────────────────────── */
+
+.composer { flex: none; border-top: 1px solid var(--border); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+.input {
+  width: 100%;
+  resize: none;
+  border: 1px solid var(--border-control);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text);
+  background: var(--surface);
+  min-height: 64px;
+  max-height: 160px;
+}
+
+.input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+.input:disabled { background: var(--surface-subtle); color: var(--text-2); border-color: var(--border); }
+
+.row { display: flex; gap: 8px; }
+
+.btn {
+  flex: 1;
+  height: 36px;
+  border: 1px solid var(--border-control);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.btn:hover:not(:disabled) { background: var(--surface-hover); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btnPrimary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btnPrimary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+.btnGhost { flex: none; }
+
+.hint { font-size: 12px; line-height: 16px; color: var(--text-2); margin: 0; text-align: center; }
+
+.error { font-size: 13px; line-height: 20px; color: var(--danger-text); background: var(--danger-bg); border: 1px solid var(--danger-border); border-radius: 8px; padding: 10px 12px; margin: 0; }
+.saved { font-size: 13px; line-height: 20px; color: var(--success-text); background: var(--success-bg); border: 1px solid var(--success-border); border-radius: 8px; padding: 10px 12px; margin: 0; }
+
+/* ── Save dialog ─────────────────────────────────────────────────────────── */
+
+.overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; background: rgba(24, 32, 27, 0.42); }
+
+.dialog {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dialogTitle { font-size: 17px; line-height: 24px; font-weight: 700; margin: 0; }
+.dialogText { font-size: 13px; line-height: 20px; color: var(--text-2); margin: -8px 0 0; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > span { font-size: 12px; font-weight: 600; color: var(--text-2); }
+
+.textInput {
+  height: 36px;
+  border: 1px solid var(--border-control);
+  border-radius: 8px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.textInput:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+
+.iconGrid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+
+.iconBtn {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-control);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.iconBtn:hover { background: var(--surface-hover); }
+.iconBtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* A checked control — one of the few jobs violet is allowed to do. */
+.iconBtnOn { border-color: var(--accent); background: var(--accent-subtle); color: var(--accent); }
+
+.dialogActions { display: flex; gap: 8px; }
+
+/* ── Narrow screens ──────────────────────────────────────────────────────── */
+
+/* Below 1280px there is no room for a figure straddling the boundary, so the
+   status surface returns to the top of the rail and Otto shrinks beside it. */
+@media (max-width: 1279px) {
+  /* Every item is placed explicitly. Auto-placement put the rail in row 2 of
+     the CANVAS column — the conversation ended up underneath the screen. */
+  .page {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .canvas { grid-column: 1; grid-row: 1 / span 2; }
+  .chat { grid-column: 2; grid-row: 2; min-height: 0; }
+  .ottoCentre {
+    grid-column: 2;
+    grid-row: 1;
+    flex-direction: row-reverse;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 12px 12px 0;
+  }
+  .ottoCentre::before { display: none; }
+  .ottoCentre { border-inline-start: 0; }
+  .railHead { height: auto; padding: 14px 16px 12px; }
+  .ottoStatus { max-width: none; flex: 1; min-height: 0; margin-bottom: 0; box-shadow: none; }
+  .ottoStatus::before, .ottoStatus::after { display: none; }
+  .ottoFigure { width: auto; max-width: none; height: 110px; max-height: none; filter: none; }
+}
+
+@media (max-width: 900px) {
+  .page { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto auto; }
+  .canvas { grid-column: 1; grid-row: 1; }
+  .ottoCentre { grid-column: 1; grid-row: 2; }
+  .chat {
+    grid-column: 1;
+    grid-row: 3;
+    border-inline-start: 0;
+    border-top: 1px solid var(--border);
+    max-height: 56svh;
+  }
+}
