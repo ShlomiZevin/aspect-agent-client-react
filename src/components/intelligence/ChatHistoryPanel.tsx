@@ -85,6 +85,11 @@ export function ChatHistoryPanel({ datasetId, activeConversationId, onSelect, on
     onActiveTitleChange(active ? (active.title || t('intel.chat.newChatTitle')) : null);
   }, [conversations, activeConversationId, onActiveTitleChange, t]);
 
+  // Deletion is destructive and un-undoable, so both doors go through ONE
+  // confirmation dialog: a single conversation (with its title shown, so the
+  // user confirms the right thing) or the whole history.
+  const [confirm, setConfirm] = useState<{ kind: 'one'; id: string; title: string } | { kind: 'all' } | null>(null);
+
   const clearAll = async () => {
     if (!config) return;
     const userId = localStorage.getItem(userIdKey);
@@ -94,12 +99,19 @@ export function ChatHistoryPanel({ datasetId, activeConversationId, onSelect, on
     onNew();
   };
 
-  const removeOne = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
+  const removeOne = async (id: string) => {
     if (!config) return;
     await deleteConversation(id, config.baseURL);
     setConversations(cs => cs.filter(c => c.id !== id));
     if (id === activeConversationId) onNew();
+  };
+
+  const runConfirmed = async () => {
+    const c = confirm;
+    setConfirm(null);
+    if (!c) return;
+    if (c.kind === 'one') await removeOne(c.id);
+    else await clearAll();
   };
 
   const groups = useMemo(() => {
@@ -162,21 +174,50 @@ export function ChatHistoryPanel({ datasetId, activeConversationId, onSelect, on
                     </div>
                     <div className={styles.itemTime}>{c.updatedAt.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</div>
                   </div>
-                  {expanded && (
-                    <button className={styles.itemDelete} onClick={e => removeOne(e, c.id)} aria-label={t('intel.chat.deleteConversation')} title={t('intel.chat.delete')}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M9 7V5h6v2M6.5 7l1 13h9l1-13" /></svg>
-                    </button>
-                  )}
+                  {/* In BOTH variants — the docked widget hid it, so deleting
+                      required expanding first. Opens the confirm dialog; the
+                      actual delete happens only there. */}
+                  <button
+                    className={styles.itemDelete}
+                    onClick={e => {
+                      e.stopPropagation();
+                      setConfirm({ kind: 'one', id: c.id, title: c.title || t('intel.chat.newChatTitle') });
+                    }}
+                    aria-label={t('intel.chat.deleteConversation')}
+                    title={t('intel.chat.delete')}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M9 7V5h6v2M6.5 7l1 13h9l1-13" /></svg>
+                  </button>
                 </div>
               ))}
             </div>
           </div>
         ))}
       </div>
-      <div className={styles.clearAll} onClick={clearAll}>
+      <div className={styles.clearAll} onClick={() => setConfirm({ kind: 'all' })}>
         <svg width={expanded ? 14 : 13} height={expanded ? 14 : 13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M9 7V5h6v2M6.5 7l1 13h9l1-13" /></svg>
         {expanded ? t('intel.chat.clearAllConversations') : t('intel.chat.clearAll')}
       </div>
+
+      {confirm && (
+        <div className={styles.confirmOverlay} onClick={() => setConfirm(null)}>
+          <div className={styles.confirmBox} role="alertdialog" aria-modal="true" onClick={e => e.stopPropagation()}>
+            <div className={styles.confirmTitle}>
+              {confirm.kind === 'one' ? t('intel.chat.confirmDeleteTitle') : t('intel.chat.confirmClearTitle')}
+            </div>
+            {confirm.kind === 'one' && <div className={styles.confirmName}>{confirm.title}</div>}
+            <div className={styles.confirmBody}>{t('intel.chat.confirmDeleteBody')}</div>
+            <div className={styles.confirmActions}>
+              <button className={styles.confirmCancel} onClick={() => setConfirm(null)}>
+                {t('intel.chat.confirmCancel')}
+              </button>
+              <button className={styles.confirmDelete} onClick={() => void runConfirmed()}>
+                {t('intel.chat.delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

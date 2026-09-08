@@ -134,3 +134,88 @@
   border-radius: 99px;
   white-space: nowrap;
 }
+
+/* Destructive-action confirmation — fixed over the widget, shell tokens. */
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(17, 18, 28, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.confirmBox {
+  width: min(340px, 100%);
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e8e9f2);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  padding: 20px;
+}
+
+.confirmTitle {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ai-text, #29304a);
+}
+
+.confirmName {
+  margin-top: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ai-text, #3c455f);
+  background: var(--ai-surface-alt, #f6f7fb);
+  border-radius: 8px;
+  padding: 6px 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.confirmBody {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ai-text-muted, #6e7691);
+}
+
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.confirmCancel {
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e2e4ee);
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ai-text, #3c455f);
+  cursor: pointer;
+}
+
+.confirmDelete {
+  background: #d6453d;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.confirmDelete:hover { background: #b93831; }
+
+.confirmCancel:focus-visible,
+.confirmDelete:focus-visible {
+  outline: 2px solid var(--ai-accent, #7c3aed);
+  outline-offset: 2px;
+}
