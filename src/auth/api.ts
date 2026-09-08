@@ -35,10 +35,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export interface SignInConfig {
   /** The module is switched on for this client. */
   enabled: boolean;
-  /** Offer the Google button — needs both the setting and a configured client id. */
+  /**
+   * What signing in is for:
+   *  - 'gate' the surface is closed until an invited person signs in
+   *  - 'sync' the surface stays open; signing in only saves history to an account
+   */
+  purpose: 'gate' | 'sync';
+  /** This client offers Google sign-in. The button shows even without a
+   *  configured `clientId` (disabled), so the option is never silently missing. */
   google: boolean;
   /** Offer the email and password form. */
   password: boolean;
+  /** The OAuth web client id, or '' when Google sign-in is not configured yet. */
   clientId: string;
 }
 
@@ -48,6 +56,20 @@ export interface Session {
   email: string;
   role: 'user' | 'admin';
   via: 'google' | 'password';
+  /**
+   * The account's conversations for this agent, newest first. Present on a
+   * fresh sign-in so the caller can jump straight to the latest chat; absent
+   * from a session rehydrated out of localStorage.
+   */
+  conversations?: Array<{ id: string | number; externalId: string; updatedAt: string }>;
+}
+
+/** Extra context a sign-in can carry so history is not lost or siloed. */
+export interface SignInContext {
+  /** The anon user the browser was chatting as — its chats move to the account. */
+  anonUserId?: string | null;
+  /** Restrict the history merge and read-back to this agent. */
+  agentName?: string | null;
 }
 
 export interface Invitation {
@@ -68,11 +90,17 @@ export const authApi = {
   config: (tenant: string) =>
     request<SignInConfig>(`/config?tenant=${encodeURIComponent(tenant)}`),
 
-  withGoogle: (idToken: string, tenant: string) =>
-    request<Session>('/google', { method: 'POST', body: JSON.stringify({ idToken, tenant }) }),
+  withGoogle: (idToken: string, tenant: string, ctx: SignInContext = {}) =>
+    request<Session>('/google', {
+      method: 'POST',
+      body: JSON.stringify({ idToken, tenant, ...ctx }),
+    }),
 
-  withPassword: (email: string, password: string, tenant: string) =>
-    request<Session>('/password', { method: 'POST', body: JSON.stringify({ email, password, tenant }) }),
+  withPassword: (email: string, password: string, tenant: string, ctx: SignInContext = {}) =>
+    request<Session>('/password', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, tenant, ...ctx }),
+    }),
 
   // --- invitations, super-admin only ----------------------------------------
   listInvitations: (tenant: string) =>

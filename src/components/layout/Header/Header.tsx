@@ -3,6 +3,7 @@ import { useChatContext } from '../../../context';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useLocalizedConfig } from '../../../hooks';
 import { ThemeToggle, LanguageToggle, StatusIndicator, Button } from '../../common';
+import { ChatSignIn } from '../../chat/ChatSignIn';
 import styles from './Header.module.css';
 
 interface HeaderProps {
@@ -129,6 +130,11 @@ export function Header({
             </svg>
           </button>
         )}
+
+        <ChatSignIn
+          tenant={config.database?.schema ?? config.storagePrefix.replace(/_$/, '')}
+          agentName={config.agentName}
+        />
 
         <LanguageToggle />
         <ThemeToggle />

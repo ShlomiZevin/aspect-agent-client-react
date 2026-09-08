@@ -19,6 +19,7 @@ import { ChatWidget } from './ChatWidget';
 import type { ModuleScope } from '../../services/chatService';
 import { DataHealthTrigger } from '../chat/DataHealthModal';
 import { FeedbackTrigger } from '../chat/GeneralFeedbackModal';
+import { ChatSignIn } from '../chat/ChatSignIn';
 import { ensureIntelligenceFontsLoaded } from './fonts';
 import { JobsProvider, useJobs, type Job } from './jobs/JobsContext';
 import { JobBadges } from './jobs/JobBadges';
@@ -293,6 +294,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
               <Glyph name={mode === 'dark' ? 'sun' : 'moon'} />
             </button>
             {datasetAgent && <FeedbackTrigger agentName={datasetAgent.agentName} baseURL={datasetAgent.baseURL} variant="icon" className={styles.iconBtn} />}
+            <ChatSignIn tenant={datasetId} agentName={datasetAgent?.agentName ?? datasetId} />
             <div className={styles.onlineDot}><span className={styles.dot} />{t('intel.online')}</div>
           </div>
         </div>
