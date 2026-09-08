@@ -3,7 +3,7 @@ import type { Session, SignInConfig, SignInContext } from '../../../auth';
 import { SignInMethods } from '../../../auth';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useHistorySignIn } from './useHistorySignIn';
-import { CaretIcon, CloseIcon, PersonIcon, SyncIcon } from './icons';
+import { CaretIcon, CloseIcon, DevicesIcon, PersonIcon } from './icons';
 import styles from './ChatSignIn.module.css';
 
 /**
@@ -97,7 +97,7 @@ function AccountMenu({ session, onSignOut, t }: AccountMenuProps) {
             </div>
           </div>
           <div className={styles.menuNote}>
-            <SyncIcon />
+            <DevicesIcon />
             <span>{t('signIn.syncNote')}</span>
           </div>
           <button className={styles.menuItem} role="menuitem" onClick={onSignOut}>
@@ -135,7 +135,7 @@ function SignInDialog({ tenant, config, context, onClose, onSignedIn, t }: SignI
         </button>
 
         <div className={styles.head}>
-          <span className={styles.badge}><SyncIcon /></span>
+          <span className={styles.badge}><DevicesIcon /></span>
           <h2 className={styles.title}>{t('signIn.title')}</h2>
           <p className={styles.subtitle}>{t('signIn.subtitle')}</p>
         </div>

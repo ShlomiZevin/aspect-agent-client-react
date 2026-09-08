@@ -1,17 +1,24 @@
-.page { padding: var(--spacing-lg); }
+.section {
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 10px);
+}
 
-.title { font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px; }
+.head { margin-bottom: var(--spacing-md); }
+.title { font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px; }
 
 .sub {
   font-size: 13px;
   line-height: 1.6;
   color: var(--text-secondary);
-  margin: 0 0 var(--spacing-lg);
+  margin: 0;
   max-width: 720px;
 }
 
-/* The generated password appears here once and only once. Deliberately loud:
-   it cannot be recovered, and a quiet toast would be missed. */
+/* The generated password appears here once and only once — deliberately loud,
+   it cannot be recovered and a quiet toast would be missed. */
 .issued {
   display: flex;
   align-items: center;
@@ -38,7 +45,7 @@
   user-select: all;
 }
 
-.inviteRow {
+.addRow {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -50,7 +57,8 @@
   margin-bottom: var(--spacing-md);
 }
 
-.input, .select {
+.input,
+.select {
   font-family: inherit;
   font-size: 13.5px;
   color: var(--text-primary);
@@ -63,7 +71,8 @@
 
 .input { flex: 1 1 200px; }
 
-.input:focus, .select:focus {
+.input:focus,
+.select:focus {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px var(--primary-light);
@@ -134,7 +143,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-full, 999px);
   padding: 2px 8px;
   background: var(--surface-light);
   color: var(--text-secondary);
@@ -144,7 +153,8 @@
 
 .muted { color: var(--text-muted); }
 
-.link, .linkDanger {
+.link,
+.linkDanger {
   background: none;
   border: none;
   padding: 0;
@@ -167,4 +177,4 @@
   margin: 0 0 var(--spacing-md);
 }
 
-.empty { padding: var(--spacing-xl); text-align: center; color: var(--text-muted); font-size: 14px; }
+.empty { padding: var(--spacing-lg); text-align: center; color: var(--text-muted); font-size: 14px; }

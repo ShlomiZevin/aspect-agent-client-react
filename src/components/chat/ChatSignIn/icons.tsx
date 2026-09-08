@@ -18,13 +18,13 @@ export function PersonIcon() {
   );
 }
 
-export function SyncIcon() {
+/** A laptop and a phone — "your history on every device", not a refresh symbol. */
+export function DevicesIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" {...stroke}>
-      <path d="M21 2v6h-6" />
-      <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-      <path d="M3 22v-6h6" />
-      <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+    <svg width="15" height="15" viewBox="0 0 24 24" {...stroke}>
+      <rect x="2" y="4" width="14" height="9" rx="1" />
+      <path d="M1 17h16" />
+      <rect x="16" y="10" width="6" height="11" rx="1" />
     </svg>
   );
 }
