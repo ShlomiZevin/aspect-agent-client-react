@@ -713,7 +713,7 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat, onOpenScopedC
                       <div>{t('procurement.col.status')}</div>
                       <div>{t('procurement.col.order')}</div>
                       <div>{t('procurement.col.cost')}</div>
-                      <div>{t('procurement.col.sendBy')}</div>
+                      <div>{t('procurement.col.placeOrder')}</div>
                       <div />
                     </div>
                     {open?.loading && open.rows.length === 0 && (
@@ -955,10 +955,16 @@ function ItemRow({
           )}
         </span>
         <span className={styles.cell}>≈ ₪{nf(rec.estimatedCostExVat)}</span>
-        {/* Real month names and word order in Hebrew, rather than an ISO
+        {/* The INSTRUCTION date — today at the earliest, never a date in the
+            past (the diagnosis date and its lateness live in the Why panel).
+            Real month names and word order in Hebrew, rather than an ISO
             string that RTL renders back to front. */}
         <span className={styles.cell}>
-          {rec.orderByDate ? formatDateOnly(rec.orderByDate, language) : '—'}
+          {rec.placeOrderBy
+            ? (rec.placeOrderBy <= new Date().toISOString().slice(0, 10)
+              ? <span className={styles.cellToday}>{t('procurement.today')}</span>
+              : formatDateOnly(rec.placeOrderBy, language))
+            : '—'}
         </span>
 
         {!groupsActive ? (
@@ -1050,6 +1056,22 @@ function ItemRow({
             <Fact label={t('procurement.f.buffer')} value={nf(rec.safetyStock)}
               sub={rec.safetyStockSource === 'configured'
                 ? t('procurement.f.bufferSet') : t('procurement.f.bufferComputed')} />
+            {/* The forward-looking calendar — the client's "I see no picture"
+                feedback: when stock dies, and whether ordering today still
+                beats it. */}
+            <Fact
+              label={t('procurement.f.runsOut')}
+              value={rec.runoutDate ? formatDateOnly(rec.runoutDate, language) : '—'}
+              sub={rec.stockoutGapDays != null && rec.stockoutGapDays > 0
+                ? t('procurement.f.gapDays').replace('{n}', nf(rec.stockoutGapDays))
+                : t('procurement.f.noGap')}
+              subClass={rec.stockoutGapDays ? styles.factSubDefault : styles.factSubSet}
+            />
+            <Fact
+              label={t('procurement.f.arrives')}
+              value={rec.arrivesIfOrderedToday ? formatDateOnly(rec.arrivesIfOrderedToday, language) : '—'}
+              sub={t('procurement.f.ifOrderedToday')}
+            />
           </div>
 
           {/* The derivation, from the engine's own intermediate values rather
@@ -1125,6 +1147,7 @@ function Fact({ label, value, sub, subClass, title }: {
 function downloadCsv(recs: Recommendation[], datasetId: string) {
   const cols = [
     'supplier', 'sku', 'itemName', 'status', 'orderQty', 'estimatedCostExVat',
+    'placeOrderBy', 'runoutDate', 'arrivesIfOrderedToday', 'stockoutGapDays',
     'orderByDate', 'daysLate', 'daysOfCover', 'velocityDaily', 'velocityBasis',
     'warehouseQty', 'onOrderQty', 'onOrderIsUnverified', 'committedQty', 'netAvailable',
     'leadTimeDays', 'leadTimeSource', 'safetyStock', 'safetyStockSource',

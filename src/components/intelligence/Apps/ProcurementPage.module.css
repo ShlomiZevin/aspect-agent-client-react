@@ -1053,3 +1053,9 @@
   font-size: 11.5px;
   color: var(--ai-text-muted, #8a90a3);
 }
+
+/* "Today" in the place-order column — the action is now, and reads as such. */
+.cellToday {
+  font-weight: 700;
+  color: #dc2f34;
+}

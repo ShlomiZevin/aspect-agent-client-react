@@ -95,6 +95,15 @@ export interface Recommendation {
   daysOfCover: number | null;
   orderByDate: string | null;
   daysLate: number | null;
+  /** WHEN TO ORDER — today at the earliest, never a past date. The
+   *  instruction; orderByDate above is the diagnosis it derives from. */
+  placeOrderBy: string | null;
+  /** When current stock is projected to hit zero. */
+  runoutDate: string | null;
+  /** When goods would land if the order went out today. */
+  arrivesIfOrderedToday: string | null;
+  /** Projected zero-stock days even if ordered today (0 = still in time). */
+  stockoutGapDays: number | null;
   targetStock: number;
   rawQty: number;
   orderQty: number;
