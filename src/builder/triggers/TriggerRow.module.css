@@ -33,7 +33,7 @@
   flex-wrap: nowrap;
 }
 
-.input, .select, .selectFull, .number, .time, .textarea {
+.input, .select, .selectFull, .selectAuto, .number, .time, .textarea {
   font-family: inherit;
   font-size: 13px;
   color: var(--text-primary, #111827);
@@ -44,7 +44,7 @@
   min-width: 0;
 }
 
-.input:focus, .select:focus, .selectFull:focus, .number:focus,
+.input:focus, .select:focus, .selectFull:focus, .selectAuto:focus, .number:focus,
 .time:focus, .textarea:focus {
   outline: none;
   border-color: var(--primary-color, #6366f1);
@@ -59,6 +59,13 @@
    and read as an unstyled control dropped into a styled form. */
 .selectFull { width: 100%; cursor: pointer; }
 .unit { flex: 0 0 auto; width: auto; cursor: pointer; }
+/* A picker sized to its content, not to the row. `width: auto` alone is
+   not it: a native select then sizes to its WIDEST option, and the zone
+   list holds names several times longer than the one on screen. A fixed
+   width fits the city names shortZoneLabel produces and lets the native
+   control clip the rare long one. Must be in the base + focus lists
+   above, or it falls back to an unstyled browser border. */
+.selectAuto { width: 200px; max-width: 100%; cursor: pointer; }
 .time { flex: 0 0 auto; width: auto; padding: 6px 8px; }
 .textarea { width: 100%; min-height: 62px; line-height: 1.5; resize: vertical; padding: 8px 10px; }
 

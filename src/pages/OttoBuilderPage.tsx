@@ -234,6 +234,8 @@ export function OttoBuilderPage() {
   const [building, setBuilding] = useState(false);
   /** Separate from `thinking`: preparing a plan is its own step in the strip. */
   const [planning, setPlanning] = useState(false);
+  /** Completed builds. The round you are IN is one more than this. */
+  const [rounds, setRounds] = useState(0);
   const [progress, setProgress] = useState<number | null>(null);
   const [buildPhase, setBuildPhase] = useState('structure');
   const [error, setError] = useState<string | null>(null);
@@ -401,6 +403,7 @@ export function OttoBuilderPage() {
         role: 'assistant',
         content: `המסך "${plan.title}" ${plan.isChange ? 'עודכן' : 'נבנה'}. תסתכל עליו — ואם משהו לא מדויק, פשוט תגיד לי מה לשנות.`,
       }]);
+      setRounds(n => n + 1);
       settle(act, plan.isChange ? 'המסך עודכן' : 'המסך נבנה',
         plan.isChange ? `${plan.changes?.length || 0} שינויים הוחלו.` : `${plan.parts.length} אזורים על המסך.`);
       say('wait', 'המסך מוכן לבדיקה',
@@ -450,6 +453,7 @@ export function OttoBuilderPage() {
     setSavedAs(null);
     setError(null);
     setProgress(null);
+    setRounds(0);
     actSeq.current = 0;
     setActs([{ ...OPENING_ACT, startedAt: Date.now() }]);
   }, []);
@@ -497,7 +501,10 @@ ${html}
     if (planning) return { at: 1, fill: null, next: null };
     if (phase === 'plan') return { at: 2, fill: 1, next: 3 };
     if (thinking) return { at: 0, fill: null, next: null };
-    if (builtPlan) return { at: 3, fill: 1, next: null };
+    // A finished build completes the WHOLE cycle, not just its last step. `at`
+    // sits past the end so all four read as done and none reads as current —
+    // there is nothing in progress, and the next message starts a fresh round.
+    if (builtPlan) return { at: 4, fill: null, next: null };
     if (readyToPlan) return { at: 0, fill: 1, next: 1 };
     return { at: 0, fill: 0, next: null };
   })();
@@ -559,7 +566,8 @@ ${html}
           )}
         </div>
 
-        <div className={styles.canvasBody}>
+        {/* Flush whenever a real screen is on the glass — see .canvasFlush. */}
+        <div className={`${styles.canvasBody} ${srcDoc ? styles.canvasFlush : ''}`}>
           {/* The canvas says WHAT is being built; Otto's card says how far along
               it is. Listing the stages here as well would be the same mistake as
               keeping the phase chips next to him — two places reporting one
@@ -721,6 +729,9 @@ ${html}
           <div className={styles.railWho}>
             <p className={styles.railName}>אוטו</p>
             <p className={styles.railRole}>בונה מסכים על הנתונים שלכם</p>
+            {/* The strip resets every round, so without this a fifth revision
+                looks exactly like a first draft. */}
+            {rounds > 0 && <span className={styles.round}>סבב {rounds + 1}</span>}
           </div>
           {/* One track per step and nothing nested inside it. The build step
               used to sprout three sub-segments of its own, which read as a

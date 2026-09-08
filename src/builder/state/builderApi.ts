@@ -1106,6 +1106,15 @@ export interface ApplyGenerateResponse {
   ok:           true;
   applyGroupId: string;
   generated:    GeneratedBody[];
+  /** Targets the generator verified as already-done — nothing changed,
+   *  shown as "already in place" (a normal outcome, not an error). */
+  skipped?: Array<{
+    entity:     'agent' | 'crew';
+    entityId:   string;
+    entityName: string;
+    what_to_do: string;
+    reasoning?: string;
+  }>;
 }
 
 /**

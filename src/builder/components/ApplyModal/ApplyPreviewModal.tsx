@@ -114,7 +114,10 @@ export function ApplyPreviewModal({
       // Drop the generated bodies into the working copy. The
       // BuilderContext stashes the Apply metadata so the eventual
       // Save(s) write the log row(s) — Apply itself does NOT save.
-      applyAlfredBodies({
+      // Nothing generated (everything already in place) → skip the
+      // working-copy write entirely; success still shows the skipped
+      // list so the user knows why nothing changed.
+      if (out.generated.length > 0) applyAlfredBodies({
         applyGroupId: out.applyGroupId,
         chatId,
         summary,
@@ -297,7 +300,11 @@ export function ApplyPreviewModal({
 
       {phase === 'success' && result && (
         <div className={styles.successWrap}>
-          <div className={styles.successHeadline}>✓ Applied to your draft</div>
+          <div className={styles.successHeadline}>
+            {result.generated.length > 0
+              ? '✓ Applied to your draft'
+              : '✓ Everything is already in place'}
+          </div>
           <ul className={styles.appliedList}>
             {result.generated.map(g => (
               <li key={`${g.entity}_${g.entityId}`} className={styles.appliedRow}>
@@ -307,12 +314,27 @@ export function ApplyPreviewModal({
                 <span>{g.entityName}</span>
               </li>
             ))}
+            {(result.skipped ?? []).map(s => (
+              <li key={`skip_${s.entity}_${s.entityId}`} className={styles.appliedRow}>
+                <span className={styles.targetBadge}>
+                  {s.entity === 'agent' ? 'AGENT' : 'CREW'}
+                </span>
+                <span>{s.entityName} — already in place, nothing to change</span>
+              </li>
+            ))}
           </ul>
-          <p style={{ margin: 0, fontSize: 12, color: '#6b7280' }}>
-            The new bodies are in your working copy. Review them in the canvas,
-            then <strong>Save</strong> (or <strong>Save as…</strong>) to commit —
-            the change log entry is written on Save. Nothing is committed yet.
-          </p>
+          {result.generated.length > 0 ? (
+            <p style={{ margin: 0, fontSize: 12, color: '#6b7280' }}>
+              The new bodies are in your working copy. Review them in the canvas,
+              then <strong>Save</strong> (or <strong>Save as…</strong>) to commit —
+              the change log entry is written on Save. Nothing is committed yet.
+            </p>
+          ) : (
+            <p style={{ margin: 0, fontSize: 12, color: '#6b7280' }}>
+              Alfred verified the requested changes already exist in your draft —
+              nothing was modified.
+            </p>
+          )}
         </div>
       )}
 

@@ -80,7 +80,13 @@ export function SilenceConfigComponent({ config, onChange }: TriggerTypeConfigPr
               maxAttempts: Math.min(20, Math.max(1, Number(e.target.value) || 1)),
             })}
           />
-          <span className={s.trail}>times, until they reply</span>
+          {/* "attempts", not "times". The envelope's Message limit sits a
+              few rows below saying "at most 3 messages every 7 days", and
+              with both reading "3 times" they looked like the same setting
+              twice. Attempts vs messages is exactly the difference: this
+              one counts tries, including the ones where the crew stayed
+              silent, and it resets when the customer replies. */}
+          <span className={s.trail}>attempts, until they reply</span>
         </div>
       </TriggerRow>
     </>

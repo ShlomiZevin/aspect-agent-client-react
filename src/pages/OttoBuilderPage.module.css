@@ -146,13 +146,15 @@
 .frame {
   width: 100%;
   flex: none;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
   overflow: hidden;
 }
 
-.preview { display: block; width: 100%; border: 0; background: var(--surface); }
+/* When a screen is on the glass the arena has no padding and no card of its
+   own: the iframe runs edge to edge, so what you see is the screen exactly as
+   it will render in the Apps area — not a preview of it inside a frame. */
+.canvasFlush { padding: 0; }
+
+.preview { display: block; width: 100%; border: 0; background: var(--canvas); }
 
 /* ── Empty and building states ───────────────────────────────────────────── */
 
@@ -248,9 +250,7 @@
   align-items: center;
   gap: 10px;
   padding: 11px 14px 13px;
-  border: 1px solid var(--accent-border);
-  border-block-end: 0;
-  border-radius: 10px 10px 0 0;
+  border-block-end: 1px solid var(--accent-border);
   background: var(--accent-subtle);
 }
 
@@ -278,8 +278,6 @@
 }
 
 .frameBusy {
-  border-radius: 0 0 10px 10px;
-  border-block-start: 0;
   /* Inert and visibly stale: it is the PREVIOUS screen, and clicking through
      it during a rebuild would be operating on something about to be replaced. */
   pointer-events: none;
@@ -512,6 +510,20 @@
 
 /* Name and role share one line so the head fits the shared band. */
 .railWho { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+
+.round {
+  flex: none;
+  margin-inline-start: auto;
+  padding: 1px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  font-size: 10px;
+  line-height: 15px;
+  font-weight: 600;
+  color: var(--text-2);
+  white-space: nowrap;
+}
 
 .railName { margin: 0; font-size: 14px; line-height: 18px; font-weight: 700; color: var(--text); }
 

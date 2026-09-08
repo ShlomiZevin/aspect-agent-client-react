@@ -268,6 +268,10 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         text: 'If you set them, anything matching outside your allowed hours is held back. It is not saved for later — it simply is not sent, and it matches again on the next check inside the window.',
       },
       {
+        label: 'The message limit',
+        text: 'Optional. "At most 3 messages every 7 days to the same person." It counts messages they actually RECEIVED, not runs — a run that ended without a message bothered nobody. And unlike "up to N times", it does not reset when they reply: someone who answers every nudge could otherwise be contacted forever.',
+      },
+      {
         label: 'Conditions',
         text: 'Optional extra rules about what the agent remembers about this person — "only if they have not paid yet". Anything that fails is skipped.',
       },

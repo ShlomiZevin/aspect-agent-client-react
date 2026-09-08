@@ -45,6 +45,7 @@ interface Props {
 export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose, agentSlug, onRan }: Props) {
   const type = getTriggerType(trigger.typeId);
   const quiet = trigger.quietHours;
+  const cap = trigger.limits?.perConversation;
   const crewMissing = !agent.crews.some(c => c.id === trigger.run?.crewId);
   // Built once per open, and re-derived if the saved zone changes so a
   // value this browser does not list still appears in the picker.
@@ -112,10 +113,16 @@ export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose, age
         <div className={styles.groupTitle}>
           When it must not
           <span className={styles.optional}>optional</span>
-          <HelpDot label="About quiet hours">
+          <HelpDot label="About these limits">
             A nudge held back at night isn't lost — the customer is still quiet in the
             morning, so it goes then. Held-back attempts are recorded, so you can see the
             trigger wanted to fire.
+            <br /><br />
+            The message limit counts messages the customer actually <strong>received</strong>,
+            not runs. A run that ended without a message didn't bother anyone, so it doesn't
+            count. Unlike "up to N times", it does <strong>not</strong> reset when they reply —
+            that's the point: someone who answers every nudge could otherwise be contacted
+            forever.
           </HelpDot>
         </div>
         <div className={styles.group}>
@@ -159,7 +166,7 @@ export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose, age
             <TriggerRow label="Timezone" htmlFor="trg-tz">
               <select
                 id="trg-tz"
-                className={s.selectFull}
+                className={s.selectAuto}
                 value={quiet.timezone}
                 onChange={e => onChange({ quietHours: { ...quiet, timezone: e.target.value } })}
               >
@@ -173,6 +180,75 @@ export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose, age
               </select>
             </TriggerRow>
           )}
+
+          {/* LAST in the group, after the timezone. Placed between Quiet
+              hours and its timezone, the timezone read as though it
+              belonged to this limit — it belongs to quiet hours.
+
+              A switch first, like quiet hours: the row states whether the
+              limit is on, and the numbers only appear once it is. A bare
+              number box with 0 meaning "no limit" reads as "never send".
+
+              The trailing words are kept short because this row holds two
+              inputs; "to the same person" overflowed the row and is now on
+              the label's tooltip and in the group's help. */}
+          <TriggerRow
+            label="Message limit"
+            hint="Per person. Counts messages they actually received, and does not reset when they reply."
+          >
+            <div className={s.inline}>
+              <label className={s.switchWrap}
+                     title={cap ? 'Remove the limit' : 'Limit how often this may message someone'}>
+                <input
+                  type="checkbox"
+                  checked={!!cap}
+                  onChange={e => onChange({
+                    limits: e.target.checked
+                      ? { ...(trigger.limits ?? {}), perConversation: { max: 3, days: 7 } }
+                      : { ...(trigger.limits ?? {}), perConversation: undefined },
+                  })}
+                />
+                <span className={s.switchTrack} />
+              </label>
+              {cap ? (
+                <>
+                  <span className={s.trail}>At most</span>
+                  <input
+                    className={s.number}
+                    type="number"
+                    min={1}
+                    value={cap.max}
+                    onChange={e => onChange({
+                      limits: {
+                        ...(trigger.limits ?? {}),
+                        perConversation: { ...cap, max: Math.max(1, Number(e.target.value) || 1) },
+                      },
+                    })}
+                  />
+                  <span className={s.trail}>messages every</span>
+                  <input
+                    className={s.number}
+                    type="number"
+                    min={1}
+                    max={90}
+                    value={cap.days}
+                    onChange={e => onChange({
+                      limits: {
+                        ...(trigger.limits ?? {}),
+                        perConversation: {
+                          ...cap,
+                          days: Math.min(90, Math.max(1, Number(e.target.value) || 1)),
+                        },
+                      },
+                    })}
+                  />
+                  <span className={s.trail}>days</span>
+                </>
+              ) : (
+                <span className={s.trail}>Off — no message ceiling</span>
+              )}
+            </div>
+          </TriggerRow>
         </div>
 
         {/* ── THEN ── */}
