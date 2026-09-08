@@ -120,9 +120,13 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
     sessionStorage.removeItem(PREFILL_STORAGE_KEY);
     setConversationId(id);
   };
+  // "New chat" shows the WIDGET'S OWN welcome (hero + styled tiles), not an
+  // empty iframe: mounting a fresh uuid rendered the real chat's generic
+  // emoji welcome — a different visual identity from the screen the user was
+  // just on. The conversation id is only minted when they actually SEND.
   const newConversation = () => {
     sessionStorage.removeItem(PREFILL_STORAGE_KEY);
-    setConversationId(crypto.randomUUID());
+    setConversationId(null);
   };
   const send = (question: string) => {
     sessionStorage.setItem(PREFILL_STORAGE_KEY, question);
