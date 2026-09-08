@@ -135,7 +135,7 @@ function SignInDialog({ tenant, config, context, onClose, onSignedIn, t }: SignI
         </button>
 
         <div className={styles.head}>
-          <span className={styles.badge}><DevicesIcon /></span>
+          <span className={styles.badge}><DevicesIcon size={22} /></span>
           <h2 className={styles.title}>{t('signIn.title')}</h2>
           <p className={styles.subtitle}>{t('signIn.subtitle')}</p>
         </div>

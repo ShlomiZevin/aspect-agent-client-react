@@ -35,6 +35,13 @@ export function SignInMethods({ tenant, config, context = {}, onSignedIn, t = en
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Nearly everyone signs in with Google; email+password exists only for
+  // pre-created accounts. So the form starts FOLDED behind a small text
+  // label — unless Google is not offered at all, in which case the form is
+  // the whole dialog and folding it would hide the only door.
+  const googleOffered = Boolean(config.google && config.clientId);
+  const [emailOpen, setEmailOpen] = useState(!googleOffered);
+
   const googleSlot = useRef<HTMLDivElement>(null);
   const script = useGoogleScript(config.google && Boolean(config.clientId));
 
@@ -58,12 +65,23 @@ export function SignInMethods({ tenant, config, context = {}, onSignedIn, t = en
     };
   }, [onSignedIn]);
 
+  // The sign-in context reaches the callback through a ref for the same
+  // reason: with anonUserId in the effect's dependencies, the anon user
+  // resolving (null → id) re-ran the effect and APPENDED a second Google
+  // iframe into the slot — the visible "blinking" and height jump on open.
+  const ctxRef = useRef({ tenant, anonUserId, agentName });
+  useEffect(() => { ctxRef.current = { tenant, anonUserId, agentName }; });
+
   useEffect(() => {
     if (script !== 'ready' || !googleSlot.current || !config.clientId) return;
+    // Idempotent: clear the slot before rendering, so a re-run (StrictMode's
+    // double-invoke included) redraws ONE button instead of stacking two.
+    googleSlot.current.replaceChildren();
     renderGoogleButton(googleSlot.current, config.clientId, (idToken) => {
-      void runSignIn.current(() => authApi.withGoogle(idToken, tenant, { anonUserId, agentName }));
+      const { tenant: tn, anonUserId: anon, agentName: agent } = ctxRef.current;
+      void runSignIn.current(() => authApi.withGoogle(idToken, tn, { anonUserId: anon, agentName: agent }));
     });
-  }, [script, config.clientId, tenant, anonUserId, agentName]);
+  }, [script, config.clientId]);
 
   const submitPassword = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,11 +107,23 @@ export function SignInMethods({ tenant, config, context = {}, onSignedIn, t = en
         </div>
       )}
 
-      {config.google && config.password && (
+      {/* The fold: a quiet text label, not a second button competing with
+          Google. Opening it reveals the form and the OR divider together. */}
+      {config.password && googleOffered && !emailOpen && (
+        <button
+          type="button"
+          className={styles.emailToggle}
+          onClick={() => setEmailOpen(true)}
+        >
+          {t('signIn.emailToggle')}
+        </button>
+      )}
+
+      {config.google && config.password && emailOpen && (
         <div className={styles.divider}><span>{t('signIn.or')}</span></div>
       )}
 
-      {config.password && (
+      {config.password && emailOpen && (
         <form className={styles.form} onSubmit={submitPassword}>
           <label className={styles.field}>
             <span className={styles.label}>{t('signIn.email')}</span>
