@@ -133,6 +133,12 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat, onOpenScopedC
   // Which row's "Move to…" menu is open — one at a time, page-wide.
   const [menuFor, setMenuFor] = useState<string | null>(null);
 
+  // The buyer's row order. 'urgency' = soonest runout first (the default);
+  // 'runout_desc' = the planning view they asked for — furthest-future
+  // runouts first, already-run-out items last. Server-side, so it holds
+  // across every page, not just the visible ten rows.
+  const [sortMode, setSortMode] = useState<'urgency' | 'runout_desc'>('urgency');
+
   const loadedFor = useRef<string | null>(null);
   const locale = he ? 'he-IL' : 'en-GB';
   const nf = useCallback(
@@ -197,7 +203,8 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat, onOpenScopedC
    * show ten of them. The summary above is unaffected — it is computed over
    * every row on the server, so searching never changes the tiles.
    */
-  const loadRows = useCallback(async (supplier: string, page: number, search: string) => {
+  const loadRows = useCallback(async (supplier: string, page: number, search: string, sortOverride?: 'urgency' | 'runout_desc') => {
+    const sort = sortOverride ?? sortMode;
     setOpen(o => ({ supplier, page, search, rows: o?.supplier === supplier ? o.rows : [], total: o?.supplier === supplier ? o.total : 0, loading: true }));
     try {
       const r = await replenishmentService.recommendations(datasetId, {
@@ -205,6 +212,7 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat, onOpenScopedC
         search: search || undefined, lang: language,
         // The rows follow the active chip — the same filter the plan above used.
         group: groupsActive ? activeGroup : undefined,
+        sort: sort === 'runout_desc' ? 'runout_desc' : undefined,
       }, baseURL);
       setOpen(o => (o && o.supplier === supplier && o.page === page && o.search === search
         ? { ...o, rows: r.recommendations, total: r.total, loading: false }
@@ -214,7 +222,7 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat, onOpenScopedC
       // the rest of the screen is still correct and still useful.
       setOpen(o => (o && o.supplier === supplier ? { ...o, rows: [], loading: false } : o));
     }
-  }, [datasetId, baseURL, language, groupsActive, activeGroup]);
+  }, [datasetId, baseURL, language, groupsActive, activeGroup, sortMode]);
 
   // Closing the page mid-recalculation must not leave a stream open.
   useEffect(() => recalc.stop, [recalc.stop]);
@@ -683,6 +691,22 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat, onOpenScopedC
                       placeholder={t('procurement.searchPlaceholder')}
                       onChange={e => void loadRows(sp.supplier, 0, e.target.value)}
                     />
+                    {/* The buyer's ordering — server-side, holds across pages. */}
+                    <label className={styles.sortWrap}>
+                      <span className={styles.sortLabel}>{t('procurement.sortLabel')}</span>
+                      <select
+                        className={styles.sortSelect}
+                        value={sortMode}
+                        onChange={e => {
+                          const v = e.target.value as 'urgency' | 'runout_desc';
+                          setSortMode(v);
+                          void loadRows(sp.supplier, 0, open?.search ?? '', v);
+                        }}
+                      >
+                        <option value="urgency">{t('procurement.sort.urgency')}</option>
+                        <option value="runout_desc">{t('procurement.sort.future')}</option>
+                      </select>
+                    </label>
                     {/* Always present, so nothing is ever silently truncated. */}
                     <span className={styles.shown}>
                       {open && open.total > 0
@@ -710,7 +734,7 @@ export function ProcurementPage({ datasetId, baseURL, onAskInChat, onOpenScopedC
                   <div className={styles.table}>
                     <div className={`${styles.thead} ${groupsActive ? styles.rowGrouped : ''}`}>
                       <div>{t('procurement.col.item')}</div>
-                      <div>{t('procurement.col.status')}</div>
+                      <div>{t('procurement.col.runsOut')}</div>
                       <div>{t('procurement.col.order')}</div>
                       <div>{t('procurement.col.cost')}</div>
                       <div>{t('procurement.col.placeOrder')}</div>
@@ -887,7 +911,6 @@ function ItemRow({
   onVerdict: (group: ProcurementGroup | null) => void;
 }) {
   const late = rec.daysLate ?? 0;
-  const pillClass = late > 60 ? styles.pillLate : late > 0 ? styles.pillDue : styles.pillOk;
   const cartons = rec.unitsPerCarton && rec.unitsPerCarton > 0
     ? Math.round(rec.orderQty / rec.unitsPerCarton) : null;
 
@@ -935,12 +958,23 @@ function ItemRow({
           </span>
           <span className={styles.itemCode} style={{ display: 'block' }}>{rec.itemNumber ?? rec.sku}</span>
         </span>
+        {/* RUNS OUT — the client's asked-for picture: a projected runout
+            date for living items, a plain red "Run out" for the dead ones.
+            The lateness diagnosis moved to the Why panel. */}
         <span>
-          <span className={`${styles.pill} ${pillClass}`}>
-            {late > 0
-              ? t('procurement.daysLate').replace('{n}', String(late))
-              : t('procurement.dueSoonPill')}
-          </span>
+          {rec.alreadyOut || !rec.runoutDate ? (
+            <span className={`${styles.pill} ${styles.pillLate}`}>{t('procurement.runOut')}</span>
+          ) : (
+            <>
+              <span className={styles.qtyMain} style={{ display: 'block' }}>
+                {formatDateOnly(rec.runoutDate, language)}
+              </span>
+              <span className={styles.qtySub} style={{ display: 'block' }}>
+                {t('procurement.inDays').replace('{n}', String(Math.max(0,
+                  Math.ceil((new Date(rec.runoutDate).getTime() - Date.now()) / 86400000))))}
+              </span>
+            </>
+          )}
         </span>
         <span>
           <span className={styles.qtyMain} style={{ display: 'block' }}>
@@ -1071,6 +1105,14 @@ function ItemRow({
               label={t('procurement.f.arrives')}
               value={rec.arrivesIfOrderedToday ? formatDateOnly(rec.arrivesIfOrderedToday, language) : '—'}
               sub={t('procurement.f.ifOrderedToday')}
+            />
+            {/* The diagnosis the old STATUS pill carried — kept honest, in
+                the panel where explanations live. */}
+            <Fact
+              label={t('procurement.f.ideal')}
+              value={rec.orderByDate ? formatDateOnly(rec.orderByDate, language) : '—'}
+              sub={late > 0 ? t('procurement.daysLate').replace('{n}', String(late)) : t('procurement.f.onTime')}
+              subClass={late > 0 ? styles.factSubDefault : styles.factSubSet}
             />
           </div>
 

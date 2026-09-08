@@ -100,6 +100,8 @@ export interface Recommendation {
   placeOrderBy: string | null;
   /** When current stock is projected to hit zero. */
   runoutDate: string | null;
+  /** Availability is at or below zero — the item has already run out. */
+  alreadyOut: boolean;
   /** When goods would land if the order went out today. */
   arrivesIfOrderedToday: string | null;
   /** Projected zero-stock days even if ordered today (0 = still in time). */

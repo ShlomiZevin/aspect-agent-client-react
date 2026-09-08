@@ -76,6 +76,9 @@ export const replenishmentService = {
     opts: {
       supplier?: string; onlyDue?: boolean; limit?: number; offset?: number;
       search?: string; lang?: string; group?: ProcurementGroup;
+      /** 'runout_desc' = the planning view: furthest-future runouts first,
+       *  already-run-out items last. Omit for the default urgency order. */
+      sort?: 'runout_desc';
     } = {},
     baseURL?: string,
   ) => {
@@ -87,6 +90,7 @@ export const replenishmentService = {
     if (opts.offset) q.set('offset', String(opts.offset));
     if (opts.search) q.set('search', opts.search);
     if (opts.lang) q.set('lang', opts.lang);
+    if (opts.sort) q.set('sort', opts.sort);
     const qs = q.toString();
     return apiRequest<RecommendationsResponse>(
       `${base(datasetId)}/recommendations${qs ? `?${qs}` : ''}`, {}, baseURL,
