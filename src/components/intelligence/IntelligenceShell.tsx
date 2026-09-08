@@ -16,6 +16,7 @@ import { AppsPage } from './Apps/AppsPage';
 import { ProcurementPage } from './Apps/ProcurementPage';
 import { appsService } from '../../services/appsService';
 import { ChatWidget } from './ChatWidget';
+import type { ModuleScope } from '../../services/chatService';
 import { DataHealthTrigger } from '../chat/DataHealthModal';
 import { FeedbackTrigger } from '../chat/GeneralFeedbackModal';
 import { ensureIntelligenceFontsLoaded } from './fonts';
@@ -101,6 +102,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   const [chatExpanded, setChatExpanded] = useState(false);
   const [chatEverOpened, setChatEverOpened] = useState(false);
   const [pendingChatQuestion, setPendingChatQuestion] = useState<string | null>(null);
+  const [pendingChatScope, setPendingChatScope] = useState<ModuleScope | null>(null);
   // The chat widget's open/expanded state follows the URL, not just its own
   // buttons — landing on /intelligence/:datasetId/chat directly (a shared
   // link, a page refresh) must open it expanded, same as clicking "Data Chat".
@@ -238,6 +240,16 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
     handleChatExpandedChange(true);
     setPendingChatQuestion(question);
   };
+
+  // A module surface opens a SCOPED conversation (Smart Tune on the
+  // Procurement page). Docked, not expanded, on purpose: the point of the
+  // scope is talking about the rows while looking at them.
+  const openScopedChat = (scope: ModuleScope) => {
+    setChatOpen(true);
+    setChatEverOpened(true);
+    handleChatExpandedChange(false);
+    setPendingChatScope(scope);
+  };
   const view: 'home' | 'reports' | 'history' | 'detail' | 'chat' | 'apps' | 'app' =
     chatRoute ? 'chat'
       : appId ? 'app'
@@ -370,7 +382,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
             what the client calls it. A second app gets a branch here and
             nothing else in the shell has to change. */}
         {view === 'app' && hasApps === true && appId === 'replenishment' && (
-          <ProcurementPage datasetId={datasetId} baseURL={baseURL} onAskInChat={askFollowUp} />
+          <ProcurementPage datasetId={datasetId} baseURL={baseURL} onAskInChat={askFollowUp} onOpenScopedChat={openScopedChat} />
         )}
         {view === 'app' && hasApps === true && appId !== 'replenishment' && (
           <AppsPage
@@ -397,6 +409,8 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           headerHeight={headerHeight}
           pendingQuestion={pendingChatQuestion}
           onPendingQuestionConsumed={() => setPendingChatQuestion(null)}
+          pendingScope={pendingChatScope}
+          onPendingScopeConsumed={() => setPendingChatScope(null)}
         />
       )}
 

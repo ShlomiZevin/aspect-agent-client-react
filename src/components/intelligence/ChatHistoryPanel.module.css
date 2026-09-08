@@ -120,3 +120,17 @@
 }
 .panelExpanded .clearAll { padding: 14px 18px; font-size: 12.5px; }
 .clearAll:hover { color: var(--ai-text-dim); }
+
+/* Module-scope tag (Aspect Modules — e.g. Smart Tune) on a history row. */
+.scopeTag {
+  display: inline-block;
+  margin-inline-end: 6px;
+  vertical-align: 1px;
+  background: var(--ai-accent-soft, rgba(124, 58, 237, 0.1));
+  color: var(--ai-accent, #7c3aed);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 99px;
+  white-space: nowrap;
+}

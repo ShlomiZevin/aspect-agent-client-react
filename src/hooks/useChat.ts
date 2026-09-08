@@ -321,6 +321,8 @@ export interface UseChatOptions {
   profilerFreshStart?: boolean;
   profilerEnabled?: boolean;
   restrictedMode?: boolean;
+  /** Aspect Modules scoped session (Smart Tune) — sent per turn; inert unless a live module validates it server-side. */
+  moduleScope?: import('../services/chatService').ModuleScope | null;
 }
 
 export interface UseChatReturn {
@@ -345,7 +347,7 @@ export interface UseChatReturn {
  * Main chat hook - handles messaging, streaming, and thinking indicators
  */
 export function useChat(options: UseChatOptions): UseChatReturn {
-  const { config, conversationId, userId, language, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, onCrewInfo, onCrewTransition, onFieldExtracted, onProfileUpdate, onProfilerRaw, profilerFreshStart, profilerEnabled, restrictedMode } = options;
+  const { config, conversationId, userId, language, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, onCrewInfo, onCrewTransition, onFieldExtracted, onProfileUpdate, onProfilerRaw, profilerFreshStart, profilerEnabled, restrictedMode, moduleScope } = options;
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
     conversationId,
@@ -396,6 +398,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             profilerFreshStart,
             profilerEnabled,
             restrictedMode,
+            moduleScope,
           },
           {
             onThinkingStep: (step) => {
@@ -500,6 +503,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       topKOverrides,
       profilerFreshStart,
       profilerEnabled,
+      moduleScope,
       onCrewInfo,
       onCrewTransition,
       onFieldExtracted,

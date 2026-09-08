@@ -149,7 +149,17 @@ export function ChatHistoryPanel({ datasetId, activeConversationId, onSelect, on
                   onClick={() => onSelect(c.id)}
                 >
                   <div className={styles.itemBody}>
-                    <div className={styles.itemTitle}>{c.title || t('intel.chat.newChatTitle')}</div>
+                    <div className={styles.itemTitle}>
+                      {/* Module-scoped conversation (e.g. Smart Tune) — the
+                          tag comes from the server's scope stamp, so it
+                          survives regardless of which client opened it. */}
+                      {c.moduleScope && (
+                        <span className={styles.scopeTag}>
+                          {c.moduleScope.title?.[language === 'he' ? 'he' : 'en'] || t('chat.scopedSession')}
+                        </span>
+                      )}
+                      {c.title || t('intel.chat.newChatTitle')}
+                    </div>
                     <div className={styles.itemTime}>{c.updatedAt.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</div>
                   </div>
                   {expanded && (

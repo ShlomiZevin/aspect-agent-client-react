@@ -333,3 +333,15 @@
     opacity: 1;
   }
 }
+
+/* Module-scope badge (Aspect Modules — e.g. Smart Tune), beside the date. */
+.scopeBadge {
+  display: inline-block;
+  background: color-mix(in srgb, var(--primary-color, #7c3aed) 10%, transparent);
+  color: var(--primary-color, #7c3aed);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
