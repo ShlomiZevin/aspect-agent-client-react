@@ -37,6 +37,9 @@ interface UserConversationsResponse {
     channel?: 'web' | 'whatsapp';
     createdAt: string;
     updatedAt: string;
+    /** Raw conversation metadata — carries the module-scope stamp
+     *  (Aspect Modules, e.g. Smart Tune) when the conversation ran in one. */
+    metadata?: Record<string, unknown> | null;
   }>;
 }
 
@@ -97,6 +100,7 @@ export async function getUserConversations(
     channel: conv.channel,
     createdAt: new Date(conv.createdAt),
     updatedAt: new Date(conv.updatedAt),
+    moduleScope: (conv.metadata?.moduleScope as Conversation['moduleScope']) ?? null,
   }));
 }
 

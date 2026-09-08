@@ -12,6 +12,9 @@ import { AgentBugModal } from '../AgentBugModal/AgentBugModal';
 import { DataTableModal } from './DataTableModal';
 import type { DisplayColumn } from './DataTableModal';
 import { parseMarkdownTables } from './parseMarkdownTables';
+import { ChatActionCard } from './ChatActionCard';
+import { isChatActionEnvelope } from './chatAction';
+import type { ChatActionEnvelope } from './chatAction';
 import { createTask, getAssignees } from '../../../services/taskService';
 import { useCommenterIdentity } from '../../../hooks/useCommenterIdentity';
 import type { CreateTaskData } from '../../../types/task';
@@ -103,6 +106,12 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
         const meta = s.metadata as { rows?: unknown[]; sql?: string } | null;
         return Array.isArray(meta?.rows) || typeof meta?.sql === 'string';
       })
+    : [];
+  // Module chat-action cards (Aspect Modules — e.g. Smart Tune's previewed
+  // group move). The step exists only when a scoped module tool attached an
+  // envelope, so plain conversations never grow one of these.
+  const actionSteps = (!isUser && !isDeveloper && message.thinkingSteps)
+    ? message.thinkingSteps.filter(s => s.stepType === 'chat_action' && isChatActionEnvelope(s.metadata))
     : [];
   const canFeedback = !restrictedMode && !isUser && !isDeveloper && message.dbId;
   const canReportBug = debugMode && !isUser && !isDeveloper;
@@ -402,6 +411,13 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
                 ))}
               </div>
             )}
+            {actionSteps.map((step, idx) => (
+              <ChatActionCard
+                key={`action-${idx}`}
+                action={step.metadata as unknown as ChatActionEnvelope}
+                baseURL={config.baseURL}
+              />
+            ))}
             {openTableIdx !== null && viewerTables[openTableIdx] && (
               <DataTableModal
                 rows={viewerTables[openTableIdx].rows}

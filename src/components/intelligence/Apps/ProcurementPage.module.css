@@ -4,8 +4,9 @@
  * Values here are the mockup's, not approximations of it: the grid columns,
  * the radii, the chip paddings and the six-column why panel all come from
  * "Zol Stock - Apps Final". Where a token exists for a colour that matches, the
- * token is used so the page follows the light/dark switch; the purples and the
- * status colours are the design's own and are written literally.
+ * token is used so the page follows the light/dark switch; the accent runs on the
+ * shell's brand tokens (--ai-accent / -soft / -2), so each client's page wears
+ * its own colour; only the status reds/greens/ambers are written literally.
  */
 
 .page {
@@ -19,8 +20,8 @@
 .head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 14px;
+  margin-bottom: 14px;
   flex-wrap: wrap;
 }
 
@@ -35,7 +36,7 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: linear-gradient(145deg, #8b5cf6, #6d28d9);
+  background: var(--ai-grad-mark, linear-gradient(145deg, #8b5cf6, #6d28d9));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -43,36 +44,41 @@
 }
 
 .headTitle {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 800;
   color: var(--ai-text, #29304a);
 }
 
-.tabOn {
-  background: #7c3aed;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 8px 20px;
-  border-radius: 99px;
-  border: none;
-  font-family: inherit;
+/* -- underlined section tabs, per the updated design --------------------- */
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  border-bottom: 1px solid var(--ai-border, #e8e9f2);
+  margin-bottom: 16px;
 }
 
-/* The later sections are announced, not disabled controls - a span, because
-   there is nothing to press. */
-.tabLater {
-  background: var(--ai-surface, #ffffff);
-  border: 1px solid var(--ai-border, #e8e9f2);
-  color: var(--ai-text, #3c455f);
-  font-size: 13px;
-  font-weight: 600;
-  padding: 7px 17px;
-  border-radius: 99px;
+.tab {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 7px;
+  padding: 8px 2px 11px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ai-text-muted, #6e7691);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
 }
+
+.tabActive {
+  color: var(--ai-text, #29304a);
+  font-weight: 700;
+  border-bottom-color: var(--ai-accent, #7c3aed);
+}
+
+.tabActive svg { color: var(--ai-accent, #7c3aed); }
 
 .laterPill {
   background: var(--ai-surface-alt, #f1f2f7);
@@ -80,6 +86,105 @@
   font-size: 11px;
   padding: 3px 9px;
   border-radius: 99px;
+}
+
+/* -- group bar ------------------------------------------------------------ */
+
+.groupBar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+/* One bordered rail holding every chip — the updated design's segmented
+   control, not five free-floating pills. */
+.groupChips {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e2e4ee);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.groupChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  padding: 7px 13px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ai-text, #3c455f);
+  cursor: pointer;
+}
+
+.groupChip:hover { background: var(--ai-surface-alt, #f7f8fb); }
+
+.groupChip:focus-visible {
+  outline: 2px solid var(--ai-accent, #7c3aed);
+  outline-offset: 2px;
+}
+
+/* The active chip is a soft tint, not a solid fill — the design's own state. */
+.groupChipOn {
+  background: var(--ai-accent-soft, #f2edfd);
+  color: var(--ai-text, #29304a);
+  font-weight: 700;
+}
+
+.groupChipOn:hover { background: var(--ai-accent-soft, #f2edfd); }
+
+.groupCount {
+  background: var(--ai-surface-alt, #f1f2f7);
+  color: var(--ai-text-muted, #6e7691);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-variant-numeric: tabular-nums;
+}
+
+.groupCountOn {
+  background: var(--ai-surface, #ffffff);
+  color: var(--ai-text, #29304a);
+}
+
+.groupSummaryText {
+  margin-inline-start: auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ai-text-muted, #6e7691);
+  white-space: nowrap;
+}
+
+.tuneBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ai-accent, #7c3aed);
+  border: none;
+  border-radius: 11px;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 18px;
+  cursor: pointer;
+}
+
+.tuneBtn:hover { background: var(--ai-accent-2, #6d28d9); }
+
+.tuneBtn:focus-visible {
+  outline: 2px solid var(--ai-accent, #7c3aed);
+  outline-offset: 2px;
 }
 
 /* -- status band --------------------------------------------------------- */
@@ -96,23 +201,23 @@
   flex-wrap: wrap;
 }
 
+/* The design's state pill: a soft fill with no border, sitting quietly
+   beside the title rather than shouting over it. */
 .attention {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #fdeeee;
-  border: 1px solid #f6cfcf;
-  color: #c03434;
+  background: #fbecec;
+  color: #d6453d;
   font-size: 12.5px;
-  font-weight: 700;
-  padding: 7px 15px;
+  font-weight: 600;
+  padding: 7px 16px;
   border-radius: 99px;
   white-space: nowrap;
 }
 
 .attentionOk {
   background: #ebf9f1;
-  border-color: #bfe8d0;
   color: #137a41;
 }
 
@@ -163,7 +268,7 @@
 
 .recalc {
   background: var(--ai-surface, #ffffff);
-  border: 1px solid #d9cdf5;
+  border: 1px solid var(--ai-accent-soft, #d9cdf5);
   border-radius: 16px;
   padding: 20px 26px;
   margin-bottom: 14px;
@@ -179,7 +284,7 @@
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: #7c3aed;
+  color: var(--ai-accent, #7c3aed);
 }
 
 .recalcPct {
@@ -192,7 +297,7 @@
 
 .bar {
   height: 8px;
-  background: #f1eafc;
+  background: var(--ai-accent-soft, #f1eafc);
   border-radius: 99px;
   margin: 12px 0 20px;
   overflow: hidden;
@@ -201,7 +306,7 @@
 .barFill {
   height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, #7c3aed, #a78bfa);
+  background: linear-gradient(90deg, var(--ai-accent, #7c3aed), var(--ai-accent-2, #a78bfa));
   transition: width 0.2s linear;
 }
 
@@ -253,12 +358,12 @@
 }
 
 .notice {
-  background: #f2edfd;
+  background: var(--ai-accent-soft, #f2edfd);
   border-radius: 14px;
   padding: 13px 20px;
   margin-bottom: 14px;
   font-size: 12.5px;
-  color: #4c3a75;
+  color: var(--ai-text, #4c3a75);
   line-height: 1.55;
 }
 
@@ -301,7 +406,7 @@
 }
 
 .supToggle:focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid var(--ai-accent, #7c3aed);
   outline-offset: -2px;
   border-radius: 8px;
 }
@@ -363,7 +468,7 @@
   background: none;
   font-family: inherit;
   font-size: 13px;
-  color: #7c3aed;
+  color: var(--ai-accent, #7c3aed);
   font-weight: 600;
   cursor: pointer;
   text-decoration: underline;
@@ -378,18 +483,65 @@
 }
 
 .linkBtn:focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid var(--ai-accent, #7c3aed);
   outline-offset: 2px;
   border-radius: 3px;
 }
 
 .leadInput {
-  width: 54px;
-  padding: 6px 9px;
+  width: 64px;
+  padding: 8px 10px;
   border: 1px solid var(--ai-border, #e2e4ee);
-  border-radius: 9px;
-  font-size: 12.5px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
   font-family: inherit;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--ai-text, #29304a);
+  background: var(--ai-surface, #ffffff);
+}
+
+.leadInput:focus-visible {
+  outline: 2px solid var(--ai-accent, #7c3aed);
+  outline-offset: 1px;
+}
+
+/* The edit state's real buttons — the design's, not text links. */
+.saveBtn {
+  background: var(--ai-accent, #7c3aed);
+  border: none;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.saveBtn:hover { background: var(--ai-accent-2, #6d28d9); }
+
+.cancelEditBtn {
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e2e4ee);
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ai-text, #3c455f);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cancelEditBtn:hover { background: var(--ai-surface-alt, #f7f8fb); }
+
+.saveBtn:focus-visible,
+.cancelEditBtn:focus-visible {
+  outline: 2px solid var(--ai-accent, #7c3aed);
+  outline-offset: 2px;
 }
 
 .supCount {
@@ -490,9 +642,15 @@
   background: var(--ai-surface-alt, #fafafd);
 }
 
+/* With groups on, the trailing column holds real controls, not one word. */
+.rowGrouped {
+  grid-template-columns: minmax(200px, 1.4fr) 100px 120px 100px 100px 230px;
+}
+
 .itemWrap { border-top: 1px solid var(--ai-border, #f0f1f6); }
 
 .trow {
+  position: relative;
   align-items: center;
   padding: 12px 20px;
   cursor: pointer;
@@ -505,6 +663,34 @@
 
 .trow:hover { background: var(--ai-surface-alt, #fafafd); }
 .trowOpen { background: #fafafd; }
+
+/* Same pattern as .supToggle: the disclosure covers the row rather than
+   wrapping it, because Move to…/Reject are real buttons and buttons cannot
+   nest. */
+.rowToggle {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rowToggle:focus-visible {
+  outline: 2px solid var(--ai-accent, #7c3aed);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+.trow > *:not(.rowToggle) {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.trow .rowInteractive { pointer-events: auto; }
 
 .itemName {
   font-weight: 600;
@@ -553,8 +739,146 @@
 
 .whyCell {
   font-size: 12.5px;
-  color: #7c3aed;
+  color: var(--ai-accent, #7c3aed);
   font-weight: 600;
+}
+
+/* -- row verdicts: Move to…, Reject, moved-state ------------------------- */
+
+.actionsCell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.moveWrap { position: relative; display: inline-flex; }
+
+.moveBtn {
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e2e4ee);
+  border-radius: 9px;
+  padding: 6px 11px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ai-text, #3c455f);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.moveBtn:hover { background: var(--ai-surface-alt, #f7f8fb); }
+
+.moveBtn:focus-visible,
+.rejectBtn:focus-visible,
+.rowLink:focus-visible {
+  outline: 2px solid var(--ai-accent, #7c3aed);
+  outline-offset: 1px;
+}
+
+.moveMenu {
+  position: absolute;
+  top: calc(100% + 5px);
+  inset-inline-end: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e2e4ee);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(41, 48, 74, 0.16);
+  padding: 5px;
+}
+
+.moveMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ai-text, #3c455f);
+  cursor: pointer;
+  text-align: start;
+}
+
+.moveMenuItem:hover { background: var(--ai-accent-soft, #f6f4fd); }
+
+.moveCheck {
+  width: 14px;
+  flex-shrink: 0;
+  color: var(--ai-accent, #7c3aed);
+  font-weight: 700;
+}
+
+.rejectBtn {
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid #f6cfcf;
+  border-radius: 9px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #c03434;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.rejectBtn:hover { background: #fdeeee; }
+
+.rowLink {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--ai-accent, #7c3aed);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.movedText {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ai-text-muted, #6e7691);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* The row's group, shown when it differs from the chip it is listed under. */
+.groupBadge {
+  display: inline-block;
+  margin-inline-start: 8px;
+  vertical-align: 1px;
+  background: var(--ai-accent-soft, #f2edfd);
+  color: var(--ai-accent-2, #6d28d9);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+/* The recompute disagrees with a standing verdict — worth a look. */
+.reviewDot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-inline-start: 7px;
+  vertical-align: 2px;
+  border-radius: 50%;
+  background: #de8500;
+  cursor: help;
 }
 
 /* -- why panel ----------------------------------------------------------- */
@@ -664,6 +988,11 @@
   .thead,
   .trow,
   .why { min-width: 720px; }
+
+  /* The verdict controls need their own room. */
+  .rowGrouped { min-width: 880px; }
+
+  .groupSummaryText { margin-inline-start: 0; }
 }
 
 /* -- loading placeholders ------------------------------------------------ */
@@ -702,25 +1031,59 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  border: 1px solid #d9cdf5;
+  border: 1px solid var(--ai-accent-soft, #d9cdf5);
   border-radius: 10px;
   background: var(--ai-surface, #ffffff);
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 700;
-  color: #7c3aed;
+  color: var(--ai-accent, #7c3aed);
   cursor: pointer;
   transition: background var(--transition-fast, 0.15s) ease;
 }
 
-.askBtn:hover { background: #f6f4fd; }
+.askBtn:hover { background: var(--ai-accent-soft, #f6f4fd); }
 
 .askBtn:focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid var(--ai-accent, #7c3aed);
   outline-offset: 2px;
 }
 
 .askHint {
   font-size: 11.5px;
   color: var(--ai-text-muted, #8a90a3);
+}
+
+/* "Today" in the place-order column — the action is now, and reads as such. */
+.cellToday {
+  font-weight: 700;
+  color: #dc2f34;
+}
+
+/* The sort selector beside the search box. */
+.sortWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.sortLabel {
+  font-size: 12px;
+  color: var(--ai-text-muted, #8a90a3);
+}
+
+.sortSelect {
+  padding: 9px 12px;
+  border: 1px solid var(--ai-border, #e2e4ee);
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--ai-text, #3c455f);
+  background: var(--ai-surface, #ffffff);
+  cursor: pointer;
+}
+
+.sortSelect:focus-visible {
+  outline: 2px solid var(--ai-accent, #7c3aed);
+  outline-offset: 1px;
 }

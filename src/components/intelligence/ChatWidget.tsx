@@ -28,8 +28,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChatWelcome } from './ChatWelcome';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
-import { PREFILL_STORAGE_KEY } from '../../pages/AgentChatWidgetPage';
+import { PREFILL_STORAGE_KEY, SCOPE_STORAGE_KEY } from '../../pages/AgentChatWidgetPage';
 import { useLanguage } from '../../context/LanguageContext';
+import type { ModuleScope } from '../../services/chatService';
 import styles from './ChatWidget.module.css';
 
 interface Props {
@@ -47,6 +48,12 @@ interface Props {
    * onPendingQuestionConsumed so it doesn't re-fire on a later re-render. */
   pendingQuestion?: string | null;
   onPendingQuestionConsumed?: () => void;
+  /** Set by the shell when a module surface (e.g. Smart Tune on the
+   * Procurement page) opens a SCOPED conversation: a fresh conversation is
+   * started and the scope handed to the iframe the same way a prefill
+   * question is. Consumed once then cleared via onPendingScopeConsumed. */
+  pendingScope?: ModuleScope | null;
+  onPendingScopeConsumed?: () => void;
 }
 
 const MIN_WIDTH = 640;
@@ -69,7 +76,7 @@ function loadSize(): { width: number; height: number } {
   }
 }
 
-export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, onExpandedChange, pendingQuestion, onPendingQuestionConsumed }: Props) {
+export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, onExpandedChange, pendingQuestion, onPendingQuestionConsumed, pendingScope, onPendingScopeConsumed }: Props) {
   const { t } = useLanguage();
   const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -122,6 +129,19 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
     onPendingQuestionConsumed?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingQuestion]);
+
+  // A module surface opened a SCOPED conversation (Smart Tune). Same handoff
+  // shape as prefill: write to sessionStorage, mount the iframe on a fresh
+  // conversation id. The handoff is BOUND to that id, so a later plain
+  // conversation in the same iframe cannot inherit the scope.
+  useEffect(() => {
+    if (!pendingScope) return;
+    const id = crypto.randomUUID();
+    sessionStorage.setItem(SCOPE_STORAGE_KEY, JSON.stringify({ scope: pendingScope, forConversation: id }));
+    setConversationId(id);
+    onPendingScopeConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingScope]);
   // Mockup 2c's expanded header shows a back arrow instead of the hamburger
   // (the history sidebar is always visible while expanded, nothing to
   // toggle) — it leaves the current conversation and returns to the welcome

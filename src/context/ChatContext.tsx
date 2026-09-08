@@ -6,7 +6,7 @@ import type { AgentTheme } from '../types';
 import { useUserContext } from './UserContext';
 import type { CrewMember, CrewJourneyStep } from '../types/crew';
 import { linkPhone as linkPhoneApi, goMobile as goMobileApi } from '../services/phoneService';
-import type { ProfileUpdateData } from '../services/chatService';
+import type { ProfileUpdateData, ModuleScope } from '../services/chatService';
 import { runProfiler } from '../services/profilerService';
 
 interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 'switchToChat'> {
@@ -80,6 +80,9 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   setSelectedTheme: (themeId: string | null) => void;
   // Restricted mode (outside-user chat) — children use this to hide admin/dev UI.
   restrictedMode: boolean;
+  /** Aspect Modules scoped session, when this conversation runs in one (e.g.
+   *  Smart Tune). Optional so alternate providers need not supply it. */
+  moduleScope?: ModuleScope | null;
 }
 
 export const ChatContext = createContext<ChatContextValue | null>(null);
@@ -95,9 +98,16 @@ interface ChatProviderProps {
    * separate from the anonymous public path.
    */
   storagePrefix?: string;
+  /**
+   * Aspect Modules scoped session (e.g. Smart Tune) for a conversation a
+   * module surface just opened. For conversations reloaded from history the
+   * scope is re-learned from the conversation's own server-side metadata
+   * stamp instead — this prop only seeds the first turns.
+   */
+  moduleScope?: ModuleScope | null;
 }
 
-export function ChatProvider({ children, restrictedMode = false, storagePrefix }: ChatProviderProps) {
+export function ChatProvider({ children, restrictedMode = false, storagePrefix, moduleScope: moduleScopeProp = null }: ChatProviderProps) {
   const { config, selectedTheme, setSelectedTheme } = useAgentContext();
   const { language } = useLanguage();
   const { userId, switchUser } = useUserContext();
@@ -114,6 +124,14 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix }
 
   // Conversation-level metadata loaded from the server (synthetic flag, testRunId, etc.)
   const [conversationMetadata, setConversationMetadata] = useState<Record<string, unknown> | null>(null);
+
+  // The scope this conversation runs in, if any. The server's stamp (written
+  // on the first validated scoped turn) wins over the opener's prop, so a
+  // conversation reopened from history keeps its scope without the opener —
+  // and a conversation with neither is a plain conversation, byte-identical
+  // to before this existed.
+  const moduleScope: ModuleScope | null =
+    (conversationMetadata?.moduleScope as ModuleScope | undefined) ?? moduleScopeProp ?? null;
 
   // Debug copy selection
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
@@ -322,6 +340,7 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix }
     profilerFreshStart: profilerFreshStart || undefined,
     profilerEnabled: profilerEnabled || undefined,
     restrictedMode: restrictedMode || undefined,
+    moduleScope: moduleScope || undefined,
     onCrewInfo: (crewInfo) => {
       crew.setCurrentCrew(crewInfo);
       // Refresh fields panel when crew is set (including initial crew)
@@ -636,6 +655,7 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix }
     setSelectedTheme,
     // Restricted mode (outside-user chat) — children use this to hide admin/dev UI.
     restrictedMode,
+    moduleScope,
   };
 
   return (

@@ -57,6 +57,29 @@ import '../styles/themes/zolstock-theme.css';
 
 export const PREFILL_STORAGE_KEY = 'aspect_intelligence_prefill';
 
+/**
+ * Module-scope handoff (Aspect Modules — e.g. Smart Tune). The widget writes
+ * `{ scope, forConversation }` here right before mounting the iframe on a
+ * fresh conversation; this page applies the scope ONLY when the URL's
+ * conversation id matches, so a later plain conversation in the same iframe
+ * can never inherit a stale scope. Reopened scoped conversations don't need
+ * this at all — their scope comes from the conversation's own server-side
+ * metadata stamp (see ChatProvider).
+ */
+export const SCOPE_STORAGE_KEY = 'aspect_intelligence_module_scope';
+
+function readScopeHandoff(conversationId: string | undefined) {
+  if (!conversationId) return null;
+  try {
+    const raw = sessionStorage.getItem(SCOPE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { scope?: import('../services/chatService').ModuleScope; forConversation?: string };
+    return parsed.forConversation === conversationId ? (parsed.scope ?? null) : null;
+  } catch {
+    return null;
+  }
+}
+
 function PrefillSender({ onSent }: { onSent: () => void }) {
   const { sendMessage } = useChatContext();
   const { userId } = useUserContext();
@@ -100,8 +123,12 @@ function PrefillLoading() {
 }
 
 export function AgentChatWidgetPage() {
-  const { agent } = useParams<{ agent: string }>();
+  const { agent, conversationId } = useParams<{ agent: string; conversationId?: string }>();
   const config = getAgentConfig(agent);
+
+  // Read once, synchronously, at mount — the iframe reloads per conversation
+  // switch, so this is fresh for each one; a non-matching id reads as null.
+  const [moduleScope] = useState(() => readScopeHandoff(conversationId));
 
   useDocumentMeta({
     title: config?.pageTitle || 'Aspect Intelligence',
@@ -133,7 +160,7 @@ export function AgentChatWidgetPage() {
       <LanguageProvider storagePrefix={config.storagePrefix}>
         <UserProvider storagePrefix={config.storagePrefix} baseURL={config.baseURL}>
           <AgentProvider config={config}>
-            <ChatProvider>
+            <ChatProvider moduleScope={moduleScope}>
               <PrefillSender onSent={() => setPendingPrefill(false)} />
               {/* Scoped visual tweaks to match the design, without touching
                   ChatContainer/Message's own CSS modules — substring class
@@ -185,9 +212,13 @@ export function AgentChatWidgetPage() {
                 [class*="_bot_"] th, [class*="_bot_"] th *,
                 [class*="_dataTableBtn_"], [class*="_dataTableBtn_"] *,
                 [class*="_submit_"], [class*="_submit_"] *,
+                [class*="_processBtn_"], [class*="_processBtn_"] *,
                 [class*="_tag_"][aria-pressed="true"] {
                   color: #fff !important;
                 }
+                /* _processBtn_: the Smart Tune action card's Process button —
+                   accent background inside the bot subtree, same contrast
+                   rule as th/_dataTableBtn_. */
                 /* _submit_ / pressed _tag_: the Reject-answer feedback modal
                    (GeneralFeedbackModal) renders inside the bot subtree, so
                    the blanket recolor above was painting its gradient submit

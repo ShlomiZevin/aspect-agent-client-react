@@ -7,6 +7,30 @@
 
 export type ReplenishmentStatus = 'overdue' | 'due_soon' | 'ok' | 'no_demand';
 
+/**
+ * Procurement Groups — the five buckets every due item lands in.
+ *
+ * Stable ids from the server's classifier (modules/replenishment/groups.js);
+ * the screen renders its own labels ("Needs checking" for `suspicious`).
+ */
+export type ProcurementGroup = 'order_now' | 'suspicious' | 'out_of_season' | 'fading' | 'new';
+
+/** Chip order on the group bar — the design's, not alphabetical. */
+export const PROCUREMENT_GROUPS: ProcurementGroup[] = [
+  'order_now', 'suspicious', 'out_of_season', 'fading', 'new',
+];
+
+/**
+ * Counts over the WHOLE due set, one entry per group — what the chips show
+ * regardless of which group is active. Absent entirely on a server that has
+ * not run the groups migration yet, which is how the page knows to render
+ * itself exactly as before.
+ */
+export type GroupSummary = Partial<Record<ProcurementGroup, {
+  count: number;
+  estimatedCostExVat: number;
+}>>;
+
 /** Where a parameter came from — drives the "you set this / default" badge. */
 export type LeadTimeSource = 'supplier' | 'dataset_default' | 'code';
 
@@ -71,6 +95,17 @@ export interface Recommendation {
   daysOfCover: number | null;
   orderByDate: string | null;
   daysLate: number | null;
+  /** WHEN TO ORDER — today at the earliest, never a past date. The
+   *  instruction; orderByDate above is the diagnosis it derives from. */
+  placeOrderBy: string | null;
+  /** When current stock is projected to hit zero. */
+  runoutDate: string | null;
+  /** Availability is at or below zero — the item has already run out. */
+  alreadyOut: boolean;
+  /** When goods would land if the order went out today. */
+  arrivesIfOrderedToday: string | null;
+  /** Projected zero-stock days even if ordered today (0 = still in time). */
+  stockoutGapDays: number | null;
   targetStock: number;
   rawQty: number;
   orderQty: number;
@@ -89,6 +124,22 @@ export interface Recommendation {
   lastSold: string | null;
   /** Every caveat, already worded — the screen quotes these rather than re-deriving them. */
   notes: string[];
+
+  // ── Procurement Groups (absent until the server migration lands) ──
+  /** The group in force: the buyer's verdict when one exists, else the suggestion. */
+  group?: ProcurementGroup;
+  groupSource?: 'computed' | 'buyer';
+  groupNote?: string | null;
+  /** A recompute moved the suggestion under a standing buyer verdict — review dot. */
+  suggestionChanged?: boolean;
+  /**
+   * true/false = the warehouse file does/doesn't carry this item;
+   * null = the signals view is not built yet (render as before).
+   */
+  stockTracked?: boolean | null;
+  /** What the classifier said, before any verdict — sent back on a verdict PUT. */
+  suggestedGroup?: ProcurementGroup;
+  groupReasonCode?: string;
 }
 
 export interface RecommendationSummary {
@@ -108,6 +159,10 @@ export interface RecommendationsResponse {
   recommendations: Recommendation[];
   /** Suppliers kept out of the list on purpose, and how many items that removed. */
   excluded?: { items: number; suppliers: string[] };
+  /** Chip counts over the whole due set — absent pre-migration. */
+  groupSummary?: GroupSummary;
+  /** The group filter this response was computed under, or null. */
+  group?: ProcurementGroup | null;
 }
 
 /** One line of the supplier accordion, computed server-side. */
@@ -138,4 +193,46 @@ export interface PlanResponse {
   supplierCount: number;
   excluded: { items: number; suppliers: string[] };
   suppliers: PlanSupplier[];
+  /**
+   * Chip counts over the WHOLE due set, present regardless of the active
+   * filter. Absent = the server has not run the groups migration; the page
+   * renders exactly as before, no chips and no Smart Tune.
+   */
+  groupSummary?: GroupSummary;
+  /** The active group filter the suppliers list reflects, or null. */
+  group?: ProcurementGroup | null;
+}
+
+// ── Smart Tune: previewed proposals ─────────────────────────────────────────
+
+/** One row of a proposal's preview table (server: proposals.service `sample`). */
+export interface TuneProposalSampleRow {
+  sku: string;
+  item: string;
+  inStock: number;
+  stockTracked: boolean | null;
+  salesPerDay: number;
+  orderByDate: string | null;
+  group: ProcurementGroup;
+}
+
+/**
+ * A previewed change the tune chat proposed. Nothing has moved when this
+ * arrives — Process is a button, never a chat turn.
+ */
+export interface TuneProposal {
+  proposalId: number;
+  targetGroup: ProcurementGroup;
+  count: number;
+  /** The filter in words — quoted, so the buyer can check what was matched. */
+  interpreted: string;
+  expiresAt: string;
+  sample: TuneProposalSampleRow[];
+}
+
+export interface TuneExecuteResult {
+  operationId: number;
+  applied: number;
+  skipped: number;
+  targetGroup: ProcurementGroup;
 }

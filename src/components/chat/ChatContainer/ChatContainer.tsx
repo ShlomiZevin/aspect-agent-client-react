@@ -82,9 +82,11 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     setProfilerEnabled,
     conversationMetadata,
     restrictedMode,
+    moduleScope,
+    sendMessage,
   } = useChatContext();
   const { config } = useAgentContext();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -229,9 +231,46 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
           <ImportingBanner baseURL={baseURL} schema={config.database.schema} />
         )}
 
+        {/* Module-scoped session (Aspect Modules — e.g. Smart Tune): the
+            conversation runs against one module scope, and the banner says so
+            for its whole life — including when it is reopened from history,
+            where the scope comes from the conversation's own metadata stamp. */}
+        {moduleScope && (
+          <div className={styles.scopeBanner}>
+            <span className={styles.scopeBadge}>
+              ✦ {moduleScope.title?.[language === 'he' ? 'he' : 'en'] || t('chat.scopedSession')}
+            </span>
+            {moduleScope.contextLabel && (
+              <span className={styles.scopeContext}>{moduleScope.contextLabel}</span>
+            )}
+          </div>
+        )}
+
         <div className={styles.messages} ref={messagesContainerRef}>
           {!hasStartedChat ? (
-            <WelcomeSection />
+            // A scoped conversation opens on ITS OWN intro — what this scope
+            // is about and what can be asked — never the agent's generic
+            // quick-question welcome, which belongs to the whole dataset. The
+            // content comes from the module surface that opened the scope.
+            moduleScope?.welcome ? (
+              <div className={styles.scopedWelcome}>
+                <div className={styles.scopedIntro}>{moduleScope.welcome.intro}</div>
+                <div className={styles.scopedHints}>
+                  {moduleScope.welcome.hints.map(h => (
+                    <button
+                      key={h}
+                      type="button"
+                      className={styles.scopedHint}
+                      onClick={() => void sendMessage(h)}
+                    >
+                      {h}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <WelcomeSection />
+            )
           ) : (
             <>
               {(() => {
