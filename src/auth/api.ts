@@ -37,7 +37,8 @@ export interface SignInConfig {
   enabled: boolean;
   /**
    * What signing in is for:
-   *  - 'gate' the surface is closed until an invited person signs in
+   *  - 'gate' the surface is closed until a person signs in (Google needs no
+   *    invitation; a password is only for addresses added on the Access page)
    *  - 'sync' the surface stays open; signing in only saves history to an account
    */
   purpose: 'gate' | 'sync';
