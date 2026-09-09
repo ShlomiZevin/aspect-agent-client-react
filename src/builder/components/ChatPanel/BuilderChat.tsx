@@ -177,7 +177,18 @@ export function BuilderChat() {
     (async () => {
       const list = await reloadChatList();
       if (cancelled) return;
-      if (list.length > 0) await loadChat(list[0].id);
+      // Deep link (?alfredChat=<id>) — HQ-Alfred's rail linking a
+      // conversation that moved here. Open THAT chat, not the latest.
+      let deepLinkId: number | null = null;
+      try {
+        const raw = new URLSearchParams(window.location.search).get('alfredChat');
+        if (raw && /^\d+$/.test(raw)) deepLinkId = Number(raw);
+      } catch { /* ignore */ }
+      if (deepLinkId !== null) {
+        await loadChat(deepLinkId);
+      } else if (list.length > 0) {
+        await loadChat(list[0].id);
+      }
     })();
     return () => { cancelled = true; };
   }, [slug, reloadChatList, loadChat]);

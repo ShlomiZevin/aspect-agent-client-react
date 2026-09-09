@@ -304,9 +304,21 @@ export const getHQUsage = (days = 30) =>
 export const listWorkers = () =>
   api<{ workers: Worker[]; capabilities: WorkerCapabilities }>('/workers');
 
-export const getWorker = (slug: string) =>
-  api<{ worker: Worker; conversations: WorkerConversation[]; spend: WorkerSpend | null }>(
-    `/workers/${slug}`);
+export const getWorker = (slug: string, ownerUserId?: string) =>
+  api<{
+    worker: Worker;
+    conversations: WorkerConversation[];
+    /** Alfred only: the requester's own builder conversations (all agents). */
+    builderConversations?: import('../types').BuilderAlfredConversation[];
+    spend: WorkerSpend | null;
+  }>(`/workers/${slug}${ownerUserId ? `?ownerUserId=${encodeURIComponent(ownerUserId)}` : ''}`);
+
+/** One of the user's builder conversations, fetched to READ inside HQ.
+ *  Continuing it happens in the builder — the deep link lives in the
+ *  opened view, not on the rail row. */
+export const getBuilderConversation = (slug: string, id: number, ownerUserId: string) =>
+  api<{ conversation: import('../types').BuilderAlfredConversation; messages: WorkerMessage[] }>(
+    `/workers/${slug}/builder-conversations/${id}?ownerUserId=${encodeURIComponent(ownerUserId)}`);
 
 // ─── What she has been given ────────────────────────────────────────────────
 
@@ -447,23 +459,32 @@ export const cancelJob = (jobId: number) =>
  * server-side as they happen, so losing this connection costs you the live
  * view and nothing else. Reload and the job is still there.
  */
+/** Move info on the `done` payload when Alfred moved the conversation
+ *  to an agent this turn (it now lives in that agent's builder). */
+export interface ConversationMoved {
+  agentSlug: string;
+  agentName?: string;
+  builderChatId: number;
+}
+
 export async function sendToWorker(
   slug: string,
   conversationId: number,
   message: string,
   onEvent: (e: WorkerEvent) => void,
-): Promise<{ text: string; jobId: number | null; media: MediaItem[]; jobs: Job[] }> {
+  ownerUserId?: string,
+): Promise<{ text: string; jobId: number | null; media: MediaItem[]; jobs: Job[]; moved?: ConversationMoved; moveError?: string }> {
   const res = await fetch(`${getBaseURL()}/api/hq/workers/${slug}/conversations/${conversationId}/message`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, ownerUserId }),
   });
   if (!res.ok || !res.body) throw new Error(`Request failed (${res.status})`);
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
-  let result: { text: string; jobId: number | null; media: MediaItem[]; jobs: Job[] } | null = null;
+  let result: { text: string; jobId: number | null; media: MediaItem[]; jobs: Job[]; moved?: ConversationMoved; moveError?: string } | null = null;
   let failure: string | null = null;
 
   while (true) {

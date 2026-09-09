@@ -248,6 +248,18 @@ export interface WorkerCapabilities {
   maxFileBytes: number;
 }
 
+/** One of the user's OWN builder-Alfred conversations (per-agent),
+ *  listed read-only in Alfred's HQ rail — continuing/applying happens
+ *  in the agent's builder via the ?alfredChat deep link. */
+export interface BuilderAlfredConversation {
+  id: number;
+  title: string;
+  updated_at: string;
+  agentSlug: string;
+  agentName?: string;
+  origin: 'builder';
+}
+
 export interface WorkerConversation {
   id: number;
   worker_id: number;
@@ -255,6 +267,9 @@ export interface WorkerConversation {
   updated_at: string;
   message_count?: number;
   media_count?: number;
+  /** Which builder agent this conversation is ABOUT (Alfred sets it;
+   *  null = a General conversation — a first-class state). */
+  about_agent_slug?: string | null;
   /**
    * Per-conversation overrides of the employee's model choices. null on any of
    * them means "follow her default", not "none".

@@ -24,7 +24,7 @@ import type { PickerOption } from '../components/Picker';
 import { IconBack, IconClip, IconEdit, IconExpand, IconSend } from '../icons';
 import {
   WORKER_MODELS, addLesson, cancelJob, deleteLesson, getConversation, getWorker, listLessons,
-  deleteConversation, listWorkerFiles, listWorkers, newConversation, reportUrl, sendToWorker, setConversationModels,
+  deleteConversation, getBuilderConversation, listWorkerFiles, listWorkers, newConversation, reportUrl, sendToWorker, setConversationModels,
   updateLesson, updateWorker,
 } from '../services/hqApi';
 import type {
@@ -113,12 +113,27 @@ const IMAGE_ICON = '🎨';
 
 const money = (n: number) => `$${n.toFixed(2)}`;
 
+/** The requester's builder identity — who "yours" means for Alfred's
+ *  moved conversations. Same key the builder itself uses. */
+function builderOwnerUserId(): string {
+  try { return localStorage.getItem('builder:ownerUserId') || 'anon'; } catch { return 'anon'; }
+}
+
 export function WorkerScreen() {
   const { slug = '' } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const ownerUserId = builderOwnerUserId();
 
   const [worker, setWorker] = useState<Worker | null>(null);
   const [conversations, setConversations] = useState<WorkerConversation[]>([]);
+  // Alfred only: YOUR builder conversations across all agents — the
+  // personal half of his rail (Generals above are shared). Read-only
+  // here; clicking one opens the agent's builder on that chat.
+  const [builderConvs, setBuilderConvs] = useState<import('../types').BuilderAlfredConversation[]>([]);
+  // A builder conversation being READ here — watchable history, not a
+  // live HQ thread. While set, the composer is replaced by the one link
+  // that continues it (in the builder).
+  const [builderView, setBuilderView] = useState<import('../types').BuilderAlfredConversation | null>(null);
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [messages, setMessages] = useState<WorkerMessage[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -315,10 +330,11 @@ export function WorkerScreen() {
   }, [slug]);
 
   useEffect(() => {
-    getWorker(slug)
-      .then(async ({ worker: w, conversations: cs }) => {
+    getWorker(slug, ownerUserId)
+      .then(async ({ worker: w, conversations: cs, builderConversations }) => {
         setWorker(w);
         setConversations(cs);
+        setBuilderConvs(builderConversations ?? []);
         const first = cs[0] || await newConversation(slug);
         setConversationId(first.id);
         await loadConversation(first.id);
@@ -476,11 +492,23 @@ ${text}`.trim(),
     }]);
 
     try {
-      await sendToWorker(slug, conversationId, text, onEvent);
-      await loadConversation(conversationId);
-      // The first message renames the conversation server-side; without this
-      // the rail keeps showing "New conversation" forever.
-      getWorker(slug).then(({ conversations: cs }) => setConversations(cs)).catch(() => {});
+      const res = await sendToWorker(slug, conversationId, text, onEvent, ownerUserId);
+      if (res.moved) {
+        // The conversation just MOVED to an agent's builder — it no
+        // longer exists here. Clear the pane (the reply announcing the
+        // move already streamed) and refresh both rail halves.
+        setConversationId(null);
+        setMessages([]);
+        getWorker(slug, ownerUserId).then(({ conversations: cs, builderConversations }) => {
+          setConversations(cs);
+          setBuilderConvs(builderConversations ?? []);
+        }).catch(() => {});
+      } else {
+        await loadConversation(conversationId);
+        // The first message renames the conversation server-side; without this
+        // the rail keeps showing "New conversation" forever.
+        getWorker(slug, ownerUserId).then(({ conversations: cs }) => setConversations(cs)).catch(() => {});
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'That did not go through');
     } finally {
@@ -491,9 +519,25 @@ ${text}`.trim(),
     }
   }
 
+  /** Open a builder conversation to WATCH. Read-only by construction:
+   *  conversationId goes null, so send() and polling stay off. */
+  async function openBuilderConv(c: import('../types').BuilderAlfredConversation) {
+    try {
+      const { messages: ms } = await getBuilderConversation(slug, c.id, ownerUserId);
+      setBuilderView(c);
+      setConversationId(null);
+      setMessages(ms);
+      setJobs([]); setMedia([]); setReports([]); setLiveJob(null);
+      setActivity(null); setTrace([]); setError(null); setPending([]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not open that conversation');
+    }
+  }
+
   async function startFresh() {
     const c = await newConversation(slug);
     setConversations(prev => [c, ...prev]);
+    setBuilderView(null);
     setConversationId(c.id);
     setMessages([]); setJobs([]); setMedia([]); setLiveJob(null);
     setImageModel(null); setConvModel(null); setConvPhrasing(null);
@@ -574,10 +618,17 @@ ${text}`.trim(),
             >
               <button
                 className={styles.convOpen}
-                onClick={() => { setConversationId(c.id); loadConversation(c.id); }}
+                onClick={() => { setBuilderView(null); setConversationId(c.id); loadConversation(c.id); }}
               >
                 <span className={styles.convTitle} dir="auto">{c.title}</span>
               </button>
+              {/* Agent tag — which builder agent the conversation is about.
+                  Untagged on Alfred = an explicit "General" state. */}
+              {c.about_agent_slug ? (
+                <span className={styles.convTag} title="This conversation is about this agent">{c.about_agent_slug}</span>
+              ) : slug === 'alfred' ? (
+                <span className={`${styles.convTag} ${styles.convTagGeneral}`} title="Not about a specific agent">General</span>
+              ) : null}
               {!!c.media_count && <span className={styles.convCount}>{c.media_count} 🖼</span>}
               {/* On hover only: a delete on every row of a list you navigate
                   with is a thing to hit by accident. */}
@@ -588,6 +639,23 @@ ${text}`.trim(),
               >
                 ✕
               </button>
+            </div>
+          ))}
+
+          {/* Alfred: YOUR conversations that live in agents' builders —
+              moved Generals and chats born in the builder. The row opens
+              them HERE, read-only; the link to continue in the builder
+              lives inside the opened conversation. */}
+          {builderConvs.map(c => (
+            <div key={`b_${c.id}`} className={`${styles.conv} ${builderView?.id === c.id ? styles.convOn : ''}`}>
+              <button
+                className={styles.convOpen}
+                title={`Yours · about ${c.agentName || c.agentSlug} — click to read it here`}
+                onClick={() => openBuilderConv(c)}
+              >
+                <span className={styles.convTitle} dir="auto">{c.title}</span>
+              </button>
+              <span className={styles.convTag} title={`About ${c.agentName || c.agentSlug} — lives in its builder`}>{c.agentSlug}</span>
             </div>
           ))}
         </div>
@@ -607,6 +675,12 @@ ${text}`.trim(),
               her standing defaults live in "How she works". A picker showing
               her default is outlined; an override is tinted, so you can see at
               a glance that this chat is not behaving like the others. */}
+          {/* Model pickers are CAPABILITY-DRIVEN infra, not Maya-specific
+              code: an employee whose tools create things (images, copy)
+              gets the corresponding picker; a purely advisory employee
+              (Alfred) gets a clean header. Derived from worker.tools so
+              future employees inherit the right chips automatically. */}
+          {((worker as { tools?: string[] }).tools ?? []).some(t => t === 'generate_image' || t === 'write_copy') && (
           <div className={styles.pickers}>
             <Picker
               icon={BRAIN_ICON}
@@ -621,7 +695,7 @@ ${text}`.trim(),
               disabled={busy}
             />
 
-            {!!caps?.phrasingModels?.length && (
+            {!!caps?.phrasingModels?.length && ((worker as { tools?: string[] }).tools ?? []).includes('write_copy') && (
               <Picker
                 icon={VOICE_ICON}
                 title="Writes with"
@@ -636,7 +710,7 @@ ${text}`.trim(),
               />
             )}
 
-            {caps?.images && !!caps.imageModels?.length && (
+            {caps?.images && !!caps.imageModels?.length && ((worker as { tools?: string[] }).tools ?? []).includes('generate_image') && (
               <Picker
                 icon={IMAGE_ICON}
                 title="Draws with"
@@ -653,9 +727,12 @@ ${text}`.trim(),
               />
             )}
           </div>
+          )}
 
           <div className={styles.convHeadTitle} dir="auto">
-            {conversations.find(c => c.id === conversationId)?.title || 'New conversation'}
+            {builderView
+              ? builderView.title
+              : (conversations.find(c => c.id === conversationId)?.title || 'New conversation')}
           </div>
         </div>
 
@@ -760,6 +837,22 @@ ${text}`.trim(),
           <div ref={bottom} />
         </div>
 
+        {builderView ? (
+          /* Read-only: this conversation lives in an agent's builder. The
+             one link that continues it sits HERE, inside the conversation —
+             the rail row only opens this view. */
+          <div className={styles.builderBar}>
+            <span className={styles.builderBarNote} dir="auto">
+              Read-only — this conversation lives in {builderView.agentName || builderView.agentSlug}&rsquo;s builder
+            </span>
+            <button
+              className={styles.builderBarGo}
+              onClick={() => window.open(`/${builderView.agentSlug}/builder?alfredChat=${builderView.id}`, '_blank')}
+            >
+              Continue in the builder ↗
+            </button>
+          </div>
+        ) : (
         <div className={styles.composer}>
           {/* Attached to THIS conversation and in context for all of it — the
               brief for this campaign, not a standing rule. The chips sit inside
@@ -811,6 +904,7 @@ ${text}`.trim(),
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {/* ── Work ──────────────────────────────────────────────────────────── */}

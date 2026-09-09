@@ -37,7 +37,13 @@ function clampWidth(w: number): number {
 export function ChatPanel() {
   // Default to User Chat — that's the surface authors reach for most
   // (test the agent they're building). Builder Chat is one tab away.
-  const [tab, setTab] = useState<Tab>('user');
+  // Exception: a deep link carrying ?alfredChat=<id> (HQ-Alfred's rail
+  // linking a moved conversation) — the visitor came FOR that chat.
+  const [tab, setTab] = useState<Tab>(() => {
+    try {
+      return new URLSearchParams(window.location.search).has('alfredChat') ? 'builder' : 'user';
+    } catch { return 'user'; }
+  });
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem(COLLAPSED_KEY) === '1'; } catch { return false; }
   });

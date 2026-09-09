@@ -747,3 +747,46 @@
 }
 .conv:hover .convDelete { opacity: 1; }
 .convDelete:hover { background: var(--surface-3); color: var(--danger); }
+
+/* ── Read-only builder conversation (Alfred) ──────────────────────────────
+   Replaces the composer while watching a conversation that lives in an
+   agent's builder — the only way to continue it is this link. */
+.builderBar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 20px; flex-shrink: 0;
+  border-top: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  background: var(--surface, #fff);
+}
+.builderBarNote { font-size: 12.5px; color: var(--text-3, #888); min-width: 0; }
+.builderBarGo {
+  flex-shrink: 0; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.12));
+  background: var(--surface, #fff); color: var(--text, #222);
+  font-weight: 600; font-size: 13px;
+}
+.builderBarGo:hover { background: var(--surface-3, rgba(0, 0, 0, 0.05)); }
+
+/* ── Agent tag on a conversation row ──────────────────────────────────────
+   A quiet pill, always flush at the row's end (margin-inline-start: auto)
+   so every tag lines up regardless of title length or RTL titles. Slugs
+   are latin, so they keep LTR inside an RTL panel. No emoji — it only
+   took space. */
+.convTag {
+  margin-inline-start: auto; flex-shrink: 0;
+  max-width: 104px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  direction: ltr; unicode-bidi: isolate;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em; line-height: 1.6;
+  padding: 1px 8px; border-radius: 999px;
+  background: rgba(99, 102, 241, 0.12);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+/* "General" is a state, not an agent — an outlined ghost, clearly a
+   different kind of thing than the filled agent pills. */
+.convTagGeneral {
+  background: transparent;
+  border: 1px dashed var(--text-3, #999);
+  color: var(--text-3);
+  font-weight: 500; letter-spacing: 0.04em;
+  padding: 0 7px; /* the border takes the pixel the fill had */
+}
