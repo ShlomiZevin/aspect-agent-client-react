@@ -20,7 +20,7 @@
  * per-user lookup forever after. Waiting for `userId` to actually exist
  * before sending fixes that at the source.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ChatProvider, useChatContext } from '../context';
 import { ThemeProvider } from '../context/ThemeContext';
@@ -84,6 +84,18 @@ function PrefillSender({ onSent }: { onSent: () => void }) {
   const { sendMessage } = useChatContext();
   const { userId } = useUserContext();
 
+  // The callbacks reach the timer through refs, ON PURPOSE: `sendMessage`
+  // changes identity on nearly every ChatProvider render (its memo depends on
+  // inline handlers and per-turn state), and with it in the dependency array
+  // the 300 ms timer was cancelled and restarted by every provider re-render.
+  // A busy mount — conversations loading, crew fetching, history resolving —
+  // kept re-rendering inside the window and STARVED the send forever: the
+  // user saw "Asking Aspect…" and then a blank conversation. Keyed on
+  // `userId` alone, the timer runs exactly once when the anon user exists.
+  const sendRef = useRef(sendMessage);
+  const onSentRef = useRef(onSent);
+  useEffect(() => { sendRef.current = sendMessage; onSentRef.current = onSent; });
+
   useEffect(() => {
     // Deliberately re-reads sessionStorage fresh on every effect run rather
     // than guarding with a ref set *before* the timer fires: React
@@ -102,11 +114,11 @@ function PrefillSender({ onSent }: { onSent: () => void }) {
     const timer = setTimeout(() => {
       if (sessionStorage.getItem(PREFILL_STORAGE_KEY) !== prefill) return;
       sessionStorage.removeItem(PREFILL_STORAGE_KEY);
-      sendMessage(prefill);
-      onSent();
+      sendRef.current(prefill);
+      onSentRef.current();
     }, 300);
     return () => clearTimeout(timer);
-  }, [userId, sendMessage, onSent]);
+  }, [userId]);
 
   return null;
 }

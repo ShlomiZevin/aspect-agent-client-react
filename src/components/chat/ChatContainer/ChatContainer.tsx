@@ -83,6 +83,7 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
     conversationMetadata,
     restrictedMode,
     moduleScope,
+    initialHistoryLoading,
     sendMessage,
   } = useChatContext();
   const { config } = useAgentContext();
@@ -247,7 +248,15 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
         )}
 
         <div className={styles.messages} ref={messagesContainerRef}>
-          {!hasStartedChat ? (
+          {/* Until the mount-time history fetch resolves, hold a quiet wait:
+              rendering the welcome first flashed the agent's hero and quick-
+              question tiles over an EXISTING conversation for the whole
+              round-trip, then snapped to messages. */}
+          {!hasStartedChat && initialHistoryLoading === true ? (
+            <div className={styles.historyWait} aria-hidden="true">
+              <span className={styles.historyWaitSpinner} />
+            </div>
+          ) : !hasStartedChat ? (
             // A scoped conversation opens on ITS OWN intro — what this scope
             // is about and what can be asked — never the agent's generic
             // quick-question welcome, which belongs to the whole dataset. The

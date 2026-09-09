@@ -317,7 +317,7 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
 
   return (
     <>
-      <div className={`${styles.message} ${isUser ? styles.user : isDeveloper ? styles.developer : styles.bot}`}>
+      <div className={`${styles.message} ${isUser ? styles.user : isDeveloper ? styles.developer : styles.bot} ${!isUser && !isDeveloper && /\n\s*\|.*\|/.test(message.content) ? styles.messageWide : ''}`}>
         {isDeveloper ? (
           <div className={styles.developerMessage}>
             <div className={styles.developerHeader}>
@@ -391,7 +391,13 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
                 components={{
                   a: ({ href, children }) => (
                     <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
-                  )
+                  ),
+                  // Every table scrolls inside its own container instead of
+                  // truncating against the bubble edge — wide answers keep
+                  // every column reachable.
+                  table: ({ children }) => (
+                    <div className={styles.tableScroll}><table>{children}</table></div>
+                  ),
                 }}
               >
                 {uiCleanText}

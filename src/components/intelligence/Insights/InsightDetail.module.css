@@ -145,3 +145,24 @@
 }
 .rejectBtn:hover { color: #b0402c; border-color: #b0402c66; background: #b0402c0d; }
 .rejectBtn:focus-visible { outline: 2px solid var(--ai-accent, var(--primary-color, #2563eb)); outline-offset: 2px; }
+
+/* Phones: the Track / Open / Ask-follow-up actions leave the title row and
+   pin to the bottom as a sticky bar, always reachable, above the tab bar.
+   The scenario tiles are already 2-up from the 1000px rule. */
+@media (max-width: 640px) {
+  .page { padding: 20px 14px calc(84px + env(safe-area-inset-bottom)); gap: 18px; }
+  .titleRow { flex-direction: column; gap: 12px; }
+
+  .actions {
+    position: fixed;
+    inset-inline: 0;
+    bottom: calc(56px + env(safe-area-inset-bottom));
+    z-index: 25;
+    padding: 10px 14px;
+    background: var(--ai-surface);
+    border-top: 1px solid var(--ai-border);
+    box-shadow: 0 -6px 20px -8px rgba(30, 34, 70, 0.14);
+  }
+  .actions > * { flex: 1; justify-content: center; }
+  .deleteBtn { flex: 0 0 44px; }
+}

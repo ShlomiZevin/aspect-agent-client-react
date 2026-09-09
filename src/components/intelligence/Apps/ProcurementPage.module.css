@@ -662,7 +662,7 @@
 }
 
 .trow:hover { background: var(--ai-surface-alt, #fafafd); }
-.trowOpen { background: #fafafd; }
+.trowOpen { background: var(--ai-surface-alt, #fafafd); }
 
 /* Same pattern as .supToggle: the disclosure covers the row rather than
    wrapping it, because Move to…/Reject are real buttons and buttons cannot
@@ -885,7 +885,7 @@
 
 .why {
   padding: 16px 22px;
-  background: #fcfbfe;
+  background: var(--ai-surface-alt, #fcfbfe);
   border-top: 1px solid var(--ai-border, #f0f1f6);
 }
 
@@ -963,36 +963,125 @@
 }
 
 @media (max-width: 640px) {
-  .page { padding: 18px 14px 48px; }
+  .page { padding: 18px 14px calc(64px + env(safe-area-inset-bottom)); }
   .steps { grid-template-columns: 1fr; }
   .facts { grid-template-columns: repeat(2, 1fr); }
 
+  /* app header: title + attention pill on one line, CSV export on its own
+     full-width line — kept visible, not tucked away */
+  .head { flex-wrap: wrap; gap: 10px 12px; }
+  .csvBtn { margin-inline-start: 0; width: 100%; justify-content: center; display: flex; }
+
+  /* section tabs: one scrollable row instead of wrapping to three lines */
+  .tabs {
+    gap: 16px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: 0 0 auto; }
+
+  /* status band: every figure stays, in a clean 2-column grid rather than the
+     lopsided wrap */
+  .band { padding: 14px 16px; gap: 12px; }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 14px;
+    width: 100%;
+  }
+
+  /* group chips: a sticky, horizontally-scrollable rail so the buyer never
+     loses which cut the rows below belong to */
+  .groupBar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-inline: -14px;
+    padding: 10px 14px;
+    background: var(--ai-shell-bg, #f8f5fc);
+  }
+  .groupChips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .groupChips::-webkit-scrollbar { display: none; }
+  .groupChip { flex: 0 0 auto; }
+  .groupSummaryText { margin-inline-start: 0; flex-basis: 100%; }
+  .tuneBtn { width: 100%; justify-content: center; }
+
+  /* supplier card: name on its own line, then count + total, then the
+     lead-time controls — a clear top-to-bottom read, no fighting on one row */
   .supRow {
     flex-wrap: wrap;
-    gap: 8px 12px;
-    padding: 12px 14px;
+    gap: 6px 14px;
+    padding: 14px 16px;
   }
-
-  .supName {
-    flex-basis: 100%;
-    white-space: normal;
-  }
-
+  .supName { flex-basis: 100%; white-space: normal; font-size: 14px; }
   .supCount,
-  .supTotal { width: auto; }
+  .supTotal { width: auto; font-size: 12.5px; }
+  .lead { flex-basis: 100%; flex-wrap: wrap; gap: 6px 10px; }
 
-  /* The six-column table does not survive a phone, so it scrolls as a unit
-     and no column is silently dropped. */
-  .table { overflow-x: auto; }
+  /* the six-column item grid reflows into a card per item — every column
+     becomes a labelled line, nothing dropped, no sideways scroll */
+  .table { overflow: visible; border-radius: 12px; }
+  .thead { display: none; } /* column headers have no meaning once rows are cards */
 
-  .thead,
   .trow,
-  .why { min-width: 720px; }
+  .rowGrouped {
+    min-width: 0;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "name   name"
+      "order  order"
+      "runout place"
+      "cost   cost"
+      "act    act";
+    gap: 6px 14px;
+    padding: 14px 16px;
+    align-items: start;
+  }
+  .trow > :nth-child(2) { grid-area: name; }
+  .trow > :nth-child(3) { grid-area: runout; }
+  .trow > :nth-child(4) { grid-area: order; }
+  .trow > :nth-child(5) { grid-area: cost; }
+  .trow > :nth-child(6) { grid-area: place; }
+  .trow > :nth-child(7) { grid-area: act; }
 
-  /* The verdict controls need their own room. */
-  .rowGrouped { min-width: 880px; }
+  .itemName { white-space: normal; overflow: visible; font-size: 13.5px; }
+  .itemCode { font-size: 11.5px; }
+  /* ORDER is the decision — make it the card's headline */
+  .trow > :nth-child(4) .qtyMain { font-size: 15px; }
+  .cell { font-size: 12px; }
 
-  .groupSummaryText { margin-inline-start: 0; }
+  /* each reflowed field carries the column name it lost, from data-l */
+  .trow > :nth-child(3)::before,
+  .trow > :nth-child(4)::before,
+  .trow > :nth-child(5)::before,
+  .trow > :nth-child(6)::before {
+    content: attr(data-l);
+    display: block;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ai-text-muted, #8a90a3);
+    margin-bottom: 2px;
+  }
+
+  .actionsCell { justify-content: flex-start; padding-top: 4px; }
+  .whyCell { padding-top: 4px; }
+  .moveMenu { inset-inline-start: 0; }
+
+  .why { min-width: 0; }
+  .facts { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* -- loading placeholders ------------------------------------------------ */
@@ -1086,4 +1175,12 @@
 .sortSelect:focus-visible {
   outline: 2px solid var(--ai-accent, #7c3aed);
   outline-offset: 1px;
+}
+
+/* The row whose Move-to menu is OPEN paints above its siblings — every row's
+   cells sit at z-index 1 (the disclosure-overlay pattern), so later rows
+   were threading over the dropdown. */
+.itemWrapRaised {
+  position: relative;
+  z-index: 50;
 }

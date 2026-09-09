@@ -78,3 +78,12 @@
 /* Sparkline on a suggested card — the same visual weight as the saved cards
    carry, so the two sections read as one family instead of "rich" vs "plain". */
 .cardChart { margin-top: 10px; }
+
+/* Phones: tighter padding, head row wraps so the title and the history link
+   don't collide, cards already go single-column above. */
+@media (max-width: 640px) {
+  .page { padding: 20px 14px 34px; gap: 20px; }
+  .headRow { flex-wrap: wrap; gap: 4px 12px; }
+  .title { flex: 1 1 100%; }
+  .historyLink { margin-inline-start: 0; padding: 2px 0; }
+}

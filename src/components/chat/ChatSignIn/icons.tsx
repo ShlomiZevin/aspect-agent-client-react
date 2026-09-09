@@ -18,10 +18,12 @@ export function PersonIcon() {
   );
 }
 
-/** A laptop and a phone — "your history on every device", not a refresh symbol. */
-export function DevicesIcon() {
+/** A laptop and a phone — "your history on every device", not a refresh
+ *  symbol. Sized per surface: at the default 15px inside the dialog's 44px
+ *  badge it read as an unidentifiable little square — the badge passes 22. */
+export function DevicesIcon({ size = 15 }: { size?: number }) {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" {...stroke}>
+    <svg width={size} height={size} viewBox="0 0 24 24" {...stroke} strokeWidth={1.7}>
       <rect x="2" y="4" width="14" height="9" rx="1" />
       <path d="M1 17h16" />
       <rect x="16" y="10" width="6" height="11" rx="1" />

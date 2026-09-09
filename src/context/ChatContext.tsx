@@ -83,6 +83,10 @@ interface ChatContextValue extends UseChatReturn, Omit<UseConversationReturn, 's
   /** Aspect Modules scoped session, when this conversation runs in one (e.g.
    *  Smart Tune). Optional so alternate providers need not supply it. */
   moduleScope?: ModuleScope | null;
+  /** True until the mount-time history fetch resolves — ChatContainer holds a
+   *  quiet wait instead of flashing the welcome screen. Optional so alternate
+   *  providers (which have no such fetch) default to "not loading". */
+  initialHistoryLoading?: boolean;
 }
 
 export const ChatContext = createContext<ChatContextValue | null>(null);
@@ -124,6 +128,13 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix, 
 
   // Conversation-level metadata loaded from the server (synthetic flag, testRunId, etc.)
   const [conversationMetadata, setConversationMetadata] = useState<Record<string, unknown> | null>(null);
+
+  // True until the mount-time history fetch resolves. ChatContainer shows a
+  // quiet wait instead of the WELCOME screen while this holds — opening an
+  // EXISTING conversation used to flash the agent's welcome hero and quick-
+  // question emoji tiles for the whole history round-trip, then snap to the
+  // messages ("blinking with old icons").
+  const [initialHistoryLoading, setInitialHistoryLoading] = useState(true);
 
   // The scope this conversation runs in, if any. The server's stamp (written
   // on the first validated scoped turn) wins over the opener's prop, so a
@@ -411,8 +422,10 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix, 
             hasRestoredCrew.current = true;
           }
         }
-      });
+      }).finally(() => setInitialHistoryLoading(false));
     }
+    // (No else: useConversation always yields an id — url, stored, or a fresh
+    // uuid — so the fetch above always runs and always settles the flag.)
   }, [conversation.conversationId, chat, crew]);
 
   // Refresh conversation list when a message exchange completes
@@ -656,6 +669,7 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix, 
     // Restricted mode (outside-user chat) — children use this to hide admin/dev UI.
     restrictedMode,
     moduleScope,
+    initialHistoryLoading,
   };
 
   return (

@@ -248,3 +248,28 @@
   outline: 2px solid var(--primary-color, #7c3aed);
   outline-offset: 2px;
 }
+
+/* The quiet wait while the mount-time history fetch resolves — replaces the
+   welcome-screen flash over existing conversations. */
+.historyWait {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.historyWaitSpinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2.5px solid var(--border, #ececf4);
+  border-top-color: var(--primary-color, #7c3aed);
+  animation: chat-history-spin 0.7s linear infinite;
+}
+
+@keyframes chat-history-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .historyWaitSpinner { animation-duration: 1.6s; }
+}

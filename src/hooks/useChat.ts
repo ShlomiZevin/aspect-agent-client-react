@@ -121,6 +121,19 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       };
 
     case 'LOAD_HISTORY':
+      // An EMPTY history must never erase live messages of the SAME
+      // conversation. The mount-time loadHistory is fire-and-forget; on a
+      // brand-new conversation the server has no rows yet, and when that
+      // empty response landed after a prefilled send had already started,
+      // the hard replace wiped the user's bubble and orphaned the stream —
+      // every later chunk appends only to an existing assistant message, so
+      // the reply never appeared at all. Switching to a DIFFERENT
+      // conversation still replaces unconditionally.
+      if (action.payload.messages.length === 0
+          && state.messages.length > 0
+          && state.conversationId === action.payload.conversationId) {
+        return state;
+      }
       return {
         ...state,
         conversationId: action.payload.conversationId,

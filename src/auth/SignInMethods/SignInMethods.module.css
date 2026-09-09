@@ -132,3 +132,25 @@
   font-size: 12.5px;
   text-align: start;
 }
+
+/* The email fold — a quiet label under Google, not a competing button. */
+.emailToggle {
+  align-self: center;
+  background: none;
+  border: none;
+  padding: 4px 2px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--si-text-muted, #8a90a3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.emailToggle:hover { color: var(--si-accent, #7c3aed); }
+
+.emailToggle:focus-visible {
+  outline: 2px solid var(--si-accent, #7c3aed);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

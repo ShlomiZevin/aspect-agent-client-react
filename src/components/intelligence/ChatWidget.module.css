@@ -128,17 +128,63 @@
    in CSS pixels and were missing this entirely. */
 @media (max-width: 640px) {
   .panel {
-    top: 0;
-    right: 0;
-    left: 0;
-    bottom: 0;
+    /* full viewport — covers the shell header too; the widget's own bar has
+       the way out. !important because the expanded branch sets an inline
+       `top: headerHeight` for the desktop under-the-header look. */
+    inset: 0 !important;
     width: auto !important;
     height: auto !important;
     max-height: 100vh;
     max-height: 100dvh;
     border: none;
     border-radius: 0;
+    z-index: 40;
   }
   .panelExpanded { border-top: none; }
   .resizeHandle { display: none; }
+
+  /* full-screen: the history panel is an overlay (see ChatHistoryPanel.css),
+     so the chat column always has the whole width */
+  .body { position: relative; }
+  .chatCol { width: 100%; }
+
+  /* the ☰ button opens history as an overlay and is the only header control
+     that matters on a phone; expand/collapse is meaningless full-screen */
+  .head { padding: 12px 14px; }
+  .headActions button:first-child { display: none; } /* the ⤢ expand toggle */
+  .head .iconBtn { width: 40px; height: 40px; }
+}
+
+/* The conversation frame's host: the veil paints in THIS document (shell
+   tokens available) while the keyed iframe loads, so a conversation switch
+   is spinner → content, never old-chat → unthemed flash → content. */
+.frameWrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  min-height: 0;
+}
+
+.frameVeil {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ai-surface, #ffffff);
+}
+
+.frameSpinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid var(--ai-accent-soft, rgba(124, 58, 237, 0.15));
+  border-top-color: var(--ai-accent, #7c3aed);
+  animation: ai-frame-spin 0.7s linear infinite;
+}
+
+@keyframes ai-frame-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .frameSpinner { animation-duration: 1.6s; }
 }

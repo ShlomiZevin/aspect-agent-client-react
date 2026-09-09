@@ -76,12 +76,30 @@ function loadSize(): { width: number; height: number } {
   }
 }
 
+/** < 640px — the phone layout, where the widget fills the viewport and the
+ *  history panel can only be a full-screen overlay, never a side column. */
+function useIsMobile() {
+  const [mobile, setMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const on = () => setMobile(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return mobile;
+}
+
 export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, onExpandedChange, pendingQuestion, onPendingQuestionConsumed, pendingScope, onPendingScopeConsumed }: Props) {
   const { t } = useLanguage();
+  const mobile = useIsMobile();
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  // Expanded mode has room for the sidebar by default, matching mockup 2c.
-  useEffect(() => { if (expanded) setHistoryOpen(true); }, [expanded]);
+  // Expanded mode has room for the sidebar by default, matching mockup 2c — but
+  // on a phone there is no "beside", so it stays closed until the ☰ button
+  // opens it as a full-screen overlay (see the CSS).
+  useEffect(() => { if (expanded && !mobile) setHistoryOpen(true); }, [expanded, mobile]);
 
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [activeTitle, setActiveTitle] = useState<string | null>(null);
@@ -113,12 +131,37 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
     window.addEventListener('mouseup', onResizeUp);
   };
 
-  const selectConversation = (id: string) => setConversationId(id);
-  const newConversation = () => setConversationId(crypto.randomUUID());
+  // A prefill that never got consumed (widget closed mid-handoff, a failed
+  // mount) must not hijack the NEXT conversation opened — clearing it here is
+  // what keeps a stale question from auto-sending into an old thread.
+  const selectConversation = (id: string) => {
+    sessionStorage.removeItem(PREFILL_STORAGE_KEY);
+    setConversationId(id);
+    if (mobile) setHistoryOpen(false); // the overlay covered the chat — get back to it
+  };
+  // "New chat" shows the WIDGET'S OWN welcome (hero + styled tiles), not an
+  // empty iframe: mounting a fresh uuid rendered the real chat's generic
+  // emoji welcome — a different visual identity from the screen the user was
+  // just on. The conversation id is only minted when they actually SEND.
+  const newConversation = () => {
+    sessionStorage.removeItem(PREFILL_STORAGE_KEY);
+    setConversationId(null);
+    if (mobile) setHistoryOpen(false);
+  };
   const send = (question: string) => {
     sessionStorage.setItem(PREFILL_STORAGE_KEY, question);
     setConversationId(crypto.randomUUID());
   };
+
+  // The conversation frame gets a KEY (fresh iframe per conversation — the
+  // old document must not stay painted under the new one) and a veil until
+  // its load event: without both, switching conversations showed the previous
+  // chat for a beat, then a flash of unthemed content. The veil lives in the
+  // PARENT document, where the shell's tokens exist. "Loaded" is DERIVED
+  // (which conversation's load event fired vs which is current), so switching
+  // resets it with no effect involved.
+  const [frameLoadedFor, setFrameLoadedFor] = useState<string | null>(null);
+  const frameLoaded = frameLoadedFor === conversationId;
 
   // "Ask a follow-up in chat" (insight detail page) hands off a question
   // this way instead of calling send() directly — the widget may not even
@@ -168,10 +211,11 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
             refreshKey={refreshKey}
             variant={expanded ? 'expanded' : 'docked'}
             onActiveTitleChange={setActiveTitle}
+            onClose={mobile ? () => setHistoryOpen(false) : undefined}
           />
         )}
         <div className={styles.chatCol}>
-          {expanded && started ? (
+          {!mobile && expanded && started ? (
             <div className={styles.headExpanded}>
               <button className={styles.backBtn} onClick={backToWelcome} aria-label={t('intel.chat.backToWelcome')} title={t('intel.chat.back')}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 4l-7 8 7 8" /></svg>
@@ -202,7 +246,23 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
             </div>
           )}
           {started
-            ? <iframe className={styles.frame} src={src} title={t('intel.nav.chat')} />
+            ? (
+              <div className={styles.frameWrap}>
+                <iframe
+                  key={conversationId}
+                  className={styles.frame}
+                  src={src}
+                  title={t('intel.nav.chat')}
+                  onLoad={() => setFrameLoadedFor(conversationId)}
+                  style={{ visibility: frameLoaded ? 'visible' : 'hidden' }}
+                />
+                {!frameLoaded && (
+                  <div className={styles.frameVeil} aria-hidden="true">
+                    <span className={styles.frameSpinner} />
+                  </div>
+                )}
+              </div>
+            )
             : <ChatWelcome datasetId={datasetId} onSend={send} />}
         </div>
       </div>

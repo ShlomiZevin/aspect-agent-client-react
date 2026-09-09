@@ -16,6 +16,7 @@ import { AppsPage } from './Apps/AppsPage';
 import { ProcurementPage } from './Apps/ProcurementPage';
 import { appsService } from '../../services/appsService';
 import { ChatWidget } from './ChatWidget';
+import { MobileTabBar } from './MobileTabBar';
 import type { ModuleScope } from '../../services/chatService';
 import { DataHealthTrigger } from '../chat/DataHealthModal';
 import { FeedbackTrigger } from '../chat/GeneralFeedbackModal';
@@ -91,7 +92,8 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
       .catch(() => { if (!cancelled) setMeta(null); });
     return () => { cancelled = true; };
   }, [datasetId]);
-  const { selectedJobId, cancelJob } = useJobs();
+  const { selectedJobId, cancelJob, jobs } = useJobs();
+  const runningJobs = jobs.filter(j => j.status === 'running').length;
   // The insight open/closed state is the URL (insightId prop, driven by the
   // route) — a real per-insight URL that can be linked/bookmarked/shared,
   // not just internal component state. The breadcrumb needs the insight's
@@ -227,8 +229,15 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   // URL and nav highlighting, and collapsing it goes back to Insights.
   const handleChatExpandedChange = (expanded: boolean) => {
     setChatExpanded(expanded);
-    if (expanded) navigate(`/intelligence/${datasetId}/chat`);
-    else if (chatRoute) navigate(`/intelligence/${datasetId}`);
+    // Expanding is PURELY VISUAL — the widget is an overlay, the page
+    // underneath stays mounted and untouched, so collapsing puts the user
+    // back exactly where they were (an insight, a report, the Procurement
+    // screen). Navigating to /chat on expand — the old behavior — silently
+    // replaced that page with Home. The one case collapse must still
+    // navigate: when the CHAT ROUTE itself is the current URL (the nav's
+    // "Data Chat" item or a direct link), because that route renders an
+    // empty main with nothing to come back to.
+    if (!expanded && chatRoute) navigate(`/intelligence/${datasetId}`);
   };
 
   // "Ask a follow-up in chat" on an insight detail page — opens the same
@@ -426,6 +435,22 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           <div className={styles.teaser}>{t('intel.launcher.teaser')}</div>
           <button className={styles.orb} onClick={() => { setChatOpen(true); setChatEverOpened(true); }} aria-label="Open chat">✦</button>
         </div>
+      )}
+
+      {/* Mobile navigation (< 640px). Its own CSS hides it on desktop, where
+          the header's `.nav` row does this job. Hidden while the chat is open
+          because on a phone the chat panel fills the viewport (its own back
+          button leaves it) and the two would fight for the bottom edge. */}
+      {!chatOpen && (
+        <MobileTabBar
+          view={view}
+          hasApps={hasApps === true}
+          runningJobs={runningJobs}
+          onHome={goHome}
+          onReports={goReports}
+          onChat={openDataChat}
+          onApps={goApps}
+        />
       )}
     </div>
   );

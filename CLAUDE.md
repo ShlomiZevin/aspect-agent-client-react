@@ -103,6 +103,37 @@ app's first cross-iframe `postMessage` bridge (`aspect:module-action`,
 listener in `ProcurementPage`). The chat turn never mutates anything — only
 the card's Process button POSTs, and its result carries Undo.
 
+**The widget chat is smooth by construction (2026-09) — these invariants are
+load-bearing, browser-verified, and easy to regress.** Expanding the chat is
+PURELY VISUAL: `handleChatExpandedChange` must never navigate on expand (the
+overlay covers the current page; collapse returns exactly there — the old
+navigate-to-/chat dumped users on Home), and only navigates away on collapse
+when the /chat ROUTE itself is current. Conversation switches remount a
+KEYED iframe behind `frameWrap`'s token-styled veil until its load event —
+mutating `src` on one iframe kept the old conversation painted, then flashed
+unthemed content. Inside the chat, `initialHistoryLoading` (ChatContext)
+holds a quiet spinner instead of flashing `WelcomeSection` over an existing
+conversation, and the LOAD_HISTORY reducer case refuses to let an EMPTY
+history erase live messages of the same conversation — that hard replace
+orphaned streamed replies (chunks only append to an existing assistant
+message) and was the "blank conversation" bug. `PrefillSender` reaches
+`sendMessage`/`onSent` through refs with `[userId]` as the only dependency:
+`sendMessage` changes identity on nearly every provider render, and having
+it in the deps let re-renders cancel-and-restart the 300 ms timer forever.
+Stale `PREFILL_STORAGE_KEY` is cleared on select/new so an unconsumed
+question can never hijack the next conversation; "＋ New" sets the
+conversation to NULL (the widget's bespoke `ChatWelcome`), never a fresh
+uuid (which renders the real chat's generic emoji welcome — a different
+visual identity). History deletion (both variants) and Clear-all go through
+one confirmation dialog in `ChatHistoryPanel`. The sign-in dialog renders
+the Google button IDEMPOTENTLY (`replaceChildren` before `renderGoogleButton`,
+effect keyed on script+clientId only — an effect keyed on the resolving anon
+userId APPENDED a second GSI iframe, the "blinking"), and email/password
+folds behind the "Use simple email authentication" label unless Google is
+not offered. Markdown tables in bot bubbles render inside `.tableScroll`
+(overflow-x) with the `.messageWide` bubble stretch — width pressure becomes
+horizontal scroll, never truncation; prose bubbles keep their 75% measure.
+
 **Message feedback = the Reject flow.** `GeneralFeedbackModal` has a `reject` mode (prefilled "Data for request: … is incorrect", wrong-numbers tag preselected, message-scoped submit via `assistantMessageId`); chat's entry point is the "Reject answer" ghost pill at each assistant bubble's trailing bottom corner, Intelligence's is the ghost Reject in `InsightDetail`'s actions row. Message delete is parked behind `SHOW_DELETE=false` in `Message.tsx`.
 
 ## Gotchas

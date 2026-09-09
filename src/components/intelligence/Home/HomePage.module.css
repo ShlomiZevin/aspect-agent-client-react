@@ -47,3 +47,11 @@
 .rowStatusMuted { font-size: 11.5px; color: var(--ai-text-mute); flex: none; }
 
 .seeAll { align-self: center; background: none; border: none; font-size: 13.5px; font-weight: 600; color: var(--ai-accent); cursor: pointer; padding: 2px 0 8px; }
+
+/* Phones: no rail, so the flex row collapses to a plain block and the page
+   uses the full width. Keep clear of the fixed bottom tab bar. */
+@media (max-width: 640px) {
+  .outer { display: block; height: auto; overflow: visible; }
+  .page { height: auto; padding: 20px 14px 32px; }
+  .twoCol { gap: 16px; }
+}
