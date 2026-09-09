@@ -394,6 +394,17 @@ export function AddonRunCard({ run }: Props) {
             {run.historyCount} msg{run.historyCount === 1 ? '' : 's'}
           </span>
         )}
+        {/* A crew transition is a turn-defining event — show it on the
+            collapsed header too, so a CLOSED Rules/Router card still
+            says it moved the conversation (task #828). */}
+        {hasTransition && (
+          <span
+            className={styles.transitionPill}
+            title={run.transition!.reason || 'Crew transition fired'}
+          >
+            Transition → {crewNameById(run.transition!.to)}
+          </span>
+        )}
         <span
           className={`${styles.status} ${styles[`status_${run.status}`]}`}
           title={run.status === 'skipped' ? (run.skipReason ?? 'Skipped by filter') : undefined}

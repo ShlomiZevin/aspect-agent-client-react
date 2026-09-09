@@ -128,3 +128,18 @@
 .compact .question { font-size: 15px; padding: 10px 14px; }
 .compact .answer { padding: 13px 15px; }
 .compact .sourceSnippet { display: none; }
+
+/* A URL the model wrapped in backticks. Still monospace — it IS a path — but
+   it behaves like the link it is, rather than sitting there inert. */
+.codeLink {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: .92em;
+  color: var(--mag);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+  /* Physical: inside an RTL answer a URL must still read left to right. */
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.codeLink:hover { opacity: .8; }
