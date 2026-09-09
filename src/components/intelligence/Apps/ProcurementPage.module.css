@@ -963,36 +963,79 @@
 }
 
 @media (max-width: 640px) {
-  .page { padding: 18px 14px 48px; }
+  .page { padding: 18px 14px calc(64px + env(safe-area-inset-bottom)); }
   .steps { grid-template-columns: 1fr; }
   .facts { grid-template-columns: repeat(2, 1fr); }
 
+  /* app header: title + attention pill on one line, CSV export on its own
+     full-width line — kept visible, not tucked away */
+  .head { flex-wrap: wrap; gap: 10px 12px; }
+  .csvBtn { margin-inline-start: 0; width: 100%; justify-content: center; display: flex; }
+
+  /* section tabs: one scrollable row instead of wrapping to three lines */
+  .tabs {
+    gap: 16px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: 0 0 auto; }
+
+  /* status band: every figure stays, in a clean 2-column grid rather than the
+     lopsided wrap */
+  .band { padding: 14px 16px; gap: 12px; }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 14px;
+    width: 100%;
+  }
+
+  /* group chips: a sticky, horizontally-scrollable rail so the buyer never
+     loses which cut the rows below belong to */
+  .groupBar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-inline: -14px;
+    padding: 10px 14px;
+    background: var(--ai-shell-bg, #f8f5fc);
+  }
+  .groupChips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .groupChips::-webkit-scrollbar { display: none; }
+  .groupChip { flex: 0 0 auto; }
+  .groupSummaryText { margin-inline-start: 0; flex-basis: 100%; }
+  .tuneBtn { width: 100%; justify-content: center; }
+
+  /* supplier card: name on its own line, then count + total, then the
+     lead-time controls — a clear top-to-bottom read, no fighting on one row */
   .supRow {
     flex-wrap: wrap;
-    gap: 8px 12px;
-    padding: 12px 14px;
+    gap: 6px 14px;
+    padding: 14px 16px;
   }
-
-  .supName {
-    flex-basis: 100%;
-    white-space: normal;
-  }
-
+  .supName { flex-basis: 100%; white-space: normal; font-size: 14px; }
   .supCount,
-  .supTotal { width: auto; }
+  .supTotal { width: auto; font-size: 12.5px; }
+  .lead { flex-basis: 100%; flex-wrap: wrap; gap: 6px 10px; }
 
-  /* The six-column table does not survive a phone, so it scrolls as a unit
-     and no column is silently dropped. */
-  .table { overflow-x: auto; }
-
+  /* the six-column item table scrolls sideways as a unit — every column kept,
+     nothing dropped */
+  .table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .thead,
   .trow,
   .why { min-width: 720px; }
-
-  /* The verdict controls need their own room. */
   .rowGrouped { min-width: 880px; }
-
-  .groupSummaryText { margin-inline-start: 0; }
 }
 
 /* -- loading placeholders ------------------------------------------------ */

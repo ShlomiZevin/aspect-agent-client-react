@@ -33,6 +33,8 @@ interface Props {
   variant: 'docked' | 'expanded';
   /** Reports the active conversation's title back up, so the expanded header can show it (mockup 2c). */
   onActiveTitleChange?: (title: string | null) => void;
+  /** Only on phones, where this panel is a full-screen overlay and needs its own dismiss. */
+  onClose?: () => void;
 }
 
 function isSameDay(a: Date, b: Date) {
@@ -45,7 +47,7 @@ function groupLabel(date: Date, today: Date, yesterday: Date, t: (key: string) =
   return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' }).toUpperCase();
 }
 
-export function ChatHistoryPanel({ datasetId, activeConversationId, onSelect, onNew, refreshKey, variant, onActiveTitleChange }: Props) {
+export function ChatHistoryPanel({ datasetId, activeConversationId, onSelect, onNew, refreshKey, variant, onActiveTitleChange, onClose }: Props) {
   const { t, language } = useLanguage();
   const locale = localeFor(language);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -135,6 +137,11 @@ export function ChatHistoryPanel({ datasetId, activeConversationId, onSelect, on
   return (
     <div className={`${styles.panel} ${expanded ? styles.panelExpanded : ''}`}>
       <div className={styles.top}>
+        {onClose && (
+          <button className={styles.mobileClose} onClick={onClose} aria-label={t('intel.chat.closeChat')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
+        )}
         {expanded ? (
           <button className={styles.newBtnExpanded} onClick={onNew}><span>＋</span>{t('intel.chat.newChat')}</button>
         ) : (

@@ -76,12 +76,30 @@ function loadSize(): { width: number; height: number } {
   }
 }
 
+/** < 640px — the phone layout, where the widget fills the viewport and the
+ *  history panel can only be a full-screen overlay, never a side column. */
+function useIsMobile() {
+  const [mobile, setMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const on = () => setMobile(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return mobile;
+}
+
 export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, onExpandedChange, pendingQuestion, onPendingQuestionConsumed, pendingScope, onPendingScopeConsumed }: Props) {
   const { t } = useLanguage();
+  const mobile = useIsMobile();
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  // Expanded mode has room for the sidebar by default, matching mockup 2c.
-  useEffect(() => { if (expanded) setHistoryOpen(true); }, [expanded]);
+  // Expanded mode has room for the sidebar by default, matching mockup 2c — but
+  // on a phone there is no "beside", so it stays closed until the ☰ button
+  // opens it as a full-screen overlay (see the CSS).
+  useEffect(() => { if (expanded && !mobile) setHistoryOpen(true); }, [expanded, mobile]);
 
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [activeTitle, setActiveTitle] = useState<string | null>(null);
@@ -119,6 +137,7 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
   const selectConversation = (id: string) => {
     sessionStorage.removeItem(PREFILL_STORAGE_KEY);
     setConversationId(id);
+    if (mobile) setHistoryOpen(false); // the overlay covered the chat — get back to it
   };
   // "New chat" shows the WIDGET'S OWN welcome (hero + styled tiles), not an
   // empty iframe: mounting a fresh uuid rendered the real chat's generic
@@ -127,6 +146,7 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
   const newConversation = () => {
     sessionStorage.removeItem(PREFILL_STORAGE_KEY);
     setConversationId(null);
+    if (mobile) setHistoryOpen(false);
   };
   const send = (question: string) => {
     sessionStorage.setItem(PREFILL_STORAGE_KEY, question);
@@ -191,10 +211,11 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
             refreshKey={refreshKey}
             variant={expanded ? 'expanded' : 'docked'}
             onActiveTitleChange={setActiveTitle}
+            onClose={mobile ? () => setHistoryOpen(false) : undefined}
           />
         )}
         <div className={styles.chatCol}>
-          {expanded && started ? (
+          {!mobile && expanded && started ? (
             <div className={styles.headExpanded}>
               <button className={styles.backBtn} onClick={backToWelcome} aria-label={t('intel.chat.backToWelcome')} title={t('intel.chat.back')}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 4l-7 8 7 8" /></svg>
