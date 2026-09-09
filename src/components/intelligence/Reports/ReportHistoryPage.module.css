@@ -55,3 +55,30 @@
   .result { display: none; }
   .headerRow span:nth-child(3) { display: none; }
 }
+
+/* Phones (< 640px): the 5-column table becomes a card per run — every field
+   stays visible (the 800px rule hid .result; here it comes back), just
+   stacked. The column-header strip has no meaning once rows are cards. */
+@media (max-width: 640px) {
+  .page { padding: 20px 14px 34px; gap: 16px; }
+  .headRow { flex-wrap: wrap; gap: 8px; }
+  .search { margin-inline-start: 0; width: 100%; }
+
+  .headerRow { display: none; }
+  .row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "question question"
+      "result   result"
+      "date     detail"
+      "action   action";
+    gap: 6px 12px;
+    padding: 14px 16px;
+  }
+  .row:last-child { border-bottom: none; }
+  .date { grid-area: date; }
+  .question { grid-area: question; white-space: normal; }
+  .result { grid-area: result; white-space: normal; display: block; }
+  .detail { grid-area: detail; justify-self: end; }
+  .action { grid-area: action; text-align: start; }
+}

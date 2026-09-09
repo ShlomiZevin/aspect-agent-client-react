@@ -210,3 +210,14 @@
   .railDrawerBtn:hover { background: var(--ai-shell-bg); }
   .railDrawerBtn:focus-visible { outline: 2px solid var(--ai-accent); outline-offset: 1px; }
 }
+
+/* Phones (< 640px): the rail is gone entirely. Its content — saved reports,
+   recent reports — is already rendered full-width in the main column by
+   HomePage, and the bottom tab bar owns navigation. The floating 60px strip
+   just overlapped the hero. */
+@media (max-width: 640px) {
+  .rail,
+  .railExpanded,
+  .scrim,
+  .railDrawerBtn { display: none !important; }
+}

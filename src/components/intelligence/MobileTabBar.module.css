@@ -1,0 +1,65 @@
+/* Bottom tab bar — mobile only. Hidden entirely on desktop. */
+.bar {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .bar {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 30;
+    display: flex;
+    align-items: stretch;
+    background: var(--ai-surface);
+    border-top: 1px solid var(--ai-border);
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -6px 20px -8px rgba(30, 34, 70, 0.14);
+  }
+
+  .tab {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 8px 4px 7px;
+    min-height: 56px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font: 600 10.5px var(--ai-font-body);
+    color: var(--ai-text-mute);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tab.active {
+    color: var(--ai-accent);
+  }
+
+  .icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+  }
+
+  .badge {
+    position: absolute;
+    top: -4px;
+    inset-inline-end: -6px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3px;
+    border-radius: 999px;
+    background: var(--ai-accent-2);
+    color: #fff;
+    font: 700 9px var(--ai-font-body);
+    line-height: 15px;
+    text-align: center;
+  }
+}

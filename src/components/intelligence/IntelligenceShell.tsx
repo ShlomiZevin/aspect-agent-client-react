@@ -16,6 +16,7 @@ import { AppsPage } from './Apps/AppsPage';
 import { ProcurementPage } from './Apps/ProcurementPage';
 import { appsService } from '../../services/appsService';
 import { ChatWidget } from './ChatWidget';
+import { MobileTabBar } from './MobileTabBar';
 import type { ModuleScope } from '../../services/chatService';
 import { DataHealthTrigger } from '../chat/DataHealthModal';
 import { FeedbackTrigger } from '../chat/GeneralFeedbackModal';
@@ -91,7 +92,8 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
       .catch(() => { if (!cancelled) setMeta(null); });
     return () => { cancelled = true; };
   }, [datasetId]);
-  const { selectedJobId, cancelJob } = useJobs();
+  const { selectedJobId, cancelJob, jobs } = useJobs();
+  const runningJobs = jobs.filter(j => j.status === 'running').length;
   // The insight open/closed state is the URL (insightId prop, driven by the
   // route) — a real per-insight URL that can be linked/bookmarked/shared,
   // not just internal component state. The breadcrumb needs the insight's
@@ -433,6 +435,22 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           <div className={styles.teaser}>{t('intel.launcher.teaser')}</div>
           <button className={styles.orb} onClick={() => { setChatOpen(true); setChatEverOpened(true); }} aria-label="Open chat">✦</button>
         </div>
+      )}
+
+      {/* Mobile navigation (< 640px). Its own CSS hides it on desktop, where
+          the header's `.nav` row does this job. Hidden while the chat is open
+          because on a phone the chat panel fills the viewport (its own back
+          button leaves it) and the two would fight for the bottom edge. */}
+      {!chatOpen && (
+        <MobileTabBar
+          view={view}
+          hasApps={hasApps === true}
+          runningJobs={runningJobs}
+          onHome={goHome}
+          onReports={goReports}
+          onChat={openDataChat}
+          onApps={goApps}
+        />
       )}
     </div>
   );
