@@ -218,6 +218,10 @@
 .crumbActive { color: var(--ai-accent); }
 .crumbSep { color: #D3C6E8; }
 .syncInfo { margin-inline-start: auto; }
+
+/* only the phone layout renders this (see the @media block) — desktop keeps
+   the freshness stamp in the breadcrumb row */
+.mobileSyncCaption { display: none; }
 .syncInfo b { color: var(--ai-text); font-weight: 600; }
 
 /* ── body ────────────────────────────────────────────────── */
@@ -304,15 +308,18 @@
   .feedbackSlot,
   .jobBadgesSlot { display: none; }
 
-  /* second line: a hairline-thin data-freshness strip, crumbs hidden */
-  .crumb, .crumbSep { display: none; }
-  .breadcrumbRow {
-    padding: 5px 14px;
+  /* the whole breadcrumb row is gone — the freshness stamp moves into the body
+     as a caption (.mobileSyncCaption) so the top bar stays one line */
+  .breadcrumbRow { display: none; }
+  .mobileSyncCaption {
+    display: flex;
+    align-items: center;
     gap: 8px;
-    justify-content: flex-end;
-    border-top: 1px solid var(--ai-border-soft);
+    padding: 9px 14px 0;
+    font-size: 11px;
+    color: var(--ai-text-mute);
   }
-  .syncInfo { margin-inline-start: 0; font-size: 11px; }
+  .mobileSyncCaption b { color: var(--ai-text-dim); font-weight: 600; }
 
   /* the bottom tab bar sits over the body — keep the last content clear of it */
   .body { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }

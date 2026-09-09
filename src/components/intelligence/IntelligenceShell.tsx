@@ -378,6 +378,16 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
       </header>
 
       <main className={styles.body}>
+        {/* Phones: the header is one thin line, so the data-freshness stamp
+            rides here as a caption at the top of the scroll area instead —
+            still the first thing seen, just not chrome. Desktop keeps it in
+            the breadcrumb row (hidden on mobile). */}
+        {syncInfo && (
+          <div className={styles.mobileSyncCaption}>
+            <span>{t('intel.lastSync')}: <b>{syncInfo.lastSync}</b></span>
+            {baseURL && <DataHealthTrigger baseURL={baseURL} schema={datasetId} />}
+          </div>
+        )}
         {view === 'detail' && insightId && (
           <InsightDetail datasetId={datasetId} userId={userId} insightId={insightId} onBack={goReports} onLoaded={i => setInsightBreadcrumb(i.breadcrumbLabel)} onAskFollowUp={askFollowUp} />
         )}
