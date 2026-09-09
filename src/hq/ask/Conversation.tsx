@@ -23,10 +23,33 @@ function AnswerBody({ text }: { text: string }) {
         remarkPlugins={[remarkGfm]}
         components={{
           code({ children, ...props }) {
-            const raw = String(children);
+            const raw = String(children).trim();
+
             const marker = raw.match(/^⟦(\d+)⟧$/);
             if (marker) return <sup className={styles.citeRef}>{marker[1]}</sup>;
-            return <code {...props}>{children}</code>;
+
+            // A URL the model happened to wrap in backticks is still a link.
+            // It arrived as inert code: not clickable, and awkward to even
+            // select. Fixed here rather than by asking the model to format
+            // differently, because the renderer is the thing we control.
+            if (/^https?:\/\/\S+$/.test(raw)) {
+              return (
+                <a
+                  className={styles.codeLink}
+                  href={raw}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  dir="ltr"
+                >
+                  {raw}
+                </a>
+              );
+            }
+
+            // `dir="ltr"` on every code span: these are hex codes, ids, paths
+            // and filenames, and inside an RTL answer the leading character
+            // migrates to the end — "#E0198A" rendered as "E0198A#".
+            return <code {...props} dir="ltr">{children}</code>;
           },
         }}
       >

@@ -246,7 +246,12 @@
 .hqProse li { margin-bottom: .3em; }
 .hqProse a { color: var(--mag); text-decoration: underline; }
 .hqProse strong { font-weight: 700; }
+/* A code span is an LTR token — a hex code, id, path, filename, model name.
+   Inside a Hebrew answer it inherits RTL and the leading character migrates to
+   the end, so "#E0198A" rendered as "E0198A#" in a brand-colour table. */
 .hqProse code {
+  direction: ltr;
+  unicode-bidi: isolate;
   background: var(--surface-3);
   border-radius: 5px;
   padding: .1em .4em;

@@ -88,6 +88,12 @@ interface PopoverProps {
    */
   modelLabel?: string;
   /**
+   * Per-step model list (server truth via GET /alfred/models). When
+   * present it REPLACES the single modelLabel line — one quiet row per
+   * Alfred step so the user can see exactly what runs where.
+   */
+  modelSteps?: Array<{ id: string; label: string; model: string }>;
+  /**
    * Show the "Addon activity" toggle. Only UserChat passes this —
    * BuilderChat (Alfred) has no addon timelines, so the row would be
    * dead weight there.
@@ -95,7 +101,7 @@ interface PopoverProps {
   showAddonRunsToggle?: boolean;
 }
 
-export function ChatSettingsPopover({ open, onClose, triggerRef, settings, onChange, modelLabel, showAddonRunsToggle }: PopoverProps) {
+export function ChatSettingsPopover({ open, onClose, triggerRef, settings, onChange, modelLabel, modelSteps, showAddonRunsToggle }: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   // Close on click-outside / Escape.
@@ -121,12 +127,20 @@ export function ChatSettingsPopover({ open, onClose, triggerRef, settings, onCha
   if (!open) return null;
   return (
     <div className={styles.popover} ref={ref}>
-      {modelLabel && (
+      {modelSteps && modelSteps.length > 0 ? (
+        // Server truth — one row per Alfred step.
+        modelSteps.map(s => (
+          <div key={s.id} className={styles.modelLine} title="Models are fixed for now (server-configured)">
+            <span className={styles.modelLineLabel}>{s.label}</span>
+            <span className={styles.modelLineValue}>{s.model}</span>
+          </div>
+        ))
+      ) : modelLabel ? (
         <div className={styles.modelLine} title="Model is fixed for now">
           <span className={styles.modelLineLabel}>Model</span>
           <span className={styles.modelLineValue}>{modelLabel}</span>
         </div>
-      )}
+      ) : null}
       <ToggleRow
         label="RTL text"
         hint="Right-to-left for Hebrew/Arabic"

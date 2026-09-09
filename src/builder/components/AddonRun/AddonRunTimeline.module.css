@@ -10,3 +10,28 @@
 /* Wrapper only — the family colour lives on the AddonRunCard's own accent
    (its left border + gentle tint), so no extra stripe here. */
 .row { min-width: 0; }
+
+/* Task #828: explicit transition strip under the card that fired it. */
+.transitionRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 2px 12px;
+  padding: 5px 12px;
+  width: fit-content;
+  font-size: 12px;
+  font-weight: 600;
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px dashed rgba(124, 58, 237, 0.35);
+  border-radius: 8px;
+}
+
+.transitionArrow {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.transitionRow strong {
+  font-weight: 700;
+}

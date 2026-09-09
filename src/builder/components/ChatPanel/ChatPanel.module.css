@@ -595,6 +595,131 @@
   background: rgba(34, 197, 94, 0.15);
 }
 
+/* Pinned files — a clearly-labeled attachment strip above the chat.
+ * The tinted band + caption say "this is where attached files live";
+ * a pin stays for the whole conversation; ✕ unpins. */
+.pinnedFilesRow {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  /* Sits directly ABOVE the composer — visually part of what the user
+   * is about to send. */
+  border-top: 1px dashed rgba(99, 102, 241, 0.3);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.pinnedFilesLabel {
+  flex: 0 0 auto;
+  display: inline-block;
+  /* Same box as the chips (22px, border-box) with line-height doing
+   * the centering — one shared midline, no font-metric drift. */
+  height: 22px;
+  line-height: 22px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6366f1;
+  opacity: 0.7;
+  margin-right: 2px;
+  user-select: none;
+  cursor: default;
+}
+
+.pinnedFileChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  height: 22px;
+  box-sizing: border-box;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0 6px 0 9px;
+  border-radius: 999px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  color: #4f46e5;
+  box-shadow: 0 1px 2px rgba(99, 102, 241, 0.08);
+}
+
+/* The clip icon lives OUTSIDE the ellipsis link — an emoji inside an
+ * overflow:hidden box gets its tall glyph clipped. */
+.pinnedFileIcon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  line-height: normal;
+}
+
+.pinnedFileName {
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+
+.pinnedFileName:hover {
+  text-decoration: underline;
+}
+
+.pinnedFileRemove {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  line-height: 1;
+  color: #4f46e5;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.6;
+  font-family: inherit;
+}
+
+.pinnedFileRemove:hover {
+  opacity: 1;
+  background: rgba(99, 102, 241, 0.15);
+}
+
+/* 📎 attach — a quiet ghost in the action cluster next to Send.
+ * Stretches with the row like Send/Stop so the composer reads as one
+ * aligned unit whatever height the input is dragged to. */
+.attachBtn {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 36px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  color: var(--text-secondary, #6b7280);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.attachBtn:hover:not(:disabled) {
+  color: var(--primary-color, #6366f1);
+  background: var(--bg-input, #f3f4f6);
+}
+
+.attachBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Running-tool status — lives INSIDE the streaming assistant bubble
  * (replaces the "…" placeholder, or trails already-streamed text). */
 .toolNote {

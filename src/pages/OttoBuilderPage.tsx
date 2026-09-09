@@ -34,6 +34,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getBaseURL } from '../services/api';
+import { useDocumentMeta } from '../hooks';
 import styles from './OttoBuilderPage.module.css';
 
 const API = () => `${import.meta.env.DEV ? 'http://localhost:3000' : getBaseURL()}/api/otto`;
@@ -278,8 +279,17 @@ export function OttoBuilderPage() {
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
+  // Otto's own head, cropped from the figure in public/otto — re-render the
+  // figure and this has to be regenerated from it, which is why the two sit in
+  // the same folder. Leaving the route restores the client's icon: every page
+  // here sets its own, IntelligencePage included.
+  useDocumentMeta({
+    title: 'אוטו — בניית מסך',
+    favicon: '/otto/otto-favicon.png',
+    description: 'אוטו בונה מסכים תפעוליים על הנתונים של הארגון.',
+  });
+
   useEffect(() => {
-    document.title = 'אוטו — בניית מסך';
     if (!document.querySelector(`link[href="${FONTS_HREF}"]`)) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';

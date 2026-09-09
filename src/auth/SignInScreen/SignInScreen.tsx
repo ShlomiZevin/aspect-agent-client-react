@@ -4,9 +4,10 @@ import styles from './SignInScreen.module.css';
 
 /**
  * The full-page sign-in gate: shown in front of a surface that a 'gate' client
- * has closed until an invited person signs in. The credential form itself is
- * {@link SignInMethods}, shared with the in-chat dialog; this is only the page
- * around it.
+ * has closed until a person signs in. Signing in with Google needs no
+ * invitation; a password is only for addresses added on the Access page. The
+ * credential form itself is {@link SignInMethods}, shared with the in-chat
+ * dialog; this is only the page around it.
  *
  * Rendered outside a LanguageProvider (the dashboard has none), so it keeps to
  * the English defaults — no `t` is passed down.
@@ -28,8 +29,9 @@ export function SignInScreen({ tenant, agentName, config, onSignedIn }: Props) {
         <SignInMethods tenant={tenant} config={config} onSignedIn={onSignedIn} />
 
         <p className={styles.foot}>
-          Access is given ahead of time. If you cannot get in, ask whoever set this up
-          to add your address.
+          {config.google
+            ? 'Sign in with your Google account to continue.'
+            : 'Access is given ahead of time. If you cannot get in, ask whoever set this up to add your address.'}
         </p>
       </div>
     </div>
