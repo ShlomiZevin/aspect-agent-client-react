@@ -964,7 +964,7 @@ function ItemRow({
         {/* RUNS OUT — the client's asked-for picture: a projected runout
             date for living items, a plain red "Run out" for the dead ones.
             The lateness diagnosis moved to the Why panel. */}
-        <span>
+        <span data-l={t('procurement.col.runsOut')}>
           {rec.alreadyOut || !rec.runoutDate ? (
             <span className={`${styles.pill} ${styles.pillLate}`}>{t('procurement.runOut')}</span>
           ) : (
@@ -979,7 +979,7 @@ function ItemRow({
             </>
           )}
         </span>
-        <span>
+        <span data-l={t('procurement.col.order')}>
           <span className={styles.qtyMain} style={{ display: 'block' }}>
             {t('procurement.units').replace('{n}', nf(rec.orderQty))}
           </span>
@@ -991,12 +991,12 @@ function ItemRow({
             </span>
           )}
         </span>
-        <span className={styles.cell}>≈ ₪{nf(rec.estimatedCostExVat)}</span>
+        <span className={styles.cell} data-l={t('procurement.col.cost')}>≈ ₪{nf(rec.estimatedCostExVat)}</span>
         {/* The INSTRUCTION date — today at the earliest, never a date in the
             past (the diagnosis date and its lateness live in the Why panel).
             Real month names and word order in Hebrew, rather than an ISO
             string that RTL renders back to front. */}
-        <span className={styles.cell}>
+        <span className={styles.cell} data-l={t('procurement.col.placeOrder')}>
           {rec.placeOrderBy
             ? (rec.placeOrderBy <= new Date().toISOString().slice(0, 10)
               ? <span className={styles.cellToday}>{t('procurement.today')}</span>

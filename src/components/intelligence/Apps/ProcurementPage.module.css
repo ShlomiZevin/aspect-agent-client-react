@@ -1029,13 +1029,59 @@
   .supTotal { width: auto; font-size: 12.5px; }
   .lead { flex-basis: 100%; flex-wrap: wrap; gap: 6px 10px; }
 
-  /* the six-column item table scrolls sideways as a unit — every column kept,
-     nothing dropped */
-  .table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .thead,
+  /* the six-column item grid reflows into a card per item — every column
+     becomes a labelled line, nothing dropped, no sideways scroll */
+  .table { overflow: visible; border-radius: 12px; }
+  .thead { display: none; } /* column headers have no meaning once rows are cards */
+
   .trow,
-  .why { min-width: 720px; }
-  .rowGrouped { min-width: 880px; }
+  .rowGrouped {
+    min-width: 0;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "name   name"
+      "order  order"
+      "runout place"
+      "cost   cost"
+      "act    act";
+    gap: 6px 14px;
+    padding: 14px 16px;
+    align-items: start;
+  }
+  .trow > :nth-child(2) { grid-area: name; }
+  .trow > :nth-child(3) { grid-area: runout; }
+  .trow > :nth-child(4) { grid-area: order; }
+  .trow > :nth-child(5) { grid-area: cost; }
+  .trow > :nth-child(6) { grid-area: place; }
+  .trow > :nth-child(7) { grid-area: act; }
+
+  .itemName { white-space: normal; overflow: visible; font-size: 13.5px; }
+  .itemCode { font-size: 11.5px; }
+  /* ORDER is the decision — make it the card's headline */
+  .trow > :nth-child(4) .qtyMain { font-size: 15px; }
+  .cell { font-size: 12px; }
+
+  /* each reflowed field carries the column name it lost, from data-l */
+  .trow > :nth-child(3)::before,
+  .trow > :nth-child(4)::before,
+  .trow > :nth-child(5)::before,
+  .trow > :nth-child(6)::before {
+    content: attr(data-l);
+    display: block;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ai-text-muted, #8a90a3);
+    margin-bottom: 2px;
+  }
+
+  .actionsCell { justify-content: flex-start; padding-top: 4px; }
+  .whyCell { padding-top: 4px; }
+  .moveMenu { inset-inline-start: 0; }
+
+  .why { min-width: 0; }
+  .facts { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* -- loading placeholders ------------------------------------------------ */
