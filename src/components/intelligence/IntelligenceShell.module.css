@@ -7,6 +7,10 @@
   --ai-bg: #EFEAF5;
   --ai-shell-bg: #F8F5FC;
   --ai-surface: #ffffff;
+  /* the soft off-white behind sub-panels (Procurement's expanded rows, the
+   * item table). Was only ever a hardcoded light fallback on `var()` calls, so
+   * it stayed near-white in dark mode — now a real token, themed below. */
+  --ai-surface-alt: #F7F8FB;
   --ai-border: #EAE3F3;
   --ai-border-soft: #F3EDFA;
   --ai-text: #241A38;
@@ -86,6 +90,7 @@
   --ai-bg: #100b1c;
   --ai-shell-bg: #17111f;
   --ai-surface: #1e1730;
+  --ai-surface-alt: #171022;
   --ai-border: rgba(255, 255, 255, 0.09);
   --ai-border-soft: rgba(255, 255, 255, 0.05);
   --ai-text: #EDE7F6;

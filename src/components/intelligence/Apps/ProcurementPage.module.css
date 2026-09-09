@@ -662,7 +662,7 @@
 }
 
 .trow:hover { background: var(--ai-surface-alt, #fafafd); }
-.trowOpen { background: #fafafd; }
+.trowOpen { background: var(--ai-surface-alt, #fafafd); }
 
 /* Same pattern as .supToggle: the disclosure covers the row rather than
    wrapping it, because Move to…/Reject are real buttons and buttons cannot
@@ -885,7 +885,7 @@
 
 .why {
   padding: 16px 22px;
-  background: #fcfbfe;
+  background: var(--ai-surface-alt, #fcfbfe);
   border-top: 1px solid var(--ai-border, #f0f1f6);
 }
 
