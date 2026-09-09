@@ -51,7 +51,8 @@
   background: var(--si-surface);
   border: 1px solid var(--si-border);
   border-radius: 999px;
-  padding: 4px 10px 4px 4px;
+  padding-block: 4px;
+  padding-inline: 4px 12px; /* avatar side tighter — logical, so RTL flips it */
   cursor: pointer;
   max-width: 220px;
 }
@@ -223,6 +224,24 @@
   text-align: center;
 }
 
+/* Phones, INSIDE the Aspect Intelligence shell only (its root carries
+   [data-brand]) — that header is a wrapping toolbar, so the account control
+   gets its own full-width line instead of fighting the language/theme buttons
+   for a sliver. The retail chat header is a fixed-height single row and is
+   left alone. */
+@media (max-width: 640px) {
+  :global([data-brand]) .wrap { width: 100%; }
+  :global([data-brand]) .chip {
+    width: 100%;
+    max-width: none;
+    justify-content: flex-start;
+    padding-block: 6px;
+  }
+  :global([data-brand]) .chipName { flex: 1; min-width: 0; }
+  :global([data-brand]) .menu { inset-inline: 0; min-width: 0; }
+}
+
 @media (max-width: 480px) {
   .chipName { max-width: 90px; }
+  :global([data-brand]) .chipName { max-width: none; }
 }
