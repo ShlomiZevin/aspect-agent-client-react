@@ -309,13 +309,6 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
                 <FeedbackTrigger agentName={datasetAgent.agentName} baseURL={datasetAgent.baseURL} variant="icon" className={styles.iconBtn} />
               </span>
             )}
-            {/* Data-freshness lives in the breadcrumb row on desktop; on a phone
-                that row is gone, so a copy rides here (CSS shows exactly one). */}
-            {baseURL && (
-              <span className={styles.dataHealthSlot}>
-                <DataHealthTrigger baseURL={baseURL} schema={datasetId} />
-              </span>
-            )}
             <ChatSignIn tenant={datasetId} agentName={datasetAgent?.agentName ?? datasetId} />
             <div className={styles.onlineDot}><span className={styles.dot} />{t('intel.online')}</div>
           </div>

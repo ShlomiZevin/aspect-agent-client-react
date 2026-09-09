@@ -259,7 +259,16 @@
   :global([data-brand]) .chipName,
   :global([data-brand]) .caret { display: none; }
   :global([data-brand]) .avatar { width: 24px; height: 24px; font-size: 10px; }
-  :global([data-brand]) .menu { inset-inline-end: 0; }
+
+  /* the chip is tiny and can sit near either screen edge — pin the menu to the
+     viewport so it never runs off the side or gets clipped by the header */
+  :global([data-brand]) .menu {
+    position: fixed;
+    top: 80px;
+    inset-inline: 12px;
+    min-width: 0;
+    width: auto;
+  }
 }
 
 @media (max-width: 480px) {

@@ -262,30 +262,25 @@
   .breadcrumbRow { padding: 8px 16px; }
 }
 
-/* the header copy of the data-health trigger exists only for the phone layout
-   (desktop keeps the one in the breadcrumb row) */
-.dataHealthSlot { display: none; }
-
 /* Phones (< 640px): the desktop nav row becomes the bottom MobileTabBar and
    the floating chat orb goes with it. The header collapses to ONE thin line —
-   brand, then language / theme / data-health / account. What doesn't earn a
-   place on a 390px bar drops here: the "online" dot (decorative), the feedback
-   icon (still on every insight, and the global bug widget), the job badges
-   (the tab bar carries a running-job count), and the whole breadcrumb row (the
-   tab bar and the back rows already say where you are; the data-health button
-   moved up into the line). */
+   brand, then language / theme / account — with a second hairline-thin strip
+   under it carrying only the data-freshness stamp + its panel button. What
+   doesn't earn a place on a 390px bar drops: the "online" dot (decorative),
+   the feedback icon (still on every insight, and the global bug widget), the
+   job badges (the tab bar carries a running-job count), and the crumb trail
+   (the tab bar and the back rows already say where you are). */
 @media (max-width: 640px) {
   .nav { display: none; }
-  .breadcrumbRow { display: none; }
   .launcherWrap { display: none; }
 
-  .header { border-bottom: 1px solid var(--ai-border); }
   .headerRow {
     height: 52px;
     flex-wrap: nowrap;
     gap: 8px;
     padding: 0 12px;
-    overflow: hidden;
+    /* no overflow:hidden here — the account menu is an absolutely-positioned
+       child of this row and would be clipped. The content fits without it. */
   }
 
   .brand { flex: 1 1 auto; min-width: 0; gap: 8px; }
@@ -309,8 +304,15 @@
   .feedbackSlot,
   .jobBadgesSlot { display: none; }
 
-  /* the data-health copy that rides in the header on mobile only */
-  .dataHealthSlot { display: inline-flex; align-items: center; }
+  /* second line: a hairline-thin data-freshness strip, crumbs hidden */
+  .crumb, .crumbSep { display: none; }
+  .breadcrumbRow {
+    padding: 5px 14px;
+    gap: 8px;
+    justify-content: flex-end;
+    border-top: 1px solid var(--ai-border-soft);
+  }
+  .syncInfo { margin-inline-start: 0; font-size: 11px; }
 
   /* the bottom tab bar sits over the body — keep the last content clear of it */
   .body { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
