@@ -1070,6 +1070,69 @@ export interface ApplyPreviewResponse {
    *  nothing new to collect. Normal outcome, rendered as a friendly
    *  empty state (never an error). */
   alreadyApplied?: boolean;
+  /** Pinned chat files and how each reaches the generator:
+   *  'document' (native PDF block) · 'text' (extracted) ·
+   *  'chat-only' (images — brainstorm sees them, generation doesn't). */
+  pinnedFiles?: Array<{ name: string; delivery: 'document' | 'text' | 'chat-only' }>;
+}
+
+/** Which model each Alfred step runs — server truth, never a client
+ *  constant (those drift). */
+export interface AlfredStepModel {
+  id: string;
+  label: string;
+  model: string;
+}
+
+export async function fetchAlfredModels(): Promise<AlfredStepModel[]> {
+  const res = await http<{ steps: AlfredStepModel[] }>(`/api/builder/alfred/models`);
+  return res.steps;
+}
+
+/** One pinned Alfred chat file (client-safe — no extracted text). */
+export interface AlfredPinnedFile {
+  id: string;
+  name: string;
+  mime: string;
+  as: 'document' | 'text' | 'image';
+  bytes: number;
+  tokenEstimate: number;
+  hasText: boolean;
+  addedAt: string;
+}
+
+export async function uploadAlfredFile(args: {
+  chatId: number;
+  file: File;
+}): Promise<{ file: AlfredPinnedFile; files: AlfredPinnedFile[] }> {
+  const form = new FormData();
+  form.append('file', args.file);
+  const res = await fetch(`${BASE_URL}/api/builder/alfred/chats/${args.chatId}/files`, {
+    method: 'POST',
+    body: form,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    try { throw new Error(JSON.parse(text).error || text); }
+    catch (e) { throw e instanceof Error ? e : new Error(text); }
+  }
+  return res.json();
+}
+
+export async function listAlfredFiles(chatId: number): Promise<AlfredPinnedFile[]> {
+  const res = await http<{ files: AlfredPinnedFile[] }>(
+    `/api/builder/alfred/chats/${chatId}/files`,
+  );
+  return res.files;
+}
+
+export async function deleteAlfredFile(args: { chatId: number; fileId: string }): Promise<void> {
+  await http(`/api/builder/alfred/chats/${args.chatId}/files/${args.fileId}`, { method: 'DELETE' });
+}
+
+/** Click-to-open URL for a pinned file's content. */
+export function alfredFileContentUrl(chatId: number, fileId: string): string {
+  return `${BASE_URL}/api/builder/alfred/chats/${chatId}/files/${fileId}/content`;
 }
 
 export async function applyPreview(args: {

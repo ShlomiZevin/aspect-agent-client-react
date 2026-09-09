@@ -35,12 +35,15 @@ interface Props {
   ownerUserId: string;
   /** Fired after the generated bodies land in the working copy. */
   onApplied?: (result: ApplyGenerateResponse) => void;
+  /** The chat's pinned files — shown as chips in the loading state so
+   *  it's visible up front what the plan will read. */
+  chatPinnedFiles?: Array<{ id: string; name: string }>;
 }
 
 type Phase = 'loading' | 'review' | 'applying' | 'success' | 'error';
 
 export function ApplyPreviewModal({
-  open, onClose, chatId, agentSlug, ownerUserId, onApplied,
+  open, onClose, chatId, agentSlug, ownerUserId, onApplied, chatPinnedFiles,
 }: Props) {
   const { doc, applyAlfredBodies } = useBuilder();
 
@@ -49,6 +52,7 @@ export function ApplyPreviewModal({
   const [description, setDescription] = useState('');
   const [reason, setReason]           = useState('');
   const [targets, setTargets]         = useState<ApplyTarget[]>([]);
+  const [pinnedFiles, setPinnedFiles] = useState<Array<{ name: string; delivery: string }>>([]);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [errorMsg, setErrorMsg]       = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string[]>([]);
@@ -81,6 +85,7 @@ export function ApplyPreviewModal({
         setSummary(plan.summary);
         setDescription(plan.description);
         setTargets(plan.targets);
+        setPinnedFiles(plan.pinnedFiles ?? []);
         setAlreadyApplied(plan.alreadyApplied === true);
         setPhase('review');
       } catch (err) {
@@ -217,7 +222,20 @@ export function ApplyPreviewModal({
       {phase === 'loading' && (
         <div className={styles.loading}>
           <div className={styles.spinner} />
-          <span>Reading the conversation…</span>
+          <span>
+            {chatPinnedFiles && chatPinnedFiles.length > 0
+              ? 'Reading the conversation and the attached files…'
+              : 'Reading the conversation…'}
+          </span>
+          {chatPinnedFiles && chatPinnedFiles.length > 0 && (
+            // Bare chips — the framed strip belongs to the review page;
+            // inside the centered loading state it read as a boxed island.
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
+              {chatPinnedFiles.map(f => (
+                <span key={f.id} className={styles.basedOnChip}>📎 {f.name}</span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -231,6 +249,24 @@ export function ApplyPreviewModal({
       {phase === 'review' && (
         <>
           {summary && <p className={styles.summary}>{summary}</p>}
+
+          {pinnedFiles.length > 0 && (
+            <div className={styles.basedOnRow}>
+              <span className={styles.basedOnLabel}>Based on</span>
+              {pinnedFiles.map((f, i) => (
+                <span
+                  key={f.name + i}
+                  className={styles.basedOnChip}
+                  title={f.delivery === 'chat-only'
+                    ? 'Image — seen in the chat only; generation reads the conversation about it'
+                    : 'The generator receives this file — it is the source of truth for the plan'}
+                >
+                  📎 {f.name}
+                  {f.delivery === 'chat-only' && <em className={styles.basedOnNote}>chat-only</em>}
+                </span>
+              ))}
+            </div>
+          )}
 
           {targets.length === 0 ? (
             <div className={styles.empty}>

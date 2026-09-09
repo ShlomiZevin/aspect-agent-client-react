@@ -16,15 +16,22 @@ import { useBuilder, workingBodiesOf } from '../../state/BuilderContext';
 import { BUILDER_HELPER_MODEL, formatModelRef } from '../../registry/providerModels';
 import { useModels } from '../../registry/useModels';
 import {
+  alfredFileContentUrl,
   createAlfredChat,
   deleteAlfredChat,
+  deleteAlfredFile,
   deleteAlfredMarker,
   fetchAlfredMessages,
+  fetchAlfredModels,
   listAlfredChats,
+  listAlfredFiles,
   renameAlfredChat,
   stopAlfredChat,
+  uploadAlfredFile,
   type AlfredChatListItem,
   type AlfredMessage,
+  type AlfredPinnedFile,
+  type AlfredStepModel,
 } from '../../state/builderApi';
 import { sendAlfredMessage, type AlfredEvent } from '../../state/alfredStream';
 import { useConfirm } from '../Confirm/Confirm';
@@ -97,6 +104,16 @@ export function BuilderChat() {
   // Composer height, driven by the top drag bar. null = default (rows=2).
   const [inputHeight, setInputHeight] = useState<number | null>(null);
   const [inputDragging, setInputDragging] = useState(false);
+  // Per-step models (server truth) for the settings popover.
+  const [modelSteps, setModelSteps] = useState<AlfredStepModel[]>([]);
+  useEffect(() => {
+    fetchAlfredModels().then(setModelSteps).catch(() => setModelSteps([]));
+  }, []);
+
+  // Pinned files — chat-scoped attachments (chips above the messages).
+  const [pinnedFiles, setPinnedFiles] = useState<AlfredPinnedFile[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [settings, setSetting] = useChatSettings();
 
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -138,6 +155,9 @@ export function BuilderChat() {
       const msgs = await fetchAlfredMessages(id);
       setMessages(msgs.map(fromServer).filter((m): m is Msg => m !== null));
       setChatId(id);
+      // Pins are chat-scoped — refresh alongside the transcript. Never
+      // fail the chat load over the chips.
+      listAlfredFiles(id).then(setPinnedFiles).catch(() => setPinnedFiles([]));
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Failed to load chat');
     } finally {
@@ -273,8 +293,83 @@ export function BuilderChat() {
   const onNewChat = () => {
     setChatId(null);
     setMessages([]);
+    setPinnedFiles([]);
     setErrorMsg(null);
     setHistoryOpen(false);
+  };
+
+  // ── Pinned files ──
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-picking the same file
+    if (!file) return;
+
+    // Two-tier size warnings (never block): a soft note on big files, a
+    // hard scary-confirm on huge ones. Every message and every Apply
+    // (once per target) re-sends pinned content — Noa-proofing.
+    const mb = file.size / 1048576;
+    if (mb >= 8) {
+      const ok = await confirm({
+        title: 'Very large file',
+        message: `${file.name} is ${mb.toFixed(1)}MB. While pinned, its content is sent with EVERY message and re-sent on every Apply — expect noticeably slower replies and real cost. Strongly consider attaching only the relevant part.`,
+        confirmLabel: 'I understand — attach anyway',
+        cancelLabel: 'Cancel',
+        danger: true,
+      });
+      if (!ok) return;
+    } else if (mb >= 2) {
+      const ok = await confirm({
+        title: 'Large file',
+        message: `${file.name} is ${mb.toFixed(1)}MB. Pinned files ride along with every message — bigger file, slower and pricier chat. Attach?`,
+        confirmLabel: 'Attach',
+        cancelLabel: 'Cancel',
+      });
+      if (!ok) return;
+    }
+
+    setUploading(true);
+    setErrorMsg(null);
+    try {
+      // Lazy-create the chat, same as send() — a file can be the first
+      // thing in a conversation.
+      let id = chatId;
+      if (id === null) {
+        const created = await createAlfredChat({ agentSlug: slug, ownerUserId });
+        id = created.chatId;
+        setChatId(id);
+      }
+      const out = await uploadAlfredFile({ chatId: id, file });
+      setPinnedFiles(out.files);
+      // Post-extraction reality check: the file may be small on disk but
+      // huge as text (a dense Excel). Hard warning + easy undo.
+      if (out.file.tokenEstimate >= 30000) {
+        const keep = await confirm({
+          title: 'This file is very heavy as text',
+          message: `${out.file.name} extracts to roughly ${Math.round(out.file.tokenEstimate / 1000)}K tokens — every message and every Apply pays for all of it. Keep it pinned?`,
+          confirmLabel: 'Keep it',
+          cancelLabel: 'Remove it',
+          danger: true,
+        });
+        if (!keep) {
+          await deleteAlfredFile({ chatId: id, fileId: out.file.id });
+          setPinnedFiles(prev => prev.filter(f => f.id !== out.file.id));
+        }
+      }
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const onRemoveFile = async (fileId: string) => {
+    if (chatId === null) return;
+    try {
+      await deleteAlfredFile({ chatId, fileId });
+      setPinnedFiles(prev => prev.filter(f => f.id !== fileId));
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to remove file');
+    }
   };
 
   const onPickChat = (id: number) => {
@@ -414,6 +509,7 @@ export function BuilderChat() {
               settings={settings}
               onChange={setSetting}
               modelLabel={formatModelRef(BUILDER_HELPER_MODEL)}
+              modelSteps={modelSteps}
             />
           </div>
         </div>
@@ -504,7 +600,40 @@ export function BuilderChat() {
           ownerUserId={ownerUserId}
           // Reload so the fresh ✅ Applied marker shows immediately.
           onApplied={() => loadChat(chatId)}
+          chatPinnedFiles={pinnedFiles}
         />
+      )}
+
+      {pinnedFiles.length > 0 && (
+        <div className={styles.pinnedFilesRow}>
+          <span
+            className={styles.pinnedFilesLabel}
+            title={`Alfred reads ${pinnedFiles.length === 1 ? 'this file' : 'these files'} on every turn — pinned for the whole chat`}
+          >
+            Attached
+          </span>
+          {pinnedFiles.map(f => (
+            <span key={f.id} className={styles.pinnedFileChip} title={`${(f.bytes / 1024).toFixed(0)}KB · pinned for the whole chat`}>
+              <span className={styles.pinnedFileIcon} aria-hidden>📎</span>
+              <a
+                href={chatId !== null ? alfredFileContentUrl(chatId, f.id) : undefined}
+                target="_blank"
+                rel="noreferrer"
+                className={styles.pinnedFileName}
+              >
+                {f.name}
+              </a>
+              <button
+                type="button"
+                className={styles.pinnedFileRemove}
+                title="Unpin — Alfred stops seeing this file"
+                onClick={() => onRemoveFile(f.id)}
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
       )}
 
       <div className={`${styles.composer} ${styles.composerWithBar}`}>
@@ -532,6 +661,22 @@ export function BuilderChat() {
           rows={2}
           autoFocus
         />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.txt,.md,.csv,.docx,.xlsx,.xls,.png,.jpg,.jpeg,.webp"
+          style={{ display: 'none' }}
+          onChange={onPickFile}
+        />
+        <button
+          type="button"
+          className={styles.attachBtn}
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading || !slug}
+          title="Attach a file — pinned to this chat, Alfred sees it every turn"
+        >
+          {uploading ? '…' : '📎'}
+        </button>
         {busy ? (
           <button
             type="button"
