@@ -224,24 +224,34 @@
   text-align: center;
 }
 
-/* Phones, INSIDE the Aspect Intelligence shell only (its root carries
-   [data-brand]) — that header is a wrapping toolbar, so the account control
-   gets its own full-width line instead of fighting the language/theme buttons
-   for a sliver. The retail chat header is a fixed-height single row and is
-   left alone. */
+/* INSIDE the Aspect Intelligence shell (its root carries [data-brand]): the
+   header's other controls — the language group, the theme / feedback icon
+   buttons — are 10px rounded rectangles, so the account control matches them
+   instead of being a lone pill. */
+:global([data-brand]) .trigger,
+:global([data-brand]) .chip {
+  border-radius: 10px;
+}
+
+/* Phones, Intelligence only — the header is a tight wrapping toolbar, so the
+   account control shrinks to just the initials tile and sits inline with the
+   language / theme buttons. The name + email stay one tap away in the menu.
+   The retail chat header (fixed single row) is left alone. */
 @media (max-width: 640px) {
-  :global([data-brand]) .wrap { width: 100%; }
   :global([data-brand]) .chip {
-    width: 100%;
     max-width: none;
-    justify-content: flex-start;
-    padding-block: 6px;
+    padding: 0;
+    gap: 0;
+    width: 40px;
+    height: 40px;
+    justify-content: center;
   }
-  :global([data-brand]) .chipName { flex: 1; min-width: 0; }
-  :global([data-brand]) .menu { inset-inline: 0; min-width: 0; }
+  :global([data-brand]) .chipName,
+  :global([data-brand]) .caret { display: none; }
+  :global([data-brand]) .avatar { width: 28px; height: 28px; font-size: 11px; }
+  :global([data-brand]) .menu { inset-inline-end: 0; }
 }
 
 @media (max-width: 480px) {
   .chipName { max-width: 90px; }
-  :global([data-brand]) .chipName { max-width: none; }
 }

@@ -68,7 +68,10 @@ interface AccountMenuProps {
 function AccountMenu({ session, onSignOut, t }: AccountMenuProps) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
-  const initial = (session.name || session.email || '?').trim().charAt(0).toUpperCase();
+  // First letter of the first two name words ("Konstantin Ziben" → "KZ"), so
+  // the chip can shrink to just this circle on a phone without losing who.
+  const initial = (session.name || session.email || '?')
+    .trim().split(/\s+/).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('') || '?';
 
   useEffect(() => {
     if (!open) return;
