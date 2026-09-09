@@ -262,48 +262,56 @@
   .breadcrumbRow { padding: 8px 16px; }
 }
 
+/* the header copy of the data-health trigger exists only for the phone layout
+   (desktop keeps the one in the breadcrumb row) */
+.dataHealthSlot { display: none; }
+
 /* Phones (< 640px): the desktop nav row becomes the bottom MobileTabBar and
-   the floating chat orb goes with it — the Chat tab replaces both. The header
-   itself is reorganised into tidy rows rather than shrunk: nothing is hidden,
-   every control keeps a full 44px target.
-
-   The crumb trail is the one exception — it repeats what the tab bar and the
-   back rows already say — so only the crumbs drop; the sync stamp and the
-   data-health button in the same row stay. */
+   the floating chat orb goes with it. The header collapses to ONE thin line —
+   brand, then language / theme / data-health / account. What doesn't earn a
+   place on a 390px bar drops here: the "online" dot (decorative), the feedback
+   icon (still on every insight, and the global bug widget), the job badges
+   (the tab bar carries a running-job count), and the whole breadcrumb row (the
+   tab bar and the back rows already say where you are; the data-health button
+   moved up into the line). */
 @media (max-width: 640px) {
-  .headerRow { padding: 10px 14px; gap: 10px 12px; }
-
-  /* row 1: brand takes the width, nav is gone (tab bar) */
   .nav { display: none; }
-  .brand { flex: 1 1 100%; }
-  .brandSub { display: none; } /* "AI-powered business intelligence" — decoration */
+  .breadcrumbRow { display: none; }
+  .launcherWrap { display: none; }
 
-  /* row 1: online status rides next to the brand */
-  .headerRow { align-items: flex-start; }
-  .brand { align-items: center; }
-
-  /* row 2: every control stays, laid out as one tidy toolbar that wraps if it
-     must — grouped to the inline-end so it lines up under the brand mark */
-  .headerRight {
-    margin-inline-start: 0;
-    width: 100%;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 8px 10px;
+  .header { border-bottom: 1px solid var(--ai-border); }
+  .headerRow {
+    height: 52px;
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 0 12px;
+    overflow: hidden;
   }
-  .langGroup { height: 40px; }
-  .langOption { padding: 0 14px; font-size: 13px; }
-  .iconBtn { width: 40px; height: 40px; }
-  .onlineDot { font-size: 12px; }
 
-  /* row 3 */
-  .crumb, .crumbSep { display: none; }
-  .breadcrumbRow { justify-content: space-between; gap: 8px; padding: 8px 14px; }
-  .syncInfo { margin-inline-start: 0; font-size: 11px; }
+  .brand { flex: 1 1 auto; min-width: 0; gap: 8px; }
+  .mark { width: 28px; height: 28px; border-radius: 8px; font-size: 11px; }
+  .brandSub { display: none; }
+  .brandName { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .headerRight {
+    margin-inline-start: auto;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .langGroup { height: 34px; padding: 2px; border-radius: 9px; }
+  .langOption { padding: 0 9px; font-size: 11.5px; border-radius: 6px; }
+  .iconBtn { width: 34px; height: 34px; border-radius: 9px; }
+
+  /* dropped from the one-line bar */
+  .onlineDot,
+  .feedbackSlot,
+  .jobBadgesSlot { display: none; }
+
+  /* the data-health copy that rides in the header on mobile only */
+  .dataHealthSlot { display: inline-flex; align-items: center; }
 
   /* the bottom tab bar sits over the body — keep the last content clear of it */
   .body { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
-
-  /* the floating launcher is replaced by the Chat tab */
-  .launcherWrap { display: none; }
 }

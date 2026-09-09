@@ -40,7 +40,7 @@ export function ChatSignIn({ tenant, agentName }: Props) {
     <>
       <button className={styles.trigger} onClick={() => setDialogOpen(true)}>
         <PersonIcon />
-        {t('signIn.button')}
+        <span className={styles.triggerLabel}>{t('signIn.button')}</span>
       </button>
 
       {dialogOpen && config && (

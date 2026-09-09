@@ -238,17 +238,27 @@
    language / theme buttons. The name + email stay one tap away in the menu.
    The retail chat header (fixed single row) is left alone. */
 @media (max-width: 640px) {
+  /* logged-out: the "Sign in" pill also shrinks to a 34px icon tile */
+  :global([data-brand]) .trigger {
+    padding: 0;
+    width: 34px;
+    height: 34px;
+    justify-content: center;
+  }
+  :global([data-brand]) .triggerLabel { display: none; }
+
   :global([data-brand]) .chip {
     max-width: none;
     padding: 0;
     gap: 0;
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
     justify-content: center;
   }
   :global([data-brand]) .chipName,
   :global([data-brand]) .caret { display: none; }
-  :global([data-brand]) .avatar { width: 28px; height: 28px; font-size: 11px; }
+  :global([data-brand]) .avatar { width: 24px; height: 24px; font-size: 10px; }
   :global([data-brand]) .menu { inset-inline-end: 0; }
 }
 

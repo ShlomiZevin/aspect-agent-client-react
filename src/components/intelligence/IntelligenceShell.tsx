@@ -294,7 +294,9 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           </nav>
 
           <div className={styles.headerRight}>
-            <JobBadges datasetId={datasetId} onReviewCompleted={reviewCompletedJob} />
+            <span className={styles.jobBadgesSlot}>
+              <JobBadges datasetId={datasetId} onReviewCompleted={reviewCompletedJob} />
+            </span>
             <div className={styles.langGroup} role="group" aria-label="Language">
               <button className={`${styles.langOption} ${language === 'en' ? styles.langOptionActive : ''}`} onClick={() => setLanguage('en')} aria-pressed={language === 'en'}>EN</button>
               <button className={`${styles.langOption} ${language === 'he' ? styles.langOptionActive : ''}`} onClick={() => setLanguage('he')} aria-pressed={language === 'he'}>עב</button>
@@ -302,7 +304,18 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
             <button className={styles.iconBtn} onClick={() => setMode(m => m === 'dark' ? 'light' : 'dark')} title="Toggle theme" aria-label="Toggle theme">
               <Glyph name={mode === 'dark' ? 'sun' : 'moon'} />
             </button>
-            {datasetAgent && <FeedbackTrigger agentName={datasetAgent.agentName} baseURL={datasetAgent.baseURL} variant="icon" className={styles.iconBtn} />}
+            {datasetAgent && (
+              <span className={styles.feedbackSlot}>
+                <FeedbackTrigger agentName={datasetAgent.agentName} baseURL={datasetAgent.baseURL} variant="icon" className={styles.iconBtn} />
+              </span>
+            )}
+            {/* Data-freshness lives in the breadcrumb row on desktop; on a phone
+                that row is gone, so a copy rides here (CSS shows exactly one). */}
+            {baseURL && (
+              <span className={styles.dataHealthSlot}>
+                <DataHealthTrigger baseURL={baseURL} schema={datasetId} />
+              </span>
+            )}
             <ChatSignIn tenant={datasetId} agentName={datasetAgent?.agentName ?? datasetId} />
             <div className={styles.onlineDot}><span className={styles.dot} />{t('intel.online')}</div>
           </div>
