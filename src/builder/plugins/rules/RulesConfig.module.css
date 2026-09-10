@@ -388,3 +388,9 @@
 .addRule:hover {
   background: var(--surface-2, #f3f4f6);
 }
+
+/* Task #826: field/parameter picker sized like the selects it replaced. */
+.pickerCombo {
+  min-width: 120px;
+  max-width: 180px;
+}

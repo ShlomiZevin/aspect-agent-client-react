@@ -78,6 +78,37 @@ function opsForField(field?: FieldDef): FieldOp[] {
   }
 }
 
+/** One agent parameter as the pickers see it: `#name`, plus its value
+ *  for the inline hint (task #826). */
+export interface ParamOption {
+  token: string;
+  value: string;
+  description?: string;
+}
+
+/**
+ * A `#parameter` used as a condition operand needs a FieldDef-shaped
+ * stand-in so the editor can offer sensible operators for it. The type
+ * is inferred from the configured value — `18` reads as a number, so
+ * the row offers ≥ / ≤ the way an int field does.
+ */
+function paramFieldDef(ref: string, params: ParamOption[]): FieldDef | undefined {
+  const p = params.find(x => x.token === ref);
+  if (!p) return undefined;
+  const v = (p.value ?? '').trim();
+  const type: FieldDef['type'] =
+    v !== '' && !Number.isNaN(Number(v)) ? 'int'
+      : (v === 'true' || v === 'false') ? 'boolean'
+        : 'string';
+  return {
+    id:           `__param_${p.token}`,
+    name:         p.token,
+    type,
+    source:       'inferred',
+    howToExtract: p.description || 'Agent parameter',
+  };
+}
+
 function isMultiValueOp(op: FieldOp): boolean {
   return op === 'in' || op === 'not-in';
 }
@@ -186,6 +217,17 @@ export function ConditionsEditor({
     [],
   );
 
+  /** Agent parameters, offered alongside fields as `#name` so a
+   *  threshold is referenced rather than retyped (task #826). */
+  const params: ParamOption[] = useMemo(
+    () => (agent?.parameters ?? []).map(p => ({
+      token: `#${p.name}`,
+      value: p.value ?? '',
+      description: p.description,
+    })),
+    [agent?.parameters],
+  );
+
   const updateCondition = (i: number, next: TransitionCondition) => {
     const out = [...conditions];
     out[i] = next;
@@ -225,6 +267,7 @@ export function ConditionsEditor({
               fieldByName={fieldByName}
               enumValuesFor={enumValuesFor}
               systemFieldNames={systemFieldNames}
+              params={params}
               flat={flat}
               onChange={next => updateCondition(i, next)}
               onRemove={() => removeCondition(i)}
@@ -244,13 +287,14 @@ interface ConditionCardProps {
   fieldByName: Map<string, FieldDef>;
   enumValuesFor: (field: FieldDef | undefined) => string[];
   systemFieldNames: Set<string>;
+  params: ParamOption[];
   flat?: boolean;
   onChange: (next: TransitionCondition) => void;
   onRemove: () => void;
 }
 
 function ConditionCard({
-  cond, fieldNames, fieldByName, enumValuesFor, systemFieldNames, flat, onChange, onRemove,
+  cond, fieldNames, fieldByName, enumValuesFor, systemFieldNames, params, flat, onChange, onRemove,
 }: ConditionCardProps) {
   const setType = (type: CondType) => onChange(emptyCondition(type));
 
@@ -268,13 +312,13 @@ function ConditionCard({
 
       <div className={styles.condBody}>
         {cond.type === 'field' && (
-          <FieldBody cond={cond} fieldNames={fieldNames} fieldByName={fieldByName} enumValuesFor={enumValuesFor} systemFieldNames={systemFieldNames} onChange={onChange} />
+          <FieldBody cond={cond} fieldNames={fieldNames} fieldByName={fieldByName} enumValuesFor={enumValuesFor} systemFieldNames={systemFieldNames} params={params} onChange={onChange} />
         )}
         {cond.type === 'fields-collected' && (
           <FieldsCollectedBody cond={cond} fieldNames={fieldNames} systemFieldNames={systemFieldNames} onChange={onChange} />
         )}
         {cond.type === 'formula' && (
-          <FormulaBody cond={cond} fieldNames={fieldNames} onChange={onChange} />
+          <FormulaBody cond={cond} fieldNames={fieldNames} params={params} onChange={onChange} />
         )}
         {/* `run-count` body is no longer surfaced here — see the cap
             input on AddonFilterSection. The type stays in the union
@@ -297,16 +341,25 @@ function ConditionCard({
 /* ─── Bodies ───────────────────────────────────────────────────── */
 
 function FieldBody({
-  cond, fieldNames, fieldByName, enumValuesFor, systemFieldNames, onChange,
+  cond, fieldNames, fieldByName, enumValuesFor, systemFieldNames, params, onChange,
 }: {
   cond: Extract<TransitionCondition, { type: 'field' }>;
   fieldNames: string[];
   fieldByName: Map<string, FieldDef>;
   enumValuesFor: (field: FieldDef | undefined) => string[];
   systemFieldNames: Set<string>;
+  params: ParamOption[];
   onChange: (next: TransitionCondition) => void;
 }) {
-  const matched = fieldByName.get(cond.field);
+  // Fields and parameters share one list — same picker on both sides of
+  // the row, and on the THEN side too (task #826).
+  const paramTokens = useMemo(() => params.map(p => p.token), [params]);
+  const paramNames  = useMemo(() => new Set(paramTokens), [paramTokens]);
+  const hintOf      = useMemo(
+    () => (o: string) => params.find(p => p.token === o)?.value,
+    [params],
+  );
+  const matched = fieldByName.get(cond.field) ?? paramFieldDef(cond.field, params);
   const allowedOps = opsForField(matched);
 
   useEffect(() => {
@@ -327,10 +380,13 @@ function FieldBody({
     <>
       <ComboPicker
         value={cond.field}
-        options={fieldNames}
+        options={[...fieldNames, ...paramTokens]}
         onChange={v => onChange({ ...cond, field: v, value: '', values: [] })}
-        placeholder="field name"
+        placeholder="field or #parameter"
+        allowFreeText={false}
         systemNames={systemFieldNames}
+        paramNames={paramNames}
+        hintOf={hintOf}
       />
       <select
         className={styles.opSelect}
@@ -370,29 +426,39 @@ function FieldBody({
           />
         )
       ) : isEnum ? (
+        // The declared values PLUS parameters — a parameter may well hold
+        // the value being compared against (task #826).
         <ComboPicker
           value={String(cond.value ?? '')}
-          options={enumValues}
+          options={[...enumValues, ...paramTokens]}
           onChange={v => onChange({ ...cond, value: v })}
           placeholder="pick value"
           allowFreeText={false}
+          paramNames={paramNames}
+          hintOf={hintOf}
         />
       ) : isBoolean ? (
         <ComboPicker
           value={String(cond.value ?? '')}
-          options={['true', 'false']}
+          options={['true', 'false', ...paramTokens]}
           onChange={v => onChange({ ...cond, value: v })}
           placeholder="true / false"
           allowFreeText={false}
+          paramNames={paramNames}
+          hintOf={hintOf}
         />
       ) : (
-        <input
-          className={styles.inlineInput}
-          type={isNumeric ? 'number' : 'text'}
+        // Free text OR a `#parameter` — the whole point of #826 is that
+        // a threshold can point at the parameter instead of a copy of it.
+        <ComboPicker
           value={String(cond.value ?? '')}
-          onChange={e => onChange({ ...cond, value: e.target.value })}
-          placeholder="value"
-          spellCheck={false}
+          options={paramTokens}
+          onChange={v => onChange({ ...cond, value: v })}
+          placeholder={paramTokens.length ? (isNumeric ? 'number or #parameter' : 'value or #parameter') : 'value'}
+          paramNames={paramNames}
+          hintOf={hintOf}
+          liveCommit
+          suggestPrefix="#"
         />
       )}
     </>
@@ -451,10 +517,11 @@ function FieldsCollectedBody({
 }
 
 function FormulaBody({
-  cond, fieldNames, onChange,
+  cond, fieldNames, params, onChange,
 }: {
   cond: Extract<TransitionCondition, { type: 'formula' }>;
   fieldNames: string[];
+  params: ParamOption[];
   onChange: (next: TransitionCondition) => void;
 }) {
   // Validated on blur — same fences as the server (single JS
@@ -465,8 +532,13 @@ function FormulaBody({
   // Fields-only autocomplete on `{{` — same restricted picker as the
   // Rules addon's value formulas, not the full prompt token set.
   const fieldOptions = useMemo(() => ({
-    '@': fieldNames.map(n => ({ label: n, insertion: `{{${n}}}`, group: 'Field' })),
-  }), [fieldNames]);
+    '@': [
+      ...fieldNames.map(n => ({ label: n, insertion: `{{${n}}}`, group: 'Field' })),
+      // Parameters read like fields inside a formula (task #826):
+      // `{{age}} >= {{#minorAge}}`.
+      ...params.map(p => ({ label: p.token, insertion: `{{${p.token}}}`, group: 'Parameter' })),
+    ],
+  }), [fieldNames, params]);
 
   return (
     <div className={styles.formulaWrap}>

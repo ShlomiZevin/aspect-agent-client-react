@@ -197,6 +197,7 @@ function BrainBodyContent() {
   return (
     <>
       <MemorySection groups={memoryGroups} staleRows={staleRows} />
+      <ParametersSection />
       <DynamicContextSection hits={dcHits} />
       <ThinkingSection cards={thinkingCards} />
       <SummarizerSection cards={summarizerCards} />
@@ -494,6 +495,55 @@ function MemorySection({
             </>
           )}
         </>
+      )}
+    </section>
+  );
+}
+
+/**
+ * Agent PARAMETERS (task #826).
+ *
+ * Not memory — these are static configuration, identical on every turn —
+ * but rules and conditions now compare against them (`#minorAge`), so the
+ * value that did the comparing has to be visible next to the values that
+ * were compared. Without this the inspector answers "what did the field
+ * hold?" but not "what did it get measured against?".
+ *
+ * Read-only on purpose: parameters are edited in the agent's schema
+ * panel, and a per-conversation override would defeat the point of a
+ * single declared value.
+ */
+function ParametersSection() {
+  const { doc } = useBuilder();
+  const params = doc.agents[0]?.parameters ?? [];
+
+  return (
+    <section className={styles.section}>
+      <header className={styles.sectionHeader}>
+        <span className={styles.sectionTitle}>Parameters</span>
+        <span className={styles.sectionCount}>{params.length}</span>
+      </header>
+      {params.length === 0 ? (
+        <div className={styles.sectionEmpty}>
+          No parameters declared. They hold fixed values a prompt or a rule
+          can reference as <code>#name</code> — a threshold, a phone number
+          — so the value lives in one place instead of being retyped.
+        </div>
+      ) : (
+        <div>
+          {params.map(prm => (
+            <div key={prm.id} className={styles.memoryRow}>
+              <span className={styles.memoryRowName} title={prm.description || undefined}>
+                #{prm.name}
+              </span>
+              {prm.value ? (
+                <span className={styles.memoryRowValue} title={prm.value}>{prm.value}</span>
+              ) : (
+                <span className={styles.memoryRowValueEmpty}>—</span>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </section>
   );

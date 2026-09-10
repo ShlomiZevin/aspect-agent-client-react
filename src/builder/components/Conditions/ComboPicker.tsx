@@ -43,6 +43,27 @@ export interface ComboPickerProps {
    *  Used by the conditions editor to mark platform-defined fields
    *  (e.g. `move_on`) so authors can tell them apart at a glance. */
   systemNames?: Set<string>;
+  /** Options that are agent PARAMETERS rather than fields (stored as
+   *  `#name`). Badged so the two kinds are never confused in a list
+   *  that mixes them (task #826). */
+  paramNames?: Set<string>;
+  /** Muted right-hand text for an option — used to show a parameter's
+   *  configured value inline, so picking `#minorAge` shows it is 18
+   *  without leaving the dropdown. */
+  hintOf?: (option: string) => string | undefined;
+  /**
+   * Commit on every keystroke instead of on blur/Enter. Required
+   * wherever the box is primarily FREE TEXT (a condition's value):
+   * commit-on-blur loses the last edit when the click that blurs is
+   * also the click that closes the modal.
+   */
+  liveCommit?: boolean;
+  /**
+   * Only suggest once the text starts with this prefix (`#` for
+   * parameters). Without it a free-text box would pop a parameter list
+   * over every literal the author types.
+   */
+  suggestPrefix?: string;
 }
 
 interface MenuRect {
@@ -56,8 +77,13 @@ export function ComboPicker({
   allowFreeText = true,
   className,
   systemNames,
+  paramNames,
+  hintOf,
+  liveCommit = false,
+  suggestPrefix,
 }: ComboPickerProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [open, setOpen] = useState(false);
@@ -95,14 +121,28 @@ export function ComboPicker({
     const onDoc = (e: MouseEvent) => {
       const t = e.target as Node;
       // Inside the input wrapper OR inside the portalled menu → keep open.
+      // The menu is matched by REF: every instance rendered the same DOM
+      // id, so a second picker's menu could keep the first one open.
       if (ref.current && ref.current.contains(t)) return;
-      const menu = document.getElementById('combo-picker-menu-active');
-      if (menu && menu.contains(t)) return;
+      if (menuRef.current && menuRef.current.contains(t)) return;
       setOpen(false);
       if (allowFreeText && draft !== value) onChange(draft);
     };
+    // `mousedown` covers clicks anywhere; `focusin` covers keyboard
+    // tabbing away — together they mean touching anything else closes
+    // the dropdown, which is the whole expectation.
+    const onFocusIn = (e: FocusEvent) => {
+      const t = e.target as Node;
+      if (ref.current && ref.current.contains(t)) return;
+      if (menuRef.current && menuRef.current.contains(t)) return;
+      setOpen(false);
+    };
     document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
+    document.addEventListener('focusin', onFocusIn);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('focusin', onFocusIn);
+    };
   }, [open, allowFreeText, draft, value, onChange]);
 
   const filtered = useMemo(() => {
@@ -112,10 +152,15 @@ export function ComboPicker({
     // the user can't switch. Free-text pickers (field-name) DO filter
     // as the user types — `draft` is genuinely a query then.
     if (!allowFreeText) return options;
-    const q = draft.trim().toLowerCase();
+    const raw = draft.trim();
+    // Prefix-gated pickers stay silent until the author opts in by
+    // typing the prefix — a value box is free text first, parameter
+    // picker second.
+    if (suggestPrefix && !raw.startsWith(suggestPrefix)) return [];
+    const q = raw.toLowerCase();
     if (!q) return options;
     return options.filter(o => o.toLowerCase().includes(q));
-  }, [options, draft, allowFreeText]);
+  }, [options, draft, allowFreeText, suggestPrefix]);
 
   // Reset the highlighted index whenever the filtered list changes
   // (typing narrows the list). Without this, the active index can
@@ -183,8 +228,11 @@ export function ComboPicker({
         value={draft}
         readOnly={!allowFreeText}
         onChange={e => {
-          setDraft(e.target.value);
+          const next = e.target.value;
+          setDraft(next);
           setOpen(true);
+          // Free-text boxes publish immediately — see `liveCommit`.
+          if (liveCommit) onChange(next);
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={handleKeyDown}
@@ -208,6 +256,7 @@ export function ComboPicker({
       )}
       {open && filtered.length > 0 && menuRect && createPortal(
         <div
+          ref={menuRef}
           id="combo-picker-menu-active"
           className={styles.comboMenu}
           role="listbox"
@@ -220,6 +269,8 @@ export function ComboPicker({
         >
           {filtered.map((o, idx) => {
             const isSystem = !!systemNames && systemNames.has(o);
+            const isParam  = !!paramNames  && paramNames.has(o);
+            const hint     = hintOf ? hintOf(o) : undefined;
             const isActive = idx === activeIdx;
             return (
               <button
@@ -228,7 +279,11 @@ export function ComboPicker({
                 type="button"
                 role="option"
                 aria-selected={isActive}
-                title={isSystem ? `${o} — system field` : o}
+                title={
+                  isParam  ? `${o} — agent parameter${hint ? ` = ${hint}` : ''}`
+                    : isSystem ? `${o} — system field`
+                      : o
+                }
                 className={
                   `${styles.comboItem} ` +
                   `${o === value ? styles.comboItemActive : ''} ` +
@@ -240,6 +295,10 @@ export function ComboPicker({
                 onClick={() => pick(o)}
               >
                 <span className={styles.comboItemLabel}>{o}</span>
+                {hint !== undefined && hint !== '' && (
+                  <span className={styles.comboItemHint}>{hint}</span>
+                )}
+                {isParam && <span className={styles.comboItemParamBadge}>PARAM</span>}
                 {isSystem && <span className={styles.comboItemSysBadge}>SYS</span>}
               </button>
             );

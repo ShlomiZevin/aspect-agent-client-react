@@ -337,6 +337,7 @@ export function MentionTextarea({
 }: Props) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const [picker, setPicker] = useState<PickerState | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
 
   // Who owns the current highlight: keyboard or mouse. Arrow-key nav
@@ -457,6 +458,21 @@ export function MentionTextarea({
   }, [picker?.trigger, picker?.filter]);
 
   const closePicker = useCallback(() => setPicker(null), []);
+
+  // Touching anything else closes the token picker. `onBlur` alone
+  // wasn't enough: clicking a non-focusable area (a modal's background,
+  // a label) never blurs the textarea, so the menu used to hang around.
+  useEffect(() => {
+    if (!picker) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (taRef.current && taRef.current.contains(t)) return;
+      if (pickerRef.current && pickerRef.current.contains(t)) return;
+      closePicker();
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [picker, closePicker]);
 
   // When the user explicitly dismisses the picker (Esc), we record
   // which trigger they walked away from so the next `keyUp` →
@@ -672,6 +688,7 @@ export function MentionTextarea({
       />
       {picker && visibleOptions.length > 0 && (
         <div
+          ref={pickerRef}
           className={styles.picker}
           style={{ top: picker.top, left: picker.left }}
           // Prevent the blur-close from firing when the user clicks the menu.

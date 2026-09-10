@@ -15,11 +15,12 @@ import { useMemo, useState } from 'react';
 import type { PluginConfigProps } from '../../registry/plugins';
 import { useBuilder } from '../../state/BuilderContext';
 import { InlineField } from '../../components/AddonModal/InlineField';
+import { ComboPicker } from '../../components/Conditions/ComboPicker';
 import { ConditionsEditor } from '../../components/Conditions/ConditionsEditor';
 import { FormulaHelpButton } from '../../components/Conditions/FormulaHelp';
 import { lintFormula } from '../../components/Conditions/formulaLint';
 import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
-import type { RuleAction, RuleDef, RulesAddonConfig } from '../../types';
+import type { FieldDef, RuleAction, RuleDef, RulesAddonConfig } from '../../types';
 import styles from './RulesConfig.module.css';
 
 const newRuleId = () => `rule_${Math.random().toString(36).slice(2, 9)}`;
@@ -46,7 +47,13 @@ function summarizeRule(rule: RuleDef, crewName: (id: string) => string): { when:
     : conditions.map(c => {
         if (c.type === 'field') {
           if (c.op === 'is-null' || c.op === 'is-not-null') return `${c.field} ${OP_SIGNS[c.op]}`;
-          return `${c.field} ${OP_SIGNS[c.op] ?? c.op} ${c.values ? c.values.join('|') : String(c.value ?? '')}`;
+          // Which side holds the operand is decided by the OPERATOR, never
+          // by truthiness: picking a field leaves `values: []` behind, and an
+          // empty array is truthy — that silently rendered every summary
+          // with a blank right-hand side.
+          const multi = c.op === 'in' || c.op === 'not-in';
+          const operand = multi ? (c.values ?? []).map(String).join(' | ') : String(c.value ?? '');
+          return `${c.field} ${OP_SIGNS[c.op] ?? c.op} ${operand}`.trim();
         }
         if (c.type === 'formula') return c.expr || '(empty formula)';
         if (c.type === 'fields-collected') return `has ${c.fields.join(', ')}`;
@@ -74,7 +81,9 @@ function touchedFields(rules: RuleDef[]): string[] {
   for (const r of rules) {
     for (const a of r.actions) {
       if ((a.type === 'set' || a.type === 'clear') && a.field) names.add(a.field);
-      if (a.fromField) names.add(a.fromField);
+      // `#parameter` sources are static config, not extracted fields —
+      // they must never reach `extractsFields` (task #826).
+      if (a.fromField && !a.fromField.startsWith('#')) names.add(a.fromField);
     }
   }
   return [...names];
@@ -107,6 +116,26 @@ export function RulesConfigComponent({
     return [...names].sort();
   }, [agent, crewId]);
 
+  /** name → FieldDef. The Fixed-value box needs the TARGET field's
+   *  declared type so an enum offers its values instead of free text. */
+  const fieldByName = useMemo(() => {
+    const map = new Map<string, FieldDef>();
+    agent?.fields?.forEach(f => { if (f.name) map.set(f.name, f); });
+    if (crewId) {
+      agent?.crews.find(c => c.id === crewId)?.fields?.forEach(f => {
+        if (f.name && !map.has(f.name)) map.set(f.name, f);
+      });
+    }
+    return map;
+  }, [agent, crewId]);
+
+  /** An enum field's declared values, via the agent's enum bible. */
+  const enumValuesFor = useMemo(() => (field: FieldDef | undefined): string[] => {
+    if (!field || field.type !== 'enum' || !field.enumType) return [];
+    const def = (agent?.enums ?? []).find(e => e.id === field.enumType);
+    return def ? def.values.map(v => v.value).filter(Boolean) : [];
+  }, [agent?.enums]);
+
   // name → field id. The engine resolves `extractsFields` by ID
   // (addonRunner matches f.id) — rules reference fields by NAME in the
   // UI, so we translate when mirroring into extractsFields.
@@ -124,12 +153,28 @@ export function RulesConfigComponent({
     [agent, crewId],
   );
 
+  // Agent parameters, offered as `#name` beside the fields (task #826).
+  const paramTokens = useMemo(
+    () => (agent?.parameters ?? []).map(p => `#${p.name}`),
+    [agent?.parameters],
+  );
+  const paramNames = useMemo(() => new Set(paramTokens), [paramTokens]);
+  const hintOf = useMemo(
+    () => (o: string) => (agent?.parameters ?? []).find(p => `#${p.name}` === o)?.value,
+    [agent?.parameters],
+  );
+
   // Formula autocomplete: FIELDS ONLY, triggered by `{{` — not the
   // full prompt token zoo (@memory !thinking #params …), which makes
   // no sense inside a calculation.
   const fieldMentionOptions = useMemo(() => ({
-    '@': fieldNames.map(n => ({ label: n, insertion: `{{${n}}}`, group: 'Field' })),
-  }), [fieldNames]);
+    '@': [
+      ...fieldNames.map(n => ({ label: n, insertion: `{{${n}}}`, group: 'Field' })),
+      // Parameters read like fields inside a formula (task #826):
+      // `{{age}} >= {{#minorAge}}`.
+      ...paramTokens.map(t => ({ label: t, insertion: `{{${t}}}`, group: 'Parameter' })),
+    ],
+  }), [fieldNames, paramTokens]);
 
   const rules = config.rules ?? [];
 
@@ -177,13 +222,87 @@ export function RulesConfigComponent({
     updateRule(ruleIdx, { actions: rules[ruleIdx].actions.filter((_, i) => i !== actionIdx) });
   };
 
-  const fieldSelect = (value: string | undefined, onPick: (v: string) => void, placeholder: string) => (
-    <select className={styles.select} value={value ?? ''} onChange={e => onPick(e.target.value)}>
-      <option value="">{placeholder}</option>
-      {fieldNames.map(n => <option key={n} value={n}>{n}</option>)}
-      {value && !fieldNames.includes(value) && <option value={value}>{value} (missing)</option>}
-    </select>
+  /**
+   * One picker for fields AND parameters — the same component the WHEN
+   * row uses, so both halves of a rule look and behave identically
+   * (task #826).
+   *
+   * `allowParams` is false for a WRITE target: a parameter is static
+   * agent configuration, so a rule can READ one (compare against it,
+   * copy from it) but can never set one. Offering it there would be a
+   * write that silently goes nowhere.
+   */
+  const fieldSelect = (
+    value: string | undefined,
+    onPick: (v: string) => void,
+    placeholder: string,
+    allowParams = false,
+  ) => (
+    <ComboPicker
+      className={styles.pickerCombo}
+      value={value ?? ''}
+      options={allowParams ? [...fieldNames, ...paramTokens] : fieldNames}
+      onChange={onPick}
+      allowFreeText={false}
+      placeholder={placeholder}
+      paramNames={paramNames}
+      hintOf={hintOf}
+    />
   );
+
+  /**
+   * The Fixed-value box follows the TARGET field's type: an enum offers
+   * its declared values (the same "pick value" the WHEN row gives), a
+   * boolean offers true/false, anything else stays free text. Parameters
+   * are offered in every case — a parameter may hold the value (#826).
+   */
+  const fixedValueInput = (action: RuleAction, ruleIdx: number, actionIdx: number) => {
+    const target = fieldByName.get(action.field ?? '');
+    const enumValues = enumValuesFor(target);
+    const set = (v: string) => updateAction(ruleIdx, actionIdx, { value: v });
+    const current = String(action.value ?? '');
+    if (target?.type === 'enum' && enumValues.length > 0) {
+      return (
+        <ComboPicker
+          className={styles.pickerCombo}
+          value={current}
+          options={[...enumValues, ...paramTokens]}
+          onChange={set}
+          allowFreeText={false}
+          placeholder="pick value"
+          paramNames={paramNames}
+          hintOf={hintOf}
+        />
+      );
+    }
+    if (target?.type === 'boolean') {
+      return (
+        <ComboPicker
+          className={styles.pickerCombo}
+          value={current}
+          options={['true', 'false', ...paramTokens]}
+          onChange={set}
+          allowFreeText={false}
+          placeholder="true / false"
+          paramNames={paramNames}
+          hintOf={hintOf}
+        />
+      );
+    }
+    return (
+      <ComboPicker
+        className={styles.pickerCombo}
+        value={current}
+        options={paramTokens}
+        onChange={set}
+        placeholder={paramTokens.length ? 'value or #parameter' : 'value'}
+        paramNames={paramNames}
+        hintOf={hintOf}
+        liveCommit
+        suggestPrefix="#"
+      />
+    );
+  };
 
   const renderAction = (rule: RuleDef, ruleIdx: number, action: RuleAction, actionIdx: number) => {
     const isFormula = action.type === 'set' && action.valueMode === 'formula';
@@ -225,17 +344,10 @@ export function RulesConfigComponent({
                   <option value="copy">From field</option>
                   <option value="formula">Formula</option>
                 </select>
-                {(action.valueMode ?? 'fixed') === 'fixed' && (
-                  <input
-                    className={styles.input}
-                    value={action.value ?? ''}
-                    onChange={e => updateAction(ruleIdx, actionIdx, { value: e.target.value })}
-                    placeholder="value"
-                    spellCheck={false}
-                  />
-                )}
+                {(action.valueMode ?? 'fixed') === 'fixed' &&
+                  fixedValueInput(action, ruleIdx, actionIdx)}
                 {action.valueMode === 'copy' &&
-                  fieldSelect(action.fromField, v => updateAction(ruleIdx, actionIdx, { fromField: v }), 'source field…')}
+                  fieldSelect(action.fromField, v => updateAction(ruleIdx, actionIdx, { fromField: v }), 'field or #parameter…', true)}
               </>
             )}
 

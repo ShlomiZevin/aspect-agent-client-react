@@ -16,7 +16,8 @@ const FORBIDDEN: { re: RegExp; msg: string }[] = [
   { re: /(^|[^=!<>+\-*/%&|^])=(?![=])/,  msg: 'assignment "=" isn\'t allowed — use "==" to compare' },
 ];
 
-const TOKEN_RE = /\{\{\s*[A-Za-z0-9_.-]+\s*\}\}/g;
+// `{{#parameter}}` is a token too — same shape as the server's (#826).
+const TOKEN_RE = /\{\{\s*#?[A-Za-z0-9_.-]+\s*\}\}/g;
 
 /** Returns a plain-language problem, or null when the formula is OK. */
 export function lintFormula(expr: string): string | null {
