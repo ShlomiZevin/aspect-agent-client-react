@@ -39,7 +39,7 @@ interface Props {
 }
 
 export function InvestigateHero({ datasetId, userId, onAskInChat }: Props) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [text, setText] = useState('');
   const [classifying, setClassifying] = useState(false);
   // Non-null = the gentle helper is showing for exactly this typed prompt.
@@ -52,11 +52,14 @@ export function InvestigateHero({ datasetId, userId, onAskInChat }: Props) {
   const [configured, setConfigured] = useState<string[]>([]);
   useEffect(() => {
     let alive = true;
-    insightsService.getExamplePrompts(datasetId)
+    // `language` in the deps: chips are localised server-side where the dataset
+    // has a translated set (else English), so the EN/HE toggle re-fetches.
+    setConfigured([]);
+    insightsService.getExamplePrompts(datasetId, language)
       .then(p => { if (alive && p.length) setConfigured(p); })
       .catch(() => { /* the fallback is already on screen */ });
     return () => { alive = false; };
-  }, [datasetId]);
+  }, [datasetId, language]);
 
   // Same question already running for this dataset — used to grey out its
   // chip and block resubmitting it, rather than silently letting a

@@ -32,12 +32,15 @@ export const insightsService = {
    * and two of them ask about stores and margins, which some clients simply do
    * not have. A suggestion the product then refuses is worse than none.
    */
-  getExamplePrompts: (datasetId: string) =>
-    request<{ examplePrompts: string[] }>(`/${encodeURIComponent(datasetId)}/prompts`)
+  getExamplePrompts: (datasetId: string, lang?: string) =>
+    request<{ examplePrompts: string[] }>(`/${encodeURIComponent(datasetId)}/prompts${lang ? `?lang=${encodeURIComponent(lang)}` : ''}`)
       .then(r => r.examplePrompts)
       .catch(() => []),
 
-  listDatasets: () => request<{ datasets: IntelligenceDatasetMeta[] }>('').then(r => r.datasets),
+  /** `lang` follows the viewer's Intelligence UI toggle — the server localises a
+   *  dataset's display name where it has one, English otherwise. */
+  listDatasets: (lang?: string) =>
+    request<{ datasets: IntelligenceDatasetMeta[] }>(lang ? `?lang=${encodeURIComponent(lang)}` : '').then(r => r.datasets),
 
   // Reports are private per anonymous browser session — every call below
   // (except classifyPrompt, which touches no storage, and bootstrap, which

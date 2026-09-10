@@ -83,7 +83,9 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
 
   useEffect(() => {
     let cancelled = false;
-    insightsService.listDatasets()
+    // `language` in the deps: the header name is localised server-side, so the
+    // EN/HE toggle has to re-resolve it (הסופר החברתי ⇄ The Social Supermarket).
+    insightsService.listDatasets(language)
       .then(datasets => {
         if (cancelled) return;
         const found = datasets.find(d => d.id === datasetId);
@@ -91,7 +93,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
       })
       .catch(() => { if (!cancelled) setMeta(null); });
     return () => { cancelled = true; };
-  }, [datasetId]);
+  }, [datasetId, language]);
   const { selectedJobId, cancelJob, jobs } = useJobs();
   const runningJobs = jobs.filter(j => j.status === 'running').length;
   // The insight open/closed state is the URL (insightId prop, driven by the
@@ -276,7 +278,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
             <span className={styles.mark}>{meta?.logoText || '··'}</span>
             <div className={styles.brandText}>
               <div className={styles.brandName}>{meta?.name || '…'}</div>
-              <div className={styles.brandSub}>AI-powered business intelligence</div>
+              <div className={styles.brandSub}>{t('intel.shell.subtitle')}</div>
             </div>
           </div>
 
