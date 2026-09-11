@@ -4,6 +4,7 @@
  * server counterpart at aspect-agent-server/insights/routes/insights.routes.js.
  */
 import type { InsightSummary, TrackedMetric, InsightDetail, InvestigateResult, IntelligenceDatasetMeta, ActionPlan, InvestigationProgress } from '../types/insights';
+import type { QuickQuestion } from '../types/agent';
 
 const PROD_BASE = 'https://aspect-agent-server-1018338671074.europe-west1.run.app';
 const BASE = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || PROD_BASE);
@@ -35,6 +36,17 @@ export const insightsService = {
   getExamplePrompts: (datasetId: string, lang?: string) =>
     request<{ examplePrompts: string[] }>(`/${encodeURIComponent(datasetId)}/prompts${lang ? `?lang=${encodeURIComponent(lang)}` : ''}`)
       .then(r => r.examplePrompts)
+      .catch(() => []),
+
+  /**
+   * Data Chat quick-question tiles, admin-set per client (task #63). Empty
+   * when unconfigured — ChatWelcome.tsx falls back to the agent's own
+   * hardcoded quickQuestions (src/agents/<slug>.config.ts) in that case, so
+   * a dataset that was never configured here is unaffected.
+   */
+  getQuickQuestions: (datasetId: string) =>
+    request<{ quickQuestions: QuickQuestion[] }>(`/${encodeURIComponent(datasetId)}/quick-questions`)
+      .then(r => r.quickQuestions)
       .catch(() => []),
 
   /** `lang` follows the viewer's Intelligence UI toggle — the server localises a

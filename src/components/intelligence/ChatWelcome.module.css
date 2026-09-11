@@ -88,7 +88,9 @@
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(139, 92, 246, .18);
 }
-.tileIcon { color: var(--ai-accent); }
+/* font-size only matters for the emoji-span variant (admin-set questions,
+   task #63) — the SVG variant sizes itself via width/height="17". */
+.tileIcon { color: var(--ai-accent); font-size: 17px; line-height: 1; }
 .tileLabel { font-size: 12px; font-weight: 600; text-align: center; line-height: 1.3; }
 
 .spacer { flex: 1; min-height: 20px; }

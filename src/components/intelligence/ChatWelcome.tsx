@@ -7,10 +7,12 @@
  * i18n strings, so it can't drift out of sync with the actual chat agent's
  * configured questions, for whichever dataset is currently selected.
  */
-import { useState, type ReactElement } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { getAgentConfig } from '../../agents/agentRegistry';
 import { translations } from '../../i18n/translations';
 import { useLanguage } from '../../context/LanguageContext';
+import { insightsService } from '../../services/insightsService';
+import type { QuickQuestion } from '../../types/agent';
 import styles from './ChatWelcome.module.css';
 
 const ICONS: Record<string, ReactElement> = {
@@ -44,6 +46,21 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
   const [text, setText] = useState('');
   const config = getAgentConfig(datasetId);
 
+  // Admin-set per client (task #63), overriding the hardcoded config when
+  // present. `null` (still loading / never configured) means "not decided
+  // yet" — kept separate from "loaded, empty" so a slow request never
+  // flashes the static questions and then swaps them out from under the
+  // user's finger.
+  const [dbQuestions, setDbQuestions] = useState<QuickQuestion[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    insightsService.getQuickQuestions(datasetId).then(qs => { if (!cancelled) setDbQuestions(qs); });
+    return () => { cancelled = true; };
+  }, [datasetId]);
+
+  const usingDbQuestions = !!dbQuestions && dbQuestions.length > 0;
+  const questions = usingDbQuestions ? dbQuestions! : (config?.quickQuestions || []);
+
   const submit = () => {
     const q = text.trim();
     if (!q) return;
@@ -65,15 +82,22 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
 
       <div className={styles.questionsLabel}>{t('intel.welcome.quickQuestions')}</div>
       <div className={styles.grid}>
-        {(config?.quickQuestions || []).map((q, i) => {
+        {questions.map((q, i) => {
           const label = q.textKey ? translations[language][q.textKey] : q.text || '';
           const question = q.questionKey ? translations[language][q.questionKey] : q.question || '';
-          const iconKey = KEY_TO_ICON[i] || 'revenue';
           return (
             <button key={i} className={styles.tile} onClick={() => onSend(question)}>
-              <svg className={styles.tileIcon} width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                {ICONS[iconKey]}
-              </svg>
+              {/* Admin-set questions carry a real emoji to show as-is — that
+                  is the whole point of letting someone pick one per question.
+                  The hardcoded config path keeps its positional SVG set,
+                  unchanged for every agent that hasn't been configured here. */}
+              {usingDbQuestions ? (
+                <span className={styles.tileIcon} aria-hidden="true">{q.icon}</span>
+              ) : (
+                <svg className={styles.tileIcon} width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  {ICONS[KEY_TO_ICON[i] || 'revenue']}
+                </svg>
+              )}
               <span className={styles.tileLabel}>{toSentenceCase(label)}</span>
             </button>
           );

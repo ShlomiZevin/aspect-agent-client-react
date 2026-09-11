@@ -24,6 +24,7 @@ import { ThemeProvider } from '../context/ThemeContext';
 import { isSuperAdminUnlocked, unlockSuperAdmin, lockSuperAdmin } from '../services/superAdminService';
 import { intelligenceAdminService, type IntelligenceAdminDataset, type IntelligenceConfigVersion } from '../services/intelligenceAdminService';
 import type { InsightDetail } from '../types/insights';
+import type { QuickQuestion } from '../types/agent';
 import { useDocumentMeta } from '../hooks';
 import styles from './IntelligenceAdminPage.module.css';
 
@@ -117,6 +118,7 @@ function EnabledDot({ enabled }: { enabled: boolean }) {
 const SUB_PAGES = [
   { path: 'config', label: 'Config', icon: <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /> },
   { path: 'prompts', label: 'Prompts', icon: <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /> },
+  { path: 'quick-questions', label: 'Quick Questions', icon: <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" /> },
   { path: 'insights', label: 'Insights', icon: <path d="M18 20V10 M12 20V4 M6 20v-6" /> },
 ];
 
@@ -783,6 +785,98 @@ function DatasetPromptsPage() {
   );
 }
 
+/**
+ * Data Chat quick-question tiles (task #63) — hidden per the task's own
+ * instruction ("later we will give this ability to the customer, so for
+ * now the tool must be hidden"), which this already is: it's a sub-page of
+ * the shared-password /intelligence/admin panel, not linked from any
+ * customer-facing surface.
+ *
+ * One row per question — icon (an emoji, typed directly), the button label,
+ * and the actual question text sent to the chat. Unlike PromptChipList
+ * these three fields don't fit a single-string chip, so this is a plain
+ * row list rather than reusing that component.
+ */
+function DatasetQuickQuestionsPage() {
+  const { dataset, reload } = useOutletContext<DatasetOutletContext>();
+  const [rows, setRows] = useState<QuickQuestion[]>(dataset.config.quickQuestions ?? []);
+  const [saving, setSaving] = useState(false);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => setRows(dataset.config.quickQuestions ?? []), [dataset.id]);
+
+  const update = (i: number, patch: Partial<QuickQuestion>) => {
+    setRows(rs => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  };
+  const remove = (i: number) => setRows(rs => rs.filter((_, idx) => idx !== i));
+  const add = () => setRows(rs => [...rs, { icon: '✦', text: '', question: '' }]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      // Drop rows the admin left blank rather than saving a dead tile.
+      const clean = rows.filter(r => r.text?.trim() && r.question?.trim());
+      await intelligenceAdminService.updateConfig(dataset.id, { quickQuestions: clean });
+      reload();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <h2 className={styles.sectionTitle}>Quick Questions</h2>
+      <p className={styles.subtitle}>
+        The quick-question tiles on the Data Chat welcome screen for this client. Leave empty to keep using
+        the agent's built-in default questions. Hidden from customers — set here, not by them, for now.
+      </p>
+      <div className={styles.card}>
+        <div className={styles.editGrid}>
+          <div className={styles.field}>
+            <label>Questions</label>
+            <div className={styles.qqList}>
+              {rows.length === 0 && <div className={styles.statusLine}>No quick questions set — using the built-in defaults.</div>}
+              {rows.map((r, i) => (
+                <div className={styles.qqRow} key={i}>
+                  <input
+                    className={styles.qqIconInput}
+                    value={r.icon}
+                    onChange={e => update(i, { icon: e.target.value })}
+                    placeholder="🙂"
+                    title="Emoji shown on the tile"
+                  />
+                  <input
+                    className={styles.qqTextInput}
+                    value={r.text || ''}
+                    onChange={e => update(i, { text: e.target.value })}
+                    placeholder="Button label"
+                  />
+                  <input
+                    className={styles.qqQuestionInput}
+                    value={r.question || ''}
+                    onChange={e => update(i, { question: e.target.value })}
+                    placeholder="Question sent to the chat"
+                  />
+                  <button className={styles.chipRemove} onClick={() => remove(i)} aria-label="Remove">✕</button>
+                </div>
+              ))}
+            </div>
+            <div className={styles.addRow}>
+              <button className={styles.btn} onClick={add}>+ Add question</button>
+            </div>
+            <div className={styles.fieldHint}>Icon is a single emoji. Label is the short text on the tile; question is the full text sent when it's clicked.</div>
+          </div>
+          <div className={styles.actionsRow}>
+            <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={save} disabled={saving} title="Makes these the live quick questions end users see">
+              {saving ? 'Saving…' : 'Save quick questions'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 /** Same category → color mapping investigation.service.js uses for the real product's cards, reused here so a category reads the same way in admin. */
 const CATEGORY_COLOR: Record<string, string> = {
   'cross-sell': '#C026D3',
@@ -943,6 +1037,7 @@ function IntelligenceAdminGated() {
             <Route index element={<Navigate to="config" replace />} />
             <Route path="config" element={<DatasetConfigPage />} />
             <Route path="prompts" element={<DatasetPromptsPage />} />
+            <Route path="quick-questions" element={<DatasetQuickQuestionsPage />} />
             <Route path="insights" element={<DatasetInsightsPage />} />
           </Route>
         </Routes>

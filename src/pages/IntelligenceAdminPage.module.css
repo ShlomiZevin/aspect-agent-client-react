@@ -1090,6 +1090,41 @@
   color: var(--text-secondary);
 }
 
+/* Quick-questions editor (task #63) — one row per question, three fields
+   each (icon/text/question) plus remove, unlike the single-string chips
+   above so it needs its own row shape rather than reusing .chip. */
+.qqList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qqRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qqRow input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.qqRow input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.qqIconInput { width: 44px; text-align: center; flex-shrink: 0; }
+.qqTextInput { width: 220px; flex-shrink: 0; }
+.qqQuestionInput { flex: 1; min-width: 0; }
+
 .deleteBtn {
   border: none;
   background: none;
