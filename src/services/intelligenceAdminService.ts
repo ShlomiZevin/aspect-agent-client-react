@@ -6,6 +6,7 @@
  */
 import { apiRequest, getBaseURL } from './api';
 import type { InsightDetail } from '../types/insights';
+import type { QuickQuestion } from '../types/agent';
 
 export interface IntelligenceDatasetConfig {
   enabled: boolean;
@@ -13,6 +14,8 @@ export interface IntelligenceDatasetConfig {
   brandLabel: string;
   bootstrapPrompts: string[];
   examplePrompts: string[];
+  /** Data Chat quick-question tiles (task #63) — overrides the agent's hardcoded quickQuestions when non-empty. */
+  quickQuestions: QuickQuestion[];
 }
 
 export interface IntelligenceAdminDataset {
