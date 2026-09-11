@@ -66,12 +66,28 @@
   padding: 12px 10px;
   border-radius: 12px;
   border: 1px solid var(--ai-border);
-  background: var(--ai-shell-bg, var(--ai-accent-soft));
+  /* Plain surface at rest — the old chat's boxes (WelcomeSection.module.css
+     .quickBtn) read as a neutral card, not a tinted one. The previous
+     default here fell back to the SAME accent-soft the hover state uses,
+     so hovering barely changed anything (task #64: "the old boxes simply
+     look better"). Plain-at-rest, tinted-on-hover restores a real state
+     change. */
+  background: var(--ai-surface);
   color: var(--ai-text);
   cursor: pointer;
   font-family: var(--ai-font-body);
+  transition: border-color .15s ease, background .15s ease, transform .15s ease, box-shadow .15s ease;
 }
-.tile:hover { border-color: var(--ai-accent); background: var(--ai-accent-soft); }
+.tile:hover {
+  border-color: var(--ai-accent);
+  background: var(--ai-accent-soft);
+  /* Same lift-and-shadow the old chat's .quickBtn:hover uses, tinted to this
+     shell's accent instead of a flat black shadow (matches the accent-tinted
+     shadow already used on .mark above, rather than importing the old
+     chat's plain --shadow-md). */
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(139, 92, 246, .18);
+}
 .tileIcon { color: var(--ai-accent); }
 .tileLabel { font-size: 12px; font-weight: 600; text-align: center; line-height: 1.3; }
 
