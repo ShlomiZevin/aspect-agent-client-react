@@ -24,18 +24,30 @@ const KEY_LABELS: Record<string, string> = {
   gcp_billing_project_id: 'GCP Billing Project ID',
   gcp_billing_dataset: 'GCP Billing Dataset',
   gcp_billing_service_account_json: 'GCP Service Account JSON',
+  // Per-customer overrides (task #61) — unset by default, falling back to
+  // the shared keys above. Set one to make that customer's spend fully
+  // attributable to their own key instead of the shared account's.
+  zolstock_anthropic_api_key: 'ZolStock — Anthropic (Thinking)',
+  zolstock_openai_api_key: 'ZolStock — OpenAI (Talking)',
+  superhist_anthropic_api_key: 'SuperHist — Anthropic (Thinking)',
+  superhist_openai_api_key: 'SuperHist — OpenAI (Talking)',
 };
 
 const KEY_GROUPS = [
   { label: 'OpenAI', keys: ['openai_api_key', 'openai_admin_api_key', 'openai_org_id', 'openai_project_id'] },
   { label: 'Anthropic', keys: ['anthropic_api_key', 'anthropic_admin_api_key'] },
   { label: 'Google', keys: ['gemini_api_key', 'gcp_billing_project_id', 'gcp_billing_dataset', 'gcp_billing_service_account_json'] },
+  {
+    label: 'Per-Customer',
+    keys: ['zolstock_anthropic_api_key', 'zolstock_openai_api_key', 'superhist_anthropic_api_key', 'superhist_openai_api_key'],
+  },
 ];
 
 const GROUP_COLOR: Record<string, string> = {
   OpenAI: '#10a37f',
   Anthropic: '#d97706',
   Google: '#4285f4',
+  'Per-Customer': '#6d28d9',
 };
 
 export function ApiKeysPage({ baseURL = '', embedded = false }: Props) {
