@@ -1,0 +1,106 @@
+.page { padding: 38px 24px 40px; max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+.headRow { display: flex; align-items: center; gap: 12px; }
+.title { font: 700 26px var(--ai-font-head); color: var(--ai-text); }
+.subtitle { font-size: 13px; color: var(--ai-text-mute); max-width: 640px; }
+
+.card {
+  background: var(--ai-surface);
+  border: 1px solid var(--ai-border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--ai-shadow-sm);
+}
+
+.empty { padding: 20px 4px; font-size: 13px; color: var(--ai-text-mute); }
+
+.headerLabels {
+  display: grid;
+  grid-template-columns: 56px 1fr 2fr 32px;
+  gap: 10px;
+  padding: 0 2px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ai-text-mute);
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+
+.qqList { display: flex; flex-direction: column; gap: 8px; }
+
+.qqRow {
+  display: grid;
+  grid-template-columns: 56px 1fr 2fr 32px;
+  gap: 10px;
+  align-items: center;
+}
+
+.qqIconInput, .qqTextInput, .qqQuestionInput {
+  border: 1px solid var(--ai-border);
+  border-radius: 10px;
+  background: var(--ai-surface-alt);
+  color: var(--ai-text);
+  font: 13px var(--ai-font-body);
+  padding: 9px 11px;
+}
+.qqIconInput { text-align: center; padding: 9px 4px; }
+.qqIconInput:focus, .qqTextInput:focus, .qqQuestionInput:focus {
+  outline: none;
+  border-color: var(--ai-accent);
+}
+
+.removeBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--ai-border);
+  background: var(--ai-surface-alt);
+  color: var(--ai-text-mute);
+  cursor: pointer;
+  font-size: 12px;
+}
+.removeBtn:hover { color: var(--ai-negative); border-color: var(--ai-negative); }
+
+.actionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ai-border-soft);
+}
+
+.addBtn {
+  background: none;
+  border: none;
+  color: var(--ai-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.saveGroup { display: flex; align-items: center; gap: 10px; }
+.savedNote { font-size: 12.5px; color: var(--ai-success); }
+
+.saveBtn {
+  background: var(--ai-grad);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.saveBtn:disabled { opacity: .6; cursor: default; }
+
+@media (max-width: 640px) {
+  .page { padding: 24px 16px 32px; }
+  .headerLabels { display: none; }
+  .qqRow { grid-template-columns: 40px 1fr 28px; grid-template-areas: "icon label remove" "icon question remove"; row-gap: 6px; }
+  .qqIconInput { grid-area: icon; }
+  .qqTextInput { grid-area: label; }
+  .qqQuestionInput { grid-area: question; }
+  .removeBtn { grid-area: remove; }
+}

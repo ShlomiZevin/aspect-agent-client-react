@@ -35,6 +35,7 @@ import { PineconeAdmin } from '../components/pinecone';
 import { TaskBoardContent } from '../components/tasks/TaskBoardModal/TaskBoardContent';
 import dashStyles from './DashboardPage.module.css';
 import { getAgentConfig } from '../agents/agentRegistry';
+import { useDocumentMeta } from '../hooks';
 
 function TaskBoardPageWithId() {
   const { taskId } = useParams<{ taskId: string }>();
@@ -65,6 +66,13 @@ export function DashboardPage() {
       .catch(() => { /* not enabled, or unreachable — either way, no nav item */ });
     return () => { cancelled = true; };
   }, [agent]);
+
+  // Otherwise the tab keeps whatever favicon/title index.html shipped with
+  // (LYBI's), which is wrong on every other agent's dashboard/task board.
+  useDocumentMeta({
+    title: config ? `${config.displayName} — Dashboard` : 'Dashboard',
+    favicon: config?.favicon,
+  });
 
   if (!config) {
     // Browser may have cached old JS bundle that doesn't know this agent.

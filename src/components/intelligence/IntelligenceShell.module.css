@@ -129,6 +129,17 @@
   font: 800 13px var(--ai-font-head);
   flex-shrink: 0;
 }
+/* Client logo in place of the initials mark (task #68) — height-locked to the
+   same 36px box the initials used, width free so a wide wordmark (superhist)
+   isn't squeezed into a square. Logos are pre-cleaned to transparent PNGs, so
+   no background/border is added here; it just sits on the header. */
+.markImg {
+  height: 36px;
+  width: auto;
+  max-width: 140px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
 .brandText { line-height: 1.15; }
 .brandName { font: 700 15px var(--ai-font-head); color: var(--ai-text); }
 .brandSub { font-size: 11px; color: var(--ai-text-mute); }
@@ -289,6 +300,7 @@
 
   .brand { flex: 1 1 auto; min-width: 0; gap: 8px; }
   .mark { width: 28px; height: 28px; border-radius: 8px; font-size: 11px; }
+  .markImg { height: 28px; max-width: 100px; }
   .brandSub { display: none; }
   .brandName { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 

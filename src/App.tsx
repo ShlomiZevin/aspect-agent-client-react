@@ -401,6 +401,18 @@ function AppContent() {
             </Suspense>
           }
         />
+        {/* Customer-facing settings (task #69) — currently just the Data Chat
+            prepared questions. Own route (not a modal over Home) for the same
+            reason Reports/Apps are: linkable, and the shell's nav/back button
+            behave like every other section instead of a one-off. */}
+        <Route
+          path="/intelligence/:datasetId/settings"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <IntelligencePage />
+            </Suspense>
+          }
+        />
         {/* The old address for what is now Apps / Procurement. Kept as a
             redirect rather than deleted: it is in browser histories and in at
             least one shared link, and a dead URL would read as the feature
