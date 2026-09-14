@@ -115,6 +115,8 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
   const [selectedExtractors, setSelectedExtractors] = useState<Set<ID>>(new Set());
   const [editingLive, setEditingLive] = useState(false);
   const [liveDraft, setLiveDraft] = useState('');
+  // Explicit "save it unconnected — I'll wire it later" mark (not persisted).
+  const [connectLater, setConnectLater] = useState(false);
 
   useEffect(() => {
     if (!crewField) return;
@@ -131,6 +133,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
     setDomain(f.domain ?? '');
     setSelectedExtractors(new Set(crewField.extractors.map(e => e.instanceId)));
     setEditingLive(false);
+    setConnectLater(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [crewField]);
 
@@ -152,6 +155,14 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
   const liveValue = findLiveValue(conversationMemory.memory, original.name);
   const hasLive = liveValue !== undefined;
   const canEditLive = previewConversationId !== null;
+
+  // A field is connected when an extractor is ticked OR some addon's prompt
+  // mentions it via {{fieldname:NAME}} (e.g. a Thinker that returns it —
+  // auto-harvested at runtime). Otherwise saving needs the explicit
+  // "Connect later" mark.
+  const hasPromptMention = (mentions.get(original.name)?.length ?? 0) > 0;
+  const hasConnection = selectedExtractors.size > 0 || hasPromptMention;
+  const canSave = name.trim().length > 0 && (hasConnection || connectLater);
 
   const startEditLive = () => {
     setLiveDraft(liveValueToString(liveValue));
@@ -295,8 +306,8 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
             type="button"
             className={styles.save}
             onClick={save}
-            disabled={!name.trim() || selectedExtractors.size === 0}
-            title={selectedExtractors.size === 0 ? 'Pick at least one extractor' : undefined}
+            disabled={!canSave}
+            title={name.trim() && !canSave ? 'Pick an extractor, or choose Connect later' : undefined}
           >
             Save
           </button>
@@ -497,7 +508,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
             onChange={setDomain}
             options={domainNames}
             onSubmit={() => {
-              if (name.trim() && selectedExtractors.size > 0) save();
+              if (canSave) save();
             }}
           />
         </label>
@@ -550,7 +561,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
             <span
               key={`mention-${m.instanceId}`}
               className={styles.mentionChip}
-              title={`Prompt references {{fieldname:${original.name}}} — likely returns this field. Heuristic, not wired.`}
+              title={`Prompt references {{fieldname:${original.name}}} — it returns this field, so the field counts as connected.`}
             >
               <span aria-hidden>{m.icon}</span>
               {m.label}
@@ -559,44 +570,58 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
           return (
             <div className={styles.field}>
               <span className={styles.label}>Extracted by</span>
-              {agentExtractors.length === 0 && mentionRefs.length === 0 ? (
-                <div className={styles.hintBlock}>
-                  No Field Extractors anywhere in this agent yet. Add one
-                  to a crew's chain before this field can be extracted.
-                </div>
-              ) : (
-                <div className={styles.extractorPickGroups}>
-                  {byCrew.map(group => (
-                    <div key={group.crewName} className={styles.extractorPickGroup}>
-                      <div className={styles.extractorPickCrew}>{group.crewName}</div>
-                      <div className={styles.extractorPickChips}>
-                        {group.items.map(e => {
-                          const active = selectedExtractors.has(e.instanceId);
-                          return (
-                            <button
-                              key={e.instanceId}
-                              type="button"
-                              className={`${styles.extractorPickChip} ${active ? styles.extractorPickChipActive : ''}`}
-                              onClick={() => toggleExtractor(e.instanceId)}
-                            >
-                              {e.label}
-                            </button>
-                          );
-                        })}
-                        {(mentionsByGroup.get(group.crewName) ?? []).map(mentionChip)}
-                      </div>
+              <div className={styles.extractorPickGroups}>
+                {agentExtractors.length === 0 && mentionRefs.length === 0 && (
+                  <div className={styles.extractorPickEmpty}>
+                    No Field Extractors anywhere in this agent yet.
+                  </div>
+                )}
+                {byCrew.map(group => (
+                  <div key={group.crewName} className={styles.extractorPickGroup}>
+                    <div className={styles.extractorPickCrew}>{group.crewName}</div>
+                    <div className={styles.extractorPickChips}>
+                      {group.items.map(e => {
+                        const active = selectedExtractors.has(e.instanceId);
+                        return (
+                          <button
+                            key={e.instanceId}
+                            type="button"
+                            className={`${styles.extractorPickChip} ${active ? styles.extractorPickChipActive : ''}`}
+                            onClick={() => toggleExtractor(e.instanceId)}
+                          >
+                            {e.label}
+                          </button>
+                        );
+                      })}
+                      {(mentionsByGroup.get(group.crewName) ?? []).map(mentionChip)}
                     </div>
-                  ))}
-                  {extraGroups.map(k => (
-                    <div key={`mention-group-${k}`} className={styles.extractorPickGroup}>
-                      <div className={styles.extractorPickCrew}>{k}</div>
-                      <div className={styles.extractorPickChips}>
-                        {mentionsByGroup.get(k)!.map(mentionChip)}
-                      </div>
+                  </div>
+                ))}
+                {extraGroups.map(k => (
+                  <div key={`mention-group-${k}`} className={styles.extractorPickGroup}>
+                    <div className={styles.extractorPickCrew}>{k}</div>
+                    <div className={styles.extractorPickChips}>
+                      {mentionsByGroup.get(k)!.map(mentionChip)}
                     </div>
-                  ))}
+                  </div>
+                ))}
+                {/* Last row of the panel. Always rendered (disabled when
+                    connected) so the modal never resizes. */}
+                <div className={styles.connectLaterRow}>
+                  <label
+                    className={`${styles.connectLaterLabel} ${hasConnection ? styles.connectLaterLabelDisabled : ''}`}
+                    title={hasConnection ? 'Already connected' : undefined}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={connectLater && !hasConnection}
+                      disabled={hasConnection}
+                      onChange={e => setConnectLater(e.target.checked)}
+                    />
+                    Save now and connect it to an extractor later
+                  </label>
                 </div>
-              )}
+              </div>
               {selectedExtractors.size > 1 && (
                 <span className={styles.note}>
                   Multiple extractors will write to the same memory slot for "{name}". Last one to fire per turn wins.

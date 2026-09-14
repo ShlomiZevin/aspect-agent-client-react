@@ -466,3 +466,54 @@
   font-size: 11.5px;
   color: #b91c1c;
 }
+
+/* "Connect later" — save a field with no connection yet (connect it later).
+   Last row inside the Extracted-by panel. Shared by AddFieldModal and FieldEditorModal. */
+.connectLaterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 4px 3px;
+  border-top: 1px dashed var(--border-color, #e5e7eb);
+}
+
+.connectLaterLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  user-select: none;
+}
+
+.connectLaterLabel input {
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--primary-color, #6366f1);
+}
+
+.connectLaterLabelDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.connectLaterLabelDisabled input {
+  cursor: not-allowed;
+}
+
+.connectLaterMentions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* "No extractors" message as a quiet first row inside the panel */
+.extractorPickEmpty {
+  padding: 2px 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-tertiary, #6b7280);
+}
