@@ -1,0 +1,53 @@
+<!doctype html>
+<!--
+  Source for public/img/og-lybi-default.png — the site-wide WhatsApp/Slack/
+  iMessage link preview for lybi.ai (every route with no more specific card).
+  Reported by Shlomi 2026-09-14 alongside the aspect-agents one, same root
+  cause: index.html carried no default OG tags at all — see
+  scripts/inject-share-pages.cjs, which writes this image's URL into them.
+
+  LYBI's own brand gradient (#680662 -> #9D1687 -> #F948C6, see
+  LybiLandingPage.module.css .heroSection) and the real spiral mark, headline
+  and subheadline lifted from the actual landing page hero (same copy a
+  visitor sees after clicking through).
+
+  Re-render:
+    npm run og:render og-lybi-default
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1200px;height:630px;overflow:hidden}
+  body{
+    font-family:'Assistant',Arial,sans-serif;
+    background:radial-gradient(120% 120% at 50% 0%,#9D1687 0%,#7A0C74 50%,#520650 100%);
+    color:#fff;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:0 74px;
+  }
+  .eyebrow{font-size:23px;font-weight:700;letter-spacing:.08em;color:#F7E2F5;margin-bottom:26px}
+  .tile{
+    width:150px;height:150px;border-radius:36px;background:#fff;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 14px 40px rgba(0,0,0,.28);margin-bottom:32px;
+  }
+  .tile img{width:106px;height:auto;display:block}
+  h1{font-size:54px;font-weight:800;line-height:1.2;margin-bottom:20px;max-width:1000px}
+  p{font-size:27px;font-weight:400;line-height:1.5;color:#F7E2F5;max-width:880px}
+  .foot{position:absolute;bottom:40px;font-size:22px;font-weight:700;color:#fff}
+</style>
+</head>
+<body>
+  <div class="eyebrow">LYBI</div>
+
+  <div class="tile"><img src="../../public/img/lybi-spiral.png" alt="" /></div>
+
+  <h1>The Intelligent Relationship System</h1>
+  <p>Built for organizations that can't afford to lose the connection with their customers.</p>
+
+  <div class="foot">lybi.ai</div>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<!--
+  Source for public/img/og-aspect-default.png — the site-wide WhatsApp/Slack/
+  iMessage link preview for aspect-agents.web.app (every route that has no
+  more specific card of its own, e.g. /intelligence/superhist). Reported by
+  Shlomi 2026-09-14: that link previewed with no title/image at all, because
+  the built index.html carried no default OG tags — see
+  scripts/inject-share-pages.cjs, which writes this image's URL into them.
+
+  Same visual family as og-zolstock.png (purple gradient, tile mark, white
+  headline, Aspect footer), just with the generic Aspect Intelligence sparkle
+  mark in the tile instead of one client's logo, since this card is not
+  about any one client.
+
+  Re-render:
+    npm run og:render og-aspect-default
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@700;800&family=Public+Sans:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1200px;height:630px;overflow:hidden}
+  body{
+    font-family:'Public Sans',Arial,sans-serif;
+    background:radial-gradient(120% 120% at 50% 0%,#8B4FF0 0%,#7C3AED 45%,#C026D3 100%);
+    color:#fff;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:0 74px;
+  }
+  .eyebrow{
+    display:flex;align-items:center;gap:10px;
+    font-size:23px;font-weight:600;letter-spacing:.01em;
+    color:#EDE7F6;margin-bottom:26px;
+  }
+  .dot{width:11px;height:11px;border-radius:50%;background:#4ADE80;box-shadow:0 0 12px rgba(74,222,128,.8)}
+  .tile{
+    width:150px;height:150px;border-radius:36px;background:#fff;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 14px 40px rgba(0,0,0,.28);margin-bottom:32px;
+  }
+  .mark{
+    width:108px;height:108px;border-radius:50%;
+    background:linear-gradient(135deg,#7C3AED,#C026D3);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .mark svg{width:52px;height:52px}
+  h1{font-family:'Schibsted Grotesk',Arial,sans-serif;font-size:46px;font-weight:800;line-height:1.18;margin-bottom:22px;max-width:1050px;white-space:nowrap}
+  p{font-size:27px;font-weight:400;line-height:1.5;color:#EDE7F6;max-width:900px}
+  .foot{
+    position:absolute;bottom:40px;
+    display:flex;align-items:center;gap:10px;
+    font-size:22px;font-weight:600;color:#fff;
+  }
+</style>
+</head>
+<body>
+  <div class="eyebrow"><span class="dot"></span>Aspect Intelligence</div>
+
+  <div class="tile">
+    <div class="mark">
+      <svg viewBox="0 0 24 24" fill="#fff"><path d="M12 0l2.4 9.6L24 12l-9.6 2.4L12 24l-2.4-9.6L0 12l9.6-2.4z"/></svg>
+    </div>
+  </div>
+
+  <h1>AI that investigates your business data</h1>
+  <p>Ask a question — Aspect finds the answer in your real sales, inventory and customer data, and builds the report for you.</p>
+
+  <div class="foot">Aspect Intelligence</div>
+</body>
+</html>
