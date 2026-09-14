@@ -281,20 +281,27 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
         <div className={styles.headerRow}>
           <div className={styles.brand}>
             {/* Client logo (task #68) when the agent config has one, falling
-                back to the text initials mark for any dataset that doesn't.
-                The logo already reads as the client's name (it's their real
-                logo, often with the wordmark baked in) — printing brandName
-                next to it too was pure duplication, so that line only shows
-                for the initials-mark fallback, which needs it. */}
+                back to the text initials mark + name/subtitle for any dataset
+                that doesn't. The logo already reads as the client's name
+                (it's their real logo, often with the wordmark baked in), so
+                brandName was dropped next to it as pure duplication — but
+                leaving brandSub behind on its own (task #71) orphaned it: a
+                line of text floating with no name above it and nothing
+                visually tying it to the logo on the right. Simplest fix,
+                matching what the bug report itself suggested: the whole text
+                block only exists for the fallback (which needs it to read as
+                a brand at all); a real logo image stands on its own. */}
             {datasetAgent?.logo?.src ? (
               <img className={styles.markImg} src={datasetAgent.logo.src} alt={datasetAgent.logo.alt || meta?.name || ''} />
             ) : (
-              <span className={styles.mark}>{meta?.logoText || '··'}</span>
+              <>
+                <span className={styles.mark}>{meta?.logoText || '··'}</span>
+                <div className={styles.brandText}>
+                  <div className={styles.brandName}>{meta?.name || '…'}</div>
+                  <div className={styles.brandSub}>{t('intel.shell.subtitle')}</div>
+                </div>
+              </>
             )}
-            <div className={styles.brandText}>
-              {!datasetAgent?.logo?.src && <div className={styles.brandName}>{meta?.name || '…'}</div>}
-              <div className={styles.brandSub}>{t('intel.shell.subtitle')}</div>
-            </div>
           </div>
 
           <nav className={styles.nav}>
