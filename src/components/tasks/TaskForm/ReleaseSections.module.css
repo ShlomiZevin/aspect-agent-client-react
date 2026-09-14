@@ -1,0 +1,199 @@
+/* ── What changed ─────────────────────────────────────── */
+.whatChanged {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--spacing-sm);
+  padding: 10px 12px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-sm);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.whatChangedLabel {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: #059669;
+}
+
+.headlineInput,
+.textInput,
+.reasonInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.headlineInput {
+  font-weight: 500;
+}
+
+.textInput {
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.5;
+}
+
+.headlineInput:focus,
+.textInput:focus,
+.reasonInput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.headline {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.text {
+  white-space: pre-wrap;
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.empty {
+  font-size: var(--font-size-xs);
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+/* ── Released — does it work? ─────────────────────────── */
+.delivered {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: var(--spacing-sm);
+  padding: 10px 12px;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: var(--radius-sm);
+  background: rgba(59, 130, 246, 0.07);
+}
+
+.deliveredText {
+  flex: 1;
+  min-width: 160px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.deliveredActions {
+  display: flex;
+  gap: 8px;
+}
+
+.worksBtn,
+.notYetBtn,
+.reasonCancel,
+.reasonSend {
+  padding: 7px 16px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.worksBtn {
+  border: none;
+  background: #10b981;
+  color: #fff;
+}
+
+.worksBtn:hover:not(:disabled) {
+  background: #059669;
+}
+
+.notYetBtn {
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: var(--surface);
+  color: #ef4444;
+}
+
+.notYetBtn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.worksBtn:disabled,
+.notYetBtn:disabled,
+.reasonCancel:disabled,
+.reasonSend:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── "Not yet" reason modal ───────────────────────────── */
+.reasonOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1100; /* above the task board modal (--z-modal) */
+}
+
+.reasonModal {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  text-align: left;
+  direction: ltr;
+}
+
+.reasonTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.reasonInput {
+  min-height: 90px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.reasonActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.reasonCancel {
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.reasonCancel:hover:not(:disabled) {
+  background: var(--surface-light);
+}
+
+.reasonSend {
+  border: none;
+  background: #ef4444;
+  color: #fff;
+}
+
+.reasonSend:hover:not(:disabled) {
+  background: #dc2626;
+}

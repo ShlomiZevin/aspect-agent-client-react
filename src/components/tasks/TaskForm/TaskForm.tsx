@@ -3,6 +3,7 @@ import type { Task, Assignee, CreateTaskData, TaskStatus, TaskPriority, TaskType
 import type { CrewMember } from '../../../types/crew';
 import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
 import { CommentsSection } from '../CommentsSection/CommentsSection';
+import { WhatChangedSection, DeliveredBar } from './ReleaseSections';
 import { getDraftDefault } from '../../../utils/userIdentifier';
 import * as commentsService from '../../../services/commentsService';
 import styles from './TaskForm.module.css';
@@ -45,6 +46,8 @@ interface TaskFormProps {
   onLinkedTaskClick?: (task: Task) => void;
   onDeploy?: () => void;
   onUndeploy?: () => void;
+  onWorks?: () => Promise<void>; // Reviewer: the released task works → close it
+  onNotYet?: (reason: string) => Promise<void>; // Reviewer: still not working → reopen with a reason
   onCancel: () => void;
   onDelete?: () => void;
 }
@@ -143,7 +146,7 @@ function TestStepsSidebar({ description, onStepClick, onNoteChange }: { descript
   );
 }
 
-export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, currentIdentity, onSubmit, onAutoSave, onDirtyChange, onMarkRead, onLinkedTaskClick, onDeploy, onUndeploy, onCancel, onDelete }: TaskFormProps) {
+export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, currentIdentity, onSubmit, onAutoSave, onDirtyChange, onMarkRead, onLinkedTaskClick, onDeploy, onUndeploy, onWorks, onNotYet, onCancel, onDelete }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [description, setDescription] = useState('');
@@ -169,6 +172,8 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const [linkCopied, setLinkCopied] = useState(false);
   const [showMobileComments, setShowMobileComments] = useState(false);
   const [commentCount, setCommentCount] = useState<number | null>(null);
+  const [whatChanged, setWhatChanged] = useState('');
+  const [whatsNewHeadline, setWhatsNewHeadline] = useState('');
   const isFirstRenderForTaskRef = useRef(true);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
@@ -347,9 +352,13 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       setSaveStatus('idle');
       setCrewMember(task.crewMember || '');
       setIsDraft(task.isDraft || false);
+      setWhatChanged(task.whatChanged || '');
+      setWhatsNewHeadline(task.whatsNewHeadline || '');
     } else {
       // Default to general for new tasks
       setDomain('general');
+      setWhatChanged('');
+      setWhatsNewHeadline('');
       setDueDate('');
       setAtRisk(false);
       setIsCompleted(false);
@@ -374,6 +383,11 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const isGoal = type === 'goal' || type === 'agenda';
   const isRead = type === 'read';
 
+  // Release flow: the assignee writes What changed; a released, unclosed task asks everyone else "does it work?"
+  const canEditWhatChanged = !!(task && currentIdentity && task.assignee && currentIdentity.toLowerCase() === task.assignee.toLowerCase());
+  const isReleased = !!(task && task.status === 'done' && task.deployedAt && (!task.doneAt || new Date(task.deployedAt) >= new Date(task.doneAt)));
+  const showDeliveredBar = !!(task && isReleased && !task.isCompleted && !canEditWhatChanged && onWorks && onNotYet);
+
   // Track user edits — skip the first render after task initialization to avoid false positives
   useEffect(() => {
     if (isFirstRenderForTaskRef.current) {
@@ -383,7 +397,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
     if (task) setIsDirty(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, description, status, priority, type, domain, assignee, dueDate, atRisk, isCompleted, dependsOn, linkedTasks.length, tagsInput, crewMember, isDraft]);
+  }, [title, description, status, priority, type, domain, assignee, dueDate, atRisk, isCompleted, dependsOn, linkedTasks.length, tagsInput, crewMember, isDraft, whatChanged, whatsNewHeadline]);
 
   // Build the submit payload (shared between handleSubmit and autosave)
   const buildSubmitData = useCallback((): CreateTaskData => {
@@ -425,8 +439,10 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       tags,
       crewMember: crewMember || null,
       isDraft,
+      // Only the assignee sends What changed, so a reader's save never overwrites it
+      ...(canEditWhatChanged ? { whatChanged: whatChanged.trim() || null, whatsNewHeadline: whatsNewHeadline.trim() || null } : {}),
     };
-  }, [isGoal, task, tagsInput, description, title, type, assignee, dependsOn, linkedTasks, status, priority, domain, dueDate, atRisk, isCompleted, crewMember, isDraft]);
+  }, [isGoal, task, tagsInput, description, title, type, assignee, dependsOn, linkedTasks, status, priority, domain, dueDate, atRisk, isCompleted, crewMember, isDraft, canEditWhatChanged, whatChanged, whatsNewHeadline]);
 
   // Autosave: debounce 2.5s after last change when editing an existing task
   useEffect(() => {
@@ -507,6 +523,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
         tags,
         crewMember: crewMember || null,
         isDraft,
+        ...(canEditWhatChanged ? { whatChanged: whatChanged.trim() || null, whatsNewHeadline: whatsNewHeadline.trim() || null } : {}),
       });
     }
   };
@@ -602,6 +619,10 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
         </div>
 
         <div className={styles.formBody}>
+          {showDeliveredBar && task?.deployedAt && onWorks && onNotYet && (
+            <DeliveredBar deployedAt={task.deployedAt} onWorks={onWorks} onNotYet={onNotYet} />
+          )}
+
           <div className={styles.titleField}>
             <label>{type === 'agenda' ? 'Agenda Item *' : isGoal ? 'Goal *' : 'Title *'}</label>
             {(!task || isEditingTitle) ? (
@@ -639,6 +660,16 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
               </div>
             )}
           </div>
+
+          {task && !isGoal && status === 'done' && (
+            <WhatChangedSection
+              editable={canEditWhatChanged}
+              headline={whatsNewHeadline}
+              text={whatChanged}
+              onHeadlineChange={setWhatsNewHeadline}
+              onTextChange={setWhatChanged}
+            />
+          )}
 
           <div className={styles.descriptionField}>
             <div className={styles.descriptionHeader}>
@@ -949,7 +980,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
                   ✓ Done
                 </label>
               )}
-              {task && status === 'done' && onDeploy && !task.deployedAt && !isDirty && (
+              {task && status === 'done' && onDeploy && !isDirty && (
                 <button type="button" className={`${styles.toggleChip} ${styles.deployBtn}`} onClick={onDeploy}>
                   🚀 Deploy
                 </button>

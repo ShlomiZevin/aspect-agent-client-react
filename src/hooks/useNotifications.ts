@@ -49,8 +49,6 @@ export interface UseNotificationsReturn {
   setIdentity: (name: string) => void;
   /** Call when user opens the notification panel — zeroes badge for this browser only */
   clearNew: () => void;
-  /** Decrement whatsNewCount by 1 (for immediate UI update on dismiss) */
-  decrementWhatsNew: () => void;
 }
 
 export function useNotifications(enabled: boolean, onRefresh?: () => void): UseNotificationsReturn {
@@ -74,7 +72,7 @@ export function useNotifications(enabled: boolean, onRefresh?: () => void): UseN
     try {
       const [data, whatsNew] = await Promise.all([
         notificationsService.getNotifications(currentIdentity),
-        taskService.getWhatsNew(currentIdentity).catch(() => []),
+        taskService.getWhatsNew(currentIdentity).then(r => r.tasks).catch(() => []),
       ]);
 
       // Play sound only for IDs not seen before AND newer than last cleared timestamp
@@ -143,10 +141,6 @@ export function useNotifications(enabled: boolean, onRefresh?: () => void): UseN
     notificationsService.markDelivered(id).catch(() => {});
   }, []);
 
-  const decrementWhatsNew = useCallback(() => {
-    setWhatsNewCount(prev => Math.max(0, prev - 1));
-  }, []);
-
   const setIdentity = useCallback((name: string) => {
     localStorage.setItem(IDENTITY_STORAGE_KEY, name);
     setIdentityState(name);
@@ -161,6 +155,5 @@ export function useNotifications(enabled: boolean, onRefresh?: () => void): UseN
     identity,
     setIdentity,
     clearNew,
-    decrementWhatsNew,
   };
 }
