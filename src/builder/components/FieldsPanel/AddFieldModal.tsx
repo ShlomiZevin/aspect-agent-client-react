@@ -20,6 +20,7 @@ import { Link } from 'react-router-dom';
 import { Modal } from '../Modal/Modal';
 import { useBuilder } from '../../state/BuilderContext';
 import { useCrewFields } from '../../state/useCrewFields';
+import { useFieldnameMentions } from '../../state/useFieldMentions';
 import { autoChoiceName, buildChoiceEnum } from '../../state/choiceList';
 import { DomainInput } from './DomainInput';
 import { TagsInput } from './TagsInput';
@@ -151,12 +152,17 @@ export function AddFieldModal({
   // field", that one is pre-ticked. Otherwise we fall back to the
   // first extractor in the current crew (or empty → auto-create).
   const [selectedExtractors, setSelectedExtractors] = useState<Set<ID>>(new Set());
+  // Explicit "declare it unconnected — I'll wire it later" mark (not persisted).
+  const [connectLater, setConnectLater] = useState(false);
+  // {{fieldname:NAME}} mentions — a prompt (e.g. a Thinker) may already ask for this name.
+  const mentions = useFieldnameMentions(agentId);
 
   // Reset on open. Pick a sensible default extractor for the crew
   // (or the calling extractor when opened from an extractor's config).
   useEffect(() => {
     if (!open) return;
     setDraft(emptyDraft(fromExtractor?.defaultSource, lockedType));
+    setConnectLater(false);
     if (fromExtractor) {
       setSelectedExtractors(new Set([fromExtractor.instanceId]));
     } else if (lockedType) {
@@ -199,10 +205,19 @@ export function AddFieldModal({
   // hint). Collisions DO still block; those silently overwrite an
   // existing field at runtime, which is unrecoverable. Shape issues
   // only break extraction for THIS field; user can decide.
+  //
+  // A field is also connected when a prompt already mentions its name via
+  // {{fieldname:NAME}} (e.g. a Thinker that returns it), and the user can
+  // explicitly choose "Connect later" to declare it unconnected.
+  const nameMentions = trimmedName ? (mentions.get(trimmedName) ?? []) : [];
+  const hasConnection = selectedExtractors.size > 0 || nameMentions.length > 0;
   const canSubmit = trimmedName.length > 0
     && !collidesWith
     && (!draft.isChoice || draft.choiceValues.length > 0)
-    && (lockedType !== undefined || noExtractorsAnywhere || selectedExtractors.size > 0);
+    && (lockedType !== undefined || noExtractorsAnywhere || hasConnection || connectLater);
+  // Bootstrap an extractor only when nothing else connects the field.
+  const willCreateExtractor = noExtractorsAnywhere && lockedType === undefined
+    && !connectLater && nameMentions.length === 0;
 
   const toggleExtractor = (id: ID) => {
     setSelectedExtractors(prev => {
@@ -259,9 +274,9 @@ export function AddFieldModal({
       Array.from(selectedExtractors),
       // If the agent has zero extractors anywhere, bootstrap one in
       // this crew automatically so the field has something to do —
-      // EXCEPT in the caller-locked flow (DC page), where the author
-      // explicitly wants a naked declaration and will wire it later.
-      { createDefaultExtractor: noExtractorsAnywhere && lockedType === undefined },
+      // EXCEPT in the caller-locked flow (DC page), when a prompt mention
+      // already connects it, or when the user chose "Connect later".
+      { createDefaultExtractor: willCreateExtractor },
     );
     if (choiceEnum && agent) {
       // enums untouched by addFieldToScope, so appending onto the
@@ -529,35 +544,66 @@ export function AddFieldModal({
         {/* ── Extracted-by multi-select ─────────────────────────── */}
         <div className={styles.field}>
           <span className={styles.label}>Extracted by</span>
-          {noExtractorsAnywhere ? (
-            <div className={styles.hintBlock}>
-              No Field Extractors anywhere yet. A new one will be created
-              in this crew when you add the field.
-            </div>
-          ) : (
-            <div className={styles.extractorPickGroups}>
-              {byCrew.map(group => (
-                <div key={group.crewName} className={styles.extractorPickGroup}>
-                  <div className={styles.extractorPickCrew}>{group.crewName}</div>
-                  <div className={styles.extractorPickChips}>
-                    {group.items.map(e => {
-                      const active = selectedExtractors.has(e.instanceId);
-                      return (
-                        <button
-                          key={e.instanceId}
-                          type="button"
-                          className={`${styles.extractorPickChip} ${active ? styles.extractorPickChipActive : ''}`}
-                          onClick={() => toggleExtractor(e.instanceId)}
-                        >
-                          {e.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+          <div className={styles.extractorPickGroups}>
+            {noExtractorsAnywhere && (
+              <div className={styles.extractorPickEmpty}>
+                {willCreateExtractor
+                  ? 'No Field Extractors anywhere yet. A new one will be created in this crew when you add the field.'
+                  : 'No Field Extractors anywhere yet — none will be created for this field.'}
+              </div>
+            )}
+            {byCrew.map(group => (
+              <div key={group.crewName} className={styles.extractorPickGroup}>
+                <div className={styles.extractorPickCrew}>{group.crewName}</div>
+                <div className={styles.extractorPickChips}>
+                  {group.items.map(e => {
+                    const active = selectedExtractors.has(e.instanceId);
+                    return (
+                      <button
+                        key={e.instanceId}
+                        type="button"
+                        className={`${styles.extractorPickChip} ${active ? styles.extractorPickChipActive : ''}`}
+                        onClick={() => toggleExtractor(e.instanceId)}
+                      >
+                        {e.label}
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
+              </div>
+            ))}
+            {/* Last row of the panel. Always rendered (chip disabled when
+                connected) so the modal never resizes. Prompt mentions of the
+                typed name show inline as dashed chips. */}
+            <div className={styles.connectLaterRow}>
+              <label
+                className={`${styles.connectLaterLabel} ${hasConnection ? styles.connectLaterLabelDisabled : ''}`}
+                title={hasConnection ? 'Already connected' : undefined}
+              >
+                <input
+                  type="checkbox"
+                  checked={connectLater && !hasConnection}
+                  disabled={hasConnection}
+                  onChange={e => setConnectLater(e.target.checked)}
+                />
+                Add now and connect it to an extractor later
+              </label>
+              {nameMentions.length > 0 && (
+                <span className={styles.connectLaterMentions}>
+                  {nameMentions.map(m => (
+                    <span
+                      key={`mention-${m.instanceId}`}
+                      className={styles.mentionChip}
+                      title={`Prompt references {{fieldname:${trimmedName}}} — it returns this field, so the field counts as connected.`}
+                    >
+                      <span aria-hidden>{m.icon}</span>
+                      {m.crewName ? `${m.crewName} → ${m.label}` : m.label}
+                    </span>
+                  ))}
+                </span>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </Modal>
