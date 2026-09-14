@@ -12,7 +12,7 @@
 import { useLanguage } from '../../context/LanguageContext';
 import styles from './MobileTabBar.module.css';
 
-type View = 'home' | 'reports' | 'history' | 'detail' | 'chat' | 'apps' | 'app';
+type View = 'home' | 'reports' | 'history' | 'detail' | 'chat' | 'apps' | 'app' | 'settings';
 
 interface Props {
   view: View;

@@ -8,7 +8,9 @@
  * this component), /intelligence/:datasetId (Home, design turn 10a/10b),
  * /intelligence/:datasetId/insight/:insightId, /intelligence/:datasetId/reports
  * (My Reports, design turn 11a), /intelligence/:datasetId/reports/history
- * (Report history, design turn 12a), and /intelligence/:datasetId/chat — real
+ * (Report history, design turn 12a), /intelligence/:datasetId/chat, and
+ * /intelligence/:datasetId/settings (task #69, customer-editable prepared
+ * questions) — real
  * URLs (not just internal component state) so each view can be
  * linked/bookmarked/shared and back/forward work, and so the nav's active
  * item and the chat widget's open/expanded state always agree with the URL.
@@ -33,6 +35,7 @@ export function IntelligencePage() {
   // the shell, so a stale bookmark to a switched-off app lands on the shell
   // rather than a broken page.
   const isAppsRoute = /\/apps(\/|$)/.test(location.pathname);
+  const isSettingsRoute = location.pathname.endsWith('/settings');
   const config = getAgentConfig(datasetId);
 
   useDocumentMeta({
@@ -55,6 +58,7 @@ export function IntelligencePage() {
       historyRoute={isHistoryRoute}
       appsRoute={isAppsRoute}
       appId={appId}
+      settingsRoute={isSettingsRoute}
     />
   );
 }

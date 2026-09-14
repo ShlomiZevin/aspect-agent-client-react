@@ -49,6 +49,18 @@ export const insightsService = {
       .then(r => r.quickQuestions)
       .catch(() => []),
 
+  /**
+   * Customer-facing write side of the above (task #69, Intelligence Center
+   * settings page). Hits the same /quick-questions path as the getter above,
+   * but PUT — the server route only ever touches the quickQuestions field,
+   * never the rest of the dataset's admin config (see insights.routes.js).
+   */
+  setQuickQuestions: (datasetId: string, quickQuestions: QuickQuestion[]) =>
+    request<{ quickQuestions: QuickQuestion[] }>(`/${encodeURIComponent(datasetId)}/quick-questions`, {
+      method: 'PUT',
+      body: JSON.stringify({ quickQuestions }),
+    }).then(r => r.quickQuestions),
+
   /** `lang` follows the viewer's Intelligence UI toggle — the server localises a
    *  dataset's display name where it has one, English otherwise. */
   listDatasets: (lang?: string) =>

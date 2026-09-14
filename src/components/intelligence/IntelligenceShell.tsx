@@ -14,6 +14,7 @@ import { ReportHistoryPage } from './Reports/ReportHistoryPage';
 import { InsightDetail } from './Insights/InsightDetail';
 import { AppsPage } from './Apps/AppsPage';
 import { ProcurementPage } from './Apps/ProcurementPage';
+import { SettingsPage } from './Settings/SettingsPage';
 import { appsService } from '../../services/appsService';
 import { ChatWidget } from './ChatWidget';
 import { MobileTabBar } from './MobileTabBar';
@@ -48,6 +49,8 @@ interface Props {
   appsRoute?: boolean;
   /** True on /intelligence/:datasetId/apps/:appId — one app's own page. */
   appId?: string;
+  /** True on /intelligence/:datasetId/settings (task #69). */
+  settingsRoute?: boolean;
 }
 
 export function IntelligenceShell(props: Props) {
@@ -72,7 +75,7 @@ export function IntelligenceShell(props: Props) {
   );
 }
 
-function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute, historyRoute, appsRoute, appId }: Props) {
+function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute, historyRoute, appsRoute, appId, settingsRoute }: Props) {
   const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
   const { userId } = useUserContext();
@@ -262,22 +265,34 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
     handleChatExpandedChange(false);
     setPendingChatScope(scope);
   };
-  const view: 'home' | 'reports' | 'history' | 'detail' | 'chat' | 'apps' | 'app' =
+  const view: 'home' | 'reports' | 'history' | 'detail' | 'chat' | 'apps' | 'app' | 'settings' =
     chatRoute ? 'chat'
-      : appId ? 'app'
-        : appsRoute ? 'apps'
-          : insightId ? 'detail' : historyRoute ? 'history' : reportsRoute ? 'reports' : 'home';
+      : settingsRoute ? 'settings'
+        : appId ? 'app'
+          : appsRoute ? 'apps'
+            : insightId ? 'detail' : historyRoute ? 'history' : reportsRoute ? 'reports' : 'home';
 
   const goApps = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}/apps`));
+  const goSettings = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}/settings`));
 
   return (
     <div className={styles.shell} data-mode={mode} data-brand={datasetId}>
       <header className={styles.header} ref={headerRef}>
         <div className={styles.headerRow}>
           <div className={styles.brand}>
-            <span className={styles.mark}>{meta?.logoText || '··'}</span>
+            {/* Client logo (task #68) when the agent config has one, falling
+                back to the text initials mark for any dataset that doesn't.
+                The logo already reads as the client's name (it's their real
+                logo, often with the wordmark baked in) — printing brandName
+                next to it too was pure duplication, so that line only shows
+                for the initials-mark fallback, which needs it. */}
+            {datasetAgent?.logo?.src ? (
+              <img className={styles.markImg} src={datasetAgent.logo.src} alt={datasetAgent.logo.alt || meta?.name || ''} />
+            ) : (
+              <span className={styles.mark}>{meta?.logoText || '··'}</span>
+            )}
             <div className={styles.brandText}>
-              <div className={styles.brandName}>{meta?.name || '…'}</div>
+              {!datasetAgent?.logo?.src && <div className={styles.brandName}>{meta?.name || '…'}</div>}
               <div className={styles.brandSub}>{t('intel.shell.subtitle')}</div>
             </div>
           </div>
@@ -303,6 +318,14 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
               <button className={`${styles.langOption} ${language === 'en' ? styles.langOptionActive : ''}`} onClick={() => setLanguage('en')} aria-pressed={language === 'en'}>EN</button>
               <button className={`${styles.langOption} ${language === 'he' ? styles.langOptionActive : ''}`} onClick={() => setLanguage('he')} aria-pressed={language === 'he'}>עב</button>
             </div>
+            <button
+              className={`${styles.iconBtn} ${view === 'settings' ? styles.navActive : ''}`}
+              onClick={goSettings}
+              title={t('intel.nav.settings')}
+              aria-label={t('intel.nav.settings')}
+            >
+              <Glyph name="gear" />
+            </button>
             <button className={styles.iconBtn} onClick={() => setMode(m => m === 'dark' ? 'light' : 'dark')} title="Toggle theme" aria-label="Toggle theme">
               <Glyph name={mode === 'dark' ? 'sun' : 'moon'} />
             </button>
@@ -424,6 +447,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           <HomePage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onAskInChat={askFollowUp} onSeeAllReports={goReports} onOpenHistory={goHistory} />
         )}
         {view === 'home' && <HomePage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onAskInChat={askFollowUp} onSeeAllReports={goReports} onOpenHistory={goHistory} />}
+        {view === 'settings' && <SettingsPage datasetId={datasetId} />}
       </main>
 
       {selectedJobId && <JobSidebar datasetId={datasetId} onReview={reviewCompletedJob} />}
@@ -474,9 +498,12 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   );
 }
 
-function Glyph({ name }: { name: 'sun' | 'moon' }) {
+function Glyph({ name }: { name: 'sun' | 'moon' | 'gear' }) {
   const common = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
-  return name === 'sun'
-    ? <svg {...common}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
-    : <svg {...common}><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>;
+  if (name === 'sun') return <svg {...common}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>;
+  // A hand-rolled version of this path was visibly lopsided (Kosta caught it
+  // on the deployed page) — this is the well-known Feather/Lucide "settings"
+  // gear outline instead, which is actually symmetric.
+  if (name === 'gear') return <svg {...common}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>;
+  return <svg {...common}><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>;
 }
