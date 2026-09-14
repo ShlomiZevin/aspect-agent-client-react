@@ -54,6 +54,7 @@ function MaybeDashboard() {
 import { useTaskBoard, useQuickBug } from './hooks';
 import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
 import { QuickBugModal } from './components/tasks/QuickBugModal/QuickBugModal';
+import { WhatsNewPopup } from './components/tasks/WhatsNewPopup/WhatsNewPopup';
 import { createTask } from './services/taskService';
 import type { CreateTaskData } from './types/task';
 import './styles/global.css';
@@ -65,10 +66,18 @@ function isRestrictedRoute(pathname: string): boolean {
   return parts.length >= 2 && (parts[1] === 'login' || parts[1] === 'chat');
 }
 
+// Lybi Builder V2 pages (/builder, /:agent/builder/*) — the only place What's New
+// announces itself. Elsewhere it opens only from the task board's button.
+function isBuilderRoute(pathname: string): boolean {
+  const parts = pathname.split('/').filter(Boolean);
+  return parts[0] === 'builder' || parts[1] === 'builder';
+}
+
 // Inner component that has access to router context
 function AppContent() {
   const location = useLocation();
   const restricted = isRestrictedRoute(location.pathname);
+  const onBuilderPage = isBuilderRoute(location.pathname);
   const { isOpen: isTaskBoardOpen, closeModal: closeTaskBoard, openInDraftsMode, clearDraftsMode } = useTaskBoard({ disabled: restricted });
   const { isOpen: isQuickBugOpen, closeModal: closeQuickBug } = useQuickBug({ disabled: restricted });
 
@@ -100,6 +109,9 @@ function AppContent() {
           conversationUrl={conversationUrl}
         />
       )}
+
+      {/* What's New — announces itself only on Builder V2 pages; elsewhere only the task board's button opens it */}
+      {!restricted && <WhatsNewPopup auto={onBuilderPage} />}
 
       <Routes>
         {/* Home page - redirect to /lybi on lybi.ai domain, otherwise show agent selection */}

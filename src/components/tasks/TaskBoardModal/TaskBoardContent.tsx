@@ -11,6 +11,9 @@ import { TaskForm } from '../TaskForm/TaskForm';
 import { AssigneeManager } from '../AssigneeManager/AssigneeManager';
 import { GoalsSection } from '../GoalsSection/GoalsSection';
 import { NotificationBell } from '../NotificationBell/NotificationBell';
+import { ReleaseModal } from '../ReleaseModal/ReleaseModal';
+import { OPEN_WHATS_NEW_EVENT } from '../WhatsNewPopup/useWhatsNew';
+import * as commentsService from '../../../services/commentsService';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { getUserId } from '../../../utils/userIdentifier';
 import styles from './TaskBoardModal.module.css';
@@ -51,6 +54,16 @@ function getCurrentDomain(): string {
     }
   }
   return 'general';
+}
+
+/** Mirrors the server's release list: Done, not released since it was done, not marked Not for release. */
+function isWaitingForRelease(t: Task): boolean {
+  return t.status === 'done' && !t.notForRelease && !t.isDraft && t.type !== 'goal' && t.type !== 'agenda' &&
+    (!t.deployedAt || (!!t.doneAt && new Date(t.deployedAt) < new Date(t.doneAt)));
+}
+
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDraftsModeAcknowledged, initialTaskId }: TaskBoardContentProps) {
@@ -115,10 +128,8 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
   // Manual refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // What's New (deployed tasks)
-  const [showWhatsNew, setShowWhatsNew] = useState(false);
-  const [whatsNewTasks, setWhatsNewTasks] = useState<Task[]>([]);
-  const [whatsNewLoading, setWhatsNewLoading] = useState(false);
+  // Release window (Shlomi only)
+  const [showRelease, setShowRelease] = useState(false);
 
   // Get current user ID for draft filtering
   const currentUserId = useMemo(() => getUserId(), []);
@@ -159,6 +170,10 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
   const unassignedCount = useMemo(() => {
     return tasks.filter(t => !t.assignee && !t.isCompleted && !t.isDraft).length;
   }, [tasks]);
+
+  // Releasing is Shlomi's
+  const isShlomi = notificationsState.identity?.toLowerCase() === 'shlomi';
+  const releaseCount = useMemo(() => (isShlomi ? tasks.filter(isWaitingForRelease).length : 0), [tasks, isShlomi]);
 
   // Count draft tasks created by current user
   const draftCount = useMemo(() => {
@@ -811,23 +826,22 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
     setEditingTask(updated);
   };
 
-  const handleLoadWhatsNew = async () => {
-    if (!notificationsState.identity) return;
-    setWhatsNewLoading(true);
-    try {
-      const newTasks = await taskService.getWhatsNew(notificationsState.identity);
-      setWhatsNewTasks(newTasks);
-      setShowWhatsNew(true);
-    } finally {
-      setWhatsNewLoading(false);
-    }
+  // Reviewer: the released task works → close it
+  const handleWorks = async () => {
+    if (!editingTask) return;
+    const updated = await taskService.updateTask(editingTask.id, { isCompleted: true });
+    setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+    handleCloseForm();
   };
 
-  const handleDismissDeployed = async (taskId: number) => {
-    if (!notificationsState.identity) return;
-    setWhatsNewTasks(prev => prev.filter(t => t.id !== taskId));
-    notificationsState.decrementWhatsNew();
-    await taskService.dismissDeployed(taskId, notificationsState.identity);
+  // Reviewer: still not working → back to Todo, with the reason as a comment
+  const handleNotYet = async (reason: string) => {
+    if (!editingTask) return;
+    const author = notificationsState.identity || 'Anonymous';
+    await commentsService.addComment(editingTask.id, author, `<div><strong>✗ Not yet:</strong> ${escapeHtml(reason)}</div>`);
+    const updated = await taskService.updateTask(editingTask.id, { status: 'todo', isCompleted: false });
+    setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+    handleCloseForm();
   };
 
   return (
@@ -870,13 +884,21 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
         ) : (
           <div className={styles.headerRight}>
             <span className={styles.mobileHide}>
+              {isShlomi && (
+                <button
+                  className={`${styles.whatsNewBtn} ${releaseCount > 0 ? styles.whatsNewActive : ''}`}
+                  onClick={() => setShowRelease(true)}
+                  title="Mark shipped tasks as released"
+                >
+                  🚀 Release{releaseCount > 0 ? ` (${releaseCount})` : ''}
+                </button>
+              )}
               <button
-                className={`${styles.whatsNewBtn} ${(notificationsState.whatsNewCount > 0 || whatsNewTasks.length > 0) ? styles.whatsNewActive : ''}`}
-                onClick={showWhatsNew ? () => setShowWhatsNew(false) : handleLoadWhatsNew}
-                disabled={whatsNewLoading}
-                title="Recently deployed features"
+                className={`${styles.whatsNewBtn} ${notificationsState.whatsNewCount > 0 ? styles.whatsNewActive : ''}`}
+                onClick={() => window.dispatchEvent(new Event(OPEN_WHATS_NEW_EVENT))}
+                title="What's new since your last visit"
               >
-                {whatsNewLoading ? '⏳' : '🚀'} What's New{(showWhatsNew ? whatsNewTasks.length : notificationsState.whatsNewCount) > 0 ? ` (${showWhatsNew ? whatsNewTasks.length : notificationsState.whatsNewCount})` : ''}
+                🎁 What's New{notificationsState.whatsNewCount > 0 ? ` (${notificationsState.whatsNewCount})` : ''}
               </button>
               <NotificationBell notifications={notificationsState} assignees={assignees} onOpenTask={handleOpenTaskById} />
             </span>
@@ -1324,8 +1346,10 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
                 setSideTask(linkedTask);
                 taskService.getTask(linkedTask.id).then(fresh => { if (fresh) setSideTask(fresh); }).catch(() => {});
               }}
-              onDeploy={editingTask?.status === 'done' && !editingTask?.deployedAt ? handleDeploy : undefined}
-              onUndeploy={editingTask?.deployedAt ? handleUndeploy : undefined}
+              onDeploy={isShlomi && editingTask && isWaitingForRelease(editingTask) ? handleDeploy : undefined}
+              onUndeploy={isShlomi && editingTask?.deployedAt ? handleUndeploy : undefined}
+              onWorks={handleWorks}
+              onNotYet={handleNotYet}
               onCancel={handleCloseForm}
               onDelete={editingTask ? () => handleDeleteTask(editingTask) : undefined}
             />
@@ -1363,40 +1387,13 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
         </div>
       )}
 
-      {/* What's New panel */}
-      {showWhatsNew && (
-        <div className={styles.whatsNewOverlay} onClick={() => setShowWhatsNew(false)}>
-          <div className={styles.whatsNewPanel} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.whatsNewHeader}>
-              <h3>🚀 What's New</h3>
-              <button className={styles.closeBtn} onClick={() => setShowWhatsNew(false)}>×</button>
-            </div>
-            {whatsNewTasks.length === 0 ? (
-              <div className={styles.whatsNewEmpty}>No new deployments</div>
-            ) : (
-              <div className={styles.whatsNewList}>
-                {whatsNewTasks.map(task => (
-                  <div key={task.id} className={styles.whatsNewItem}>
-                    <div className={styles.whatsNewItemContent} onClick={() => { setShowWhatsNew(false); handleTaskClick(task); }}>
-                      <span className={styles.whatsNewTitle}>#{task.id} {task.title}</span>
-                      <span className={styles.whatsNewTime}>
-                        {task.deployedAt ? new Date(task.deployedAt).toLocaleDateString() : ''}
-                      </span>
-                    </div>
-                    <button
-                      className={styles.whatsNewDismiss}
-                      onClick={() => handleDismissDeployed(task.id)}
-                      title="Dismiss"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Release window (Shlomi) — What's New itself is the global popup mounted in App */}
+      <ReleaseModal
+        isOpen={showRelease}
+        identity={notificationsState.identity || undefined}
+        onClose={() => setShowRelease(false)}
+        onReleased={() => { loadData(); }}
+      />
 
       {/* Delete confirmation modal */}
       {taskToDelete && (

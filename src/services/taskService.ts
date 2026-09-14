@@ -4,7 +4,7 @@
  * Handles CRUD operations for tasks and assignees.
  */
 
-import type { Task, Assignee, CreateTaskData, UpdateTaskData, TaskFilters } from '../types/task';
+import type { Task, Assignee, CreateTaskData, UpdateTaskData, TaskFilters, WhatsNewResult, ReleaseCandidate } from '../types/task';
 
 // Base URL for task API (uses same server as main app)
 const getBaseURL = (): string => {
@@ -151,21 +151,42 @@ export async function markDeployed(id: number, identity?: string): Promise<Task>
 }
 
 /**
- * Get deployed tasks not yet reviewed by identity
+ * What's New for one person: tasks deployed after their "seen until" watermark, newest first
  */
-export async function getWhatsNew(identity: string): Promise<Task[]> {
-  const data = await apiRequest<{ tasks: Task[] }>(`/api/tasks/whats-new?identity=${encodeURIComponent(identity)}`);
-  return data.tasks.map(t => ({ ...t, createdAt: new Date(t.createdAt), updatedAt: new Date(t.updatedAt) }));
+export async function getWhatsNew(identity: string): Promise<WhatsNewResult> {
+  const data = await apiRequest<WhatsNewResult>(`/api/tasks/whats-new?identity=${encodeURIComponent(identity)}`);
+  return { tasks: Array.isArray(data?.tasks) ? data.tasks : [], seenUntil: data?.seenUntil ?? null };
 }
 
 /**
- * Dismiss a deployed task from "What's New"
+ * "Got it" — move the person's watermark to the newest item they saw
  */
-export async function dismissDeployed(id: number, identity: string): Promise<void> {
-  await apiRequest(`/api/tasks/${id}/dismiss-deployed`, {
+export async function markWhatsNewSeen(identity: string, until: string): Promise<void> {
+  await apiRequest('/api/tasks/whats-new/seen', {
     method: 'POST',
-    body: JSON.stringify({ identity }),
+    body: JSON.stringify({ identity, until }),
   });
+}
+
+// ─── Release ────────────────────────────────────────────────────────
+
+/**
+ * Tasks waiting for release (Done, not released since done, not marked Not for release)
+ */
+export async function getReleaseCandidates(): Promise<ReleaseCandidate[]> {
+  const data = await apiRequest<{ tasks: ReleaseCandidate[] }>('/api/tasks/release-candidates');
+  return data.tasks;
+}
+
+/**
+ * Mark several tasks as released (deployed) at once
+ */
+export async function releaseTasks(taskIds: number[], identity?: string): Promise<number[]> {
+  const data = await apiRequest<{ released: number[] }>('/api/tasks/release', {
+    method: 'POST',
+    body: JSON.stringify({ taskIds, identity }),
+  });
+  return data.released;
 }
 
 export async function addAssignee(name: string): Promise<Assignee> {
