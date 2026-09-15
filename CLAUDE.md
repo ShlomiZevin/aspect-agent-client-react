@@ -105,9 +105,14 @@ client-side (filters narrow the table, never the verified headline);
 `custom` — it once checked only `apps` and hid the tab for Otto-only
 clients); the shelf payload's `custom`/`canCreate` keys are OPTIONAL and
 absent when the feature is off — never send them to render paths
-unconditionally. Server contract lives in
+unconditionally. Charts are the hand-rolled `Insights/InsightChart` (no chart library exists
+in this client — three separate SVG renderers do: InsightChart, MiniChart,
+bi/charts/ChartRenderer); Otto passes `initialView` and the pie cap is 10
+slices. Chat sends the shell's EN/HE toggle as `language` on every turn.
+Server contract lives in
 `aspect-agent-server/otto/services/spec.contract.js`, mirrored by hand in
-`src/types/otto.ts`; feature doc: server `docs/features/otto.md`.
+`src/types/otto.ts`; feature doc: server `docs/features/otto.md`, execution
+log `tasks/done/otto-intelligence-integration.md` §13.
 
 **Smart Tune rides the REAL chat — never a second chat implementation
 (2026-09).** A module surface opens a SCOPED conversation in the platform's
