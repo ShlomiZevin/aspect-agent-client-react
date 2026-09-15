@@ -91,7 +91,11 @@ dataTable / chart / actionsBar / noteLine) — the server model never ships
 HTML or JS, so there is NO iframe and the blocks inherit `--ai-*` branding,
 EN/HE and RTL by construction. Everything under `/apps/:appId` that is not a
 registry module resolves through `CustomScreenRouter` by STATUS: `new` and
-drafts open `OttoBuilder` (three panels; the animated `OttoFigure` Orb is
+drafts open `OttoBuilder` (a draft the router itself created keeps its
+mounted builder via `ownedId` — remounting across the /apps/new → /apps/<id>
+URL swap once read the not-yet-persisted transcript back as empty), the
+published page's Edit unpublishes and the same URL flips to the builder,
+Cancel changes restores the server's publish snapshot (three panels; the animated `OttoFigure` Orb is
 SVG+CSS, honors reduced-motion), `active` renders `CustomScreenPage`,
 unknown ids fall back to the shelf. Rules that bite: every generated label
 is `Localized {en,he}` — pick with `l[lang] || l.en`, never assume one

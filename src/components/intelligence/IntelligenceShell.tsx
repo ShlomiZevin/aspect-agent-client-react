@@ -4,7 +4,7 @@
  * from Aspect BI (BIShell) — "Data Chat" navigates out to the existing chat
  * page rather than being reimplemented here.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LanguageProvider, useLanguage } from '../../context/LanguageContext';
 import { UserProvider, useUserContext } from '../../context/UserContext';
@@ -107,10 +107,16 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   // reported back up via onLoaded.
   const [insightBreadcrumb, setInsightBreadcrumb] = useState<string | null>(null);
   useEffect(() => { setInsightBreadcrumb(null); }, [insightId]);
-  /** Custom-app breadcrumb leaf, reported by the builder / published page —
-   *  same pattern as insightBreadcrumb above. */
-  const [customCrumb, setCustomCrumb] = useState<string | null>(null);
-  useEffect(() => { setCustomCrumb(null); }, [appId]);
+  /**
+   * Custom-app breadcrumb leaf, reported by the builder / published page.
+   * KEYED by appId rather than reset in an effect: when the first message
+   * swaps /apps/new -> /apps/<id>, the child's report and a parent reset
+   * land in the same commit and the reset wins (child effects run first),
+   * which blanked the crumb to the generic fallback. A stale report simply
+   * fails the key match and the fallback shows until the new surface reports.
+   */
+  const [customCrumb, setCustomCrumb] = useState<{ appId: string; crumb: string } | null>(null);
+  const reportCrumb = useCallback((crumb: string) => setCustomCrumb({ appId: appId ?? '', crumb }), [appId]);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatExpanded, setChatExpanded] = useState(false);
   const [chatEverOpened, setChatEverOpened] = useState(false);
@@ -378,9 +384,10 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
                   until the record loads. */}
               <span className={`${styles.crumb} ${styles.crumbActive}`}>
                 {appId === 'replenishment' ? t('procurement.title')
-                  : customCrumb || (appId === 'new'
-                    ? `${t('otto.crumb.draft')} - ${t('otto.crumb.newScreen')}`
-                    : t('otto.crumb.screen'))}
+                  : (customCrumb && customCrumb.appId === appId ? customCrumb.crumb : null)
+                    || (appId === 'new'
+                      ? `${t('otto.crumb.draft')} - ${t('otto.crumb.newScreen')}`
+                      : t('otto.crumb.screen'))}
               </span>
             </>
           )}
@@ -466,7 +473,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
             datasetId={datasetId}
             appId={appId!}
             baseURL={baseURL}
-            onCrumb={setCustomCrumb}
+            onCrumb={reportCrumb}
             fallback={(
               <AppsPage
                 datasetId={datasetId}

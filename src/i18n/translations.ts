@@ -1570,7 +1570,7 @@ export const translations: LanguageConfig = {
     'otto.step.plan': 'תכנון',
     'otto.step.approve': 'אישור',
     'otto.step.build': 'בנייה',
-    'otto.plan.kicker': 'תוכנית המסך · ממתינה לאישור',
+    'otto.plan.kicker': 'תוכנית האפליקציה · ממתינה לאישור',
     'otto.plan.changes': 'שינויים',
     'otto.plan.sources': 'מקורות',
     'otto.plan.filters': 'סינון',
