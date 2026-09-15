@@ -41,6 +41,7 @@ export interface OttoPlan {
   columns: OttoPlanRef[];
   filters: OttoPlanRef[];
   kpis: OttoPlanRef[];
+  charts?: OttoPlanRef[];
   actions: OttoPlanRef[];
   notes: Localized[];
   isChange?: boolean;

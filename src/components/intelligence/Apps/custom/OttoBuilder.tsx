@@ -360,6 +360,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
               {plan.filters.length > 0 && <PlanRow label={t('otto.plan.filters')} chips={plan.filters.map(f => loc(f.label))} />}
               <PlanRow label={t('otto.plan.columns')} chips={plan.columns.map(c => loc(c.label))} />
               {plan.kpis.length > 0 && <PlanRow label={t('otto.plan.kpis')} chips={plan.kpis.map(k => loc(k.label))} />}
+              {(plan.charts?.length ?? 0) > 0 && <PlanRow label={t('otto.plan.charts')} chips={plan.charts!.map(c => loc(c.label))} />}
               {plan.actions.length > 0 && <PlanRow label={t('otto.plan.actions')} chips={plan.actions.map(a => loc(a.label))} />}
               {plan.notes.length > 0 && (
                 <div className={styles.planNotes}>
