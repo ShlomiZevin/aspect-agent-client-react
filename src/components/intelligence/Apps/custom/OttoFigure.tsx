@@ -11,15 +11,23 @@
  */
 import styles from './OttoFigure.module.css';
 
-export type OttoFigureState = 'idle' | 'think' | 'build' | 'done' | 'error';
+export type OttoFigureState = 'idle' | 'think' | 'build' | 'done' | 'error' | 'await';
+
+/** Progress ring circumference (r = 58 around the porthole). */
+const RING_C = 2 * Math.PI * 58;
 
 interface Props {
   state: OttoFigureState;
   /** Height in px; width follows the viewBox ratio. */
   size?: number;
+  /** 0..1 — how far through the flow (chat→plan→approve→build) the screen
+   *  is. Drawn as a ring filling around the face, so "we are mid-process"
+   *  is visible even while Otto quietly waits (owner ask, 2026-09-15). */
+  progress?: number;
 }
 
-export function OttoFigure({ state, size = 190 }: Props) {
+export function OttoFigure({ state, size = 190, progress }: Props) {
+  const p = Math.max(0, Math.min(1, progress ?? 0));
   return (
     <div className={styles.stage} data-state={state}>
       <svg viewBox="0 0 260 310" fill="none" style={{ height: size }} aria-hidden="true">
@@ -34,6 +42,20 @@ export function OttoFigure({ state, size = 190 }: Props) {
             <circle cx="130" cy="239" r="3.6" fill="var(--ai-border, #e2e5ee)" />
             <circle cx="130" cy="132" r="52" fill="#171a23" />
             <circle cx="130" cy="132" r="52" stroke="var(--ai-border, #e2e5ee)" strokeWidth="3.5" fill="none" />
+            {/* Flow-progress ring: fills clockwise from 12 o'clock as the
+                screen advances through chat → plan → approve → build. */}
+            {p > 0 && (
+              <g transform="rotate(-90 130 132)">
+                <circle cx="130" cy="132" r="58" stroke="var(--ai-border-soft, #eef0f5)" strokeWidth="3" fill="none" />
+                <circle
+                  className={styles.ring}
+                  cx="130" cy="132" r="58"
+                  stroke="var(--ai-accent, #6d28d9)" strokeWidth="3" fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray={`${p * RING_C} ${RING_C}`}
+                />
+              </g>
+            )}
             <circle className={styles.glow} cx="130" cy="132" r="42" fill="var(--ai-accent, #6d28d9)" opacity=".2" />
             <circle cx="130" cy="132" r="38" fill="#171a23" />
 
@@ -43,6 +65,16 @@ export function OttoFigure({ state, size = 190 }: Props) {
                 <rect className={`${styles.eye} ${styles.anim}`} x="106" y="117" width="13" height="30" rx="6.5" fill="#eef2ff" />
                 <rect className={`${styles.eye} ${styles.eyeR} ${styles.anim}`} x="141" y="117" width="13" height="30" rx="6.5" fill="#eef2ff" />
               </g>
+            </g>
+
+            {/* AWAIT — mid-process, ball in the user's court: calm eyes over
+                a pulsing ellipsis, "there is unfinished work here". */}
+            <g className={`${styles.st} ${styles.stAwait}`}>
+              <rect className={`${styles.aeye} ${styles.anim}`} x="107" y="112" width="12" height="26" rx="6" fill="#eef2ff" />
+              <rect className={`${styles.aeye} ${styles.aeyeR} ${styles.anim}`} x="141" y="112" width="12" height="26" rx="6" fill="#eef2ff" />
+              <circle className={`${styles.wdot} ${styles.anim}`} cx="116" cy="154" r="3.2" fill="#8f7bd9" />
+              <circle className={`${styles.wdot} ${styles.wdot2} ${styles.anim}`} cx="130" cy="154" r="3.2" fill="#8f7bd9" />
+              <circle className={`${styles.wdot} ${styles.wdot3} ${styles.anim}`} cx="144" cy="154" r="3.2" fill="#8f7bd9" />
             </g>
 
             {/* THINK */}

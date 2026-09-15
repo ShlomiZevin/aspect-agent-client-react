@@ -25,6 +25,7 @@
   pointer-events: none;
 }
 .stage[data-state="idle"]  .stIdle,
+.stage[data-state="await"] .stAwait,
 .stage[data-state="think"] .stThink,
 .stage[data-state="build"] .stBuild,
 .stage[data-state="done"]  .stDone,
@@ -57,6 +58,22 @@
   66%, 100% { transform: translate(0, 0); }
 }
 @keyframes otto-breathe { 0%, 100% { opacity: .16; } 50% { opacity: .34; } }
+
+/* await — mid-process hold: eyes blink calmly, the ellipsis pulses in
+ * sequence ("unfinished work"), and the progress ring shows how far the
+ * flow has come. */
+.stage[data-state="await"] .aeye  { animation: otto-blink 5.2s ease-in-out infinite; }
+.stage[data-state="await"] .aeyeR { animation-delay: .05s; }
+.stage[data-state="await"] .wdot  { animation: otto-wdot 1.6s ease-in-out infinite; }
+.stage[data-state="await"] .wdot2 { animation-delay: .25s; }
+.stage[data-state="await"] .wdot3 { animation-delay: .5s; }
+@keyframes otto-wdot {
+  0%, 100% { opacity: .25; transform: translateY(0); }
+  35%      { opacity: 1;   transform: translateY(-2.5px); }
+}
+
+/* the flow-progress ring fills smoothly rather than snapping per step */
+.ring { transition: stroke-dasharray .8s cubic-bezier(.3, .8, .3, 1); }
 
 /* think — enters with a spin-up beat, then settles into the steady orbit */
 .stage[data-state="think"] .iris {

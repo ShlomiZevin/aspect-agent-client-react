@@ -272,12 +272,16 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
   const built = Boolean(screen?.screenSpec && preview);
   const statusBadge = phase === 'building' ? 'building' : built ? 'ready' : 'draft';
 
+  // idle only before anything happened; once a conversation exists Otto
+  // holds the 'await' pose — the ellipsis + progress ring say "mid-process"
+  // even while he quietly waits for the user (owner ask, 2026-09-15).
   const figure: OttoFigureState =
     phase === 'building' ? 'build'
       : thinking || planning ? 'think'
         : error ? 'error'
           : built && steps[steps.length - 1]?.key === 'built' ? 'done'
-            : 'idle';
+            : messages.length > 0 || plan || built ? 'await'
+              : 'idle';
 
   const stepStates = useMemo(() => {
     const done = new Set(steps.map(s => s.key));
@@ -437,7 +441,11 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
           )}
         </div>
         <div className={styles.figureBox}>
-          <OttoFigure state={figure} size={200} />
+          <OttoFigure
+            state={figure}
+            size={200}
+            progress={stepStates.filter(s => s.done).length / stepStates.length}
+          />
         </div>
       </aside>
       {!statusOpen && (
