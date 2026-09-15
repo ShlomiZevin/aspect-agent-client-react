@@ -43,6 +43,20 @@ export const ottoService = {
       body: JSON.stringify({ publish: true }),
     }, baseURL).then(r => r.screen),
 
+  /** "Edit app": published → draft state, publish snapshot kept for revert. */
+  unpublish: (datasetId: string, id: string, baseURL?: string) =>
+    apiRequest<{ screen: OttoScreen }>(`${base(datasetId)}/screens/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ unpublish: true }),
+    }, baseURL).then(r => r.screen),
+
+  /** "Cancel changes": restore the last published state, go live again. */
+  revert: (datasetId: string, id: string, baseURL?: string) =>
+    apiRequest<{ screen: OttoScreen }>(`${base(datasetId)}/screens/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ revert: true }),
+    }, baseURL).then(r => r.screen),
+
   deleteDraft: (datasetId: string, id: string, baseURL?: string) =>
     apiRequest<{ deleted: boolean }>(`${base(datasetId)}/screens/${encodeURIComponent(id)}`, {
       method: 'DELETE',

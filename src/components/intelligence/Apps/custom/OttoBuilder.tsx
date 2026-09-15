@@ -36,9 +36,11 @@ interface Props {
   baseURL?: string;
   /** Replace the URL once the draft exists, so a reload reopens it. */
   onDraftCreated: (id: string) => void;
-  /** After publish — the shelf redirects to the app's own page. */
+  /** After publish OR revert — the same URL now renders the published page. */
   onPublished: (id: string) => void;
   onExit: () => void;
+  /** The shell's breadcrumb leaf — "Draft - <title>" while here. */
+  onCrumb?: (crumb: string) => void;
 }
 
 type Phase = 'talk' | 'plan' | 'building';
@@ -46,7 +48,7 @@ interface StepDone { key: string; seconds: number }
 
 const POLL_MS = 1400;
 
-export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPublished, onExit }: Props) {
+export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPublished, onExit, onCrumb }: Props) {
   const { t, language } = useLanguage();
   const { userId } = useUserContext();
   const { startTask } = useJobs();
@@ -68,7 +70,9 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
   const [steps, setSteps] = useState<StepDone[]>([]);
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
-  const [confirmOpen, setConfirmOpen] = useState<'publish' | 'delete' | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState<'publish' | 'delete' | 'revert' | null>(null);
+  /** Tap-to-answer options under the latest reply — ephemeral by design. */
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [railOpen, setRailOpen] = useState(true);
   const [statusOpen, setStatusOpen] = useState(true);
 
@@ -132,6 +136,11 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     setThinking(true);
     setError(null);
     setPhase('talk');
+    setSuggestions([]);
+    // A message after a completed build starts a REVISION round: the step
+    // strip resets to chat and the app reads as a draft again (owner flow,
+    // 2026-09-15) — the built version stays on the canvas untouched.
+    if (steps.some(s => s.key === 'built')) setSteps([]);
     const next: OttoMessage[] = [...messages, { role: 'user', content: clean }];
     setMessages(next);
 
@@ -148,6 +157,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
       setMessages([...next, { role: 'assistant', content: r.reply }]);
       setReadyToPlan(r.readyToPlan);
       setStatusLine(r.state?.en ? r.state : null);
+      setSuggestions(r.suggestions || []);
       markStep('understood');
     } catch (err) {
       setError(err instanceof Error ? err.message : t('otto.error.chatFailed'));
@@ -155,7 +165,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     } finally {
       setThinking(false);
     }
-  }, [messages, thinking, phase, screen, datasetId, userId, baseURL, lang, onDraftCreated, markStep, t]);
+  }, [messages, thinking, phase, screen, steps, datasetId, userId, baseURL, lang, onDraftCreated, markStep, t]);
 
   const preparePlan = useCallback(async () => {
     if (!screen || thinking) return;
@@ -256,6 +266,25 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     }
   }, [screen, datasetId, baseURL, onExit, t]);
 
+  /** Cancel changes: back to the last published version, live again. */
+  const doRevert = useCallback(async () => {
+    if (!screen) return;
+    setConfirmOpen(null);
+    try {
+      await ottoService.revert(datasetId, screen.id, baseURL);
+      onPublished(screen.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('otto.error.revertFailed'));
+    }
+  }, [screen, datasetId, baseURL, onPublished, t]);
+
+  /** Tap-to-answer: each press appends its own line to the composer —
+   *  chips compose, they never auto-send. */
+  const insertSuggestion = useCallback((text: string) => {
+    setDraft(d => (d.trim() ? `${d.replace(/\s+$/, '')}\n${text}` : text));
+    inputRef.current?.focus();
+  }, []);
+
   const saveRename = useCallback(async () => {
     const value = renameValue.trim();
     setRenaming(false);
@@ -270,7 +299,11 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
   // ── derived ──
   const title = screen ? (screen.title[lang] || screen.title.en) : t('otto.newScreen');
   const built = Boolean(screen?.screenSpec && preview);
-  const statusBadge = phase === 'building' ? 'building' : built ? 'ready' : 'draft';
+  /** "Ready for review" only right after THIS round's build; a revision in
+   *  progress reads as a draft again even though the old build still shows. */
+  const freshBuild = steps[steps.length - 1]?.key === 'built';
+  const statusBadge = phase === 'building' ? 'building' : freshBuild ? 'ready' : 'draft';
+  const everPublished = Boolean(screen?.publishedState);
 
   // idle only before anything happened; once a conversation exists Otto
   // holds the 'await' pose — the ellipsis + progress ring say "mid-process"
@@ -283,15 +316,18 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
             : messages.length > 0 || plan || built ? 'await'
               : 'idle';
 
+  // The strip reads from THIS ROUND's steps only — a revision resets it, so
+  // after a build the flow visibly starts over at Chat instead of showing
+  // four green checks forever.
   const stepStates = useMemo(() => {
     const done = new Set(steps.map(s => s.key));
     return [
-      { key: 'chat', label: t('otto.step.chat'), done: done.has('understood') || Boolean(plan), now: thinking && !planning },
-      { key: 'plan', label: t('otto.step.plan'), done: Boolean(plan), now: planning },
-      { key: 'approve', label: t('otto.step.approve'), done: done.has('approved') || built, now: phase === 'plan' },
-      { key: 'build', label: t('otto.step.build'), done: built, now: phase === 'building' },
+      { key: 'chat', label: t('otto.step.chat'), done: done.has('understood'), now: thinking && !planning },
+      { key: 'plan', label: t('otto.step.plan'), done: done.has('planDrafted'), now: planning },
+      { key: 'approve', label: t('otto.step.approve'), done: done.has('approved'), now: phase === 'plan' },
+      { key: 'build', label: t('otto.step.build'), done: done.has('built'), now: phase === 'building' },
     ];
-  }, [steps, plan, thinking, planning, phase, built, t]);
+  }, [steps, thinking, planning, phase, t]);
 
   const statusNow =
     phase === 'building' ? t(`otto.stage.${build?.stage || 'reading_plan'}`)
@@ -302,6 +338,12 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
               : t('otto.status.listening');
 
   const loc = (l: Localized) => l[lang] || l.en;
+
+  // The shell's breadcrumb leaf: drafts carry the Draft prefix, and the
+  // name follows renames and the plan's naming live.
+  useEffect(() => {
+    onCrumb?.(`${t('otto.crumb.draft')} - ${title}`);
+  }, [onCrumb, title, t]);
 
   return (
     <div className={styles.page}>
@@ -346,6 +388,19 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
             </div>
           ))}
           {thinking && !planning && <div className={styles.typing}>{t('otto.typing')}</div>}
+
+          {/* Tap-to-answer options for the question Otto just asked. They
+              COMPOSE into the input (one line per press) — the user still
+              sends, and can mix chips with their own words. */}
+          {suggestions.length > 0 && !thinking && phase === 'talk' && (
+            <div className={styles.chips}>
+              {suggestions.map((s, i) => (
+                <button key={i} type="button" className={styles.chip} onClick={() => insertSuggestion(s)}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
 
           {plan && phase === 'plan' && (
             <div className={styles.planCard}>
@@ -476,9 +531,17 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
           )}
           <span className={`${styles.badge} ${styles[`badge_${statusBadge}`]}`}>{t(`otto.badge.${statusBadge}`)}</span>
           <div className={styles.spacer} />
-          {screen && phase !== 'building' && (
+          {/* A never-published draft deletes; an ever-published app cancels
+              its changes instead — deleting a published app is super-admin
+              territory. */}
+          {screen && phase !== 'building' && !everPublished && (
             <button type="button" className={styles.btn} onClick={() => setConfirmOpen('delete')}>
               {t('otto.deleteDraft')}
+            </button>
+          )}
+          {screen && phase !== 'building' && everPublished && (
+            <button type="button" className={styles.btn} onClick={() => setConfirmOpen('revert')}>
+              {t('otto.cancelChanges')}
             </button>
           )}
           {built && phase !== 'building' && (
@@ -545,15 +608,23 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
         <div className={styles.overlay} role="dialog" aria-modal="true">
           <div className={styles.dialog}>
             <p className={styles.dialogTitle}>
-              {confirmOpen === 'publish' ? t('otto.confirm.publishTitle') : t('otto.confirm.deleteTitle')}
+              {confirmOpen === 'publish' ? t('otto.confirm.publishTitle')
+                : confirmOpen === 'revert' ? t('otto.confirm.revertTitle')
+                  : t('otto.confirm.deleteTitle')}
             </p>
             <p className={styles.dialogText}>
-              {confirmOpen === 'publish' ? t('otto.confirm.publishText') : t('otto.confirm.deleteText')}
+              {confirmOpen === 'publish' ? t('otto.confirm.publishText')
+                : confirmOpen === 'revert' ? t('otto.confirm.revertText')
+                  : t('otto.confirm.deleteText')}
             </p>
             <div className={styles.dialogActions}>
               <button type="button" className={`${styles.btn} ${styles.btnPrimary}`}
-                onClick={() => void (confirmOpen === 'publish' ? doPublish() : doDelete())}>
-                {confirmOpen === 'publish' ? t('otto.saveToApps') : t('otto.confirm.deleteYes')}
+                onClick={() => void (confirmOpen === 'publish' ? doPublish()
+                  : confirmOpen === 'revert' ? doRevert()
+                    : doDelete())}>
+                {confirmOpen === 'publish' ? t('otto.saveToApps')
+                  : confirmOpen === 'revert' ? t('otto.confirm.revertYes')
+                    : t('otto.confirm.deleteYes')}
               </button>
               <button type="button" className={styles.btn} onClick={() => setConfirmOpen(null)}>
                 {t('otto.confirm.cancel')}

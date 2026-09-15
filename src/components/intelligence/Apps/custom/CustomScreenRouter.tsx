@@ -29,9 +29,11 @@ interface Props {
   baseURL?: string;
   /** Rendered when the id is neither a screen nor anything else — the shelf. */
   fallback: React.ReactNode;
+  /** The shell's breadcrumb leaf, forwarded to whichever surface renders. */
+  onCrumb?: (crumb: string) => void;
 }
 
-export function CustomScreenRouter({ datasetId, appId, baseURL, fallback }: Props) {
+export function CustomScreenRouter({ datasetId, appId, baseURL, fallback, onCrumb }: Props) {
   const navigate = useNavigate();
   const [screen, setScreen] = useState<OttoScreen | null>(null);
   const [missing, setMissing] = useState(false);
@@ -76,12 +78,25 @@ export function CustomScreenRouter({ datasetId, appId, baseURL, fallback }: Prop
           setReloadTick(t => t + 1);
         }}
         onExit={() => navigate(`/intelligence/${datasetId}/apps`)}
+        onCrumb={onCrumb}
       />
     );
   }
 
   if (screen?.status === 'active') {
-    return <CustomScreenPage datasetId={datasetId} screenId={appId} baseURL={baseURL} />;
+    return (
+      <CustomScreenPage
+        datasetId={datasetId}
+        screenId={appId}
+        baseURL={baseURL}
+        onCrumb={onCrumb}
+        onUnpublished={() => {
+          // Same URL, new status — refetch so the builder takes over.
+          setScreen(null);
+          setReloadTick(t => t + 1);
+        }}
+      />
+    );
   }
 
   if (missing) return <>{fallback}</>;

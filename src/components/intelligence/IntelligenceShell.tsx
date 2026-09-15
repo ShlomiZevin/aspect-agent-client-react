@@ -107,6 +107,10 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   // reported back up via onLoaded.
   const [insightBreadcrumb, setInsightBreadcrumb] = useState<string | null>(null);
   useEffect(() => { setInsightBreadcrumb(null); }, [insightId]);
+  /** Custom-app breadcrumb leaf, reported by the builder / published page —
+   *  same pattern as insightBreadcrumb above. */
+  const [customCrumb, setCustomCrumb] = useState<string | null>(null);
+  useEffect(() => { setCustomCrumb(null); }, [appId]);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatExpanded, setChatExpanded] = useState(false);
   const [chatEverOpened, setChatEverOpened] = useState(false);
@@ -368,13 +372,15 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           {view === 'app' && (
             <>
               <span className={styles.crumbSep}>/</span>
-              {/* The leaf crumb follows the appId: registry modules by name,
-                  the builder by Otto's label, a custom screen generically —
-                  its own header states the real title. */}
+              {/* The leaf crumb: registry modules by name; custom apps report
+                  their own ("Draft - <name>" from the builder, the plain name
+                  from a published page) via onCrumb, with generic fallbacks
+                  until the record loads. */}
               <span className={`${styles.crumb} ${styles.crumbActive}`}>
                 {appId === 'replenishment' ? t('procurement.title')
-                  : appId === 'new' ? t('otto.crumb.newScreen')
-                    : t('otto.crumb.screen')}
+                  : customCrumb || (appId === 'new'
+                    ? `${t('otto.crumb.draft')} - ${t('otto.crumb.newScreen')}`
+                    : t('otto.crumb.screen'))}
               </span>
             </>
           )}
@@ -460,6 +466,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
             datasetId={datasetId}
             appId={appId!}
             baseURL={baseURL}
+            onCrumb={setCustomCrumb}
             fallback={(
               <AppsPage
                 datasetId={datasetId}

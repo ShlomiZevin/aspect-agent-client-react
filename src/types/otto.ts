@@ -58,6 +58,10 @@ export interface OttoScreen {
   screenSpec: ScreenSpec | null;
   conversation: OttoMessage[];
   status: OttoScreenStatus;
+  /** The last PUBLISHED state — non-null means this app has been published
+   *  at least once, which is what makes "Cancel changes" available (and
+   *  hides plain Delete: cancel is the escape hatch for a published app). */
+  publishedState?: unknown | null;
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
@@ -163,6 +167,8 @@ export interface BrainstormResult {
   readyToPlan: boolean;
   readySummary: string;
   state: Localized;
+  /** Tap-to-answer options for the question the reply asks (0-3). */
+  suggestions: string[];
 }
 
 export interface BuildProgress {

@@ -1,10 +1,16 @@
 /**
- * A published custom screen's own page — rendered natively inside the
- * shell exactly like Procurement: client branding, both locales, RTL, no
- * iframe, because there is no untrusted code to contain.
+ * A published custom app's own page — rendered natively inside the shell
+ * exactly like Procurement: client branding, both locales, RTL, no iframe,
+ * because there is no untrusted code to contain.
+ *
+ * "Edit app" is the one action a published app offers: after a warning
+ * (the app drops back to draft state until republished) it unpublishes and
+ * hands the same URL over to the builder — Cancel changes there restores
+ * what was published.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './CustomScreenPage.module.css';
+import builderStyles from './OttoBuilder.module.css';
 import { ottoService } from '../../../../services/ottoService';
 import { ScreenRenderer } from './ScreenRenderer';
 import { ScreenIcon } from './ScreenIcon';
@@ -16,15 +22,24 @@ interface Props {
   datasetId: string;
   screenId: string;
   baseURL?: string;
+  /** After a successful unpublish — the router refetches and the same URL
+   *  renders the builder. */
+  onUnpublished?: () => void;
+  /** The shell's breadcrumb leaf — the app's own name, no Draft prefix. */
+  onCrumb?: (crumb: string) => void;
 }
 
-export function CustomScreenPage({ datasetId, screenId, baseURL }: Props) {
+export function CustomScreenPage({ datasetId, screenId, baseURL, onUnpublished, onCrumb }: Props) {
   const { t, language } = useLanguage();
   const [screen, setScreen] = useState<OttoScreen | null>(null);
   const [data, setData] = useState<ScreenDataPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmEdit, setConfirmEdit] = useState(false);
   // StrictMode double-invoke: dedupe by key via a ref, never a cancelled flag.
   const loadedFor = useRef<string | null>(null);
+
+  const lang = language === 'he' ? 'he' : 'en';
+  const locale = lang === 'he' ? 'he-IL' : 'en-GB';
 
   useEffect(() => {
     const key = `${datasetId}/${screenId}`;
@@ -41,8 +56,19 @@ export function CustomScreenPage({ datasetId, screenId, baseURL }: Props) {
       .catch(err => setError(err instanceof Error ? err.message : String(err)));
   }, [datasetId, screenId, baseURL]);
 
-  const lang = language === 'he' ? 'he' : 'en';
-  const locale = lang === 'he' ? 'he-IL' : 'en-GB';
+  useEffect(() => {
+    if (screen) onCrumb?.(screen.title[lang] || screen.title.en);
+  }, [screen, lang, onCrumb]);
+
+  const startEdit = useCallback(async () => {
+    setConfirmEdit(false);
+    try {
+      await ottoService.unpublish(datasetId, screenId, baseURL);
+      onUnpublished?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('otto.error.editFailed'));
+    }
+  }, [datasetId, screenId, baseURL, onUnpublished, t]);
 
   if (error) {
     return <div className={styles.error}>{t('otto.screen.failed')}</div>;
@@ -69,11 +95,34 @@ export function CustomScreenPage({ datasetId, screenId, baseURL }: Props) {
           <h1 className={styles.title}>{screen.title[lang] || screen.title.en}</h1>
           {screen.summary && <p className={styles.summary}>{screen.summary[lang] || screen.summary.en}</p>}
         </div>
-        {stamp && (
-          <span className={styles.stamp}>{t('apps.researchedAt').replace('{time}', stamp)}</span>
-        )}
+        <div className={styles.headActions}>
+          {stamp && (
+            <span className={styles.stamp}>{t('apps.researchedAt').replace('{time}', stamp)}</span>
+          )}
+          <button type="button" className={styles.editBtn} onClick={() => setConfirmEdit(true)}>
+            ✎ {t('otto.editApp')}
+          </button>
+        </div>
       </div>
       <ScreenRenderer spec={screen.screenSpec} data={data} />
+
+      {confirmEdit && (
+        <div className={builderStyles.overlay} role="dialog" aria-modal="true">
+          <div className={builderStyles.dialog}>
+            <p className={builderStyles.dialogTitle}>{t('otto.confirm.editTitle')}</p>
+            <p className={builderStyles.dialogText}>{t('otto.confirm.editText')}</p>
+            <div className={builderStyles.dialogActions}>
+              <button type="button" className={`${builderStyles.btn} ${builderStyles.btnPrimary}`}
+                onClick={() => void startEdit()}>
+                {t('otto.confirm.editYes')}
+              </button>
+              <button type="button" className={builderStyles.btn} onClick={() => setConfirmEdit(false)}>
+                {t('otto.confirm.cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
