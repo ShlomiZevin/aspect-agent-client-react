@@ -48,10 +48,12 @@ export const ottoService = {
       method: 'DELETE',
     }, baseURL),
 
-  chat: (datasetId: string, id: string, messages: OttoMessage[], baseURL?: string) =>
+  chat: (datasetId: string, id: string, messages: OttoMessage[], language: 'en' | 'he', baseURL?: string) =>
     apiRequest<BrainstormResult>(`${base(datasetId)}/screens/${encodeURIComponent(id)}/chat`, {
       method: 'POST',
-      body: JSON.stringify({ messages }),
+      // language = the shell's EN/HE toggle; Otto converses in the interface
+      // language, like Data Chat and reports.
+      body: JSON.stringify({ messages, language }),
     }, baseURL),
 
   draftPlan: (datasetId: string, id: string, messages: OttoMessage[], baseURL?: string) =>

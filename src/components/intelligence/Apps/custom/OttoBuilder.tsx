@@ -144,7 +144,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
         setScreen(current);
         onDraftCreated(current.id);
       }
-      const r = await ottoService.chat(datasetId, current.id, next, baseURL);
+      const r = await ottoService.chat(datasetId, current.id, next, lang, baseURL);
       setMessages([...next, { role: 'assistant', content: r.reply }]);
       setReadyToPlan(r.readyToPlan);
       setStatusLine(r.state?.en ? r.state : null);
@@ -155,7 +155,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     } finally {
       setThinking(false);
     }
-  }, [messages, thinking, phase, screen, datasetId, userId, baseURL, onDraftCreated, markStep, t]);
+  }, [messages, thinking, phase, screen, datasetId, userId, baseURL, lang, onDraftCreated, markStep, t]);
 
   const preparePlan = useCallback(async () => {
     if (!screen || thinking) return;
