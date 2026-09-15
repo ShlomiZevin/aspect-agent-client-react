@@ -239,7 +239,7 @@
 .body { flex: 1; min-height: 0; overflow-y: auto; background: var(--ai-shell-bg); }
 
 /* ── floating chat launcher (persistent across all internal pages) ── */
-.launcherWrap { position: fixed; right: 36px; bottom: 24px; display: flex; align-items: center; gap: 12px; z-index: 20; }
+.launcherWrap { position: fixed; inset-inline-end: 36px; bottom: 24px; display: flex; align-items: center; gap: 12px; z-index: 20; }
 .teaser {
   background: var(--ai-surface);
   border: 1px solid var(--ai-border);
