@@ -292,7 +292,9 @@ function ChartView({ block, data, lang }: {
   const set = data.resultSets[block.from];
   const chart = useMemo(() => {
     if (!set) return null;
-    const rows = set.rows.slice(0, 30); // a chart over 500 categories is noise
+    // A chart over 500 categories is noise; a pie must stay within the
+    // slice count its eligibility check allows.
+    const rows = set.rows.slice(0, block.variant === 'pie' ? 10 : 30);
     return {
       title: pick(block.title, lang),
       unit: '',
@@ -306,7 +308,8 @@ function ChartView({ block, data, lang }: {
     };
   }, [set, block, lang]);
   if (!chart) return null;
-  return <InsightChart chart={chart} />;
+  // The spec's variant picks the opening tab; the switcher stays available.
+  return <InsightChart chart={chart} initialView={block.variant} />;
 }
 
 // ── actionsBar ───────────────────────────────────────────────────────────

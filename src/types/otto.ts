@@ -114,7 +114,7 @@ export type ScreenBlock =
   | { kind: 'kpiCards'; from: string; cards: KpiCard[] }
   | { kind: 'filterBar'; from: string; filters: string[] }
   | { kind: 'dataTable'; from: string; columns: string[]; sortable?: boolean; pageSize?: number }
-  | { kind: 'chart'; from: string; variant: 'line' | 'bar'; category: string; series: string[]; title: Localized }
+  | { kind: 'chart'; from: string; variant: 'line' | 'bar' | 'pie'; category: string; series: string[]; title: Localized }
   | {
       kind: 'actionsBar';
       actions: Array<{

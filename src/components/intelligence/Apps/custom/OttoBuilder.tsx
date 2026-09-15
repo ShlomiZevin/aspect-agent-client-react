@@ -44,7 +44,13 @@ interface Props {
 }
 
 type Phase = 'talk' | 'plan' | 'building';
-interface StepDone { key: string; seconds: number }
+interface StepDone {
+  key: string;
+  seconds: number;
+  /** A one-line summary shown instead of the generic label — Otto's own
+   *  read of the request, so "Request understood" says WHAT was understood. */
+  note?: Localized;
+}
 
 const POLL_MS = 1400;
 
@@ -81,10 +87,10 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
   const loadedFor = useRef<string | null>(null);
   const stepStart = useRef<number>(Date.now());
 
-  const markStep = useCallback((key: string) => {
+  const markStep = useCallback((key: string, note?: Localized) => {
     const seconds = Math.max(1, Math.round((Date.now() - stepStart.current) / 1000));
     stepStart.current = Date.now();
-    setSteps(s => [...s.slice(-5), { key, seconds }]);
+    setSteps(s => [...s.slice(-5), { key, seconds, note }]);
   }, []);
 
   // ── load: starters always; the draft when reopening one ──
@@ -158,7 +164,9 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
       setReadyToPlan(r.readyToPlan);
       setStatusLine(r.state?.en ? r.state : null);
       setSuggestions(r.suggestions || []);
-      markStep('understood');
+      // The checklist row carries Otto's own read of the request — far more
+      // informative than a bare "Request understood" (owner, 2026-09-15).
+      markStep('understood', r.state?.en ? r.state : undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('otto.error.chatFailed'));
       setMessages(next); // the user's message stays; retry is one click
@@ -489,7 +497,9 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
               {steps.map((s, i) => (
                 <li key={i}>
                   <span className={styles.checkMark}>✓</span>
-                  {t(`otto.done.${s.key}`)}
+                  <span className={styles.checkText} title={s.note ? loc(s.note) : undefined}>
+                    {s.note ? loc(s.note) : t(`otto.done.${s.key}`)}
+                  </span>
                   <span className={styles.checkTime}>{s.seconds}{t('otto.seconds')}</span>
                 </li>
               ))}

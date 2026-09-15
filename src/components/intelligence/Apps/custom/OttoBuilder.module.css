@@ -227,7 +227,14 @@
 .statusDetail { margin: 6px 0 0; font-size: 12px; color: var(--ai-text-dim, #6a7183); }
 .checklist { margin: 10px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .checklist li { display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: var(--ai-text-dim, #6a7183); }
-.checkMark { color: var(--ai-success, #169e4d); font-size: 11px; }
+.checkMark { color: var(--ai-success, #169e4d); font-size: 11px; flex-shrink: 0; }
+.checkText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .checkTime { margin-inline-start: auto; font-size: 11px; color: var(--ai-text-mute, #8a90a3); font-variant-numeric: tabular-nums; }
 .figureBox {
   background: var(--ai-surface, #fff);
