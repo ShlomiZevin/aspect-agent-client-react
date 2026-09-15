@@ -172,8 +172,6 @@ function nowMinutesSinceMidnight(tz = 'Asia/Jerusalem') {
   return minutesSinceMidnight(new Date().toISOString(), tz);
 }
 
-const HOUR_TICKS = [0, 4, 8, 12, 16, 20, 24];
-
 interface ProjectRow {
   schemaName: string;
   driveSync?: ScheduleEntry;
@@ -206,6 +204,11 @@ function lastRunSummary(cycle: LastCycle | undefined): { text: string; tone: 'ok
  * Bars longer than the gap to the next midnight are clipped at 24:00 with a
  * small overflow mark rather than wrapping, since every duration seen so far
  * is well under a day.
+ *
+ * The axis zooms to the actual busy window (every schedule + run is a
+ * nightly job clustered in a few hours) instead of spanning the full 24h —
+ * a fixed 0–24 axis left every bar a sliver a few px wide. Falls back to the
+ * full day only when there's nothing scheduled yet to zoom to.
  */
 function ScheduleTimeline({ rows }: { rows: ProjectRow[] }) {
   const nowMin = nowMinutesSinceMidnight();
@@ -233,7 +236,33 @@ function ScheduleTimeline({ rows }: { rows: ProjectRow[] }) {
     }
   }
 
-  const pct = (min: number) => `${(min / 1440) * 100}%`;
+  const busyMinutes: number[] = [];
+  for (const r of rows) {
+    if (r.driveSync?.enabled) busyMinutes.push(r.driveSync.hour * 60 + r.driveSync.minute);
+    if (r.import?.enabled) busyMinutes.push(r.import.hour * 60 + r.import.minute);
+  }
+  for (const b of bars) {
+    if (b) { busyMinutes.push(b.startMin); busyMinutes.push(b.endMin); }
+  }
+
+  let windowStart = 0;
+  let windowEnd = 1440;
+  let tickInterval = 240;
+  if (busyMinutes.length > 0) {
+    const rawMin = Math.min(...busyMinutes);
+    const rawMax = Math.max(...busyMinutes);
+    const span = rawMax - rawMin;
+    tickInterval = span <= 180 ? 30 : span <= 480 ? 60 : 120;
+    windowStart = Math.max(0, Math.floor((rawMin - tickInterval) / tickInterval) * tickInterval);
+    windowEnd = Math.min(1440, Math.ceil((rawMax + tickInterval) / tickInterval) * tickInterval);
+  }
+  const windowSpan = windowEnd - windowStart;
+
+  const ticks: number[] = [];
+  for (let m = windowStart; m <= windowEnd; m += tickInterval) ticks.push(m);
+
+  const pct = (min: number) => `${((min - windowStart) / windowSpan) * 100}%`;
+  const nowInWindow = nowMin >= windowStart && nowMin <= windowEnd;
 
   return (
     <div className={styles.timelineWrap}>
@@ -246,9 +275,9 @@ function ScheduleTimeline({ rows }: { rows: ProjectRow[] }) {
       </div>
 
       <div className={styles.timelineAxis}>
-        {HOUR_TICKS.map(h => (
-          <span key={h} className={styles.timelineTick} style={{ insetInlineStart: pct(h * 60) }}>
-            {String(h).padStart(2, '0')}:00
+        {ticks.map(m => (
+          <span key={m} className={styles.timelineTick} style={{ insetInlineStart: pct(m) }}>
+            {timeLabel(Math.floor(m / 60), m % 60)}
           </span>
         ))}
       </div>
@@ -261,7 +290,9 @@ function ScheduleTimeline({ rows }: { rows: ProjectRow[] }) {
           <div className={styles.timelineRow} key={r.schemaName}>
             <span className={styles.timelineLabel}>{r.schemaName}</span>
             <div className={styles.timelineTrack}>
-              <span className={styles.timelineNow} style={{ insetInlineStart: pct(nowMin) }} title="Now" />
+              {nowInWindow && (
+                <span className={styles.timelineNow} style={{ insetInlineStart: pct(nowMin) }} title="Now" />
+              )}
               {r.driveSync?.enabled && (
                 <span
                   className={styles.timelineMarkerDrive}
