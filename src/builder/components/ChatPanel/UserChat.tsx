@@ -1162,11 +1162,35 @@ function Bubble({ text, who, rtl, deleteControls, onReport, onDeleteSelf, onDele
   // length.
   const bubbleClass = `${styles.msg} ${who === 'user' ? styles.msgUser : styles.msgBot} ${rtl ? styles.msgRtl : ''}`;
   const deleteRowClass = `${styles.deleteRow} ${who === 'user' ? styles.deleteRowUser : styles.deleteRowBot}`;
+  // Task #836: copy the whole bot message. Selecting by hand also grabs the
+  // addon cards around the bubble; the bubble is plain text, so `text` is
+  // exactly what the user sees, line breaks included.
+  const canCopy = who === 'bot';
+  const [copied, setCopied] = useState(false);
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    } catch {
+      // Clipboard rejected (permissions / insecure context) — leave state alone.
+    }
+  };
   return (
     <div className={styles.bubbleGroup}>
       <div className={bubbleClass}>{text}</div>
-      {(deleteControls || onReport) && (
+      {(deleteControls || onReport || canCopy) && (
         <div className={deleteRowClass}>
+          {canCopy && (
+            <button
+              type="button"
+              className={styles.deleteIcon}
+              onClick={onCopy}
+              title={copied ? 'Copied' : 'Copy the whole message'}
+            >
+              {copied ? '✓' : '📋'}
+            </button>
+          )}
           {onReport && (
             <button
               type="button"

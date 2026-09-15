@@ -320,6 +320,7 @@ export function RulesConfigComponent({
               // reset per-type params on type switch
               field: undefined, valueMode: undefined, value: undefined,
               fromField: undefined, compute: undefined, target: undefined, text: undefined,
+              fireImmediately: undefined, onMatch: undefined,
             })}
           >
             {(Object.keys(ACTION_LABELS) as RuleAction['type'][]).map(t => (
@@ -354,16 +355,63 @@ export function RulesConfigComponent({
             {action.type === 'clear' &&
               fieldSelect(action.field, v => updateAction(ruleIdx, actionIdx, { field: v }), 'field…')}
 
-            {action.type === 'transition' && (
-              <select
-                className={styles.select}
-                value={action.target ?? ''}
-                onChange={e => updateAction(ruleIdx, actionIdx, { target: e.target.value })}
-              >
-                <option value="">crew…</option>
-                {crews.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            )}
+            {action.type === 'transition' && (() => {
+              // Same two knobs as the Transition Router (task #833). Unset
+              // onMatch shows its legacy effective value; any click writes
+              // BOTH knobs so flipping one never silently flips the other.
+              const fire = action.fireImmediately !== false;
+              const onMatch = action.onMatch ?? (fire ? 'break' : 'continue');
+              const setKnobs = (patch: Partial<RuleAction>) =>
+                updateAction(ruleIdx, actionIdx, { onMatch, fireImmediately: fire, ...patch });
+              return (
+                <>
+                  <select
+                    className={styles.select}
+                    value={action.target ?? ''}
+                    onChange={e => updateAction(ruleIdx, actionIdx, { target: e.target.value })}
+                  >
+                    <option value="">crew…</option>
+                    {crews.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <div className={styles.toggleGroup} role="group" aria-label="Rest of this chain">
+                    <button
+                      type="button"
+                      className={`${styles.toggle} ${onMatch === 'continue' ? styles.toggleActive : ''}`}
+                      onClick={() => setKnobs({ onMatch: 'continue' })}
+                      title="Run the rest of THIS crew's chain and the later rules. With 'This turn', both crews may answer."
+                    >
+                      Continue
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.toggle} ${onMatch === 'break' ? styles.toggleActive : ''}`}
+                      onClick={() => setKnobs({ onMatch: 'break' })}
+                      title="Skip the rest of THIS crew's chain and the later rules."
+                    >
+                      Stop
+                    </button>
+                  </div>
+                  <div className={styles.toggleGroup} role="group" aria-label="When the new crew answers">
+                    <button
+                      type="button"
+                      className={`${styles.toggle} ${fire ? styles.toggleActive : ''}`}
+                      onClick={() => setKnobs({ fireImmediately: true })}
+                      title="The new crew answers in this same turn."
+                    >
+                      This turn
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.toggle} ${!fire ? styles.toggleActive : ''}`}
+                      onClick={() => setKnobs({ fireImmediately: false })}
+                      title="The new crew takes over on the next user message."
+                    >
+                      Next message
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
 
             {action.type === 'stop' && (
               <span className={styles.hint}>skips the rest of this turn's chain, including the Talker</span>

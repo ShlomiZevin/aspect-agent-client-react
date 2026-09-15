@@ -136,6 +136,21 @@ export const GUIDE_GROUPS: GuideGroup[] = [
     ],
   },
   {
+    icon: '📝',
+    title: { en: 'Notes for yourself', he: 'הערות לעצמכם' },
+    entries: [
+      {
+        token: '{{# NOTE }}',
+        what: {
+          en: 'A note for whoever builds the agent — shown greyed in the editor. It is removed before the model reads the prompt, so it never changes the answer. Type / and pick "Note" to insert one. Keep the space after #, and don\'t put other tokens inside a note.',
+          he: 'הערה למי שבונה את הסוכן — מוצגת באפור בעורך. היא נמחקת לפני שהמודל קורא את הפרומפט, כך שהיא לא משנה את התשובה. כדי להוסיף הערה מקלידים / ובוחרים "Note". חשוב להשאיר רווח אחרי ה־#, ולא לשים טוקנים אחרים בתוך הערה.',
+        },
+        example: '{{# keep the greeting short — tested on 12/9 }}\nGreet {{field:customer_name}} warmly.',
+        renders: 'Greet Dana warmly.',
+      },
+    ],
+  },
+  {
     icon: '🎯',
     title: { en: 'Ask the model to FILL a field', he: 'לבקש מהמודל למלא שדה' },
     intro: {

@@ -5,6 +5,7 @@
 }
 
 .textarea {
+  display: block; /* no inline baseline gap — the notes backdrop matches the wrap exactly */
   width: 100%;
   font-family: ui-monospace, "Menlo", monospace;
   font-size: 12.5px;
@@ -28,6 +29,52 @@
 .textarea:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* ── Greyed builder notes `{{# … }}` (task #831) ─────────────────
+ * The textarea's text goes transparent and a backdrop behind it paints
+ * the same text with notes greyed. Every metric that affects wrapping
+ * mirrors .textarea; both reserve the scrollbar gutter so long prompts
+ * wrap identically whether or not they scroll. */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  scrollbar-gutter: stable;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-family: ui-monospace, "Menlo", monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  color: var(--text-primary, #111827);
+  background: var(--bg-input, #fafafa);
+  pointer-events: none;
+}
+
+.wrap:focus-within .backdrop {
+  background: #fff;
+}
+
+.note {
+  color: var(--text-tertiary, #9ca3af);
+  background: rgba(156, 163, 175, 0.14);
+  border-radius: 3px;
+}
+
+.textareaNotes,
+.textareaNotes:focus {
+  position: relative;
+  z-index: 1;
+  color: transparent;
+  caret-color: var(--text-primary, #111827);
+  background: transparent;
+  scrollbar-gutter: stable;
 }
 
 /* Floating picker — absolutely positioned by JS so it tracks the

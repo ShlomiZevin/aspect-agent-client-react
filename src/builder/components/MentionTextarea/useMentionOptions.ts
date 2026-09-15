@@ -668,6 +668,17 @@ export function useMentionOptions(
       });
     }
 
-    return { '@': at, '!': bang, '#': hash, '^': caret, '*': star, '%': percent, '+': plus, '&': amp, '~': tilde };
+    // ── /  Builder note (all-placeholders picker only) ─────────────
+    // Inserts the `{{# … }}` structure with the caret inside, ready to type.
+    // Stripped before the model reads the prompt (task #831).
+    const slash: MentionOption[] = [{
+      label:       'Note',
+      insertion:   '{{#  }}',
+      caretOffset: 4,
+      group:       'Notes',
+      description: 'A note for builders — shown greyed, removed before the model reads the prompt.',
+    }];
+
+    return { '/': slash, '@': at, '!': bang, '#': hash, '^': caret, '*': star, '%': percent, '+': plus, '&': amp, '~': tilde };
   }, [doc, agentId, hasBoundFieldGroup, boundFieldId, onCreateSnippet]);
 }

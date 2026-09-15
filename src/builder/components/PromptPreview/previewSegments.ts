@@ -77,6 +77,18 @@ const MAX_DEPTH = 4;
 // `lastIndex` would be clobbered by recursive calls and loop forever.
 const TOKEN_SRC = '\\{\\{([a-z_]+)(?::([^}]+))?\\}\\}';
 
+// `{{# note }}` builder-only comments (task #831) — mirror of the server's
+// stripPromptComments: space after `#` required (`{{#name}}` is a formula
+// parameter, not a comment), body can't contain `}}`, whole-line comments
+// take their newline. Removed from the preview because the LLM never sees them.
+const COMMENT_LINE_RE = /^[ \t]*\{\{#\s(?:(?!\}\})[\s\S])*\}\}[ \t]*(?:\r?\n|$)/gm;
+const COMMENT_RE = /\{\{#\s(?:(?!\}\})[\s\S])*\}\}/g;
+
+export function stripPromptComments(text: string): string {
+  if (typeof text !== 'string' || !text.includes('{{#')) return text;
+  return text.replace(COMMENT_LINE_RE, '').replace(COMMENT_RE, '');
+}
+
 const STATIC_NO_ARG = new Set([
   'fields_schema', 'fields_current', 'this_field', 'enum_values', 'these_fields',
 ]);
@@ -164,8 +176,12 @@ interface ResolveDeps {
   filterSummary: (f: AddonFilter | undefined) => string;
 }
 
-function segment(text: string, ctx: PreviewContext, deps: ResolveDeps, depth: number): PreviewNode[] {
-  if (typeof text !== 'string' || text.length === 0) return [];
+function segment(rawText: string, ctx: PreviewContext, deps: ResolveDeps, depth: number): PreviewNode[] {
+  if (typeof rawText !== 'string' || rawText.length === 0) return [];
+  // Every text the preview renders passes here (the prompt, snippet bodies,
+  // resolved static values), so one strip covers comments anywhere.
+  const text = stripPromptComments(rawText);
+  if (text.length === 0) return [];
   if (depth > MAX_DEPTH) return [{ kind: 'prose', text }];
 
   const out: PreviewNode[] = [];

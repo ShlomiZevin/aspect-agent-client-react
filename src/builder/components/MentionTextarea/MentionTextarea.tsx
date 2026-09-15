@@ -41,6 +41,10 @@ export interface MentionOption {
   label: string;
   /** The exact string that gets inserted into the textarea on pick. */
   insertion: string;
+  /** Caret position inside `insertion` after the pick (default: its end).
+   *  Lets structural entries drop the caret where the user types next —
+   *  e.g. between `{{# ` and ` }}` for a builder note. */
+  caretOffset?: number;
   /** Optional sub-line (e.g. "Field" / "Memory domain"). */
   group?: string;
   /** Optional hover description. */
@@ -58,6 +62,9 @@ export interface MentionOption {
 }
 
 export interface MentionOptions {
+  /** Entries shown ONLY in the `/` and `{{` all-placeholders picker, not
+   *  tied to a category sigil — e.g. the builder-note structure. */
+  '/'?: MentionOption[];
   /** Memory content — fields, domains, whole section. */
   '@'?: MentionOption[];
   /** Thinking content — domains, whole section. */
@@ -317,6 +324,27 @@ function caretCoordsInTextarea(
   return { top, left };
 }
 
+// Builder notes `{{# … }}` (task #831) render greyed. A textarea can't style
+// part of its text, so when the value holds a note the text is painted in a
+// backdrop layer behind a transparent-text textarea (caret + selection stay
+// on the real textarea). Same shape the server strips: a space after `#`,
+// no `}}` inside the body.
+const NOTE_RE_SRC = '\\{\\{#\\s(?:(?!\\}\\})[\\s\\S])*\\}\\}';
+
+function splitNotes(value: string): { text: string; note: boolean }[] {
+  const out: { text: string; note: boolean }[] = [];
+  const re = new RegExp(NOTE_RE_SRC, 'g');
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(value)) !== null) {
+    if (m.index > last) out.push({ text: value.slice(last, m.index), note: false });
+    out.push({ text: m[0], note: true });
+    last = m.index + m[0].length;
+  }
+  if (last < value.length) out.push({ text: value.slice(last), note: false });
+  return out;
+}
+
 export function MentionTextarea({
   value,
   onChange,
@@ -377,6 +405,21 @@ export function MentionTextarea({
     setManualDir(readManualDir(storageKey));
   }, [storageKey]);
 
+  const dir = manualDir ?? autoDir(value);
+
+  // Greyed builder notes — backdrop only exists while the value holds one,
+  // so prompts without notes render exactly as before.
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const noteParts = useMemo(() => (value.includes('{{#') ? splitNotes(value) : []), [value]);
+  const hasNotes = noteParts.some(p => p.note);
+  useLayoutEffect(() => {
+    const ta = taRef.current;
+    const bd = backdropRef.current;
+    if (!hasNotes || !ta || !bd) return;
+    bd.scrollTop = ta.scrollTop;
+    bd.scrollLeft = ta.scrollLeft;
+  }, [hasNotes, value]);
+
   // Remembered vertical size for this surface. Read once at mount —
   // a saved value drives an inline `height:` on the textarea so it
   // overrides the CSS default. When the user resizes, ResizeObserver
@@ -419,7 +462,7 @@ export function MentionTextarea({
     // Single-char triggers stay scoped.
     const isMeta = picker.trigger === '{{' || picker.trigger === '/';
     const pool = isMeta
-      ? SINGLE_TRIGGERS.flatMap(t => options[t] ?? [])
+      ? [...(options['/'] ?? []), ...SINGLE_TRIGGERS.flatMap(t => options[t] ?? [])]
       : (options[picker.trigger as SingleTrigger] ?? []);
     const f = picker.filter.toLowerCase();
     const filtered = f.length === 0
@@ -555,7 +598,7 @@ export function MentionTextarea({
     queueMicrotask(() => {
       const el = taRef.current;
       if (!el) return;
-      const nextCaret = picker.startIdx + opt.insertion.length;
+      const nextCaret = picker.startIdx + (opt.caretOffset ?? opt.insertion.length);
       el.selectionStart = nextCaret;
       el.selectionEnd   = nextCaret;
       el.focus();
@@ -657,9 +700,18 @@ export function MentionTextarea({
 
   return (
     <div className={`${styles.wrap} ${className ?? ''}`}>
+      {hasNotes && (
+        <div ref={backdropRef} className={styles.backdrop} dir={dir} aria-hidden="true">
+          {noteParts.map((p, i) => (
+            <span key={i} className={p.note ? styles.note : undefined}>{p.text}</span>
+          ))}
+          {/* A trailing newline needs a character after it to take up a line. */}
+          {value.endsWith('\n') ? '\u200b' : null}
+        </div>
+      )}
       <textarea
         ref={taRef}
-        className={styles.textarea}
+        className={`${styles.textarea} ${hasNotes ? styles.textareaNotes : ''}`}
         style={{
           ...(savedHeight !== null ? { height: savedHeight } : {}),
           ...(minHeight !== undefined ? { minHeight } : {}),
@@ -678,7 +730,13 @@ export function MentionTextarea({
         // storageKey) wins; otherwise we auto-flip to RTL when the
         // prompt is mostly Hebrew. The browser handles caret +
         // alignment + bidi resolution once `dir` is set.
-        dir={manualDir ?? autoDir(value)}
+        dir={dir}
+        onScroll={hasNotes ? (e) => {
+          const bd = backdropRef.current;
+          if (!bd) return;
+          bd.scrollTop = e.currentTarget.scrollTop;
+          bd.scrollLeft = e.currentTarget.scrollLeft;
+        } : undefined}
         onBlur={() => {
           // Defer close so a click on the picker fires before the close.
           window.setTimeout(closePicker, 120);
