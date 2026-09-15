@@ -177,34 +177,6 @@
 }
 
 /* Schedule tab */
-.scheduleTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.scheduleTable th {
-  text-align: left;
-  padding: 8px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #6b7280;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.scheduleTable td {
-  padding: 8px 10px;
-  border-bottom: 1px solid #f3f4f6;
-  color: #111827;
-}
-
-.scheduleProject {
-  font-weight: 600;
-  text-transform: capitalize;
-}
-
 .scheduleOn {
   color: #16a34a;
   font-weight: 600;
@@ -213,4 +185,191 @@
 .scheduleOff {
   color: #9ca3af;
   font-weight: 600;
+}
+
+/* Schedule tab — project grid */
+.projectGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.projectCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #fafafa;
+}
+
+.projectName {
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: capitalize;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.jobRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  padding: 3px 0;
+}
+
+.jobLabel {
+  color: #6b7280;
+}
+
+.jobTime {
+  font-variant-numeric: tabular-nums;
+  color: #111827;
+  font-weight: 500;
+}
+
+.lastRunLine {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #e5e7eb;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.toneOk { color: #16a34a; }
+.toneWarn { color: #b45309; }
+.toneBad { color: #b91c1c; }
+.toneMuted { color: #9ca3af; font-weight: 400; }
+
+.lastRunRows {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+/* Schedule tab — timeline */
+.timelineWrap {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 16px 10px;
+  background: #fff;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+.timelineLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 14px;
+}
+
+.timelineLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legendDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  display: inline-block;
+}
+.legendOk { background: #16a34a; }
+.legendBad { background: #b91c1c; }
+
+.legendOutline {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  display: inline-block;
+  border: 2px solid #f59e0b;
+}
+
+.legendMarkerDrive, .legendMarkerImport {
+  width: 2px;
+  height: 12px;
+  display: inline-block;
+}
+.legendMarkerDrive { background: #0ea5e9; }
+.legendMarkerImport { background: #6366f1; }
+
+.timelineAxis {
+  position: relative;
+  height: 16px;
+  margin-inline-start: 96px;
+  border-bottom: 1px solid #e5e7eb;
+  min-width: 480px;
+}
+
+.timelineTick {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.timelineRow {
+  display: flex;
+  align-items: center;
+  height: 26px;
+  min-width: 480px;
+}
+
+.timelineLabel {
+  width: 96px;
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-inline-end: 6px;
+}
+
+.timelineTrack {
+  position: relative;
+  flex: 1;
+  height: 14px;
+  background: #f9fafb;
+  border-radius: 4px;
+}
+
+.timelineBar {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 4px;
+  min-width: 2px;
+}
+.timelineBarOk { background: #86efac; }
+.timelineBarWarn { background: #fde68a; }
+.timelineBarBad { background: #fca5a5; }
+.timelineBarOverlap {
+  outline: 2px solid #f59e0b;
+  outline-offset: -1px;
+}
+
+.timelineMarkerDrive, .timelineMarkerImport {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 22px;
+  z-index: 1;
+}
+.timelineMarkerDrive { background: #0ea5e9; }
+.timelineMarkerImport { background: #6366f1; }
+
+.timelineNow {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 1px;
+  background: #ef4444;
+  z-index: 2;
 }
