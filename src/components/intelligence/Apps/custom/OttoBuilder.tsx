@@ -89,6 +89,12 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     if (loadedFor.current === key) return;
     loadedFor.current = key;
 
+    // The prop flips null → id when THIS instance just created the draft
+    // (the router keeps us mounted). We already hold the live state —
+    // reloading here would read the not-yet-persisted conversation back as
+    // empty and visually "reload the page" mid-reply (first live-test bug).
+    if (screenId && screen?.id === screenId) return;
+
     ottoService.listScreens(datasetId, baseURL)
       .then(r => setStarters(r.starters))
       .catch(() => {});

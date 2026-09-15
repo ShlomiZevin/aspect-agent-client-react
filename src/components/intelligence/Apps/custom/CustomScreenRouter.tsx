@@ -5,6 +5,15 @@
  * draft continues the conversation, owner flow D4), active renders the
  * published page. An unknown id falls back to the shelf, matching the
  * shell's existing behavior for stale bookmarks.
+ *
+ * THE OWNED-ID RULE (first live-test bug, 2026-09-15): when THIS router's
+ * builder creates the draft, the URL swaps /apps/new → /apps/<id> — and the
+ * naive resolver refetched, showed a skeleton and REMOUNTED the builder,
+ * which read the not-yet-persisted conversation back as empty. To the user
+ * that was "Send reloaded the page". A draft this instance created keeps
+ * its mounted builder (`ownedId`); both branches render the SAME element
+ * position so React updates props instead of remounting, and the builder
+ * itself skips reloading a screen it already holds.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -26,13 +35,18 @@ export function CustomScreenRouter({ datasetId, appId, baseURL, fallback }: Prop
   const navigate = useNavigate();
   const [screen, setScreen] = useState<OttoScreen | null>(null);
   const [missing, setMissing] = useState(false);
+  /** The draft this mounted builder created — never remount over it. */
+  const [ownedId, setOwnedId] = useState<string | null>(null);
+  /** Bumped to force a refetch of the SAME appId (publish flips its status). */
+  const [reloadTick, setReloadTick] = useState(0);
   const loadedFor = useRef<string | null>(null);
 
   const isNew = appId === 'new';
+  const owned = !isNew && appId === ownedId;
 
   useEffect(() => {
-    if (isNew) return;
-    const key = `${datasetId}/${appId}`;
+    if (isNew || owned) return;
+    const key = `${datasetId}/${appId}/${reloadTick}`;
     if (loadedFor.current === key) return;
     loadedFor.current = key;
     setScreen(null);
@@ -40,21 +54,26 @@ export function CustomScreenRouter({ datasetId, appId, baseURL, fallback }: Prop
     ottoService.getScreen(datasetId, appId, baseURL)
       .then(setScreen)
       .catch(() => setMissing(true));
-  }, [datasetId, appId, baseURL, isNew]);
+  }, [datasetId, appId, baseURL, isNew, owned, reloadTick]);
 
-  if (isNew || (screen && screen.status !== 'active')) {
+  if (isNew || owned || (screen && screen.status !== 'active')) {
     return (
       <OttoBuilder
         datasetId={datasetId}
         screenId={isNew ? null : appId}
         baseURL={baseURL}
-        onDraftCreated={id => navigate(`/intelligence/${datasetId}/apps/${id}`, { replace: true })}
-        onPublished={id => {
-          // A published screen renders through CustomScreenPage — same URL,
-          // fresh resolution.
-          loadedFor.current = null;
+        onDraftCreated={id => {
+          // Claim BEFORE navigating: the re-render for the new URL must
+          // already know this builder owns the draft, or it remounts.
+          setOwnedId(id);
           navigate(`/intelligence/${datasetId}/apps/${id}`, { replace: true });
-          setScreen(s => (s ? { ...s, status: 'active' } : s));
+        }}
+        onPublished={() => {
+          // Same URL, new status — release ownership and refetch so the
+          // published page takes over.
+          setOwnedId(null);
+          setScreen(null);
+          setReloadTick(t => t + 1);
         }}
         onExit={() => navigate(`/intelligence/${datasetId}/apps`)}
       />
