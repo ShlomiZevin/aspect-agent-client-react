@@ -29,6 +29,9 @@ export const appsService = {
    */
   hasApps: (datasetId: string, baseURL?: string) =>
     appsService.list(datasetId, false, baseURL)
-      .then(r => r.apps.length > 0)
+      // Live app modules, the ability to create screens (Otto), or existing
+      // custom screens — any of them earns the shelf. Mirrors the server's
+      // own hasApps; keep the two in step.
+      .then(r => r.apps.length > 0 || r.canCreate === true || (r.custom?.length ?? 0) > 0)
       .catch(() => false),
 };

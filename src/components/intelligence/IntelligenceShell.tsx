@@ -14,6 +14,7 @@ import { ReportHistoryPage } from './Reports/ReportHistoryPage';
 import { InsightDetail } from './Insights/InsightDetail';
 import { AppsPage } from './Apps/AppsPage';
 import { ProcurementPage } from './Apps/ProcurementPage';
+import { CustomScreenRouter } from './Apps/custom/CustomScreenRouter';
 import { SettingsPage } from './Settings/SettingsPage';
 import { appsService } from '../../services/appsService';
 import { ChatWidget } from './ChatWidget';
@@ -367,7 +368,14 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           {view === 'app' && (
             <>
               <span className={styles.crumbSep}>/</span>
-              <span className={`${styles.crumb} ${styles.crumbActive}`}>{t('procurement.title')}</span>
+              {/* The leaf crumb follows the appId: registry modules by name,
+                  the builder by Otto's label, a custom screen generically —
+                  its own header states the real title. */}
+              <span className={`${styles.crumb} ${styles.crumbActive}`}>
+                {appId === 'replenishment' ? t('procurement.title')
+                  : appId === 'new' ? t('otto.crumb.newScreen')
+                    : t('otto.crumb.screen')}
+              </span>
             </>
           )}
           {(view === 'reports' || view === 'history' || view === 'detail') && (
@@ -443,11 +451,22 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
         {view === 'app' && hasApps === true && appId === 'replenishment' && (
           <ProcurementPage datasetId={datasetId} baseURL={baseURL} onAskInChat={askFollowUp} onOpenScopedChat={openScopedChat} />
         )}
+        {/* Anything else under /apps/:appId is Otto's territory: 'new' opens
+            the builder, a screen id resolves by status (builder for drafts,
+            the published page for active), and an unknown id falls back to
+            the shelf — exactly what this branch did before Otto existed. */}
         {view === 'app' && hasApps === true && appId !== 'replenishment' && (
-          <AppsPage
+          <CustomScreenRouter
             datasetId={datasetId}
+            appId={appId!}
             baseURL={baseURL}
-            onOpenApp={(id) => navigate(`/intelligence/${datasetId}/apps/${id}`)}
+            fallback={(
+              <AppsPage
+                datasetId={datasetId}
+                baseURL={baseURL}
+                onOpenApp={(id) => navigate(`/intelligence/${datasetId}/apps/${id}`)}
+              />
+            )}
           />
         )}
         {(view === 'apps' || view === 'app') && hasApps === false && (

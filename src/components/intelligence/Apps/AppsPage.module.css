@@ -119,6 +119,41 @@
   font-size: 13px;
 }
 
+/* ── custom screens (Otto) ──
+   The "New screen" tile is dashed and hollow (M1); custom tiles are white
+   with the accent glyph so client-built screens read as siblings of the
+   marketplace apps without impersonating them. */
+.tileNew {
+  border: 1.5px dashed var(--ai-primary, #7c3aed);
+  background: none;
+  color: var(--ai-primary, #7c3aed);
+  font-size: 26px;
+  font-weight: 400;
+}
+.nameNew { color: var(--ai-primary, #7c3aed); }
+.live:hover .tileNew { box-shadow: 0 6px 14px rgba(109, 40, 217, 0.16); }
+
+.tileCustom {
+  background: var(--ai-surface, #ffffff);
+  border: 1px solid var(--ai-border, #e4e6ee);
+  color: var(--ai-primary, #7c3aed);
+  box-shadow: 0 4px 10px rgba(30, 32, 50, 0.06);
+}
+.live:hover .tileCustom { box-shadow: 0 8px 18px rgba(30, 32, 50, 0.12); }
+
+/* Draft marker: an amber dot pinned like the badge, but quiet — a draft is
+   unfinished work, not an alarm. */
+.draftDot {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--ai-bg, #f6f4fb);
+  background: #e3a008;
+}
+
 /* A phone fits three across at this size; the 36px gap does not. */
 @media (max-width: 520px) {
   .page { padding: 20px 16px 48px; }

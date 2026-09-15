@@ -84,6 +84,27 @@ Both mean the sibling repo must be checked out next to this one at the expected 
 
 **Aspect Modules have two client surfaces, and they are different audiences.** The **admin Modules tab** (`src/components/dashboard/ModulesPage/`, super-admin only) renders whatever the server's registry returns — module cards, a settings form generated from each descriptor's `settingsSchema`, and an init-run modal with server-polled progress. It deliberately does NOT call `useLanguage()`: that throws outside a `LanguageProvider` and the dashboard routes have none, so calling it would unmount the whole admin page (same hazard as `useAgentContext()`). The **client Procurement page** (`src/components/intelligence/Apps/ProcurementPage.tsx`) lives inside `IntelligenceShell`, which DOES provide one, so `useLanguage()` is safe there — and required, since it ships in both locales with RTL. Its nav item renders only when the module is enabled AND ready, resolved from `GET /api/modules/:datasetId`; the route always resolves so a stale bookmark lands on the shell rather than a broken page. Caveats shown to the user are quoted from the server's `notes[]`, never re-worded on the client — the screen, the chat tool and the report must not phrase the same caveat three different ways.
 
+**Otto custom screens are spec-rendered, never generated code (2026-09).**
+`src/components/intelligence/Apps/custom/` renders client-built screens from
+a JSON spec via the block catalog (`ScreenRenderer` + kpiCards / filterBar /
+dataTable / chart / actionsBar / noteLine) — the server model never ships
+HTML or JS, so there is NO iframe and the blocks inherit `--ai-*` branding,
+EN/HE and RTL by construction. Everything under `/apps/:appId` that is not a
+registry module resolves through `CustomScreenRouter` by STATUS: `new` and
+drafts open `OttoBuilder` (three panels; the animated `OttoFigure` Orb is
+SVG+CSS, honors reduced-motion), `active` renders `CustomScreenPage`,
+unknown ids fall back to the shelf. Rules that bite: every generated label
+is `Localized {en,he}` — pick with `l[lang] || l.en`, never assume one
+locale; KPI values come SQL-computed from the server and are NOT recomputed
+client-side (filters narrow the table, never the verified headline);
+`appsService.hasApps` must mirror the server's rule (apps OR `canCreate` OR
+`custom` — it once checked only `apps` and hid the tab for Otto-only
+clients); the shelf payload's `custom`/`canCreate` keys are OPTIONAL and
+absent when the feature is off — never send them to render paths
+unconditionally. Server contract lives in
+`aspect-agent-server/otto/services/spec.contract.js`, mirrored by hand in
+`src/types/otto.ts`; feature doc: server `docs/features/otto.md`.
+
 **Smart Tune rides the REAL chat — never a second chat implementation
 (2026-09).** A module surface opens a SCOPED conversation in the platform's
 own chat: the shell's `openScopedChat(scope)` hands a `ModuleScope` to
