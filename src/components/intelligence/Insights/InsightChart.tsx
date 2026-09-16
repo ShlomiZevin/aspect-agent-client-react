@@ -26,7 +26,9 @@ const PIE_COLORS = ['#7C3AED', '#C026D3', '#E0752E', '#12996B', '#8B5CF6', '#D94
 function isPieEligible(chart: InsightDetail['chart']): boolean {
   if (chart.series.length !== 1) return false;
   const points = chart.series[0].points;
-  if (points.length < 2 || points.length > 8) return false;
+  // Up to 10 slices: raised from 8 for Otto's "top 10" pies — the palette
+  // wraps and labels still fit at that count.
+  if (points.length < 2 || points.length > 10) return false;
   return points.every(v => v >= 0);
 }
 
@@ -39,13 +41,19 @@ function pieSlices(chart: InsightDetail['chart']) {
   }));
 }
 
-export function InsightChart({ chart }: { chart: InsightDetail['chart'] }) {
+export function InsightChart({ chart, initialView }: {
+  chart: InsightDetail['chart'];
+  /** Which tab opens first (default 'line'). An ineligible pie request
+   *  falls back to line rather than rendering a dishonest chart. */
+  initialView?: View;
+}) {
   const pieOk = isPieEligible(chart);
   // Pie simply isn't offered when the data can't honestly be one (multiple
   // series, negative values, too many slices) — a disabled-but-visible tab
   // just invites "why is this here" with no upside over not showing it.
   const views = pieOk ? VIEWS : VIEWS.filter(v => v.key !== 'pie');
-  const [view, setView] = useState<View>('line');
+  const [view, setView] = useState<View>(
+    initialView && (initialView !== 'pie' || pieOk) ? initialView : 'line');
   const allValues = chart.series.flatMap(s => s.points);
   const min = Math.min(0, ...allValues);
   const max = Math.max(...allValues);
@@ -142,22 +150,27 @@ function BarView({ chart, min, range }: { chart: InsightDetail['chart']; min: nu
 function PieView({ chart }: { chart: InsightDetail['chart'] }) {
   const slices = pieSlices(chart);
   const total = slices.reduce((a, s) => a + s.value, 0) || 1;
-  let cumulative = 0;
   const r = 80;
   const cx = W / 2 - 140;
   const cy = H / 2;
 
+  // Angles precomputed with a running sum — mutating an accumulator inside
+  // the render map tripped the compiler lint once this file grew a caller.
+  const withAngles = slices.reduce<Array<{ label: string; color: string; start: number; end: number }>>(
+    (acc, s) => {
+      const start = acc.length ? acc[acc.length - 1].end : 0;
+      acc.push({ label: s.label, color: s.color, start, end: start + (s.value / total) * 2 * Math.PI });
+      return acc;
+    }, []);
+
   return (
     <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
-      {slices.map((s, i) => {
-        const startAngle = (cumulative / total) * 2 * Math.PI;
-        cumulative += s.value;
-        const endAngle = (cumulative / total) * 2 * Math.PI;
-        const x1 = cx + r * Math.sin(startAngle);
-        const y1 = cy - r * Math.cos(startAngle);
-        const x2 = cx + r * Math.sin(endAngle);
-        const y2 = cy - r * Math.cos(endAngle);
-        const large = endAngle - startAngle > Math.PI ? 1 : 0;
+      {withAngles.map((s, i) => {
+        const x1 = cx + r * Math.sin(s.start);
+        const y1 = cy - r * Math.cos(s.start);
+        const x2 = cx + r * Math.sin(s.end);
+        const y2 = cy - r * Math.cos(s.end);
+        const large = s.end - s.start > Math.PI ? 1 : 0;
         const path = `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z`;
         return <path key={`${s.label}-${i}`} d={path} fill={s.color} stroke="var(--ai-surface)" strokeWidth={2} />;
       })}

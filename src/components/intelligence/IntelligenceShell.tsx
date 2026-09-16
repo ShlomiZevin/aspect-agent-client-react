@@ -4,7 +4,7 @@
  * from Aspect BI (BIShell) — "Data Chat" navigates out to the existing chat
  * page rather than being reimplemented here.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LanguageProvider, useLanguage } from '../../context/LanguageContext';
 import { UserProvider, useUserContext } from '../../context/UserContext';
@@ -14,6 +14,7 @@ import { ReportHistoryPage } from './Reports/ReportHistoryPage';
 import { InsightDetail } from './Insights/InsightDetail';
 import { AppsPage } from './Apps/AppsPage';
 import { ProcurementPage } from './Apps/ProcurementPage';
+import { CustomScreenRouter } from './Apps/custom/CustomScreenRouter';
 import { SettingsPage } from './Settings/SettingsPage';
 import { appsService } from '../../services/appsService';
 import { ChatWidget } from './ChatWidget';
@@ -106,6 +107,16 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   // reported back up via onLoaded.
   const [insightBreadcrumb, setInsightBreadcrumb] = useState<string | null>(null);
   useEffect(() => { setInsightBreadcrumb(null); }, [insightId]);
+  /**
+   * Custom-app breadcrumb leaf, reported by the builder / published page.
+   * KEYED by appId rather than reset in an effect: when the first message
+   * swaps /apps/new -> /apps/<id>, the child's report and a parent reset
+   * land in the same commit and the reset wins (child effects run first),
+   * which blanked the crumb to the generic fallback. A stale report simply
+   * fails the key match and the fallback shows until the new surface reports.
+   */
+  const [customCrumb, setCustomCrumb] = useState<{ appId: string; crumb: string } | null>(null);
+  const reportCrumb = useCallback((crumb: string) => setCustomCrumb({ appId: appId ?? '', crumb }), [appId]);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatExpanded, setChatExpanded] = useState(false);
   const [chatEverOpened, setChatEverOpened] = useState(false);
@@ -367,7 +378,17 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           {view === 'app' && (
             <>
               <span className={styles.crumbSep}>/</span>
-              <span className={`${styles.crumb} ${styles.crumbActive}`}>{t('procurement.title')}</span>
+              {/* The leaf crumb: registry modules by name; custom apps report
+                  their own ("Draft - <name>" from the builder, the plain name
+                  from a published page) via onCrumb, with generic fallbacks
+                  until the record loads. */}
+              <span className={`${styles.crumb} ${styles.crumbActive}`}>
+                {appId === 'replenishment' ? t('procurement.title')
+                  : (customCrumb && customCrumb.appId === appId ? customCrumb.crumb : null)
+                    || (appId === 'new'
+                      ? `${t('otto.crumb.draft')} - ${t('otto.crumb.newScreen')}`
+                      : t('otto.crumb.screen'))}
+              </span>
             </>
           )}
           {(view === 'reports' || view === 'history' || view === 'detail') && (
@@ -443,11 +464,23 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
         {view === 'app' && hasApps === true && appId === 'replenishment' && (
           <ProcurementPage datasetId={datasetId} baseURL={baseURL} onAskInChat={askFollowUp} onOpenScopedChat={openScopedChat} />
         )}
+        {/* Anything else under /apps/:appId is Otto's territory: 'new' opens
+            the builder, a screen id resolves by status (builder for drafts,
+            the published page for active), and an unknown id falls back to
+            the shelf — exactly what this branch did before Otto existed. */}
         {view === 'app' && hasApps === true && appId !== 'replenishment' && (
-          <AppsPage
+          <CustomScreenRouter
             datasetId={datasetId}
+            appId={appId!}
             baseURL={baseURL}
-            onOpenApp={(id) => navigate(`/intelligence/${datasetId}/apps/${id}`)}
+            onCrumb={reportCrumb}
+            fallback={(
+              <AppsPage
+                datasetId={datasetId}
+                baseURL={baseURL}
+                onOpenApp={(id) => navigate(`/intelligence/${datasetId}/apps/${id}`)}
+              />
+            )}
           />
         )}
         {(view === 'apps' || view === 'app') && hasApps === false && (
