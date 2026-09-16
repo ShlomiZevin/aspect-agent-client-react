@@ -254,6 +254,13 @@
   border: 1px solid var(--ai-border, #e4e6ee);
   border-radius: 12px;
   padding: 18px 8px 8px;
+  /* Sticks to the bottom of the status rail (task #76 item 6 - Shlomi's
+   * post-demo note: "Currently they stick to the top"). `.status` is a
+   * column flex with `.statusCard` above this as the only other child, so
+   * pushing THIS margin to auto sends it - and nothing after it, since it's
+   * last - all the way down regardless of how tall the checklist above it
+   * grows. */
+  margin-top: auto;
 }
 
 /* ── canvas ── */
