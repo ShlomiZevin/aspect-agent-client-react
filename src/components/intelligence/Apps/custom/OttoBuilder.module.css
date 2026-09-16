@@ -34,17 +34,18 @@
   color: var(--ai-text, #1d2130);
 }
 .railRole { margin: 0; font-size: 11.5px; color: var(--ai-text-mute, #8a90a3); }
+/* Matches the shelf's pill (AppsPage.module.css) — filled accent, task #82. */
 .betaTag {
   display: inline-block;
   margin-inline-start: 6px;
-  padding: 2px 5px;
+  padding: 2px 6px;
   line-height: 1;
-  border-radius: 6px;
-  border: 1px solid var(--ai-border, #e4e6ee);
-  color: var(--ai-text-mute, #8a90a3);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  border-radius: 999px;
+  background: var(--ai-accent, #7c3aed);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   vertical-align: middle;
 }
@@ -229,6 +230,11 @@
   border: 1px solid var(--ai-border, #e4e6ee);
   border-radius: 12px;
   padding: 12px 14px;
+  /* What Otto is saying belongs directly ABOVE Otto, not pinned to the top
+   * of the rail with a gap of empty panel between them (task #78). This is
+   * the first of the two bottom-anchored children, so the auto margin lifts
+   * the pair - card, then figure - to the bottom as one block. */
+  margin-top: auto;
 }
 .statusNow {
   margin: 0; display: flex; align-items: center; gap: 7px;
@@ -255,13 +261,9 @@
   border: 1px solid var(--ai-border, #e4e6ee);
   border-radius: 12px;
   padding: 18px 8px 8px;
-  /* Sticks to the bottom of the status rail (task #76 item 6 - Shlomi's
-   * post-demo note: "Currently they stick to the top"). `.status` is a
-   * column flex with `.statusCard` above this as the only other child, so
-   * pushing THIS margin to auto sends it - and nothing after it, since it's
-   * last - all the way down regardless of how tall the checklist above it
-   * grows. */
-  margin-top: auto;
+  /* Bottom of the rail (task #76 item 6). The auto margin now lives on
+   * .statusCard above, which carries this down with it so the two stay
+   * together - the bubble sits directly on top of Otto (task #78). */
 }
 
 /* ── canvas ── */

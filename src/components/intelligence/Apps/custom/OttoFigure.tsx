@@ -77,17 +77,20 @@ export function OttoFigure({ state, size = 190, progress }: Props) {
               <circle className={`${styles.wdot} ${styles.wdot3} ${styles.anim}`} cx="144" cy="154" r="3.2" fill="#8f7bd9" />
             </g>
 
-            {/* THINK */}
+            {/* THINK — the face stays readable and the motion happens OUTSIDE
+                the porthole. The previous version spun a dark dashed iris
+                (#3d4356) across the near-black face: it covered the eyes and
+                the two darks muddied into each other (task #78). The orbit
+                rides the light body instead, where the accent actually
+                contrasts. */}
             <g className={`${styles.st} ${styles.stThink}`}>
-              <rect className={`${styles.teye} ${styles.anim}`} x="108" y="105" width="11" height="11" rx="5.5" fill="#eef2ff" />
-              <rect className={`${styles.teye} ${styles.anim}`} x="141" y="105" width="11" height="11" rx="5.5" fill="#eef2ff" />
-              <g className={`${styles.iris} ${styles.anim}`}>
-                <circle cx="130" cy="134" r="30" stroke="#3d4356" strokeWidth="3.5" fill="none" strokeDasharray="9 11" strokeLinecap="round" />
-                <circle cx="160" cy="134" r="4.5" fill="var(--ai-accent, #6d28d9)" />
-                <circle cx="157.4" cy="145.5" r="3" fill="var(--ai-accent, #6d28d9)" opacity=".45" />
-                <circle cx="150.2" cy="154.7" r="2" fill="var(--ai-accent, #6d28d9)" opacity=".2" />
+              <rect className={`${styles.teye} ${styles.anim}`} x="106" y="119" width="13" height="24" rx="6.5" fill="#eef2ff" />
+              <rect className={`${styles.teye} ${styles.teyeR} ${styles.anim}`} x="141" y="119" width="13" height="24" rx="6.5" fill="#eef2ff" />
+              <g className={styles.orbit}>
+                <circle cx="130" cy="62" r="5.5" fill="var(--ai-accent, #6d28d9)" />
+                <circle cx="181" cy="83" r="3.6" fill="var(--ai-accent, #6d28d9)" opacity=".42" />
+                <circle cx="202" cy="132" r="2.4" fill="var(--ai-accent, #6d28d9)" opacity=".18" />
               </g>
-              <rect className={`${styles.scan} ${styles.anim}`} x="112" y="156" width="36" height="5" rx="2.5" fill="#8f7bd9" />
             </g>
 
             {/* BUILD */}

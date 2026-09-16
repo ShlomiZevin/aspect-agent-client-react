@@ -40,8 +40,12 @@
   --ai-panel-dark-text: #D8CCEF;
   --ai-shadow-sm: 0 2px 8px rgba(20, 22, 42, 0.06);
   --ai-shadow: 0 18px 44px -16px rgba(30, 34, 70, 0.16);
-  --ai-font-head: 'Schibsted Grotesk', system-ui, sans-serif;
-  --ai-font-body: 'Public Sans', system-ui, sans-serif;
+  /* 'Assistant' sits between the Latin face and system-ui on purpose: font
+   * fallback is per-glyph, so Latin still renders in Schibsted/Public Sans
+   * and only Hebrew reaches Assistant — instead of the system default it
+   * used to land on (task #79). Loaded in intelligence/fonts.ts. */
+  --ai-font-head: 'Schibsted Grotesk', 'Assistant', system-ui, sans-serif;
+  --ai-font-body: 'Public Sans', 'Assistant', system-ui, sans-serif;
 
   position: relative;
   display: flex;

@@ -65,7 +65,7 @@
 .live:active .tileLive { transform: scale(0.97); }
 
 .live:focus-visible .tile {
-  outline: 2px solid var(--ai-primary, #7c3aed);
+  outline: 2px solid var(--ai-accent, #7c3aed);
   outline-offset: 4px;
 }
 
@@ -124,36 +124,38 @@
    with the accent glyph so client-built screens read as siblings of the
    marketplace apps without impersonating them. */
 .tileNew {
-  border: 1.5px dashed var(--ai-primary, #7c3aed);
+  border: 1.5px dashed var(--ai-accent, #7c3aed);
   background: none;
-  color: var(--ai-primary, #7c3aed);
+  color: var(--ai-accent, #7c3aed);
   font-size: 26px;
   font-weight: 400;
 }
-.nameNew { color: var(--ai-primary, #7c3aed); }
+.nameNew { color: var(--ai-accent, #7c3aed); }
 .live:hover .tileNew { box-shadow: 0 6px 14px rgba(109, 40, 217, 0.16); }
 
 .tileCustom {
   background: var(--ai-surface, #ffffff);
   border: 1px solid var(--ai-border, #e4e6ee);
-  color: var(--ai-primary, #7c3aed);
+  color: var(--ai-accent, #7c3aed);
   box-shadow: 0 4px 10px rgba(30, 32, 50, 0.06);
 }
 .live:hover .tileCustom { box-shadow: 0 8px 18px rgba(30, 32, 50, 0.12); }
 
-/* Otto is a beta capability (task #66) - a quiet inline label next to "with
-   OTTO", not an alarm-colored badge like the attention count above. */
+/* Otto is a beta capability (task #66). Filled in the client's own accent
+   rather than the muted outline it shipped as — that version was so quiet
+   nobody read it as a label at all (task #82). Still not the alarm red the
+   attention badge uses: beta is a statement, not a warning. */
 .betaTag {
   display: inline-block;
   margin-inline-start: 6px;
-  padding: 2px 5px;
+  padding: 2px 6px;
   line-height: 1;
-  border-radius: 6px;
-  border: 1px solid var(--ai-border, #e4e6ee);
-  color: var(--ai-text-muted, #8a90a3);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  border-radius: 999px;
+  background: var(--ai-accent, #7c3aed);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   vertical-align: middle;
 }

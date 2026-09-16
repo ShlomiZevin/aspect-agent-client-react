@@ -75,18 +75,21 @@
 /* the flow-progress ring fills smoothly rather than snapping per step */
 .ring { transition: stroke-dasharray .8s cubic-bezier(.3, .8, .3, 1); }
 
-/* think — enters with a spin-up beat, then settles into the steady orbit */
-.stage[data-state="think"] .iris {
-  animation:
-    otto-spinup .7s cubic-bezier(.3, 1.3, .6, 1) both,
-    otto-spin 4.6s linear .7s infinite;
+/* think — the eyes stay open and readable; the motion is a comet of accent
+ * dots orbiting the porthole on the LIGHT body, which is the only place on
+ * this drawing where the accent colour reads at a glance (task #78).
+ * transform-box: view-box (not the fill-box the rest of the file uses) —
+ * the orbit turns around the FACE's centre, not around its own bounding
+ * box, so the dots sweep a circle instead of spinning in place. */
+.orbit {
+  transform-box: view-box;
+  transform-origin: 130px 132px;
+  animation: otto-spin 3.6s linear infinite;
 }
-.stage[data-state="think"] .scan { animation: otto-scan 1.7s ease-in-out infinite; }
-.stage[data-state="think"] .teye { animation: otto-tlook 2.8s ease-in-out infinite; }
-@keyframes otto-spinup { from { transform: rotate(-130deg); } to { transform: rotate(0deg); } }
+.stage[data-state="think"] .teye  { animation: otto-tlook 2.8s ease-in-out infinite; }
+.stage[data-state="think"] .teyeR { animation-delay: .06s; }
 @keyframes otto-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes otto-scan { 0%, 100% { transform: scaleX(.34); opacity: .55; } 55% { transform: scaleX(1); opacity: 1; } }
-@keyframes otto-tlook { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(1.6px); } }
+@keyframes otto-tlook { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(1.6px) scaleY(.88); } }
 
 /* build */
 .stage[data-state="build"] .blk  { animation: otto-blkin 3.2s cubic-bezier(.34, 1.5, .64, 1) infinite; opacity: 0; }
