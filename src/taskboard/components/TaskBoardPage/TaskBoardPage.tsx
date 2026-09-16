@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { TaskColumns } from '../TaskColumns';
 import { TaskFormModal } from '../TaskFormModal';
 import { IdentityModal } from '../IdentityModal';
@@ -34,7 +35,24 @@ export function TaskBoardPage() {
   const whatsNew = useWhatsNew(me);
 
   const [filters, dispatch] = useReducer(filtersReducer, EMPTY_FILTERS);
-  const [openId, setOpenId] = useState<number | null>(null);
+
+  // The open task is mirrored in the URL (?task=<id>) so a card can be linked
+  // to directly - the old board had this and the rebuild dropped it. Read
+  // once on mount as the initial state rather than in an effect, so opening
+  // a link doesn't flash the board before the dialog appears.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [openId, setOpenId] = useState<number | null>(() => {
+    const raw = searchParams.get('task');
+    const id = raw ? parseInt(raw, 10) : NaN;
+    return Number.isFinite(id) ? id : null;
+  });
+  useEffect(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (openId === null) next.delete('task'); else next.set('task', String(openId));
+      return next;
+    }, { replace: true });
+  }, [openId, setSearchParams]);
   const [creating, setCreating] = useState(false);
   const [askingName, setAskingName] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
