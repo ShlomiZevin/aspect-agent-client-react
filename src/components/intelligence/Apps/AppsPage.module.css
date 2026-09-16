@@ -145,8 +145,9 @@
    OTTO", not an alarm-colored badge like the attention count above. */
 .betaTag {
   display: inline-block;
-  margin-inline-start: 4px;
-  padding: 1px 5px;
+  margin-inline-start: 6px;
+  padding: 2px 5px;
+  line-height: 1;
   border-radius: 6px;
   border: 1px solid var(--ai-border, #e4e6ee);
   color: var(--ai-text-muted, #8a90a3);

@@ -91,7 +91,12 @@ export function AppsPage({ datasetId, baseURL, onOpenApp }: Props) {
         </div>
       )}
 
-      {!failed && data && data.apps.length === 0 && (
+      {/* "Nothing switched on" should mean nothing at all - not just no
+          marketplace apps. An account with Otto live (canCreate) or with
+          screens already built (custom) has something real to do here, so
+          the empty banner would sit directly above a working tile and
+          contradict it. */}
+      {!failed && data && data.apps.length === 0 && !data.canCreate && !data.custom?.length && (
         <div className={styles.empty}>{t('apps.none')}</div>
       )}
 
