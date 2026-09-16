@@ -141,6 +141,22 @@
 }
 .live:hover .tileCustom { box-shadow: 0 8px 18px rgba(30, 32, 50, 0.12); }
 
+/* Otto is a beta capability (task #66) - a quiet inline label next to "with
+   OTTO", not an alarm-colored badge like the attention count above. */
+.betaTag {
+  display: inline-block;
+  margin-inline-start: 4px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  border: 1px solid var(--ai-border, #e4e6ee);
+  color: var(--ai-text-muted, #8a90a3);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
 /* Draft marker: an amber dot pinned like the badge, but quiet — a draft is
    unfinished work, not an alarm. */
 .draftDot {

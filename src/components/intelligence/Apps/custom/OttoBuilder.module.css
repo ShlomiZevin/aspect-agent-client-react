@@ -34,6 +34,19 @@
   color: var(--ai-text, #1d2130);
 }
 .railRole { margin: 0; font-size: 11.5px; color: var(--ai-text-mute, #8a90a3); }
+.betaTag {
+  display: inline-block;
+  margin-inline-start: 6px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  border: 1px solid var(--ai-border, #e4e6ee);
+  color: var(--ai-text-mute, #8a90a3);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
 .collapse {
   margin-inline-start: auto;
   appearance: none; border: 0; background: none; cursor: pointer;

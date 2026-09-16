@@ -283,11 +283,27 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           : appsRoute ? 'apps'
             : insightId ? 'detail' : historyRoute ? 'history' : reportsRoute ? 'reports' : 'home';
 
+  // Otto opens full screen, not as another tab inside the usual chrome (task
+  // #66): the builder/canvas already has its own status rail and header, so
+  // the outer header/nav/breadcrumb would just be a second one. `replenishment`
+  // is the other thing under /apps/:appId and keeps the normal shell.
+  const ottoFullScreen = view === 'app' && appId !== 'replenishment';
+
   const goApps = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}/apps`));
   const goSettings = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}/settings`));
 
   return (
     <div className={styles.shell} data-mode={mode} data-brand={datasetId}>
+      {ottoFullScreen ? (
+        <div className={styles.ottoBar}>
+          {/* No directional arrow glyph: this codebase's other back actions
+              (otto.plan.backToChat) are plain text for the same reason - a
+              hardcoded ← reads backwards once the page mirrors for Hebrew. */}
+          <button type="button" className={styles.ottoBackBtn} onClick={goApps}>
+            {t('otto.backToIntelligence')}
+          </button>
+        </div>
+      ) : (
       <header className={styles.header} ref={headerRef}>
         <div className={styles.headerRow}>
           <div className={styles.brand}>
@@ -429,8 +445,9 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           {baseURL && <DataHealthTrigger baseURL={baseURL} schema={datasetId} />}
         </div>
       </header>
+      )}
 
-      <main className={styles.body}>
+      <main className={`${styles.body} ${ottoFullScreen ? styles.bodyOtto : ''}`}>
         {/* Phones: the header is one thin line, so the data-freshness stamp
             rides here as a caption at the top of the scroll area instead —
             still the first thing seen, just not chrome. Desktop keeps it in
@@ -507,7 +524,10 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
         />
       )}
 
-      {!chatOpen && (
+      {/* Otto is a dedicated full-screen surface with its own conversation
+          rail (task #66) - the floating Data Chat launcher over it would be a
+          second, unrelated chat sitting on top of the builder's own. */}
+      {!chatOpen && !ottoFullScreen && (
         <div className={styles.launcherWrap}>
           {/* The ⌘K badge is gone. It was never wired to anything — there is no
               key handler for it anywhere in the client — so it advertised a
@@ -522,8 +542,9 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
       {/* Mobile navigation (< 640px). Its own CSS hides it on desktop, where
           the header's `.nav` row does this job. Hidden while the chat is open
           because on a phone the chat panel fills the viewport (its own back
-          button leaves it) and the two would fight for the bottom edge. */}
-      {!chatOpen && (
+          button leaves it) and the two would fight for the bottom edge. Also
+          hidden for Otto full screen, same reasoning as the launcher above. */}
+      {!chatOpen && !ottoFullScreen && (
         <MobileTabBar
           view={view}
           hasApps={hasApps === true}

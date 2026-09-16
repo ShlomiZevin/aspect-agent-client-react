@@ -533,6 +533,8 @@ export const translations: LanguageConfig = {
 
     // -- Otto, the app builder --
     'otto.role': 'App builder',
+    'otto.beta': 'Beta',
+    'otto.backToIntelligence': 'Back to Intelligence Center',
     'otto.newScreen': 'New app',
     'otto.shelf.newScreen': 'New app',
     'otto.shelf.withOtto': 'with OTTO',
@@ -1554,6 +1556,8 @@ export const translations: LanguageConfig = {
 
     // -- Otto, the app builder --
     'otto.role': 'בונה אפליקציות',
+    'otto.beta': 'בטא',
+    'otto.backToIntelligence': 'חזרה למרכז האינטליגנס',
     'otto.newScreen': 'אפליקציה חדשה',
     'otto.shelf.newScreen': 'אפליקציה חדשה',
     'otto.shelf.withOtto': 'עם אוטו',

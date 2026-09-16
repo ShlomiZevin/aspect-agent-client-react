@@ -125,23 +125,9 @@ export function AppsPage({ datasetId, baseURL, onOpenApp }: Props) {
         })}
 
         {/* ── custom screens (Otto) — after the marketplace apps, before the
-            planned ones: real things beat announced things. The "New screen"
-            tile renders only when the otto module is live (canCreate); a
-            draft carries a quiet amber dot and opens the builder. ── */}
-        {data?.canCreate === true && (
-          <button
-            type="button"
-            className={`${styles.app} ${styles.live}`}
-            onClick={() => onOpenApp('new')}
-          >
-            <span className={`${styles.tile} ${styles.tileNew}`}>+</span>
-            <span>
-              <span className={`${styles.name} ${styles.nameNew}`}>{t('otto.shelf.newScreen')}</span>
-              <span className={styles.sub} style={{ display: 'block' }}>{t('otto.shelf.withOtto')}</span>
-            </span>
-          </button>
-        )}
-
+            "+" tile: real and in-progress things beat the empty invitation
+            to make a new one (task #76 item 5 - Shlomi's post-demo note).
+            Planned/coming-soon tiles stay last either way. ── */}
         {data?.custom?.map(screen => (
           <button
             key={screen.id}
@@ -161,6 +147,27 @@ export function AppsPage({ datasetId, baseURL, onOpenApp }: Props) {
             </span>
           </button>
         ))}
+
+        {/* The "New app" tile is always last among the live tiles - the
+            invitation to start something new, not the first thing you see
+            among screens that already exist. Renders only when the otto
+            module is live (canCreate). */}
+        {data?.canCreate === true && (
+          <button
+            type="button"
+            className={`${styles.app} ${styles.live}`}
+            onClick={() => onOpenApp('new')}
+          >
+            <span className={`${styles.tile} ${styles.tileNew}`}>+</span>
+            <span>
+              <span className={`${styles.name} ${styles.nameNew}`}>{t('otto.shelf.newScreen')}</span>
+              <span className={styles.sub} style={{ display: 'block' }}>
+                {t('otto.shelf.withOtto')}
+                <span className={styles.betaTag}>{t('otto.beta')}</span>
+              </span>
+            </span>
+          </button>
+        )}
 
         {data?.planned.map(app => (
           // Not a button: there is nothing behind it. Rendering one that does

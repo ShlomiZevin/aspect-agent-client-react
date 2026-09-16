@@ -361,7 +361,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
           <div className={styles.railWho}>
             <span className={styles.railAvatar}><OttoFigureMini /></span>
             <div>
-              <p className={styles.railName}>OTTO</p>
+              <p className={styles.railName}>OTTO<span className={styles.betaTag}>{t('otto.beta')}</span></p>
               <p className={styles.railRole}>{t('otto.role')}</p>
             </div>
             <button type="button" className={styles.collapse} onClick={() => setRailOpen(false)} aria-label={t('otto.collapse')}>«</button>
