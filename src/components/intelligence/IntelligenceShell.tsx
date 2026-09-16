@@ -211,7 +211,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   useEffect(() => { ensureIntelligenceFontsLoaded(); }, []);
   useEffect(() => { localStorage.setItem(MODE_KEY, mode); }, [mode]);
 
-  const openInsight = (id: string) => navigate(`/intelligence/${datasetId}/insight/${id}`);
+  const openInsight = (id: string) => navigate(`/${datasetId}/intelligence/insight/${id}`);
   // Home/My Reports/History/the detail page's own back link all close the
   // chat widget entirely rather than just collapsing it back to windowed —
   // navigating away from chat should read as a clean dedicated view, not
@@ -221,9 +221,9 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
     setChatExpanded(false);
     fn();
   };
-  const goHome = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}`));
-  const goReports = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}/reports`));
-  const goHistory = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}/reports/history`));
+  const goHome = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence`));
+  const goReports = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/reports`));
+  const goHistory = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/reports/history`));
   const reviewCompletedJob = (job: Job) => {
     const firstId = job.result?.insightIds[0];
     // Once you've actually gone and looked at it, it doesn't belong in the
@@ -238,7 +238,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   // page — same reasoning as the widget's own expand button. Both routes
   // through the same URL (the useEffect above reacts to chatRoute), so nav
   // click and a direct link land in the same state.
-  const openDataChat = () => navigate(`/intelligence/${datasetId}/chat`);
+  const openDataChat = () => navigate(`/${datasetId}/intelligence/chat`);
 
   // Controlled from here (not the widget's own state) so expanding it — via
   // its own expand button, not just the "Data Chat" nav — also updates the
@@ -253,7 +253,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
     // navigate: when the CHAT ROUTE itself is the current URL (the nav's
     // "Data Chat" item or a direct link), because that route renders an
     // empty main with nothing to come back to.
-    if (!expanded && chatRoute) navigate(`/intelligence/${datasetId}`);
+    if (!expanded && chatRoute) navigate(`/${datasetId}/intelligence`);
   };
 
   // "Ask a follow-up in chat" on an insight detail page — opens the same
@@ -289,8 +289,8 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   // is the other thing under /apps/:appId and keeps the normal shell.
   const ottoFullScreen = view === 'app' && appId !== 'replenishment';
 
-  const goApps = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}/apps`));
-  const goSettings = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}/settings`));
+  const goApps = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/apps`));
+  const goSettings = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/settings`));
 
   return (
     <div className={styles.shell} data-mode={mode} data-brand={datasetId}>
@@ -472,7 +472,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           <AppsPage
             datasetId={datasetId}
             baseURL={baseURL}
-            onOpenApp={(id) => navigate(`/intelligence/${datasetId}/apps/${id}`)}
+            onOpenApp={(id) => navigate(`/${datasetId}/intelligence/apps/${id}`)}
           />
         )}
         {/* One app's own page. `replenishment` is the module id; Procurement is
@@ -495,7 +495,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
               <AppsPage
                 datasetId={datasetId}
                 baseURL={baseURL}
-                onOpenApp={(id) => navigate(`/intelligence/${datasetId}/apps/${id}`)}
+                onOpenApp={(id) => navigate(`/${datasetId}/intelligence/apps/${id}`)}
               />
             )}
           />

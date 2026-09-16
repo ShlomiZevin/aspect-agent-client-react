@@ -68,7 +68,7 @@ export function CustomScreenRouter({ datasetId, appId, baseURL, fallback, onCrum
           // Claim BEFORE navigating: the re-render for the new URL must
           // already know this builder owns the draft, or it remounts.
           setOwnedId(id);
-          navigate(`/intelligence/${datasetId}/apps/${id}`, { replace: true });
+          navigate(`/${datasetId}/intelligence/apps/${id}`, { replace: true });
         }}
         onPublished={() => {
           // Same URL, new status — release ownership and refetch so the
@@ -77,7 +77,7 @@ export function CustomScreenRouter({ datasetId, appId, baseURL, fallback, onCrum
           setScreen(null);
           setReloadTick(t => t + 1);
         }}
-        onExit={() => navigate(`/intelligence/${datasetId}/apps`)}
+        onExit={() => navigate(`/${datasetId}/intelligence/apps`)}
         onCrumb={onCrumb}
       />
     );
