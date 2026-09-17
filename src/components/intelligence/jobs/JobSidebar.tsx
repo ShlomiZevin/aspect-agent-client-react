@@ -56,8 +56,15 @@ export function JobSidebar({ datasetId, onReview }: Props) {
           {job.status === 'completed' && ` · ${t('intel.sidebar.readyToReview')}`}
         </div>
 
+        {/* The raw server error (queryResult.rowCount === 0's English prose,
+            a timeout stack, etc.) used to render here verbatim - unpolished
+            internal debugging text landing directly in front of the user,
+            in English even when the rest of the shell is Hebrew (task
+            #85). It's not gone: `title` still carries it as a hover
+            tooltip for whoever needs to diagnose the failure, same pattern
+            JobBadge already uses. */}
         {job.status === 'error' && (
-          <div className={styles.errorBox}>{job.errorMessage || t('intel.sidebar.errorDefault')}</div>
+          <div className={styles.errorBox} title={job.errorMessage || undefined}>{t('intel.sidebar.errorDefault')}</div>
         )}
 
         {showProgress && (

@@ -224,10 +224,20 @@ export function DashboardPage() {
                 // the whole dashboard for freeda and every other agent with no
                 // customer schema.
                 //
-                // Not simply the slug: the `aspect` agent runs on zer4u's
-                // schema, so switching it would silently move which dataset its
-                // Modules tab configures.
-                element={<ModulesPage datasetId={config.database?.schema ?? agent ?? ''} baseURL={config.baseURL} />}
+                // Not simply the slug in general - the `aspect` agent's CHAT
+                // runs on zer4u's schema, so switching every agent to its bare
+                // slug would silently move which dataset the Data Loader and
+                // Query Optimizer tabs configure. But `aspect` is also the one
+                // agent where the chat schema and the Aspect Intelligence
+                // dataset genuinely diverge: registry.js's `aspect` entry (the
+                // synthetic TechZone demo, task #73) is a SEPARATE dataset id
+                // from zer4u, and every Aspect Module - Otto included - is
+                // registered per Intelligence dataset id, not per chat schema.
+                // Left as `config.database?.schema` this tab always showed
+                // zer4u's modules for the aspect dashboard, so Otto looked
+                // like it was never enabled here even after switching it on
+                // for the real `aspect` dataset (Shlomi, 2026-09-17).
+                element={<ModulesPage datasetId={agent === 'aspect' ? 'aspect' : (config.database?.schema ?? agent ?? '')} baseURL={config.baseURL} />}
               />
             )}
             {showPodcast && (
