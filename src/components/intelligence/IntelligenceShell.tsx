@@ -4,7 +4,7 @@
  * from Aspect BI (BIShell) — "Data Chat" navigates out to the existing chat
  * page rather than being reimplemented here.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LanguageProvider, useLanguage } from '../../context/LanguageContext';
 import { UserProvider, useUserContext } from '../../context/UserContext';
@@ -14,6 +14,7 @@ import { ReportHistoryPage } from './Reports/ReportHistoryPage';
 import { InsightDetail } from './Insights/InsightDetail';
 import { AppsPage } from './Apps/AppsPage';
 import { ProcurementPage } from './Apps/ProcurementPage';
+import { CustomScreenRouter } from './Apps/custom/CustomScreenRouter';
 import { SettingsPage } from './Settings/SettingsPage';
 import { appsService } from '../../services/appsService';
 import { ChatWidget } from './ChatWidget';
@@ -106,6 +107,16 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   // reported back up via onLoaded.
   const [insightBreadcrumb, setInsightBreadcrumb] = useState<string | null>(null);
   useEffect(() => { setInsightBreadcrumb(null); }, [insightId]);
+  /**
+   * Custom-app breadcrumb leaf, reported by the builder / published page.
+   * KEYED by appId rather than reset in an effect: when the first message
+   * swaps /apps/new -> /apps/<id>, the child's report and a parent reset
+   * land in the same commit and the reset wins (child effects run first),
+   * which blanked the crumb to the generic fallback. A stale report simply
+   * fails the key match and the fallback shows until the new surface reports.
+   */
+  const [customCrumb, setCustomCrumb] = useState<{ appId: string; crumb: string } | null>(null);
+  const reportCrumb = useCallback((crumb: string) => setCustomCrumb({ appId: appId ?? '', crumb }), [appId]);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatExpanded, setChatExpanded] = useState(false);
   const [chatEverOpened, setChatEverOpened] = useState(false);
@@ -200,7 +211,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   useEffect(() => { ensureIntelligenceFontsLoaded(); }, []);
   useEffect(() => { localStorage.setItem(MODE_KEY, mode); }, [mode]);
 
-  const openInsight = (id: string) => navigate(`/intelligence/${datasetId}/insight/${id}`);
+  const openInsight = (id: string) => navigate(`/${datasetId}/intelligence/insight/${id}`);
   // Home/My Reports/History/the detail page's own back link all close the
   // chat widget entirely rather than just collapsing it back to windowed —
   // navigating away from chat should read as a clean dedicated view, not
@@ -210,9 +221,9 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
     setChatExpanded(false);
     fn();
   };
-  const goHome = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}`));
-  const goReports = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}/reports`));
-  const goHistory = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}/reports/history`));
+  const goHome = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence`));
+  const goReports = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/reports`));
+  const goHistory = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/reports/history`));
   const reviewCompletedJob = (job: Job) => {
     const firstId = job.result?.insightIds[0];
     // Once you've actually gone and looked at it, it doesn't belong in the
@@ -227,7 +238,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   // page — same reasoning as the widget's own expand button. Both routes
   // through the same URL (the useEffect above reacts to chatRoute), so nav
   // click and a direct link land in the same state.
-  const openDataChat = () => navigate(`/intelligence/${datasetId}/chat`);
+  const openDataChat = () => navigate(`/${datasetId}/intelligence/chat`);
 
   // Controlled from here (not the widget's own state) so expanding it — via
   // its own expand button, not just the "Data Chat" nav — also updates the
@@ -242,7 +253,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
     // navigate: when the CHAT ROUTE itself is the current URL (the nav's
     // "Data Chat" item or a direct link), because that route renders an
     // empty main with nothing to come back to.
-    if (!expanded && chatRoute) navigate(`/intelligence/${datasetId}`);
+    if (!expanded && chatRoute) navigate(`/${datasetId}/intelligence`);
   };
 
   // "Ask a follow-up in chat" on an insight detail page — opens the same
@@ -272,11 +283,27 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           : appsRoute ? 'apps'
             : insightId ? 'detail' : historyRoute ? 'history' : reportsRoute ? 'reports' : 'home';
 
-  const goApps = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}/apps`));
-  const goSettings = () => closeChatAnd(() => navigate(`/intelligence/${datasetId}/settings`));
+  // Otto opens full screen, not as another tab inside the usual chrome (task
+  // #66): the builder/canvas already has its own status rail and header, so
+  // the outer header/nav/breadcrumb would just be a second one. `replenishment`
+  // is the other thing under /apps/:appId and keeps the normal shell.
+  const ottoFullScreen = view === 'app' && appId !== 'replenishment';
+
+  const goApps = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/apps`));
+  const goSettings = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/settings`));
 
   return (
     <div className={styles.shell} data-mode={mode} data-brand={datasetId}>
+      {ottoFullScreen ? (
+        <div className={styles.ottoBar}>
+          {/* No directional arrow glyph: this codebase's other back actions
+              (otto.plan.backToChat) are plain text for the same reason - a
+              hardcoded ← reads backwards once the page mirrors for Hebrew. */}
+          <button type="button" className={styles.ottoBackBtn} onClick={goApps}>
+            {t('otto.backToIntelligence')}
+          </button>
+        </div>
+      ) : (
       <header className={styles.header} ref={headerRef}>
         <div className={styles.headerRow}>
           <div className={styles.brand}>
@@ -367,7 +394,17 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           {view === 'app' && (
             <>
               <span className={styles.crumbSep}>/</span>
-              <span className={`${styles.crumb} ${styles.crumbActive}`}>{t('procurement.title')}</span>
+              {/* The leaf crumb: registry modules by name; custom apps report
+                  their own ("Draft - <name>" from the builder, the plain name
+                  from a published page) via onCrumb, with generic fallbacks
+                  until the record loads. */}
+              <span className={`${styles.crumb} ${styles.crumbActive}`}>
+                {appId === 'replenishment' ? t('procurement.title')
+                  : (customCrumb && customCrumb.appId === appId ? customCrumb.crumb : null)
+                    || (appId === 'new'
+                      ? `${t('otto.crumb.draft')} - ${t('otto.crumb.newScreen')}`
+                      : t('otto.crumb.screen'))}
+              </span>
             </>
           )}
           {(view === 'reports' || view === 'history' || view === 'detail') && (
@@ -408,8 +445,9 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           {baseURL && <DataHealthTrigger baseURL={baseURL} schema={datasetId} />}
         </div>
       </header>
+      )}
 
-      <main className={styles.body}>
+      <main className={`${styles.body} ${ottoFullScreen ? styles.bodyOtto : ''}`}>
         {/* Phones: the header is one thin line, so the data-freshness stamp
             rides here as a caption at the top of the scroll area instead —
             still the first thing seen, just not chrome. Desktop keeps it in
@@ -434,7 +472,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           <AppsPage
             datasetId={datasetId}
             baseURL={baseURL}
-            onOpenApp={(id) => navigate(`/intelligence/${datasetId}/apps/${id}`)}
+            onOpenApp={(id) => navigate(`/${datasetId}/intelligence/apps/${id}`)}
           />
         )}
         {/* One app's own page. `replenishment` is the module id; Procurement is
@@ -443,11 +481,23 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
         {view === 'app' && hasApps === true && appId === 'replenishment' && (
           <ProcurementPage datasetId={datasetId} baseURL={baseURL} onAskInChat={askFollowUp} onOpenScopedChat={openScopedChat} />
         )}
+        {/* Anything else under /apps/:appId is Otto's territory: 'new' opens
+            the builder, a screen id resolves by status (builder for drafts,
+            the published page for active), and an unknown id falls back to
+            the shelf — exactly what this branch did before Otto existed. */}
         {view === 'app' && hasApps === true && appId !== 'replenishment' && (
-          <AppsPage
+          <CustomScreenRouter
             datasetId={datasetId}
+            appId={appId!}
             baseURL={baseURL}
-            onOpenApp={(id) => navigate(`/intelligence/${datasetId}/apps/${id}`)}
+            onCrumb={reportCrumb}
+            fallback={(
+              <AppsPage
+                datasetId={datasetId}
+                baseURL={baseURL}
+                onOpenApp={(id) => navigate(`/${datasetId}/intelligence/apps/${id}`)}
+              />
+            )}
           />
         )}
         {(view === 'apps' || view === 'app') && hasApps === false && (
@@ -474,7 +524,10 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
         />
       )}
 
-      {!chatOpen && (
+      {/* Otto is a dedicated full-screen surface with its own conversation
+          rail (task #66) - the floating Data Chat launcher over it would be a
+          second, unrelated chat sitting on top of the builder's own. */}
+      {!chatOpen && !ottoFullScreen && (
         <div className={styles.launcherWrap}>
           {/* The ⌘K badge is gone. It was never wired to anything — there is no
               key handler for it anywhere in the client — so it advertised a
@@ -489,8 +542,9 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
       {/* Mobile navigation (< 640px). Its own CSS hides it on desktop, where
           the header's `.nav` row does this job. Hidden while the chat is open
           because on a phone the chat panel fills the viewport (its own back
-          button leaves it) and the two would fight for the bottom edge. */}
-      {!chatOpen && (
+          button leaves it) and the two would fight for the bottom edge. Also
+          hidden for Otto full screen, same reasoning as the launcher above. */}
+      {!chatOpen && !ottoFullScreen && (
         <MobileTabBar
           view={view}
           hasApps={hasApps === true}

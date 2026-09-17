@@ -66,8 +66,25 @@ const DEFAULTS = {
 const PAGES = [
   {
     target: 'aspect',
+    // Old prefix (task #75 moved the canonical URL to /zolstock/intelligence
+    // - see the matching entry below). Kept, not moved: this exact address is
+    // already out in the world as a share link, and the app's own client-side
+    // redirect only runs for a real browser - a crawler reads this raw HTML
+    // and never sees the redirect at all, so retiring this entry would
+    // regress that link's preview back to the site default.
     route: '/intelligence/zolstock',
     outFile: 'intelligence/zolstock.html',
+    title: 'תובנות AI לזול סטוק · Aspect Intelligence',
+    description: 'בינה מלאכותית שחוקרת את המכירות, המלאי והרווחיות של זול סטוק ובונה דוחות עסקיים מדויקים תוך דקות — בעברית ובאנגלית.',
+    image: `${DEFAULTS.aspect.baseUrl}/img/og-zolstock.png`,
+    locale: 'he_IL',
+  },
+  {
+    target: 'aspect',
+    // New canonical prefix (task #75) - same card, so anything shared from
+    // inside the product from now on previews just as well as the old link.
+    route: '/zolstock/intelligence',
+    outFile: 'zolstock/intelligence.html',
     title: 'תובנות AI לזול סטוק · Aspect Intelligence',
     description: 'בינה מלאכותית שחוקרת את המכירות, המלאי והרווחיות של זול סטוק ובונה דוחות עסקיים מדויקים תוך דקות — בעברית ובאנגלית.',
     image: `${DEFAULTS.aspect.baseUrl}/img/og-zolstock.png`,

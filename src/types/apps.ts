@@ -44,9 +44,32 @@ export interface PlannedApp {
   blurb: Localized | null;
 }
 
+/** A client-built screen on the shelf (Otto). `status` decides the tile:
+ *  draft/ready open the builder, active opens the screen's own page. */
+export interface CustomScreenTile {
+  id: string;
+  title: Localized;
+  summary: Localized | null;
+  /** Otto's own icon set (grid/box/chart/…) — drawn by ScreenIcon, not AppGlyph. */
+  icon: string;
+  status: 'draft' | 'ready' | 'active' | 'archived';
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  hasSpec: boolean;
+}
+
 export interface AppsResponse {
   datasetId: string;
   apps: AppEntry[];
   planned: PlannedApp[];
   researchedAt: string | null;
+  /**
+   * Present ONLY when Otto is live or screens exist — with the feature off
+   * the payload is byte-identical to the pre-Otto shelf (server guarantee,
+   * unit-asserted there). Absence therefore means "no custom section".
+   */
+  custom?: CustomScreenTile[];
+  /** True when the `otto` module is live → the "New screen" tile renders. */
+  canCreate?: boolean;
 }

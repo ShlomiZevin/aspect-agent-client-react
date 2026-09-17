@@ -103,7 +103,7 @@ export function ReportsPage({ datasetId, userId, onOpenInsight, onOpenHistory }:
             <div className={styles.emptyIcon} aria-hidden="true">✦</div>
             <div className={styles.emptyTitle}>{t('intel.reports.suggestedEmptyTitle')}</div>
             <div className={styles.emptyBody}>{t('intel.reports.suggestedEmptyBody')}</div>
-            <button className={styles.emptyCta} onClick={() => navigate(`/intelligence/${datasetId}`)}>{t('intel.reports.suggestedEmptyCta')}</button>
+            <button className={styles.emptyCta} onClick={() => navigate(`/${datasetId}/intelligence`)}>{t('intel.reports.suggestedEmptyCta')}</button>
           </div>
         )}
         {!insightsLoading && suggested.length > 0 && (

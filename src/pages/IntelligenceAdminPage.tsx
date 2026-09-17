@@ -991,7 +991,7 @@ function DatasetInsightsPage() {
                     <div className={styles.rowActions}>
                       <a
                         className={styles.rowViewBtn}
-                        href={`/intelligence/${dataset.id}/insight/${i.id}`}
+                        href={`/${dataset.id}/intelligence/insight/${i.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="View on site"

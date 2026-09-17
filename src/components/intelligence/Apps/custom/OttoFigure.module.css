@@ -1,0 +1,129 @@
+/* OttoFigure — the Orb's motion system. State groups cross-fade with a
+ * springy settle; each state's animations run only while its group shows.
+ * prefers-reduced-motion switches everything to static poses. */
+
+.stage { display: flex; justify-content: center; }
+
+.anim { transform-box: fill-box; transform-origin: 50% 50%; }
+
+.float { animation: otto-float 5.4s ease-in-out infinite; }
+@keyframes otto-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+.shadow {
+  transform-box: fill-box; transform-origin: 50% 50%;
+  animation: otto-shadow 5.4s ease-in-out infinite;
+}
+@keyframes otto-shadow { 0%, 100% { transform: scaleX(1); opacity: .95; } 50% { transform: scaleX(.82); opacity: .55; } }
+
+/* State groups: exit is a quick fade (transition), entry is a springy pop
+ * (animation, so it re-fires on every state change) — "started thinking"
+ * reads as its own beat before the continuous thinking motion takes over. */
+.st {
+  opacity: 0;
+  transform-box: fill-box; transform-origin: 50% 50%;
+  transform: scale(.85);
+  transition: opacity .22s ease, transform .25s ease;
+  pointer-events: none;
+}
+.stage[data-state="idle"]  .stIdle,
+.stage[data-state="await"] .stAwait,
+.stage[data-state="think"] .stThink,
+.stage[data-state="build"] .stBuild,
+.stage[data-state="done"]  .stDone,
+.stage[data-state="error"] .stError {
+  opacity: 1;
+  transform: scale(1);
+  animation: otto-enter .5s cubic-bezier(.34, 1.6, .64, 1);
+}
+@keyframes otto-enter {
+  0%   { opacity: 0; transform: scale(.7); }
+  60%  { opacity: 1; transform: scale(1.07); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* idle */
+.stage[data-state="idle"] .eye  { animation: otto-blink 5.2s ease-in-out infinite; }
+.stage[data-state="idle"] .eyeR { animation-delay: .05s; }
+.stage[data-state="idle"] .gaze { animation: otto-gaze 9s ease-in-out infinite; }
+.glow { animation: otto-breathe 5.4s ease-in-out infinite; }
+@keyframes otto-blink {
+  0%, 88%, 100% { transform: scaleY(1); }
+  91%           { transform: scaleY(.06); }
+  94%           { transform: scaleY(1.04); }
+  96%           { transform: scaleY(1); }
+}
+@keyframes otto-gaze {
+  0%, 16%   { transform: translate(0, 0); }
+  22%, 38%  { transform: translate(4.5px, -1px); }
+  44%, 60%  { transform: translate(-4.5px, 1px); }
+  66%, 100% { transform: translate(0, 0); }
+}
+@keyframes otto-breathe { 0%, 100% { opacity: .16; } 50% { opacity: .34; } }
+
+/* await — mid-process hold: eyes blink calmly, the ellipsis pulses in
+ * sequence ("unfinished work"), and the progress ring shows how far the
+ * flow has come. */
+.stage[data-state="await"] .aeye  { animation: otto-blink 5.2s ease-in-out infinite; }
+.stage[data-state="await"] .aeyeR { animation-delay: .05s; }
+.stage[data-state="await"] .wdot  { animation: otto-wdot 1.6s ease-in-out infinite; }
+.stage[data-state="await"] .wdot2 { animation-delay: .25s; }
+.stage[data-state="await"] .wdot3 { animation-delay: .5s; }
+@keyframes otto-wdot {
+  0%, 100% { opacity: .25; transform: translateY(0); }
+  35%      { opacity: 1;   transform: translateY(-2.5px); }
+}
+
+/* the flow-progress ring fills smoothly rather than snapping per step */
+.ring { transition: stroke-dasharray .8s cubic-bezier(.3, .8, .3, 1); }
+
+/* think — the eyes stay open and readable; the motion is a comet of accent
+ * dots orbiting the porthole on the LIGHT body, which is the only place on
+ * this drawing where the accent colour reads at a glance (task #78).
+ * transform-box: view-box (not the fill-box the rest of the file uses) —
+ * the orbit turns around the FACE's centre, not around its own bounding
+ * box, so the dots sweep a circle instead of spinning in place. */
+.orbit {
+  transform-box: view-box;
+  transform-origin: 130px 132px;
+  animation: otto-spin 3.6s linear infinite;
+}
+.stage[data-state="think"] .teye  { animation: otto-tlook 2.8s ease-in-out infinite; }
+.stage[data-state="think"] .teyeR { animation-delay: .06s; }
+@keyframes otto-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes otto-tlook { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(1.6px) scaleY(.88); } }
+
+/* build */
+.stage[data-state="build"] .blk  { animation: otto-blkin 3.2s cubic-bezier(.34, 1.5, .64, 1) infinite; opacity: 0; }
+.stage[data-state="build"] .blk2 { animation-delay: .5s; }
+.stage[data-state="build"] .blk3 { animation-delay: 1s; }
+.stage[data-state="build"] .prog { animation: otto-prog 3.2s ease-in-out infinite; transform-origin: left center; }
+.stage[data-state="build"] .beye { animation: otto-focus 3.2s ease-in-out infinite; }
+@keyframes otto-blkin {
+  0%        { opacity: 0; transform: translateY(9px); }
+  9%        { opacity: 1; transform: translateY(-2.5px); }
+  14%       { transform: translateY(0); }
+  86%       { opacity: 1; }
+  97%, 100% { opacity: 0; }
+}
+@keyframes otto-prog { 0% { transform: scaleX(.05); } 82%, 100% { transform: scaleX(1); } }
+@keyframes otto-focus { 0%, 100% { transform: translateY(0) scaleY(1); } 45% { transform: translateY(1.6px) scaleY(.9); } }
+
+/* done */
+.stage[data-state="done"] .arcL  { animation: otto-pop .55s cubic-bezier(.34, 1.7, .64, 1) both; }
+.stage[data-state="done"] .arcR  { animation: otto-pop .55s cubic-bezier(.34, 1.7, .64, 1) .07s both; }
+.stage[data-state="done"] .chk   { animation: otto-pop .5s cubic-bezier(.34, 1.7, .64, 1) .16s both; }
+.stage[data-state="done"] .pulse { animation: otto-pulse 1s ease-out .1s both; }
+@keyframes otto-pop   { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes otto-pulse { from { transform: scale(.72); opacity: .55; } to { transform: scale(1.22); opacity: 0; } }
+
+/* error */
+.stage[data-state="error"] .body  { animation: otto-shake .5s ease-in-out 1; }
+.stage[data-state="error"] .badge { animation: otto-badge 1.8s ease-in-out infinite; }
+@keyframes otto-shake { 0%, 100% { transform: translateX(0); } 22% { transform: translateX(-3px); } 50% { transform: translateX(3px); } 76% { transform: translateX(-1.5px); } }
+@keyframes otto-badge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+/* NO prefers-reduced-motion block — a deliberate owner override
+ * (2026-09-15, second time): the OS flag froze Otto completely on the
+ * owner's machine and the character's motion IS the product's status
+ * surface. The animations are small-area and low-frequency; if an
+ * accessibility complaint ever lands, gate them behind an app-level
+ * setting rather than the OS flag. */

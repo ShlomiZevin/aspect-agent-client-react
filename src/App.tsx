@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { PageLoader } from './components/common/PageLoader';
 import { lazy, Suspense } from 'react';
-import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, AspectAgentsHomePage, ArchitecturePage, AspectBattleCardPage, AspectMarketingSalesPage, AspectPage, AspectLandingPage, AspectPlatformLandingPage, AspectPlatformSalesPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaNextPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, EnterpriseReadinessPage, LybiArchitecturePage, LybiTechnologyPage, LybiBankingDeckPage, LybiDecisionResearchPage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiBrainPage, LybiKnowledgePage, LybiCostPage, LybiInstallPage, LybiSupportPage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TeamPlanPage, ZolstockPurchasingSpecPage, ZolstockPurchasingClientPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage, AgentChatWidgetPage, IntelligenceAdminPage, ZolStockPage, SuperHistPage, TevaNaotPage, WeAreYourAIPage, WeAreYourAIVisualPage, OttoBuilderPage } from './pages';
+import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, AspectAgentsHomePage, ArchitecturePage, AspectBattleCardPage, AspectMarketingSalesPage, AspectPage, AspectLandingPage, AspectPlatformLandingPage, AspectPlatformSalesPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaNextPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, EnterpriseReadinessPage, LybiArchitecturePage, LybiTechnologyPage, LybiBankingDeckPage, LybiDecisionResearchPage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiBrainPage, LybiKnowledgePage, LybiCostPage, LybiInstallPage, LybiSupportPage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TeamPlanPage, ZolstockPurchasingSpecPage, ZolstockPurchasingClientPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage, AgentChatWidgetPage, IntelligenceAdminPage, ZolStockPage, SuperHistPage, TevaNaotPage, WeAreYourAIPage, WeAreYourAIVisualPage } from './pages';
 
 // Builder lives in its own subtree — lazy so end-user routes don't pay for it.
 const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ default: m.BuilderPage })));
@@ -138,9 +138,12 @@ function AppContent() {
         <Route path="/aspect/pitch" element={<PitchDeckPage />} />
         {/* The six-beat narrative deck: "we are your AI, anything you ask for gets built".
             Story only, no metrics — the investor pitch. */}
-        {/* Otto — build-your-own-screen. A working mockup on its own route:
-            it really writes the screen, it just runs on demo data. */}
-        <Route path="/intelligence/:datasetId/builder" element={<OttoBuilderPage />} />
+        {/* Otto v2 lives inside the Intelligence shell at
+            /:datasetId/intelligence/apps/new — the standalone demo-data
+            builder route is gone with the v1 architecture. A stale link
+            lands on the shelf, which resolves it. See the
+            /intelligence/:datasetId/builder redirect further down, grouped
+            with the rest of the old-prefix redirects (task #75). */}
         <Route path="/aspect/investors-pitch" element={<WeAreYourAIPage />} />
         {/* Same deck with generated artwork — a capability demo for marketing,
             deliberately NOT the pitch itself. See the page header. */}
@@ -354,8 +357,16 @@ function AppContent() {
             </Suspense>
           }
         />
+        {/* Canonical pattern (task #75): every customer surface is
+            /<customer>/<section>, matching /:agent/admin and /:agent/chat —
+            /intelligence/:datasetId used to put the section first, the one
+            inconsistent one of the three. New routes below; the old prefix
+            becomes a redirect (IntelligenceLegacyRedirect, further down)
+            rather than disappearing, since /intelligence/zolstock is a live
+            share-preview link (see firebase.json + inject-share-pages.cjs)
+            besides whatever else is bookmarked. */}
         <Route
-          path="/intelligence/:datasetId"
+          path="/:datasetId/intelligence"
           element={
             <Suspense fallback={<PageLoader />}>
               <IntelligencePage />
@@ -363,7 +374,7 @@ function AppContent() {
           }
         />
         <Route
-          path="/intelligence/:datasetId/insight/:insightId"
+          path="/:datasetId/intelligence/insight/:insightId"
           element={
             <Suspense fallback={<PageLoader />}>
               <IntelligencePage />
@@ -371,7 +382,7 @@ function AppContent() {
           }
         />
         <Route
-          path="/intelligence/:datasetId/reports"
+          path="/:datasetId/intelligence/reports"
           element={
             <Suspense fallback={<PageLoader />}>
               <IntelligencePage />
@@ -379,7 +390,7 @@ function AppContent() {
           }
         />
         <Route
-          path="/intelligence/:datasetId/reports/history"
+          path="/:datasetId/intelligence/reports/history"
           element={
             <Suspense fallback={<PageLoader />}>
               <IntelligencePage />
@@ -387,7 +398,7 @@ function AppContent() {
           }
         />
         <Route
-          path="/intelligence/:datasetId/chat"
+          path="/:datasetId/intelligence/chat"
           element={
             <Suspense fallback={<PageLoader />}>
               <IntelligencePage />
@@ -398,7 +409,7 @@ function AppContent() {
             page and its nav item only appear when the module is enabled and
             ready for this dataset (see IntelligenceShell). */}
         <Route
-          path="/intelligence/:datasetId/apps"
+          path="/:datasetId/intelligence/apps"
           element={
             <Suspense fallback={<PageLoader />}>
               <IntelligencePage />
@@ -406,7 +417,7 @@ function AppContent() {
           }
         />
         <Route
-          path="/intelligence/:datasetId/apps/:appId"
+          path="/:datasetId/intelligence/apps/:appId"
           element={
             <Suspense fallback={<PageLoader />}>
               <IntelligencePage />
@@ -418,20 +429,36 @@ function AppContent() {
             reason Reports/Apps are: linkable, and the shell's nav/back button
             behave like every other section instead of a one-off. */}
         <Route
-          path="/intelligence/:datasetId/settings"
+          path="/:datasetId/intelligence/settings"
           element={
             <Suspense fallback={<PageLoader />}>
               <IntelligencePage />
             </Suspense>
           }
         />
-        {/* The old address for what is now Apps / Procurement. Kept as a
-            redirect rather than deleted: it is in browser histories and in at
-            least one shared link, and a dead URL would read as the feature
-            having been withdrawn. */}
+
+        {/* The old /intelligence/:datasetId/purchasing and .../builder
+            addresses redirect straight to their new-prefix destination
+            rather than bouncing through the generic legacy redirect below —
+            same reasoning PurchasingRedirect/BuilderRedirect always had, just
+            targeting the new canonical path now. Must stay declared (React
+            Router ranks a static segment above the wildcard splat below
+            regardless of declaration order, but being explicit here matches
+            how the rest of this file reads). */}
         <Route
           path="/intelligence/:datasetId/purchasing"
           element={<PurchasingRedirect />}
+        />
+        <Route
+          path="/intelligence/:datasetId/builder"
+          element={<BuilderRedirect />}
+        />
+        {/* Everything else under the old prefix — bare, insight, reports,
+            reports/history, chat, apps, apps/:appId, settings — redirects to
+            the same suffix under the new prefix, query string included. */}
+        <Route
+          path="/intelligence/:datasetId/*"
+          element={<IntelligenceLegacyRedirect />}
         />
 
         {/* Task Board - standalone full page */}
@@ -474,16 +501,39 @@ function AppContent() {
 }
 
 /**
- * /intelligence/:datasetId/purchasing -> /intelligence/:datasetId/apps/replenishment
+ * /intelligence/:datasetId/purchasing -> /:datasetId/intelligence/apps/replenishment
  *
  * The screen moved onto the Apps shelf and was renamed Procurement. The old
  * address stays alive because it is in browser histories and in at least one
  * link that was shared with the client, and a dead URL would read as the
- * feature having been withdrawn rather than moved.
+ * feature having been withdrawn rather than moved. Target updated to the new
+ * canonical prefix (task #75) so this doesn't bounce through a second redirect.
  */
 function PurchasingRedirect() {
   const { datasetId } = useParams<{ datasetId: string }>();
-  return <Navigate to={`/intelligence/${datasetId}/apps/replenishment`} replace />;
+  return <Navigate to={`/${datasetId}/intelligence/apps/replenishment`} replace />;
+}
+
+/** v1 Otto's standalone route → the in-shell builder, new canonical prefix. */
+function BuilderRedirect() {
+  const { datasetId } = useParams<{ datasetId: string }>();
+  return <Navigate to={`/${datasetId}/intelligence/apps/new`} replace />;
+}
+
+/**
+ * Every other /intelligence/:datasetId/* address (bare, insight, reports,
+ * reports/history, chat, apps, apps/:appId, settings) -> the same suffix
+ * under /:datasetId/intelligence (task #75 — one url pattern per customer,
+ * matching /:agent/admin and /:agent/chat). Query string carried over: the
+ * zolstock share-preview link (firebase.json + inject-share-pages.cjs) opens
+ * fine either way, since crawlers only ever read the static HTML and never
+ * run this redirect.
+ */
+function IntelligenceLegacyRedirect() {
+  const params = useParams();
+  const location = useLocation();
+  const rest = params['*'];
+  return <Navigate to={`/${params.datasetId}/intelligence${rest ? `/${rest}` : ''}${location.search}`} replace />;
 }
 
 function App() {

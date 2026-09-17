@@ -40,8 +40,12 @@
   --ai-panel-dark-text: #D8CCEF;
   --ai-shadow-sm: 0 2px 8px rgba(20, 22, 42, 0.06);
   --ai-shadow: 0 18px 44px -16px rgba(30, 34, 70, 0.16);
-  --ai-font-head: 'Schibsted Grotesk', system-ui, sans-serif;
-  --ai-font-body: 'Public Sans', system-ui, sans-serif;
+  /* 'Assistant' sits between the Latin face and system-ui on purpose: font
+   * fallback is per-glyph, so Latin still renders in Schibsted/Public Sans
+   * and only Hebrew reaches Assistant — instead of the system default it
+   * used to land on (task #79). Loaded in intelligence/fonts.ts. */
+  --ai-font-head: 'Schibsted Grotesk', 'Assistant', system-ui, sans-serif;
+  --ai-font-body: 'Public Sans', 'Assistant', system-ui, sans-serif;
 
   position: relative;
   display: flex;
@@ -109,6 +113,36 @@
   border-bottom: 1px solid var(--ai-border);
   flex-shrink: 0;
 }
+
+/* Otto opens full screen (task #66) - a slim bar with one way back, standing
+ * in for the whole header/nav/breadcrumb the builder's own rail already
+ * duplicates. Same surface/border as .header so it still reads as this
+ * shell, not a different app. */
+.ottoBar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  background: var(--ai-surface);
+  border-bottom: 1px solid var(--ai-border);
+}
+.ottoBackBtn {
+  appearance: none;
+  border: 1px solid var(--ai-border);
+  background: var(--ai-shell-bg);
+  color: var(--ai-text);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ottoBackBtn:hover { background: var(--ai-border-soft); }
+
+/* The builder fills this box with its own two-pane (rail + canvas) internal
+ * scrolling (OttoBuilder's .page is height:100%) - letting .body ALSO scroll
+ * would stack a second scrollbar around the builder's own. */
+.bodyOtto { overflow: hidden; }
 .headerRow {
   display: flex;
   align-items: center;
@@ -239,7 +273,7 @@
 .body { flex: 1; min-height: 0; overflow-y: auto; background: var(--ai-shell-bg); }
 
 /* ── floating chat launcher (persistent across all internal pages) ── */
-.launcherWrap { position: fixed; right: 36px; bottom: 24px; display: flex; align-items: center; gap: 12px; z-index: 20; }
+.launcherWrap { position: fixed; inset-inline-end: 36px; bottom: 24px; display: flex; align-items: center; gap: 12px; z-index: 20; }
 .teaser {
   background: var(--ai-surface);
   border: 1px solid var(--ai-border);

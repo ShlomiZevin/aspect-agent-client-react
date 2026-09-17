@@ -85,7 +85,7 @@ export function IntelligenceHome() {
         {datasets && (
           <div className={styles.grid}>
             {datasets.map(d => (
-              <button key={d.id} className={styles.card} onClick={() => navigate(`/intelligence/${d.id}`)}>
+              <button key={d.id} className={styles.card} onClick={() => navigate(`/${d.id}/intelligence`)}>
                 <span className={styles.cardTop} style={{ background: `linear-gradient(135deg, ${d.gradientFrom}, ${d.gradientTo})` }} />
                 <span className={styles.cardBody}>
                   <span className={styles.cardMark} style={{ background: `linear-gradient(135deg, ${d.gradientFrom}, ${d.gradientTo})` }}>

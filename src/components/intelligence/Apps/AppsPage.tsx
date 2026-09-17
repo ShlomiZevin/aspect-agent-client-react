@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import styles from './AppsPage.module.css';
 import { AppGlyph } from './AppIcon';
+import { ScreenIcon } from './custom/ScreenIcon';
 import { appsService } from '../../../services/appsService';
 import type { AppsResponse } from '../../../types/apps';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -90,7 +91,12 @@ export function AppsPage({ datasetId, baseURL, onOpenApp }: Props) {
         </div>
       )}
 
-      {!failed && data && data.apps.length === 0 && (
+      {/* "Nothing switched on" should mean nothing at all - not just no
+          marketplace apps. An account with Otto live (canCreate) or with
+          screens already built (custom) has something real to do here, so
+          the empty banner would sit directly above a working tile and
+          contradict it. */}
+      {!failed && data && data.apps.length === 0 && !data.canCreate && !data.custom?.length && (
         <div className={styles.empty}>{t('apps.none')}</div>
       )}
 
@@ -122,6 +128,51 @@ export function AppsPage({ datasetId, baseURL, onOpenApp }: Props) {
             </button>
           );
         })}
+
+        {/* ── custom screens (Otto) — after the marketplace apps, before the
+            "+" tile: real and in-progress things beat the empty invitation
+            to make a new one (task #76 item 5 - Shlomi's post-demo note).
+            Planned/coming-soon tiles stay last either way. ── */}
+        {data?.custom?.map(screen => (
+          <button
+            key={screen.id}
+            type="button"
+            className={`${styles.app} ${styles.live}`}
+            onClick={() => onOpenApp(screen.id)}
+          >
+            <span className={`${styles.tile} ${styles.tileCustom}`}>
+              <ScreenIcon name={screen.icon} size={30} />
+              {screen.status !== 'active' && <span className={styles.draftDot} title={t('otto.shelf.draft')} />}
+            </span>
+            <span>
+              <span className={styles.name}>{screen.title[language === 'he' ? 'he' : 'en'] || screen.title.en}</span>
+              <span className={styles.sub} style={{ display: 'block' }}>
+                {screen.status === 'active' ? t('otto.shelf.byOtto') : t('otto.shelf.draft')}
+              </span>
+            </span>
+          </button>
+        ))}
+
+        {/* The "New app" tile is always last among the live tiles - the
+            invitation to start something new, not the first thing you see
+            among screens that already exist. Renders only when the otto
+            module is live (canCreate). */}
+        {data?.canCreate === true && (
+          <button
+            type="button"
+            className={`${styles.app} ${styles.live}`}
+            onClick={() => onOpenApp('new')}
+          >
+            <span className={`${styles.tile} ${styles.tileNew}`}>+</span>
+            <span>
+              <span className={`${styles.name} ${styles.nameNew}`}>{t('otto.shelf.newScreen')}</span>
+              <span className={styles.sub} style={{ display: 'block' }}>
+                {t('otto.shelf.withOtto')}
+                <span className={styles.betaTag}>{t('otto.beta')}</span>
+              </span>
+            </span>
+          </button>
+        )}
 
         {data?.planned.map(app => (
           // Not a button: there is nothing behind it. Rendering one that does
