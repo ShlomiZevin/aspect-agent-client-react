@@ -69,6 +69,10 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
   const [planning, setPlanning] = useState(false);
   const [readyToPlan, setReadyToPlan] = useState(false);
   const [plan, setPlan] = useState<OttoPlan | null>(null);
+  /** True after a build attempt on THIS plan has failed — the plan card
+   *  stays up so the same button reads "Try again" instead of forcing a
+   *  re-plan from scratch (task #89: the plan used to vanish on failure). */
+  const [buildFailed, setBuildFailed] = useState(false);
   const [preview, setPreview] = useState<ScreenDataPayload | null>(null);
   const [build, setBuild] = useState<BuildProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -183,6 +187,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     try {
       const p = await ottoService.draftPlan(datasetId, screen.id, messages, baseURL);
       setPlan(p);
+      setBuildFailed(false);
       setPhase('plan');
       markStep('planDrafted');
       // The plan names the draft — refresh our copy so the canvas title follows.
@@ -224,7 +229,9 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     setPhase('building');
     setError(null);
     setBuild(null);
+    setBuildFailed(false);
     markStep('approved');
+    setMessages(m => [...m, { role: 'assistant', content: t('otto.msg.building') }]);
     try {
       const started = await ottoService.startBuild(datasetId, screen.id, baseURL);
       if (!('buildId' in started)) throw new Error('build not started');
@@ -243,11 +250,16 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
         markStep('built');
         setMessages(m => [...m, { role: 'assistant', content: t('otto.msg.built') }]);
       } else {
-        setPhase('talk');
+        // Back to 'plan', not 'talk' — the SAME plan card stays up so the
+        // user can retry with one click instead of re-planning from scratch
+        // (task #89/#90: a real build failure used to strand them mid-chat).
+        setPhase('plan');
+        setBuildFailed(true);
         setError(final?.report?.reason || t('otto.error.buildFailed'));
       }
     } catch (err) {
-      setPhase('talk');
+      setPhase('plan');
+      setBuildFailed(true);
       setError(err instanceof Error ? err.message : t('otto.error.buildFailed'));
     }
   }, [screen, plan, datasetId, baseURL, watchBuild, markStep, t]);
@@ -410,7 +422,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
             </div>
           )}
 
-          {plan && phase === 'plan' && (
+          {plan && (phase === 'plan' || phase === 'building') && (
             <div className={styles.planCard}>
               <p className={styles.planKicker}>{t('otto.plan.kicker')}</p>
               <p className={styles.planTitle}>{loc(plan.title)}</p>
@@ -433,10 +445,11 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
               )}
 
               <div className={styles.planActions}>
-                <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => void approveAndBuild()}>
-                  {plan.isChange ? t('otto.plan.approveChange') : t('otto.plan.approve')}
+                <button type="button" className={`${styles.btn} ${styles.btnPrimary}`}
+                  disabled={phase === 'building'} onClick={() => void approveAndBuild()}>
+                  {buildFailed ? t('otto.plan.retry') : plan.isChange ? t('otto.plan.approveChange') : t('otto.plan.approve')}
                 </button>
-                <button type="button" className={styles.btn} onClick={() => setPhase('talk')}>
+                <button type="button" className={styles.btn} disabled={phase === 'building'} onClick={() => setPhase('talk')}>
                   {t('otto.plan.backToChat')}
                 </button>
               </div>

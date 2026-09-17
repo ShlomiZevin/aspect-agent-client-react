@@ -82,7 +82,11 @@ export interface ComputedColumn {
 export interface AggregateMeasure {
   id: string;
   agg: 'sum' | 'count' | 'avg' | 'min' | 'max';
+  /** One raw field aggregated as-is, OR an arithmetic expression over this
+   *  source's raw fields (e.g. "qty * unit_price") aggregated per row —
+   *  never both. */
   field?: string;
+  expr?: string;
   label: Localized;
   format?: OttoFormat;
 }

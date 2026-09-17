@@ -240,10 +240,24 @@
   margin: 0; display: flex; align-items: center; gap: 7px;
   font-size: 13px; font-weight: 700; color: var(--ai-text, #1d2130);
 }
-.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.dotWork { background: var(--ai-accent, #7c3aed); }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; position: relative; }
+/* task #88: the status bubble read as static while Otto was actually
+ * working — the dot itself is now the "something is moving" cue, echoing
+ * an outward pulse ring the way a live-recording indicator does. No
+ * prefers-reduced-motion gate, matching OttoFigure's own call: this is a
+ * small-area, low-frequency status signal, not decoration. */
+.dotWork { background: var(--ai-accent, #7c3aed); animation: otto-dot-pulse 1.3s ease-in-out infinite; }
+.dotWork::after {
+  content: '';
+  position: absolute; inset: -4px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ai-accent, #7c3aed);
+  animation: otto-dot-ring 1.3s ease-out infinite;
+}
 .dotWait { background: #b9a300; }
 .dotRisk { background: var(--ai-negative, #dc2f34); }
+@keyframes otto-dot-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
+@keyframes otto-dot-ring { from { transform: scale(.6); opacity: .55; } to { transform: scale(1.7); opacity: 0; } }
 .statusDetail { margin: 6px 0 0; font-size: 12px; color: var(--ai-text-dim, #6a7183); }
 .checklist { margin: 10px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .checklist li { display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: var(--ai-text-dim, #6a7183); }
