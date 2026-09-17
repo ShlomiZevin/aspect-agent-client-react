@@ -36,6 +36,10 @@ import type {
   TalkerConfig,
 } from '../types';
 import { clearDraft, loadDraft, saveDraft, normalizeMainStepFlags } from './draftStorage';
+import {
+  deleteDraft, draftModifiedAt, isSupported as folderSupported, readDraft,
+  rememberedFolder, writeDraft,
+} from './folderDrafts';
 import { talkerPlugin, TALKER_PLUGIN_ID } from '../plugins/talker/addon.talker';
 import { defaultContextFor, defaultOutputTypeFor } from '../registry/plugins';
 import { cascadeFieldRename } from './fieldRenameCascade';
@@ -201,6 +205,50 @@ export function workingBodiesOf(
  * to refetch). Missing snapshots count as dirty — when in doubt,
  * keep the draft rather than risk dropping someone's edits.
  */
+/**
+ * Writing the draft into the user's folder.
+ *
+ * When a folder is connected the draft lives THERE as well as in
+ * localStorage — that is the whole feature: an AI assistant on the user's
+ * machine edits that file, and the Builder reads it back. localStorage
+ * stays the immediate store because it is synchronous and cannot fail;
+ * the folder write is a mirror.
+ *
+ * Debounced because `doc` changes on every keystroke and the file is a
+ * few hundred KB, where a localStorage write is trivial.
+ */
+let folderWriteTimer: number | null = null;
+/**
+ * `lastModified` of the draft file as WE last left it. Anything newer
+ * than this was written by something else — which is the only signal
+ * that the assistant has produced work worth pulling back in.
+ */
+let lastFolderWriteAt = 0;
+
+function scheduleFolderWrite(agentSlug: string, doc: ProjectDoc): void {
+  if (!folderSupported()) return;
+  if (folderWriteTimer !== null) window.clearTimeout(folderWriteTimer);
+  folderWriteTimer = window.setTimeout(() => {
+    folderWriteTimer = null;
+    void (async () => {
+      try {
+        // Never prompts — only uses a folder the user already granted.
+        const folder = await rememberedFolder();
+        if (!folder) return;
+        await writeDraft(folder, agentSlug, doc);
+        lastFolderWriteAt = (await draftModifiedAt(folder, agentSlug)) ?? Date.now();
+      } catch {
+        /* permission withdrawn or folder moved — localStorage still holds it */
+      }
+    })();
+  }, 1200);
+}
+
+/** True while an edit of the user's is still queued to be written. */
+export function folderWritePending(): boolean {
+  return folderWriteTimer !== null;
+}
+
 function draftHasUnsavedWork(draft: ProjectDoc): boolean {
   for (const agent of draft.agents) {
     const viewingA = agent.versions.find(v => v.id === agent.viewingVersionId);
@@ -630,6 +678,18 @@ interface BuilderState {
    */
   applyAlfredBodies: (args: ApplyAlfredBodiesArgs) => void;
 
+  /**
+   * Replace the working copy with a draft an AI assistant wrote into the
+   * user's folder. Review and Save are unchanged from any other edit.
+   */
+  loadDocFromFolder: (incoming: ProjectDoc) => void;
+
+  /** Set when the user's AI assistant has edited the folder copy and
+   *  they have not decided what to do about it yet. */
+  incomingFolderDraft: { doc: ProjectDoc; at: number } | null;
+  acceptIncomingDraft: () => void;
+  dismissIncomingDraft: () => void;
+
   // Preview conversation — the conversationId for the in-builder
   // "User Chat" panel. Exposed so prompt-preview views can fetch
   // the actual transcript for the history sidebar.
@@ -746,6 +806,17 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   //   syncRef.current?.pushXxx(next.agents[...]);
   //
   // Updated synchronously after every render via the effect below.
+  /**
+   * A version of this agent found in the user's folder that they have not
+   * seen — i.e. their AI assistant edited the file.
+   *
+   * Held rather than applied. Writing OUT is automatic because it cannot
+   * surprise anyone; reading IN replaces what is on the screen, so it is
+   * always a decision the user makes.
+   */
+  const [incomingFolderDraft, setIncomingFolderDraft] =
+    useState<{ doc: ProjectDoc; at: number } | null>(null);
+
   const docRef = useRef<ProjectDoc>(doc);
   docRef.current = doc;
 
@@ -792,7 +863,81 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   useEffect(() => {
     if (previewVersion) return;
     saveDraft(agentSlug, doc);
+    scheduleFolderWrite(agentSlug, doc);
   }, [agentSlug, doc, previewVersion]);
+
+  /**
+   * Take the assistant's changes as they happen.
+   *
+   * The draft lives in the folder, so when something else edits that file
+   * the draft HAS changed and showing stale content would be the bug. The
+   * two guards are what keep this from being alarming:
+   *
+   *   - a write of the user's still queued (`folderWritePending`) means
+   *     they are mid-edit, so we leave it alone rather than yanking the
+   *     page out from under them;
+   *   - an agent with unsaved work is never silently replaced — the
+   *     folder dialog offers it instead, so nothing typed is lost.
+   *
+   * Everything else loads without asking, which is the behaviour anyone
+   * waiting on their assistant actually wants.
+   */
+  useEffect(() => {
+    if (!folderSupported() || previewVersion) return;
+    let cancelled = false;
+    const id = window.setInterval(() => {
+      void (async () => {
+        if (cancelled || folderWritePending()) return;
+        try {
+          const folder = await rememberedFolder();
+          if (!folder || cancelled) return;
+          const at = await draftModifiedAt(folder, agentSlug);
+          // 2.5s of slack: a file we wrote can report a timestamp a hair
+          // after our own clock.
+          if (at === null || at <= lastFolderWriteAt + 2500) return;
+
+          const found = await readDraft(folder, agentSlug);
+          if (cancelled || !found) return;
+          // Offer it. `lastFolderWriteAt` is NOT advanced here — if the
+          // user ignores the prompt and the assistant writes again, the
+          // newer version replaces the offer rather than being missed.
+          setIncomingFolderDraft({ doc: found.doc, at });
+        } catch {
+          /* folder went away — the browser draft still stands */
+        }
+      })();
+    }, 3000);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [agentSlug, previewVersion]);
+
+  // If a folder is connected, its copy of the draft is the one an AI
+  // assistant has been editing — so on arrival it wins over the browser's.
+  //
+  // Gated by the SAME rule as the localStorage draft (`draftHasUnsavedWork`):
+  // a clean draft is a stale cache, and honouring one would hide saves made
+  // elsewhere. Runs once per agent; after that the write-through above keeps
+  // the file current.
+  useEffect(() => {
+    if (!folderSupported() || previewVersion) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const folder = await rememberedFolder();
+        if (!folder || cancelled) return;
+        const found = await readDraft(folder, agentSlug);
+        if (cancelled || !found) return;
+        if (!draftHasUnsavedWork(found.doc)) return;
+        setDoc(() => {
+          docRef.current = found.doc;
+          return found.doc;
+        });
+      } catch {
+        /* unreadable or malformed — the browser draft stands */
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agentSlug]);
 
   // Preview-chat conversation id, shared so the prompt-preview view
   // can fetch the real transcript instead of showing a placeholder.
@@ -1589,6 +1734,76 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   const pendingApplyRef = useRef<PendingAlfredApply | null>(null);
   pendingApplyRef.current = pendingAlfredApply;
 
+  /**
+   * Load a draft written by an AI assistant running on this machine.
+   *
+   * Deliberately NOT applyAlfredBodies. That one also stamps
+   * `pendingAlfredApply`, so the next Save writes an Alfred-attributed row
+   * into the change log — but this change did not come from Alfred and has
+   * no apply group or chat behind it, so attributing it would put false
+   * history in the log. (`pendingAlfredApply` also blocks autosave, which
+   * would wedge the UI here for no reason.)
+   *
+   * So this does exactly one thing: swap the document. Everything after —
+   * reviewing it, saving it, reverting it — is the ordinary path the user
+   * already knows.
+   */
+  /**
+   * Crews the assistant added exist only inside the draft file until
+   * somebody creates the row — `pushCreateCrew` is fired by `addCrew`,
+   * and nothing diffs an incoming document. Without this a new crew
+   * appears on screen, looks saved, and is silently gone on reload.
+   *
+   * CREATE ONLY, deliberately. A crew that turns up in the file is an
+   * addition the user can look at; a crew that VANISHES from it is just
+   * as likely to be the assistant rewriting the file badly as a request
+   * to delete anything, and that is not a mistake worth automating.
+   * Removing a crew stays a deliberate click in the Builder.
+   */
+  const createCrewsFoundIn = useCallback((incoming: ProjectDoc) => {
+    const before = docRef.current;
+    for (const agent of incoming.agents) {
+      const existing = before.agents.find(a => a.id === agent.id);
+      if (!existing) continue; // a whole new agent is not made this way
+      const known = new Set(existing.crews.map(c => c.id));
+      for (const crew of agent.crews) {
+        if (!known.has(crew.id)) syncRef.current?.pushCreateCrew(agent.id, crew);
+      }
+    }
+  }, []);
+
+  /** Take the assistant's version. */
+  const acceptIncomingDraft = useCallback(() => {
+    const incoming = incomingFolderDraft;
+    if (!incoming) return;
+    lastFolderWriteAt = incoming.at;
+    setIncomingFolderDraft(null);
+    createCrewsFoundIn(incoming.doc);
+    setDoc(() => {
+      docRef.current = incoming.doc;
+      return incoming.doc;
+    });
+  }, [incomingFolderDraft, createCrewsFoundIn]);
+
+  /**
+   * Keep what is on screen. The file stays as the assistant left it —
+   * the next edit here overwrites it, which is the right outcome: the
+   * Builder is where the person is working.
+   */
+  const dismissIncomingDraft = useCallback(() => {
+    const incoming = incomingFolderDraft;
+    if (incoming) lastFolderWriteAt = incoming.at;
+    setIncomingFolderDraft(null);
+  }, [incomingFolderDraft]);
+
+  const loadDocFromFolder = useCallback((incoming: ProjectDoc) => {
+    createCrewsFoundIn(incoming);
+    setDoc(() => {
+      docRef.current = incoming;
+      return incoming;
+    });
+  }, [createCrewsFoundIn]);
+
   const applyAlfredBodies = useCallback((args: ApplyAlfredBodiesArgs) => {
     // Merge the generated bodies into the working copy in one pass.
     // Each AgentBody / CrewBody is shallow-merged into its host doc;
@@ -2383,6 +2598,13 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     // every cache, every ref, every effect starts from scratch and
     // BuilderApp's initial fetchProject is the single source of truth.
     clearDraft(agentSlug);
+    // The folder copy has to go too, and BEFORE the reload: the mount
+    // effect would otherwise read it back in and resurrect exactly the
+    // work Reset was asked to destroy.
+    try {
+      const folder = await rememberedFolder();
+      if (folder) await deleteDraft(folder, agentSlug);
+    } catch { /* folder gone or permission withdrawn */ }
     if (typeof window !== 'undefined') {
       window.location.reload();
     }
@@ -2450,6 +2672,10 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       resetToServerState,
       pendingAlfredApply,
       applyAlfredBodies,
+      loadDocFromFolder,
+      incomingFolderDraft,
+      acceptIncomingDraft,
+      dismissIncomingDraft,
       previewConversationId,
       setPreviewConversationId,
       pendingSeeds,
@@ -2524,6 +2750,10 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       resetToServerState,
       pendingAlfredApply,
       applyAlfredBodies,
+      loadDocFromFolder,
+      incomingFolderDraft,
+      acceptIncomingDraft,
+      dismissIncomingDraft,
       previewConversationId,
       pendingSeeds,
       liveBrainPanelEvent,

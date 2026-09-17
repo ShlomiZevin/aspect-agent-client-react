@@ -1,0 +1,487 @@
+/* Your AI folder — status first, setup underneath.
+   One dialog, because they are the same subject: where your draft lives
+   and what is reading it.
+
+   Every colour comes from the platform tokens in styles/variables.css
+   (--surface, --border, --text-*, --primary-color, --success/warning/
+   error-color). The earlier pass invented names (--accent, --text-2,
+   --surface-3, --danger) that are defined nowhere, so the whole dialog
+   rendered on its hardcoded fallbacks and drifted from the rest of the
+   builder — and would ignore an agent theme entirely. */
+
+/* ── Status card ──────────────────────────────────────────────────
+   The first thing read, and the answer to "is my assistant seeing my
+   work?". The action lives INSIDE the card because it acts on exactly
+   what the card describes. */
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface-light, #f0f2f5);
+}
+
+.cardOk {
+  border-color: color-mix(in srgb, var(--success-color, #10b981) 40%, transparent);
+  background: color-mix(in srgb, var(--success-color, #10b981) 8%, transparent);
+}
+
+.cardWarn {
+  border-color: color-mix(in srgb, var(--warning-color, #f59e0b) 45%, transparent);
+  background: color-mix(in srgb, var(--warning-color, #f59e0b) 10%, transparent);
+}
+
+.cardIcon {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--surface, #fff);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+  font-size: 17px;
+}
+
+.cardText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cardTitle {
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 700;
+  color: var(--text-primary, #1a202c);
+}
+
+/* The folder name is user data — never let it stretch the card. */
+.folderName {
+  display: inline-block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.cardDetail {
+  font-size: var(--font-size-xs, 12px);
+  line-height: 1.5;
+  color: var(--text-secondary, #64748b);
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────── */
+
+.primary,
+.ghost {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm, 8px);
+  font: inherit;
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast, 0.15s ease), border-color var(--transition-fast, 0.15s ease);
+}
+
+.primary {
+  border: 1px solid var(--primary-color, #2563eb);
+  background: var(--primary-color, #2563eb);
+  color: #fff;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--primary-hover, #1d4ed8);
+  border-color: var(--primary-hover, #1d4ed8);
+}
+
+.ghost {
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface, #fff);
+  color: var(--text-secondary, #64748b);
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--surface-light, #f0f2f5);
+  color: var(--text-primary, #1a202c);
+}
+
+.primary:disabled,
+.ghost:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* ── One message line ─────────────────────────────────────────────
+   Fixed slot: a confirmation or an error swaps in where the hint was,
+   so nothing below ever moves (the panel used to grow by a paragraph
+   the moment a folder was picked). */
+
+.msgSlot {
+  display: flex;
+  align-items: flex-start;
+  min-height: 34px;
+  padding: 7px 2px 0;
+  font-size: var(--font-size-xs, 12px);
+  line-height: 1.45;
+}
+
+.msgHint {
+  color: var(--text-muted, #94a3b8);
+}
+
+.msgOk {
+  color: color-mix(in srgb, var(--success-color, #10b981) 75%, #000);
+  font-weight: 600;
+}
+
+.msgError {
+  color: var(--error-color, #ef4444);
+  font-weight: 600;
+}
+
+/* ── Empty state ──────────────────────────────────────────────────
+   Shown only before a folder exists: the one place where explaining the
+   whole feature earns its space. */
+
+.intro {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface, #fff);
+  font-size: var(--font-size-xs, 12px);
+  line-height: 1.65;
+  color: var(--text-secondary, #64748b);
+}
+
+.p {
+  margin: 0;
+  font-size: var(--font-size-sm, 13px);
+  line-height: 1.65;
+  color: var(--text-secondary, #64748b);
+}
+
+.foot {
+  margin: 16px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border, #e2e8f0);
+  font-size: var(--font-size-xs, 12px);
+  line-height: 1.6;
+  color: var(--text-muted, #94a3b8);
+}
+
+/* ── Setup, in the same dialog ────────────────────────────────────── */
+
+.setup {
+  margin-top: 16px;
+}
+
+.setupHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  padding: 13px 14px;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface, #fff);
+  transition: border-color var(--transition-fast, 0.15s ease), background var(--transition-fast, 0.15s ease);
+}
+
+.setupHead:hover {
+  border-color: var(--primary-color, #2563eb);
+  background: var(--surface-light, #f0f2f5);
+}
+
+.setupHeadText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.setupTitle {
+  font-size: var(--font-size-base, 15px);
+  font-weight: 700;
+  color: var(--text-primary, #1a202c);
+}
+
+.setupSub {
+  font-size: var(--font-size-xs, 12px);
+  line-height: 1.5;
+  color: var(--text-muted, #94a3b8);
+}
+
+.chev {
+  flex-shrink: 0;
+  color: var(--text-muted, #94a3b8);
+  transition: transform var(--transition-fast, 0.15s ease);
+}
+
+.chevOpen {
+  transform: rotate(90deg);
+}
+
+.setupBody {
+  margin-top: 14px;
+}
+
+.toolsLabel {
+  display: block;
+  margin-bottom: 8px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  color: var(--text-secondary, #64748b);
+}
+
+.toolRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.tool,
+.toolOn {
+  flex: 1 1 180px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 12px);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface, #fff);
+}
+
+.tool:hover {
+  background: var(--surface-light, #f0f2f5);
+}
+
+.toolOn {
+  border-color: var(--primary-color, #2563eb);
+  background: var(--primary-light, rgba(37, 99, 235, 0.1));
+}
+
+.toolName {
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 700;
+  color: var(--text-primary, #1a202c);
+}
+
+.toolAbout {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-muted, #94a3b8);
+}
+
+/* ── Steps ────────────────────────────────────────────────────────── */
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.step,
+.stepDone {
+  display: flex;
+  gap: 11px;
+  padding: 13px 0;
+  border-top: 1px solid var(--border, #e2e8f0);
+}
+
+.stepDone .stepTitle,
+.stepDone .stepP {
+  opacity: 0.6;
+}
+
+.tick {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin-top: 1px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface, #fff);
+  color: var(--text-muted, #94a3b8);
+}
+
+.stepDone .tick {
+  background: var(--success-color, #10b981);
+  border-color: var(--success-color, #10b981);
+  color: #fff;
+}
+
+.stepBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.stepTitle {
+  margin: 0 0 5px;
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 700;
+  color: var(--text-primary, #1a202c);
+}
+
+.stepP {
+  margin: 0 0 7px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-secondary, #64748b);
+}
+
+.link {
+  display: inline-block;
+  margin: 2px 0 4px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm, 8px);
+  font: inherit;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface, #fff);
+  color: var(--text-primary, #1a202c);
+}
+
+.link:hover {
+  background: var(--surface-light, #f0f2f5);
+}
+
+.ok {
+  margin: 7px 0 0;
+  font-size: var(--font-size-xs, 12px);
+  line-height: 1.5;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--success-color, #10b981) 75%, #000);
+}
+
+.warn {
+  margin: 7px 0 0;
+  font-size: var(--font-size-xs, 12px);
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--warning-color, #f59e0b) 80%, #000);
+}
+
+/* Writing ~90 files takes seconds — a bar says "working", a count says
+   how much is left. Rendered in the step's own space, replacing the
+   button, so the list doesn't jump while it runs. */
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 4px 0;
+}
+
+.progressTrack {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border, #e2e8f0);
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary-color, #2563eb);
+  transition: width 0.15s linear;
+}
+
+.progressText {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Habits that decide whether this works well ───────────────────── */
+
+.tips {
+  margin: 4px 0 0;
+  padding: 12px 14px 12px 28px;
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface-light, #f0f2f5);
+}
+
+.tipsTitle {
+  margin: 0 0 6px -14px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  color: var(--text-secondary, #64748b);
+  list-style: none;
+}
+
+.tip {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary, #64748b);
+}
+
+/* ── Copyable starting prompt ─────────────────────────────────────── */
+
+.codeWrap {
+  position: relative;
+  margin: 6px 0 2px;
+}
+
+.code {
+  margin: 0;
+  padding: 12px 74px 12px 12px;
+  border-radius: var(--radius-sm, 8px);
+  overflow-x: auto;
+  max-height: 220px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  direction: ltr;
+  text-align: left;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface-light, #f0f2f5);
+  color: var(--text-primary, #1a202c);
+}
+
+.copy {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 8px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface, #fff);
+  color: var(--text-secondary, #64748b);
+}
+
+.copy:hover {
+  color: var(--text-primary, #1a202c);
+}

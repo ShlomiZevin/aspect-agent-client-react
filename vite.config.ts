@@ -28,6 +28,11 @@ export default defineConfig({
       // descriptor JSON is read by the server AND the client, so the two
       // halves can't drift on names, icons or defaults.
       '@triggers': path.resolve(__dirname, '../aspect-agent-server/builder/triggers'),
+      // Same trick again, for prose rather than code: the agent-building
+      // instructions the "Work with your AI" wizard hands out are the
+      // SAME file a developer reads in the server repo. Imported with
+      // `?raw` so the wizard can never serve a stale copy of it.
+      '@guides': path.resolve(__dirname, '../aspect-agent-server/docs/guides'),
     },
   },
   build: {

@@ -51,17 +51,6 @@
   color: #dc2626;
 }
 
-.draftPill {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #b45309;
-  background: #fef3c7;
-  padding: 4px 10px;
-  border-radius: 999px;
-}
-
 /* Save-status chip — quiet "Saved · HH:MM" / "Saving…" feedback shown
  * while auto-save is on. Sits just before the gear so the user can read
  * the auto-save state at a glance without opening the popover. */
@@ -102,4 +91,32 @@
 .settingsBtnActive {
   border-color: var(--border-color, #e5e7eb);
   background: var(--bg-input, #f3f4f6);
+}
+
+/* The one AI control. Labelled rather than another bare glyph: the
+   toolbar already carries four, and "what is the robot for" was a fair
+   question. Before a folder exists it opens setup; after, the folder. */
+.aiBtn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 11px; border-radius: 8px;
+  font: inherit; font-size: 12px; font-weight: 600;
+  white-space: nowrap; cursor: pointer;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.12));
+  background: var(--surface, #fff);
+  color: var(--text-secondary, #555);
+}
+.aiBtn:hover {
+  background: var(--surface-light, rgba(0, 0, 0, 0.05));
+  color: var(--text-primary, #222);
+}
+
+/* Platform files behind the server. Amber rather than red: nothing is
+   broken, her assistant is just reading an older description of how the
+   platform works — which it will do happily and wrongly until told. */
+.aiDot {
+  display: inline-block;
+  width: 7px; height: 7px; margin-inline-start: 2px;
+  border-radius: 50%;
+  background: #d97706;
+  vertical-align: middle;
 }

@@ -1,0 +1,69 @@
+/* "Your assistant changed this agent" — the one interruption in the
+   whole feature, so it stays short and offers exactly two answers.
+   Tokens are the platform's own (styles/variables.css); the earlier
+   --text-2 / --surface-3 / --accent names are defined nowhere, so this
+   dialog used to ignore the theme and render on its fallbacks. */
+
+.p {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text-primary, #1a202c);
+}
+
+.summary {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm, 8px);
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 600;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface-light, #f0f2f5);
+  color: var(--text-primary, #1a202c);
+}
+
+.detail {
+  margin: 0 0 9px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-secondary, #64748b);
+}
+
+.footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.primary,
+.ghost {
+  padding: 8px 15px;
+  border-radius: var(--radius-sm, 8px);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 600;
+  transition: background var(--transition-fast, 0.15s ease), border-color var(--transition-fast, 0.15s ease);
+}
+
+.primary {
+  border: 1px solid var(--primary-color, #2563eb);
+  background: var(--primary-color, #2563eb);
+  color: #fff;
+}
+
+.primary:hover {
+  background: var(--primary-hover, #1d4ed8);
+  border-color: var(--primary-hover, #1d4ed8);
+}
+
+.ghost {
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface, #fff);
+  color: var(--text-secondary, #64748b);
+}
+
+.ghost:hover {
+  background: var(--surface-light, #f0f2f5);
+  color: var(--text-primary, #1a202c);
+}
