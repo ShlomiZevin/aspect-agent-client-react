@@ -27,7 +27,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal } from '../Modal/Modal';
 import INSTRUCTIONS from '@guides/AGENT_BUILDING_INSTRUCTIONS.md?raw';
-import { useBuilder } from '../../state/BuilderContext';
+import { ensureFolderDraft, useBuilder } from '../../state/BuilderContext';
 import { fetchAiBundle, fetchAiBundleVersion } from '../../state/builderApi';
 import {
   chooseFolder, isSupported, readBundleVersion, rememberedFolder, writeBundle,
@@ -108,17 +108,28 @@ export function FolderDraftsModal({ open, onClose }: Props) {
     if (!handle) return;
     setFolderName(handle.name);
     setLocalV(await readBundleVersion(handle));
+    // Put the draft there immediately. Waiting for the next keystroke
+    // means the assistant opens an empty folder and sends her back here.
+    // This also covers CHANGING folders, which is how it was found: the
+    // new folder inherited nothing and looked broken.
+    const wrote = slug ? await ensureFolderDraft(handle, slug, doc) : false;
     // Settle the tool now, even if she never touched the chooser: from here
     // the toolbar button carries this name, and a default that was never
     // written down would leave it guessing on the next visit.
     rememberTool(toolId);
-    setNote(`Your draft now saves into “${handle.name}”.`);
+    setNote(wrote
+      ? `Your draft of “${agent?.name || slug}” is now in “${handle.name}”.`
+      : `Saving to “${handle.name}”. It already holds a draft of this agent — you will be asked before anything on your screen changes.`);
   });
 
   const download = () => run('files', async () => {
     const handle = await rememberedFolder() || await chooseFolder();
     if (!handle) return;
     setFolderName(handle.name);
+    // Someone can reach this step having picked the folder in this same
+    // dialog a moment ago, or having just picked one here. Either way the
+    // folder must not be left without the agent it is for.
+    if (slug) await ensureFolderDraft(handle, slug, doc);
 
     const bundle = await fetchAiBundle();
     const shipped = bundle.files.find(f => f.path.endsWith('AGENT_BUILDING_INSTRUCTIONS.md'));

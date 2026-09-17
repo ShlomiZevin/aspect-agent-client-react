@@ -249,6 +249,44 @@ export function folderWritePending(): boolean {
   return folderWriteTimer !== null;
 }
 
+/**
+ * Make sure a newly connected folder already holds this agent's draft,
+ * rather than staying empty until the user's next edit.
+ *
+ * Connecting a folder used to leave it empty until they happened to type
+ * something. Their assistant would open it, find no `drafts/<slug>.json`,
+ * and tell them to go back to the Builder and make one — which is exactly
+ * what it was instructed to do, and exactly the wrong thing to say to
+ * someone who had just finished setting the folder up. The folder is only
+ * ever connected from a screen that already knows which agent is open, so
+ * there is no reason for it to start out empty.
+ *
+ * `lastFolderWriteAt` is advanced here for the same reason the debounced
+ * path advances it: otherwise the poller sees a file newer than anything
+ * we remember writing and offers it straight back as "your assistant
+ * changed this agent", seconds after the folder was chosen.
+ *
+ * It never OVERWRITES. A folder being connected is not a statement about
+ * whose copy is newer: she may well be re-picking a folder her assistant
+ * has been working in, and clobbering that would destroy work silently,
+ * at the one moment she is least expecting it. When a draft is already
+ * there this does nothing and leaves `lastFolderWriteAt` alone, so the
+ * poller treats the file as incoming and asks — which is the existing,
+ * correct path for "someone else wrote this".
+ *
+ * Returns whether it actually wrote, so the caller can say something true.
+ */
+export async function ensureFolderDraft(
+  folder: FileSystemDirectoryHandle,
+  agentSlug: string,
+  doc: ProjectDoc,
+): Promise<boolean> {
+  if ((await draftModifiedAt(folder, agentSlug)) !== null) return false;
+  await writeDraft(folder, agentSlug, doc);
+  lastFolderWriteAt = (await draftModifiedAt(folder, agentSlug)) ?? Date.now();
+  return true;
+}
+
 function draftHasUnsavedWork(draft: ProjectDoc): boolean {
   for (const agent of draft.agents) {
     const viewingA = agent.versions.find(v => v.id === agent.viewingVersionId);

@@ -6,6 +6,13 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "redirects": [
+      {
+        "source": "/builder/mcp",
+        "destination": "https://aspect-agent-server-1018338671074.europe-west1.run.app/builder/mcp",
+        "type": 302
+      }
+    ],
     "rewrites": [
       {
         "source": "/intelligence/zolstock",

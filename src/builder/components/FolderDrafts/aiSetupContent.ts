@@ -163,7 +163,7 @@ Once you can see them, read ./{{FILENAME}} — it explains how the Builder works
 Some orientation:
 
 - ./aspect-agent-server/ holds the platform's own source code. That is the real code that runs the agents — read it rather than guessing how something behaves.
-- I am working on the agent "{{AGENT}}". Its current version is ./drafts/{{SLUG}}.json.
+- I am working on the agent "{{AGENT}}". Its current version is ./drafts/{{SLUG}}.json. If that file is not there, pull the agent from the API the way the instructions describe and write it yourself — tell me you did that, but do not send me back to the Builder to create it.
 - My builder id is in ./.lybi/config.json. You need it for the API calls described in the instructions.
 
 How we work together:
