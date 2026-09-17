@@ -12,6 +12,7 @@ import { fetchAiBundleVersion } from '../../state/builderApi';
 import {
   isSupported as folderSupported, readBundleVersion, rememberedFolder,
 } from '../../state/folderDrafts';
+import { chosenTool } from '../FolderDrafts/aiSetupContent';
 import styles from './TopBar.module.css';
 
 export function TopBar() {
@@ -34,13 +35,28 @@ export function TopBar() {
    * is not something worth asking about every few seconds.
    */
   const [filesStale, setFilesStale] = useState(false);
+
+  /**
+   * What the AI button calls itself: the name of the app she installed
+   * once a folder exists, an invitation to connect one before that.
+   *
+   * "AI" was the wrong label because Alfred is also AI and sits two
+   * panels away — the button was claiming a whole category while meaning
+   * one specific thing. Naming the actual app removes the question: the
+   * builder now offers Alfred in the panel and Claude Code (or Codex) in
+   * the toolbar, and nobody has to be told which is which.
+   */
+  const [aiLabel, setAiLabel] = useState<string | null>(null);
+
   useEffect(() => {
     if (!folderSupported()) return;
     let cancelled = false;
     void (async () => {
       try {
         const folder = await rememberedFolder();
-        if (!folder || cancelled) return;
+        if (cancelled) return;
+        setAiLabel(folder ? chosenTool().label : null);
+        if (!folder) return;
         const [local, server] = await Promise.all([
           readBundleVersion(folder),
           fetchAiBundleVersion().then(r => r.version).catch(() => null),
@@ -100,9 +116,11 @@ export function TopBar() {
         onClick={() => setFolderOpen(true)}
         title={filesStale
           ? 'The platform has changed since you last downloaded the files — your assistant is reading an old copy of how it works. Open to update them.'
-          : 'Your AI folder — save your draft where Claude Code or Codex can work on it'}
+          : aiLabel
+            ? `${aiLabel} on your computer — the folder your draft is saved to`
+            : 'Build agents by talking to Claude Code or Codex on your own computer'}
       >
-        🤖 AI
+        🤖 {aiLabel ?? 'Connect my AI'}
         {filesStale && <span className={styles.aiDot} aria-label="Files out of date" />}
       </button>
       <button

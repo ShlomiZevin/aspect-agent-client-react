@@ -55,6 +55,31 @@ export const TOOLS: WizardTool[] = [
   },
 ];
 
+/**
+ * Which tool she actually uses, remembered across sessions.
+ *
+ * The choice used to live in the dialog's own state, which meant it reset
+ * to the first tool every time the dialog opened — she re-picked Codex on
+ * every visit, and nothing outside the dialog could know what she had
+ * chosen. The toolbar button now says the name of the app she installed
+ * ("Claude Code", "Codex") rather than the word "AI", and that only works
+ * if the answer outlives the dialog.
+ */
+const TOOL_KEY = 'builder:aiTool';
+
+/** The tool she picked, or the first one for someone who never opened the
+ *  chooser — a default is honest here, since the two differ only in what
+ *  the instructions file gets called. */
+export function chosenTool(): WizardTool {
+  let id: string | null = null;
+  try { id = localStorage.getItem(TOOL_KEY); } catch { /* private mode */ }
+  return TOOLS.find(t => t.id === id) ?? TOOLS[0];
+}
+
+export function rememberTool(id: string): void {
+  try { localStorage.setItem(TOOL_KEY, id); } catch { /* private mode */ }
+}
+
 export interface WizardStep {
   id: string;
   title: string;

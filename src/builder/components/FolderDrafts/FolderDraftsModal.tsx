@@ -12,6 +12,16 @@
  * on disk, that draft is read back (see BuilderContext). The folder is
  * simply where the draft lives, so there is nothing to push, pull or
  * reconcile — only two states worth showing: connected, or not.
+ *
+ * Two rules this screen follows:
+ *
+ *   - ONE message line, always rendered. A confirmation or an error
+ *     swaps in where the hint sits, so picking a folder never pushes the
+ *     rest of the dialog down.
+ *   - The browser's own permission prompt is not ours to style, so it is
+ *     announced before it appears and answered for afterwards — the
+ *     button says what is about to happen, and declining lands in our
+ *     own message line rather than in silence.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -22,7 +32,10 @@ import { fetchAiBundle, fetchAiBundleVersion } from '../../state/builderApi';
 import {
   chooseFolder, isSupported, readBundleVersion, rememberedFolder, writeBundle,
 } from '../../state/folderDrafts';
-import { STARTING_PROMPT, STEPS, TOOLS, type WizardTool } from './aiSetupContent';
+import {
+  chosenTool, rememberTool, STARTING_PROMPT, STEPS, TIPS, TOOLS, WIZARD_INTRO,
+  type WizardTool,
+} from './aiSetupContent';
 import styles from './FolderDraftsModal.module.css';
 
 interface Props {
@@ -35,13 +48,27 @@ function ownerUserId(): string {
   try { return localStorage.getItem('builder:ownerUserId') || 'anon'; } catch { return 'anon'; }
 }
 
+/**
+ * The browser's prompt has exactly one bad outcome worth explaining:
+ * the person pressed "Don't Allow". Everything else is ours to report
+ * verbatim.
+ */
+function readableError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  const name = e instanceof Error ? e.name : '';
+  if (name === 'NotAllowedError' || /not allowed|permission/i.test(msg)) {
+    return 'Your browser did not get permission for that folder. Choose it again and press Allow.';
+  }
+  return msg;
+}
+
 export function FolderDraftsModal({ open, onClose }: Props) {
   const { doc } = useBuilder();
   const agent = doc.agents[0];
   const slug  = agent?.slug || '';
 
   const [folderName, setFolderName] = useState<string | null>(null);
-  const [toolId, setToolId]   = useState(TOOLS[0].id);
+  const [toolId, setToolId]   = useState(() => chosenTool().id);
   const [setupOpen, setSetup] = useState(false);
   const [localV, setLocalV]   = useState<string | null>(null);
   const [serverV, setServerV] = useState<string | null>(null);
@@ -71,7 +98,7 @@ export function FolderDraftsModal({ open, onClose }: Props) {
     try { await fn(); }
     catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      if (!/abort/i.test(msg)) setError(msg);   // closing the picker is not a failure
+      if (!/abort/i.test(msg)) setError(readableError(e));   // closing the picker is not a failure
     }
     finally { setBusy(null); }
   }, []);
@@ -81,6 +108,10 @@ export function FolderDraftsModal({ open, onClose }: Props) {
     if (!handle) return;
     setFolderName(handle.name);
     setLocalV(await readBundleVersion(handle));
+    // Settle the tool now, even if she never touched the chooser: from here
+    // the toolbar button carries this name, and a default that was never
+    // written down would leave it guessing on the next visit.
+    rememberTool(toolId);
     setNote(`Your draft now saves into “${handle.name}”.`);
   });
 
@@ -103,6 +134,7 @@ export function FolderDraftsModal({ open, onClose }: Props) {
       (n, total) => setBusy(`files:${n}/${total}`));
     setLocalV(bundle.version);
     setServerV(bundle.version);
+    setNote('The platform files are in your folder and up to date.');
   });
 
   const startingPrompt = useMemo(
@@ -135,19 +167,28 @@ export function FolderDraftsModal({ open, onClose }: Props) {
 
   const stale   = !!(localV && serverV && localV !== serverV);
   const current = !!(localV && serverV && localV === serverV);
+  const picking = busy === 'folder';
+  const writing = busy?.startsWith('files') ? busy.split(':')[1] : null;   // "12/90"
+  const [wrote, total] = writing ? writing.split('/').map(Number) : [0, 0];
 
   const stepDone = (id: string) =>
     (id === 'folder' && !!folderName)
     || (id === 'files' && current)
     || (id === 'send'  && !!folderName);
 
+  // The card answers one question — is my assistant seeing my work? —
+  // and carries the action for it. Amber is for the one case that needs
+  // a decision: the folder works, but its platform files are behind.
+  const cardClass = !folderName ? styles.card
+    : stale ? `${styles.card} ${styles.cardWarn}`
+      : `${styles.card} ${styles.cardOk}`;
+
   return (
     <Modal
       open={open}
       onClose={onClose}
       title="Your AI folder"
-      badge={<span className={styles.badge}>{folderName || 'Not connected'}</span>}
-      width={620}
+      width={640}
     >
       {!isSupported() ? (
         <p className={styles.p}>
@@ -157,43 +198,73 @@ export function FolderDraftsModal({ open, onClose }: Props) {
         </p>
       ) : (
         <>
-          <div className={folderName ? styles.status : styles.statusOff}>
-            <span className={styles.dot} />
-            <span className={styles.statusText}>
-              {folderName ? (
-                <>
-                  <span className={styles.statusTitle}>Saving to “{folderName}”</span>
-                  <span className={styles.statusDetail}>
-                    Your draft of <strong>{agent?.name || slug}</strong> saves here every
-                    time you change something. If your assistant edits the file, you will
-                    be asked whether to load it.
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className={styles.statusTitle}>No folder connected</span>
-                  <span className={styles.statusDetail}>
-                    Pick a folder and your draft starts saving there, where an AI
-                    assistant on this machine can read and edit it.
-                  </span>
-                </>
-              )}
+          <section className={cardClass}>
+            <span className={styles.cardIcon} aria-hidden="true">
+              {folderName ? (stale ? '⚠️' : '📁') : '📂'}
             </span>
-          </div>
-
-          <div className={styles.actions}>
-            <button className={folderName ? styles.ghost : styles.primary} onClick={pick} disabled={!!busy}>
+            <div className={styles.cardText}>
+              <span className={styles.cardTitle}>
+                {folderName
+                  ? <>Saving to <span className={styles.folderName}>“{folderName}”</span></>
+                  : 'No folder connected'}
+              </span>
+              <span className={styles.cardDetail}>
+                {!folderName
+                  ? 'Pick a folder and your draft starts saving there, where an AI assistant on this machine can read and edit it.'
+                  : stale
+                    ? 'The platform changed since you downloaded the files — your assistant is reading an old description of how it works.'
+                    : <>Your draft of <strong>{agent?.name || slug}</strong> saves here on every change. If your assistant edits the file, you are asked whether to load it.</>}
+              </span>
+            </div>
+            <button
+              type="button"
+              className={folderName ? styles.ghost : styles.primary}
+              onClick={pick}
+              disabled={!!busy}
+            >
+              {/* The label never changes while the picker is open. A longer
+                  word ("Waiting for the browser…") widens the button, which
+                  rewraps the description beside it — the panel visibly
+                  reshuffles at the exact moment attention is on the browser's
+                  own dialog. Dimmed-and-disabled says "busy" without moving
+                  anything; the message line below says what is happening. */}
               {folderName ? 'Change folder' : 'Choose folder'}
             </button>
+          </section>
+
+          {/* One line, always here: hint → confirmation → error, in place. */}
+          <div className={styles.msgSlot} role="status" aria-live="polite">
+            {error ? (
+              <span className={styles.msgError}>{error}</span>
+            ) : note ? (
+              <span className={styles.msgOk}>{note}</span>
+            ) : (
+              // Empty on purpose once a folder is connected: the card above
+              // already says everything true at that moment, and a sentence
+              // that exists only to fill the line gets read as if it meant
+              // something. The slot keeps its height so the confirmation and
+              // the error still arrive without moving the dialog.
+              <span className={styles.msgHint}>
+                {picking
+                  ? 'Your browser is asking about the folder — press Allow to let the Builder save there.'
+                  : folderName
+                    ? ''
+                    : 'Your browser will ask permission to edit files in the folder you choose.'}
+              </span>
+            )}
           </div>
 
-          {note  && <p className={styles.note}>{note}</p>}
-          {error && <p className={styles.error}>{error}</p>}
+          {!folderName && <p className={styles.intro}>{WIZARD_INTRO}</p>}
 
           {/* Setup lives here too — same subject, and stranding it behind
               a different button is what made this confusing. */}
           <div className={styles.setup}>
-            <button className={styles.setupHead} onClick={() => setSetup(o => !o)}>
+            <button
+              type="button"
+              className={styles.setupHead}
+              onClick={() => setSetup(o => !o)}
+              aria-expanded={setupOpen}
+            >
               <span className={styles.setupHeadText}>
                 <span className={styles.setupTitle}>Set up your AI</span>
                 <span className={styles.setupSub}>
@@ -201,7 +272,14 @@ export function FolderDraftsModal({ open, onClose }: Props) {
                   the starting prompt for a new session.
                 </span>
               </span>
-              <span className={styles.chev}>{setupOpen ? '▾' : '▸'}</span>
+              <svg
+                className={`${styles.chev} ${setupOpen ? styles.chevOpen : ''}`}
+                width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M9 18l6-6-6-6" />
+              </svg>
             </button>
 
             {setupOpen && (
@@ -211,8 +289,10 @@ export function FolderDraftsModal({ open, onClose }: Props) {
                   {TOOLS.map(t => (
                     <button
                       key={t.id}
+                      type="button"
                       className={t.id === toolId ? styles.toolOn : styles.tool}
-                      onClick={() => setToolId(t.id)}
+                      onClick={() => { setToolId(t.id); rememberTool(t.id); }}
+                      aria-pressed={t.id === toolId}
                     >
                       <span className={styles.toolName}>{t.label}</span>
                       <span className={styles.toolAbout}>{t.about}</span>
@@ -235,20 +315,30 @@ export function FolderDraftsModal({ open, onClose }: Props) {
                         )}
 
                         {s.id === 'files' && (
-                          <>
-                            <button className={styles.link} onClick={download} disabled={!!busy}>
-                              {busy?.startsWith('files')
-                                ? `Writing… ${busy.split(':')[1] ?? ''}`
-                                : stale ? 'Update the files' : current ? 'Write them again' : 'Download the files'}
-                            </button>
-                            {stale && (
-                              <p className={styles.stepP}>
-                                Your copy is out of date — the platform changed since you
-                                last downloaded.
-                              </p>
-                            )}
-                            {current && <p className={styles.ok}>Up to date ({localV}).</p>}
-                          </>
+                          writing ? (
+                            <div className={styles.progress}>
+                              <span className={styles.progressTrack}>
+                                <span
+                                  className={styles.progressBar}
+                                  style={{ width: `${total ? Math.round((wrote / total) * 100) : 0}%` }}
+                                />
+                              </span>
+                              <span className={styles.progressText}>{wrote}/{total}</span>
+                            </div>
+                          ) : (
+                            <>
+                              <button type="button" className={styles.link} onClick={download} disabled={!!busy}>
+                                {stale ? 'Update the files' : current ? 'Write them again' : 'Download the files'}
+                              </button>
+                              {stale && (
+                                <p className={styles.warn}>
+                                  Your copy is out of date — the platform changed since you
+                                  last downloaded.
+                                </p>
+                              )}
+                              {current && <p className={styles.ok}>Up to date ({localV}).</p>}
+                            </>
+                          )
                         )}
 
                         {s.id === 'send' && folderName && (
@@ -258,10 +348,17 @@ export function FolderDraftsModal({ open, onClose }: Props) {
                         {s.id === 'prompt' && (
                           <div className={styles.codeWrap}>
                             <pre className={styles.code}>{startingPrompt}</pre>
-                            <button className={styles.copy} onClick={copyPrompt}>
+                            <button type="button" className={styles.copy} onClick={copyPrompt}>
                               {copied ? 'Copied' : 'Copy'}
                             </button>
                           </div>
+                        )}
+
+                        {s.id === 'go' && (
+                          <ul className={styles.tips}>
+                            <li className={styles.tipsTitle}>What makes this work well</li>
+                            {TIPS.map((t, n) => <li key={n} className={styles.tip}>{t}</li>)}
+                          </ul>
                         )}
 
                         {s.note && <p className={styles.stepP}>{s.note}</p>}
