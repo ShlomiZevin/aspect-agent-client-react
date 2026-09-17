@@ -20,6 +20,10 @@ interface Props {
   state: EntityVersionState;
 }
 
+/** Version names the platform writes on its own (builderProjects.js,
+ *  BuilderContext, draftStorage) — never shown as if someone chose them. */
+const AUTO_NAMES = new Set(['Initial']);
+
 function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
   const now = Date.now();
@@ -73,6 +77,11 @@ export function VersionMenu({ state }: Props) {
   // immune to stale localStorage drafts.
 
   const viewing = versions.find(v => v.id === viewingVersionId);
+  const entityName = entityLabel === 'crew' ? 'Crew' : 'Agent';
+  // Names the system stamps by itself say nothing a number doesn't.
+  const customName = viewing?.description?.trim() && !AUTO_NAMES.has(viewing.description.trim())
+    ? viewing.description.trim()
+    : '';
   const viewingIsActive = viewingVersionId === activeVersionId;
   const viewingIsPublished = viewingVersionId === publishedVersionId;
   const saveTooltip = isDirty
@@ -118,14 +127,25 @@ export function VersionMenu({ state }: Props) {
 
   return (
     <div className={styles.wrap}>
-      <span className={styles.meta}>
-        <span className={styles.metaDesc}>
-          {viewing?.description || (isDirty ? 'Unsaved changes' : 'Current')}
-        </span>
-        {viewing && (
-          <span className={styles.metaTime} title={new Date(viewing.createdAt).toLocaleString()}>
-            · {relativeTime(viewing.createdAt)}
-          </span>
+      {/* Says WHAT this is before what it is called. The chip used to show
+          only the version's name — and a new project's first version is
+          named "Initial", so the toolbar read "Initial · 14m ago", which
+          nobody recognised as a version at all. The number is the
+          identity; a name is only worth showing when a person chose it. */}
+      <span
+        className={styles.meta}
+        title={viewing
+          ? `${entityName} version ${viewing.number}${customName ? ` — “${customName}”` : ''}, saved ${new Date(viewing.createdAt).toLocaleString()}`
+          : undefined}
+      >
+        {viewing ? (
+          <>
+            <span className={styles.metaVersion}>{entityName} version {viewing.number}</span>
+            {customName && <span className={styles.metaDesc}>· {customName}</span>}
+            <span className={styles.metaTime}>· saved {relativeTime(viewing.createdAt)}</span>
+          </>
+        ) : (
+          <span className={styles.metaDesc}>{isDirty ? 'Unsaved changes' : 'Current'}</span>
         )}
       </span>
 

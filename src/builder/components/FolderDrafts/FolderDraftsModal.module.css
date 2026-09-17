@@ -34,6 +34,86 @@
   background: color-mix(in srgb, var(--warning-color, #f59e0b) 10%, transparent);
 }
 
+/* The no-setup route. Neutral on purpose: tint on this dialog means
+   STATE (green = saving, amber = files behind), and a blue card beside an
+   amber one made three competing colours with no reading order. The
+   primary colour lives on the icon instead, which marks it as an action
+   without shouting. Aligned to the top because it is taller than a
+   status card — its icon belongs beside the title, not the middle. */
+.cardLink {
+  align-items: flex-start;
+  background: var(--surface, #fff);
+}
+
+/* URL + Copy as one joined control, so the button sits on the thing it
+   copies. */
+.linkRow {
+  display: flex;
+  margin-top: 8px;
+  min-width: 0;
+}
+
+.linkUrl {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-inline-end: none;
+  border-start-start-radius: var(--radius-sm, 8px);
+  border-end-start-radius: var(--radius-sm, 8px);
+  background: var(--surface-light, #f0f2f5);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-xs, 12px);
+  line-height: 1.4;
+  color: var(--text-primary, #1a202c);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: all;
+}
+
+.linkCopy {
+  flex-shrink: 0;
+  min-width: 72px;           /* "Copy" → "Copied" must not resize it */
+  padding: 0 14px;
+  border: 1px solid var(--primary-color, #2563eb);
+  border-start-end-radius: var(--radius-sm, 8px);
+  border-end-end-radius: var(--radius-sm, 8px);
+  background: var(--primary-color, #2563eb);
+  color: #fff;
+  font: inherit;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast, 0.15s ease);
+}
+
+.linkCopy:hover {
+  background: var(--primary-hover, #1d4ed8);
+  border-color: var(--primary-hover, #1d4ed8);
+}
+
+/* "or" between the two routes — one word does the job a paragraph was
+   doing. */
+.or {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 12px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+  white-space: nowrap;
+}
+
+.or::before,
+.or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border, #e2e8f0);
+}
+
 .cardIcon {
   flex-shrink: 0;
   width: 34px;
@@ -41,10 +121,16 @@
   display: grid;
   place-items: center;
   border-radius: 10px;
+  border: 1px solid var(--border, #e2e8f0);
   background: var(--surface, #fff);
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
-  font-size: 17px;
+  color: var(--text-muted, #94a3b8);
 }
+
+/* The icon carries the colour; the card only tints for state. */
+.iconIdle    { color: var(--text-muted, #94a3b8); }
+.iconPrimary { color: var(--primary-color, #2563eb); }
+.iconOk      { color: var(--success-color, #10b981); border-color: transparent; }
+.iconWarn    { color: color-mix(in srgb, var(--warning-color, #f59e0b) 85%, #000); border-color: transparent; }
 
 .cardText {
   flex: 1;
@@ -126,8 +212,8 @@
 .msgSlot {
   display: flex;
   align-items: flex-start;
-  min-height: 34px;
-  padding: 7px 2px 0;
+  min-height: 30px;
+  padding: 7px 4px 0;
   font-size: var(--font-size-xs, 12px);
   line-height: 1.45;
 }
@@ -144,21 +230,6 @@
 .msgError {
   color: var(--error-color, #ef4444);
   font-weight: 600;
-}
-
-/* ── Empty state ──────────────────────────────────────────────────
-   Shown only before a folder exists: the one place where explaining the
-   whole feature earns its space. */
-
-.intro {
-  margin: 14px 0 0;
-  padding: 12px 14px;
-  border: 1px solid var(--border, #e2e8f0);
-  border-radius: var(--radius-md, 12px);
-  background: var(--surface, #fff);
-  font-size: var(--font-size-xs, 12px);
-  line-height: 1.65;
-  color: var(--text-secondary, #64748b);
 }
 
 .p {
@@ -179,17 +250,14 @@
 
 /* ── Setup, in the same dialog ────────────────────────────────────── */
 
-.setup {
-  margin-top: 16px;
-}
-
+/* Same row anatomy as the cards above — icon, text, action — so the
+   three read as one family instead of three designs. */
 .setupHead {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
   width: 100%;
-  padding: 13px 14px;
+  padding: 14px;
   cursor: pointer;
   font: inherit;
   text-align: left;
@@ -205,14 +273,15 @@
 }
 
 .setupHeadText {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
 }
 
 .setupTitle {
-  font-size: var(--font-size-base, 15px);
+  font-size: var(--font-size-sm, 13px);
   font-weight: 700;
   color: var(--text-primary, #1a202c);
 }
@@ -220,7 +289,7 @@
 .setupSub {
   font-size: var(--font-size-xs, 12px);
   line-height: 1.5;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-secondary, #64748b);
 }
 
 .chev {
@@ -404,7 +473,11 @@
   overflow: hidden;
 }
 
+/* display:block is load-bearing — the fill is a <span>, and an inline box
+   ignores width/height, so without it the count advanced over an empty
+   track. (The track itself is blockified by the flex row it sits in.) */
 .progressBar {
+  display: block;
   height: 100%;
   border-radius: 999px;
   background: var(--primary-color, #2563eb);

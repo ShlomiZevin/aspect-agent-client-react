@@ -33,7 +33,7 @@ import {
   chooseFolder, isSupported, readBundleVersion, rememberedFolder, writeBundle,
 } from '../../state/folderDrafts';
 import {
-  chosenTool, rememberTool, STARTING_PROMPT, STEPS, TIPS, TOOLS, WIZARD_INTRO,
+  chosenTool, MCP_NOTE, MCP_URL, rememberTool, STARTING_PROMPT, STEPS, TIPS, TOOLS,
   type WizardTool,
 } from './aiSetupContent';
 import styles from './FolderDraftsModal.module.css';
@@ -62,6 +62,36 @@ function readableError(e: unknown): string {
   return msg;
 }
 
+/* Line icons in currentColor. The emoji they replace rendered as heavy
+   black glyphs on Windows, and could not take the card's state colour —
+   which is half of what the status icon is for. */
+const ICON = {
+  width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
+  strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
+};
+const IconLink = () => (
+  <svg {...ICON}>
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+  </svg>
+);
+const IconFolder = () => (
+  <svg {...ICON}>
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+  </svg>
+);
+const IconAlert = () => (
+  <svg {...ICON}>
+    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <path d="M12 9v4M12 17h.01" />
+  </svg>
+);
+const IconTools = () => (
+  <svg {...ICON}>
+    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+  </svg>
+);
+
 export function FolderDraftsModal({ open, onClose }: Props) {
   const { doc } = useBuilder();
   const agent = doc.agents[0];
@@ -74,6 +104,7 @@ export function FolderDraftsModal({ open, onClose }: Props) {
   const [serverV, setServerV] = useState<string | null>(null);
   const [busy, setBusy]       = useState<string | null>(null);
   const [copied, setCopied]   = useState(false);
+  const [urlCopied, setUrlCopied] = useState(false);
   const [note, setNote]       = useState<string | null>(null);
   const [error, setError]     = useState<string | null>(null);
 
@@ -176,6 +207,14 @@ export function FolderDraftsModal({ open, onClose }: Props) {
     } catch { /* clipboard blocked; the text is selectable */ }
   };
 
+  const copyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(MCP_URL);
+      setUrlCopied(true);
+      window.setTimeout(() => setUrlCopied(false), 1800);
+    } catch { /* clipboard blocked; the URL is select-all on click */ }
+  };
+
   const stale   = !!(localV && serverV && localV !== serverV);
   const current = !!(localV && serverV && localV === serverV);
   const picking = busy === 'folder';
@@ -193,12 +232,13 @@ export function FolderDraftsModal({ open, onClose }: Props) {
   const cardClass = !folderName ? styles.card
     : stale ? `${styles.card} ${styles.cardWarn}`
       : `${styles.card} ${styles.cardOk}`;
+  const statusIcon = !folderName ? styles.iconIdle : stale ? styles.iconWarn : styles.iconOk;
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Your AI folder"
+      title="Work with your AI"
       width={640}
     >
       {!isSupported() ? (
@@ -209,9 +249,34 @@ export function FolderDraftsModal({ open, onClose }: Props) {
         </p>
       ) : (
         <>
+          {/* Two routes, in the order most people should try them. The link
+              needs nothing installed, so it comes first; everything about
+              the folder — its state, its message line, its setup — then
+              follows as one uninterrupted group under a single "or", instead
+              of the link card splitting the folder story in two. */}
+          <section className={`${styles.card} ${styles.cardLink}`}>
+            <span className={`${styles.cardIcon} ${styles.iconPrimary}`} aria-hidden="true">
+              <IconLink />
+            </span>
+            <div className={styles.cardText}>
+              <span className={styles.cardTitle}>No setup — just give it this link</span>
+              <span className={styles.cardDetail}>{MCP_NOTE}</span>
+              {/* URL and its Copy button are one control: the button sits on
+                  the thing it copies, not floating mid-card. */}
+              <div className={styles.linkRow}>
+                <code className={styles.linkUrl}>{MCP_URL}</code>
+                <button type="button" className={styles.linkCopy} onClick={copyUrl}>
+                  {urlCopied ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <div className={styles.or}><span>or work from a folder on your computer</span></div>
+
           <section className={cardClass}>
-            <span className={styles.cardIcon} aria-hidden="true">
-              {folderName ? (stale ? '⚠️' : '📁') : '📂'}
+            <span className={`${styles.cardIcon} ${statusIcon}`} aria-hidden="true">
+              {stale ? <IconAlert /> : <IconFolder />}
             </span>
             <div className={styles.cardText}>
               <span className={styles.cardTitle}>
@@ -265,8 +330,6 @@ export function FolderDraftsModal({ open, onClose }: Props) {
             )}
           </div>
 
-          {!folderName && <p className={styles.intro}>{WIZARD_INTRO}</p>}
-
           {/* Setup lives here too — same subject, and stranding it behind
               a different button is what made this confusing. */}
           <div className={styles.setup}>
@@ -276,6 +339,9 @@ export function FolderDraftsModal({ open, onClose }: Props) {
               onClick={() => setSetup(o => !o)}
               aria-expanded={setupOpen}
             >
+              <span className={`${styles.cardIcon} ${styles.iconPrimary}`} aria-hidden="true">
+                <IconTools />
+              </span>
               <span className={styles.setupHeadText}>
                 <span className={styles.setupTitle}>Set up your AI</span>
                 <span className={styles.setupSub}>

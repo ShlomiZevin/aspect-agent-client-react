@@ -89,6 +89,21 @@ export interface WizardStep {
   note?: string;
 }
 
+/**
+ * The no-setup route: hand this URL to any AI assistant and it can do the
+ * whole job — read the agents, read real conversations, read our source,
+ * and make changes — with no folder, no download and nothing installed.
+ *
+ * Worth showing beside the folder wizard rather than instead of it: the
+ * folder is still better when the assistant runs on this machine (the
+ * draft is two-way and live), but most people asking "how do I use my own
+ * AI" want the one-line answer, and until now the dialog did not have one.
+ */
+export const MCP_URL = 'https://lybi.ai/builder/mcp';
+
+export const MCP_NOTE =
+  'Tell any AI assistant to read this page. It can then explore your agents, read real conversations and make changes — with nothing installed.';
+
 export const WIZARD_INTRO =
   'Build agents by talking to an AI assistant on your own computer. It reads the real platform code and the real conversations, and writes its changes to a draft file — you review the draft here in the Builder and press save. Nothing becomes real until you do, so you cannot break anything.';
 
