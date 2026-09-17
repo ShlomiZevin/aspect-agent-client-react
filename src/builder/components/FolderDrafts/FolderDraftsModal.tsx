@@ -288,7 +288,7 @@ export function FolderDraftsModal({ open, onClose }: Props) {
                 {!folderName
                   ? 'Pick a folder and your draft starts saving there, where an AI assistant on this machine can read and edit it.'
                   : stale
-                    ? 'The platform changed since you downloaded the files — your assistant is reading an old description of how it works.'
+                    ? 'The platform changed since you downloaded the files, so your assistant is reading an old copy. Update them below.'
                     : <>Your draft of <strong>{agent?.name || slug}</strong> saves here on every change. If your assistant edits the file, you are asked whether to load it.</>}
               </span>
             </div>
@@ -310,7 +310,21 @@ export function FolderDraftsModal({ open, onClose }: Props) {
 
           {/* One line, always here: hint → confirmation → error, in place. */}
           <div className={styles.msgSlot} role="status" aria-live="polite">
-            {error ? (
+            {writing ? (
+              // Progress lives here too, not only inside step 3: "Update
+              // files" can be pressed with the wizard closed, and a bar
+              // hidden in a collapsed section is no feedback at all.
+              <span className={styles.msgProgress}>
+                <span className={styles.msgHint}>Updating the platform files…</span>
+                <span className={styles.progressTrack}>
+                  <span
+                    className={styles.progressBar}
+                    style={{ width: `${total ? Math.round((wrote / total) * 100) : 0}%` }}
+                  />
+                </span>
+                <span className={styles.progressText}>{wrote}/{total}</span>
+              </span>
+            ) : error ? (
               <span className={styles.msgError}>{error}</span>
             ) : note ? (
               <span className={styles.msgOk}>{note}</span>
@@ -333,22 +347,44 @@ export function FolderDraftsModal({ open, onClose }: Props) {
           {/* Setup lives here too — same subject, and stranding it behind
               a different button is what made this confusing. */}
           <div className={styles.setup}>
-            <button
-              type="button"
-              className={styles.setupHead}
+            {/* A div, not a <button>: when the files are behind, the fix
+                ("Update files") sits ON this row, and a button cannot nest
+                inside another. The row still behaves as one — click or
+                Enter/Space toggles it. */}
+            <div
+              role="button"
+              tabIndex={0}
+              className={`${styles.setupHead} ${stale ? styles.setupHeadWarn : ''}`}
               onClick={() => setSetup(o => !o)}
+              onKeyDown={e => {
+                if (e.target !== e.currentTarget) return;   // keys on the inner button are its own
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSetup(o => !o); }
+              }}
               aria-expanded={setupOpen}
             >
-              <span className={`${styles.cardIcon} ${styles.iconPrimary}`} aria-hidden="true">
-                <IconTools />
+              <span className={`${styles.cardIcon} ${stale ? styles.iconWarn : styles.iconPrimary}`} aria-hidden="true">
+                {stale ? <IconAlert /> : <IconTools />}
               </span>
               <span className={styles.setupHeadText}>
                 <span className={styles.setupTitle}>Set up your AI</span>
                 <span className={styles.setupSub}>
-                  Install Claude Code or Codex, download the platform files, and copy
-                  the starting prompt for a new session.
+                  {stale
+                    ? 'Your platform files are out of date. Update them — everything else stays as it is.'
+                    : 'Install Claude Code or Codex, download the platform files, and copy the starting prompt for a new session.'}
                 </span>
               </span>
+              {/* The warning used to live only in the status card, while its
+                  fix was buried in step 3 of a closed wizard. */}
+              {stale && (
+                <button
+                  type="button"
+                  className={styles.primary}
+                  onClick={e => { e.stopPropagation(); download(); }}
+                  disabled={!!busy}
+                >
+                  Update files
+                </button>
+              )}
               <svg
                 className={`${styles.chev} ${setupOpen ? styles.chevOpen : ''}`}
                 width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -357,7 +393,7 @@ export function FolderDraftsModal({ open, onClose }: Props) {
               >
                 <path d="M9 18l6-6-6-6" />
               </svg>
-            </button>
+            </div>
 
             {setupOpen && (
               <div className={styles.setupBody}>
