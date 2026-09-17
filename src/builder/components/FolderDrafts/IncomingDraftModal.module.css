@@ -1,0 +1,40 @@
+/* "Your assistant changed this agent" — the one interruption in the
+   whole feature, so it stays short and offers exactly two answers. */
+
+.p {
+  margin: 0 0 12px;
+  font-size: 13.5px; line-height: 1.65;
+  color: var(--text, #222);
+}
+
+.summary {
+  margin: 0 0 14px;
+  padding: 10px 12px; border-radius: 8px;
+  font-size: 13px; font-weight: 600;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.1));
+  background: var(--surface-3, rgba(0, 0, 0, 0.04));
+  color: var(--text, #222);
+}
+
+.detail {
+  margin: 0 0 9px;
+  font-size: 12.5px; line-height: 1.6;
+  color: var(--text-3, #777);
+}
+
+.footer { display: flex; gap: 8px; justify-content: flex-end; }
+
+.primary, .ghost {
+  padding: 8px 15px; border-radius: 8px; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.12));
+  background: var(--surface, #fff);
+  color: var(--text, #222);
+}
+.primary {
+  border-color: var(--accent, #6366f1);
+  background: var(--accent, #6366f1);
+  color: #fff;
+}
+.primary:hover { filter: brightness(1.06); }
+.ghost:hover   { background: var(--surface-3, rgba(0, 0, 0, 0.05)); }

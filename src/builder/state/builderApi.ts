@@ -1195,6 +1195,55 @@ export interface ApplyWorkingBodies {
   crews?: Array<{ id: string; body: unknown }>;
 }
 
+// ─── Platform reference bundle (bring-your-own-AI) ──────────────────
+
+export interface AiBundleFile { path: string; content: string }
+
+export interface AiBundle {
+  /** Hash of the contents — changes whenever any file does, so a copy on
+   *  disk can be compared against it without anyone maintaining a number. */
+  version: string;
+  generatedAt: string;
+  fileCount: number;
+  files: AiBundleFile[];
+}
+
+/** Just the hash — for telling the user their local copy has gone stale. */
+export const fetchAiBundleVersion = () =>
+  http<{ version: string }>('/api/builder/ai-bundle/version');
+
+/** Every platform file an AI assistant needs in order to understand how
+ *  agents actually behave. ~80 files, ~1.3MB. */
+export const fetchAiBundle = () => http<AiBundle>('/api/builder/ai-bundle');
+
+/** What the poll endpoint reports. While the job runs it carries nothing
+ *  but the status — the generated bodies are hundreds of KB and there is
+ *  no reason to ship them on every tick. */
+interface ApplyJobStatus {
+  status:  'running' | 'done' | 'failed' | 'cancelled';
+  result?: ApplyGenerateResponse;
+  error?:  string;
+  errors?: string[];
+}
+
+const APPLY_POLL_MS       = 1500;
+/** Server marks an abandoned job failed after 15 min; this is the client
+ *  side of the same fence, so a lost job can never poll forever. */
+const APPLY_POLL_TIMEOUT_MS = 20 * 60 * 1000;
+
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Start an Apply and wait for it.
+ *
+ * Signature and return type are deliberately unchanged: callers still
+ * `await applyGenerate(...)` and get the finished bodies, so nothing
+ * downstream had to change. What changed is underneath — Apply used to be
+ * one blocking POST held open for 30-90s, which surfaced as "Failed to
+ * fetch" whenever the browser dropped the connection, with no way to tell
+ * whether the work had actually succeeded. Now the POST returns a job id
+ * and we poll a row.
+ */
 export async function applyGenerate(args: {
   chatId:      number;
   agentSlug:   string;
@@ -1202,7 +1251,7 @@ export async function applyGenerate(args: {
   targets:     ApplyTarget[];
   workingBodies?: ApplyWorkingBodies;
 }): Promise<ApplyGenerateResponse> {
-  return http<ApplyGenerateResponse>(
+  const { jobId } = await http<{ jobId: string }>(
     `/api/builder/alfred/chats/${args.chatId}/apply/generate`,
     {
       method: 'POST',
@@ -1214,6 +1263,33 @@ export async function applyGenerate(args: {
       }),
     },
   );
+
+  const deadline = Date.now() + APPLY_POLL_TIMEOUT_MS;
+  for (;;) {
+    await sleep(APPLY_POLL_MS);
+
+    const job = await http<ApplyJobStatus>(
+      `/api/builder/alfred/chats/${args.chatId}/apply/jobs/${jobId}`,
+    );
+
+    if (job.status === 'done' && job.result) return job.result;
+
+    if (job.status === 'failed' || job.status === 'cancelled') {
+      // ApplyPreviewModal recovers structured validation errors by parsing
+      // a trailing {...} out of the message, so failures have to keep that
+      // shape or the per-field error list silently disappears.
+      const base = job.error || 'Apply failed';
+      throw new Error(
+        job.errors && job.errors.length > 0
+          ? `${base} ${JSON.stringify({ errors: job.errors })}`
+          : base,
+      );
+    }
+
+    if (Date.now() > deadline) {
+      throw new Error('Apply is taking longer than expected — check the agent before retrying, the change may already have been generated.');
+    }
+  }
 }
 
 /**

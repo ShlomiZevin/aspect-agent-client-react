@@ -1,6 +1,7 @@
 /**
- * Modal — reusable frame. Click on overlay / Esc closes. Body is
- * caller-supplied. Used by SpecModal, AddonModal, AddStepModal.
+ * Modal — reusable frame. Click on overlay / Esc closes, unless the
+ * caller passes `dismissible={false}`. Body is caller-supplied. Used by
+ * SpecModal, AddonModal, AddStepModal.
  *
  * Rendered via a portal to `document.body` so the overlay sits at the
  * root stacking context. Without the portal, modal's `z-index` only
@@ -37,20 +38,33 @@ interface Props {
   /** Trim the header to a thin bar (no bottom separator). Used by
    *  modals where the host wants the body content to dominate. */
   compactHeader?: boolean;
+  /**
+   * When false, the modal closes ONLY through something the caller
+   * renders: Esc, the overlay click and the × are all removed.
+   *
+   * For dialogs whose whole purpose is to make someone choose. The
+   * incoming-draft prompt is the case this was added for — dismissing it
+   * by clicking stray pixels loses the notice that an assistant rewrote
+   * the agent, and the user never finds out it happened.
+   *
+   * Defaults to true, so every existing modal is untouched.
+   */
+  dismissible?: boolean;
 }
 
 export function Modal({
   open, onClose, title, badge, headerExtra, children, footer,
   width = 640, fullscreen = false, noBodyPadding = false, compactHeader = false,
+  dismissible = true,
 }: Props) {
   useEffect(() => {
-    if (!open) return;
+    if (!open || !dismissible) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [open, onClose]);
+  }, [open, onClose, dismissible]);
 
   const mousedownOnOverlayRef = useRef(false);
 
@@ -79,7 +93,7 @@ export function Modal({
       className={styles.overlay}
       onMouseDown={e => { mousedownOnOverlayRef.current = e.target === e.currentTarget; }}
       onClick={e => {
-        if (e.target === e.currentTarget && mousedownOnOverlayRef.current) onClose();
+        if (dismissible && e.target === e.currentTarget && mousedownOnOverlayRef.current) onClose();
       }}
     >
       <div
@@ -100,14 +114,16 @@ export function Modal({
               of the X). */}
           <div className={styles.headerActions}>
             {headerExtra}
-            <button
-              type="button"
-              className={styles.close}
-              onClick={onClose}
-              aria-label="Close"
-            >
-              ×
-            </button>
+            {dismissible && (
+              <button
+                type="button"
+                className={styles.close}
+                onClick={onClose}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            )}
           </div>
         </div>
         <div className={bodyClass}>{children}</div>

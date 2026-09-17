@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useMatch } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { useAgentVersion, useCrewVersion } from '../../state/useEntityVersion';
@@ -7,6 +7,11 @@ import { useConfirm } from '../Confirm/Confirm';
 import { VersionMenu } from '../VersionMenu/VersionMenu';
 import { BuilderSettingsPopover, useBuilderSettings } from './BuilderSettings';
 import { PromptGuideModal } from '../PromptGuide/PromptGuideModal';
+import { FolderDraftsModal, IncomingDraftModal } from '../FolderDrafts';
+import { fetchAiBundleVersion } from '../../state/builderApi';
+import {
+  isSupported as folderSupported, readBundleVersion, rememberedFolder,
+} from '../../state/folderDrafts';
 import styles from './TopBar.module.css';
 
 export function TopBar() {
@@ -14,6 +19,39 @@ export function TopBar() {
   const [settings, setSetting] = useBuilderSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [folderOpen, setFolderOpen] = useState(false);
+
+  /**
+   * Whether the platform files in the user's folder are behind the server.
+   *
+   * This lived only inside the dialog, which meant the one person who
+   * needed to know had to open it to find out — so in practice her
+   * assistant would go on reading stale code indefinitely. The toolbar is
+   * the only place she reliably looks.
+   *
+   * Checked on mount and whenever the dialog closes (she may have just
+   * refreshed them). Not polled: the files change when we deploy, which
+   * is not something worth asking about every few seconds.
+   */
+  const [filesStale, setFilesStale] = useState(false);
+  useEffect(() => {
+    if (!folderSupported()) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const folder = await rememberedFolder();
+        if (!folder || cancelled) return;
+        const [local, server] = await Promise.all([
+          readBundleVersion(folder),
+          fetchAiBundleVersion().then(r => r.version).catch(() => null),
+        ]);
+        // Only meaningful once she has actually downloaded them: with no
+        // local copy there is nothing stale, just nothing set up.
+        if (!cancelled) setFilesStale(!!local && !!server && local !== server);
+      } catch { /* folder gone — nothing to report */ }
+    })();
+    return () => { cancelled = true; };
+  }, [folderOpen]);
   const settingsBtnRef = useRef<HTMLButtonElement>(null);
   const confirm = useConfirm();
   const { dirty } = useAnyDirty();
@@ -58,6 +96,17 @@ export function TopBar() {
       </button>
       <button
         type="button"
+        className={styles.aiBtn}
+        onClick={() => setFolderOpen(true)}
+        title={filesStale
+          ? 'The platform has changed since you last downloaded the files — your assistant is reading an old copy of how it works. Open to update them.'
+          : 'Your AI folder — save your draft where Claude Code or Codex can work on it'}
+      >
+        🤖 AI
+        {filesStale && <span className={styles.aiDot} aria-label="Files out of date" />}
+      </button>
+      <button
+        type="button"
         className={styles.settingsBtn}
         onClick={handleReload}
         title="Reload from server (discards the local draft)"
@@ -84,6 +133,10 @@ export function TopBar() {
         />
       </div>
       <PromptGuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
+      <FolderDraftsModal open={folderOpen} onClose={() => setFolderOpen(false)} />
+      {/* Mounted here because it must appear wherever the user is — an
+          assistant can finish while they are on any screen. */}
+      <IncomingDraftModal />
     </>
   );
 }
