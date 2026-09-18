@@ -16,6 +16,7 @@ import { ScreenRenderer } from './ScreenRenderer';
 import { ScreenIcon } from './ScreenIcon';
 import { Skeleton } from '../../Insights/Skeleton';
 import { useLanguage } from '../../../../context/LanguageContext';
+import { useUserContext } from '../../../../context/UserContext';
 import type { OttoScreen, ScreenDataPayload } from '../../../../types/otto';
 
 interface Props {
@@ -31,6 +32,7 @@ interface Props {
 
 export function CustomScreenPage({ datasetId, screenId, baseURL, onUnpublished, onCrumb }: Props) {
   const { t, language } = useLanguage();
+  const { userId } = useUserContext();
   const [screen, setScreen] = useState<OttoScreen | null>(null);
   const [data, setData] = useState<ScreenDataPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,12 +51,12 @@ export function CustomScreenPage({ datasetId, screenId, baseURL, onUnpublished, 
     setData(null);
     setError(null);
     Promise.all([
-      ottoService.getScreen(datasetId, screenId, baseURL),
-      ottoService.getData(datasetId, screenId, baseURL),
+      ottoService.getScreen(datasetId, screenId, userId, baseURL),
+      ottoService.getData(datasetId, screenId, userId, baseURL),
     ])
       .then(([s, d]) => { setScreen(s); setData(d); })
       .catch(err => setError(err instanceof Error ? err.message : String(err)));
-  }, [datasetId, screenId, baseURL]);
+  }, [datasetId, screenId, baseURL, userId]);
 
   useEffect(() => {
     if (screen) onCrumb?.(screen.title[lang] || screen.title.en);
@@ -63,12 +65,12 @@ export function CustomScreenPage({ datasetId, screenId, baseURL, onUnpublished, 
   const startEdit = useCallback(async () => {
     setConfirmEdit(false);
     try {
-      await ottoService.unpublish(datasetId, screenId, baseURL);
+      await ottoService.unpublish(datasetId, screenId, userId, baseURL);
       onUnpublished?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('otto.error.editFailed'));
     }
-  }, [datasetId, screenId, baseURL, onUnpublished, t]);
+  }, [datasetId, screenId, baseURL, userId, onUnpublished, t]);
 
   if (error) {
     return <div className={styles.error}>{t('otto.screen.failed')}</div>;
@@ -86,6 +88,10 @@ export function CustomScreenPage({ datasetId, screenId, baseURL, onUnpublished, 
   const stamp = data.dataThrough
     ? new Date(data.dataThrough).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
     : null;
+  // Only the creator can go back into Otto and edit a published app (task
+  // #92) — a screen from before per-creator scoping has no createdBy and
+  // stays editable by anyone, same carve-out as the server's canEdit.
+  const canEdit = !screen.createdBy || screen.createdBy === userId;
 
   return (
     <div className={styles.page}>
@@ -99,9 +105,11 @@ export function CustomScreenPage({ datasetId, screenId, baseURL, onUnpublished, 
           {stamp && (
             <span className={styles.stamp}>{t('apps.researchedAt').replace('{time}', stamp)}</span>
           )}
-          <button type="button" className={styles.editBtn} onClick={() => setConfirmEdit(true)}>
-            ✎ {t('otto.editApp')}
-          </button>
+          {canEdit && (
+            <button type="button" className={styles.editBtn} onClick={() => setConfirmEdit(true)}>
+              ✎ {t('otto.editApp')}
+            </button>
+          )}
         </div>
       </div>
       <ScreenRenderer spec={screen.screenSpec} data={data} />

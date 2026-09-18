@@ -109,29 +109,29 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     // empty and visually "reload the page" mid-reply (first live-test bug).
     if (screenId && screen?.id === screenId) return;
 
-    ottoService.listScreens(datasetId, baseURL)
+    ottoService.listScreens(datasetId, userId, baseURL)
       .then(r => setStarters(r.starters))
       .catch(() => {});
 
     if (!screenId) return;
-    ottoService.getScreen(datasetId, screenId, baseURL)
+    ottoService.getScreen(datasetId, screenId, userId, baseURL)
       .then(s => {
         setScreen(s);
         setMessages(s.conversation || []);
         if (s.plan && (s.plan as OttoPlan).title) setPlan(s.plan as OttoPlan);
         if (s.screenSpec) {
-          ottoService.getData(datasetId, screenId, baseURL)
+          ottoService.getData(datasetId, screenId, userId, baseURL)
             .then(setPreview)
             .catch(() => setError(t('otto.error.dataFailed')));
         }
         // Re-attach to a build that survived a reload.
-        ottoService.latestBuild(datasetId, screenId, baseURL)
+        ottoService.latestBuild(datasetId, screenId, userId, baseURL)
           .then(b => { if (b?.status === 'running') { setPhase('building'); void watchBuild(s); } })
           .catch(() => {});
       })
       .catch(() => setError(t('otto.error.loadFailed')));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [datasetId, screenId, baseURL]);
+  }, [datasetId, screenId, baseURL, userId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -163,7 +163,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
         setScreen(current);
         onDraftCreated(current.id);
       }
-      const r = await ottoService.chat(datasetId, current.id, next, lang, baseURL);
+      const r = await ottoService.chat(datasetId, current.id, next, lang, userId, baseURL);
       setMessages([...next, { role: 'assistant', content: r.reply }]);
       setReadyToPlan(r.readyToPlan);
       setStatusLine(r.state?.en ? r.state : null);
@@ -185,7 +185,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     setThinking(true);
     setError(null);
     try {
-      const p = await ottoService.draftPlan(datasetId, screen.id, messages, baseURL);
+      const p = await ottoService.draftPlan(datasetId, screen.id, messages, userId, baseURL);
       setPlan(p);
       setBuildFailed(false);
       setPhase('plan');
@@ -198,7 +198,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
       setThinking(false);
       setPlanning(false);
     }
-  }, [screen, thinking, datasetId, messages, baseURL, markStep, t]);
+  }, [screen, thinking, datasetId, messages, baseURL, userId, markStep, t]);
 
   const watchBuild = useCallback(async (forScreen: OttoScreen) => {
     // The polling loop runs inside a shell TASK so the header pill shows
@@ -209,7 +209,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
           await new Promise(r => setTimeout(r, POLL_MS));
           let b: BuildProgress | null = null;
           try {
-            b = await ottoService.latestBuild(datasetId, forScreen.id, baseURL);
+            b = await ottoService.latestBuild(datasetId, forScreen.id, userId, baseURL);
           } catch { continue; }
           if (!b) continue;
           setBuild(b);
@@ -222,7 +222,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
         }
       });
     });
-  }, [datasetId, baseURL, startTask, t]);
+  }, [datasetId, baseURL, userId, startTask, t]);
 
   const approveAndBuild = useCallback(async () => {
     if (!screen || !plan) return;
@@ -233,15 +233,15 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     markStep('approved');
     setMessages(m => [...m, { role: 'assistant', content: t('otto.msg.building') }]);
     try {
-      const started = await ottoService.startBuild(datasetId, screen.id, baseURL);
+      const started = await ottoService.startBuild(datasetId, screen.id, userId, baseURL);
       if (!('buildId' in started)) throw new Error('build not started');
       await watchBuild(screen);
-      const final = await ottoService.latestBuild(datasetId, screen.id, baseURL);
+      const final = await ottoService.latestBuild(datasetId, screen.id, userId, baseURL);
       setBuild(final);
       if (final?.status === 'succeeded') {
         const [s, d] = await Promise.all([
-          ottoService.getScreen(datasetId, screen.id, baseURL),
-          ottoService.getData(datasetId, screen.id, baseURL),
+          ottoService.getScreen(datasetId, screen.id, userId, baseURL),
+          ottoService.getData(datasetId, screen.id, userId, baseURL),
         ]);
         setScreen(s);
         setPreview(d);
@@ -262,41 +262,41 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
       setBuildFailed(true);
       setError(err instanceof Error ? err.message : t('otto.error.buildFailed'));
     }
-  }, [screen, plan, datasetId, baseURL, watchBuild, markStep, t]);
+  }, [screen, plan, datasetId, baseURL, userId, watchBuild, markStep, t]);
 
   const doPublish = useCallback(async () => {
     if (!screen) return;
     setConfirmOpen(null);
     try {
-      await ottoService.publish(datasetId, screen.id, baseURL);
+      await ottoService.publish(datasetId, screen.id, userId, baseURL);
       onPublished(screen.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('otto.error.publishFailed'));
     }
-  }, [screen, datasetId, baseURL, onPublished, t]);
+  }, [screen, datasetId, baseURL, userId, onPublished, t]);
 
   const doDelete = useCallback(async () => {
     if (!screen) return;
     setConfirmOpen(null);
     try {
-      await ottoService.deleteDraft(datasetId, screen.id, baseURL);
+      await ottoService.deleteDraft(datasetId, screen.id, userId, baseURL);
       onExit();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('otto.error.deleteFailed'));
     }
-  }, [screen, datasetId, baseURL, onExit, t]);
+  }, [screen, datasetId, baseURL, userId, onExit, t]);
 
   /** Cancel changes: back to the last published version, live again. */
   const doRevert = useCallback(async () => {
     if (!screen) return;
     setConfirmOpen(null);
     try {
-      await ottoService.revert(datasetId, screen.id, baseURL);
+      await ottoService.revert(datasetId, screen.id, userId, baseURL);
       onPublished(screen.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('otto.error.revertFailed'));
     }
-  }, [screen, datasetId, baseURL, onPublished, t]);
+  }, [screen, datasetId, baseURL, userId, onPublished, t]);
 
   /** Tap-to-answer: each press appends its own line to the composer —
    *  chips compose, they never auto-send. */
@@ -311,10 +311,10 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     if (!screen || !value) return;
     const title: Localized = { ...screen.title, [lang]: value } as Localized;
     try {
-      const s = await ottoService.rename(datasetId, screen.id, title, undefined, baseURL);
+      const s = await ottoService.rename(datasetId, screen.id, title, undefined, userId, baseURL);
       setScreen(s);
     } catch { /* the old name stands; nothing was promised */ }
-  }, [renameValue, screen, datasetId, lang, baseURL]);
+  }, [renameValue, screen, datasetId, lang, baseURL, userId]);
 
   // ── derived ──
   const title = screen ? (screen.title[lang] || screen.title.en) : t('otto.newScreen');

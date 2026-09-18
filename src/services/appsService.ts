@@ -16,9 +16,16 @@ export const appsService = {
    * @param withHeadlines the live numbers for each app. For Procurement that
    *   is a full pass over every tracked SKU, so the nav check — which only
    *   needs to know whether the shelf is empty — leaves it off.
+   * @param viewerId the anonymous per-browser id from UserContext — scopes
+   *   which of the dataset's Otto drafts come back (task #92).
    */
-  list: (datasetId: string, withHeadlines = false, baseURL?: string) =>
-    apiRequest<AppsResponse>(`${base(datasetId)}${withHeadlines ? '?headlines=1' : ''}`, {}, baseURL),
+  list: (datasetId: string, withHeadlines = false, viewerId: string | null = null, baseURL?: string) => {
+    const params = new URLSearchParams();
+    if (withHeadlines) params.set('headlines', '1');
+    if (viewerId) params.set('viewerId', viewerId);
+    const qs = params.toString();
+    return apiRequest<AppsResponse>(`${base(datasetId)}${qs ? `?${qs}` : ''}`, {}, baseURL);
+  },
 
   /**
    * Does this dataset show an Apps nav item?
@@ -27,8 +34,8 @@ export const appsService = {
    * worth an error screen, and the page behind it 404s on its own if someone
    * reaches it by URL.
    */
-  hasApps: (datasetId: string, baseURL?: string) =>
-    appsService.list(datasetId, false, baseURL)
+  hasApps: (datasetId: string, viewerId: string | null = null, baseURL?: string) =>
+    appsService.list(datasetId, false, viewerId, baseURL)
       // Live app modules, the ability to create screens (Otto), or existing
       // custom screens — any of them earns the shelf. Mirrors the server's
       // own hasApps; keep the two in step.
