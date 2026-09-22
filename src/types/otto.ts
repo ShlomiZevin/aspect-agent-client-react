@@ -175,6 +175,14 @@ export interface BrainstormResult {
   suggestions: string[];
 }
 
+/** LLM cost of making one screen so far (list price). costUsd is null when a model has no known rate. */
+export interface OttoCost {
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number | null;
+}
+
 export interface BuildProgress {
   buildId: number;
   screenId: string;

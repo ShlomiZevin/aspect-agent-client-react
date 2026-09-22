@@ -9,7 +9,7 @@
 
 import { apiRequest } from './api';
 import type {
-  BrainstormResult, BuildProgress, OttoMessage, OttoPlan,
+  BrainstormResult, BuildProgress, OttoCost, OttoMessage, OttoPlan,
   OttoScreen, OttoScreenSummary, OttoStarter, ScreenDataPayload,
 } from '../types/otto';
 import type { Localized } from '../types/apps';
@@ -93,6 +93,12 @@ export const ottoService = {
     apiRequest<{ build: BuildProgress | null }>(
       withViewer(`${base(datasetId)}/screens/${encodeURIComponent(id)}/build/latest`, viewerId), {}, baseURL)
       .then(r => r.build),
+
+  /** What this screen has cost to make so far — chat, plans, builds. */
+  getCost: (datasetId: string, id: string, viewerId: string | null, baseURL?: string) =>
+    apiRequest<{ cost: OttoCost }>(
+      withViewer(`${base(datasetId)}/screens/${encodeURIComponent(id)}/cost`, viewerId), {}, baseURL)
+      .then(r => r.cost),
 
   runningBuilds: (datasetId: string, baseURL?: string) =>
     apiRequest<{ builds: BuildProgress[] }>(`${base(datasetId)}/builds/running`, {}, baseURL)

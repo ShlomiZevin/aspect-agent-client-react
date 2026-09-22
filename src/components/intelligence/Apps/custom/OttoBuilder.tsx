@@ -25,7 +25,7 @@ import { useLanguage } from '../../../../context/LanguageContext';
 import { useUserContext } from '../../../../context/UserContext';
 import { useJobs } from '../../jobs/JobsContext';
 import type {
-  BuildProgress, OttoMessage, OttoPlan, OttoScreen, OttoStarter, ScreenDataPayload,
+  BuildProgress, OttoCost, OttoMessage, OttoPlan, OttoScreen, OttoStarter, ScreenDataPayload,
 } from '../../../../types/otto';
 import type { Localized } from '../../../../types/apps';
 
@@ -85,11 +85,22 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [railOpen, setRailOpen] = useState(true);
   const [statusOpen, setStatusOpen] = useState(true);
+  /** What making this screen has cost so far — shown on top of the canvas. */
+  const [cost, setCost] = useState<OttoCost | null>(null);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const loadedFor = useRef<string | null>(null);
   const stepStart = useRef<number>(Date.now());
+
+  // The server logs each LLM call's usage fire-and-forget, so the row for the
+  // call that just returned may land a moment after its response. Read now,
+  // then once more shortly after, so the number settles on the true total.
+  const refreshCost = useCallback((id: string) => {
+    const read = () => ottoService.getCost(datasetId, id, userId, baseURL).then(setCost).catch(() => {});
+    void read();
+    setTimeout(() => { void read(); }, 2500);
+  }, [datasetId, userId, baseURL]);
 
   const markStep = useCallback((key: string, note?: Localized) => {
     const seconds = Math.max(1, Math.round((Date.now() - stepStart.current) / 1000));
@@ -117,6 +128,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     ottoService.getScreen(datasetId, screenId, userId, baseURL)
       .then(s => {
         setScreen(s);
+        refreshCost(s.id);
         setMessages(s.conversation || []);
         if (s.plan && (s.plan as OttoPlan).title) setPlan(s.plan as OttoPlan);
         if (s.screenSpec) {
@@ -171,13 +183,14 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
       // The checklist row carries Otto's own read of the request — far more
       // informative than a bare "Request understood" (owner, 2026-09-15).
       markStep('understood', r.state?.en ? r.state : undefined);
+      refreshCost(current.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('otto.error.chatFailed'));
       setMessages(next); // the user's message stays; retry is one click
     } finally {
       setThinking(false);
     }
-  }, [messages, thinking, phase, screen, steps, datasetId, userId, baseURL, lang, onDraftCreated, markStep, t]);
+  }, [messages, thinking, phase, screen, steps, datasetId, userId, baseURL, lang, onDraftCreated, markStep, refreshCost, t]);
 
   const preparePlan = useCallback(async () => {
     if (!screen || thinking) return;
@@ -197,16 +210,23 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     } finally {
       setThinking(false);
       setPlanning(false);
+      // A failed plan still spent its calls.
+      refreshCost(screen.id);
     }
-  }, [screen, thinking, datasetId, messages, baseURL, userId, markStep, t]);
+  }, [screen, thinking, datasetId, messages, baseURL, userId, markStep, refreshCost, t]);
 
   const watchBuild = useCallback(async (forScreen: OttoScreen) => {
     // The polling loop runs inside a shell TASK so the header pill shows
     // the same numbers (M4) — one progress, two places, no drift.
     await new Promise<void>(resolve => {
       startTask(datasetId, t('otto.pill.label'), async (report) => {
-        for (;;) {
+        for (let tick = 0; ; tick++) {
           await new Promise(r => setTimeout(r, POLL_MS));
+          // The cost climbs during a build (each compose round is an Opus
+          // call) — every few ticks is enough to watch it move.
+          if (tick % 4 === 0) {
+            ottoService.getCost(datasetId, forScreen.id, userId, baseURL).then(setCost).catch(() => {});
+          }
           let b: BuildProgress | null = null;
           try {
             b = await ottoService.latestBuild(datasetId, forScreen.id, userId, baseURL);
@@ -238,6 +258,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
       await watchBuild(screen);
       const final = await ottoService.latestBuild(datasetId, screen.id, userId, baseURL);
       setBuild(final);
+      refreshCost(screen.id);
       if (final?.status === 'succeeded') {
         const [s, d] = await Promise.all([
           ottoService.getScreen(datasetId, screen.id, userId, baseURL),
@@ -261,8 +282,9 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
       setPhase('plan');
       setBuildFailed(true);
       setError(err instanceof Error ? err.message : t('otto.error.buildFailed'));
+      refreshCost(screen.id);
     }
-  }, [screen, plan, datasetId, baseURL, userId, watchBuild, markStep, t]);
+  }, [screen, plan, datasetId, baseURL, userId, watchBuild, markStep, refreshCost, t]);
 
   const doPublish = useCallback(async () => {
     if (!screen) return;
@@ -554,6 +576,16 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
           )}
           <span className={`${styles.badge} ${styles[`badge_${statusBadge}`]}`}>{t(`otto.badge.${statusBadge}`)}</span>
           <div className={styles.spacer} />
+          {/* Hidden until a call is on record: screens made before cost
+              tracking existed would otherwise claim $0. */}
+          {screen && cost && cost.calls > 0 && cost.costUsd !== null && (
+            <span className={styles.cost} title={t('otto.costHint')}>
+              {t('otto.cost')}
+              <span className={styles.costValue} dir="ltr">
+                ${cost.costUsd < 1 ? cost.costUsd.toFixed(3) : cost.costUsd.toFixed(2)}
+              </span>
+            </span>
+          )}
           {/* A never-published draft deletes; an ever-published app cancels
               its changes instead — deleting a published app is super-admin
               territory. */}
