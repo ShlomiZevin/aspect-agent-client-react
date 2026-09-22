@@ -64,6 +64,32 @@ export interface ClientModule {
   initModel: string | null;
   updatedBy: string | null;
   updatedAt: string | null;
+
+  /**
+   * LLM spend summary — only on modules whose descriptor declares usage()
+   * (Suggested reports). Null when the summary failed to load.
+   */
+  usage?: ModuleUsage | null;
+}
+
+/** One time window of a module's LLM spend. `costUsd` is null when a model has no known rate. */
+export interface ModuleUsageWindow {
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number | null;
+}
+
+export interface ModuleUsage {
+  /** A run is in progress on the server right now. */
+  generating: boolean;
+  lastRunAt: string | null;
+  /** Where the numbers begin — calls before this were not attributed. */
+  trackedSince: string | null;
+  last24h: ModuleUsageWindow;
+  last7d: ModuleUsageWindow;
+  last30d: ModuleUsageWindow;
+  total: ModuleUsageWindow;
 }
 
 export interface ModuleProbe {

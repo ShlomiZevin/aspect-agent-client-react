@@ -4,6 +4,7 @@ import { modulesService } from '../../../services/modulesService';
 import { useDialogChrome } from '../../../hooks/useDialogChrome';
 import type {
   ClientModule, LocalizedText, ModuleRun, ModuleProgress, ModuleSettingField,
+  ModuleUsage, ModuleUsageWindow,
 } from '../../../types/modules';
 
 /**
@@ -85,6 +86,17 @@ export function ModulesPage({ datasetId, baseURL }: ModulesPageProps) {
     void load();
   }, [datasetId, load]);
 
+  // A module with a usage summary may be generating in the background (turning
+  // Suggested reports on starts a run the click does not wait for). Re-read the
+  // list while any says so, so the "generating" line and the cost numbers move
+  // on their own and stop the moment the run ends.
+  const anyGenerating = modules.some(m => m.usage?.generating);
+  useEffect(() => {
+    if (!anyGenerating) return;
+    const id = setInterval(() => { void load(); }, 10000);
+    return () => clearInterval(id);
+  }, [anyGenerating, load]);
+
   const toggleEnabled = async (mod: ClientModule) => {
     const turningOn = !mod.enabled;
     const apply = async () => {
@@ -93,6 +105,9 @@ export function ModulesPage({ datasetId, baseURL }: ModulesPageProps) {
         const updated = await modulesService.setEnabled(datasetId, mod.id, turningOn, baseURL);
         setModules(prev => prev.map(m => (m.id === updated.id ? updated : m)));
         setError(null);
+        // The run it kicks off starts just after the response, so the answer
+        // above cannot show it yet — look again shortly to pick it up.
+        if (turningOn && updated.usage !== undefined) setTimeout(() => { void load(); }, 3000);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -338,8 +353,13 @@ function ModuleCard({ mod, busy, onToggle, onSettings, onRunReport }: {
         </div>
       )}
 
+      {mod.usage !== undefined && <UsageBlock usage={mod.usage} enabled={mod.enabled} />}
+
       <div className={styles.cardActions}>
-        <button type="button" className={styles.btnGhost} onClick={onSettings}>Settings</button>
+        {/* A module whose switch is its only setting has no form to open. */}
+        {mod.settingsSchema.length > 0 && (
+          <button type="button" className={styles.btnGhost} onClick={onSettings}>Settings</button>
+        )}
         {/* No init for an app module: the server refuses it, so offering the
             button would only ever produce an error. */}
         {!isApp && (
@@ -349,6 +369,54 @@ function ModuleCard({ mod, busy, onToggle, onSettings, onRunReport }: {
         )}
       </div>
     </section>
+  );
+}
+
+// ── usage (cost) block ───────────────────────────────────────────────────
+
+const fmtInt = (n: number) => n.toLocaleString('en-US');
+const fmtUsd = (n: number | null) => (n === null ? 'n/a' : `$${n.toFixed(2)}`);
+const fmtWhen = (iso: string) => new Date(iso).toLocaleString('en-GB');
+
+function UsageCell({ label, w }: { label: string; w: ModuleUsageWindow }) {
+  return (
+    <div className={styles.usageCell}>
+      <div className={styles.usageWindow}>{label}</div>
+      <div className={styles.usageCost}>{fmtUsd(w.costUsd)}</div>
+      <div className={styles.usageDetail}>
+        {fmtInt(w.calls)} calls · {fmtInt(w.inputTokens)} in / {fmtInt(w.outputTokens)} out tokens
+      </div>
+    </div>
+  );
+}
+
+/**
+ * What this module's LLM work has cost the client. List-price estimate: the
+ * usage log does not record prompt-cache hits, so the real bill can be lower.
+ */
+function UsageBlock({ usage, enabled }: { usage: ModuleUsage | null; enabled: boolean }) {
+  if (!usage) {
+    return <div className={styles.usage}><div className={styles.muted}>Cost summary unavailable.</div></div>;
+  }
+  return (
+    <div className={styles.usage}>
+      <div className={styles.sectionLabel}>LLM cost</div>
+      <div className={styles.usageGrid}>
+        <UsageCell label="Last 24 hours" w={usage.last24h} />
+        <UsageCell label="Last 7 days" w={usage.last7d} />
+        <UsageCell label="Last 30 days" w={usage.last30d} />
+        <UsageCell label="Total" w={usage.total} />
+      </div>
+      <div className={styles.usageFoot}>
+        {usage.generating && <span className={styles.usageGenerating}>Generating now… </span>}
+        {enabled
+          ? 'Generates when switched on, then every night after the data load. '
+          : 'Off: nothing is generated for this client. '}
+        {usage.lastRunAt ? `Last run ${fmtWhen(usage.lastRunAt)}. ` : 'No run recorded yet. '}
+        {usage.trackedSince ? `Tracked since ${fmtWhen(usage.trackedSince)}. ` : ''}
+        Estimated at list price.
+      </div>
+    </div>
   );
 }
 
