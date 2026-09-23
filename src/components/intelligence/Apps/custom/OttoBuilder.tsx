@@ -527,6 +527,16 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
             {statusNow}
           </p>
           {statusLine && <p className={styles.statusDetail}>{loc(statusLine)}</p>}
+          {/* Hidden until a call is on record: screens made before cost
+              tracking existed would otherwise claim $0. */}
+          {cost && cost.calls > 0 && cost.costUsd !== null && (
+            <p className={styles.cost} title={t('otto.costHint')}>
+              <span className={styles.costLabel}>{t('otto.cost')}</span>
+              <span className={styles.costValue} dir="ltr">
+                ${cost.costUsd < 1 ? cost.costUsd.toFixed(3) : cost.costUsd.toFixed(2)}
+              </span>
+            </p>
+          )}
           {steps.length > 0 && (
             <ul className={styles.checklist}>
               {steps.map((s, i) => (
@@ -576,16 +586,6 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
           )}
           <span className={`${styles.badge} ${styles[`badge_${statusBadge}`]}`}>{t(`otto.badge.${statusBadge}`)}</span>
           <div className={styles.spacer} />
-          {/* Hidden until a call is on record: screens made before cost
-              tracking existed would otherwise claim $0. */}
-          {screen && cost && cost.calls > 0 && cost.costUsd !== null && (
-            <span className={styles.cost} title={t('otto.costHint')}>
-              {t('otto.cost')}
-              <span className={styles.costValue} dir="ltr">
-                ${cost.costUsd < 1 ? cost.costUsd.toFixed(3) : cost.costUsd.toFixed(2)}
-              </span>
-            </span>
-          )}
           {/* A never-published draft deletes; an ever-published app cancels
               its changes instead — deleting a published app is super-admin
               territory. */}
