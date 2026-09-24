@@ -609,6 +609,13 @@ interface BuilderState {
     instanceId: ID,
     joins: boolean,
   ) => void;
+  /** Crews an agent-cortex addon is switched OFF for (#857). Empty =
+   *  runs in every crew; the key is dropped rather than stored as `[]`. */
+  setAgentAddonExcludedCrews: (
+    agentId: ID,
+    instanceId: ID,
+    excludedCrewIds: ID[],
+  ) => void;
   removeAgentAddon: (agentId: ID, instanceId: ID) => void;
   reorderAgentAddonInLane: (
     agentId: ID,
@@ -923,6 +930,19 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   useEffect(() => {
     if (!folderSupported() || previewVersion) return;
     let cancelled = false;
+    // A file that was already there when this agent opened is not news —
+    // the mount effect below has already dealt with it. Without this
+    // baseline, `lastFolderWriteAt` starts at 0 on every page load, so the
+    // Builder's OWN last write looked "newer than anything we wrote" and
+    // was offered back as the assistant's (task 854).
+    void (async () => {
+      try {
+        const folder = await rememberedFolder();
+        if (!folder || cancelled) return;
+        const at = await draftModifiedAt(folder, agentSlug);
+        if (at !== null && at > lastFolderWriteAt) lastFolderWriteAt = at;
+      } catch { /* no folder — nothing to baseline */ }
+    })();
     const id = window.setInterval(() => {
       void (async () => {
         if (cancelled || folderWritePending()) return;
@@ -936,6 +956,16 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
 
           const found = await readDraft(folder, agentSlug);
           if (cancelled || !found) return;
+          // A newer timestamp is not a change. A second tab, OneDrive
+          // syncing Documents, or our own write racing a reload all touch
+          // the file without altering it — and a popup saying "your
+          // assistant changed this agent" about identical content trains
+          // people to click past the one prompt that matters. Only offer
+          // what is actually different from the screen.
+          if (stableStringify(found.doc) === stableStringify(docRef.current)) {
+            lastFolderWriteAt = at;
+            return;
+          }
           // Offer it. `lastFolderWriteAt` is NOT advanced here — if the
           // user ignores the prompt and the assistant writes again, the
           // newer version replaces the offer rather than being missed.
@@ -1591,6 +1621,23 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
         cortex: (a.cortex ?? []).map(x =>
           x.instanceId === instanceId ? { ...x, joinsPreviousStep: joins } : x,
         ),
+      }));
+    },
+    [],
+  );
+
+  const setAgentAddonExcludedCrews = useCallback(
+    (agentId: ID, instanceId: ID, excludedCrewIds: ID[]) => {
+      mapAgent(agentId, a => ({
+        ...a,
+        cortex: (a.cortex ?? []).map(x => {
+          if (x.instanceId !== instanceId) return x;
+          // "Runs everywhere" is stored as NO key, so an agent that never
+          // used the setting keeps a byte-identical body.
+          const { excludedCrewIds: _drop, ...rest } = x;
+          void _drop;
+          return excludedCrewIds.length > 0 ? { ...rest, excludedCrewIds } : rest;
+        }),
       }));
     },
     [],
@@ -2680,6 +2727,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       setAgentAddonOutputType,
       setAgentAddonEnabled,
       setAgentAddonJoinsPreviousStep,
+      setAgentAddonExcludedCrews,
       removeAgentAddon,
       reorderAgentAddonInLane,
       saveCrewVersion,
@@ -2758,6 +2806,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       setAgentAddonOutputType,
       setAgentAddonEnabled,
       setAgentAddonJoinsPreviousStep,
+      setAgentAddonExcludedCrews,
       removeAgentAddon,
       reorderAgentAddonInLane,
       saveCrewVersion,

@@ -62,6 +62,8 @@ export interface AddonRunSnapshot {
    *  kind for compat. */
   filter?:
     | { kind: 'cap'; cap: number; seen: number }
+    /** Agent-cortex addon switched off for the current crew (#857). */
+    | { kind: 'crew'; crewId: string; crewName?: string }
     | {
         kind?: 'conditions';
         mode: 'include' | 'exclude';
@@ -474,6 +476,15 @@ export function AddonRunCard({ run }: Props) {
                       ? 'Already ran once this conversation.'
                       : `Ran ${run.filter.seen} of ${run.filter.cap} allowed times.`
                   )}
+                </div>
+              </div>
+            ) : run.filter.kind === 'crew' ? (
+              <div className={styles.skippedBlock}>
+                <div className={styles.skippedHeader}>Not in this crew</div>
+                <div className={styles.skippedReason}>
+                  {run.filter.crewName
+                    ? `Switched off for "${run.filter.crewName}" in the addon's settings.`
+                    : "Switched off for this crew in the addon's settings."}
                 </div>
               </div>
             ) : (

@@ -2,12 +2,15 @@
  * BrainPanel — live runtime view of the chat's memory + active
  * Dynamic Contexts.
  *
+ * Opened from the 🧠 button in the TopBar (task #860 — it used to be
+ * a strip docked at the bottom of the canvas). `collapsed` posture
+ * means closed: nothing renders here.
+ *
  * Exports:
- *   - `BrainDockSlot` — mounts at the bottom of the chat column.
- *     Renders a clickable bar when collapsed, and the same bar +
- *     the body above it when docked. Hides itself entirely when
- *     posture is `fullscreen` (the fullscreen layer owns the whole
- *     center area then).
+ *   - `BrainDockSlot` — the docked posture: a panel dropping down
+ *     from the top-right of the center cell, under the TopBar button.
+ *     Hides itself when posture is `fullscreen` (the fullscreen layer
+ *     owns the whole center area then).
  *   - `BrainFullscreenLayer` — absolute-positioned overlay anchored
  *     to the BuilderLayout's center cell. Mounted by BuilderShell so
  *     it sits inside the center grid cell only — sidebar / topbar /
@@ -22,7 +25,7 @@
  * turn. Activity-detection (the unseen dot) lives in BrainContext.
  */
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
 import { useBrain } from '../../state/BrainContext';
 import {
@@ -40,107 +43,77 @@ import styles from './BrainPanel.module.css';
 
 /* ────────────────────────────── DOCK SLOT ────────────────────── */
 
-/** Pinned to the bottom of the chat column. Collapsed → just the bar.
- *  Docked → bar + body taking ~40% of the available height. Hidden
- *  when posture is `fullscreen` (overlay owns everything then). */
-export function BrainDockSlot() {
-  const { posture, setPosture, hasUnseen } = useBrain();
-  const { previewConversationId } = useBuilder();
-  if (posture === 'fullscreen') return null;
+/** Esc closes the panel from either open posture. Skipped when the
+ *  key lands in a form control — the seed editor inside the Memory
+ *  section uses Esc to cancel its own edit, and that must not also
+ *  throw the whole panel away. */
+function useEscToClose(open: boolean, close: () => void) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      close();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, close]);
+}
 
-  const isDocked = posture === 'docked';
+/** Drops down from the top-right of the center cell, just under the
+ *  TopBar's 🧠 button that opens it (task #860 — the old always-on
+ *  bottom strip read as clutter). Renders only in `docked` posture;
+ *  `collapsed` means "closed" now, so there is no bar to show.
+ *
+ *  Deliberately NOT closed on outside click: the point of the docked
+ *  posture is watching memory fill while you chat in the column next
+ *  to it, and every chat click would otherwise dismiss it. Esc, × and
+ *  the TopBar button close it. */
+export function BrainDockSlot() {
+  const { posture, setPosture } = useBrain();
+  const { previewConversationId } = useBuilder();
+  const close = useCallback(() => setPosture('collapsed'), [setPosture]);
+  useEscToClose(posture === 'docked', close);
+  if (posture !== 'docked') return null;
+
   return (
     <div
       className={styles.dockWrap}
-      // Docked posture needs a real height — 50% of the containing
-      // center cell gives the panel a substantial surface (small
-      // enough to leave canvas visible above). Collapsed posture
-      // keeps natural (just the bar).
-      style={isDocked ? { height: '50%' } : undefined}
+      role="dialog"
+      aria-label="Brain Inspector"
+      // 50% of the center cell gives the panel a substantial surface
+      // while leaving canvas visible below it.
+      style={{ height: '50%' }}
     >
-      {isDocked && (
-        <>
-          {/* Top header — gives the docked panel an actual top edge so
-              it reads as a contained surface, not as content bleeding
-              into the canvas above. Title + convo number anchor the
-              identity; ⤢ / × buttons mirror the fullscreen header so
-              users have actions on both edges of the panel. */}
-          <div className={styles.dockHeader}>
-            <span className={styles.dockHeaderIcon} aria-hidden>🧠</span>
-            <span className={styles.dockHeaderTitle}>Brain Inspector</span>
-            {previewConversationId !== null && (
-              <span className={styles.dockHeaderConvo}>#{previewConversationId}</span>
-            )}
-            <span style={{ flex: 1 }} />
-            <button
-              type="button"
-              className={styles.barAction}
-              onClick={() => setPosture('fullscreen')}
-              title="Expand to fullscreen"
-              aria-label="Expand to fullscreen"
-            >⤢</button>
-            <button
-              type="button"
-              className={styles.barAction}
-              onClick={() => setPosture('collapsed')}
-              title="Close brain panel"
-              aria-label="Close brain panel"
-            >×</button>
-          </div>
-          <div className={`${styles.body} ${styles.bodyDocked}`}>
-            <BrainBodyContent />
-          </div>
-        </>
-      )}
-      <button
-        type="button"
-        className={`${styles.bar} ${isDocked ? styles.barDocked : styles.barCollapsed}`}
-        onClick={() => setPosture(isDocked ? 'collapsed' : 'docked')}
-        title={isDocked ? 'Collapse the brain panel' : 'Open the live brain panel'}
-      >
-        <span className={styles.barIcon} aria-hidden>🧠</span>
-        <span className={styles.barTitle}>Brain Inspector</span>
-        <BrainBarSummary />
-        {!isDocked && hasUnseen && <span className={styles.barDot} aria-label="new activity" />}
-        {/* Fullscreen toggle is always present so the user can jump
-            straight to fullscreen from collapsed without an
-            intermediate "docked" step. role=button + keyboard
-            handler so it's a real interactive element nested inside
-            the bar button. */}
-        <span
-          role="button"
-          tabIndex={0}
+      {/* Header — title + convo number anchor the identity; ⤢ / ×
+          mirror the fullscreen header so both postures act alike. */}
+      <div className={styles.dockHeader}>
+        <span className={styles.dockHeaderIcon} aria-hidden>🧠</span>
+        <span className={styles.dockHeaderTitle}>Brain Inspector</span>
+        {previewConversationId !== null && (
+          <span className={styles.dockHeaderConvo}>#{previewConversationId}</span>
+        )}
+        <span style={{ flex: 1 }} />
+        <button
+          type="button"
           className={styles.barAction}
-          onClick={e => { e.stopPropagation(); setPosture('fullscreen'); }}
-          onKeyDown={e => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              e.stopPropagation();
-              setPosture('fullscreen');
-            }
-          }}
+          onClick={() => setPosture('fullscreen')}
           title="Expand to fullscreen"
           aria-label="Expand to fullscreen"
-        >⤢</span>
-        <span className={styles.barChevron} aria-hidden>{isDocked ? '▾' : '▴'}</span>
-      </button>
+        >⤢</button>
+        <button
+          type="button"
+          className={styles.barAction}
+          onClick={close}
+          title="Close brain panel (Esc)"
+          aria-label="Close brain panel"
+        >×</button>
+      </div>
+      <div className={`${styles.body} ${styles.bodyDocked}`}>
+        <BrainBodyContent />
+      </div>
     </div>
-  );
-}
-
-/** Tiny mid-bar summary chip — quick "what's in the brain right now"
- *  glance without opening the panel. */
-function BrainBarSummary() {
-  const { memoryGroups, dcHits, staleRows } = useBrainSnapshot();
-  const filled = memoryGroups.reduce(
-    (n, g) => n + g.rows.filter(r => r.value !== undefined && r.value !== null).length,
-    0,
-  );
-  const total = memoryGroups.reduce((n, g) => n + g.rows.length, 0) + staleRows.length;
-  return (
-    <span className={styles.barCount}>
-      {filled}/{total} fields · {dcHits.length} DC {dcHits.length === 1 ? 'hit' : 'hits'}
-    </span>
   );
 }
 
@@ -154,6 +127,8 @@ function BrainBarSummary() {
 export function BrainFullscreenLayer() {
   const { posture, setPosture } = useBrain();
   const { previewConversationId } = useBuilder();
+  const close = useCallback(() => setPosture('collapsed'), [setPosture]);
+  useEscToClose(posture === 'fullscreen', close);
   if (posture !== 'fullscreen') return null;
   return (
     <div className={styles.fullscreenLayer} role="dialog" aria-label="Live brain — runtime view for this conversation">
@@ -173,8 +148,8 @@ export function BrainFullscreenLayer() {
         <button
           type="button"
           className={styles.barAction}
-          onClick={() => setPosture('collapsed')}
-          title="Close brain panel"
+          onClick={close}
+          title="Close brain panel (Esc)"
           aria-label="Close brain panel"
         >×</button>
       </div>

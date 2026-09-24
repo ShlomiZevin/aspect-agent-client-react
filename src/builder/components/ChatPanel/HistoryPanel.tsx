@@ -29,6 +29,9 @@ interface Props {
   /** Enables the multi-select delete mode. Omit (e.g. Alfred's chat
    *  list) to keep the panel single-delete only. */
   onDeleteMany?: (ids: number[]) => Promise<void> | void;
+  /** Adds a per-row Export action. Omitted for Alfred's chat list —
+   *  its chats have no addon runs to export. */
+  onExport?: (id: number) => void;
 }
 
 function defaultLabel(c: ConversationListItem): string {
@@ -46,7 +49,7 @@ function formatTimestamp(iso: string): string {
 }
 
 export function HistoryPanel({
-  open, conversations, activeId, onClose, onPick, onNew, onRename, onDelete, onDeleteMany,
+  open, conversations, activeId, onClose, onPick, onNew, onRename, onDelete, onDeleteMany, onExport,
 }: Props) {
   const confirm = useConfirm();
   const [renamingId, setRenamingId] = useState<number | null>(null);
@@ -195,6 +198,16 @@ export function HistoryPanel({
                   >
                     ✏
                   </button>
+                  {onExport && (
+                    <button
+                      type="button"
+                      className={styles.iconBtn}
+                      onClick={() => onExport(c.id)}
+                      title="Export as JSON"
+                    >
+                      ⤓
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={`${styles.iconBtn} ${styles.iconBtnDanger}`}

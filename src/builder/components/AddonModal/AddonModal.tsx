@@ -57,6 +57,7 @@ interface Snapshot {
   config:     unknown;
   context:    AddonContext;
   outputType: OutputType;
+  excludedCrewIds: ID[];
 }
 
 function deepEqual(a: unknown, b: unknown): boolean {
@@ -64,7 +65,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
 }
 
 export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly = false }: Props) {
-  const { saveCrewVersion, saveAgentVersion, doc } = useBuilder();
+  const { saveCrewVersion, saveAgentVersion, setAgentAddonExcludedCrews, doc } = useBuilder();
   const muts = useAddonMutations(agentId, crewId);
   const isAgentScope = crewId === null;
   const agent = doc.agents.find(a => a.id === agentId);
@@ -99,6 +100,7 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
         config:     structuredClone(instance.config),
         context:    structuredClone(instance.context),
         outputType: instance.outputType,
+        excludedCrewIds: [...(instance.excludedCrewIds ?? [])],
       },
     };
   }
@@ -125,7 +127,8 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
     if (!s) return false;
     return !deepEqual(s.config,     instance.config)
         || !deepEqual(s.context,    instance.context)
-        ||  s.outputType !== instance.outputType;
+        ||  s.outputType !== instance.outputType
+        || !deepEqual(s.excludedCrewIds, instance.excludedCrewIds ?? []);
   };
 
   const handleRemove = async () => {
@@ -185,6 +188,7 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
       muts.updateConfig(instance.instanceId, s.config);
       muts.updateContext(instance.instanceId, s.context);
       muts.setOutputType(instance.instanceId, s.outputType);
+      if (isAgentScope) setAgentAddonExcludedCrews(agentId, instance.instanceId, s.excludedCrewIds);
     }
     snapshotRef.current = null;
     onClose();
@@ -325,6 +329,56 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
                     </span>
                     <span className={styles.filterLauncherEdit}>{hasFilter ? 'Edit' : 'Add'}</span>
                   </button>
+                </div>
+              );
+            })()}
+
+            {/* Crew scope (#857) — agent-cortex addons only, since those
+                are the ones that run before EVERY crew. One chip per crew,
+                ✓ runs / ✗ switched off; all ✓ by default. Stored as the
+                excluded list, so a crew added later is included without
+                anyone having to remember to tick it. */}
+            {isAgentScope && agent && agent.crews.length > 0 && (() => {
+              const excluded = new Set(instance.excludedCrewIds ?? []);
+              const offCount = agent.crews.filter(c => excluded.has(c.id)).length;
+              const toggle = (crewIdToFlip: ID) => {
+                const next = new Set(excluded);
+                if (next.has(crewIdToFlip)) next.delete(crewIdToFlip); else next.add(crewIdToFlip);
+                // Keep only ids of crews that exist — tidies stale ids from
+                // deleted crews the next time anyone edits the list.
+                setAgentAddonExcludedCrews(
+                  agentId, instance.instanceId,
+                  agent.crews.map(c => c.id).filter(id => next.has(id)),
+                );
+              };
+              return (
+                <div className={styles.crewScope}>
+                  <span className={styles.crewScopeLabel}>
+                    Runs in
+                    <span className={styles.crewScopeCount}>
+                      {offCount === 0 ? 'all crews' : `${agent.crews.length - offCount} of ${agent.crews.length} crews`}
+                    </span>
+                  </span>
+                  <div className={styles.crewScopeChips}>
+                    {agent.crews.map(c => {
+                      const on = !excluded.has(c.id);
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          aria-pressed={on}
+                          className={`${styles.crewChip} ${on ? styles.crewChipOn : styles.crewChipOff}`}
+                          onClick={() => toggle(c.id)}
+                          title={on
+                            ? `Runs in "${c.name}" — click to switch it off there`
+                            : `Switched off in "${c.name}" — click to run it there`}
+                        >
+                          <span aria-hidden className={styles.crewChipMark}>{on ? '✓' : '✕'}</span>
+                          {c.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })()}

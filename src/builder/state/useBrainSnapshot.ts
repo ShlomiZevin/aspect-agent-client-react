@@ -302,6 +302,26 @@ export function useBrainSnapshot(): BrainSnapshot {
 }
 
 /**
+ * The at-a-glance numbers shown on the TopBar's 🧠 button — filled vs.
+ * total fields, plus DC hits for its tooltip. Derived from the same
+ * snapshot the panel renders so the button and the panel can never
+ * disagree (and nothing is fetched twice). Stale rows count toward the
+ * total: they are memory the conversation still carries.
+ */
+export function useBrainCounts(): { filled: number; total: number; dcHits: number } {
+  const { memoryGroups, dcHits, staleRows } = useBrainSnapshot();
+  return useMemo(() => {
+    let filled = 0;
+    let total = staleRows.length;
+    for (const g of memoryGroups) {
+      total += g.rows.length;
+      filled += g.rows.filter(r => r.value !== undefined && r.value !== null).length;
+    }
+    return { filled, total, dcHits: dcHits.length };
+  }, [memoryGroups, dcHits, staleRows]);
+}
+
+/**
  * Render a memory value for display in the brain panel.
  *   - strings render as bare text (no quotes — the brain isn't a JSON viewer)
  *   - numbers / booleans render bare

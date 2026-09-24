@@ -13,6 +13,8 @@ import {
   isSupported as folderSupported, readBundleVersion, rememberedFolder,
 } from '../../state/folderDrafts';
 import { chosenTool } from '../FolderDrafts/aiSetupContent';
+import { useBrain } from '../../state/BrainContext';
+import { useBrainCounts } from '../../state/useBrainSnapshot';
 import styles from './TopBar.module.css';
 
 export function TopBar() {
@@ -95,6 +97,11 @@ export function TopBar() {
       <span className={styles.title}>Builder</span>
       <span className={styles.divider}>·</span>
       <span className={styles.subject}>{doc.name}</span>
+      {/* Beside the name, not in the right-hand cluster: it shows what
+          THIS agent knows in the current conversation, and the right side
+          is already the most crowded part of the bar. The dock drops from
+          the canvas's left edge, directly under it. */}
+      <BrainInspectorButton />
       <span className={styles.spacer} />
       <TopBarVersionMenu />
       {settings.autoSave && (
@@ -195,6 +202,43 @@ function TopBarVersionMenu() {
   const state   = useCrew ? crewVersion! : agentVersion;
   if (!state) return null;
   return <VersionMenu state={state} />;
+}
+
+/**
+ * 🧠 Brain Inspector toggle (task #860). The inspector used to be an
+ * always-on strip at the bottom of the canvas; authors found it in the
+ * way, so it collapsed into this button. The fields-filled count stays
+ * ON the button because "is the agent capturing anything?" is the
+ * reason to glance at it at all; DC hits don't fit and live in the
+ * tooltip and the panel.
+ *
+ * Opens the docked panel (which drops down under this button); from
+ * there ⤢ goes fullscreen. Any open posture counts as open, so a click
+ * here always closes.
+ */
+function BrainInspectorButton() {
+  const { posture, setPosture, hasUnseen } = useBrain();
+  const { filled, total, dcHits } = useBrainCounts();
+  const open = posture !== 'collapsed';
+  // Reserve the widest the count can get for this schema ("14/14") so
+  // 8/14 → 9/14 → 10/14 never nudges the buttons beside it.
+  const countWidth = `${String(total).length * 2 + 1}ch`;
+  return (
+    <button
+      type="button"
+      className={`${styles.brainBtn} ${open ? styles.brainBtnActive : ''}`}
+      onClick={() => setPosture(open ? 'collapsed' : 'docked')}
+      aria-expanded={open}
+      title={`Brain Inspector — ${filled} of ${total} fields filled · ${dcHits} DC ${dcHits === 1 ? 'hit' : 'hits'}${hasUnseen && !open ? ' · new activity' : ''}`}
+    >
+      <span aria-hidden>🧠</span>
+      <span className={styles.brainCount} style={{ minWidth: countWidth }}>
+        {filled}/{total}
+      </span>
+      {/* Absolutely positioned, so lighting it never resizes the button. */}
+      {hasUnseen && !open && <span className={styles.brainDot} aria-label="new activity" />}
+    </button>
+  );
 }
 
 /**

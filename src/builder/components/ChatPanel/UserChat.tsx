@@ -34,6 +34,7 @@ import { AddonRunTimeline, type RunCat } from '../AddonRun/AddonRunTimeline';
 import type { AddonRunSnapshot } from '../AddonRun/AddonRunCard';
 import { useConfirm } from '../Confirm/Confirm';
 import { HistoryPanel } from './HistoryPanel';
+import { ExportConversationModal } from './ExportConversationModal';
 import { ChatSettingsPopover, useChatSettings } from './ChatSettings';
 // Report-a-bug reuses the live chat's lightweight modal verbatim — same
 // board wiring (assignee chips, screenshots, conversation link). Its CSS
@@ -233,6 +234,9 @@ export function UserChat() {
   const [convList, setConvList] = useState<ConversationListItem[]>([]);
   // Bot-message text a bug report was opened for (null = modal closed).
   const [reportFor, setReportFor] = useState<string | null>(null);
+  // Conversation the Export modal is open for (null = closed). Not always
+  // the active one — History rows can export any past chat.
+  const [exportFor, setExportFor] = useState<number | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   useEffect(() => {
     if (toastMsg === null) return;
@@ -875,6 +879,10 @@ export function UserChat() {
           >
             ＋ <span className={styles.headerBtnLabel}>New</span>
           </button>
+          {/* No Export button here: this row has no slack — one more
+              labelled button pushed ⚙ off the panel's edge. Export lives
+              on each conversation row in History (⤓), which also covers
+              the current one. */}
           <div className={styles.headerSpacer} />
           <button
             type="button"
@@ -952,6 +960,7 @@ export function UserChat() {
           onRename={onRenameConversation}
           onDelete={onDeleteFromHistory}
           onDeleteMany={onDeleteManyFromHistory}
+          onExport={id => setExportFor(id)}
         />
 
         <div className={styles.messages} ref={messagesRef} onScroll={onMessagesScroll}>
@@ -1021,6 +1030,13 @@ export function UserChat() {
           onDone={msg => { setReportFor(null); setToastMsg(msg); }}
         />
       </div>
+
+      <ExportConversationModal
+        open={exportFor !== null}
+        onClose={() => setExportFor(null)}
+        agentSlug={slug}
+        conversationId={exportFor}
+      />
 
       <div className={styles.composer}>
         <textarea

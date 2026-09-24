@@ -120,3 +120,49 @@
   background: #d97706;
   vertical-align: middle;
 }
+
+/* 🧠 Brain Inspector toggle — labelled like .aiBtn because it carries
+   a live count. Primary-tinted when the panel is open so the button
+   reads as the handle of the panel hanging under it. */
+.brainBtn {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 8px;
+  font: inherit; font-size: 12px; font-weight: 600;
+  white-space: nowrap; cursor: pointer;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.12));
+  background: var(--surface, #fff);
+  color: var(--text-secondary, #555);
+}
+.brainBtn:hover {
+  background: var(--surface-light, rgba(0, 0, 0, 0.05));
+  color: var(--text-primary, #222);
+}
+.brainBtnActive,
+.brainBtnActive:hover {
+  border-color: var(--primary-color, #2563eb);
+  color: var(--primary-color, #2563eb);
+}
+/* tabular-nums + a min-width set inline from the total's digit count:
+   the count ticking up must never shift the toolbar. */
+.brainCount {
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+/* "Memory changed while the panel was closed." Pinned to the corner
+   rather than inline so it can appear and clear with zero layout
+   shift; pulses once-per-cycle so a fresh extraction catches the eye. */
+.brainDot {
+  position: absolute;
+  top: -3px; right: -3px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--primary-color, #2563eb);
+  box-shadow: 0 0 0 2px var(--surface, #fff);
+  animation: brain-btn-pulse 1.6s ease-out infinite;
+}
+@keyframes brain-btn-pulse {
+  0%   { box-shadow: 0 0 0 2px var(--surface, #fff), 0 0 0 2px var(--primary-color, #2563eb); }
+  60%  { box-shadow: 0 0 0 2px var(--surface, #fff), 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 2px var(--surface, #fff), 0 0 0 2px transparent; }
+}

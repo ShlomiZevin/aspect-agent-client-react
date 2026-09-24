@@ -703,6 +703,27 @@ export async function fetchRunsForMessage(args: {
   return res.runs;
 }
 
+/** How much of each turn a conversation export carries (task #861). */
+export type ConversationExportLevel = 'messages' | 'outputs' | 'full';
+
+/**
+ * One conversation as self-describing JSON, for handing to another AI.
+ * Built server-side (builder/services/conversationExport.js) — the same
+ * function the MCP door serves, so both exports are identical. Kept as
+ * `unknown`-ish: the client only saves / copies it, never reads into it.
+ */
+export async function exportConversation(args: {
+  agentSlug: string;
+  conversationId: number;
+  include: ConversationExportLevel;
+}): Promise<Record<string, unknown>> {
+  const res = await http<Record<string, unknown>>(
+    `/api/agents/${args.agentSlug}/conversations/${args.conversationId}/export?include=${args.include}`,
+  );
+  if (typeof res.error === 'string') throw new Error(res.error);
+  return res;
+}
+
 export async function deleteConversation(args: {
   agentSlug: string;
   conversationId: number;

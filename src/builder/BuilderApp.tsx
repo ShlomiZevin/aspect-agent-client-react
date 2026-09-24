@@ -253,10 +253,11 @@ function BuilderShell() {
             <Route path="triggers" element={<TriggersScreen />} />
             <Route path="triggers/:triggerId" element={<TriggersScreen />} />
           </Routes>
-          {/* Brain dock floats at the bottom-right of the canvas (just
-              left of the chat column) so the chat column never
-              shrinks. Collapsed → thin bar; docked → expands upward
-              into the canvas without pushing layout. */}
+          {/* Brain dock drops down from the top-left of the canvas
+              (under the TopBar 🧠 button beside the agent name), over
+              the canvas so no column shrinks. Collapsed → nothing
+              rendered; docked → overlays the canvas without pushing
+              layout. */}
           <BrainDockSlot />
           {/* Fullscreen posture overlays the whole center cell only —
               sidebar / topbar / chat stay clickable around it. */}

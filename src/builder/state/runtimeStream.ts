@@ -107,10 +107,15 @@ export type RuntimeEvent =
       label?: string;
       modelLabel?: { providerName: string; modelName: string } | null;
       lane?: string;
-      filter: {
-        mode: 'include' | 'exclude';
-        evaluations: Array<{ type: string; ok: boolean; why: string }>;
-      };
+      filter:
+        | { kind: 'cap'; cap: number; seen: number }
+        /** Agent-cortex addon switched off for this crew (#857). */
+        | { kind: 'crew'; crewId: string; crewName?: string }
+        | {
+            kind?: 'conditions';
+            mode: 'include' | 'exclude';
+            evaluations: Array<{ type: string; ok: boolean; why: string }>;
+          };
       /** Single-line summary suitable for a card tooltip or chip. */
       reason: string;
       durationMs?: number;

@@ -98,6 +98,95 @@
   color: #b45309;
 }
 
+/* ── Crew scope (#857) — which crews an agent-cortex addon runs in ── */
+.crewScope {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+}
+
+.crewScopeLabel {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 92px;
+  padding-top: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+}
+
+.crewScopeCount {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted, #9ca3af);
+  font-variant-numeric: tabular-nums;
+}
+
+.crewScopeChips {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.crewChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--transition-fast, 0.15s ease), border-color var(--transition-fast, 0.15s ease);
+}
+
+/* Same mark width in both states, so flipping a chip never re-flows the
+   row. */
+.crewChipMark {
+  width: 10px;
+  text-align: center;
+  font-size: 11px;
+}
+
+.crewChipOn {
+  border-color: color-mix(in srgb, var(--success-color, #10b981) 40%, transparent);
+  background: color-mix(in srgb, var(--success-color, #10b981) 10%, transparent);
+  color: color-mix(in srgb, var(--success-color, #10b981) 70%, #000);
+}
+
+.crewChipOn:hover {
+  background: color-mix(in srgb, var(--success-color, #10b981) 16%, transparent);
+}
+
+.crewChipOff {
+  border-color: var(--border, #e5e7eb);
+  border-style: dashed;
+  background: transparent;
+  color: var(--text-muted, #9ca3af);
+  text-decoration: line-through;
+}
+
+.crewChipOff:hover {
+  color: var(--text-secondary, #4b5563);
+}
+
+fieldset:disabled .crewChip {
+  cursor: default;
+}
+
 .dangerBtn {
   padding: 8px 14px;
   font-size: 13px;
