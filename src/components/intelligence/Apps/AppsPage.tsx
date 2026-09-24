@@ -5,6 +5,7 @@ import { ScreenIcon } from './custom/ScreenIcon';
 import { appsService } from '../../../services/appsService';
 import type { AppsResponse } from '../../../types/apps';
 import { useLanguage } from '../../../context/LanguageContext';
+import { useUserContext } from '../../../context/UserContext';
 import { Skeleton } from '../Insights/Skeleton';
 
 interface Props {
@@ -29,6 +30,7 @@ function badgeLabel(n: number) {
 
 export function AppsPage({ datasetId, baseURL, onOpenApp }: Props) {
   const { t, language } = useLanguage();
+  const { userId } = useUserContext();
   const [loaded, setLoaded] = useState<AppsResponse | null>(null);
   const [failedFor, setFailedFor] = useState<string | null>(null);
 
@@ -43,11 +45,11 @@ export function AppsPage({ datasetId, baseURL, onOpenApp }: Props) {
   // being counted - whereas no tiles at all reads as "you have no apps".
   useEffect(() => {
     let alive = true;
-    appsService.list(datasetId, false, baseURL)
+    appsService.list(datasetId, false, userId, baseURL)
       .then(r => {
         if (!alive) return;
         setLoaded(r);
-        return appsService.list(datasetId, true, baseURL)
+        return appsService.list(datasetId, true, userId, baseURL)
           .then(full => { if (alive) setLoaded(full); })
           // The shelf is already on screen; a failed headline costs a badge,
           // not the page.
@@ -55,7 +57,7 @@ export function AppsPage({ datasetId, baseURL, onOpenApp }: Props) {
       })
       .catch(() => { if (alive) setFailedFor(datasetId); });
     return () => { alive = false; };
-  }, [datasetId, baseURL]);
+  }, [datasetId, baseURL, userId]);
 
   // Derived rather than cleared in the effect. Resetting to null on the way in
   // costs an extra render pass and, worse, is a synchronous setState inside an

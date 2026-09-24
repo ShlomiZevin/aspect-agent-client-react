@@ -21,6 +21,7 @@ import { ottoService } from '../../../../services/ottoService';
 import { OttoBuilder } from './OttoBuilder';
 import { CustomScreenPage } from './CustomScreenPage';
 import { Skeleton } from '../../Insights/Skeleton';
+import { useUserContext } from '../../../../context/UserContext';
 import type { OttoScreen } from '../../../../types/otto';
 
 interface Props {
@@ -35,6 +36,7 @@ interface Props {
 
 export function CustomScreenRouter({ datasetId, appId, baseURL, fallback, onCrumb }: Props) {
   const navigate = useNavigate();
+  const { userId } = useUserContext();
   const [screen, setScreen] = useState<OttoScreen | null>(null);
   const [missing, setMissing] = useState(false);
   /** The draft this mounted builder created — never remount over it. */
@@ -53,10 +55,10 @@ export function CustomScreenRouter({ datasetId, appId, baseURL, fallback, onCrum
     loadedFor.current = key;
     setScreen(null);
     setMissing(false);
-    ottoService.getScreen(datasetId, appId, baseURL)
+    ottoService.getScreen(datasetId, appId, userId, baseURL)
       .then(setScreen)
       .catch(() => setMissing(true));
-  }, [datasetId, appId, baseURL, isNew, owned, reloadTick]);
+  }, [datasetId, appId, baseURL, userId, isNew, owned, reloadTick]);
 
   if (isNew || owned || (screen && screen.status !== 'active')) {
     return (

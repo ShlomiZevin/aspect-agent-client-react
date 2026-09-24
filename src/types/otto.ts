@@ -82,7 +82,11 @@ export interface ComputedColumn {
 export interface AggregateMeasure {
   id: string;
   agg: 'sum' | 'count' | 'avg' | 'min' | 'max';
+  /** One raw field aggregated as-is, OR an arithmetic expression over this
+   *  source's raw fields (e.g. "qty * unit_price") aggregated per row —
+   *  never both. */
   field?: string;
+  expr?: string;
   label: Localized;
   format?: OttoFormat;
 }
@@ -169,6 +173,14 @@ export interface BrainstormResult {
   state: Localized;
   /** Tap-to-answer options for the question the reply asks (0-3). */
   suggestions: string[];
+}
+
+/** LLM cost of making one screen so far (list price). costUsd is null when a model has no known rate. */
+export interface OttoCost {
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number | null;
 }
 
 export interface BuildProgress {

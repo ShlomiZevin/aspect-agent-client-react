@@ -25,7 +25,7 @@ import { useLanguage } from '../../../../context/LanguageContext';
 import { useUserContext } from '../../../../context/UserContext';
 import { useJobs } from '../../jobs/JobsContext';
 import type {
-  BuildProgress, OttoMessage, OttoPlan, OttoScreen, OttoStarter, ScreenDataPayload,
+  BuildProgress, OttoCost, OttoMessage, OttoPlan, OttoScreen, OttoStarter, ScreenDataPayload,
 } from '../../../../types/otto';
 import type { Localized } from '../../../../types/apps';
 
@@ -69,6 +69,10 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
   const [planning, setPlanning] = useState(false);
   const [readyToPlan, setReadyToPlan] = useState(false);
   const [plan, setPlan] = useState<OttoPlan | null>(null);
+  /** True after a build attempt on THIS plan has failed — the plan card
+   *  stays up so the same button reads "Try again" instead of forcing a
+   *  re-plan from scratch (task #89: the plan used to vanish on failure). */
+  const [buildFailed, setBuildFailed] = useState(false);
   const [preview, setPreview] = useState<ScreenDataPayload | null>(null);
   const [build, setBuild] = useState<BuildProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,11 +85,22 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [railOpen, setRailOpen] = useState(true);
   const [statusOpen, setStatusOpen] = useState(true);
+  /** What making this screen has cost so far — shown on top of the canvas. */
+  const [cost, setCost] = useState<OttoCost | null>(null);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const loadedFor = useRef<string | null>(null);
   const stepStart = useRef<number>(Date.now());
+
+  // The server logs each LLM call's usage fire-and-forget, so the row for the
+  // call that just returned may land a moment after its response. Read now,
+  // then once more shortly after, so the number settles on the true total.
+  const refreshCost = useCallback((id: string) => {
+    const read = () => ottoService.getCost(datasetId, id, userId, baseURL).then(setCost).catch(() => {});
+    void read();
+    setTimeout(() => { void read(); }, 2500);
+  }, [datasetId, userId, baseURL]);
 
   const markStep = useCallback((key: string, note?: Localized) => {
     const seconds = Math.max(1, Math.round((Date.now() - stepStart.current) / 1000));
@@ -105,29 +120,30 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     // empty and visually "reload the page" mid-reply (first live-test bug).
     if (screenId && screen?.id === screenId) return;
 
-    ottoService.listScreens(datasetId, baseURL)
+    ottoService.listScreens(datasetId, userId, baseURL)
       .then(r => setStarters(r.starters))
       .catch(() => {});
 
     if (!screenId) return;
-    ottoService.getScreen(datasetId, screenId, baseURL)
+    ottoService.getScreen(datasetId, screenId, userId, baseURL)
       .then(s => {
         setScreen(s);
+        refreshCost(s.id);
         setMessages(s.conversation || []);
         if (s.plan && (s.plan as OttoPlan).title) setPlan(s.plan as OttoPlan);
         if (s.screenSpec) {
-          ottoService.getData(datasetId, screenId, baseURL)
+          ottoService.getData(datasetId, screenId, userId, baseURL)
             .then(setPreview)
             .catch(() => setError(t('otto.error.dataFailed')));
         }
         // Re-attach to a build that survived a reload.
-        ottoService.latestBuild(datasetId, screenId, baseURL)
+        ottoService.latestBuild(datasetId, screenId, userId, baseURL)
           .then(b => { if (b?.status === 'running') { setPhase('building'); void watchBuild(s); } })
           .catch(() => {});
       })
       .catch(() => setError(t('otto.error.loadFailed')));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [datasetId, screenId, baseURL]);
+  }, [datasetId, screenId, baseURL, userId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -159,7 +175,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
         setScreen(current);
         onDraftCreated(current.id);
       }
-      const r = await ottoService.chat(datasetId, current.id, next, lang, baseURL);
+      const r = await ottoService.chat(datasetId, current.id, next, lang, userId, baseURL);
       setMessages([...next, { role: 'assistant', content: r.reply }]);
       setReadyToPlan(r.readyToPlan);
       setStatusLine(r.state?.en ? r.state : null);
@@ -167,13 +183,14 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
       // The checklist row carries Otto's own read of the request — far more
       // informative than a bare "Request understood" (owner, 2026-09-15).
       markStep('understood', r.state?.en ? r.state : undefined);
+      refreshCost(current.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('otto.error.chatFailed'));
       setMessages(next); // the user's message stays; retry is one click
     } finally {
       setThinking(false);
     }
-  }, [messages, thinking, phase, screen, steps, datasetId, userId, baseURL, lang, onDraftCreated, markStep, t]);
+  }, [messages, thinking, phase, screen, steps, datasetId, userId, baseURL, lang, onDraftCreated, markStep, refreshCost, t]);
 
   const preparePlan = useCallback(async () => {
     if (!screen || thinking) return;
@@ -181,8 +198,9 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     setThinking(true);
     setError(null);
     try {
-      const p = await ottoService.draftPlan(datasetId, screen.id, messages, baseURL);
+      const p = await ottoService.draftPlan(datasetId, screen.id, messages, userId, baseURL);
       setPlan(p);
+      setBuildFailed(false);
       setPhase('plan');
       markStep('planDrafted');
       // The plan names the draft — refresh our copy so the canvas title follows.
@@ -192,19 +210,26 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     } finally {
       setThinking(false);
       setPlanning(false);
+      // A failed plan still spent its calls.
+      refreshCost(screen.id);
     }
-  }, [screen, thinking, datasetId, messages, baseURL, markStep, t]);
+  }, [screen, thinking, datasetId, messages, baseURL, userId, markStep, refreshCost, t]);
 
   const watchBuild = useCallback(async (forScreen: OttoScreen) => {
     // The polling loop runs inside a shell TASK so the header pill shows
     // the same numbers (M4) — one progress, two places, no drift.
     await new Promise<void>(resolve => {
       startTask(datasetId, t('otto.pill.label'), async (report) => {
-        for (;;) {
+        for (let tick = 0; ; tick++) {
           await new Promise(r => setTimeout(r, POLL_MS));
+          // The cost climbs during a build (each compose round is an Opus
+          // call) — every few ticks is enough to watch it move.
+          if (tick % 4 === 0) {
+            ottoService.getCost(datasetId, forScreen.id, userId, baseURL).then(setCost).catch(() => {});
+          }
           let b: BuildProgress | null = null;
           try {
-            b = await ottoService.latestBuild(datasetId, forScreen.id, baseURL);
+            b = await ottoService.latestBuild(datasetId, forScreen.id, userId, baseURL);
           } catch { continue; }
           if (!b) continue;
           setBuild(b);
@@ -217,24 +242,27 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
         }
       });
     });
-  }, [datasetId, baseURL, startTask, t]);
+  }, [datasetId, baseURL, userId, startTask, t]);
 
   const approveAndBuild = useCallback(async () => {
     if (!screen || !plan) return;
     setPhase('building');
     setError(null);
     setBuild(null);
+    setBuildFailed(false);
     markStep('approved');
+    setMessages(m => [...m, { role: 'assistant', content: t('otto.msg.building') }]);
     try {
-      const started = await ottoService.startBuild(datasetId, screen.id, baseURL);
+      const started = await ottoService.startBuild(datasetId, screen.id, userId, baseURL);
       if (!('buildId' in started)) throw new Error('build not started');
       await watchBuild(screen);
-      const final = await ottoService.latestBuild(datasetId, screen.id, baseURL);
+      const final = await ottoService.latestBuild(datasetId, screen.id, userId, baseURL);
       setBuild(final);
+      refreshCost(screen.id);
       if (final?.status === 'succeeded') {
         const [s, d] = await Promise.all([
-          ottoService.getScreen(datasetId, screen.id, baseURL),
-          ottoService.getData(datasetId, screen.id, baseURL),
+          ottoService.getScreen(datasetId, screen.id, userId, baseURL),
+          ottoService.getData(datasetId, screen.id, userId, baseURL),
         ]);
         setScreen(s);
         setPreview(d);
@@ -243,48 +271,54 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
         markStep('built');
         setMessages(m => [...m, { role: 'assistant', content: t('otto.msg.built') }]);
       } else {
-        setPhase('talk');
+        // Back to 'plan', not 'talk' — the SAME plan card stays up so the
+        // user can retry with one click instead of re-planning from scratch
+        // (task #89/#90: a real build failure used to strand them mid-chat).
+        setPhase('plan');
+        setBuildFailed(true);
         setError(final?.report?.reason || t('otto.error.buildFailed'));
       }
     } catch (err) {
-      setPhase('talk');
+      setPhase('plan');
+      setBuildFailed(true);
       setError(err instanceof Error ? err.message : t('otto.error.buildFailed'));
+      refreshCost(screen.id);
     }
-  }, [screen, plan, datasetId, baseURL, watchBuild, markStep, t]);
+  }, [screen, plan, datasetId, baseURL, userId, watchBuild, markStep, refreshCost, t]);
 
   const doPublish = useCallback(async () => {
     if (!screen) return;
     setConfirmOpen(null);
     try {
-      await ottoService.publish(datasetId, screen.id, baseURL);
+      await ottoService.publish(datasetId, screen.id, userId, baseURL);
       onPublished(screen.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('otto.error.publishFailed'));
     }
-  }, [screen, datasetId, baseURL, onPublished, t]);
+  }, [screen, datasetId, baseURL, userId, onPublished, t]);
 
   const doDelete = useCallback(async () => {
     if (!screen) return;
     setConfirmOpen(null);
     try {
-      await ottoService.deleteDraft(datasetId, screen.id, baseURL);
+      await ottoService.deleteDraft(datasetId, screen.id, userId, baseURL);
       onExit();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('otto.error.deleteFailed'));
     }
-  }, [screen, datasetId, baseURL, onExit, t]);
+  }, [screen, datasetId, baseURL, userId, onExit, t]);
 
   /** Cancel changes: back to the last published version, live again. */
   const doRevert = useCallback(async () => {
     if (!screen) return;
     setConfirmOpen(null);
     try {
-      await ottoService.revert(datasetId, screen.id, baseURL);
+      await ottoService.revert(datasetId, screen.id, userId, baseURL);
       onPublished(screen.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('otto.error.revertFailed'));
     }
-  }, [screen, datasetId, baseURL, onPublished, t]);
+  }, [screen, datasetId, baseURL, userId, onPublished, t]);
 
   /** Tap-to-answer: each press appends its own line to the composer —
    *  chips compose, they never auto-send. */
@@ -299,10 +333,10 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
     if (!screen || !value) return;
     const title: Localized = { ...screen.title, [lang]: value } as Localized;
     try {
-      const s = await ottoService.rename(datasetId, screen.id, title, undefined, baseURL);
+      const s = await ottoService.rename(datasetId, screen.id, title, undefined, userId, baseURL);
       setScreen(s);
     } catch { /* the old name stands; nothing was promised */ }
-  }, [renameValue, screen, datasetId, lang, baseURL]);
+  }, [renameValue, screen, datasetId, lang, baseURL, userId]);
 
   // ── derived ──
   const title = screen ? (screen.title[lang] || screen.title.en) : t('otto.newScreen');
@@ -410,7 +444,7 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
             </div>
           )}
 
-          {plan && phase === 'plan' && (
+          {plan && (phase === 'plan' || phase === 'building') && (
             <div className={styles.planCard}>
               <p className={styles.planKicker}>{t('otto.plan.kicker')}</p>
               <p className={styles.planTitle}>{loc(plan.title)}</p>
@@ -433,10 +467,11 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
               )}
 
               <div className={styles.planActions}>
-                <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => void approveAndBuild()}>
-                  {plan.isChange ? t('otto.plan.approveChange') : t('otto.plan.approve')}
+                <button type="button" className={`${styles.btn} ${styles.btnPrimary}`}
+                  disabled={phase === 'building'} onClick={() => void approveAndBuild()}>
+                  {buildFailed ? t('otto.plan.retry') : plan.isChange ? t('otto.plan.approveChange') : t('otto.plan.approve')}
                 </button>
-                <button type="button" className={styles.btn} onClick={() => setPhase('talk')}>
+                <button type="button" className={styles.btn} disabled={phase === 'building'} onClick={() => setPhase('talk')}>
                   {t('otto.plan.backToChat')}
                 </button>
               </div>
@@ -492,6 +527,16 @@ export function OttoBuilder({ datasetId, screenId, baseURL, onDraftCreated, onPu
             {statusNow}
           </p>
           {statusLine && <p className={styles.statusDetail}>{loc(statusLine)}</p>}
+          {/* Hidden until a call is on record: screens made before cost
+              tracking existed would otherwise claim $0. */}
+          {cost && cost.calls > 0 && cost.costUsd !== null && (
+            <p className={styles.cost} title={t('otto.costHint')}>
+              <span className={styles.costLabel}>{t('otto.cost')}</span>
+              <span className={styles.costValue} dir="ltr">
+                ${cost.costUsd < 1 ? cost.costUsd.toFixed(3) : cost.costUsd.toFixed(2)}
+              </span>
+            </p>
+          )}
           {steps.length > 0 && (
             <ul className={styles.checklist}>
               {steps.map((s, i) => (

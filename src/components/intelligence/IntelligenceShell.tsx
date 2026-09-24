@@ -169,11 +169,11 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   const [hasApps, setHasApps] = useState<boolean | null>(null);
   useEffect(() => {
     let alive = true;
-    appsService.hasApps(datasetId, baseURL)
+    appsService.hasApps(datasetId, userId, baseURL)
       .then(v => { if (alive) setHasApps(v); })
       .catch(() => { if (alive) setHasApps(false); });
     return () => { alive = false; };
-  }, [datasetId, baseURL]);
+  }, [datasetId, baseURL, userId]);
   const [syncInfo, setSyncInfo] = useState<{ lastSync: string; dataFrom: string | null; dataThrough: string } | null>(null);
   useEffect(() => {
     if (!baseURL) return;
