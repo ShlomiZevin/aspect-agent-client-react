@@ -41,6 +41,21 @@ export interface DraftMeta {
   agentSlug?: string;
   pulledFromVersion?: number;
   pulledAt?: string;
+  /**
+   * Fingerprint of each agent's / crew's SAVED snapshot (its viewing
+   * version body) at the moment the Builder wrote this file, keyed by id
+   * (task #875). On read, content whose fingerprint differs from this was
+   * edited after the Builder wrote it — by the assistant, or unsaved work
+   * of the user's — and content that matches it is just the Builder's own
+   * old write, which must never override newer work saved elsewhere.
+   *
+   * It lives here rather than being derived from `doc.*.versions[]`
+   * because those snapshots sit in the same file the assistant edits: a
+   * find-and-replace over the working copy also rewrote the identical
+   * snapshot text, the working copy then "matched its saved version", and
+   * Save went grey on real changes.
+   */
+  baseline?: Record<string, string>;
 }
 
 export interface FolderDraft {
@@ -186,6 +201,7 @@ export async function writeDraft(
   agentSlug: string,
   doc: ProjectDoc,
   version?: number,
+  baseline?: Record<string, string>,
 ): Promise<void> {
   const dir  = await folder.getDirectoryHandle(DRAFTS_DIR, { create: true });
   const file = await dir.getFileHandle(`${agentSlug}.json`, { create: true });
@@ -194,6 +210,7 @@ export async function writeDraft(
       agentSlug,
       pulledFromVersion: version,
       pulledAt: new Date().toISOString(),
+      ...(baseline ? { baseline } : {}),
     },
     doc,
   };

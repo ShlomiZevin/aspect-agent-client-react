@@ -47,6 +47,7 @@ import {
 import { IndexSettingsModal } from './IndexSettingsModal';
 // import { LinkedAgents } from './KBLinkedAgents'; // temporarily hidden
 import { useConfirm } from '../Confirm/Confirm';
+import { formatDuration } from '../../formatDuration';
 import styles from './KBWorkbench.module.css';
 
 interface Props {
@@ -866,7 +867,7 @@ function TestSection({ namespace }: { namespace: string }) {
       {result && (
         <div className={styles.results}>
           <div className={styles.resultsMeta}>
-            {result.results.length} matches · {result.queryTimeMs}ms · {result.tokensUsed.toLocaleString()} tokens
+            {result.results.length} matches · {formatDuration(result.queryTimeMs)} · {result.tokensUsed.toLocaleString()} tokens
           </div>
 
           {result.results.length === 0 && (

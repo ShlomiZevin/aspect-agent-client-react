@@ -1,0 +1,138 @@
+/* Files attached to an agent's Spec (#870). Real tokens only. */
+
+.wrap {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border, #e2e8f0);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #1a202c);
+}
+
+.sub {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-muted, #94a3b8);
+}
+
+.attach {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface, #fff);
+  color: var(--text-primary, #1a202c);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.attach:hover:not(:disabled) {
+  background: var(--surface-light, #f0f2f5);
+}
+
+.attach:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--surface-light, #f0f2f5);
+  min-width: 0;
+}
+
+.rowBusy {
+  opacity: 0.65;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-color, #2563eb);
+  text-decoration: none;
+}
+
+a.name:hover {
+  text-decoration: underline;
+}
+
+.rowBusy .name {
+  color: var(--text-primary, #1a202c);
+}
+
+.meta {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-muted, #94a3b8);
+  font-variant-numeric: tabular-nums;
+}
+
+.noText {
+  color: var(--warning-color, #f59e0b);
+}
+
+.remove {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.remove:hover {
+  background: color-mix(in srgb, var(--error-color, #ef4444) 12%, transparent);
+  color: var(--error-color, #ef4444);
+}
+
+.empty {
+  padding: 8px 2px;
+  font-size: 12px;
+  color: var(--text-muted, #94a3b8);
+}
+
+.errorSlot {
+  min-height: 20px;
+  padding-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--error-color, #ef4444);
+}

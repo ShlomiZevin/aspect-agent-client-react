@@ -19,7 +19,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useProjectSync, type ProjectSyncApi } from './useProjectSync';
-import { fetchProject, writeApplyLog, type LiveBrainPanelData } from './builderApi';
+import { fetchProject, saveProjectSpecApi, writeApplyLog, type LiveBrainPanelData } from './builderApi';
 import type {
   AddonContext,
   AddonInstance,
@@ -235,7 +235,7 @@ function scheduleFolderWrite(agentSlug: string, doc: ProjectDoc): void {
         // Never prompts — only uses a folder the user already granted.
         const folder = await rememberedFolder();
         if (!folder) return;
-        await writeDraft(folder, agentSlug, doc);
+        await writeDraft(folder, agentSlug, doc, undefined, draftBaseline(doc));
         lastFolderWriteAt = (await draftModifiedAt(folder, agentSlug)) ?? Date.now();
       } catch {
         /* permission withdrawn or folder moved — localStorage still holds it */
@@ -282,10 +282,133 @@ export async function ensureFolderDraft(
   doc: ProjectDoc,
 ): Promise<boolean> {
   if ((await draftModifiedAt(folder, agentSlug)) !== null) return false;
-  await writeDraft(folder, agentSlug, doc);
+  await writeDraft(folder, agentSlug, doc, undefined, draftBaseline(doc));
   lastFolderWriteAt = (await draftModifiedAt(folder, agentSlug)) ?? Date.now();
   return true;
 }
+
+/** Short, stable fingerprint of a body (cyrb53 over its key-sorted JSON). */
+function fingerprint(body: unknown): string {
+  const s = stableStringify(body);
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761);
+    h2 = Math.imul(h2 ^ c, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
+/** `_meta.baseline` for a folder write — each entity's SAVED snapshot. */
+function draftBaseline(doc: ProjectDoc): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const agent of doc.agents) {
+    const va = agent.versions.find(v => v.id === agent.viewingVersionId);
+    if (va) out[agent.id] = fingerprint(va.body);
+    for (const crew of agent.crews) {
+      const vc = crew.versions.find(v => v.id === crew.viewingVersionId);
+      if (vc) out[crew.id] = fingerprint(vc.body);
+    }
+  }
+  return out;
+}
+
+/** Keys that belong to the Builder's bookkeeping, never to the content. */
+const AGENT_STRUCTURAL = new Set(['id', 'slug', 'crews', 'versions', 'activeVersionId', 'viewingVersionId', 'publishedVersionId']);
+const CREW_STRUCTURAL  = new Set(['id', 'versions', 'activeVersionId', 'viewingVersionId', 'publishedVersionId']);
+
+function withContentOf<T extends object>(base: T, incoming: T, structural: Set<string>): T {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(base)) if (structural.has(k)) out[k] = v;
+  for (const [k, v] of Object.entries(incoming)) if (!structural.has(k)) out[k] = v;
+  return out as T;
+}
+
+/**
+ * Take the CONTENT of a folder draft onto the doc on screen (task #875).
+ *
+ * The file carries the whole ProjectDoc — including every version's
+ * snapshot and the active / viewing / published pointers — because that
+ * is what the Builder hands the assistant to read. None of that is the
+ * assistant's to change. Loading the file wholesale used to let its
+ * snapshots become the new "saved" baseline, so an assistant's edit that
+ * also touched the (textually identical) snapshot left nothing unsaved:
+ * Save went grey, Revert did nothing, and the next reload let the server
+ * copy overwrite the file — the change gone without a word.
+ *
+ * So: content comes from the file; versions and pointers stay the
+ * Builder's. A crew that is new in the file is taken whole (it is created
+ * on the server with exactly that body, so its snapshot is set to match).
+ * A crew missing from the file is kept — removal stays a deliberate click.
+ * Whole agents are never added this way.
+ *
+ * `take(id)` decides per agent / crew whether its content is taken.
+ */
+function mergeFolderContent(
+  base: ProjectDoc,
+  incoming: ProjectDoc,
+  take: (id: ID) => boolean = () => true,
+): ProjectDoc {
+  let tookAny = false;
+  const agents = base.agents.map(agent => {
+    const inAgent = incoming.agents.find(a => a.id === agent.id);
+    if (!inAgent) return agent;
+    let next: AgentDoc = agent;
+    if (take(agent.id)) { next = withContentOf(agent, inAgent, AGENT_STRUCTURAL); tookAny = true; }
+    const known = new Set(agent.crews.map(c => c.id));
+    const crews = agent.crews.map(crew => {
+      const inCrew = inAgent.crews.find(c => c.id === crew.id);
+      if (!inCrew || !take(crew.id)) return crew;
+      tookAny = true;
+      return withContentOf(crew, inCrew, CREW_STRUCTURAL);
+    });
+    for (const inCrew of inAgent.crews) {
+      if (known.has(inCrew.id)) continue;
+      const v0 = inCrew.versions?.[0];
+      if (!v0) continue;
+      tookAny = true;
+      crews.push({
+        ...inCrew,
+        versions: [{ ...v0, body: bodyOf(inCrew) }],
+        activeVersionId: v0.id,
+        viewingVersionId: v0.id,
+      });
+    }
+    return { ...next, crews };
+  });
+  return {
+    ...base,
+    ...(tookAny && typeof incoming.spec === 'string' ? { spec: incoming.spec } : {}),
+    agents,
+  };
+}
+
+/**
+ * Which agents / crews in a folder draft were edited after the Builder
+ * wrote it — their content no longer matches the saved-snapshot
+ * fingerprint recorded in `_meta.baseline`. A file from before the
+ * baseline existed falls back to the old whole-doc test.
+ */
+function editedInFile(found: { meta: { baseline?: Record<string, string> }; doc: ProjectDoc }): (id: ID) => boolean {
+  const baseline = found.meta.baseline;
+  if (!baseline) {
+    const any = draftHasUnsavedWork(found.doc);
+    return () => any;
+  }
+  const edited = new Set<ID>();
+  for (const agent of found.doc.agents) {
+    if (baseline[agent.id] !== fingerprint(bodyOfAgent(agent))) edited.add(agent.id);
+    for (const crew of agent.crews) {
+      if (baseline[crew.id] !== fingerprint(bodyOf(crew))) edited.add(crew.id);
+    }
+  }
+  return id => edited.has(id);
+}
+
+/** Test seam for the folder-draft merge (#875) — pure functions only. */
+export const __folderDraftInternals = { mergeFolderContent, editedInFile, draftBaseline, fingerprint };
 
 function draftHasUnsavedWork(draft: ProjectDoc): boolean {
   for (const agent of draft.agents) {
@@ -911,6 +1034,23 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     scheduleFolderWrite(agentSlug, doc);
   }, [agentSlug, doc, previewVersion]);
 
+  // The PROJECT spec saves itself (task #870). It is not versioned — there
+  // is no Save for it — and until now nothing wrote it anywhere: what was
+  // typed lived only in this browser, and Alfred (reading the server) saw
+  // it empty. Debounced so a paragraph is one request, not one per key.
+  const savedProjectSpecRef = useRef(initialDoc.spec ?? '');
+  useEffect(() => {
+    if (previewVersion) return;
+    const spec = doc.spec ?? '';
+    if (spec === savedProjectSpecRef.current) return;
+    const id = window.setTimeout(() => {
+      saveProjectSpecApi(doc.id, spec)
+        .then(() => { savedProjectSpecRef.current = spec; })
+        .catch(err => console.error('[builder] project spec save failed:', err));
+    }, 800);
+    return () => window.clearTimeout(id);
+  }, [doc.id, doc.spec, previewVersion]);
+
   /**
    * Take the assistant's changes as they happen.
    *
@@ -962,7 +1102,11 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
           // assistant changed this agent" about identical content trains
           // people to click past the one prompt that matters. Only offer
           // what is actually different from the screen.
-          if (stableStringify(found.doc) === stableStringify(docRef.current)) {
+          //
+          // Judged on CONTENT only (#875): the file's version snapshots and
+          // pointers are never taken, so an edit that touched only those is
+          // not a change either.
+          if (stableStringify(mergeFolderContent(docRef.current, found.doc)) === stableStringify(docRef.current)) {
             lastFolderWriteAt = at;
             return;
           }
@@ -994,10 +1138,15 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
         if (!folder || cancelled) return;
         const found = await readDraft(folder, agentSlug);
         if (cancelled || !found) return;
-        if (!draftHasUnsavedWork(found.doc)) return;
+        // Only what was edited after the Builder wrote the file (#875).
+        // An untouched agent / crew in the file is the Builder's own old
+        // write — taking it would hide newer work saved elsewhere.
+        const merged = mergeFolderContent(docRef.current, found.doc, editedInFile(found));
+        if (stableStringify(merged) === stableStringify(docRef.current)) return;
+        createCrewsFoundIn(found.doc);
         setDoc(() => {
-          docRef.current = found.doc;
-          return found.doc;
+          docRef.current = merged;
+          return merged;
         });
       } catch {
         /* unreadable or malformed — the browser draft stands */
@@ -1864,9 +2013,12 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     lastFolderWriteAt = incoming.at;
     setIncomingFolderDraft(null);
     createCrewsFoundIn(incoming.doc);
+    // Content only — versions and pointers stay the Builder's (#875), so
+    // what the assistant changed shows as unsaved and Save/Revert work.
+    const merged = mergeFolderContent(docRef.current, incoming.doc);
     setDoc(() => {
-      docRef.current = incoming.doc;
-      return incoming.doc;
+      docRef.current = merged;
+      return merged;
     });
   }, [incomingFolderDraft, createCrewsFoundIn]);
 
@@ -1883,9 +2035,10 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
 
   const loadDocFromFolder = useCallback((incoming: ProjectDoc) => {
     createCrewsFoundIn(incoming);
+    const merged = mergeFolderContent(docRef.current, incoming);
     setDoc(() => {
-      docRef.current = incoming;
-      return incoming;
+      docRef.current = merged;
+      return merged;
     });
   }, [createCrewsFoundIn]);
 
@@ -2100,8 +2253,11 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     }
   }, [fireApplyLogIfPending]);
 
-  // Save As creates a new version from the working copy and starts
-  // VIEWING it. Active is unchanged — the user has to opt in.
+  // Save As creates a new version from the working copy that becomes both
+  // the one being edited (viewing) AND the active one (task #873). Moving
+  // viewing alone made a reload — which opens ACTIVE — bring back the old
+  // version, so every save-as needed a "Set as active" click per crew.
+  // The server does the same in one transaction.
   const saveCrewVersionAs = useCallback(
     (agentId: ID, crewId: ID, description?: string, opts?: SaveOpts): CrewVersion => {
       const newId = uid('ver');
@@ -2130,6 +2286,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
                 ...c,
                 versions: [...c.versions, v],
                 viewingVersionId: newId,
+                activeVersionId: newId,
               };
               updatedCrew = updated;
               return updated;
@@ -2376,6 +2533,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
             ...a,
             versions: [...a.versions, v],
             viewingVersionId: newId,
+            activeVersionId: newId,
           };
           updatedAgent = updated;
           return updated;

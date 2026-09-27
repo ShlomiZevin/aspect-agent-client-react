@@ -319,6 +319,19 @@
   margin-top: 1px;
 }
 
+/* "Blue button" tag on the menu line the primary button performs. */
+.menuItemDefault {
+  display: inline-block;
+  margin-inline-start: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: 1px;
+  background: var(--primary-color, #2563eb);
+  color: #fff;
+}
+
 .menuItem:hover:not(:disabled) .menuItemSub {
   color: inherit;
   opacity: 0.8;

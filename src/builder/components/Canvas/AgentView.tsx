@@ -71,6 +71,7 @@ export function AgentView({ agent }: Props) {
         onNameChange={name => updateAgent(agent.id, { name })}
         spec={agent.spec}
         onSpecChange={spec => updateAgent(agent.id, { spec })}
+        specAgentId={agent.id}
         metaActions={
           <>
             <button

@@ -22,6 +22,7 @@ import {
   type ConversationMessage,
   type PersistedAddonRun,
 } from '../../state/builderApi';
+import { formatDuration } from '../../formatDuration';
 import styles from './ConversationsTab.module.css';
 
 interface Props {
@@ -188,7 +189,7 @@ function MessageRow({ agentSlug, message }: { agentSlug: string; message: Conver
                 <span className={`${styles.runStatus} ${styles[`status_${r.status}`] || ''}`}>{r.status}</span>
                 <span className={styles.runPlugin}>{r.pluginId}</span>
                 {r.runData?.label && <span className={styles.runLabel}>{r.runData.label}</span>}
-                {r.durationMs != null && <span className={styles.runDur}>{r.durationMs}ms</span>}
+                {r.durationMs != null && <span className={styles.runDur}>{formatDuration(r.durationMs)}</span>}
                 {r.runData?.modelLabel && (
                   <span className={styles.runModel}>
                     {r.runData.modelLabel.providerName} · {r.runData.modelLabel.modelName}

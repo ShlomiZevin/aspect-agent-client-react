@@ -32,6 +32,8 @@ interface Props {
    * `{ }` JSON button; slice 4 will add Validate & Log here too.
    */
   metaActions?: ReactNode;
+  /** Agent whose Spec files the Spec window shows (#870). */
+  specAgentId?: string;
 }
 
 const NAME_PLACEHOLDER: Record<Props['level'], string> = {
@@ -49,6 +51,7 @@ export function TitleBar({
   onSpecChange,
   children,
   metaActions,
+  specAgentId,
 }: Props) {
   const [specOpen, setSpecOpen] = useState(false);
   const specHasContent = spec.trim().length > 0;
@@ -92,6 +95,7 @@ export function TitleBar({
         ownerName={name}
         value={spec}
         onChange={onSpecChange}
+        agentId={specAgentId}
       />
     </div>
   );

@@ -1140,6 +1140,55 @@ export async function uploadAlfredFile(args: {
   return res.json();
 }
 
+// ─── The Spec (task #870) ─────────────────────────────────────────
+
+/** A file attached to an agent's Spec — reference for whoever builds the
+ *  agent; never sent to the running agent. */
+export interface SpecFile {
+  id: number;
+  fileName: string;
+  mimeType: string | null;
+  fileSize: number | null;
+  /** Whether text could be read out of it (what Alfred / assistants see). */
+  hasText: boolean;
+  createdAt: string;
+}
+
+/** Persist the PROJECT spec text — it used to live only in the browser. */
+export async function saveProjectSpecApi(projectId: string, spec: string): Promise<void> {
+  await http(`/api/builder/projects/${encodeURIComponent(projectId)}/spec`, {
+    method: 'PUT',
+    body: JSON.stringify({ spec }),
+  });
+}
+
+export async function listSpecFiles(agentId: string): Promise<SpecFile[]> {
+  const res = await http<{ files?: SpecFile[] }>(`/api/builder/agents/${encodeURIComponent(agentId)}/spec-files`);
+  return res.files ?? [];
+}
+
+export async function uploadSpecFile(agentId: string, file: File): Promise<SpecFile> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${BASE_URL}/api/builder/agents/${encodeURIComponent(agentId)}/spec-files`, {
+    method: 'POST',
+    body: form,
+  });
+  const text = await res.text();
+  let body: { file?: SpecFile; error?: string } = {};
+  try { body = JSON.parse(text); } catch { /* not JSON */ }
+  if (!res.ok || !body.file) throw new Error(body.error || text || `Upload failed (${res.status})`);
+  return body.file;
+}
+
+export async function deleteSpecFile(fileId: number): Promise<void> {
+  await http(`/api/builder/spec-files/${fileId}`, { method: 'DELETE' });
+}
+
+export function specFileDownloadUrl(fileId: number): string {
+  return `${BASE_URL}/api/builder/spec-files/${fileId}/download`;
+}
+
 export async function listAlfredFiles(chatId: number): Promise<AlfredPinnedFile[]> {
   const res = await http<{ files: AlfredPinnedFile[] }>(
     `/api/builder/alfred/chats/${chatId}/files`,

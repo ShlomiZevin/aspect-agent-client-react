@@ -44,6 +44,9 @@ export function VersionMenu({ state }: Props) {
   const [attributionOpen, setAttributionOpen]         = useState(false);
   const [attributionVariant, setAttributionVariant]   = useState<'save' | 'save-as'>('save');
   const [pendingDescription, setPendingDescription]   = useState<string | undefined>(undefined);
+  // Which save the attribution modal is standing in front of: the default
+  // whole-agent Save, or the "only this crew/agent" one from the menu.
+  const [attributionScope, setAttributionScope]       = useState<'all' | 'one'>('all');
   // Which split-button dropdown is open (Save▾ or Publish▾), if any.
   const [openMenu, setOpenMenu] = useState<null | 'save' | 'publish'>(null);
   const confirm = useConfirm();
@@ -84,18 +87,39 @@ export function VersionMenu({ state }: Props) {
     : '';
   const viewingIsActive = viewingVersionId === activeVersionId;
   const viewingIsPublished = viewingVersionId === publishedVersionId;
-  const saveTooltip = isDirty
-    ? `Save changes into this ${entityLabel}'s version`
+  const saveTooltip = anyDirty
+    ? 'Saves every change — the agent and all its crews'
     : 'No changes to save';
 
   const agentId = selection.agentId;
   const agentForRow = agentId ? doc.agents.find(a => a.id === agentId) : undefined;
   const hasCrews = (agentForRow?.crews?.length ?? 0) > 0;
 
-  // Fire the primary Save (routing through the Alfred-attribution modal
-  // when a matching apply target is pending).
-  const runSave = () => {
+  // The primary Save is the WHOLE agent (task #873): the agent plus every
+  // crew with unsaved changes, each into its current version. Saving one
+  // crew at a time is what made people walk the sidebar crew by crew; it
+  // stays available in the menu for the rare case it is wanted.
+  const runSaveAll = () => {
+    if (!agentId) return;
+    if (pendingAlfredApply) {
+      setAttributionScope('all');
+      setAttributionVariant('save');
+      setAttributionOpen(true);
+    } else {
+      saveAllVersions(agentId);
+    }
+  };
+
+  // The "only" rows name exactly what is and isn't included: "Save only
+  // this agent" was read as "the whole agent", when it meant the agent's
+  // own settings WITHOUT its crews.
+  const onlyLabel = entityLabel === 'crew' ? 'Save only this crew' : "Save only the agent's setup";
+  const onlyNote  = entityLabel === 'crew' ? 'The agent and the other crews are not saved' : 'Its addons, prompts and fields — without the crews';
+
+  // "Only this crew / agent" — the old per-entity Save.
+  const runSaveOne = () => {
     if (hasPendingAlfred) {
+      setAttributionScope('one');
       setAttributionVariant('save');
       setAttributionOpen(true);
     } else {
@@ -273,22 +297,26 @@ export function VersionMenu({ state }: Props) {
 
       <span className={styles.divider} aria-hidden="true" />
 
-      {/* ── Save cluster ──
-          Primary = save THIS entity in place; the caret holds Save all,
-          Save as…, Save all as…, and Reset. */}
+      {/* ── Save cluster (task #873) ──
+          Primary = save the WHOLE agent in place (agent + every dirty
+          crew). The caret leads with "Save as new version" for the whole
+          agent — which becomes active too — then the single-entity
+          variants under a divider, then Reset. */}
       <div className={styles.split}>
         <button
           type="button"
-          className={`${styles.btn} ${styles.splitPrimary} ${isDirty ? styles.btnPrimary : ''}`}
-          onClick={runSave}
-          disabled={!isDirty}
+          className={`${styles.btn} ${styles.splitPrimary} ${anyDirty ? styles.btnPrimary : ''}`}
+          onClick={runSaveAll}
+          disabled={!anyDirty}
           title={saveTooltip}
         >
-          Save
+          {/* "Save all", not "Save": it saves the agent AND every crew, and
+              the label has to say so — nobody reads the tooltip. */}
+          Save all
         </button>
         <button
           type="button"
-          className={`${styles.btn} ${styles.splitCaret} ${isDirty ? styles.splitCaretPrimary : ''}`}
+          className={`${styles.btn} ${styles.splitCaret} ${anyDirty ? styles.splitCaretPrimary : ''}`}
           onClick={() => setOpenMenu(m => (m === 'save' ? null : 'save'))}
           title="More save options"
           aria-label="More save options"
@@ -297,36 +325,58 @@ export function VersionMenu({ state }: Props) {
         </button>
         {openMenu === 'save' && (
           <div className={styles.splitMenu} onMouseLeave={() => setOpenMenu(null)}>
-            {hasCrews && (
-              <button
-                type="button"
-                className={styles.menuItem}
-                disabled={!anyDirty}
-                onClick={() => { setOpenMenu(null); if (agentId) saveAllVersions(agentId); }}
-              >
-                Save all
-                <span className={styles.menuItemSub}>Every unsaved agent + crew change</span>
-              </button>
-            )}
+            {/* The blue button's own action, listed first and tagged, so the
+                menu reads as "here are all the ways to save, and this one is
+                what the button does" — without it, the first line looked like
+                the default when it was the alternative. */}
             <button
               type="button"
               className={styles.menuItem}
-              onClick={() => { setOpenMenu(null); setSaveAsOpen(true); }}
+              disabled={!anyDirty}
+              onClick={() => { setOpenMenu(null); runSaveAll(); }}
             >
-              Save as…
-              <span className={styles.menuItemSub}>New version of this {entityLabel}</span>
+              <span>
+                Save all <span className={styles.menuItemDefault}>Blue button</span>
+              </span>
+              <span className={styles.menuItemSub}>
+                {hasCrews ? 'The agent and all its crews, into the current version' : 'Into the current version'}
+              </span>
+            </button>
+            <button
+              type="button"
+              className={styles.menuItem}
+              onClick={() => { setOpenMenu(null); setSaveAllAsOpen(true); }}
+            >
+              Save all as a new version…
+              <span className={styles.menuItemSub}>
+                {hasCrews
+                  ? 'The agent and all its crews, as a new version that is used from now on'
+                  : 'As a new version that is used from now on'}
+              </span>
             </button>
             {hasCrews && (
-              <button
-                type="button"
-                className={styles.menuItem}
-                onClick={() => { setOpenMenu(null); setSaveAllAsOpen(true); }}
-              >
-                Save all as…
-                <span className={styles.menuItemSub}>New version across agent + crews</span>
-              </button>
+              <>
+                <div className={styles.menuDivider} />
+                <button
+                  type="button"
+                  className={styles.menuItem}
+                  disabled={!isDirty}
+                  onClick={() => { setOpenMenu(null); runSaveOne(); }}
+                >
+                  {onlyLabel}
+                  <span className={styles.menuItemSub}>{onlyNote}</span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.menuItem}
+                  onClick={() => { setOpenMenu(null); setSaveAsOpen(true); }}
+                >
+                  {onlyLabel} as a new version…
+                  <span className={styles.menuItemSub}>{onlyNote} · used from now on</span>
+                </button>
+              </>
             )}
-            {isDirty && (
+            {anyDirty && (
               <>
                 <div className={styles.menuDivider} />
                 <button
@@ -335,7 +385,7 @@ export function VersionMenu({ state }: Props) {
                   onClick={() => { setOpenMenu(null); runReset(); }}
                   title="Reload the last saved version from the server (blank if nothing saved)"
                 >
-                  ↶ Reset
+                  ↶ Throw away unsaved changes
                 </button>
               </>
             )}
@@ -348,7 +398,7 @@ export function VersionMenu({ state }: Props) {
       <SaveAsModal
         open={saveAsOpen}
         onClose={() => setSaveAsOpen(false)}
-        entityLabel={entityLabel}
+        entityLabel={entityLabel === 'crew' ? 'only this crew' : "only the agent's setup"}
         nextNumber={nextNumber}
         onSubmit={(description) => {
           // If pending Alfred, ask for attribution AFTER the description
@@ -373,7 +423,7 @@ export function VersionMenu({ state }: Props) {
       <SaveAsModal
         open={saveAllAsOpen}
         onClose={() => setSaveAllAsOpen(false)}
-        entityLabel="agent + every crew"
+        entityLabel={hasCrews ? 'all (the agent and all its crews)' : 'all'}
         onSubmit={(description) => {
           const agentId = selection.agentId;
           if (!agentId) return;
@@ -391,7 +441,11 @@ export function VersionMenu({ state }: Props) {
         applyHeadline={pendingAlfredApply?.description}
         onChoose={(attribution) => {
           if (attributionVariant === 'save') {
-            save({ attribution });
+            if (attributionScope === 'all') {
+              if (agentId) saveAllVersions(agentId, { attribution });
+            } else {
+              save({ attribution });
+            }
           } else {
             saveAs(pendingDescription, { attribution });
             setPendingDescription(undefined);

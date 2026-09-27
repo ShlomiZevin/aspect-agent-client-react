@@ -6,6 +6,7 @@
 
 import { Modal } from '../Modal/Modal';
 import { SpecEditor } from '../SpecEditor/SpecEditor';
+import { SpecFiles } from './SpecFiles';
 
 interface Props {
   open: boolean;
@@ -15,6 +16,10 @@ interface Props {
   ownerName: string;
   value: string;
   onChange: (next: string) => void;
+  /** The agent whose Spec files show below the text (#870). Project and
+   *  agent levels pass it — for one agent they are the same files; crews
+   *  don't. */
+  agentId?: string;
 }
 
 const LEVEL_LABEL: Record<Props['level'], string> = {
@@ -23,7 +28,7 @@ const LEVEL_LABEL: Record<Props['level'], string> = {
   crew: 'Crew',
 };
 
-export function SpecModal({ open, onClose, level, ownerName, value, onChange }: Props) {
+export function SpecModal({ open, onClose, level, ownerName, value, onChange, agentId }: Props) {
   return (
     <Modal
       open={open}
@@ -33,6 +38,7 @@ export function SpecModal({ open, onClose, level, ownerName, value, onChange }: 
       badge={LEVEL_LABEL[level]}
     >
       <SpecEditor level={level} value={value} onChange={onChange} />
+      {agentId && <SpecFiles agentId={agentId} />}
     </Modal>
   );
 }

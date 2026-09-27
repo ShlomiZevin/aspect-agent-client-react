@@ -15,6 +15,7 @@
  */
 
 import { useState } from 'react';
+import { formatDuration } from '../../formatDuration';
 import styles from './KbRetrieverRunBody.module.css';
 
 interface KbStep {
@@ -69,7 +70,7 @@ export function KbRetrieverRunBody({ parsed }: { parsed: KbParsed }) {
           <div className={styles.results}>
             <div className={styles.resultsHead}>
               {hits.length} result{hits.length === 1 ? '' : 's'}
-              {typeof parsed.queryTimeMs === 'number' && <span className={styles.dim}> · {parsed.queryTimeMs}ms</span>}
+              {typeof parsed.queryTimeMs === 'number' && <span className={styles.dim}> · {formatDuration(parsed.queryTimeMs)}</span>}
             </div>
             {hits.map((h, i) => <HitCard key={i} hit={h} />)}
           </div>

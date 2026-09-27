@@ -12,6 +12,7 @@ export function ProjectView() {
       onNameChange={name => updateProject({ name })}
       spec={doc.spec}
       onSpecChange={spec => updateProject({ spec })}
+      specAgentId={doc.agents[0]?.id}
     />
   );
 }

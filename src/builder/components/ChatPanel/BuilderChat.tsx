@@ -79,6 +79,9 @@ const TOOL_LABELS: Record<string, string> = {
   list_conversations: 'Listing recent chats…',
   read_conversation:  'Reading the chat + addon runs…',
   read_run:           'Zooming into a run…',
+  list_knowledge_bases: 'Checking the knowledge bases…',
+  list_kb_files:        'Listing the KB files…',
+  read_kb_file:         'Reading a KB file…',
 };
 
 export function BuilderChat() {

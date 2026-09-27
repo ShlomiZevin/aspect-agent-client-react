@@ -11,6 +11,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { getPlugin } from '../../registry/plugins';
 import { useBuilder } from '../../state/BuilderContext';
 import { KbRetrieverRunBody, type KbParsed } from './KbRetrieverRunBody';
+import { formatDuration } from '../../formatDuration';
 import styles from './AddonRunCard.module.css';
 
 const KB_RETRIEVER_PLUGIN_ID = 'kb-retriever';
@@ -418,18 +419,18 @@ export function AddonRunCard({ run }: Props) {
         </span>
         {typeof run.durationMs === 'number' && run.status !== 'running' && (
           // Streaming plugins (Talker) get a two-number display:
-          // "starts in Xms · full Yms" — TTFT is what the user actually
+          // "starts in X · full Y" — TTFT is what the user actually
           // perceives; TTLT is the full compute cost. Non-streaming
           // plugins (Field Extractor, Transition Router) just show one.
           typeof run.firstTokenMs === 'number' ? (
             <span
               className={styles.duration}
-              title={`First token at ${run.firstTokenMs}ms · stream ended at ${run.durationMs}ms`}
+              title={`First token at ${formatDuration(run.firstTokenMs)} · stream ended at ${formatDuration(run.durationMs)}`}
             >
-              {run.firstTokenMs}ms <span className={styles.durationFull}>· {run.durationMs}ms</span>
+              {formatDuration(run.firstTokenMs)} <span className={styles.durationFull}>· {formatDuration(run.durationMs)}</span>
             </span>
           ) : (
-            <span className={styles.duration}>{run.durationMs}ms</span>
+            <span className={styles.duration}>{formatDuration(run.durationMs)}</span>
           )
         )}
       </button>
