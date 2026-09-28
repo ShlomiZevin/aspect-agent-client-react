@@ -12,7 +12,7 @@ import { getAgentConfig } from '../../agents/agentRegistry';
 import { translations } from '../../i18n/translations';
 import { useLanguage } from '../../context/LanguageContext';
 import { insightsService } from '../../services/insightsService';
-import type { QuickQuestion } from '../../types/agent';
+import { localizedQuickQuestion, type QuickQuestion } from '../../types/agent';
 import styles from './ChatWelcome.module.css';
 
 const ICONS: Record<string, ReactElement> = {
@@ -83,8 +83,9 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
       <div className={styles.questionsLabel}>{t('intel.welcome.quickQuestions')}</div>
       <div className={styles.grid}>
         {questions.map((q, i) => {
-          const label = q.textKey ? translations[language][q.textKey] : q.text || '';
-          const question = q.questionKey ? translations[language][q.questionKey] : q.question || '';
+          const loc = localizedQuickQuestion(q, language);
+          const label = q.textKey ? translations[language][q.textKey] : loc.text;
+          const question = q.questionKey ? translations[language][q.questionKey] : loc.question;
           return (
             <button key={i} className={styles.tile} onClick={() => onSend(question)}>
               {/* Admin-set questions carry a real emoji to show as-is — that

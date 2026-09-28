@@ -2,10 +2,19 @@ import type { Language } from './language';
 
 export interface QuickQuestion {
   icon: string;
+  /** Admin/customer-set tiles: the English base. */
   text?: string;
   question?: string;
+  /** Per-language version of text/question, shown when the UI is in that language (e.g. `he`). */
+  i18n?: Partial<Record<string, { text: string; question: string }>>;
   textKey?: string;
   questionKey?: string;
+}
+
+/** A DB-set tile's label + question in the viewer's language, falling back to the base. */
+export function localizedQuickQuestion(q: QuickQuestion, language: string): { text: string; question: string } {
+  const loc = q.i18n?.[language];
+  return { text: loc?.text || q.text || '', question: loc?.question || q.question || '' };
 }
 
 export interface AgentTheme {

@@ -12,7 +12,7 @@
 import { useEffect, useState } from 'react';
 import { insightsService } from '../../../services/insightsService';
 import { useLanguage } from '../../../context/LanguageContext';
-import type { QuickQuestion } from '../../../types/agent';
+import { localizedQuickQuestion, type QuickQuestion } from '../../../types/agent';
 import styles from './SettingsPage.module.css';
 
 interface Props {
@@ -20,7 +20,7 @@ interface Props {
 }
 
 export function SettingsPage({ datasetId }: Props) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [rows, setRows] = useState<QuickQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,6 +39,18 @@ export function SettingsPage({ datasetId }: Props) {
     setSaved(false);
     setRows(rs => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
   };
+  // Label/question are edited in the language the UI is in: English edits the
+  // base, any other language its own i18n entry — so each language keeps its
+  // own wording and the tiles follow the EN/HE toggle.
+  const updateText = (i: number, field: 'text' | 'question', value: string) => {
+    if (language === 'en') return update(i, { [field]: value });
+    setSaved(false);
+    setRows(rs => rs.map((r, idx) => {
+      if (idx !== i) return r;
+      const cur = localizedQuickQuestion(r, language);
+      return { ...r, i18n: { ...r.i18n, [language]: { ...cur, [field]: value } } };
+    }));
+  };
   const remove = (i: number) => {
     setSaved(false);
     setRows(rs => rs.filter((_, idx) => idx !== i));
@@ -51,7 +63,13 @@ export function SettingsPage({ datasetId }: Props) {
   const save = async () => {
     setSaving(true);
     try {
-      const clean = await insightsService.setQuickQuestions(datasetId, rows);
+      // A tile typed only in a non-English UI has no base yet; the base is
+      // required, so it takes that wording (English falls back to it).
+      const withBase = rows.map(r => {
+        const loc = localizedQuickQuestion(r, language);
+        return { ...r, text: r.text || loc.text, question: r.question || loc.question };
+      });
+      const clean = await insightsService.setQuickQuestions(datasetId, withBase);
       setRows(clean);
       setSaved(true);
     } finally {
@@ -90,14 +108,14 @@ export function SettingsPage({ datasetId }: Props) {
                 />
                 <input
                   className={styles.qqTextInput}
-                  value={r.text || ''}
-                  onChange={e => update(i, { text: e.target.value })}
+                  value={localizedQuickQuestion(r, language).text}
+                  onChange={e => updateText(i, 'text', e.target.value)}
                   placeholder={t('intel.settings.label')}
                 />
                 <input
                   className={styles.qqQuestionInput}
-                  value={r.question || ''}
-                  onChange={e => update(i, { question: e.target.value })}
+                  value={localizedQuickQuestion(r, language).question}
+                  onChange={e => updateText(i, 'question', e.target.value)}
                   placeholder={t('intel.settings.question')}
                 />
                 <button className={styles.removeBtn} onClick={() => remove(i)} aria-label={t('intel.settings.remove')}>✕</button>
