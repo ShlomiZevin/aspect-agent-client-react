@@ -40,8 +40,8 @@ interface Props {
   datasetId: string;
   /** Insight id from the URL (/intelligence/:datasetId/insight/:insightId) — undefined means Home/Reports/History. */
   insightId?: string;
-  /** True on /intelligence/:datasetId/chat — the chat widget's open/expanded state and the nav's active item both follow this. */
-  chatRoute: boolean;
+  /** True on /:datasetId/intelligence/center — the report center (the old Home), under the "Reports" tab. */
+  centerRoute: boolean;
   /** True on /intelligence/:datasetId/reports — My Reports (design turn 11a). */
   reportsRoute: boolean;
   /** True on /intelligence/:datasetId/reports/history — Report history (design turn 12a). */
@@ -76,7 +76,7 @@ export function IntelligenceShell(props: Props) {
   );
 }
 
-function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute, historyRoute, appsRoute, appId, settingsRoute }: Props) {
+function IntelligenceShellInner({ datasetId, insightId, centerRoute, reportsRoute, historyRoute, appsRoute, appId, settingsRoute }: Props) {
   const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
   const { userId } = useUserContext();
@@ -122,16 +122,6 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   const [chatEverOpened, setChatEverOpened] = useState(false);
   const [pendingChatQuestion, setPendingChatQuestion] = useState<string | null>(null);
   const [pendingChatScope, setPendingChatScope] = useState<ModuleScope | null>(null);
-  // The chat widget's open/expanded state follows the URL, not just its own
-  // buttons — landing on /intelligence/:datasetId/chat directly (a shared
-  // link, a page refresh) must open it expanded, same as clicking "Data Chat".
-  useEffect(() => {
-    if (chatRoute) {
-      setChatOpen(true);
-      setChatEverOpened(true);
-      setChatExpanded(true);
-    }
-  }, [chatRoute]);
   // Real data-freshness info, not a hardcoded placeholder string — same
   // /api/admin/data-loader/:schema/data-info endpoint DataStatusBar already
   // uses on the dataset's own real chat page, so this always agrees with
@@ -221,7 +211,10 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
     setChatExpanded(false);
     fn();
   };
-  const goHome = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence`));
+  // Home is the chat itself, so it opens it rather than closing it (the
+  // view effect above expands it once the URL lands on Home).
+  const goHome = () => navigate(`/${datasetId}/intelligence`);
+  const goCenter = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/center`));
   const goReports = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/reports`));
   const goHistory = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/reports/history`));
   const reviewCompletedJob = (job: Job) => {
@@ -233,16 +226,8 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
     cancelJob(job.id);
     if (firstId) openInsight(firstId);
   };
-  // "Data Chat" nav opens the same popup widget in its expanded (full-window)
-  // state instead of navigating to the separate, differently-styled /hypertoy
-  // page — same reasoning as the widget's own expand button. Both routes
-  // through the same URL (the useEffect above reacts to chatRoute), so nav
-  // click and a direct link land in the same state.
-  const openDataChat = () => navigate(`/${datasetId}/intelligence/chat`);
-
-  // Controlled from here (not the widget's own state) so expanding it — via
-  // its own expand button, not just the "Data Chat" nav — also updates the
-  // URL and nav highlighting, and collapsing it goes back to Insights.
+  // Controlled from here (not the widget's own state) so collapsing it on
+  // Home — where there is no page underneath — moves to the report center.
   const handleChatExpandedChange = (expanded: boolean) => {
     setChatExpanded(expanded);
     // Expanding is PURELY VISUAL — the widget is an overlay, the page
@@ -250,10 +235,9 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
     // back exactly where they were (an insight, a report, the Procurement
     // screen). Navigating to /chat on expand — the old behavior — silently
     // replaced that page with Home. The one case collapse must still
-    // navigate: when the CHAT ROUTE itself is the current URL (the nav's
-    // "Data Chat" item or a direct link), because that route renders an
-    // empty main with nothing to come back to.
-    if (!expanded && chatRoute) navigate(`/${datasetId}/intelligence`);
+    // navigate: on Home, which IS the chat and renders an empty main with
+    // nothing to come back to.
+    if (!expanded && view === 'home') goCenter();
   };
 
   // "Ask a follow-up in chat" on an insight detail page — opens the same
@@ -276,29 +260,33 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
     handleChatExpandedChange(false);
     setPendingChatScope(scope);
   };
-  const view: 'home' | 'reports' | 'history' | 'detail' | 'chat' | 'apps' | 'app' | 'settings' =
-    chatRoute ? 'chat'
-      : settingsRoute ? 'settings'
+  // 'home' IS Data Chat (Itzik, 2026-09-28): the bare /:datasetId/intelligence
+  // opens the chat, and the report center that used to be Home is 'center'
+  // under the "Reports" tab. My Reports / history / detail sit under it too.
+  const view: 'home' | 'center' | 'reports' | 'history' | 'detail' | 'apps' | 'app' | 'settings' =
+    settingsRoute ? 'settings'
+      : centerRoute ? 'center'
         : appId ? 'app'
           : appsRoute ? 'apps'
             : insightId ? 'detail' : historyRoute ? 'history' : reportsRoute ? 'reports' : 'home';
+  const reportsTabActive = view === 'center' || view === 'reports' || view === 'history' || view === 'detail';
+
+  // The chat widget's open/expanded state follows the URL, not just its own
+  // buttons — landing on Home (a fresh visit, a shared link, a refresh) must
+  // open it expanded, same as clicking the Home tab.
+  useEffect(() => {
+    if (view === 'home') {
+      setChatOpen(true);
+      setChatEverOpened(true);
+      setChatExpanded(true);
+    }
+  }, [view]);
 
   // Otto opens full screen, not as another tab inside the usual chrome (task
   // #66): the builder/canvas already has its own status rail and header, so
   // the outer header/nav/breadcrumb would just be a second one. `replenishment`
   // is the other thing under /apps/:appId and keeps the normal shell.
   const ottoFullScreen = view === 'app' && appId !== 'replenishment';
-
-  // Data Chat is the landing tab: arriving on the bare /:datasetId/intelligence
-  // (a fresh visit, a link, a refresh) opens the chat instead of Home. Only on
-  // the shell's FIRST render — the shell stays mounted across route changes,
-  // so the Home nav, the breadcrumb and collapsing the chat still reach Home.
-  const landedRef = useRef(false);
-  useEffect(() => {
-    if (landedRef.current) return;
-    landedRef.current = true;
-    if (view === 'home') navigate(`/${datasetId}/intelligence/chat`, { replace: true });
-  }, [view, datasetId, navigate]);
 
   const goApps = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/apps`));
   const goSettings = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/settings`));
@@ -343,9 +331,9 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           </div>
 
           <nav className={styles.nav}>
+            {/* No "My Reports" item: the report center links to it itself. */}
             <button className={`${styles.navBtn} ${view === 'home' ? styles.navActive : ''}`} onClick={goHome}>{t('intel.nav.home')}</button>
-            <button className={`${styles.navBtn} ${(view === 'reports' || view === 'history' || view === 'detail') ? styles.navActive : ''}`} onClick={goReports}>{t('intel.nav.reports')}</button>
-            <button className={`${styles.navBtn} ${view === 'chat' ? styles.navActive : ''}`} onClick={openDataChat}>{t('intel.nav.chat')}</button>
+            <button className={`${styles.navBtn} ${reportsTabActive ? styles.navActive : ''}`} onClick={goCenter}>{t('intel.nav.center')}</button>
             {/* Renders ONLY when the Smart Replenishment module is enabled AND
                 ready for this dataset. Turning the module off removes the page
                 from the navigation cleanly, with no separate config to keep in
@@ -386,10 +374,10 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
 
         <div className={styles.breadcrumbRow}>
           <span className={`${styles.crumb} ${view === 'home' ? styles.crumbActive : ''}`} onClick={goHome} style={{ cursor: 'pointer' }}>{t('intel.nav.home')}</span>
-          {view === 'chat' && (
+          {reportsTabActive && (
             <>
               <span className={styles.crumbSep}>/</span>
-              <span className={`${styles.crumb} ${styles.crumbActive}`}>{t('intel.nav.chat')}</span>
+              <span className={`${styles.crumb} ${view === 'center' ? styles.crumbActive : ''}`} onClick={goCenter} style={{ cursor: 'pointer' }}>{t('intel.nav.center')}</span>
             </>
           )}
           {(view === 'apps' || view === 'app') && (
@@ -514,7 +502,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
         {(view === 'apps' || view === 'app') && hasApps === false && (
           <HomePage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onAskInChat={askFollowUp} onSeeAllReports={goReports} onOpenHistory={goHistory} />
         )}
-        {view === 'home' && <HomePage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onAskInChat={askFollowUp} onSeeAllReports={goReports} onOpenHistory={goHistory} />}
+        {view === 'center' && <HomePage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onAskInChat={askFollowUp} onSeeAllReports={goReports} onOpenHistory={goHistory} />}
         {view === 'settings' && <SettingsPage datasetId={datasetId} />}
       </main>
 
@@ -526,7 +514,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           open={chatOpen}
           expanded={chatExpanded}
           onExpandedChange={handleChatExpandedChange}
-          onClose={() => setChatOpen(false)}
+          onClose={() => { setChatOpen(false); if (view === 'home') goCenter(); }}
           headerHeight={headerHeight}
           pendingQuestion={pendingChatQuestion}
           onPendingQuestionConsumed={() => setPendingChatQuestion(null)}
@@ -561,8 +549,7 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
           hasApps={hasApps === true}
           runningJobs={runningJobs}
           onHome={goHome}
-          onReports={goReports}
-          onChat={openDataChat}
+          onReports={goCenter}
           onApps={goApps}
         />
       )}

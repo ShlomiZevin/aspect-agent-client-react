@@ -28,6 +28,7 @@ export function IntelligencePage() {
   // Set only on /intelligence/:datasetId/apps/:appId.
   const { appId } = useParams<{ appId?: string }>();
   const isChatRoute = location.pathname.endsWith('/chat');
+  const isCenterRoute = location.pathname.endsWith('/center');
   const isHistoryRoute = location.pathname.endsWith('/reports/history');
   const isReportsRoute = !isHistoryRoute && location.pathname.endsWith('/reports');
   // The Apps shelf and, one level deeper, a single app. The ROUTE always
@@ -48,12 +49,15 @@ export function IntelligencePage() {
   // missing datasetId here isn't a valid state to guess a default for,
   // just send it back to the dataset picker.
   if (!datasetId) return <Navigate to="/intelligence" replace />;
+  // Home IS Data Chat now — the old /chat address stays valid for
+  // bookmarks and shared links, it just lands on Home.
+  if (isChatRoute) return <Navigate to={`/${datasetId}/intelligence`} replace />;
 
   return (
     <IntelligenceShell
       datasetId={datasetId}
       insightId={insightId}
-      chatRoute={isChatRoute}
+      centerRoute={isCenterRoute}
       reportsRoute={isReportsRoute}
       historyRoute={isHistoryRoute}
       appsRoute={isAppsRoute}

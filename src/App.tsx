@@ -405,6 +405,15 @@ function AppContent() {
             </Suspense>
           }
         />
+        {/* Report center (the old Home) — Home is Data Chat since 2026-09-28. */}
+        <Route
+          path="/:datasetId/intelligence/center"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <IntelligencePage />
+            </Suspense>
+          }
+        />
         {/* Smart Replenishment's client surface. The route always exists; the
             page and its nav item only appear when the module is enabled and
             ready for this dataset (see IntelligenceShell). */}
