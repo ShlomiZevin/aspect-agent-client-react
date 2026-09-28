@@ -289,6 +289,17 @@ function IntelligenceShellInner({ datasetId, insightId, chatRoute, reportsRoute,
   // is the other thing under /apps/:appId and keeps the normal shell.
   const ottoFullScreen = view === 'app' && appId !== 'replenishment';
 
+  // Data Chat is the landing tab: arriving on the bare /:datasetId/intelligence
+  // (a fresh visit, a link, a refresh) opens the chat instead of Home. Only on
+  // the shell's FIRST render — the shell stays mounted across route changes,
+  // so the Home nav, the breadcrumb and collapsing the chat still reach Home.
+  const landedRef = useRef(false);
+  useEffect(() => {
+    if (landedRef.current) return;
+    landedRef.current = true;
+    if (view === 'home') navigate(`/${datasetId}/intelligence/chat`, { replace: true });
+  }, [view, datasetId, navigate]);
+
   const goApps = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/apps`));
   const goSettings = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/settings`));
 
