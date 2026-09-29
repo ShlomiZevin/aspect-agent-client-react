@@ -56,6 +56,9 @@ import '../styles/themes/zer4u-theme.css';
 import '../styles/themes/zolstock-theme.css';
 
 export const PREFILL_STORAGE_KEY = 'aspect_intelligence_prefill';
+/** Set alongside the prefill when it came from a quick-question tile: the
+ * question is sent `hidden`, so only the agent's reply shows. */
+export const PREFILL_HIDDEN_STORAGE_KEY = 'aspect_intelligence_prefill_hidden';
 
 /**
  * Module-scope handoff (Aspect Modules — e.g. Smart Tune). The widget writes
@@ -113,8 +116,10 @@ function PrefillSender({ onSent }: { onSent: () => void }) {
     if (!prefill || !userId) return;
     const timer = setTimeout(() => {
       if (sessionStorage.getItem(PREFILL_STORAGE_KEY) !== prefill) return;
+      const hidden = sessionStorage.getItem(PREFILL_HIDDEN_STORAGE_KEY) === '1';
       sessionStorage.removeItem(PREFILL_STORAGE_KEY);
-      sendRef.current(prefill);
+      sessionStorage.removeItem(PREFILL_HIDDEN_STORAGE_KEY);
+      sendRef.current(prefill, { hidden });
       onSentRef.current();
     }, 300);
     return () => clearTimeout(timer);

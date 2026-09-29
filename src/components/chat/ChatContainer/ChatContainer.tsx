@@ -308,10 +308,12 @@ export function ChatContainer({ showCrewSelector = false, crewMode = 'journey', 
                         isStreaming={isLoading && idx === visibleMessages.length - 1 && msg.role === 'assistant'}
                         // The user question this reply answered — feeds the
                         // "Reject answer" prefill so feedback arrives with the
-                        // disputed request attached verbatim.
+                        // disputed request attached verbatim. Searched in ALL
+                        // messages, not just visible ones: a hidden quick-question
+                        // is still the request this reply answered.
                         precedingUserText={
                           msg.role === 'assistant'
-                            ? [...visibleMessages.slice(0, idx)].reverse().find(m => m.role === 'user')?.content
+                            ? messages.slice(0, messages.indexOf(msg)).reverse().find(m => m.role === 'user')?.content
                             : undefined
                         }
                       />
