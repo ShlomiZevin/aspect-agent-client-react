@@ -126,18 +126,35 @@ function findEnumByName(enums: EnumTypeDef[], name: string): EnumTypeDef | null 
   return (enums ?? []).find(e => e.name === name) ?? null;
 }
 
-/** `{{enum:NAME[:SECTION|:values]}}` aggregate — mirrors the server. */
+/** `{{enum:NAME[:SECTION|:values]}}` aggregate — mirrors the server, and
+ *  `NAME=VALUE[:SECTION]` — one specific value (task #867). Disabled
+ *  values are skipped, exactly as the runtime skips them. */
 function resolveEnumAggregate(rawArg: string, enums: EnumTypeDef[]): string | null {
+  const eq = rawArg.indexOf('=');
+  if (eq !== -1) {
+    const enumName = rawArg.slice(0, eq);
+    const rest = rawArg.slice(eq + 1);
+    const c = rest.indexOf(':');
+    const valueName = (c === -1 ? rest : rest.slice(0, c)).trim();
+    const section = c === -1 ? null : rest.slice(c + 1);
+    const def = findEnumByName(enums, enumName);
+    const v = def?.values.find(x => x && String(x.value) === valueName);
+    if (!def || !v) return null;
+    if (v.enabled === false) return '';
+    const raw = section ? (v.sectionTexts ?? {})[section] : v.umbrellaText;
+    return typeof raw === 'string' ? raw.trim() : '';
+  }
   const colon = rawArg.indexOf(':');
   const enumName = colon === -1 ? rawArg : rawArg.slice(0, colon);
   const section  = colon === -1 ? null   : rawArg.slice(colon + 1);
   const def = findEnumByName(enums, enumName);
   if (!def) return null;
+  const values = def.values.filter(v => v && v.enabled !== false);
   if (section === 'values') {
-    return def.values.map(v => v?.value).filter(Boolean).join(', ');
+    return values.map(v => v?.value).filter(Boolean).join(', ');
   }
   const blocks: string[] = [];
-  for (const v of def.values) {
+  for (const v of values) {
     if (!v?.value) continue;
     const body = section === null
       ? (v.umbrellaText ?? '').trim()
@@ -174,6 +191,24 @@ function snippetFilterText(filter: AddonFilter | undefined, summary: (f: AddonFi
 
 interface ResolveDeps {
   filterSummary: (f: AddonFilter | undefined) => string;
+  /** Tokens being expanded on the way down to here (task #867). A token
+   *  inside its own expansion stays literal — the runtime does the same. */
+  expanding?: string[];
+}
+
+/** Runtime-equivalent key: `enum:` and `targetedkb:` are one token. */
+function expandKey(token: string): string {
+  return token.replace(/^\{\{enum:/, '{{targetedkb:');
+}
+
+/** A static node that remembers it is expanding `token`. */
+function keyedNode(token: string, resolved: string, ctx: PreviewContext, deps: ResolveDeps, depth: number): PreviewNode {
+  const next = { ...deps, expanding: [...(deps.expanding ?? []), expandKey(token)] };
+  return { kind: 'static', token, children: segment(resolved, ctx, next, depth + 1) };
+}
+
+function isExpanding(token: string, deps: ResolveDeps): boolean {
+  return (deps.expanding ?? []).includes(expandKey(token));
 }
 
 function segment(rawText: string, ctx: PreviewContext, deps: ResolveDeps, depth: number): PreviewNode[] {
@@ -224,6 +259,7 @@ function classify(
 
   // ── Snippet (gated static) ──
   if (prefix === 'snippet') {
+    if (isExpanding(token, deps)) return { kind: 'prose', text: token };
     const name = arg ?? '';
     const snip = ctx.snippets.find(s => s.name === name);
     if (!snip) {
@@ -236,7 +272,7 @@ function classify(
       filterText: snippetFilterText(snip.filter, deps.filterSummary),
       gated,
       missing: false,
-      children: segment(snip.content ?? '', ctx, deps, depth + 1),
+      children: segment(snip.content ?? '', ctx, { ...deps, expanding: [...(deps.expanding ?? []), expandKey(token)] }, depth + 1),
     };
   }
 
@@ -260,8 +296,9 @@ function classify(
   // ── Static with arg ──
   if (prefix === 'persona') {
     if (arg) {
+      if (isExpanding(token, deps)) return { kind: 'prose', text: token };
       const p = ctx.personas.find(x => x.name === arg);
-      return staticNode(token, p ? (p.content ?? '').trim() : '', ctx, deps, depth);
+      return keyedNode(token, p ? (p.content ?? '').trim() : '', ctx, deps, depth);
     }
     return staticNode(token, buildPersonaBlock(applicablePersonas(ctx.personas, ctx.instance.pluginId)), ctx, deps, depth);
   }
@@ -282,10 +319,11 @@ function classify(
   // (promptAssembler.js), so the preview must resolve both too —
   // otherwise `{{targetedkb:…}}` renders as literal, unresolved text.
   if (prefix === 'enum' || prefix === 'targetedkb') {
+    if (isExpanding(token, deps)) return { kind: 'prose', text: token };
     const resolved = resolveEnumAggregate(arg ?? '', ctx.enums);
     // Unknown enum → leave the token literal as prose so the typo shows.
     if (resolved === null) return { kind: 'prose', text: token };
-    return staticNode(token, resolved, ctx, deps, depth);
+    return keyedNode(token, resolved, ctx, deps, depth);
   }
   // `{{tag:NAME[:values|:names]}}` — walks the field pool, filters by
   // tag membership. Block form (`names` / bare) is static (we know it

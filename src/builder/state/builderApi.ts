@@ -1181,6 +1181,38 @@ export async function uploadSpecFile(agentId: string, file: File): Promise<SpecF
   return body.file;
 }
 
+// ─── Targeted KB notes + files (task #871) ────────────────────────
+
+/** Notes and files on one Targeted KB — the author's knowledge map.
+ *  Never sent to the running agent. */
+export async function getTkbExtras(agentId: string, enumId: string): Promise<{ notes: string; files: SpecFile[] }> {
+  const res = await http<{ notes?: string; files?: SpecFile[] }>(
+    `/api/builder/agents/${encodeURIComponent(agentId)}/tkb/${encodeURIComponent(enumId)}`,
+  );
+  return { notes: res.notes ?? '', files: res.files ?? [] };
+}
+
+export async function saveTkbNotes(agentId: string, enumId: string, notes: string): Promise<void> {
+  await http(`/api/builder/agents/${encodeURIComponent(agentId)}/tkb/${encodeURIComponent(enumId)}/notes`, {
+    method: 'PUT',
+    body: JSON.stringify({ notes }),
+  });
+}
+
+export async function uploadTkbFile(agentId: string, enumId: string, file: File): Promise<SpecFile> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(
+    `${BASE_URL}/api/builder/agents/${encodeURIComponent(agentId)}/tkb/${encodeURIComponent(enumId)}/files`,
+    { method: 'POST', body: form },
+  );
+  const text = await res.text();
+  let body: { file?: SpecFile; error?: string } = {};
+  try { body = JSON.parse(text); } catch { /* not JSON */ }
+  if (!res.ok || !body.file) throw new Error(body.error || text || `Upload failed (${res.status})`);
+  return body.file;
+}
+
 export async function deleteSpecFile(fileId: number): Promise<void> {
   await http(`/api/builder/spec-files/${fileId}`, { method: 'DELETE' });
 }

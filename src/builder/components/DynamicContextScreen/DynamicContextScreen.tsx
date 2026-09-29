@@ -33,10 +33,11 @@
  * AutoSave persists the result. No local draft buffer.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
 import { EnumDocView } from './EnumDocView';
+import { TkbNotes } from './TkbNotes';
 import { useConfirm } from '../Confirm/Confirm';
 import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../MentionTextarea/useMentionOptions';
@@ -113,6 +114,22 @@ export function DynamicContextScreen() {
     return enums.find(e => e.name === paramEnum) ?? null;
   }, [enums, paramEnum]);
 
+  // Targeted KB | Choices switch (task #863). The two share one data
+  // structure (a field's value list IS a Targeted KB of the Choice kind,
+  // tagged `ownedByFieldId`) but are different jobs, so the list shows one
+  // kind at a time. A selected entry decides the side; with nothing
+  // selected, `?list=choices` does — so the choice survives a reload.
+  const listMode: 'kb' | 'choice' = activeEnum
+    ? (activeEnum.ownedByFieldId ? 'choice' : 'kb')
+    : (searchParams.get('list') === 'choices' ? 'choice' : 'kb');
+  // The list's root for the CURRENT side — the breadcrumb and a delete
+  // land here, so they never flip you from Choices back to Targeted KB.
+  const listRootUrl = `/${agentSlug}/builder/enums${listMode === 'choice' ? '?list=choices' : ''}`;
+  const setListMode = (next: 'kb' | 'choice') => {
+    if (next === listMode) return;
+    navigate(`/${agentSlug}/builder/enums${next === 'choice' ? '?list=choices' : ''}`);
+  };
+
   const activeValue = useMemo<EnumValueDef | null>(() => {
     if (!activeEnum || !paramValue) return null;
     return activeEnum.values.find(v => v.value === paramValue) ?? null;
@@ -176,7 +193,8 @@ export function DynamicContextScreen() {
     });
     if (!ok) return;
     writeEnums((agent?.enums ?? []).filter(x => x.id !== e.id));
-    navigate(`/${agentSlug}/builder/enums`);
+    // Stay on the side the deleted entry was on.
+    navigate(`/${agentSlug}/builder/enums${e.ownedByFieldId ? '?list=choices' : ''}`);
   }, [agent, agentSlug, confirm, navigate, writeEnums]);
 
   const handleRenameEnum = useCallback((e: EnumTypeDef, rawNext: string): boolean => {
@@ -195,6 +213,17 @@ export function DynamicContextScreen() {
     navigate(urlEnum(next));
     return true;
   }, [agent, agentSlug, navigate, upsertEnum, applyTokenRenameCascade]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Move a Targeted KB into a folder (#863). Empty = no folder, stored
+   *  as NO key so an unfoldered KB's body is unchanged. Tokens and URLs
+   *  key on the name, so nothing else moves. */
+  const handleFolderChange = useCallback((e: EnumTypeDef, raw: string) => {
+    const folder = raw.trim();
+    if ((e.folder ?? '') === folder) return;
+    const { folder: _drop, ...rest } = e;
+    void _drop;
+    upsertEnum(folder ? { ...rest, folder } : rest);
+  }, [upsertEnum]);
 
   // ── Values within active enum ────────────────────────────────────
   const handleAddValue = useCallback(() => {
@@ -385,9 +414,9 @@ export function DynamicContextScreen() {
           <button
             type="button"
             className={`${styles.crumb} ${!paramEnum ? styles.crumbCurrent : ''}`}
-            onClick={() => navigate(`/${agentSlug}/builder/enums`)}
+            onClick={() => navigate(listRootUrl)}
           >
-            Targeted KB
+            {listMode === 'choice' ? 'Choices' : 'Targeted KB'}
           </button>
           {activeEnum && (
             <>
@@ -423,12 +452,12 @@ export function DynamicContextScreen() {
               the author can flip into the doc-style read+edit view
               without losing breadcrumb context. Stays URL-persisted
               via `?view=doc`. */}
-          {activeEnum && (() => {
-            // Field-owned Choice lists are values-only — no doc view.
-            // The toggle stays RENDERED (disabled) so the header keeps
-            // the exact same height/width and never jumps when
-            // switching between a Targeted KB and a Choice list.
-            const owned = !!activeEnum.ownedByFieldId;
+          {(() => {
+            // Field-owned Choice lists are values-only — no doc view, and
+            // with nothing selected there is nothing to show as a doc.
+            // The toggle is ALWAYS rendered (disabled when unusable) so the
+            // header never changes size as you click around.
+            const owned = !activeEnum || !!activeEnum.ownedByFieldId;
             const effMode = owned ? 'tree' : viewMode;
             return (
               <div
@@ -442,7 +471,9 @@ export function DynamicContextScreen() {
                   fontWeight: 600,
                   opacity: owned ? 0.45 : 1,
                 }}
-                title={owned ? 'Field lists are values-only — no doc view' : undefined}
+                title={!activeEnum
+                  ? 'Pick a Targeted KB to read it as one document'
+                  : owned ? 'Choice lists are values-only — no doc view' : undefined}
               >
                 <button
                   type="button"
@@ -505,50 +536,18 @@ export function DynamicContextScreen() {
         height: '100%',
         minHeight: 0,
       }}>
-        {/* ── Column 1: enums list — real Targeted KBs first, then the
-            field-owned Choice lists in their own group so the two
-            concepts never blur (same data behind the scenes). ── */}
-        <Column title="Targeted KBs" onAdd={handleCreateEnum} addLabel="+ Add KB">
-          {enums.length === 0 ? (
-            <Empty>Declare a Targeted KB to get started.</Empty>
-          ) : (
-            <>
-              {enums.some(e => !e.ownedByFieldId) ? (
-                <List
-                  items={enums.filter(e => !e.ownedByFieldId).map(e => ({
-                    key:      e.id,
-                    label:    e.name,
-                    active:   e.id === activeEnum?.id,
-                    onDelete: () => handleDeleteEnum(e),
-                  }))}
-                  onPick={({ key }) => {
-                    const e = enums.find(x => x.id === key)!;
-                    navigate(urlEnum(e.name));
-                  }}
-                />
-              ) : (
-                <Empty>Declare a Targeted KB to get started.</Empty>
-              )}
-              {enums.some(e => e.ownedByFieldId) && (
-                <div style={{ marginTop: 16 }}>
-                  <ColumnSubtitle title="Field lists (Choice)" />
-                  <List
-                    items={enums.filter(e => e.ownedByFieldId).map(e => ({
-                      key:      e.id,
-                      label:    e.name,
-                      active:   e.id === activeEnum?.id,
-                      onDelete: () => handleDeleteEnum(e),
-                    }))}
-                    onPick={({ key }) => {
-                      const e = enums.find(x => x.id === key)!;
-                      navigate(urlEnum(e.name));
-                    }}
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </Column>
+        {/* ── Column 1 (#863): Targeted KB | Choices switch; Targeted
+            KBs grouped into folders. ── */}
+        <EnumListColumn
+          enums={enums}
+          activeEnumId={activeEnum?.id ?? null}
+          listMode={listMode}
+          onListMode={setListMode}
+          agentId={agent.id}
+          onPick={e => navigate(urlEnum(e.name))}
+          onDelete={handleDeleteEnum}
+          onAdd={handleCreateEnum}
+        />
 
         {/* ── Column 2: values + section schema ─────────────────── */}
         <Column
@@ -557,7 +556,7 @@ export function DynamicContextScreen() {
           addLabel="+ Add value"
         >
           {!activeEnum ? (
-            <Empty>Pick a Targeted KB on the left.</Empty>
+            <Empty>{listMode === 'choice' ? 'Pick a choice list on the left.' : 'Pick a Targeted KB on the left.'}</Empty>
           ) : (
             <>
               {activeEnum.values.length === 0 ? (
@@ -620,7 +619,13 @@ export function DynamicContextScreen() {
           boxSizing: 'border-box',
           padding: '0 4px 0 0',
         }}>
-          {!activeEnum && <Hint>Pick a Targeted KB on the left, or add one.</Hint>}
+          {!activeEnum && (
+            <Hint>
+              {listMode === 'choice'
+                ? 'Pick a choice list on the left. Choice lists are made from fields — add or change their values on the field.'
+                : 'Pick a Targeted KB on the left, or add one.'}
+            </Hint>
+          )}
 
           {/* Enum-only — metadata + section schema editor. */}
           {activeEnum && !activeValue && !activeSection && (
@@ -631,9 +636,14 @@ export function DynamicContextScreen() {
                   ? agent?.fields.find(f => f.id === activeEnum.ownedByFieldId)?.name ?? null
                   : null
               }
+              agentId={agent.id}
               agentSlug={agentSlug}
               onRename={(next) => handleRenameEnum(activeEnum, next)}
               onDelete={() => handleDeleteEnum(activeEnum)}
+              folderOptions={Array.from(new Set(
+                enums.map(e => (e.folder ?? '').trim()).filter(Boolean),
+              )).sort((a, b) => a.localeCompare(b))}
+              onFolderChange={(next) => handleFolderChange(activeEnum, next)}
             />
           )}
 
@@ -689,15 +699,19 @@ export function DynamicContextScreen() {
 // ────────────────────────────────────────────────────────────────────
 
 function EnumMetaEditor({
-  enumDef, ownedFieldName, agentSlug, onRename, onDelete,
+  enumDef, ownedFieldName, agentId, agentSlug, onRename, onDelete, folderOptions, onFolderChange,
 }: {
   enumDef: EnumTypeDef;
   /** Set when this is a field-owned Choice list — the name follows the
    *  field (`<field>_choices`) and isn't editable here. */
   ownedFieldName: string | null;
+  agentId: string;
   agentSlug: string;
   onRename: (next: string) => boolean;
   onDelete: () => void;
+  /** Existing folder names, offered as suggestions (#863). */
+  folderOptions: string[];
+  onFolderChange: (next: string) => void;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -722,7 +736,16 @@ function EnumMetaEditor({
           </span>
         </div>
       ) : (
-        <InlineRename label="Name" value={enumDef.name} onCommit={onRename} />
+        <>
+          <InlineRename label="Name" value={enumDef.name} onCommit={onRename} />
+          <FolderInput
+            key={enumDef.id}
+            value={enumDef.folder ?? ''}
+            options={folderOptions}
+            onCommit={onFolderChange}
+          />
+          <TkbNotes key={`notes:${enumDef.id}`} agentId={agentId} enumId={enumDef.id} />
+        </>
       )}
 
       <div style={{ marginTop: 14 }}>
@@ -1192,6 +1215,198 @@ function SectionBodyEditor({
 // Inline primitives — minimal styling, slots into the existing CSS
 // module with a tiny appended ruleset (bibleListRow*) for hover delete.
 // ────────────────────────────────────────────────────────────────────
+
+/**
+ * Folder of a Targeted KB (#863). Free text with the existing folders
+ * offered as suggestions; commits on Enter or when focus leaves. Empty =
+ * no folder.
+ */
+function FolderInput({ value, options, onCommit }: {
+  value: string;
+  options: string[];
+  onCommit: (next: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const listId = useId();
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={{
+        fontSize: 10.5, fontWeight: 700, color: '#6b7280',
+        textTransform: 'uppercase', letterSpacing: '0.05em',
+      }}>Folder</span>
+      <input
+        value={draft}
+        list={listId}
+        placeholder="No folder"
+        onChange={e => setDraft(e.target.value)}
+        onBlur={() => onCommit(draft)}
+        onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+        style={{
+          padding: '9px 11px', border: '1px solid #e5e7eb', borderRadius: 8,
+          fontSize: 13.5, fontFamily: 'inherit', color: '#374151', background: '#fff',
+        }}
+      />
+      <datalist id={listId}>
+        {options.map(o => <option key={o} value={o} />)}
+      </datalist>
+      <span style={{ fontSize: 11.5, color: '#9ca3af', lineHeight: 1.4 }}>
+        Groups KBs on the left. Only for your view — prompts are not affected.
+      </span>
+    </div>
+  );
+}
+
+/**
+ * The left column (#863): a Targeted KB | Choices switch, and Targeted
+ * KBs grouped into one level of folders with Open all / Close all.
+ * Which folders are closed is remembered per agent in this browser; the
+ * selected KB's folder is always open.
+ */
+function EnumListColumn({
+  enums, activeEnumId, listMode, onListMode, agentId, onPick, onDelete, onAdd,
+}: {
+  enums: EnumTypeDef[];
+  activeEnumId: string | null;
+  listMode: 'kb' | 'choice';
+  onListMode: (next: 'kb' | 'choice') => void;
+  agentId: string;
+  onPick: (e: EnumTypeDef) => void;
+  onDelete: (e: EnumTypeDef) => void;
+  onAdd: () => void;
+}) {
+  const kbs = enums.filter(e => !e.ownedByFieldId);
+  const choices = enums.filter(e => e.ownedByFieldId);
+  const storageKey = `builder:tkbClosedFolders:${agentId}`;
+  const [closed, setClosed] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch { return []; }
+  });
+  const saveClosed = (next: string[]) => {
+    setClosed(next);
+    try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* private mode */ }
+  };
+  const folderOf = (e: EnumTypeDef) => (e.folder ?? '').trim();
+  const folders = Array.from(new Set(kbs.map(folderOf).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  const loose = kbs.filter(e => !folderOf(e));
+  const activeFolder = folderOf(enums.find(e => e.id === activeEnumId) ?? ({} as EnumTypeDef));
+  const isOpen = (f: string) => f === activeFolder || !closed.includes(f);
+  const rows = (list: EnumTypeDef[]) => list.map(e => ({
+    key: e.id, label: e.name, active: e.id === activeEnumId, onDelete: () => onDelete(e),
+  }));
+  const pick = ({ key }: { key: string }) => {
+    const e = enums.find(x => x.id === key);
+    if (e) onPick(e);
+  };
+
+  const tab = (mode: 'kb' | 'choice', label: string, count: number) => (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={listMode === mode}
+      onClick={() => onListMode(mode)}
+      style={{
+        flex: 1, padding: '6px 8px', border: 0, borderRadius: 6, cursor: 'pointer',
+        fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+        background: listMode === mode ? '#fff' : 'transparent',
+        color: listMode === mode ? '#1f2937' : '#6b7280',
+        boxShadow: listMode === mode ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+      }}
+    >
+      {label} <span style={{ fontWeight: 600, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>{count}</span>
+    </button>
+  );
+
+  const linkBtn: React.CSSProperties = {
+    border: 0, background: 'transparent', padding: 0, cursor: 'pointer',
+    fontFamily: 'inherit', fontSize: 11, fontWeight: 700, color: '#2563eb',
+  };
+  const disabledLink: React.CSSProperties = { color: '#cbd5e1', cursor: 'default' };
+
+  return (
+    <Column
+      title={listMode === 'kb' ? 'Targeted KBs' : 'Choices'}
+    >
+      <div role="tablist" aria-label="What to show" style={{
+        display: 'flex', gap: 2, padding: 2, borderRadius: 8, background: '#f3f4f6',
+      }}>
+        {tab('kb', 'Targeted KB', kbs.length)}
+        {tab('choice', 'Choices', choices.length)}
+      </div>
+
+      {/* One action row with a FIXED height on both tabs, so switching tabs
+          never adds, removes or resizes anything above the list. Controls
+          that don't apply are greyed, not removed. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 26 }}>
+        {listMode === 'kb' ? (
+          <>
+            <button type="button" onClick={onAdd} style={{
+              fontSize: 11.5, fontWeight: 700, padding: '4px 10px', fontFamily: 'inherit',
+              border: '1px dashed #cbd5e1', borderRadius: 6, background: '#fff',
+              color: '#2563eb', cursor: 'pointer',
+            }}>+ New Targeted KB</button>
+            <span style={{ flex: 1 }} />
+            <button type="button" style={{ ...linkBtn, ...(folders.length ? {} : disabledLink) }}
+              disabled={!folders.length} onClick={() => saveClosed([])}
+              title={folders.length ? 'Open every folder' : 'No folders yet — set a Folder on a KB'}>Open all</button>
+            <button type="button" style={{ ...linkBtn, ...(folders.length ? {} : disabledLink) }}
+              disabled={!folders.length} onClick={() => saveClosed(folders)}
+              title={folders.length ? 'Close every folder' : 'No folders yet — set a Folder on a KB'}>Close all</button>
+          </>
+        ) : (
+          <span style={{ fontSize: 11.5, color: '#9ca3af' }}>
+            Made from fields — edit their values on the field.
+          </span>
+        )}
+      </div>
+
+      {listMode === 'choice' ? (
+        choices.length === 0
+          ? <Empty>No choice lists yet — one is made whenever a field gets a fixed list of values.</Empty>
+          : <List items={rows(choices)} onPick={pick} />
+      ) : kbs.length === 0 ? (
+        <Empty>Declare a Targeted KB to get started.</Empty>
+      ) : folders.length === 0 ? (
+        <List items={rows(kbs)} onPick={pick} />
+      ) : (
+        <>
+          {folders.map(f => {
+            const inFolder = kbs.filter(e => folderOf(e) === f);
+            const open = isOpen(f);
+            return (
+              <div key={f}>
+                <button
+                  type="button"
+                  aria-expanded={open}
+                  onClick={() => saveClosed(open ? [...closed, f] : closed.filter(x => x !== f))}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6, width: '100%',
+                    padding: '5px 4px', border: 0, background: 'transparent', cursor: 'pointer',
+                    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: '#374151', textAlign: 'left',
+                  }}
+                >
+                  <span style={{ width: 10, color: '#9ca3af' }}>{open ? '▾' : '▸'}</span>
+                  <span aria-hidden>📁</span>
+                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f}</span>
+                  <span style={{ fontWeight: 600, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>{inFolder.length}</span>
+                </button>
+                {open && (
+                  <div style={{ paddingLeft: 16 }}>
+                    <List items={rows(inFolder)} onPick={pick} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {loose.length > 0 && (
+            <div style={{ marginTop: 6 }}>
+              <ColumnSubtitle title="No folder" />
+              <List items={rows(loose)} onPick={pick} />
+            </div>
+          )}
+        </>
+      )}
+    </Column>
+  );
+}
 
 function Column({
   title, onAdd, addLabel, children,

@@ -502,6 +502,30 @@ export function useMentionOptions(
           });
         }
       }
+
+      // One SPECIFIC value (task #867) — `{{targetedkb:NAME=VALUE[:SECTION]}}`.
+      // New-vocabulary prefix only, to keep the picker from doubling. A
+      // field's own choice list carries no per-value text, so nothing to
+      // point at there.
+      if (en.ownedByFieldId) continue;
+      for (const v of en.values ?? []) {
+        if (!v?.value || v.enabled === false) continue;
+        const groupLabel = `Targeted KB · ${en.name} · one value`;
+        star.push({
+          label:     `${en.name} = ${v.value}`,
+          insertion: `{{targetedkb:${en.name}=${v.value}}}`,
+          group:     groupLabel,
+          description: `Just the text of "${v.value}" in "${en.name}" — always this value, whatever the conversation holds.`,
+        });
+        for (const sec of sectionNames) {
+          star.push({
+            label:     `${en.name} = ${v.value}: ${sec}`,
+            insertion: `{{targetedkb:${en.name}=${v.value}:${sec}}}`,
+            group:     groupLabel,
+            description: `Just the "${sec}" text of "${v.value}" in "${en.name}".`,
+          });
+        }
+      }
     }
 
     // 2. Field DC live-value entries — one block per enum-typed field.

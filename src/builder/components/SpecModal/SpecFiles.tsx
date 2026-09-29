@@ -11,12 +11,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useConfirm } from '../Confirm/Confirm';
 import {
-  deleteSpecFile, listSpecFiles, specFileDownloadUrl, uploadSpecFile, type SpecFile,
+  deleteSpecFile, getTkbExtras, listSpecFiles, specFileDownloadUrl, uploadSpecFile, uploadTkbFile, type SpecFile,
 } from '../../state/builderApi';
 import styles from './SpecFiles.module.css';
 
 interface Props {
   agentId: string;
+  /** Set → the files of this Targeted KB (task #871) instead of the
+   *  agent's Spec. Same storage, same rules: never sent to the agent. */
+  enumId?: string;
 }
 
 const ACCEPT = '.pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.json';
@@ -28,7 +31,7 @@ function formatSize(bytes: number | null): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function SpecFiles({ agentId }: Props) {
+export function SpecFiles({ agentId, enumId }: Props) {
   const confirm = useConfirm();
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<SpecFile[] | null>(null);
@@ -37,11 +40,11 @@ export function SpecFiles({ agentId }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    listSpecFiles(agentId)
+    (enumId ? getTkbExtras(agentId, enumId).then(x => x.files) : listSpecFiles(agentId))
       .then(f => { if (!cancelled) setFiles(f); })
       .catch(e => { if (!cancelled) { setFiles([]); setError(e instanceof Error ? e.message : String(e)); } });
     return () => { cancelled = true; };
-  }, [agentId]);
+  }, [agentId, enumId]);
 
   const onPick = async (picked: FileList | null) => {
     const file = picked?.[0];
@@ -50,7 +53,7 @@ export function SpecFiles({ agentId }: Props) {
     setError(null);
     setUploading(file.name);
     try {
-      const saved = await uploadSpecFile(agentId, file);
+      const saved = enumId ? await uploadTkbFile(agentId, enumId, file) : await uploadSpecFile(agentId, file);
       setFiles(prev => [saved, ...(prev ?? [])]);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -62,7 +65,7 @@ export function SpecFiles({ agentId }: Props) {
   const onRemove = async (f: SpecFile) => {
     const ok = await confirm({
       title: `Remove "${f.fileName}"?`,
-      message: 'It is removed from the Spec for good — Alfred and outside assistants will no longer see it.',
+      message: `It is removed from the ${enumId ? 'Targeted KB' : 'Spec'} for good — Alfred and outside assistants will no longer see it.`,
       confirmLabel: 'Remove',
       danger: true,
     });
@@ -132,7 +135,11 @@ export function SpecFiles({ agentId }: Props) {
           </li>
         ))}
         {files && files.length === 0 && !uploading && (
-          <li className={styles.empty}>No files yet — a brief, requirements or a policy document.</li>
+          <li className={styles.empty}>
+            {enumId
+              ? 'No files yet — the sources this knowledge came from.'
+              : 'No files yet — a brief, requirements or a policy document.'}
+          </li>
         )}
         {!files && <li className={styles.empty}>Loading…</li>}
       </ul>
