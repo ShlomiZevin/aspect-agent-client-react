@@ -28,6 +28,7 @@ import { TriggersScreen } from './components/TriggersScreen/TriggersScreen';
 // Side-effect: register the built-in trigger types (Silence today).
 import './triggers';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
+import { TargetedKbPage } from './components/TargetedKbPage/TargetedKbPage';
 import { BrainDockSlot, BrainFullscreenLayer } from './components/BrainPanel/BrainPanel';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
 import { ConfirmProvider } from './components/Confirm/Confirm';
@@ -189,6 +190,9 @@ export function BuilderApp({ agentSlug }: Props) {
           <SnippetCreatorProvider>
             <Routes>
               <Route path="admin/*" element={<AdminDashboard />} />
+              {/* Targeted KB, full screen (task #830) — sibling of the
+                  shell like admin; the page mounts its own top bar. */}
+              <Route path="targeted-kb/*" element={<TargetedKbPage />} />
               <Route path="*" element={<BuilderShell />} />
             </Routes>
           </SnippetCreatorProvider>

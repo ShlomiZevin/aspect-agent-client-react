@@ -10,6 +10,9 @@
  *     entity on a debounce. Disabled while a pending Alfred Apply is
  *     unresolved (we never overwrite his draft target without an
  *     explicit Save).
+ *   - brainInspector: the 🧠 memory button in the top bar (and its
+ *     pulsing "new activity" dot). Off hides it — for anyone who finds
+ *     the blinking distracting. Memory itself keeps working.
  *
  * Persisted in localStorage so the choice survives reloads.
  */
@@ -19,6 +22,7 @@ import styles from './BuilderSettings.module.css';
 
 export interface BuilderSettingsState {
   autoSave: boolean;
+  brainInspector: boolean;
 }
 
 const STORAGE_KEY = 'builder:settings';
@@ -26,11 +30,11 @@ const STORAGE_KEY = 'builder:settings';
 function loadSettings(): BuilderSettingsState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { autoSave: false };
+    if (!raw) return { autoSave: false, brainInspector: true };
     const parsed = JSON.parse(raw);
-    return { autoSave: parsed.autoSave === true };
+    return { autoSave: parsed.autoSave === true, brainInspector: parsed.brainInspector !== false };
   } catch {
-    return { autoSave: false };
+    return { autoSave: false, brainInspector: true };
   }
 }
 
@@ -116,6 +120,12 @@ export function BuilderSettingsPopover({
         hint="Saves on commit signals only — Done buttons, switching crew/agent, leaving the tab. No keystroke saves. Paused while an Alfred apply is pending."
         value={settings.autoSave}
         onChange={v => onChange('autoSave', v)}
+      />
+      <ToggleRow
+        label="Memory in the top bar"
+        hint="The 🧠 button showing what the agent remembers, with its blinking “new activity” dot. Off hides it; memory itself keeps working."
+        value={settings.brainInspector}
+        onChange={v => onChange('brainInspector', v)}
       />
     </div>
   );

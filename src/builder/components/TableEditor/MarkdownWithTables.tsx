@@ -31,6 +31,10 @@ interface Props {
   className?: string;
   tableClassName?: string;
   proseClassName?: string;
+  /** Render the prose BETWEEN tables yourself (the new Targeted KB page
+   *  uses readable, right-to-left-aware text). Omitted → the original
+   *  `<pre>` rendering, unchanged for every existing caller. */
+  renderProse?: (text: string, key: string) => React.ReactNode;
 }
 
 interface TableMatch {
@@ -145,13 +149,14 @@ function isSeparatorRow(line: string | undefined): boolean {
 }
 
 export function MarkdownWithTables({
-  text, onEditTable, className, tableClassName, proseClassName,
+  text, onEditTable, className, tableClassName, proseClassName, renderProse,
 }: Props) {
+  const prose = (slice: string, key: string) => (renderProse
+    ? <span key={key} style={{ display: 'contents' }}>{renderProse(slice, key)}</span>
+    : <pre key={key} className={proseClassName ?? className}>{slice}</pre>);
   const tables = findTables(text);
   if (tables.length === 0) {
-    return (
-      <pre className={proseClassName ?? className}>{text}</pre>
-    );
+    return prose(text, 'p-all');
   }
   const nodes: React.ReactNode[] = [];
   let cursor = 0;
@@ -159,9 +164,7 @@ export function MarkdownWithTables({
     if (t.start > cursor) {
       const slice = text.slice(cursor, t.start).replace(/^\n+|\n+$/g, '');
       if (slice) {
-        nodes.push(
-          <pre key={`p-${idx}`} className={proseClassName ?? className}>{slice}</pre>,
-        );
+        nodes.push(prose(slice, `p-${idx}`));
       }
     }
     nodes.push(
@@ -178,9 +181,7 @@ export function MarkdownWithTables({
   });
   if (cursor < text.length) {
     const slice = text.slice(cursor).replace(/^\n+|\n+$/g, '');
-    if (slice) nodes.push(
-      <pre key="p-end" className={proseClassName ?? className}>{slice}</pre>,
-    );
+    if (slice) nodes.push(prose(slice, 'p-end'));
   }
   return <>{nodes}</>;
 }

@@ -509,6 +509,14 @@ export function DynamicContextScreen() {
               </div>
             );
           })()}
+          {/* The new full-screen page (task #830) — side by side with
+              this one until it is approved. */}
+          <Link
+            to={`/${agent.slug}/builder/targeted-kb${activeEnum ? `/${encodeURIComponent(activeEnum.name)}${activeValue ? `/${encodeURIComponent(activeValue.value)}` : ''}` : (listMode === 'choice' ? '?list=choices' : '')}`}
+            style={{ fontSize: 12, fontWeight: 700, color: '#6366f1', whiteSpace: 'nowrap', marginLeft: 12 }}
+          >
+            ✨ Try the new view
+          </Link>
         </div>
       </div>
 

@@ -17,9 +17,18 @@ import { useBrain } from '../../state/BrainContext';
 import { useBrainCounts } from '../../state/useBrainSnapshot';
 import styles from './TopBar.module.css';
 
-export function TopBar() {
+interface TopBarProps {
+  /** Where ← goes. Default: the projects list. A full-screen page inside
+   *  the builder (Targeted KB) points it back at the builder instead. */
+  back?: { to: string; title: string };
+  /** Shown after the agent's name, e.g. "Targeted KB". */
+  place?: string;
+}
+
+export function TopBar({ back, place }: TopBarProps = {}) {
   const { doc, pendingAlfredApply, resetToServerState } = useBuilder();
   const [settings, setSetting] = useBuilderSettings();
+  const { setPosture: setBrainPosture } = useBrain();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [folderOpen, setFolderOpen] = useState(false);
@@ -91,17 +100,23 @@ export function TopBar() {
 
   return (
     <>
-      <Link to="/builder" className={styles.back} title="Back to projects">
+      <Link to={back?.to ?? '/builder'} className={styles.back} title={back?.title ?? 'Back to projects'}>
         ←
       </Link>
       <span className={styles.title}>Builder</span>
       <span className={styles.divider}>·</span>
       <span className={styles.subject}>{doc.name}</span>
+      {place && (
+        <>
+          <span className={styles.divider}>›</span>
+          <span className={styles.title}>{place}</span>
+        </>
+      )}
       {/* Beside the name, not in the right-hand cluster: it shows what
           THIS agent knows in the current conversation, and the right side
           is already the most crowded part of the bar. The dock drops from
           the canvas's left edge, directly under it. */}
-      <BrainInspectorButton />
+      {settings.brainInspector && <BrainInspectorButton />}
       <span className={styles.spacer} />
       <TopBarVersionMenu />
       {settings.autoSave && (
@@ -154,7 +169,12 @@ export function TopBar() {
           onClose={() => setSettingsOpen(false)}
           triggerRef={settingsBtnRef}
           settings={settings}
-          onChange={setSetting}
+          onChange={(k, v) => {
+            // Hiding the memory button also closes its panel, so nothing
+            // is left open with no button to close it.
+            if (k === 'brainInspector' && v === false) setBrainPosture('collapsed');
+            setSetting(k, v);
+          }}
         />
       </div>
       <PromptGuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
