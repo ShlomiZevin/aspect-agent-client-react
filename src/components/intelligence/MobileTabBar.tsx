@@ -12,22 +12,23 @@
 import { useLanguage } from '../../context/LanguageContext';
 import styles from './MobileTabBar.module.css';
 
-type View = 'home' | 'reports' | 'history' | 'detail' | 'chat' | 'apps' | 'app' | 'settings';
+type View = 'home' | 'center' | 'reports' | 'history' | 'detail' | 'apps' | 'app' | 'settings';
 
 interface Props {
   view: View;
   hasApps: boolean;
   runningJobs: number;
+  /** Home is Data Chat. */
   onHome: () => void;
+  /** The report center (the old Home); My Reports is reached from inside it. */
   onReports: () => void;
-  onChat: () => void;
   onApps: () => void;
 }
 
-export function MobileTabBar({ view, hasApps, runningJobs, onHome, onReports, onChat, onApps }: Props) {
+export function MobileTabBar({ view, hasApps, runningJobs, onHome, onReports, onApps }: Props) {
   const { t } = useLanguage();
 
-  const reportsActive = view === 'reports' || view === 'history' || view === 'detail';
+  const reportsActive = view === 'center' || view === 'reports' || view === 'history' || view === 'detail';
   const appsActive = view === 'apps' || view === 'app';
 
   return (
@@ -38,10 +39,7 @@ export function MobileTabBar({ view, hasApps, runningJobs, onHome, onReports, on
         aria-current={view === 'home' ? 'page' : undefined}
         onClick={onHome}
       >
-        <span className={styles.icon}>
-          <Glyph name="home" />
-          {runningJobs > 0 && <span className={styles.badge}>{runningJobs > 9 ? '9+' : runningJobs}</span>}
-        </span>
+        <span className={styles.icon}><Glyph name="home" /></span>
         {t('intel.nav.home')}
       </button>
 
@@ -51,18 +49,11 @@ export function MobileTabBar({ view, hasApps, runningJobs, onHome, onReports, on
         aria-current={reportsActive ? 'page' : undefined}
         onClick={onReports}
       >
-        <span className={styles.icon}><Glyph name="reports" /></span>
-        {t('intel.nav.reports')}
-      </button>
-
-      <button
-        type="button"
-        className={`${styles.tab} ${view === 'chat' ? styles.active : ''}`}
-        aria-current={view === 'chat' ? 'page' : undefined}
-        onClick={onChat}
-      >
-        <span className={styles.icon}><Glyph name="chat" /></span>
-        {t('intel.nav.chat')}
+        <span className={styles.icon}>
+          <Glyph name="reports" />
+          {runningJobs > 0 && <span className={styles.badge}>{runningJobs > 9 ? '9+' : runningJobs}</span>}
+        </span>
+        {t('intel.nav.center')}
       </button>
 
       {hasApps && (
