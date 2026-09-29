@@ -68,6 +68,17 @@
   color: var(--text-secondary, #4b5563);
 }
 
+/* "NEW" tag on a chip that opens a page still being tried out. */
+.chipNew {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--primary-color, #2563eb);
+  color: #fff;
+}
+
 /* Persona chip — pink accent, keeps the special-but-still-a-chip
  * feel from the previous version. No count badge (always exists). */
 .chipPersona {
