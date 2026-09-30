@@ -28,6 +28,7 @@ import {
   renameAgent,
   renameWorkspace,
   setAgentArchived,
+  setAgentDelisted,
   type ProjectListItem,
   type WorkspaceItem,
   type WorkspaceKind,
@@ -231,6 +232,18 @@ function HomeContent() {
     catch (err) { setError(cleanErr(err)); }
   };
 
+  const doDelist = async (item: ProjectListItem) => {
+    const url = `${window.location.origin}/${item.agentSlug}/builder`;
+    const ok = await confirm({
+      title: `Delist “${item.agentName}”?`,
+      message: `It disappears from this page for everyone, but keeps existing and working. The only way back to it is its address: ${url} — save it. To show it here again, open it there and click “Delisted”.`,
+      confirmLabel: 'Delist',
+    });
+    if (!ok) return;
+    try { await setAgentDelisted({ agentId: item.agentId, delisted: true }); await reload(); }
+    catch (err) { setError(cleanErr(err)); }
+  };
+
   const doDelete = async (item: ProjectListItem) => {
     const ok = await confirm({
       title: `Delete “${item.agentName}”?`,
@@ -319,6 +332,10 @@ function HomeContent() {
                 <button type="button" className={styles.menuItem}
                   onClick={() => { close(); doArchive(item, true); }}>
                   <span className={styles.menuIcon}>📦</span> Archive
+                </button>
+                <button type="button" className={styles.menuItem}
+                  onClick={() => { close(); doDelist(item); }}>
+                  <span className={styles.menuIcon}>🙈</span> Delist
                 </button>
                 <div className={styles.menuDivider} />
                 <button type="button" className={`${styles.menuItem} ${styles.menuItemDanger}`}

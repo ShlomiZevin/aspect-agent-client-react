@@ -363,6 +363,26 @@ export async function moveAgent(args: {
 }
 
 /** Archive (true) or restore (false) an agent. */
+/**
+ * Delist an agent (leave it off the builder home page — it still exists
+ * and opens by its URL) or list it again.
+ */
+export async function setAgentDelisted(args: {
+  agentId: string;
+  delisted: boolean;
+}): Promise<void> {
+  await http(`/api/builder/agents/${args.agentId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ delisted: args.delisted }),
+  });
+}
+
+/** Whether the agent is delisted from the builder home page. */
+export async function fetchAgentDelisted(agentId: string): Promise<boolean> {
+  const res = await http<{ delisted: boolean }>(`/api/builder/agents/${agentId}/listing`);
+  return res.delisted;
+}
+
 export async function setAgentArchived(args: {
   agentId: string;
   archived: boolean;

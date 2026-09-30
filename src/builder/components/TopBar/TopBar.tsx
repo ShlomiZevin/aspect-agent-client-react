@@ -8,7 +8,7 @@ import { VersionMenu } from '../VersionMenu/VersionMenu';
 import { BuilderSettingsPopover, useBuilderSettings } from './BuilderSettings';
 import { PromptGuideModal } from '../PromptGuide/PromptGuideModal';
 import { FolderDraftsModal, IncomingDraftModal } from '../FolderDrafts';
-import { fetchAiBundleVersion } from '../../state/builderApi';
+import { fetchAgentDelisted, fetchAiBundleVersion, setAgentDelisted } from '../../state/builderApi';
 import {
   isSupported as folderSupported, readBundleVersion, rememberedFolder,
 } from '../../state/folderDrafts';
@@ -112,6 +112,7 @@ export function TopBar({ back, place }: TopBarProps = {}) {
           <span className={styles.title}>{place}</span>
         </>
       )}
+      <DelistedChip />
       {/* Beside the name, not in the right-hand cluster: it shows what
           THIS agent knows in the current conversation, and the right side
           is already the most crowded part of the bar. The dock drops from
@@ -257,6 +258,47 @@ function BrainInspectorButton() {
       </span>
       {/* Absolutely positioned, so lighting it never resizes the button. */}
       {hasUnseen && !open && <span className={styles.brainDot} aria-label="new activity" />}
+    </button>
+  );
+}
+
+/**
+ * "Delisted" chip — shown only for an agent left off the builder home
+ * page (it's reachable only by URL). Clicking it offers to list the
+ * agent again; nothing renders for a normal, listed agent.
+ */
+function DelistedChip() {
+  const { doc } = useBuilder();
+  const confirm = useConfirm();
+  const agentId = doc.agents[0]?.id;
+  const [delisted, setDelisted] = useState<{ id: string; on: boolean } | null>(null);
+
+  useEffect(() => {
+    if (!agentId) return;
+    let cancelled = false;
+    fetchAgentDelisted(agentId)
+      .then(on => { if (!cancelled) setDelisted({ id: agentId, on }); })
+      .catch(() => { /* unknown — show nothing */ });
+    return () => { cancelled = true; };
+  }, [agentId]);
+
+  if (!agentId || delisted?.id !== agentId || !delisted.on) return null;
+
+  const relist = async () => {
+    const ok = await confirm({
+      title: 'List this agent again?',
+      message: 'It will appear on the builder home page again, for everyone.',
+      confirmLabel: 'List it',
+    });
+    if (!ok) return;
+    await setAgentDelisted({ agentId, delisted: false });
+    setDelisted({ id: agentId, on: false });
+  };
+
+  return (
+    <button type="button" className={styles.delistedChip} onClick={relist}
+      title="Not on the builder home page — reachable only by its URL. Click to list it again.">
+      🙈 Delisted
     </button>
   );
 }

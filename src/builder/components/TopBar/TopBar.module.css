@@ -124,6 +124,22 @@
 /* 🧠 Brain Inspector toggle — labelled like .aiBtn because it carries
    a live count. Primary-tinted when the panel is open so the button
    reads as the handle of the panel hanging under it. */
+/* Agent left off the builder home page. Click to list it again. */
+.delistedChip {
+  margin-left: 8px;
+  padding: 3px 10px;
+  border: 1px dashed #9ca3af;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.delistedChip:hover { background: #e5e7eb; color: #111827; }
+
 .brainBtn {
   position: relative;
   display: inline-flex; align-items: center; gap: 5px;
