@@ -38,7 +38,9 @@ function toSentenceCase(label: string): string {
 
 interface Props {
   datasetId: string;
-  onSend: (question: string) => void;
+  /** `hidden`: a tile click shows only the agent's reply, not the question
+   * bubble (Itzik, 2026-09-29) — typed questions still show normally. */
+  onSend: (question: string, options?: { hidden?: boolean }) => void;
 }
 
 export function ChatWelcome({ datasetId, onSend }: Props) {
@@ -87,7 +89,7 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
           const label = q.textKey ? translations[language][q.textKey] : loc.text;
           const question = q.questionKey ? translations[language][q.questionKey] : loc.question;
           return (
-            <button key={i} className={styles.tile} onClick={() => onSend(question)}>
+            <button key={i} className={styles.tile} onClick={() => onSend(question, { hidden: true })}>
               {/* Admin-set questions carry a real emoji to show as-is — that
                   is the whole point of letting someone pick one per question.
                   The hardcoded config path keeps its positional SVG set,

@@ -28,7 +28,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChatWelcome } from './ChatWelcome';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
-import { PREFILL_STORAGE_KEY, SCOPE_STORAGE_KEY } from '../../pages/AgentChatWidgetPage';
+import { PREFILL_STORAGE_KEY, PREFILL_HIDDEN_STORAGE_KEY, SCOPE_STORAGE_KEY } from '../../pages/AgentChatWidgetPage';
 import { useLanguage } from '../../context/LanguageContext';
 import type { ModuleScope } from '../../services/chatService';
 import styles from './ChatWidget.module.css';
@@ -136,6 +136,7 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
   // what keeps a stale question from auto-sending into an old thread.
   const selectConversation = (id: string) => {
     sessionStorage.removeItem(PREFILL_STORAGE_KEY);
+    sessionStorage.removeItem(PREFILL_HIDDEN_STORAGE_KEY);
     setConversationId(id);
     if (mobile) setHistoryOpen(false); // the overlay covered the chat — get back to it
   };
@@ -145,11 +146,14 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
   // just on. The conversation id is only minted when they actually SEND.
   const newConversation = () => {
     sessionStorage.removeItem(PREFILL_STORAGE_KEY);
+    sessionStorage.removeItem(PREFILL_HIDDEN_STORAGE_KEY);
     setConversationId(null);
     if (mobile) setHistoryOpen(false);
   };
-  const send = (question: string) => {
+  const send = (question: string, options?: { hidden?: boolean }) => {
     sessionStorage.setItem(PREFILL_STORAGE_KEY, question);
+    if (options?.hidden) sessionStorage.setItem(PREFILL_HIDDEN_STORAGE_KEY, '1');
+    else sessionStorage.removeItem(PREFILL_HIDDEN_STORAGE_KEY);
     setConversationId(crypto.randomUUID());
   };
 
