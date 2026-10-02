@@ -1,0 +1,59 @@
+/* "Build with your own AI" (task #96) — same dialog language as Otto's
+   confirmations (OttoBuilder.module.css), wider for the link and the prompt. */
+.overlay {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(20, 22, 34, .4);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.dialog {
+  background: var(--ai-surface, #fff);
+  border-radius: 16px;
+  padding: 22px 24px;
+  max-width: 520px;
+  width: 100%;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  box-shadow: var(--ai-shadow, 0 18px 50px rgba(23, 20, 40, .18));
+}
+.title { margin: 0 0 6px; font-size: 16px; font-weight: 800; color: var(--ai-text, #1d2130); }
+.text { margin: 0 0 14px; font-size: 13px; line-height: 1.5; color: var(--ai-text-dim, #6a7183); }
+
+.steps { margin: 0 0 14px; padding-inline-start: 18px; font-size: 13px; line-height: 1.6; color: var(--ai-text, #1d2130); }
+
+.label { display: block; margin: 0 0 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ai-text-mute, #8a90a3); }
+
+.copyRow { display: flex; gap: 8px; align-items: stretch; margin-bottom: 14px; }
+.code {
+  flex: 1; min-width: 0;
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--ai-border, #e4e6ee);
+  border-radius: 9px;
+  background: var(--ai-bg, #f6f4fb);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--ai-text, #1d2130);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  direction: ltr;
+  text-align: left;
+}
+
+.warn { margin: 0 0 16px; font-size: 12px; color: var(--ai-text-dim, #6a7183); }
+
+.actions { display: flex; gap: 8px; justify-content: flex-end; }
+.btn {
+  appearance: none; cursor: pointer;
+  font: inherit; font-size: 12.5px; font-weight: 600;
+  border: 1px solid var(--ai-border, #d8dbe6);
+  background: var(--ai-surface, #fff);
+  color: var(--ai-text, #1d2130);
+  border-radius: 9px;
+  padding: 8px 14px;
+  white-space: nowrap;
+}
+.btnPrimary {
+  background: var(--ai-grad, linear-gradient(135deg, #7C3AED, #C026D3));
+  border: none; color: #fff;
+}
