@@ -65,11 +65,10 @@ export const ottoService = {
     }, baseURL).then(r => r.screen),
 
   /** The viewer's personal "build with your own AI" link (task #96). */
-  /** `url` is the server's own address (what an MCP connector needs);
-   *  `shortUrl` is the same door on this site, via a 302 — for the paste-in
-   *  prompt only, since a redirect turns an MCP POST into a GET. */
+  /** The personal door link — on our public site (Hosting proxies it to the
+   *  server), one address for the paste-in prompt and for MCP connectors. */
   aiLink: (datasetId: string, viewerId: string | null, baseURL?: string) =>
-    apiRequest<{ url: string; shortUrl: string | null }>(withViewer(`${base(datasetId)}/ai-link`, viewerId), {}, baseURL),
+    apiRequest<{ url: string }>(withViewer(`${base(datasetId)}/ai-link`, viewerId), {}, baseURL).then(r => r.url),
 
   deleteDraft: (datasetId: string, id: string, viewerId: string | null, baseURL?: string) =>
     apiRequest<{ deleted: boolean }>(withViewer(`${base(datasetId)}/screens/${encodeURIComponent(id)}`, viewerId), {

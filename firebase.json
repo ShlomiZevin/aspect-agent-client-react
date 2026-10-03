@@ -11,11 +11,6 @@
         "source": "/builder/mcp",
         "destination": "https://aspect-agent-server-1018338671074.europe-west1.run.app/builder/mcp",
         "type": 302
-      },
-      {
-        "source": "/intelligence/:slug/mcp/:rest*",
-        "destination": "https://aspect-agent-server-1018338671074.europe-west1.run.app/intelligence/:slug/mcp/:rest",
-        "type": 302
       }
     ],
     "rewrites": [
