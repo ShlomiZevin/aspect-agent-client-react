@@ -21,11 +21,13 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const config = JSON.parse(fs.readFileSync(path.join(root, 'firebase.json'), 'utf8'));
 
+const DOOR = { serviceId: 'aspect-agent-server', region: 'europe-west1' };
 const ASPECT_ONLY_REWRITES = [
-  {
-    source: '/intelligence/*/mcp/**',
-    run: { serviceId: 'aspect-agent-server', region: 'europe-west1' },
-  },
+  { source: '/intelligence/*/mcp/**', run: DOOR },
+  // The same link pasted without its key: "/**" does not match the bare path,
+  // so without this the SPA answered and the AI got an HTML app shell instead
+  // of the server's "this link is missing its personal key".
+  { source: '/intelligence/*/mcp', run: DOOR },
 ];
 
 // First, so the catch-all "**" -> /index.html can never shadow them.
