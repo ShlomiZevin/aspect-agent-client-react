@@ -22,6 +22,7 @@ interface Props {
 export function AiBuilderDialog({ datasetId, viewerId, baseURL, onClose }: Props) {
   const { t, language } = useLanguage();
   const [url, setUrl] = useState<string | null>(null);
+  const [shortUrl, setShortUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState<'prompt' | 'link' | null>(null);
   const [showChat, setShowChat] = useState(false);
@@ -29,12 +30,12 @@ export function AiBuilderDialog({ datasetId, viewerId, baseURL, onClose }: Props
   useEffect(() => {
     let alive = true;
     ottoService.aiLink(datasetId, viewerId, baseURL)
-      .then(u => { if (alive) setUrl(u); })
+      .then(r => { if (alive) { setUrl(r.url); setShortUrl(r.shortUrl || r.url); } })
       .catch(() => { if (alive) setFailed(true); });
     return () => { alive = false; };
   }, [datasetId, viewerId, baseURL]);
 
-  const prompt = url ? t('aiBuilder.prompt').replace('{url}', url) : '';
+  const prompt = shortUrl ? t('aiBuilder.prompt').replace('{url}', shortUrl) : '';
 
   const copy = (what: 'prompt' | 'link', text: string) => {
     navigator.clipboard?.writeText(text)
