@@ -23,7 +23,7 @@
 
 .label { display: block; margin: 0 0 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ai-text-mute, #8a90a3); }
 
-.copyRow { display: flex; gap: 8px; align-items: stretch; margin-bottom: 14px; }
+.copyRow { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 14px; }
 .code {
   flex: 1; min-width: 0;
   margin: 0;
@@ -52,6 +52,7 @@
   border-radius: 9px;
   padding: 8px 14px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .btnPrimary {
   background: var(--ai-grad, linear-gradient(135deg, #7C3AED, #C026D3));
