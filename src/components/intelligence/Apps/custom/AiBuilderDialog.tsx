@@ -24,7 +24,7 @@ export function AiBuilderDialog({ datasetId, viewerId, baseURL, onClose }: Props
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState<'prompt' | 'link' | null>(null);
-  const [tab, setTab] = useState<'chat' | 'code'>('chat');
+  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -48,61 +48,38 @@ export function AiBuilderDialog({ datasetId, viewerId, baseURL, onClose }: Props
         <p className={styles.title}>{t('aiBuilder.title')}</p>
         <p className={styles.text}>{t('aiBuilder.text')}</p>
 
-        {/* Two ways in, one link. Business people live in ChatGPT / Claude,
-            which cannot POST to a URL — for them the link is an MCP
-            connector. Developers in Claude Code / Codex just paste a prompt. */}
-        <div className={styles.tabs} role="tablist">
-          <button type="button" role="tab" aria-selected={tab === 'chat'}
-            className={`${styles.tab} ${tab === 'chat' ? styles.tabOn : ''}`} onClick={() => setTab('chat')}>
-            {t('aiBuilder.tabChat')}
-          </button>
-          <button type="button" role="tab" aria-selected={tab === 'code'}
-            className={`${styles.tab} ${tab === 'code' ? styles.tabOn : ''}`} onClick={() => setTab('code')}>
-            {t('aiBuilder.tabCode')}
-          </button>
-        </div>
-
-        {tab === 'chat' ? (
-          <ol className={styles.steps}>
-            <li>{t('aiBuilder.chatStep1')}</li>
-            <li>{t('aiBuilder.chatStep2')}</li>
-            <li>{t('aiBuilder.chatStep3')}</li>
-          </ol>
-        ) : (
-          <ol className={styles.steps}>
-            <li>{t('aiBuilder.step1')}</li>
-            <li>{t('aiBuilder.step2')}</li>
-            <li>{t('aiBuilder.step3')}</li>
-          </ol>
-        )}
-
+        {/* One thing to do: copy, paste, talk. That is the whole flow in
+            Claude Code / Codex / Cursor, which fetch and POST themselves.
+            Web chats (ChatGPT, Claude.ai) can only READ a pasted link, so
+            building there needs the link added once as a connector — kept
+            behind one quiet line for whoever needs it, not in everyone's way. */}
         {failed && <p className={styles.text}>{t('aiBuilder.failed')}</p>}
         {!failed && !url && <p className={styles.text}>{t('aiBuilder.loading')}</p>}
 
-        {url && tab === 'code' && (
+        {url && (
           <>
-            <span className={styles.label}>{t('aiBuilder.promptLabel')}</span>
             <div className={styles.copyRow}>
               <pre className={styles.code}>{prompt}</pre>
               <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => copy('prompt', prompt)}>
                 {copied === 'prompt' ? t('aiBuilder.copied') : t('aiBuilder.copy')}
               </button>
             </div>
-          </>
-        )}
-
-        {url && (
-          <>
-            <span className={styles.label}>{tab === 'chat' ? t('aiBuilder.connectorLabel') : t('aiBuilder.linkLabel')}</span>
-            <div className={styles.copyRow}>
-              <pre className={styles.code}>{url}</pre>
-              <button type="button" className={`${styles.btn} ${tab === 'chat' ? styles.btnPrimary : ''}`} onClick={() => copy('link', url)}>
-                {copied === 'link' ? t('aiBuilder.copied') : t('aiBuilder.copy')}
-              </button>
-            </div>
-            {tab === 'chat' && <p className={styles.text}>{t('aiBuilder.chatThen')}</p>}
-
             <p className={styles.warn}>{t('aiBuilder.private')}</p>
+
+            <button type="button" className={styles.linkBtn} onClick={() => setShowChat(v => !v)} aria-expanded={showChat}>
+              {t('aiBuilder.chatToggle')}
+            </button>
+            {showChat && (
+              <div className={styles.chatBox}>
+                <p className={styles.text}>{t('aiBuilder.chatExplain')}</p>
+                <div className={styles.copyRow}>
+                  <pre className={styles.code}>{url}</pre>
+                  <button type="button" className={styles.btn} onClick={() => copy('link', url)}>
+                    {copied === 'link' ? t('aiBuilder.copied') : t('aiBuilder.copy')}
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
 

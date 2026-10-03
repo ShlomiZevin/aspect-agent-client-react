@@ -19,27 +19,21 @@
 .title { margin: 0 0 6px; font-size: 16px; font-weight: 800; color: var(--ai-text, #1d2130); }
 .text { margin: 0 0 14px; font-size: 13px; line-height: 1.5; color: var(--ai-text-dim, #6a7183); }
 
-.tabs {
-  display: flex; gap: 4px;
+.linkBtn {
+  appearance: none; cursor: pointer;
+  border: none; background: none; padding: 0;
+  margin: 0 0 12px;
+  font: inherit; font-size: 12px;
+  color: var(--ai-accent, #7c3aed);
+  text-decoration: underline;
+}
+.chatBox {
   margin: 0 0 14px;
-  padding: 3px;
+  padding: 12px;
   border-radius: 10px;
   background: var(--ai-bg, #f6f4fb);
 }
-.tab {
-  flex: 1;
-  appearance: none; cursor: pointer;
-  font: inherit; font-size: 12.5px; font-weight: 600;
-  border: none; border-radius: 8px;
-  padding: 7px 10px;
-  background: none;
-  color: var(--ai-text-dim, #6a7183);
-}
-.tabOn {
-  background: var(--ai-surface, #fff);
-  color: var(--ai-text, #1d2130);
-  box-shadow: 0 1px 3px rgba(30, 32, 50, .1);
-}
+.chatBox .copyRow { margin-bottom: 0; }
 
 .steps { margin: 0 0 14px; padding-inline-start: 18px; font-size: 13px; line-height: 1.6; color: var(--ai-text, #1d2130); }
 
