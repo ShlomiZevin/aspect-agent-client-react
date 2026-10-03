@@ -24,6 +24,7 @@ export function AiBuilderDialog({ datasetId, viewerId, baseURL, onClose }: Props
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState<'prompt' | 'link' | null>(null);
+  const [tab, setTab] = useState<'chat' | 'code'>('chat');
 
   useEffect(() => {
     let alive = true;
@@ -47,16 +48,38 @@ export function AiBuilderDialog({ datasetId, viewerId, baseURL, onClose }: Props
         <p className={styles.title}>{t('aiBuilder.title')}</p>
         <p className={styles.text}>{t('aiBuilder.text')}</p>
 
-        <ol className={styles.steps}>
-          <li>{t('aiBuilder.step1')}</li>
-          <li>{t('aiBuilder.step2')}</li>
-          <li>{t('aiBuilder.step3')}</li>
-        </ol>
+        {/* Two ways in, one link. Business people live in ChatGPT / Claude,
+            which cannot POST to a URL — for them the link is an MCP
+            connector. Developers in Claude Code / Codex just paste a prompt. */}
+        <div className={styles.tabs} role="tablist">
+          <button type="button" role="tab" aria-selected={tab === 'chat'}
+            className={`${styles.tab} ${tab === 'chat' ? styles.tabOn : ''}`} onClick={() => setTab('chat')}>
+            {t('aiBuilder.tabChat')}
+          </button>
+          <button type="button" role="tab" aria-selected={tab === 'code'}
+            className={`${styles.tab} ${tab === 'code' ? styles.tabOn : ''}`} onClick={() => setTab('code')}>
+            {t('aiBuilder.tabCode')}
+          </button>
+        </div>
+
+        {tab === 'chat' ? (
+          <ol className={styles.steps}>
+            <li>{t('aiBuilder.chatStep1')}</li>
+            <li>{t('aiBuilder.chatStep2')}</li>
+            <li>{t('aiBuilder.chatStep3')}</li>
+          </ol>
+        ) : (
+          <ol className={styles.steps}>
+            <li>{t('aiBuilder.step1')}</li>
+            <li>{t('aiBuilder.step2')}</li>
+            <li>{t('aiBuilder.step3')}</li>
+          </ol>
+        )}
 
         {failed && <p className={styles.text}>{t('aiBuilder.failed')}</p>}
         {!failed && !url && <p className={styles.text}>{t('aiBuilder.loading')}</p>}
 
-        {url && (
+        {url && tab === 'code' && (
           <>
             <span className={styles.label}>{t('aiBuilder.promptLabel')}</span>
             <div className={styles.copyRow}>
@@ -65,14 +88,19 @@ export function AiBuilderDialog({ datasetId, viewerId, baseURL, onClose }: Props
                 {copied === 'prompt' ? t('aiBuilder.copied') : t('aiBuilder.copy')}
               </button>
             </div>
+          </>
+        )}
 
-            <span className={styles.label}>{t('aiBuilder.linkLabel')}</span>
+        {url && (
+          <>
+            <span className={styles.label}>{tab === 'chat' ? t('aiBuilder.connectorLabel') : t('aiBuilder.linkLabel')}</span>
             <div className={styles.copyRow}>
               <pre className={styles.code}>{url}</pre>
-              <button type="button" className={styles.btn} onClick={() => copy('link', url)}>
+              <button type="button" className={`${styles.btn} ${tab === 'chat' ? styles.btnPrimary : ''}`} onClick={() => copy('link', url)}>
                 {copied === 'link' ? t('aiBuilder.copied') : t('aiBuilder.copy')}
               </button>
             </div>
+            {tab === 'chat' && <p className={styles.text}>{t('aiBuilder.chatThen')}</p>}
 
             <p className={styles.warn}>{t('aiBuilder.private')}</p>
           </>
