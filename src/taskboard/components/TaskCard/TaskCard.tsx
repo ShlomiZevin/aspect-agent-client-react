@@ -161,6 +161,7 @@ export function TaskCard({ task, dependencyInfo, onClick, onAtRiskToggle, onMark
           <span className={`${styles.type} ${styles[task.type]}`}>
             {TYPE_ICONS[task.type] || task.type.toUpperCase()}
           </span>
+          <span className={styles.taskId}>#{task.id}</span>
           {task.deployedAt && (
             <span
               className={styles.deployedBadge}
