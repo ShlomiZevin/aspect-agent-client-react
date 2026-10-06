@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { AdminPage, adminUi } from '../dashboard/AdminPage';
 import styles from './PineconeAdmin.module.css';
 import {
   previewChunks,
@@ -39,10 +40,10 @@ export function PineconeAdmin({ agentName }: PineconeAdminProps) {
   const isReady = status?.configured;
 
   return (
-    <div className={styles.content}>
-      <div className={styles.tabs}>
+    <AdminPage title="Library" subtitle="Pinecone vector indexes — create indexes, upload documents and test search">
+      <div className={adminUi.tabs}>
         <button
-          className={`${styles.tab} ${activeTab === 'settings' ? styles.tabActive : ''}`}
+          className={`${adminUi.tab} ${activeTab === 'settings' ? adminUi.tabActive : ''}`}
           onClick={() => setActiveTab('settings')}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -51,10 +52,9 @@ export function PineconeAdmin({ agentName }: PineconeAdminProps) {
           Settings
         </button>
         <button
-          className={`${styles.tab} ${activeTab === 'upload' ? styles.tabActive : ''}`}
+          className={`${adminUi.tab} ${activeTab === 'upload' ? adminUi.tabActive : ''}`}
           onClick={() => setActiveTab('upload')}
           disabled={!isReady}
-          style={!isReady ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
@@ -62,10 +62,9 @@ export function PineconeAdmin({ agentName }: PineconeAdminProps) {
           Upload
         </button>
         <button
-          className={`${styles.tab} ${activeTab === 'search' ? styles.tabActive : ''}`}
+          className={`${adminUi.tab} ${activeTab === 'search' ? adminUi.tabActive : ''}`}
           onClick={() => setActiveTab('search')}
           disabled={!isReady}
-          style={!isReady ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -77,7 +76,7 @@ export function PineconeAdmin({ agentName }: PineconeAdminProps) {
       {activeTab === 'settings' && <SetupTab status={status} onStatusChange={setStatus} />}
       {activeTab === 'upload' && isReady && <UploadTab agentName={agentName} />}
       {activeTab === 'search' && isReady && <QueryTab />}
-    </div>
+    </AdminPage>
   );
 }
 

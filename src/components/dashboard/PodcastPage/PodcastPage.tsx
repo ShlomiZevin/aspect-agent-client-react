@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { AdminPage, adminUi } from '../AdminPage';
 import styles from './PodcastPage.module.css';
 import {
   uploadEpisode,
@@ -475,16 +476,11 @@ export function PodcastPage({ baseURL, agentName }: Props) {
   };
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Podcast Episodes</h1>
-          <p className={styles.subtitle}>
-            Upload audio episodes, transcribe with AI, and generate structured summaries.
-          </p>
-        </div>
-
-        <div className={styles.headerActions}>
+    <AdminPage
+      title="Podcast Episodes"
+      subtitle="Upload audio episodes, transcribe with AI, and generate structured summaries."
+      actions={
+        <>
           {activeIds.length > 0 && (
             <span className={styles.pollingIndicator}>
               <span className={styles.spinner} />
@@ -501,14 +497,15 @@ export function PodcastPage({ baseURL, agentName }: Props) {
             disabled={uploading}
           />
           <button
-            className={styles.btnPrimary}
+            className={`${adminUi.btn} ${adminUi.btnPrimary}`}
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
           >
             {uploading ? uploadProgress || 'Uploading...' : '+ Upload Episode'}
           </button>
-        </div>
-      </div>
+        </>
+      }
+    >
 
       {error && <div className={styles.errorBox}>{error}</div>}
 
@@ -534,6 +531,6 @@ export function PodcastPage({ baseURL, agentName }: Props) {
           ))}
         </div>
       )}
-    </div>
+    </AdminPage>
   );
 }

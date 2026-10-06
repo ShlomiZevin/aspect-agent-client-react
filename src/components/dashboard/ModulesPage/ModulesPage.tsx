@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AdminPage } from '../AdminPage';
 import styles from './ModulesPage.module.css';
 import { modulesService } from '../../../services/modulesService';
 import { useDialogChrome } from '../../../hooks/useDialogChrome';
@@ -129,42 +130,42 @@ export function ModulesPage({ datasetId, baseURL }: ModulesPageProps) {
   };
 
   if (loading) {
-    return <div className={styles.page}><div className={styles.muted}>Loading modules…</div></div>;
+    return <AdminPage title="Modules"><div className={styles.muted}>Loading modules…</div></AdminPage>;
   }
 
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Modules</h1>
-          <p className={styles.subtitle}>
-            Optional capabilities that can be switched on per client. A module does nothing
-            until it is both <strong>enabled</strong> and <strong>initialized</strong> —
-            a dataset with no module enabled behaves exactly as it does today.
-          </p>
-        </div>
-        <span className={styles.superBadge}>Super-admin</span>
-      </header>
+    <AdminPage
+      title="Modules"
+      subtitle={
+        <>
+          Optional capabilities that can be switched on per client. A module does nothing
+          until it is both <strong>enabled</strong> and <strong>initialized</strong> —
+          a dataset with no module enabled behaves exactly as it does today.
+        </>
+      }
+      actions={<span className={styles.superBadge}>Super-admin</span>}
+    >
 
-      {/* Fixed-height slot: the layout must not jump when a message appears. */}
-      <div className={styles.noticeSlot}>
-        {error && <div className={styles.noticeError}>{error}</div>}
-      </div>
+      {/* Only while there is an error — a reserved empty slot left a large
+          blank gap under the page header the rest of the time. */}
+      {error && <div className={styles.noticeError}>{error}</div>}
 
       {modules.length === 0 && (
         <div className={styles.empty}>No modules are registered for this platform build.</div>
       )}
 
-      {modules.map(mod => (
-        <ModuleCard
-          key={mod.id}
-          mod={mod}
-          busy={busyModule === mod.id}
-          onToggle={() => void toggleEnabled(mod)}
-          onSettings={() => setSettingsForId(mod.id)}
-          onRunReport={() => setRunForId(mod.id)}
-        />
-      ))}
+      <div className={styles.grid}>
+        {modules.map(mod => (
+          <ModuleCard
+            key={mod.id}
+            mod={mod}
+            busy={busyModule === mod.id}
+            onToggle={() => void toggleEnabled(mod)}
+            onSettings={() => setSettingsForId(mod.id)}
+            onRunReport={() => setRunForId(mod.id)}
+          />
+        ))}
+      </div>
 
       {settingsFor && (
         <SettingsModal
@@ -204,7 +205,7 @@ export function ModulesPage({ datasetId, baseURL }: ModulesPageProps) {
           </div>
         </ConfirmOverlay>
       )}
-    </div>
+    </AdminPage>
   );
 }
 

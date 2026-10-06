@@ -25,7 +25,12 @@ const PROVIDER_HINTS: Record<KBProviderName, string> = {
 
 const ALL_PROVIDERS: KBProviderName[] = ['openai', 'google', 'anthropic'];
 
-export function KBManager() {
+interface KBManagerProps {
+  /** Inside a page frame that already sets width and padding (the admin). */
+  embedded?: boolean;
+}
+
+export function KBManager({ embedded = false }: KBManagerProps) {
   const config = useAgentConfig();
   const {
     knowledgeBases,
@@ -158,7 +163,7 @@ export function KBManager() {
     : [];
 
   return (
-    <div className={styles.container}>
+    <div className={embedded ? undefined : styles.container}>
       {error && (
         <div className={styles.error}>
           <span>{error}</span>

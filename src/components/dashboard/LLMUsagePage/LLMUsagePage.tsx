@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { AdminPage, adminUi } from '../AdminPage';
 import styles from './LLMUsagePage.module.css';
 import { CostCalculatorPanel } from './CostCalculatorPanel';
 import { estimateCost } from './llmCosts';
@@ -189,37 +190,37 @@ export function LLMUsagePage({ baseURL, agentName, agentSlug }: Props) {
   const showCalculator = DATA_INCLUDED_AGENTS.has((agentName || '').toLowerCase());
 
   return (
-    <div className={`${styles.container} ${showCalculator ? styles.containerWithSidebar : ''}`}>
+    <AdminPage
+      title="LLM Usage"
+      subtitle="Model calls, tokens and estimated cost for the selected period"
+      actions={
+        <>
+          <div className={styles.segmented}>
+            {([
+              ['all', 'All'],
+              ['without', 'Without Alfred'],
+              ['only', 'Only Alfred'],
+            ] as Array<[AlfredFilter, string]>).map(([value, label]) => (
+              <button
+                key={value}
+                className={`${styles.segmentedBtn} ${alfredFilter === value ? styles.segmentedBtnActive : ''}`}
+                onClick={() => setAlfredFilter(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className={styles.dateRange}>
+            <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
+            <span>–</span>
+            <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} />
+          </div>
+          <button className={adminUi.btn} onClick={fetchData}>Refresh</button>
+        </>
+      }
+    >
+    <div className={showCalculator ? styles.containerWithSidebar : undefined}>
       <div className={styles.mainColumn}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>LLM Usage</h1>
-        <div style={{ display: 'inline-flex', border: '1px solid #d1d5db', borderRadius: 8, overflow: 'hidden' }}>
-          {([
-            ['all', 'All'],
-            ['without', 'Without Alfred'],
-            ['only', 'Only Alfred'],
-          ] as Array<[AlfredFilter, string]>).map(([value, label]) => (
-            <button
-              key={value}
-              onClick={() => setAlfredFilter(value)}
-              style={{
-                fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
-                padding: '6px 12px', border: 'none',
-                background: alfredFilter === value ? '#4338ca' : '#fff',
-                color: alfredFilter === value ? '#fff' : '#6b7280',
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className={styles.dateRange}>
-          <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
-          <span>-</span>
-          <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} />
-          <button onClick={fetchData}>Refresh</button>
-        </div>
-      </div>
 
       {loading ? (
         <div className={styles.loading}>Loading...</div>
@@ -363,5 +364,6 @@ export function LLMUsagePage({ baseURL, agentName, agentSlug }: Props) {
         <CostCalculatorPanel byProcess={viewByProcess} byModel={viewByModel} />
       )}
     </div>
+    </AdminPage>
   );
 }

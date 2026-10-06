@@ -1,21 +1,10 @@
-/* Padding for a section rendered inside the dashboard layout's scrolling
-   <main> (DashboardLayout owns the sidebar and the scroll). */
-.section {
-  padding: var(--spacing-xl);
-  font-family: var(--font-family);
-  color: var(--text-primary);
-}
-
+/* Width, padding and the page title come from the shared AdminPage frame. */
 .contentInner {
   width: 100%;
 }
 
-.title {
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  margin: 0 0 6px;
-  color: var(--text-primary);
+.pageHeader {
+  margin-bottom: var(--spacing-xl);
 }
 
 .subtitle {
@@ -24,13 +13,6 @@
   color: var(--text-secondary);
   margin: 0 0 var(--spacing-lg);
   max-width: 820px;
-}
-
-.detailHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--spacing-md);
 }
 
 .sectionHeaderRow {

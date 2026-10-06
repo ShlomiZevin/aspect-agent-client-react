@@ -1,121 +1,24 @@
-.page {
-  padding: var(--spacing-xl);
-  overflow-y: auto;
-  height: 100%;
-}
-
-.pageHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--spacing-xl);
-}
-
-.pageTitle {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 4px;
-}
-
-.pageSubtitle {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.pageSubtitle code {
+/* Schema name in the page subtitle. */
+.schemaCode {
   background: var(--surface-light);
   padding: 1px 6px;
   border-radius: var(--radius-sm);
-  font-size: 0.8em;
-}
-
-/* ── Header Actions ─────────────────────────────────────── */
-
-.headerActions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-/* ── Buttons ─────────────────────────────────────────────── */
-
-.reloadBtn,
-.indexBtn {
-  padding: 8px 20px;
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  cursor: pointer;
-  transition: var(--transition-fast);
-  white-space: nowrap;
-}
-
-.reloadBtn {
-  background: var(--primary-color);
-}
-
-.indexBtn {
-  background: #7c3aed;
-}
-
-.reloadBtn:hover:not(:disabled),
-.indexBtn:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
-.reloadBtnDisabled {
-  background: var(--text-muted) !important;
-  cursor: not-allowed;
+  font-size: 0.9em;
 }
 
 /* ── Loaded Notice ───────────────────────────────────────── */
 
 .loadedNotice {
-  background: #1e3a1e;
-  border: 1px solid #2d6a2d;
+  background: color-mix(in srgb, var(--success-color) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--success-color) 35%, var(--surface));
   border-radius: var(--radius-md);
   padding: 10px 14px;
   font-size: var(--font-size-sm);
-  color: #7ec87e;
+  color: #047857;
   margin-bottom: 12px;
 }
 
 /* ── Two-column layout ──────────────────────────────────── */
-
-/* ── Tabs ───────────────────────────────────────────────── */
-
-.tabBar {
-  display: flex;
-  gap: var(--spacing-xs);
-  border-bottom: 1px solid var(--border);
-  margin-bottom: var(--spacing-lg);
-}
-
-.tab,
-.tabActive {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  margin-bottom: -1px;
-}
-
-.tab:hover {
-  color: var(--text-primary);
-}
-
-.tabActive {
-  color: var(--primary-color);
-  border-bottom-color: var(--primary-color);
-}
 
 .twoCol {
   display: grid;
@@ -138,7 +41,6 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-lg);
   overflow: hidden;
 }
 
@@ -175,7 +77,7 @@
 
 .table th {
   text-align: left;
-  padding: var(--spacing-sm) var(--spacing-lg);
+  padding: var(--spacing-sm) var(--spacing-md);
   color: var(--text-muted);
   font-weight: 500;
   font-size: var(--font-size-xs);
@@ -185,9 +87,10 @@
 }
 
 .table td {
-  padding: var(--spacing-sm) var(--spacing-lg);
+  padding: var(--spacing-sm) var(--spacing-md);
   color: var(--text-primary);
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 
 .table tr:last-child td {
@@ -244,24 +147,28 @@
 .badge {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
+  width: fit-content;
   gap: 6px;
   padding: 3px 10px;
   border-radius: 999px;
   font-size: var(--font-size-xs);
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.badgeRunning   { background: #14532d; color: #4ade80; }
-.badgeCompleted { background: #052e16; color: #22c55e; }
-.badgeFailed    { background: #450a0a; color: #f87171; }
-.badgeLoaded    { background: #2e1a5e; color: #a78bfa; }
+/* Light tints of the status colours — the old dark-theme fills read as a
+   black bar on the light admin. */
+.badgeRunning   { background: color-mix(in srgb, var(--primary-color) 12%, var(--surface)); color: var(--primary-color); }
+.badgeCompleted { background: color-mix(in srgb, var(--success-color) 14%, var(--surface)); color: #047857; }
+.badgeFailed    { background: color-mix(in srgb, var(--error-color) 12%, var(--surface)); color: #b91c1c; }
+.badgeLoaded    { background: color-mix(in srgb, var(--primary-color) 12%, var(--surface)); color: var(--primary-color); }
 .badgeIdle      { background: var(--surface-light); color: var(--text-muted); }
 
 .badgeDot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #4ade80;
+  background: currentColor;
   animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -610,4 +517,15 @@
   text-align: center;
   color: var(--text-muted);
   font-size: var(--font-size-sm);
+}
+
+/* First and last columns line up with the section header padding. */
+.table th:first-child,
+.table td:first-child {
+  padding-left: var(--spacing-lg);
+}
+
+.table th:last-child,
+.table td:last-child {
+  padding-right: var(--spacing-lg);
 }

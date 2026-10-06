@@ -9,6 +9,7 @@ import { getAgentCrew, getCrewMember } from '../../../services/crewService';
 import { CrewGenerator } from '../CrewGenerator';
 import { CrewEditor } from '../CrewEditor';
 import type { CrewMember, CrewMemberConfig } from '../../../types/crew';
+import { AdminPage, adminUi } from '../AdminPage';
 import styles from './CrewPage.module.css';
 
 interface CrewPageProps {
@@ -96,33 +97,33 @@ export function CrewPage({ agentName, baseURL }: CrewPageProps) {
   // Show loading overlay when loading a single crew
   if (isLoadingCrew) {
     return (
-      <div className={styles.container}>
+      <AdminPage>
         <div className={styles.loading}>
           <div className={styles.spinner} />
           <span className={styles.loadingText}>Loading crew member...</span>
         </div>
-      </div>
+      </AdminPage>
     );
   }
 
   // Show generator view
   if (viewMode === 'create') {
     return (
-      <div className={styles.container}>
+      <AdminPage>
         <CrewGenerator
           agentName={agentName}
           baseURL={baseURL}
           onCrewCreated={handleCrewCreated}
           onCancel={handleCancel}
         />
-      </div>
+      </AdminPage>
     );
   }
 
   // Show editor view
   if (viewMode === 'edit' && selectedCrew) {
     return (
-      <div className={styles.container}>
+      <AdminPage>
         <CrewEditor
           agentName={agentName}
           crew={selectedCrew}
@@ -131,23 +132,25 @@ export function CrewPage({ agentName, baseURL }: CrewPageProps) {
           onDeleted={handleCrewDeleted}
           onCancel={handleCancel}
         />
-      </div>
+      </AdminPage>
     );
   }
 
   // Show list view
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Crew Members</h1>
-        <button className={styles.addButton} onClick={handleCreateClick}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <AdminPage
+      title="Crew Members"
+      subtitle="The specialist personas this agent routes each conversation to"
+      actions={
+        <button className={`${adminUi.btn} ${adminUi.btnPrimary}`} onClick={handleCreateClick}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
           Create Crew Member
         </button>
-      </div>
+      }
+    >
 
       {error && <div className={styles.error}>{error}</div>}
 
@@ -169,7 +172,7 @@ export function CrewPage({ agentName, baseURL }: CrewPageProps) {
             Create your first crew member to get started. Crew members are specialized
             sub-agents that can handle different parts of conversations.
           </p>
-          <button className={styles.addButton} onClick={handleCreateClick}>
+          <button className={`${adminUi.btn} ${adminUi.btnPrimary}`} onClick={handleCreateClick}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -245,6 +248,6 @@ export function CrewPage({ agentName, baseURL }: CrewPageProps) {
           ))}
         </div>
       )}
-    </div>
+    </AdminPage>
   );
 }

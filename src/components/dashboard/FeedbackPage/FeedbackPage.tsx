@@ -5,6 +5,7 @@ import { FeedbackFilters } from '../FeedbackFilters';
 import { FeedbackMessageCard } from '../FeedbackMessageCard';
 import { getFeedbackMessages, getFeedbackStats, deleteFeedback } from '../../../services/feedbackService';
 import type { FeedbackMessage, FeedbackStats } from '../../../types/feedback';
+import { AdminPage } from '../AdminPage';
 import styles from './FeedbackPage.module.css';
 
 interface FeedbackPageProps {
@@ -104,12 +105,7 @@ export function FeedbackPage({ agentName, baseURL }: FeedbackPageProps) {
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Feedback</h1>
-        <p className={styles.subtitle}>Review and analyse agent response feedback</p>
-      </div>
-
+    <AdminPage title="Feedback" subtitle="Review and analyse agent response feedback">
       <div className={styles.body}>
         <div className={styles.sidebar}>
           {stats && (
@@ -166,6 +162,6 @@ export function FeedbackPage({ agentName, baseURL }: FeedbackPageProps) {
           </div>
         </div>
       </div>
-    </div>
+    </AdminPage>
   );
 }

@@ -21,6 +21,7 @@ import { intelligenceAdminService, type IntelligenceAdminDataset, type Intellige
 import type { InsightDetail } from '../../../types/insights';
 import type { QuickQuestion } from '../../../types/agent';
 import { useDocumentMeta } from '../../../hooks';
+import { AdminPage, AdminPageHeader } from '../AdminPage';
 import { intelligenceAdminPath } from './paths';
 import styles from './IntelligenceAdmin.module.css';
 
@@ -48,9 +49,12 @@ function useDatasetsState(): DatasetsState {
 export function IntelligenceOverviewPage() {
   const state = useDatasetsState();
   return (
-    <div className={styles.section}>
+    <AdminPage
+      title="Intelligence Overview"
+      subtitle="Turn Aspect Intelligence on or off per dataset. Click a dataset to open it in that client's admin, where you edit its config, prompts and quick questions, or manage its insights."
+    >
       <OverviewPage {...state} />
-    </div>
+    </AdminPage>
   );
 }
 
@@ -77,8 +81,6 @@ function OverviewPage({ datasets, reload }: DatasetsState) {
 
   return (
     <div className={styles.contentInner}>
-      <h1 className={styles.title}>Intelligence Overview</h1>
-      <p className={styles.subtitle}>Turn Aspect Intelligence on or off per dataset. Click a dataset to open it in that client's admin, where you edit its config, prompts and quick questions, or manage its insights.</p>
 
       {datasets !== null && (
         <div className={styles.statGrid}>
@@ -317,25 +319,27 @@ function DatasetLayout({ datasetId, datasets, reload }: DatasetsState & { datase
 
   return (
     <div className={styles.contentInner}>
-      <div className={styles.detailHeader}>
-        <div>
-          <h1 className={styles.title}>{dataset.name}</h1>
-          <p className={styles.subtitle}>{dataset.description}</p>
-        </div>
-        <div className={styles.enabledCell}>
-          <button
-            className={`${styles.toggle} ${dataset.config.enabled ? styles.toggleOn : ''}`}
-            onClick={toggleEnabled}
-            disabled={toggling}
-            aria-label={dataset.config.enabled ? 'Disable' : 'Enable'}
-            title={dataset.config.enabled ? 'Enabled — click to disable' : 'Disabled — click to enable'}
-          >
-            <span className={`${styles.toggleKnob} ${dataset.config.enabled ? styles.toggleOnKnob : ''}`} />
-          </button>
-          <span className={`${styles.enabledLabel} ${dataset.config.enabled ? styles.enabledLabelOn : ''}`}>
-            {dataset.config.enabled ? 'Enabled' : 'Disabled'}
-          </span>
-        </div>
+      <div className={styles.pageHeader}>
+        <AdminPageHeader
+          title="Intelligence"
+          subtitle={dataset.description}
+          actions={
+            <div className={styles.enabledCell}>
+              <button
+                className={`${styles.toggle} ${dataset.config.enabled ? styles.toggleOn : ''}`}
+                onClick={toggleEnabled}
+                disabled={toggling}
+                aria-label={dataset.config.enabled ? 'Disable' : 'Enable'}
+                title={dataset.config.enabled ? 'Enabled — click to disable' : 'Disabled — click to enable'}
+              >
+                <span className={`${styles.toggleKnob} ${dataset.config.enabled ? styles.toggleOnKnob : ''}`} />
+              </button>
+              <span className={`${styles.enabledLabel} ${dataset.config.enabled ? styles.enabledLabelOn : ''}`}>
+                {dataset.config.enabled ? 'Enabled' : 'Disabled'}
+              </span>
+            </div>
+          }
+        />
       </div>
       {dataset.config.enabled ? (
         <Outlet context={{ dataset, reload } satisfies DatasetOutletContext} />
@@ -892,7 +896,7 @@ export function IntelligenceDatasetSection({ datasetId }: { datasetId: string })
   const { datasets, reload } = useDatasetsState();
 
   return (
-    <div className={styles.section}>
+    <AdminPage>
       <Routes>
         <Route element={<DatasetLayout datasetId={datasetId} datasets={datasets} reload={reload} />}>
           <Route index element={<Navigate to="config" replace />} />
@@ -902,6 +906,6 @@ export function IntelligenceDatasetSection({ datasetId }: { datasetId: string })
           <Route path="insights" element={<DatasetInsightsPage />} />
         </Route>
       </Routes>
-    </div>
+    </AdminPage>
   );
 }

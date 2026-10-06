@@ -33,6 +33,7 @@ import { ConversationTrendsPage } from '../components/dashboard/ConversationTren
 import { CloudRunLogsPage } from '../components/dashboard/CloudRunLogsPage';
 import { IntelligenceDatasetSection, IntelligenceOverviewPage } from '../components/dashboard/IntelligenceAdmin';
 import { intelligenceAdminService } from '../services/intelligenceAdminService';
+import { AdminPage } from '../components/dashboard/AdminPage';
 import { PineconeAdmin } from '../components/pinecone';
 import { TaskBoardContent } from '../components/tasks/TaskBoardModal/TaskBoardContent';
 import dashStyles from './DashboardPage.module.css';
@@ -196,7 +197,11 @@ export function DashboardPage() {
             />
             <Route
               path="knowledge-base"
-              element={<KBManager />}
+              element={
+                <AdminPage title="Knowledge Base" subtitle="Document collections the agent searches when it answers">
+                  <KBManager embedded />
+                </AdminPage>
+              }
             />
             <Route
               path="dynamic-kb"

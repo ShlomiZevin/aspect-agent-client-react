@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { AdminPage, adminUi } from '../AdminPage';
 import styles from './BillingPage.module.css';
 
 interface Props {
@@ -237,23 +238,22 @@ export function BillingPage({ baseURL }: Props) {
   }, [fetchBilling]);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>API Billing</h1>
-          <p className={styles.subtitle}>Current month usage and costs across all LLM providers</p>
-        </div>
-        <div className={styles.headerActions}>
+    <AdminPage
+      title="API Billing"
+      subtitle="Current month usage and costs across all LLM providers"
+      actions={
+        <>
           {lastRefreshed && (
             <span className={styles.lastRefreshed}>
               Updated {lastRefreshed.toLocaleTimeString()}
             </span>
           )}
-          <button className={styles.refreshBtn} onClick={fetchBilling} disabled={loading}>
+          <button className={adminUi.btn} onClick={fetchBilling} disabled={loading}>
             {loading ? 'Loading…' : '↻ Refresh'}
           </button>
-        </div>
-      </div>
+        </>
+      }
+    >
 
       {error && (
         <div className={styles.globalError}>
@@ -272,6 +272,6 @@ export function BillingPage({ baseURL }: Props) {
           <ProviderCard data={data.google} />
         </div>
       )}
-    </div>
+    </AdminPage>
   );
 }

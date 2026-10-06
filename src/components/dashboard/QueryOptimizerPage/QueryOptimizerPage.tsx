@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { AdminPage, adminUi } from '../AdminPage';
 import styles from './QueryOptimizerPage.module.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -309,15 +310,11 @@ export function QueryOptimizerPage({ agentName: _agentName, baseURL }: QueryOpti
     : activeQueries.filter(q => (q.query_type ?? 'slow') === typeFilter);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div>
-          <h1 className={styles.pageTitle}>Query Optimizer</h1>
-          <p className={styles.pageSubtitle}>
-            Monitor slow queries and create indexes to improve performance
-          </p>
-        </div>
-        <button className={styles.refreshBtn} onClick={loadData} disabled={loading}>
+    <AdminPage
+      title="Query Optimizer"
+      subtitle="Monitor slow queries and create indexes to improve performance"
+      actions={
+        <button className={adminUi.btn} onClick={loadData} disabled={loading}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="23 4 23 10 17 10" />
             <polyline points="1 20 1 14 7 14" />
@@ -325,7 +322,8 @@ export function QueryOptimizerPage({ agentName: _agentName, baseURL }: QueryOpti
           </svg>
           {loading ? 'Loading...' : 'Refresh'}
         </button>
-      </div>
+      }
+    >
 
       {/* ── Slow Queries ── */}
       <section className={styles.section}>
@@ -540,6 +538,6 @@ export function QueryOptimizerPage({ agentName: _agentName, baseURL }: QueryOpti
           </table>
         </div>
       </section>
-    </div>
+    </AdminPage>
   );
 }

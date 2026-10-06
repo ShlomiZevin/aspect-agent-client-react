@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
 import { ApiKeysPage } from '../ApiKeysPage';
+import { AdminPage, adminUi } from '../AdminPage';
 import styles from './SettingsPage.module.css';
 
 interface Props {
@@ -421,27 +422,22 @@ export function SettingsPage({ baseURL = '', agentName }: Props) {
   const [tab, setTab] = useState<Tab>('api-keys');
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Settings</h1>
-        <p className={styles.subtitle}>Agent configuration and notification settings.</p>
-      </div>
-
-      <div className={styles.tabs}>
+    <AdminPage title="Settings" subtitle="Agent configuration and notification settings.">
+      <div className={adminUi.tabs}>
         <button
-          className={`${styles.tab} ${tab === 'api-keys' ? styles.tabActive : ''}`}
+          className={`${adminUi.tab} ${tab === 'api-keys' ? adminUi.tabActive : ''}`}
           onClick={() => setTab('api-keys')}
         >
           API Keys
         </button>
         <button
-          className={`${styles.tab} ${tab === 'notifications' ? styles.tabActive : ''}`}
+          className={`${adminUi.tab} ${tab === 'notifications' ? adminUi.tabActive : ''}`}
           onClick={() => setTab('notifications')}
         >
           Notifications
         </button>
         <button
-          className={`${styles.tab} ${tab === 'schedule' ? styles.tabActive : ''}`}
+          className={`${adminUi.tab} ${tab === 'schedule' ? adminUi.tabActive : ''}`}
           onClick={() => setTab('schedule')}
         >
           Schedule
@@ -451,6 +447,6 @@ export function SettingsPage({ baseURL = '', agentName }: Props) {
       {tab === 'api-keys' && <ApiKeysPage baseURL={baseURL} embedded />}
       {tab === 'notifications' && <NotificationsTab baseURL={baseURL} agentName={agentName} />}
       {tab === 'schedule' && <ScheduleTab baseURL={baseURL} agentName={agentName} />}
-    </div>
+    </AdminPage>
   );
 }

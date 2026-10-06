@@ -145,22 +145,21 @@ const CLOUD_RUN_LOGS_ITEM = {
 };
 
 
-// Which groups the admin has unfolded, remembered across visits. Nothing is
-// unfolded by default except the group holding the current page (see below),
-// so the menu starts as a short list of group headers.
-const OPEN_GROUPS_KEY = 'adminNavOpenGroups';
+// Which groups the admin has folded, remembered across visits. Every group
+// is unfolded by default; only what the admin folds by hand stays folded.
+const CLOSED_GROUPS_KEY = 'adminNavClosedGroups';
 
-function readOpenGroups(): Set<string> {
+function readClosedGroups(): Set<string> {
   try {
-    const saved = localStorage.getItem(OPEN_GROUPS_KEY);
+    const saved = localStorage.getItem(CLOSED_GROUPS_KEY);
     if (saved) return new Set(JSON.parse(saved) as string[]);
-  } catch { /* unreadable — start folded */ }
+  } catch { /* unreadable — everything unfolded */ }
   return new Set();
 }
 
-function writeOpenGroups(groups: Set<string>) {
+function writeClosedGroups(groups: Set<string>) {
   try {
-    localStorage.setItem(OPEN_GROUPS_KEY, JSON.stringify([...groups]));
+    localStorage.setItem(CLOSED_GROUPS_KEY, JSON.stringify([...groups]));
   } catch { /* storage blocked — the menu just won't remember */ }
 }
 
@@ -176,7 +175,7 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userType, setUserType] = useState<UserType>(() => (localStorage.getItem('adminUserType') as UserType) || 'admin');
-  const [openGroups, setOpenGroups] = useState<Set<string>>(readOpenGroups);
+  const [closedGroups, setClosedGroups] = useState<Set<string>>(readClosedGroups);
 
   const changeUserType = (type: UserType) => {
     setUserType(type);
@@ -270,8 +269,10 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
   const [seenActiveGroupId, setSeenActiveGroupId] = useState<string | undefined>();
   if (activeGroupId !== seenActiveGroupId) {
     setSeenActiveGroupId(activeGroupId);
-    if (activeGroupId && !openGroups.has(activeGroupId)) {
-      setOpenGroups(new Set(openGroups).add(activeGroupId));
+    if (activeGroupId && closedGroups.has(activeGroupId)) {
+      const next = new Set(closedGroups);
+      next.delete(activeGroupId);
+      setClosedGroups(next);
     }
   }
 
@@ -283,10 +284,10 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
   }, [location.pathname]);
 
   const toggleGroup = (id: string) => {
-    setOpenGroups(prev => {
+    setClosedGroups(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
-      writeOpenGroups(next);
+      writeClosedGroups(next);
       return next;
     });
   };
@@ -331,7 +332,7 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
         <nav ref={navRef} className={styles.nav}>
           {groups.map(group => {
             const headerless = !group.label;
-            const open = headerless || openGroups.has(group.id);
+            const open = headerless || !closedGroups.has(group.id);
             const holdsActive = group.id === activeGroupId;
             return (
               <div key={group.id} className={styles.navGroup}>

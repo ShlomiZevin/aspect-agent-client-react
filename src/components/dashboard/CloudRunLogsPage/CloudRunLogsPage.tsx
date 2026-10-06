@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { AdminPage, adminUi } from '../AdminPage';
 import styles from './CloudRunLogsPage.module.css';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -162,20 +163,20 @@ export function CloudRunLogsPage({ baseURL }: { baseURL: string }) {
   }, [loading]);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div>
-          <h1 className={styles.pageTitle}>Cloud Run Logs</h1>
-          <p className={styles.pageSubtitle}>Production server — last 200 entries, oldest first</p>
-        </div>
-        <button className={styles.refreshBtn} onClick={() => fetchLogs(filter)} disabled={loading}>
+    <AdminPage
+      className={styles.page}
+      title="Cloud Run Logs"
+      subtitle="Production server — last 200 entries, oldest first"
+      actions={
+        <button className={adminUi.btn} onClick={() => fetchLogs(filter)} disabled={loading}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
           </svg>
           {loading ? 'Loading...' : 'Refresh'}
         </button>
-      </div>
+      }
+    >
 
       <div className={styles.toolbar}>
         <div className={styles.tabs}>
@@ -218,6 +219,6 @@ export function CloudRunLogsPage({ baseURL }: { baseURL: string }) {
         ))}
         <div ref={bottomRef} />
       </div>
-    </div>
+    </AdminPage>
   );
 }
