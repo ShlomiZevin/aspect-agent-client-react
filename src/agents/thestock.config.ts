@@ -4,11 +4,13 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'https://aspect-agent-server-10
 
 export const thestockConfig: AgentConfig = {
   agentName: 'TheStock',
-  displayName: 'The Stock Intelligence',
+  // Hebrew on purpose: the client's Chrome auto-translates English pages, and
+  // "The Stock" came out as "המניה" (a share). The brand name is "הסטוק".
+  displayName: 'הסטוק',
   storagePrefix: 'thestock_',
   baseURL: BASE_URL,
 
-  pageTitle: 'The Stock - Business Intelligence',
+  pageTitle: 'הסטוק - בינה עסקית',
   favicon: '/img/thestock-logo.svg',
   metaDescription: 'AI-powered business intelligence for The Stock retail chain — customers, payments, products, inventory.',
 

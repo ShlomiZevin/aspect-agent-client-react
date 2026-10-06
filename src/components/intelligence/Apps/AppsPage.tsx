@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import styles from './AppsPage.module.css';
 import { AppGlyph } from './AppIcon';
 import { ScreenIcon } from './custom/ScreenIcon';
+import { AiBuilderDialog } from './custom/AiBuilderDialog';
 import { appsService } from '../../../services/appsService';
 import type { AppsResponse } from '../../../types/apps';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -33,6 +34,7 @@ export function AppsPage({ datasetId, baseURL, onOpenApp }: Props) {
   const { userId } = useUserContext();
   const [loaded, setLoaded] = useState<AppsResponse | null>(null);
   const [failedFor, setFailedFor] = useState<string | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
 
   // Two requests, because they cost wildly different amounts. The shelf itself
   // is a module lookup and answers in a blink; the badge is a full pass over
@@ -176,6 +178,26 @@ export function AppsPage({ datasetId, baseURL, onOpenApp }: Props) {
           </button>
         )}
 
+        {/* "Build with your own AI" (task #96) — beside Otto's tile: the same
+            result (a draft app on this shelf), built from the person's own
+            Claude Code / Codex instead of from the chat here. */}
+        {data?.aiBuilder === true && (
+          <button
+            type="button"
+            className={`${styles.app} ${styles.live}`}
+            onClick={() => setAiOpen(true)}
+          >
+            <span className={`${styles.tile} ${styles.tileNew}`} style={{ fontSize: 20 }}>{'</>'}</span>
+            <span>
+              <span className={`${styles.name} ${styles.nameNew}`}>{t('aiBuilder.tile')}</span>
+              <span className={styles.sub} style={{ display: 'block' }}>
+                {t('aiBuilder.tileSub')}
+                <span className={styles.betaTag}>{t('otto.beta')}</span>
+              </span>
+            </span>
+          </button>
+        )}
+
         {data?.planned.map(app => (
           // Not a button: there is nothing behind it. Rendering one that does
           // nothing when clicked is a worse promise than a plain label.
@@ -190,6 +212,10 @@ export function AppsPage({ datasetId, baseURL, onOpenApp }: Props) {
           </div>
         ))}
       </div>
+
+      {aiOpen && (
+        <AiBuilderDialog datasetId={datasetId} viewerId={userId} baseURL={baseURL} onClose={() => setAiOpen(false)} />
+      )}
     </div>
   );
 }

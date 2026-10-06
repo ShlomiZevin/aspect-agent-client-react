@@ -98,6 +98,14 @@
 
 .atRiskIcon { color: #ef4444; font-size: 12px; }
 
+.taskId {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .title {
   font-weight: 500;
   color: var(--text-primary);

@@ -136,6 +136,7 @@ export function ListView({
                 <td className={styles.titleCell}>
                   <span className={styles.titleWrapper}>
                     {task.atRisk && <span className={styles.atRiskIcon}>⚠</span>}
+                    <span className={styles.taskId}>#{task.id}</span>
                     <span
                       className={styles.title}
                       style={containsHebrew(task.title) ? { direction: 'rtl', textAlign: 'right' } : undefined}

@@ -210,6 +210,13 @@
   gap: 6px;
 }
 
+.taskId {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .deployedBadge {
   font-size: 12px;
   line-height: 1;

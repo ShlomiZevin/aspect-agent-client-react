@@ -72,4 +72,6 @@ export interface AppsResponse {
   custom?: CustomScreenTile[];
   /** True when the `otto` module is live → the "New screen" tile renders. */
   canCreate?: boolean;
+  /** True when module `ai-builder` is live too → the "Build with your own AI" tile (task #96). */
+  aiBuilder?: boolean;
 }

@@ -64,6 +64,12 @@ export const ottoService = {
       body: JSON.stringify({ revert: true }),
     }, baseURL).then(r => r.screen),
 
+  /** The viewer's personal "build with your own AI" link (task #96). */
+  /** The personal door link — on our public site (Hosting proxies it to the
+   *  server), one address for the paste-in prompt and for MCP connectors. */
+  aiLink: (datasetId: string, viewerId: string | null, baseURL?: string) =>
+    apiRequest<{ url: string }>(withViewer(`${base(datasetId)}/ai-link`, viewerId), {}, baseURL).then(r => r.url),
+
   deleteDraft: (datasetId: string, id: string, viewerId: string | null, baseURL?: string) =>
     apiRequest<{ deleted: boolean }>(withViewer(`${base(datasetId)}/screens/${encodeURIComponent(id)}`, viewerId), {
       method: 'DELETE',

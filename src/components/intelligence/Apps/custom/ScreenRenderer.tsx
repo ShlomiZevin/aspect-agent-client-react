@@ -294,7 +294,15 @@ function ChartView({ block, data, lang }: {
     if (!set) return null;
     // A chart over 500 categories is noise; a pie must stay within the
     // slice count its eligibility check allows.
-    const rows = set.rows.slice(0, block.variant === 'pie' ? 10 : 30);
+    let rows = set.rows.slice(0, block.variant === 'pie' ? 10 : 30);
+    // Time runs left to right. "The last 30 days" arrives date-DESC (that is
+    // how the result set keeps the newest 30), and drawn in row order the
+    // line ran backwards — caught by the AI-builder door test (task #96).
+    // Slice first, so the newest rows are the ones kept; then sort ascending.
+    const catType = set.columns.find(c => c.id === block.category)?.type;
+    if (block.variant === 'line' && catType === 'date') {
+      rows = [...rows].sort((a, b) => String(a[block.category] ?? '').localeCompare(String(b[block.category] ?? '')));
+    }
     return {
       title: pick(block.title, lang),
       unit: '',
