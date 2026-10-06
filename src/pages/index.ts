@@ -35,7 +35,6 @@ export { NewDeliPage } from './NewDeliPage';
 export { TheStockPage } from './TheStockPage';
 export { HyperToyPage } from './HyperToyPage';
 export { AgentChatWidgetPage } from './AgentChatWidgetPage';
-export { IntelligenceAdminPage } from './IntelligenceAdminPage';
 export { ZolStockPage } from './ZolStockPage';
 export { SuperHistPage } from './SuperHistPage';
 export { TevaNaotPage } from './TevaNaotPage';

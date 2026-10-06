@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { PageLoader } from './components/common/PageLoader';
 import { lazy, Suspense } from 'react';
-import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, AspectAgentsHomePage, ArchitecturePage, AspectBattleCardPage, AspectMarketingSalesPage, AspectPage, AspectLandingPage, AspectPlatformLandingPage, AspectPlatformSalesPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaNextPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, EnterpriseReadinessPage, LybiArchitecturePage, LybiTechnologyPage, LybiBankingDeckPage, LybiDecisionResearchPage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiBrainPage, LybiKnowledgePage, LybiCostPage, LybiInstallPage, LybiSupportPage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TeamPlanPage, ZolstockPurchasingSpecPage, ZolstockPurchasingClientPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage, AgentChatWidgetPage, IntelligenceAdminPage, ZolStockPage, SuperHistPage, TevaNaotPage, WeAreYourAIPage, WeAreYourAIVisualPage } from './pages';
+import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, AspectAgentsHomePage, ArchitecturePage, AspectBattleCardPage, AspectMarketingSalesPage, AspectPage, AspectLandingPage, AspectPlatformLandingPage, AspectPlatformSalesPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaNextPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, EnterpriseReadinessPage, LybiArchitecturePage, LybiTechnologyPage, LybiBankingDeckPage, LybiDecisionResearchPage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiBrainPage, LybiKnowledgePage, LybiCostPage, LybiInstallPage, LybiSupportPage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TeamPlanPage, ZolstockPurchasingSpecPage, ZolstockPurchasingClientPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage, AgentChatWidgetPage, ZolStockPage, SuperHistPage, TevaNaotPage, WeAreYourAIPage, WeAreYourAIVisualPage } from './pages';
 
 // Builder lives in its own subtree — lazy so end-user routes don't pay for it.
 const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ default: m.BuilderPage })));
@@ -51,6 +51,7 @@ function MaybeDashboard() {
   if (ZER4U_MAINTENANCE && agent === 'zer4u') return <Zer4UMaintenancePage />;
   return <DashboardPage />;
 }
+import { intelligenceAdminPath } from './components/dashboard/IntelligenceAdmin';
 import { useTaskBoard, useQuickBug } from './hooks';
 import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
 import { QuickBugModal } from './components/tasks/QuickBugModal/QuickBugModal';
@@ -481,8 +482,9 @@ function AppContent() {
         {/* Hidden super-admin users page (code-gated; sees all tenants) */}
         <Route path="/users/*" element={<SuperAdminUsersPage />} />
 
-        {/* Hidden Aspect Intelligence admin (login-gated; cross-dataset enable/config/monitor) */}
-        <Route path="/intelligence/admin/*" element={<IntelligenceAdminPage />} />
+        {/* The old standalone Aspect Intelligence admin — now part of each
+            client's own admin (see IntelligenceAdminRedirect). */}
+        <Route path="/intelligence/admin/*" element={<IntelligenceAdminRedirect />} />
 
         {/* Dashboard routes */}
         <Route path="/:agent/dashboard/*" element={<MaybeDashboard />} />
@@ -543,6 +545,22 @@ function IntelligenceLegacyRedirect() {
   const location = useLocation();
   const rest = params['*'];
   return <Navigate to={`/${params.datasetId}/intelligence${rest ? `/${rest}` : ''}${location.search}`} replace />;
+}
+
+/**
+ * /intelligence/admin/:datasetId/:subPage -> /:datasetId/admin/intelligence/:subPage
+ * /intelligence/admin                     -> the cross-client overview
+ *
+ * The Intelligence admin moved into each client's own admin. Dataset ids are
+ * agent slugs, so the dataset part maps straight across. The bare overview
+ * isn't any one client's, so it lands on the internal Aspect admin, whose
+ * Platform group holds it.
+ */
+function IntelligenceAdminRedirect() {
+  const rest = useParams()['*'] ?? '';
+  const [datasetId, subPage] = rest.split('/').filter(Boolean);
+  if (!datasetId) return <Navigate to="/aspect/admin/intelligence-overview" replace />;
+  return <Navigate to={intelligenceAdminPath(datasetId, subPage)} replace />;
 }
 
 function App() {

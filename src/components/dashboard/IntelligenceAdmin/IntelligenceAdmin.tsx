@@ -1,93 +1,28 @@
 /**
- * Hidden admin panel for Aspect Intelligence (`/intelligence/admin/*`) — lets
- * Kosta/Shlomi enable it per dataset, edit its per-dataset config, and
- * monitor generated insights, without touching code or waiting for a
- * deploy. Cross-dataset (all 6 registered datasets at once), so it's a
- * standalone top-level route rather than nested under one agent's
- * `/:agent/dashboard/*`. Gated by the same shared internal key as the
- * existing hidden `/users` (SuperAdminUsersPage) page — presented as a
- * normal username+password sign-in rather than a bare code.
+ * Aspect Intelligence admin, as sections of the per-client admin
+ * (`/:agent/admin/*`, see DashboardPage). It used to be its own app at
+ * `/intelligence/admin/*` with a separate sidebar and sign-in; that address
+ * now redirects here (App.tsx).
  *
- * Structure (split by meaning, not one flat page):
- *  - Overview (index route) — every dataset, enable/disable only.
- *  - Per-dataset group (sidebar expands to a submenu once you're inside one)
- *    — focused sub-pages instead of one long form:
- *    `/intelligence/admin/:datasetId/config`   — brand label + data model description
- *    `/intelligence/admin/:datasetId/prompts`  — example prompt chips
- *    `/intelligence/admin/:datasetId/insights` — generated-insight monitor + delete
+ *  - IntelligenceDatasetSection — one client's dataset, rendered under
+ *    `/:agent/admin/intelligence/*`, one sidebar item per sub-page:
+ *    `config`          — brand label + data model description
+ *    `prompts`         — example prompt chips
+ *    `quick-questions` — Data Chat quick-question tiles
+ *    `insights`        — generated-insight monitor + delete
  *    (there's deliberately no "run bootstrap/investigate" admin page — that
  *    duplicated what's already available directly in the product itself)
+ *  - IntelligenceOverviewPage — every dataset at once, enable/disable only.
+ *    Cross-client, so it sits in the sidebar's Platform group.
  */
-import { useEffect, useState, type FormEvent } from 'react';
-import { Routes, Route, Navigate, NavLink, Outlet, useParams, useNavigate, useLocation, useOutletContext } from 'react-router-dom';
-import { ThemeProvider } from '../context/ThemeContext';
-import { isSuperAdminUnlocked, unlockSuperAdmin, lockSuperAdmin } from '../services/superAdminService';
-import { intelligenceAdminService, type IntelligenceAdminDataset, type IntelligenceConfigVersion } from '../services/intelligenceAdminService';
-import type { InsightDetail } from '../types/insights';
-import type { QuickQuestion } from '../types/agent';
-import { useDocumentMeta } from '../hooks';
-import styles from './IntelligenceAdminPage.module.css';
-
-function LoginGate({ onUnlocked }: { onUnlocked: () => void }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-
-  // Same shared internal key as every other admin surface in this app
-  // (superAdminService — used by /users too), just presented as a normal
-  // username + password sign-in instead of a bare PIN code. The username
-  // isn't separately checked against anything (there's no multi-admin
-  // account system) — it only needs to be filled in, matching the visual
-  // shape of a real login without pretending there's per-person auth here.
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!username.trim()) {
-      setError('Enter a username');
-      return;
-    }
-    if (unlockSuperAdmin(password.trim())) {
-      onUnlocked();
-    } else {
-      setError('Wrong password');
-      setPassword('');
-    }
-  };
-
-  return (
-    <div className={styles.gate}>
-      <form className={styles.gateCard} onSubmit={handleSubmit}>
-        <div className={styles.gateMark}>✦</div>
-        <h1 className={styles.gateTitle}>Aspect Intelligence</h1>
-        <p className={styles.gateSubtitle}>Sign in to manage datasets</p>
-        <div className={styles.gateField}>
-          <label htmlFor="ia-username">Username</label>
-          <input
-            id="ia-username"
-            type="text"
-            value={username}
-            onChange={e => { setUsername(e.target.value); setError(null); }}
-            autoFocus
-            autoComplete="username"
-            placeholder="admin"
-          />
-        </div>
-        <div className={styles.gateField}>
-          <label htmlFor="ia-password">Password</label>
-          <input
-            id="ia-password"
-            type="password"
-            value={password}
-            onChange={e => { setPassword(e.target.value); setError(null); }}
-            autoComplete="current-password"
-            placeholder="••••••"
-          />
-        </div>
-        {error && <div className={styles.gateError}>{error}</div>}
-        <button type="submit" className={styles.gateSubmit}>Sign in</button>
-      </form>
-    </div>
-  );
-}
+import { useEffect, useState } from 'react';
+import { Routes, Route, Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
+import { intelligenceAdminService, type IntelligenceAdminDataset, type IntelligenceConfigVersion } from '../../../services/intelligenceAdminService';
+import type { InsightDetail } from '../../../types/insights';
+import type { QuickQuestion } from '../../../types/agent';
+import { useDocumentMeta } from '../../../hooks';
+import { intelligenceAdminPath } from './paths';
+import styles from './IntelligenceAdmin.module.css';
 
 /** Best-effort creation time from the `investigate-<ms>` id shape — there's no separate createdAt field on generated insights. */
 function insightCreatedLabel(id: string): string {
@@ -110,78 +45,12 @@ function useDatasetsState(): DatasetsState {
   return { datasets, reload };
 }
 
-/** Small colored dot: green = enabled, grey = disabled — same signal shown in the sidebar and the overview table. */
-function EnabledDot({ enabled }: { enabled: boolean }) {
-  return <span className={`${styles.dot} ${enabled ? styles.dotOn : ''}`} />;
-}
-
-const SUB_PAGES = [
-  { path: 'config', label: 'Config', icon: <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /> },
-  { path: 'prompts', label: 'Prompts', icon: <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /> },
-  { path: 'quick-questions', label: 'Quick Questions', icon: <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" /> },
-  { path: 'insights', label: 'Insights', icon: <path d="M18 20V10 M12 20V4 M6 20v-6" /> },
-];
-
-function Sidebar({ datasets, onSignOut }: { datasets: IntelligenceAdminDataset[] | null; onSignOut: () => void }) {
-  const location = useLocation();
-
+export function IntelligenceOverviewPage() {
+  const state = useDatasetsState();
   return (
-    <aside className={styles.sidebar}>
-      <div className={styles.sidebarHeader}>
-        <div className={styles.mark}>✦</div>
-        <div>
-          <div className={styles.brandName}>Aspect Intelligence</div>
-          <div className={styles.dashboardLabel}>Admin</div>
-        </div>
-      </div>
-      <nav className={styles.nav}>
-        <NavLink to="/intelligence/admin" end className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
-          </svg>
-          <span>Overview</span>
-        </NavLink>
-        <div className={styles.navDivider} />
-        <div className={styles.navGroupLabel}>Datasets</div>
-        {datasets?.map(d => {
-          const prefix = `/intelligence/admin/${d.id}`;
-          const groupActive = location.pathname === prefix || location.pathname.startsWith(`${prefix}/`);
-          return (
-            <div key={d.id}>
-              <NavLink to={prefix} className={`${styles.navItem} ${groupActive ? styles.navItemActive : ''}`}>
-                <EnabledDot enabled={d.config.enabled} />
-                <span>{d.name}</span>
-              </NavLink>
-              {/* Nothing to configure while disabled — no submenu until it's turned on. */}
-              {d.config.enabled && groupActive && (
-                <div className={styles.subNav}>
-                  {SUB_PAGES.map(sp => (
-                    <NavLink
-                      key={sp.path}
-                      to={`${prefix}/${sp.path}`}
-                      className={({ isActive }) => `${styles.subNavItem} ${isActive ? styles.subNavItemActive : ''}`}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        {sp.icon}
-                      </svg>
-                      <span>{sp.label}</span>
-                    </NavLink>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </nav>
-      <div className={styles.sidebarFooter}>
-        <button className={styles.signOutBtn} onClick={onSignOut}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-          </svg>
-          <span>Sign out</span>
-        </button>
-      </div>
-    </aside>
+    <div className={styles.section}>
+      <OverviewPage {...state} />
+    </div>
   );
 }
 
@@ -208,8 +77,8 @@ function OverviewPage({ datasets, reload }: DatasetsState) {
 
   return (
     <div className={styles.contentInner}>
-      <h1 className={styles.title}>Overview</h1>
-      <p className={styles.subtitle}>Turn Aspect Intelligence on or off per dataset. Open a dataset in the sidebar to edit its config, run bootstrap, or manage its insights.</p>
+      <h1 className={styles.title}>Intelligence Overview</h1>
+      <p className={styles.subtitle}>Turn Aspect Intelligence on or off per dataset. Click a dataset to open it in that client's admin, where you edit its config, prompts and quick questions, or manage its insights.</p>
 
       {datasets !== null && (
         <div className={styles.statGrid}>
@@ -247,7 +116,7 @@ function OverviewPage({ datasets, reload }: DatasetsState) {
             </thead>
             <tbody>
               {datasets.map(d => (
-                <tr key={d.id} className={styles.row} onClick={() => navigate(`/intelligence/admin/${d.id}/config`)}>
+                <tr key={d.id} className={styles.row} onClick={() => navigate(intelligenceAdminPath(d.id))}>
                   <td>
                     <div className={styles.datasetCell}>
                       <div className={styles.avatar} style={{ background: `linear-gradient(135deg, ${d.gradientFrom}, ${d.gradientTo})` }}>
@@ -427,8 +296,7 @@ function SectionToolbar({ onVersions, onReset }: { onVersions?: () => void; onRe
 }
 
 /** Shared header (name + enable toggle) for every sub-page of one dataset — the sub-pages themselves only render their own focused content via <Outlet>. */
-function DatasetLayout({ datasets, reload }: DatasetsState) {
-  const { datasetId } = useParams<{ datasetId: string }>();
+function DatasetLayout({ datasetId, datasets, reload }: DatasetsState & { datasetId: string }) {
   const dataset = datasets?.find(d => d.id === datasetId) || null;
   const [toggling, setToggling] = useState(false);
 
@@ -1019,37 +887,21 @@ function DatasetInsightsPage() {
   );
 }
 
-function IntelligenceAdminGated() {
-  const [unlocked, setUnlocked] = useState(isSuperAdminUnlocked());
+/** One client's dataset, mounted by DashboardPage at `intelligence/*`. */
+export function IntelligenceDatasetSection({ datasetId }: { datasetId: string }) {
   const { datasets, reload } = useDatasetsState();
 
-  if (!unlocked) {
-    return <LoginGate onUnlocked={() => setUnlocked(true)} />;
-  }
-
   return (
-    <div className={styles.page}>
-      <Sidebar datasets={datasets} onSignOut={() => { lockSuperAdmin(); setUnlocked(false); }} />
-      <main className={styles.content}>
-        <Routes>
-          <Route index element={<OverviewPage datasets={datasets} reload={reload} />} />
-          <Route path=":datasetId" element={<DatasetLayout datasets={datasets} reload={reload} />}>
-            <Route index element={<Navigate to="config" replace />} />
-            <Route path="config" element={<DatasetConfigPage />} />
-            <Route path="prompts" element={<DatasetPromptsPage />} />
-            <Route path="quick-questions" element={<DatasetQuickQuestionsPage />} />
-            <Route path="insights" element={<DatasetInsightsPage />} />
-          </Route>
-        </Routes>
-      </main>
+    <div className={styles.section}>
+      <Routes>
+        <Route element={<DatasetLayout datasetId={datasetId} datasets={datasets} reload={reload} />}>
+          <Route index element={<Navigate to="config" replace />} />
+          <Route path="config" element={<DatasetConfigPage />} />
+          <Route path="prompts" element={<DatasetPromptsPage />} />
+          <Route path="quick-questions" element={<DatasetQuickQuestionsPage />} />
+          <Route path="insights" element={<DatasetInsightsPage />} />
+        </Route>
+      </Routes>
     </div>
-  );
-}
-
-export function IntelligenceAdminPage() {
-  return (
-    <ThemeProvider>
-      <IntelligenceAdminGated />
-    </ThemeProvider>
   );
 }

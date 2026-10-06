@@ -1,5 +1,5 @@
-import { type ReactNode, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { Fragment, type ReactNode, useEffect, useRef, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import styles from './DashboardLayout.module.css';
 
 type UserType = 'admin' | 'business';
@@ -13,6 +13,8 @@ interface DashboardLayoutProps {
   basePath: string;
   showQueryOptimizer?: boolean;
   showModules?: boolean;
+  /** This client has an Aspect Intelligence dataset (enabled or not). */
+  showIntelligence?: boolean;
   /** The original board in the platform DB belongs to this client. */
   showLegacyTaskBoard?: boolean;
   /** The Sign-In module is live for this client. */
@@ -20,19 +22,55 @@ interface DashboardLayoutProps {
   showTaskboard?: boolean;
   showPodcast?: boolean;
   showConversationTrends?: boolean;
+  /** Keep the original single flat list instead of the grouped menu. */
+  flatMenu?: boolean;
   children: ReactNode;
 }
 
-const BASE_NAV_ITEMS = [
-  { path: 'feedback', label: 'Feedback', icon: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z' },
-  { path: 'users', label: 'Users', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75' },
-  { path: 'crew', label: 'Crew', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
-  { path: 'crew-editor', label: 'Crew Editor', icon: 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z' },
-  { path: 'playground', label: 'Playground', icon: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z' },
-  { path: 'knowledge-base', label: 'Knowledge Base', icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z' },
-  { path: 'dynamic-kb', label: 'Dynamic KB Files', icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8' },
-  { path: 'library', label: 'Library', icon: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5' },
+interface NavItem {
+  path: string;
+  label: string;
+  icon: string;
+}
+
+interface NavGroup {
+  id: string;
+  label: string;
+  /** Small line under the group label, e.g. that its pages aren't per-client. */
+  note?: string;
+  items: NavItem[];
+}
+
+const FEEDBACK_ITEM = { path: 'feedback', label: 'Feedback', icon: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z' };
+const USERS_ITEM = { path: 'users', label: 'Users', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75' };
+const CREW_ITEM = { path: 'crew', label: 'Crew', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' };
+const CREW_EDITOR_ITEM = { path: 'crew-editor', label: 'Crew Editor', icon: 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z' };
+const PLAYGROUND_ITEM = { path: 'playground', label: 'Playground', icon: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z' };
+const KNOWLEDGE_BASE_ITEM = { path: 'knowledge-base', label: 'Knowledge Base', icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z' };
+const DYNAMIC_KB_ITEM = { path: 'dynamic-kb', label: 'Dynamic KB Files', icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8' };
+const LIBRARY_ITEM = { path: 'library', label: 'Library', icon: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5' };
+
+// Aspect Intelligence admin for this client's dataset (see
+// components/dashboard/IntelligenceAdmin) — used to be its own app at
+// /intelligence/admin with a separate sidebar.
+const INTELLIGENCE_ITEMS = [
+  { path: 'intelligence/config', label: 'Config', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z' },
+  { path: 'intelligence/prompts', label: 'Prompts', icon: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z' },
+  { path: 'intelligence/quick-questions', label: 'Quick Questions', icon: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z' },
+  { path: 'intelligence/insights', label: 'Insights', icon: 'M18 20V10 M12 20V4 M6 20v-6' },
 ];
+
+const INTELLIGENCE_OVERVIEW_ITEM = {
+  path: 'intelligence-overview',
+  label: 'Intelligence Overview',
+  icon: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
+};
+
+const LEGACY_TASK_BOARD_ITEM = {
+  path: 'task-board',
+  label: 'Task Board',
+  icon: 'M9 11l3 3L22 4 M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11',
+};
 
 const QUERY_OPTIMIZER_ITEM = {
   path: 'query-optimizer',
@@ -107,32 +145,151 @@ const CLOUD_RUN_LOGS_ITEM = {
 };
 
 
-export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showModules, showTaskboard, showLegacyTaskBoard, showPodcast, showConversationTrends, children }: DashboardLayoutProps) {
+// Which groups the admin has unfolded, remembered across visits. Nothing is
+// unfolded by default except the group holding the current page (see below),
+// so the menu starts as a short list of group headers.
+const OPEN_GROUPS_KEY = 'adminNavOpenGroups';
+
+function readOpenGroups(): Set<string> {
+  try {
+    const saved = localStorage.getItem(OPEN_GROUPS_KEY);
+    if (saved) return new Set(JSON.parse(saved) as string[]);
+  } catch { /* unreadable — start folded */ }
+  return new Set();
+}
+
+function writeOpenGroups(groups: Set<string>) {
+  try {
+    localStorage.setItem(OPEN_GROUPS_KEY, JSON.stringify([...groups]));
+  } catch { /* storage blocked — the menu just won't remember */ }
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg className={`${styles.chevron} ${open ? styles.chevronOpen : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+
+export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showModules, showIntelligence, showTaskboard, showLegacyTaskBoard, showPodcast, showConversationTrends, flatMenu, children }: DashboardLayoutProps) {
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userType, setUserType] = useState<UserType>(() => (localStorage.getItem('adminUserType') as UserType) || 'admin');
+  const [openGroups, setOpenGroups] = useState<Set<string>>(readOpenGroups);
 
   const changeUserType = (type: UserType) => {
     setUserType(type);
     localStorage.setItem('adminUserType', type);
   };
 
-  const allNavItems = [
-    ...BASE_NAV_ITEMS,
-    ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM, DATA_LOADER_ITEM] : []),
-    ...(showModules ? [MODULES_ITEM] : []),
-    ...(showTaskboard ? [TASKBOARD_ITEM] : []),
-    ...(showPodcast ? [PODCAST_ITEM] : []),
-    ...(showConversationTrends || userType === 'business' ? [CONVERSATION_TRENDS_ITEM] : []),
-    TEST_RUNNER_ITEM,
-    BILLING_ITEM,
-    LLM_USAGE_ITEM,
-    API_KEYS_ITEM,
-    CLOUD_RUN_LOGS_ITEM,
+  const allGroups: NavGroup[] = [
+    {
+      id: 'quality',
+      label: 'Quality',
+      items: [
+        FEEDBACK_ITEM,
+        USERS_ITEM,
+        TEST_RUNNER_ITEM,
+        ...(showConversationTrends || userType === 'business' ? [CONVERSATION_TRENDS_ITEM] : []),
+      ],
+    },
+    {
+      id: 'agent',
+      label: 'Agent',
+      items: [CREW_ITEM, CREW_EDITOR_ITEM, PLAYGROUND_ITEM],
+    },
+    {
+      id: 'knowledge',
+      label: 'Knowledge',
+      items: [KNOWLEDGE_BASE_ITEM, DYNAMIC_KB_ITEM, LIBRARY_ITEM],
+    },
+    {
+      id: 'intelligence',
+      label: 'Intelligence',
+      items: [
+        ...(showIntelligence ? INTELLIGENCE_ITEMS : []),
+        ...(showQueryOptimizer ? [DATA_LOADER_ITEM, QUERY_OPTIMIZER_ITEM] : []),
+        ...(showModules ? [MODULES_ITEM] : []),
+      ],
+    },
+    {
+      id: 'workspace',
+      label: 'Workspace',
+      items: [
+        // The original board, in the platform DB. Shown only where it is
+        // actually used — it is LYBI's board, and Hila and Noa are the people
+        // on it. Everywhere else it was a link to someone else's work.
+        ...(showLegacyTaskBoard ? [LEGACY_TASK_BOARD_ITEM] : []),
+        ...(showTaskboard ? [TASKBOARD_ITEM] : []),
+        ...(showPodcast ? [PODCAST_ITEM] : []),
+        API_KEYS_ITEM,
+      ],
+    },
+    {
+      id: 'platform',
+      label: 'Platform',
+      note: 'Same for all clients',
+      items: [INTELLIGENCE_OVERVIEW_ITEM, BILLING_ITEM, LLM_USAGE_ITEM, CLOUD_RUN_LOGS_ITEM],
+    },
   ];
 
-  const navItems = userType === 'business'
-    ? allNavItems.filter(item => BUSINESS_PATHS.has(item.path))
-    : allNavItems;
+  // The menu as it was before the grouping, item for item and in its order,
+  // for agents that keep it (see DashboardPage). One headerless group.
+  const flatGroups: NavGroup[] = [{
+    id: 'flat',
+    label: '',
+    items: [
+      ...(showLegacyTaskBoard ? [LEGACY_TASK_BOARD_ITEM] : []),
+      FEEDBACK_ITEM, USERS_ITEM, CREW_ITEM, CREW_EDITOR_ITEM, PLAYGROUND_ITEM,
+      KNOWLEDGE_BASE_ITEM, DYNAMIC_KB_ITEM, LIBRARY_ITEM,
+      ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM, DATA_LOADER_ITEM] : []),
+      ...(showModules ? [MODULES_ITEM] : []),
+      ...(showIntelligence ? INTELLIGENCE_ITEMS : []),
+      ...(showTaskboard ? [TASKBOARD_ITEM] : []),
+      ...(showPodcast ? [PODCAST_ITEM] : []),
+      ...(showConversationTrends || userType === 'business' ? [CONVERSATION_TRENDS_ITEM] : []),
+      TEST_RUNNER_ITEM, BILLING_ITEM, LLM_USAGE_ITEM, API_KEYS_ITEM, CLOUD_RUN_LOGS_ITEM,
+    ],
+  }];
+
+  const groups = (flatMenu ? flatGroups : allGroups)
+    .map(g => userType === 'business' ? { ...g, items: g.items.filter(item => BUSINESS_PATHS.has(item.path)) } : g)
+    .filter(g => g.items.length > 0);
+
+  const isItemActive = (item: NavItem) => {
+    const itemPath = `${basePath}/${item.path}`;
+    return location.pathname === itemPath || location.pathname.startsWith(`${itemPath}/`);
+  };
+
+  // Landing on a page inside a folded group (a link, a reload, a redirect)
+  // unfolds that group, so the current page is always visible in the menu.
+  // Adjusted during render rather than in an effect, and only when the
+  // active group changes — so folding the current group by hand still works.
+  const activeGroupId = groups.find(g => g.items.some(isItemActive))?.id;
+  const [seenActiveGroupId, setSeenActiveGroupId] = useState<string | undefined>();
+  if (activeGroupId !== seenActiveGroupId) {
+    setSeenActiveGroupId(activeGroupId);
+    if (activeGroupId && !openGroups.has(activeGroupId)) {
+      setOpenGroups(new Set(openGroups).add(activeGroupId));
+    }
+  }
+
+  // A page low in the menu (the Platform group) must not leave its item
+  // scrolled out of sight inside the sidebar.
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    navRef.current?.querySelector(`.${styles.navItemActive}`)?.scrollIntoView({ block: 'nearest' });
+  }, [location.pathname]);
+
+  const toggleGroup = (id: string) => {
+    setOpenGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      writeOpenGroups(next);
+      return next;
+    });
+  };
 
   return (
     <div className={styles.layout}>
@@ -171,43 +328,46 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
           </div>
         </div>
 
-        <nav className={styles.nav}>
-          {/* The original board, in the platform DB. Shown only where it is
-              actually used — it is LYBI's board, and Hila and Noa are the people
-              on it. Everywhere else it was a link to someone else's work. */}
-          {userType === 'admin' && showLegacyTaskBoard && (
-            <>
-              <NavLink
-                to={`${basePath}/task-board`}
-                className={({ isActive }) =>
-                  `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
-                }
-                onClick={() => setMenuOpen(false)}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 11l3 3L22 4" />
-                  <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
-                </svg>
-                <span>Task Board</span>
-              </NavLink>
-              <div style={{ borderBottom: '1px solid rgba(0,0,0,0.08)', margin: '4px 12px' }} />
-            </>
-          )}
-          {navItems.map(item => (
-            <NavLink
-              key={item.path}
-              to={`${basePath}/${item.path}`}
-              className={({ isActive }) =>
-                `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
-              }
-              onClick={() => setMenuOpen(false)}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d={item.icon} />
-              </svg>
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
+        <nav ref={navRef} className={styles.nav}>
+          {groups.map(group => {
+            const headerless = !group.label;
+            const open = headerless || openGroups.has(group.id);
+            const holdsActive = group.id === activeGroupId;
+            return (
+              <div key={group.id} className={styles.navGroup}>
+                {!headerless && <button
+                  type="button"
+                  className={`${styles.groupHeader} ${!open && holdsActive ? styles.groupHeaderActive : ''}`}
+                  onClick={() => toggleGroup(group.id)}
+                  aria-expanded={open}
+                >
+                  <ChevronIcon open={open} />
+                  <span className={styles.groupLabel}>{group.label}</span>
+                  {group.note && <span className={styles.groupNote}>{group.note}</span>}
+                </button>}
+                {open && (
+                  <div className={styles.groupItems}>
+                    {group.items.map(item => (
+                      <Fragment key={item.path}>
+                        <NavLink
+                          to={`${basePath}/${item.path}`}
+                          className={() => `${styles.navItem} ${isItemActive(item) ? styles.navItemActive : ''}`}
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d={item.icon} />
+                          </svg>
+                          <span>{item.label}</span>
+                        </NavLink>
+                        {/* The flat menu keeps the legacy board set apart at the top, as before. */}
+                        {headerless && item === LEGACY_TASK_BOARD_ITEM && <div className={styles.flatDivider} />}
+                      </Fragment>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         <div className={styles.sidebarFooter}>
