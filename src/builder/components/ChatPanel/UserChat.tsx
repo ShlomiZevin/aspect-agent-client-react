@@ -215,6 +215,7 @@ export function UserChat() {
   const settingsBtnRef = useRef<HTMLButtonElement>(null);
 
   const [input, setInput] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
   // Two-piece input gate (replaces the old all-or-nothing `busy`):
   //  - `awaitingTalker` — true while the user is waiting for the
@@ -1040,6 +1041,7 @@ export function UserChat() {
 
       <div className={styles.composer}>
         <textarea
+          ref={inputRef}
           className={styles.input}
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -1066,7 +1068,9 @@ export function UserChat() {
           <button
             type="button"
             className={styles.sendBtn}
-            onClick={send}
+            // The cursor goes back to the text box, so the next message
+            // can be typed straight away (same as the outside chat, #883).
+            onClick={() => { send(); inputRef.current?.focus(); }}
             disabled={!input.trim() || inFlightCount >= MAX_INFLIGHT}
           >
             Send

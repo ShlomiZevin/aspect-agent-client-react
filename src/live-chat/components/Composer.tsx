@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { Dict } from '../i18n';
 
 interface Props {
@@ -20,6 +20,33 @@ interface Props {
 export function Composer({ t, value, busy, uiDir, ctrlEnter, variant = 'bottom', onChange, onSend, onToggleCtrlEnter }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
+  // The cursor lives in the text box (task #883). The box is never
+  // switched off while the agent answers — that is what used to throw
+  // the cursor out after every message — only SENDING is blocked. So the
+  // next message can be typed while the reply is still coming in.
+  //
+  // On arrival (and when the welcome card hands over to the bottom bar
+  // after the first message) the cursor is put in the box — on devices
+  // with a real keyboard only, so a phone doesn't pop its keyboard open.
+  useEffect(() => {
+    const hasKeyboard = typeof window.matchMedia !== 'function' || window.matchMedia('(pointer: fine)').matches;
+    if (hasKeyboard) ref.current?.focus({ preventScroll: true });
+  }, []);
+
+  // Back to one line once the message is sent.
+  useEffect(() => {
+    if (!value && ref.current) ref.current.style.height = 'auto';
+  }, [value]);
+
+  // Nothing is sent — and nothing typed is lost — while the agent is
+  // still answering. After a send the cursor returns to the box, also
+  // when Send was clicked with the mouse.
+  const send = () => {
+    if (busy || !value.trim()) return;
+    onSend();
+    ref.current?.focus({ preventScroll: true });
+  };
+
   const autoGrow = (el: HTMLTextAreaElement) => {
     el.style.height = 'auto';
     el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
@@ -28,10 +55,10 @@ export function Composer({ t, value, busy, uiDir, ctrlEnter, variant = 'bottom',
   const onKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key !== 'Enter') return;
     if (ctrlEnter) {
-      if (e.ctrlKey || e.metaKey) { e.preventDefault(); onSend(); }
+      if (e.ctrlKey || e.metaKey) { e.preventDefault(); send(); }
       // plain Enter → newline (default behaviour)
     } else {
-      if (!e.shiftKey) { e.preventDefault(); onSend(); }
+      if (!e.shiftKey) { e.preventDefault(); send(); }
     }
   };
 
@@ -52,7 +79,6 @@ export function Composer({ t, value, busy, uiDir, ctrlEnter, variant = 'bottom',
           className="composer-card-input"
           placeholder={t.welcomePlaceholder}
           value={value}
-          disabled={busy}
           onChange={e => { onChange(e.target.value); autoGrow(e.target); }}
           onKeyDown={onKey}
         />
@@ -62,7 +88,7 @@ export function Composer({ t, value, busy, uiDir, ctrlEnter, variant = 'bottom',
             <span>{t.sendCtrlEnter}</span>
           </label>
           <span className="spacer" />
-          <button className="send-pill" onClick={onSend} disabled={busy || !value.trim()} type="button">
+          <button className="send-pill" onClick={send} disabled={busy || !value.trim()} type="button">
             {t.send}
           </button>
         </div>
@@ -79,11 +105,10 @@ export function Composer({ t, value, busy, uiDir, ctrlEnter, variant = 'bottom',
           dir={fieldDir}
           placeholder={t.placeholder}
           value={value}
-          disabled={busy}
           onChange={e => { onChange(e.target.value); autoGrow(e.target); }}
           onKeyDown={onKey}
         />
-        <button className="send-pill" onClick={onSend} disabled={busy || !value.trim()} type="button">
+        <button className="send-pill" onClick={send} disabled={busy || !value.trim()} type="button">
           {t.send}
         </button>
       </div>

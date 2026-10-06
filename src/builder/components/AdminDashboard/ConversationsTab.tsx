@@ -10,6 +10,15 @@
  *
  * Read-only: this is an inspection surface. Deletion/rename live in the
  * builder chat, not here.
+ *
+ * Two kinds of conversation land here and are told apart everywhere
+ * (task #887): the outside chat ("External", green) and the builder's
+ * own test chat ("Builder", indigo). They share ONE list by default; the
+ * filter above it narrows to only one kind in a single click. Each row
+ * carries its colour stripe and tag, so the kind is visible in "All" too.
+ *
+ * The opened conversation has an Export button — the same export window
+ * the builder chat uses (task #882).
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -23,6 +32,7 @@ import {
   type PersistedAddonRun,
 } from '../../state/builderApi';
 import { formatDuration } from '../../formatDuration';
+import { ExportConversationModal } from '../ChatPanel/ExportConversationModal';
 import styles from './ConversationsTab.module.css';
 
 interface Props {
@@ -31,6 +41,19 @@ interface Props {
   userId?: number;
   /** When set, render a "← Back to users" link above the list. */
   backHref?: string;
+}
+
+type SourceFilter = 'all' | 'live' | 'builder';
+const FILTER_KEY = 'builder:adminConvSource';
+const SOURCE_LABEL = { live: 'External', builder: 'Builder' } as const;
+
+function loadFilter(): SourceFilter {
+  try {
+    const v = localStorage.getItem(FILTER_KEY);
+    return v === 'live' || v === 'builder' ? v : 'all';
+  } catch {
+    return 'all';
+  }
 }
 
 function fmtDate(iso: string): string {
@@ -46,6 +69,12 @@ export function ConversationsTab({ agentSlug, userId, backHref }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [filter, setFilterState] = useState<SourceFilter>(loadFilter);
+  const [exportOpen, setExportOpen] = useState(false);
+  const setFilter = (f: SourceFilter) => {
+    setFilterState(f);
+    try { localStorage.setItem(FILTER_KEY, f); } catch { /* private mode */ }
+  };
 
   const loadConvs = useCallback(async () => {
     setLoading(true);
@@ -64,6 +93,14 @@ export function ConversationsTab({ agentSlug, userId, backHref }: Props) {
   // Reset selection when the scope changes (e.g. navigating between users).
   useEffect(() => { setSelectedId(null); }, [userId]);
 
+  const counts = {
+    all: convs.length,
+    live: convs.filter(c => c.source === 'live').length,
+    builder: convs.filter(c => c.source === 'builder').length,
+  };
+  const shown = filter === 'all' ? convs : convs.filter(c => c.source === filter);
+  const selected = convs.find(c => c.id === selectedId) ?? null;
+
   return (
     <div className={styles.wrap}>
       <aside className={styles.list}>
@@ -78,25 +115,46 @@ export function ConversationsTab({ agentSlug, userId, backHref }: Props) {
             {loading ? '…' : '↻'}
           </button>
         </div>
+        {/* One list by default; one click narrows it to a single kind. */}
+        <div className={styles.filter} role="tablist" aria-label="Which conversations to show">
+          {(['all', 'live', 'builder'] as const).map(f => (
+            <button key={f} type="button" role="tab" aria-selected={filter === f}
+              className={`${styles.filterBtn} ${filter === f ? styles.filterOn : ''}`}
+              onClick={() => setFilter(f)}
+              title={f === 'all' ? 'Every conversation, both kinds'
+                : f === 'live' ? 'Only conversations from the outside chat'
+                  : "Only conversations from the builder's own test chat"}>
+              {f !== 'all' && <span className={`${styles.srcDot} ${styles[`src_${f}`]}`} aria-hidden />}
+              {f === 'all' ? 'All' : SOURCE_LABEL[f]}
+              <span className={styles.filterCount}>{counts[f]}</span>
+            </button>
+          ))}
+        </div>
         {error && <div className={styles.error}>{error}</div>}
-        {!loading && convs.length === 0 && !error && (
-          <div className={styles.empty}>No conversations yet for this agent.</div>
+        {!loading && shown.length === 0 && !error && (
+          <div className={styles.empty}>
+            {convs.length === 0 ? 'No conversations yet for this agent.'
+              : `No ${filter === 'live' ? 'external' : 'builder'} conversations.`}
+          </div>
         )}
         <div className={styles.listScroll}>
-          {convs.map(c => (
+          {shown.map(c => (
             <button
               key={c.id}
               type="button"
-              className={`${styles.row} ${c.id === selectedId ? styles.rowActive : ''}`}
+              className={`${styles.row} ${c.source ? styles[`row_${c.source}`] : ''} ${c.id === selectedId ? styles.rowActive : ''}`}
               onClick={() => setSelectedId(c.id)}
             >
               <div className={styles.rowName}>{c.name || `Conversation #${c.id}`}</div>
               <div className={styles.rowMeta}>
-                <span>{c.ownerName || c.ownerUserId || 'unknown'}</span>
+                <span className={styles.rowOwner}>{c.ownerName || c.ownerUserId || 'unknown'}</span>
                 <span className={styles.dot}>·</span>
                 <span>{c.messageCount} msg</span>
               </div>
-              <div className={styles.rowTime}>{fmtDate(c.updatedAt)}</div>
+              <div className={styles.rowFoot}>
+                <span className={styles.rowTime}>{fmtDate(c.updatedAt)}</span>
+                {c.source && <span className={`${styles.srcTag} ${styles[`tag_${c.source}`]}`}>{SOURCE_LABEL[c.source]}</span>}
+              </div>
             </button>
           ))}
         </div>
@@ -106,9 +164,26 @@ export function ConversationsTab({ agentSlug, userId, backHref }: Props) {
         {selectedId == null ? (
           <div className={styles.detailEmpty}>Pick a conversation to inspect its messages and addon trail.</div>
         ) : (
-          <ConversationDetail agentSlug={agentSlug} conversationId={selectedId} />
+          <>
+            <div className={styles.detailHead}>
+              <span className={styles.detailTitle}>{selected?.name || `Conversation #${selectedId}`}</span>
+              {selected?.source && <span className={`${styles.srcTag} ${styles[`tag_${selected.source}`]}`}>{SOURCE_LABEL[selected.source]}</span>}
+              <span className={styles.detailSpacer} />
+              <button type="button" className={styles.exportBtn} onClick={() => setExportOpen(true)}
+                title="Download or copy this conversation as JSON — to hand to an AI for analysis">
+                ⤓ Export
+              </button>
+            </div>
+            <ConversationDetail agentSlug={agentSlug} conversationId={selectedId} />
+          </>
         )}
       </section>
+      <ExportConversationModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        agentSlug={agentSlug}
+        conversationId={selectedId}
+      />
     </div>
   );
 }

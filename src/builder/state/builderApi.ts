@@ -891,6 +891,9 @@ export interface AdminConversationListItem extends ConversationListItem {
   userId: number | null;
   ownerUserId: string | null;
   ownerName: string | null;
+  /** Where the conversation was born: the outside chat ('live') or the
+   *  builder's own test chat ('builder'). null = untagged (older rows). */
+  source?: 'live' | 'builder' | null;
 }
 
 /**

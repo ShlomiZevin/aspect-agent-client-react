@@ -50,6 +50,56 @@
 }
 .refresh:hover { background: #f3f4f6; }
 
+/* Source filter — All | External | Builder. Fixed height, so switching
+   never moves the list. Green = outside chat, indigo = builder chat. */
+.filter {
+  display: flex;
+  gap: 2px;
+  margin: 10px 12px;
+  padding: 3px;
+  border-radius: 9px;
+  background: #f1f2f5;
+}
+.filterBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #6b7280;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.filterBtn:hover { color: #111827; }
+.filterOn,
+.filterOn:hover {
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+}
+.filterCount {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  font-variant-numeric: tabular-nums;
+}
+.srcDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.src_live { background: #10b981; }
+.src_builder { background: #6366f1; }
+
 .listScroll {
   overflow-y: auto;
   flex: 1;
@@ -67,6 +117,9 @@
   cursor: pointer;
 }
 .row:hover { background: #f9fafb; }
+/* Colour stripe on the row's leading edge: which chat it came from. */
+.row_live { box-shadow: inset 3px 0 0 #10b981; }
+.row_builder { box-shadow: inset 3px 0 0 #6366f1; }
 .rowActive { background: #eef2ff; }
 .rowActive:hover { background: #eef2ff; }
 
@@ -86,6 +139,28 @@
   margin-top: 2px;
 }
 .dot { color: #d1d5db; }
+.rowOwner {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rowFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.srcTag {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.tag_live { background: #d1fae5; color: #047857; }
+.tag_builder { background: #e0e7ff; color: #4338ca; }
 .rowTime {
   font-size: 11px;
   color: #9ca3af;
@@ -99,6 +174,44 @@
   overflow-y: auto;
   background: #f9fafb;
 }
+/* Bar above the opened conversation: its name, its kind, Export. */
+.detailHead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+}
+.detailTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+.detailSpacer { flex: 1; }
+.exportBtn {
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  background: #fff;
+  color: #374151;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.exportBtn:hover { background: #f3f4f6; }
+
 .detailEmpty {
   padding: 40px;
   color: #9ca3af;
