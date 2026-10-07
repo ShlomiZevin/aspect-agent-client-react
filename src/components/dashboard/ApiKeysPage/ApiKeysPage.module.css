@@ -64,12 +64,18 @@
   text-align: center;
 }
 
-/* Two provider cards per row on a wide screen, one when narrow. The min()
-   keeps a phone-width screen from overflowing the 560px floor. */
+/* Exactly two provider cards per row (not "as many as fit" — that made three
+   on a wide monitor), one when narrow. */
 .groups {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(560px, 100%), 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
+}
+
+@media (max-width: 1100px) {
+  .groups {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .card {

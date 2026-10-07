@@ -736,8 +736,8 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
       )}
 
       {activeTab === 'configuration' && (
-        <div className={styles.twoCol}>
-          <div className={styles.leftCol}>
+        <div className={styles.configGrid}>
+          <div className={styles.configCards}>
             {importSchedule && (
               <div className={styles.section}>
                 <div className={styles.sectionHeader}>

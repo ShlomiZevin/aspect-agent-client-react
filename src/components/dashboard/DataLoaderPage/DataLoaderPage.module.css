@@ -35,6 +35,25 @@
   min-width: 0;
 }
 
+/* Configuration tab: its four cards two per row (Scheduled Reload | Import
+   Window, Import Folder | Drive Sync), one per row when narrow. The cards'
+   wrapper is `display: contents`, so each card is a grid item of its own. */
+.configGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.configCards {
+  display: contents;
+}
+
+@media (max-width: 1100px) {
+  .configGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* ── Sections ───────────────────────────────────────────── */
 
 .section {
