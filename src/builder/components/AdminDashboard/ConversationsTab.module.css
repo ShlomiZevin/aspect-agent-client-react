@@ -54,8 +54,8 @@
    never moves the list. Green = outside chat, indigo = builder chat. */
 .filter {
   display: flex;
-  gap: 2px;
-  margin: 10px 12px;
+  gap: 1px;
+  margin: 10px 8px;
   padding: 3px;
   border-radius: 9px;
   background: #f1f2f5;
@@ -65,15 +65,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
   height: 28px;
-  padding: 0 4px;
+  padding: 0 2px;
   border: 0;
   border-radius: 7px;
   background: transparent;
   color: #6b7280;
   font: inherit;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -99,6 +99,7 @@
 }
 .src_live { background: #10b981; }
 .src_builder { background: #6366f1; }
+.src_simulation { background: #f59e0b; }
 
 .listScroll {
   overflow-y: auto;
@@ -120,6 +121,7 @@
 /* Colour stripe on the row's leading edge: which chat it came from. */
 .row_live { box-shadow: inset 3px 0 0 #10b981; }
 .row_builder { box-shadow: inset 3px 0 0 #6366f1; }
+.row_simulation { box-shadow: inset 3px 0 0 #f59e0b; }
 .rowActive { background: #eef2ff; }
 .rowActive:hover { background: #eef2ff; }
 
@@ -161,6 +163,7 @@
 }
 .tag_live { background: #d1fae5; color: #047857; }
 .tag_builder { background: #e0e7ff; color: #4338ca; }
+.tag_simulation { background: #fef3c7; color: #b45309; }
 .rowTime {
   font-size: 11px;
   color: #9ca3af;

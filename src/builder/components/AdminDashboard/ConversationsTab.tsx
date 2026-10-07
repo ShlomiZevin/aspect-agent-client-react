@@ -11,11 +11,13 @@
  * Read-only: this is an inspection surface. Deletion/rename live in the
  * builder chat, not here.
  *
- * Two kinds of conversation land here and are told apart everywhere
- * (task #887): the outside chat ("External", green) and the builder's
- * own test chat ("Builder", indigo). They share ONE list by default; the
- * filter above it narrows to only one kind in a single click. Each row
- * carries its colour stripe and tag, so the kind is visible in "All" too.
+ * Three kinds of conversation land here and are told apart everywhere
+ * (tasks #887, #894): the outside chat ("External", green), the builder's
+ * own test chat ("Builder", indigo) and conversations an AI ran through
+ * the MCP link to test the agent ("Simulated", amber). They share ONE
+ * list by default; the filter above it narrows to only one kind in a
+ * single click. Each row carries its colour stripe and tag, so the kind
+ * is visible in "All" too.
  *
  * The opened conversation has an Export button — the same export window
  * the builder chat uses (task #882).
@@ -43,14 +45,23 @@ interface Props {
   backHref?: string;
 }
 
-type SourceFilter = 'all' | 'live' | 'builder';
+type SourceFilter = 'all' | 'live' | 'builder' | 'simulation';
+const FILTERS: SourceFilter[] = ['all', 'live', 'builder', 'simulation'];
 const FILTER_KEY = 'builder:adminConvSource';
-const SOURCE_LABEL = { live: 'External', builder: 'Builder' } as const;
+const SOURCE_LABEL = { live: 'External', builder: 'Builder', simulation: 'Simulated' } as const;
+/** Short names for the filter — four buttons share a narrow column. */
+const FILTER_LABEL = { all: 'All', live: 'External', builder: 'Builder', simulation: 'Sim' } as const;
+const FILTER_TITLE = {
+  all: 'Every conversation, all kinds',
+  live: 'Only conversations from the outside chat',
+  builder: "Only conversations from the builder's own test chat",
+  simulation: 'Only simulated conversations — run by an AI through the MCP link to test the agent',
+} as const;
 
 function loadFilter(): SourceFilter {
   try {
     const v = localStorage.getItem(FILTER_KEY);
-    return v === 'live' || v === 'builder' ? v : 'all';
+    return FILTERS.includes(v as SourceFilter) ? (v as SourceFilter) : 'all';
   } catch {
     return 'all';
   }
@@ -97,6 +108,7 @@ export function ConversationsTab({ agentSlug, userId, backHref }: Props) {
     all: convs.length,
     live: convs.filter(c => c.source === 'live').length,
     builder: convs.filter(c => c.source === 'builder').length,
+    simulation: convs.filter(c => c.source === 'simulation').length,
   };
   const shown = filter === 'all' ? convs : convs.filter(c => c.source === filter);
   const selected = convs.find(c => c.id === selectedId) ?? null;
@@ -117,15 +129,13 @@ export function ConversationsTab({ agentSlug, userId, backHref }: Props) {
         </div>
         {/* One list by default; one click narrows it to a single kind. */}
         <div className={styles.filter} role="tablist" aria-label="Which conversations to show">
-          {(['all', 'live', 'builder'] as const).map(f => (
+          {FILTERS.map(f => (
             <button key={f} type="button" role="tab" aria-selected={filter === f}
               className={`${styles.filterBtn} ${filter === f ? styles.filterOn : ''}`}
               onClick={() => setFilter(f)}
-              title={f === 'all' ? 'Every conversation, both kinds'
-                : f === 'live' ? 'Only conversations from the outside chat'
-                  : "Only conversations from the builder's own test chat"}>
+              title={FILTER_TITLE[f]}>
               {f !== 'all' && <span className={`${styles.srcDot} ${styles[`src_${f}`]}`} aria-hidden />}
-              {f === 'all' ? 'All' : SOURCE_LABEL[f]}
+              {FILTER_LABEL[f]}
               <span className={styles.filterCount}>{counts[f]}</span>
             </button>
           ))}
@@ -134,7 +144,7 @@ export function ConversationsTab({ agentSlug, userId, backHref }: Props) {
         {!loading && shown.length === 0 && !error && (
           <div className={styles.empty}>
             {convs.length === 0 ? 'No conversations yet for this agent.'
-              : `No ${filter === 'live' ? 'external' : 'builder'} conversations.`}
+              : `No ${filter === 'live' ? 'external' : filter === 'builder' ? 'builder' : 'simulated'} conversations.`}
           </div>
         )}
         <div className={styles.listScroll}>
