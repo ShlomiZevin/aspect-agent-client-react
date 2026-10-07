@@ -64,9 +64,11 @@
   text-align: center;
 }
 
+/* Two provider cards per row on a wide screen, one when narrow. The min()
+   keeps a phone-width screen from overflowing the 560px floor. */
 .groups {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(560px, 100%), 1fr));
   gap: 20px;
 }
 
@@ -99,10 +101,10 @@
   table-layout: fixed;
 }
 
-.table th:nth-child(1) { width: 28%; }
-.table th:nth-child(2) { width: 44%; }
+.table th:nth-child(1) { width: 34%; }
+.table th:nth-child(2) { width: 30%; }
 .table th:nth-child(3) { width: 16%; }
-.table th:nth-child(4) { width: 12%; }
+.table th:nth-child(4) { width: 20%; }
 
 .table th {
   text-align: left;
@@ -135,6 +137,9 @@
   color: #6b7280;
   font-family: monospace;
   font-size: 12px;
+  /* Unmasked ids (org-…, proj_…) are long single tokens — wrap rather than
+     run into the Source column in a half-width card. */
+  overflow-wrap: anywhere;
 }
 
 .maskedValue {

@@ -5,10 +5,12 @@
  * now redirects here (App.tsx).
  *
  *  - IntelligenceDatasetSection — one client's dataset, rendered under
- *    `/:agent/admin/intelligence/*`, one sidebar item per sub-page:
- *    `config`          — brand label + data model description
- *    `prompts`         — example prompt chips
- *    `quick-questions` — Data Chat quick-question tiles
+ *    `/:agent/admin/intelligence/*`:
+ *    `report-settings` — one sidebar item, three tabs with their own URLs:
+ *        `general`         — brand label + data model description
+ *        `prompts`         — example prompt chips
+ *        `quick-questions` — Data Chat quick-question tiles
+ *      (the old `config` / `prompts` / `quick-questions` addresses redirect)
  *    `insights`        — generated-insight monitor + delete
  *    (there's deliberately no "run bootstrap/investigate" admin page — that
  *    duplicated what's already available directly in the product itself)
@@ -16,12 +18,12 @@
  *    Cross-client, so it sits in the sidebar's Platform group.
  */
 import { useEffect, useState } from 'react';
-import { Routes, Route, Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
+import { Routes, Route, Navigate, NavLink, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
 import { intelligenceAdminService, type IntelligenceAdminDataset, type IntelligenceConfigVersion } from '../../../services/intelligenceAdminService';
 import type { InsightDetail } from '../../../types/insights';
 import type { QuickQuestion } from '../../../types/agent';
 import { useDocumentMeta } from '../../../hooks';
-import { AdminPage, AdminPageHeader } from '../AdminPage';
+import { AdminPage, AdminPageHeader, adminUi } from '../AdminPage';
 import { intelligenceAdminPath } from './paths';
 import styles from './IntelligenceAdmin.module.css';
 
@@ -430,7 +432,7 @@ function DatasetConfigPage() {
     <>
       <div className={styles.sectionHeaderRow}>
         <div>
-          <h2 className={styles.sectionTitle}>Configuration</h2>
+          <h2 className={styles.sectionTitle}>General</h2>
           <p className={styles.subtitle}>
             These two fields tell Aspect what your business is and what its data can answer — this is what the AI
             reads before every investigation, so getting it right matters more than anything else on this page.
@@ -891,6 +893,38 @@ function DatasetInsightsPage() {
   );
 }
 
+const REPORT_SETTINGS_TABS = [
+  { path: 'general', label: 'General' },
+  { path: 'prompts', label: 'Prompts' },
+  { path: 'quick-questions', label: 'Quick Questions' },
+];
+
+/**
+ * Report Settings — what used to be three sidebar items (Config, Prompts,
+ * Quick Questions) as tabs of one page. Each tab is a real link with its own
+ * URL (`intelligence/report-settings/<tab>`), so a refresh, a shared link or
+ * Back stays on the same tab.
+ */
+function ReportSettingsLayout() {
+  const context = useOutletContext<DatasetOutletContext>();
+  return (
+    <>
+      <nav className={`${adminUi.tabs} ${styles.reportSettingsTabs}`}>
+        {REPORT_SETTINGS_TABS.map(tab => (
+          <NavLink
+            key={tab.path}
+            to={tab.path}
+            className={({ isActive }) => `${adminUi.tab} ${isActive ? adminUi.tabActive : ''}`}
+          >
+            {tab.label}
+          </NavLink>
+        ))}
+      </nav>
+      <Outlet context={context} />
+    </>
+  );
+}
+
 /** One client's dataset, mounted by DashboardPage at `intelligence/*`. */
 export function IntelligenceDatasetSection({ datasetId }: { datasetId: string }) {
   const { datasets, reload } = useDatasetsState();
@@ -899,10 +933,17 @@ export function IntelligenceDatasetSection({ datasetId }: { datasetId: string })
     <AdminPage>
       <Routes>
         <Route element={<DatasetLayout datasetId={datasetId} datasets={datasets} reload={reload} />}>
-          <Route index element={<Navigate to="config" replace />} />
-          <Route path="config" element={<DatasetConfigPage />} />
-          <Route path="prompts" element={<DatasetPromptsPage />} />
-          <Route path="quick-questions" element={<DatasetQuickQuestionsPage />} />
+          <Route index element={<Navigate to="report-settings" replace />} />
+          <Route path="report-settings" element={<ReportSettingsLayout />}>
+            <Route index element={<Navigate to="general" replace />} />
+            <Route path="general" element={<DatasetConfigPage />} />
+            <Route path="prompts" element={<DatasetPromptsPage />} />
+            <Route path="quick-questions" element={<DatasetQuickQuestionsPage />} />
+          </Route>
+          {/* The pages' addresses before they became tabs — old links and bookmarks. */}
+          <Route path="config" element={<Navigate to="../report-settings/general" replace />} />
+          <Route path="prompts" element={<Navigate to="../report-settings/prompts" replace />} />
+          <Route path="quick-questions" element={<Navigate to="../report-settings/quick-questions" replace />} />
           <Route path="insights" element={<DatasetInsightsPage />} />
         </Route>
       </Routes>
