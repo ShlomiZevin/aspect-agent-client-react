@@ -3,8 +3,12 @@ import { SourceFilesTable, type GCSFile, type FileProgress } from './SourceFiles
 import { CurrentRunPanel, type RunState } from './CurrentRunPanel';
 import { RunHistoryTable, type HistoryRun } from './RunHistoryTable';
 import { type LogEntry } from './LogViewer';
-import { AdminPage, adminUi } from '../AdminPage';
+import { AdminPage, adminUi, useUrlTab } from '../AdminPage';
+import { ScheduleOverview } from './ScheduleOverview';
 import styles from './DataLoaderPage.module.css';
+
+// In the URL (?tab=configuration / ?tab=schedule), so a refresh stays put.
+const TABS = ['loader', 'configuration', 'schedule'] as const;
 
 interface DataLoaderPageProps {
   agentName: string;
@@ -70,7 +74,7 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   const [savingDriveSync, setSavingDriveSync] = useState(false);
   const [driveSyncSaved, setDriveSyncSaved] = useState(false);
   const [driveSyncError, setDriveSyncError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'loader' | 'configuration'>('loader');
+  const [activeTab, setActiveTab] = useUrlTab(TABS);
   const [importSchedule, setImportSchedule] = useState<ScheduleEntry | null>(null);
   const [scheduleStartTime, setScheduleStartTime] = useState('');
   const [savingSchedule, setSavingSchedule] = useState(false);
@@ -672,7 +676,15 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
         >
           Configuration
         </button>
+        <button
+          className={`${adminUi.tab} ${activeTab === 'schedule' ? adminUi.tabActive : ''}`}
+          onClick={() => setActiveTab('schedule')}
+        >
+          Schedule
+        </button>
       </div>
+
+      {activeTab === 'schedule' && <ScheduleOverview baseURL={baseURL} />}
 
       {activeTab === 'loader' && (
         <div className={styles.twoCol}>
