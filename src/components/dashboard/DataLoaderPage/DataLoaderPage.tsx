@@ -3,6 +3,7 @@ import { SourceFilesTable, type GCSFile, type FileProgress } from './SourceFiles
 import { CurrentRunPanel, type RunState } from './CurrentRunPanel';
 import { RunHistoryTable, type HistoryRun } from './RunHistoryTable';
 import { type LogEntry } from './LogViewer';
+import { AdminPage, adminUi } from '../AdminPage';
 import styles from './DataLoaderPage.module.css';
 
 interface DataLoaderPageProps {
@@ -532,16 +533,14 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div>
-          <h1 className={styles.pageTitle}>Data Loader</h1>
-          <p className={styles.pageSubtitle}>Schema: <code>{schemaName}</code></p>
-        </div>
-        <div className={styles.headerActions}>
+    <AdminPage
+      title="Data Loader"
+      subtitle={<>Schema: <code className={styles.schemaCode}>{schemaName}</code></>}
+      actions={
+        <>
           {supportsDriveSync && (
             <button
-              className={`${styles.indexBtn} ${(isBusy || syncing) ? styles.reloadBtnDisabled : ''}`}
+              className={adminUi.btn}
               onClick={() => setConfirming('drive-sync')}
               disabled={isBusy || syncing}
               title="Mirror the client's Google Drive folder into GCS"
@@ -550,21 +549,21 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
             </button>
           )}
           <button
-            className={`${styles.reloadBtn} ${isBusy ? styles.reloadBtnDisabled : ''}`}
+            className={`${adminUi.btn} ${adminUi.btnPrimary}`}
             onClick={() => setConfirming('import')}
             disabled={isBusy}
           >
             {isBusy && currentRun?.phase === 'import' ? '● Importing...' : '▶ Import Data'}
           </button>
           <button
-            className={`${styles.indexBtn} ${isBusy ? styles.reloadBtnDisabled : ''}`}
+            className={adminUi.btn}
             onClick={() => setConfirming('index')}
             disabled={isBusy}
           >
             {isBusy && currentRun?.phase === 'indexing' ? '● Indexing...' : 'Create Indexes'}
           </button>
           <button
-            className={`${styles.indexBtn} ${isBusy ? styles.reloadBtnDisabled : ''}`}
+            className={adminUi.btn}
             onClick={() => setConfirming('index-full')}
             disabled={isBusy}
           >
@@ -572,14 +571,15 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
           </button>
           {(isBusy || runStatus === 'running') && (
             <button
-              className={styles.dangerBtn}
+              className={`${adminUi.btn} ${adminUi.btnDanger}`}
               onClick={() => setConfirming('cancel')}
             >
               ✕ Force Cancel
             </button>
           )}
-        </div>
-      </div>
+        </>
+      }
+    >
 
       {confirming === 'import' && (
         <div className={styles.confirmOverlay}>
@@ -659,15 +659,15 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
         </div>
       )}
 
-      <div className={styles.tabBar}>
+      <div className={adminUi.tabs}>
         <button
-          className={activeTab === 'loader' ? styles.tabActive : styles.tab}
+          className={`${adminUi.tab} ${activeTab === 'loader' ? adminUi.tabActive : ''}`}
           onClick={() => setActiveTab('loader')}
         >
           Loader
         </button>
         <button
-          className={activeTab === 'configuration' ? styles.tabActive : styles.tab}
+          className={`${adminUi.tab} ${activeTab === 'configuration' ? adminUi.tabActive : ''}`}
           onClick={() => setActiveTab('configuration')}
         >
           Configuration
@@ -908,6 +908,6 @@ export function DataLoaderPage({ baseURL, schemaName }: DataLoaderPageProps) {
           </div>
         </div>
       )}
-    </div>
+    </AdminPage>
   );
 }

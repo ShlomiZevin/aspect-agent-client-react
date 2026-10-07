@@ -7,6 +7,7 @@ import { AddUserModal } from '../AddUserModal';
 import { LinkWhatsAppModal } from '../LinkWhatsAppModal';
 import { DeleteUserModal } from '../DeleteUserModal';
 import { UserConversationsModal } from '../UserConversationsModal';
+import { AdminPage, adminUi } from '../AdminPage';
 import styles from './UsersPage.module.css';
 
 interface UsersPageProps {
@@ -270,54 +271,50 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <div className={styles.headerTop}>
-          <div>
-            <h1 className={styles.title}>Users</h1>
-            <p className={styles.subtitle}>Manage and configure platform users</p>
-          </div>
-          <div className={styles.headerButtons}>
-            {agentName && (
-              <button
-                className={styles.linkButton}
-                onClick={copyChatLink}
-                title={`Copy the customer chat link — ${window.location.origin}/${agentName}/go`}
-              >
-                {chatLinkCopied ? '✓ Copied' : '🔗 Chat link'}
-              </button>
-            )}
-            <button className={styles.addButton} onClick={() => setShowAddModal(true)}>
-              + Add User
+    <AdminPage
+      title="Users"
+      subtitle="Manage and configure platform users"
+      actions={
+        <>
+          {agentName && (
+            <button
+              className={adminUi.btn}
+              onClick={copyChatLink}
+              title={`Copy the customer chat link — ${window.location.origin}/${agentName}/go`}
+            >
+              {chatLinkCopied ? '✓ Copied' : '🔗 Chat link'}
             </button>
+          )}
+          <button className={`${adminUi.btn} ${adminUi.btnPrimary}`} onClick={() => setShowAddModal(true)}>
+            + Add User
+          </button>
+        </>
+      }
+    >
+      {stats && (
+        <div className={styles.statsBar}>
+          <div className={styles.stat}>
+            <span className={styles.statValue}>{stats.totalUsers}</span>
+            <span className={styles.statLabel}>Total Users</span>
+          </div>
+          <div className={styles.stat}>
+            <span className={styles.statValue}>{stats.webUsers}</span>
+            <span className={styles.statLabel}>Web</span>
+          </div>
+          <div className={styles.stat}>
+            <span className={styles.statValue}>{stats.whatsappUsers}</span>
+            <span className={styles.statLabel}>WhatsApp</span>
+          </div>
+          <div className={styles.stat}>
+            <span className={styles.statValue}>{stats.proUsers}</span>
+            <span className={styles.statLabel}>Pro</span>
+          </div>
+          <div className={styles.stat}>
+            <span className={styles.statValue}>{stats.totalConversations}</span>
+            <span className={styles.statLabel}>Conversations</span>
           </div>
         </div>
-
-        {stats && (
-          <div className={styles.statsBar}>
-            <div className={styles.stat}>
-              <span className={styles.statValue}>{stats.totalUsers}</span>
-              <span className={styles.statLabel}>Total Users</span>
-            </div>
-            <div className={styles.stat}>
-              <span className={styles.statValue}>{stats.webUsers}</span>
-              <span className={styles.statLabel}>Web</span>
-            </div>
-            <div className={styles.stat}>
-              <span className={styles.statValue}>{stats.whatsappUsers}</span>
-              <span className={styles.statLabel}>WhatsApp</span>
-            </div>
-            <div className={styles.stat}>
-              <span className={styles.statValue}>{stats.proUsers}</span>
-              <span className={styles.statLabel}>Pro</span>
-            </div>
-            <div className={styles.stat}>
-              <span className={styles.statValue}>{stats.totalConversations}</span>
-              <span className={styles.statLabel}>Conversations</span>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       {signInLive && defaultTenant && <SignInAccounts tenant={defaultTenant} />}
 
@@ -550,6 +547,6 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
           onClose={() => setConversationsModalUser(null)}
         />
       )}
-    </div>
+    </AdminPage>
   );
 }

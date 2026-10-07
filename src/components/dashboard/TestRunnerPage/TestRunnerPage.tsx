@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import * as testRunnerService from '../../../services/testRunnerService';
 import type { TestRun, IndividualProfile, MotivationDef } from '../../../types/testRunner';
+import { AdminPage, adminUi } from '../AdminPage';
 import styles from './TestRunnerPage.module.css';
 
 interface Props {
@@ -14,31 +15,27 @@ export function TestRunnerPage({ agentName, baseURL }: Props) {
   const [configVersion, setConfigVersion] = useState(0);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Test Runner</h1>
-          <p className={styles.subtitle}>Automated agent testing — generate personas, build populations, simulate conversations</p>
-        </div>
-      </div>
-
-      <div className={styles.tabs}>
+    <AdminPage
+      title="Test Runner"
+      subtitle="Automated agent testing — generate personas, build populations, simulate conversations"
+    >
+      <div className={adminUi.tabs}>
         <button
-          className={`${styles.tab} ${activeTab === 'individuals' ? styles.tabActive : ''}`}
+          className={`${adminUi.tab} ${activeTab === 'individuals' ? adminUi.tabActive : ''}`}
           onClick={() => setActiveTab('individuals')}
         >
           1. Individuals
         </button>
         <button
-          className={`${styles.tab} ${activeTab === 'populations' ? styles.tabActive : ''}`}
+          className={`${adminUi.tab} ${activeTab === 'populations' ? adminUi.tabActive : ''}`}
           onClick={() => setActiveTab('populations')}
         >
           2. Populations
         </button>
-        <button className={`${styles.tab} ${styles.tabDisabled}`} disabled title="Coming soon">
+        <button className={adminUi.tab} disabled title="Coming soon">
           3. Conversations
         </button>
-        <button className={`${styles.tab} ${styles.tabDisabled}`} disabled title="Coming soon">
+        <button className={adminUi.tab} disabled title="Coming soon">
           4. Reviewer
         </button>
         <div style={{ flex: 1 }} />
@@ -64,7 +61,7 @@ export function TestRunnerPage({ agentName, baseURL }: Props) {
       {showSettings && (
         <SettingsModal agentName={agentName} baseURL={baseURL} onClose={() => { setShowSettings(false); setConfigVersion(v => v + 1); }} />
       )}
-    </div>
+    </AdminPage>
   );
 }
 

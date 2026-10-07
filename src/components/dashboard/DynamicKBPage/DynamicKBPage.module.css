@@ -1,7 +1,14 @@
+/* A bordered panel inside the admin page frame, sized to the viewport so
+   the file list and the editor each scroll on their own. */
 .container {
   display: flex;
-  height: 100%;
+  height: calc(100vh - 180px);
+  min-height: 480px;
   gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
 /* ── Sidebar ── */

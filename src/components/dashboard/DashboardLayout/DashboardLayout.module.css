@@ -11,6 +11,11 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  /* Pinned to the viewport so a long menu scrolls inside .nav instead of
+     stretching the page. */
+  position: sticky;
+  top: 0;
+  height: 100vh;
 }
 
 .sidebarHeader {
@@ -44,10 +49,82 @@
 
 .nav {
   flex: 1;
-  padding: var(--spacing-md);
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+/* ── Collapsible groups ─────────────────────────────────────────────── */
+
+.navGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.navGroup + .navGroup {
+  margin-top: 4px;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px var(--spacing-sm) 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text-muted);
+  text-align: left;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.groupHeader:hover {
+  color: var(--text-primary);
+}
+
+/* Folded group that holds the current page — so it's never lost. */
+.groupHeaderActive {
+  color: var(--primary-color);
+}
+
+.groupLabel {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.groupNote {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.chevron {
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+.groupItems {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.flatDivider {
+  border-bottom: 1px solid var(--border);
+  margin: 4px 12px;
 }
 
 .navItem {

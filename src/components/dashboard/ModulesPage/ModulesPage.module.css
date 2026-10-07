@@ -1,31 +1,13 @@
 /* Admin — Modules tab. Uses the dashboard's global tokens (variables.css);
    note there is no bare `--primary`, it is `--primary-color`. */
 
-.page {
-  padding: var(--spacing-lg, 24px);
-  max-width: 1000px;
-}
-
-.header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-primary, #1e293b);
-  margin: 0 0 6px;
-}
-
-.subtitle {
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--text-secondary, #64748b);
-  margin: 0;
-  max-width: 640px;
+/* Module cards in columns that fill the page width instead of one narrow
+   column; each card keeps a readable width. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(520px, 1fr));
+  gap: var(--spacing-md);
+  align-items: start;
 }
 
 .superBadge {
@@ -85,7 +67,7 @@
   background: var(--surface, #fff);
   border-radius: 12px;
   padding: 16px 18px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 
 .cardTop {

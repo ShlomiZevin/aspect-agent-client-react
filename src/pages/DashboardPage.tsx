@@ -31,6 +31,9 @@ import { TestRunnerPage } from '../components/dashboard/TestRunnerPage';
 import { DynamicKBPage } from '../components/dashboard/DynamicKBPage';
 import { ConversationTrendsPage } from '../components/dashboard/ConversationTrendsPage';
 import { CloudRunLogsPage } from '../components/dashboard/CloudRunLogsPage';
+import { IntelligenceDatasetSection, IntelligenceOverviewPage } from '../components/dashboard/IntelligenceAdmin';
+import { intelligenceAdminService } from '../services/intelligenceAdminService';
+import { AdminPage } from '../components/dashboard/AdminPage';
 import { PineconeAdmin } from '../components/pinecone';
 import { TaskBoardContent } from '../components/tasks/TaskBoardModal/TaskBoardContent';
 import dashStyles from './DashboardPage.module.css';
@@ -64,6 +67,18 @@ export function DashboardPage() {
     taskboardApi.isEnabledFor(agent)
       .then(on => { if (!cancelled) setShowTaskboard(on); })
       .catch(() => { /* not enabled, or unreachable — either way, no nav item */ });
+    return () => { cancelled = true; };
+  }, [agent]);
+
+  // Whether this client has an Aspect Intelligence dataset. The registry's
+  // dataset ids are agent slugs, so the slug is the dataset id.
+  const [showIntelligence, setShowIntelligence] = useState(false);
+  useEffect(() => {
+    if (!agent) return;
+    let cancelled = false;
+    intelligenceAdminService.listDatasets()
+      .then(datasets => { if (!cancelled) setShowIntelligence(datasets.some(d => d.id === agent)); })
+      .catch(() => { /* unreachable — no Intelligence nav items */ });
     return () => { cancelled = true; };
   }, [agent]);
 
@@ -114,6 +129,9 @@ export function DashboardPage() {
   const showLegacyTaskBoard = LEGACY_BOARD_AGENTS.includes((agent ?? '').toLowerCase());
 
   const showPodcast = agent?.toLowerCase() === 'freeda';
+  // Agents that keep the original flat admin menu instead of the grouped one.
+  const FLAT_MENU_AGENTS = ['freeda'];
+  const flatMenu = FLAT_MENU_AGENTS.includes((agent ?? '').toLowerCase());
   const showConversationTrends = agent?.toLowerCase() === 'banking-v2';
 
   return (
@@ -126,10 +144,12 @@ export function DashboardPage() {
           basePath={basePath}
           showQueryOptimizer={showQueryOptimizer}
           showModules={showModules}
+          showIntelligence={showIntelligence}
           showTaskboard={showTaskboard}
           showLegacyTaskBoard={showLegacyTaskBoard}
           showPodcast={showPodcast}
           showConversationTrends={showConversationTrends}
+          flatMenu={flatMenu}
         >
           <Routes>
             <Route index element={<Navigate to="feedback" replace />} />
@@ -177,7 +197,11 @@ export function DashboardPage() {
             />
             <Route
               path="knowledge-base"
-              element={<KBManager />}
+              element={
+                <AdminPage title="Knowledge Base" subtitle="Document collections the agent searches when it answers">
+                  <KBManager embedded />
+                </AdminPage>
+              }
             />
             <Route
               path="dynamic-kb"
@@ -240,6 +264,16 @@ export function DashboardPage() {
                 element={<ModulesPage datasetId={agent === 'aspect' ? 'aspect' : (config.database?.schema ?? agent ?? '')} baseURL={config.baseURL} />}
               />
             )}
+            {/* Not gated on showIntelligence: that waits on a request, and a
+                reload straight onto one of these pages must not fall through. */}
+            <Route
+              path="intelligence/*"
+              element={<IntelligenceDatasetSection datasetId={agent ?? ''} />}
+            />
+            <Route
+              path="intelligence-overview"
+              element={<IntelligenceOverviewPage />}
+            />
             {showPodcast && (
               <Route
                 path="podcast"
