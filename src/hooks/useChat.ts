@@ -4,6 +4,7 @@ import { getConversationHistory, deleteMessage as deleteMessageApi, deleteMessag
 import type { Message, ChatState, ChatAction, AgentConfig, ThinkingStep, Language } from '../types';
 import type { CrewMember } from '../types/crew';
 import type { CrewTransition } from '../services/chatService';
+import { attachmentMarker, type ChatAttachmentRef } from '../services/chatAttachmentsService';
 
 const initialState: ChatState = {
   messages: [],
@@ -346,7 +347,8 @@ export interface UseChatReturn {
   thinkingSteps: ThinkingStep[];
   hasStartedChat: boolean;
   error: string | null;
-  sendMessage: (text: string, options?: { hidden?: boolean }) => Promise<void>;
+  /** `attachments`: files already uploaded via /api/chat-attachments, sent with this message. */
+  sendMessage: (text: string, options?: { hidden?: boolean; attachments?: ChatAttachmentRef[] }) => Promise<void>;
   loadHistory: (conversationId: string) => Promise<{ currentCrewMember?: string | null; metadata?: Record<string, unknown> | null }>;
   newChat: (conversationId: string) => void;
   clearError: () => void;
@@ -374,9 +376,15 @@ export function useChat(options: UseChatOptions): UseChatReturn {
   }, [conversationId, state.conversationId]);
 
   const sendMessage = useCallback(
-    async (text: string, options?: { hidden?: boolean }) => {
+    async (text: string, options?: { hidden?: boolean; attachments?: ChatAttachmentRef[] }) => {
       const messageId = crypto.randomUUID();
-      dispatch({ type: 'ADD_USER_MESSAGE', payload: { id: messageId, content: text, hidden: options?.hidden } });
+      const files = options?.attachments ?? [];
+      // Our own copy carries the same markers the server saves (minus the
+      // digest), so the bubble shows file chips now and after a reload alike.
+      const localContent = files.length
+        ? [text, ...files.map(attachmentMarker)].join('\n\n')
+        : text;
+      dispatch({ type: 'ADD_USER_MESSAGE', payload: { id: messageId, content: localContent, hidden: options?.hidden } });
 
       // Start thinking - steps will come from server
       dispatch({ type: 'START_THINKING' });
@@ -412,6 +420,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
             profilerEnabled,
             restrictedMode,
             moduleScope,
+            attachments: files.map(f => f.id),
           },
           {
             onThinkingStep: (step) => {

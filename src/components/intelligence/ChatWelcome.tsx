@@ -7,8 +7,11 @@
  * i18n strings, so it can't drift out of sync with the actual chat agent's
  * configured questions, for whichever dataset is currently selected.
  */
-import { useEffect, useState, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { getAgentConfig } from '../../agents/agentRegistry';
+import { ATTACHMENT_ACCEPT, type ChatAttachmentRef } from '../../services/chatAttachmentsService';
+import { AttachmentChips } from '../chat/Attachments/AttachmentChips';
+import { useChatAttachments } from '../chat/Attachments/useChatAttachments';
 import { translations } from '../../i18n/translations';
 import { useLanguage } from '../../context/LanguageContext';
 import { insightsService } from '../../services/insightsService';
@@ -40,13 +43,18 @@ interface Props {
   datasetId: string;
   /** `hidden`: a tile click shows only the agent's reply, not the question
    * bubble (Itzik, 2026-09-29) — typed questions still show normally. */
-  onSend: (question: string, options?: { hidden?: boolean }) => void;
+  onSend: (question: string, options?: { hidden?: boolean; attachments?: ChatAttachmentRef[] }) => void;
 }
 
 export function ChatWelcome({ datasetId, onSend }: Props) {
   const { t, language } = useLanguage();
   const [text, setText] = useState('');
   const config = getAgentConfig(datasetId);
+
+  // Files for the first message (task #100). Uploaded here, before the
+  // conversation exists; the message that carries them binds them to it.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachments = useChatAttachments({ agentName: config?.agentName || datasetId, baseURL: config?.baseURL });
 
   // Admin-set per client (task #63), overriding the hardcoded config when
   // present. `null` (still loading / never configured) means "not decided
@@ -65,8 +73,9 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
 
   const submit = () => {
     const q = text.trim();
-    if (!q) return;
-    onSend(q);
+    const files = attachments.ready;
+    if ((!q && files.length === 0) || attachments.uploading) return;
+    onSend(q || files.map(f => f.filename).join(', '), files.length ? { attachments: files } : undefined);
   };
 
   return (
@@ -110,18 +119,58 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
       <div className={styles.spacer} />
       </div>
 
-      <div className={styles.inputRow}>
+      <div className={styles.attachRow}>
+        <AttachmentChips
+          items={attachments.pending.map(p => ({
+            key: p.localId,
+            filename: p.filename,
+            kind: p.ref?.kind,
+            status: p.status,
+            detail: p.status === 'error' ? (p.error || t('chat.fileFailed')) : p.ref?.summary,
+          }))}
+          onRemove={attachments.remove}
+          removeLabel={t('chat.removeFile')}
+        />
+      </div>
+      <div
+        className={styles.inputRow}
+        onDragOver={e => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
+        onDrop={e => { e.preventDefault(); if (e.dataTransfer.files?.length) attachments.add(e.dataTransfer.files); }}
+      >
         <input
           className={styles.input}
           placeholder={t('intel.welcome.placeholder')}
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) submit(); }}
+          onPaste={e => {
+            const files = Array.from(e.clipboardData.files || []);
+            if (files.length) { e.preventDefault(); attachments.add(files); }
+          }}
         />
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept={ATTACHMENT_ACCEPT}
+          style={{ display: 'none' }}
+          onChange={e => { if (e.target.files?.length) attachments.add(e.target.files); e.target.value = ''; }}
+        />
+        <button
+          type="button"
+          className={styles.attachBtn}
+          onClick={() => fileInputRef.current?.click()}
+          aria-label={t('chat.attachFile')}
+          title={`${t('chat.attachFile')} — ${t('chat.attachHint')}`}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+          </svg>
+        </button>
         <svg className={styles.micIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 19v3" />
         </svg>
-        <button className={styles.sendBtn} disabled={!text.trim()} onClick={submit} aria-label={t('intel.welcome.send')}>
+        <button className={styles.sendBtn} disabled={(!text.trim() && attachments.ready.length === 0) || attachments.uploading} onClick={submit} aria-label={t('intel.welcome.send')}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
         </button>
       </div>

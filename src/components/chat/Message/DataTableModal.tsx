@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { runFileQuery, exportFileQuery, type FileQueryRef } from '../../../services/chatAttachmentsService';
 import styles from './DataTableModal.module.css';
 
 /**
@@ -40,6 +41,10 @@ interface Props {
   closeLabel: string;
   loadingLabel: string;
   onClose: () => void;
+  /** The conversation has an attached spreadsheet: also offer this table written into that file's own structure (task #100). */
+  templateExport?: { label: string; run: () => Promise<void> };
+  /** The table came from a query over an attached file, not the database — re-run / export that instead of sql. */
+  fileQuery?: FileQueryRef;
 }
 
 function cellText(v: unknown): string {
@@ -62,8 +67,22 @@ function formatCell(value: unknown, col: DisplayColumn): string {
 
 export function DataTableModal({
   rows, columns, displayColumns, sql, schema, title, baseURL,
-  exportLabel, filterPlaceholder, rowsLabel, closeLabel, loadingLabel, onClose,
+  exportLabel, filterPlaceholder, rowsLabel, closeLabel, loadingLabel, onClose, templateExport, fileQuery,
 }: Props) {
+  const [templateBusy, setTemplateBusy] = useState(false);
+  const [templateError, setTemplateError] = useState<string | null>(null);
+  const handleTemplateExport = async () => {
+    if (!templateExport) return;
+    setTemplateBusy(true);
+    setTemplateError(null);
+    try {
+      await templateExport.run();
+    } catch (err) {
+      setTemplateError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setTemplateBusy(false);
+    }
+  };
   const [liveRows, setLiveRows] = useState(rows);
   const [liveColumns, setLiveColumns] = useState(columns);
   const [loading, setLoading] = useState(false);
@@ -74,8 +93,21 @@ export function DataTableModal({
   // AbortController (not just an `cancelled` flag) so React 18 StrictMode's
   // deliberate dev-mode double-invoke of effects actually cancels the first
   // in-flight request instead of firing two real queries against the DB.
+  // A table built from an attached file (task #100) re-runs that file query.
   useEffect(() => {
-    if (rows.length > 0 || !sql || !schema) return;
+    if (rows.length > 0 || !fileQuery) return;
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+    runFileQuery(fileQuery, baseURL)
+      .then(data => { if (!cancelled) { setLiveRows(data.rows || []); setLiveColumns(data.columns); setLoading(false); } })
+      .catch(err => { if (!cancelled) { setLoadError(err.message); setLoading(false); } });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (rows.length > 0 || fileQuery || !sql || !schema) return;
     const controller = new AbortController();
     setLoading(true);
     setLoadError(null);
@@ -163,13 +195,18 @@ export function DataTableModal({
       // the server re-runs the query itself. Shipping the full row set back
       // from the browser as a JSON body was the other half of the prod hang:
       // a ~29MB POST for the same table that overflowed the live SSE stream.
-      const res = await fetch(`${baseURL}/api/data-query/export-excel`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ schema, sql, displayColumns: cols, title }),
-      });
-      if (!res.ok) throw new Error(`Export failed (${res.status})`);
-      const blob = await res.blob();
+      let blob: Blob;
+      if (fileQuery) {
+        blob = await exportFileQuery(fileQuery, cols, title, baseURL);
+      } else {
+        const res = await fetch(`${baseURL}/api/data-query/export-excel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ schema, sql, displayColumns: cols, title }),
+        });
+        if (!res.ok) throw new Error(`Export failed (${res.status})`);
+        blob = await res.blob();
+      }
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -204,7 +241,19 @@ export function DataTableModal({
           <button type="button" className={styles.exportBtn} onClick={handleExport} disabled={exporting || loading || view.length === 0}>
             ⬇ {exportLabel}
           </button>
+          {templateExport && (
+            <button
+              type="button"
+              className={styles.exportBtn}
+              onClick={handleTemplateExport}
+              disabled={templateBusy || loading || liveRows.length === 0}
+              title={templateError || undefined}
+            >
+              {templateBusy ? '…' : '⬇'} {templateExport.label}
+            </button>
+          )}
         </div>
+        {templateError && <div className={styles.loadingState} style={{ color: '#b91c1c', padding: '6px 16px' }}>{templateError}</div>}
         {loading ? (
           <div className={styles.tableScroll}>
             <div className={styles.loadingState}>

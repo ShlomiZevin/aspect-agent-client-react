@@ -1,18 +1,32 @@
-import { useState, useRef, useEffect, useCallback, type FormEvent, type KeyboardEvent } from 'react';
-import { useChatContext } from '../../../context';
+import { useState, useRef, useEffect, useCallback, type FormEvent, type KeyboardEvent, type DragEvent, type ClipboardEvent } from 'react';
+import { useChatContext, useUserContext } from '../../../context';
 import { useAgentConfig } from '../../../context/AgentContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useLocalizedConfig, useLocalStorage } from '../../../hooks';
+import { ATTACHMENT_ACCEPT } from '../../../services/chatAttachmentsService';
+import { AttachmentChips } from '../Attachments/AttachmentChips';
+import { useChatAttachments } from '../Attachments/useChatAttachments';
 import styles from './ChatInput.module.css';
 
 export function ChatInput() {
   const config = useLocalizedConfig();
   const agentConfig = useAgentConfig();
-  const { sendMessage, isLoading } = useChatContext();
+  const { sendMessage, isLoading, conversationId } = useChatContext();
+  const { userId } = useUserContext();
   const { t } = useLanguage();
   const [input, setInput] = useState('');
   const [ctrlEnterSends, setCtrlEnterSends] = useLocalStorage<boolean>('chatInput.ctrlEnterSends', false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Files for the next message (task #100) — any agent, any readable format.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const attachments = useChatAttachments({
+    agentName: agentConfig.agentName,
+    conversationId,
+    userId,
+    baseURL: agentConfig.baseURL,
+  });
 
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -29,10 +43,30 @@ export function ChatInput() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const text = input.trim();
-    if (!text || isLoading) return;
+    const files = attachments.ready;
+    // A file still uploading is not sendable yet — the model would get the
+    // message without it.
+    if ((!text && files.length === 0) || isLoading || attachments.uploading) return;
 
-    sendMessage(text);
+    // A file on its own is a valid message; its name stands in for the text.
+    sendMessage(text || files.map(f => f.filename).join(', '), files.length ? { attachments: files } : undefined);
     setInput('');
+    attachments.clear();
+  };
+
+  const handleDrop = (e: DragEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setDragging(false);
+    if (e.dataTransfer.files?.length) attachments.add(e.dataTransfer.files);
+  };
+
+  // Pasting a screenshot (or a copied file) attaches it, like dropping it.
+  const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = Array.from(e.clipboardData.files || []);
+    if (files.length) {
+      e.preventDefault();
+      attachments.add(files);
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -119,7 +153,25 @@ export function ChatInput() {
   const isMicBusy = isLoading || isTranscribing;
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
+    <form
+      className={`${styles.form} ${dragging ? styles.formDragging : ''}`}
+      onSubmit={handleSubmit}
+      onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDragging(true); } }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+      data-drop-label={t('chat.dropFile')}
+    >
+      <AttachmentChips
+        items={attachments.pending.map(p => ({
+          key: p.localId,
+          filename: p.filename,
+          kind: p.ref?.kind,
+          status: p.status,
+          detail: p.status === 'error' ? (p.error || t('chat.fileFailed')) : p.ref?.summary,
+        }))}
+        onRemove={attachments.remove}
+        removeLabel={t('chat.removeFile')}
+      />
       <div className={styles.inputWrapper}>
         <textarea
           ref={textareaRef}
@@ -127,10 +179,33 @@ export function ChatInput() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder={config.inputPlaceholder}
           disabled={isLoading}
           rows={1}
         />
+
+        {/* Attach file */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept={ATTACHMENT_ACCEPT}
+          style={{ display: 'none' }}
+          onChange={(e) => { if (e.target.files?.length) attachments.add(e.target.files); e.target.value = ''; }}
+        />
+        <button
+          type="button"
+          className={styles.micBtn}
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isLoading}
+          aria-label={t('chat.attachFile')}
+          title={`${t('chat.attachFile')} — ${t('chat.attachHint')}`}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+          </svg>
+        </button>
 
         {/* Microphone button */}
         <button
@@ -165,7 +240,7 @@ export function ChatInput() {
         <button
           type="submit"
           className={styles.sendBtn}
-          disabled={!input.trim() || isLoading}
+          disabled={(!input.trim() && attachments.ready.length === 0) || isLoading || attachments.uploading}
           aria-label={t('chat.send')}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
