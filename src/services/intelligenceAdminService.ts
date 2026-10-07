@@ -28,6 +28,46 @@ export interface IntelligenceAdminDataset {
   config: IntelligenceDatasetConfig;
   insightCount: number;
   trackedCount: number;
+  /** Usage — null when the server could not count it (the list still loads). */
+  activity: DatasetActivity | null;
+}
+
+/**
+ * How much a dataset is used (insights/services/dataset-activity.service.js).
+ * Conversations exclude our own test traffic (replay batteries, Playground).
+ * Apps exclude archived ones; Otto vs MCP is by where the app was built.
+ */
+export interface DatasetActivity {
+  conversations: number;
+  conversations30d: number;
+  users: number;
+  lastConversationAt: string | null;
+  ottoApps: number;
+  mcpApps: number;
+  publishedApps: number;
+}
+
+/** One project's own Overview page (GET /datasets/:id/overview). */
+export interface DatasetOverview {
+  id: string;
+  insightCount: number;
+  trackedCount: number;
+  activity: DatasetActivity | null;
+  /** Null for a dataset with no data loader (e.g. the aspect demo). */
+  data: { firstDataDate: string | null; lastDataDate: string | null; lastLoadAt: string | null } | null;
+  lastCycle: {
+    importStartedAt: string | null;
+    importCompletedAt: string | null;
+    importStatus: string | null;
+    totalRows: number | null;
+    indexCompletedAt: string | null;
+    indexStatus: string | null;
+    durationMs: number | null;
+  } | null;
+  recentInsights: Array<Pick<InsightDetail, 'id' | 'headline' | 'category' | 'categoryLabel' | 'impactValue' | 'impactDirection'> & {
+    tracked: boolean;
+    createdAt: number | null;
+  }>;
 }
 
 /** One past content snapshot for a single section — 'config' entries carry brandLabel/dataModelDescription, 'prompts' entries carry bootstrapPrompts/examplePrompts; the other section's fields are absent, not just empty. */
@@ -46,6 +86,13 @@ export const intelligenceAdminService = {
       { method: 'GET' },
       baseURL || getBaseURL()
     ).then(r => r.datasets),
+
+  getOverview: (datasetId: string, baseURL?: string) =>
+    apiRequest<DatasetOverview>(
+      `/api/admin/intelligence/datasets/${datasetId}/overview`,
+      { method: 'GET' },
+      baseURL || getBaseURL()
+    ),
 
   updateConfig: (datasetId: string, patch: Partial<IntelligenceDatasetConfig>, baseURL?: string) =>
     apiRequest<{ id: string; config: IntelligenceDatasetConfig }>(

@@ -65,10 +65,16 @@ const INTELLIGENCE_ITEMS = [
   { path: 'intelligence/insights', label: 'Insights', icon: 'M18 20V10 M12 20V4 M6 20v-6' },
 ];
 
+// Every client's dataset in one table — cross-client, so it sits in Platform.
 const INTELLIGENCE_OVERVIEW_ITEM = {
   path: 'intelligence-overview',
-  // Already under the Intelligence group header — the page itself keeps the
-  // full "Intelligence Overview" title.
+  label: 'Intelligence Overview',
+  icon: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
+};
+
+// THIS client's project in detail — first item of its Intelligence group.
+const DATASET_OVERVIEW_ITEM = {
+  path: 'intelligence/overview',
   label: 'Overview',
   icon: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
 };
@@ -214,8 +220,7 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
       id: 'intelligence',
       label: 'Intelligence',
       items: [
-        INTELLIGENCE_OVERVIEW_ITEM,
-        ...(showIntelligence ? INTELLIGENCE_ITEMS : []),
+        ...(showIntelligence ? [DATASET_OVERVIEW_ITEM, ...INTELLIGENCE_ITEMS] : []),
         ...(showQueryOptimizer ? [DATA_LOADER_ITEM] : []),
         ...(showModules ? [MODULES_ITEM] : []),
         ...(showIntelligence ? [INTELLIGENCE_SETTINGS_ITEM] : []),
@@ -240,7 +245,7 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
       note: 'Same for all clients',
       // Query Optimizer lists slow queries of every client's schema, not this
       // one's — so it lives here, for every client, rather than per dataset.
-      items: [BILLING_ITEM, LLM_USAGE_ITEM, QUERY_OPTIMIZER_ITEM, CLOUD_RUN_LOGS_ITEM],
+      items: [INTELLIGENCE_OVERVIEW_ITEM, BILLING_ITEM, LLM_USAGE_ITEM, QUERY_OPTIMIZER_ITEM, CLOUD_RUN_LOGS_ITEM],
     },
   ];
 

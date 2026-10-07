@@ -6,6 +6,7 @@
  *
  *  - IntelligenceDatasetSection — one client's dataset, rendered under
  *    `/:agent/admin/intelligence/*`:
+ *    `overview`        — this project's usage, apps, data freshness, newest insights
  *    `report-settings` — one sidebar item, three tabs with their own URLs:
  *        `general`         — brand label + data model description
  *        `prompts`         — example prompt chips
@@ -19,7 +20,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, NavLink, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
-import { intelligenceAdminService, type IntelligenceAdminDataset, type IntelligenceConfigVersion } from '../../../services/intelligenceAdminService';
+import { intelligenceAdminService, type DatasetOverview, type IntelligenceAdminDataset, type IntelligenceConfigVersion } from '../../../services/intelligenceAdminService';
 import type { InsightDetail } from '../../../types/insights';
 import type { QuickQuestion } from '../../../types/agent';
 import { useDocumentMeta } from '../../../hooks';
@@ -116,6 +117,9 @@ function OverviewPage({ datasets, reload }: DatasetsState) {
                 <th>Enabled</th>
                 <th>Insights</th>
                 <th>Tracked</th>
+                <th title="Chat conversations with real users (our replay / Playground tests excluded)">Conversations</th>
+                <th title="Custom apps built in Otto, inside the Intelligence Center (archived excluded)">Otto apps</th>
+                <th title="Custom apps built through the AI builder door (MCP) with the client's own AI tool">MCP apps</th>
               </tr>
             </thead>
             <tbody>
@@ -150,6 +154,14 @@ function OverviewPage({ datasets, reload }: DatasetsState) {
                   </td>
                   <td><span className={styles.metricValue}>{d.insightCount}</span></td>
                   <td><span className={styles.metricValue}>{d.trackedCount}</span></td>
+                  <td>
+                    <span className={styles.metricValue}>{d.activity?.conversations ?? '—'}</span>
+                    {!!d.activity?.conversations30d && (
+                      <span className={styles.metricSub}>{d.activity.conversations30d} in 30d</span>
+                    )}
+                  </td>
+                  <td><span className={styles.metricValue}>{d.activity?.ottoApps ?? '—'}</span></td>
+                  <td><span className={styles.metricValue}>{d.activity?.mcpApps ?? '—'}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -893,6 +905,123 @@ function DatasetInsightsPage() {
   );
 }
 
+function formatDay(value: string | number | null | undefined): string {
+  if (value == null) return '—';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatDurationMs(ms: number): string {
+  const m = Math.round(ms / 60000);
+  return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+}
+
+/**
+ * One project's own Overview — the first item of the client's Intelligence
+ * group. The cross-client table (Platform > Intelligence Overview) answers
+ * "which projects"; this answers "how is THIS one doing": usage, apps, data
+ * freshness and what Aspect found most recently.
+ */
+function DatasetOverviewPage() {
+  const { dataset } = useOutletContext<DatasetOutletContext>();
+  const [overview, setOverview] = useState<DatasetOverview | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setOverview(null);
+    setError(null);
+    intelligenceAdminService.getOverview(dataset.id)
+      .then(o => { if (!cancelled) setOverview(o); })
+      .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load the overview'); });
+    return () => { cancelled = true; };
+  }, [dataset.id]);
+
+  if (error) return <div className={styles.statusLineError}>{error}</div>;
+  if (!overview) return <div className={styles.statusLine}>Loading…</div>;
+
+  const a = overview.activity;
+  const cycle = overview.lastCycle;
+  const cycleText = !cycle?.importStartedAt
+    ? '—'
+    : cycle.importStatus === 'failed'
+      ? 'Import failed'
+      : cycle.durationMs == null
+        ? 'Indexing not caught up'
+        : formatDurationMs(cycle.durationMs);
+
+  return (
+    <>
+      <div className={styles.statGrid}>
+        <div className={styles.statCard}>
+          <div className={`${styles.statValue} ${styles.statValueAccent}`}>{overview.insightCount}</div>
+          <div className={styles.statLabel}>Insights generated</div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statValue}>{overview.trackedCount}</div>
+          <div className={styles.statLabel}>Tracked by users</div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statValue}>{a?.conversations ?? '—'}</div>
+          <div className={styles.statLabel}>Conversations</div>
+          {a && <div className={styles.statSub}>{a.conversations30d} in the last 30 days · {a.users} users</div>}
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statValue}>{a ? a.ottoApps + a.mcpApps : '—'}</div>
+          <div className={styles.statLabel}>Apps</div>
+          {a && <div className={styles.statSub}>Otto {a.ottoApps} · MCP {a.mcpApps} · {a.publishedApps} published</div>}
+        </div>
+      </div>
+
+      <div className={styles.overviewColumns}>
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3 className={styles.panelTitle}>Data</h3>
+          </div>
+          <dl className={styles.infoList}>
+            <dt>Data from</dt>
+            <dd>{formatDay(overview.data?.firstDataDate)}</dd>
+            <dt>Data through</dt>
+            <dd>{formatDay(overview.data?.lastDataDate)}</dd>
+            <dt>Last load</dt>
+            <dd>{formatDay(overview.data?.lastLoadAt)}</dd>
+            <dt>Last full load cycle</dt>
+            <dd>{cycleText}</dd>
+            {cycle?.totalRows != null && cycle.totalRows > 0 && (
+              <>
+                <dt>Rows loaded</dt>
+                <dd>{Number(cycle.totalRows).toLocaleString()}</dd>
+              </>
+            )}
+            <dt>Last conversation</dt>
+            <dd>{formatDay(a?.lastConversationAt)}</dd>
+          </dl>
+        </div>
+
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3 className={styles.panelTitle}>Newest insights</h3>
+            <NavLink to="../insights" className={styles.panelLink}>All insights →</NavLink>
+          </div>
+          {overview.recentInsights.length === 0 ? (
+            <div className={styles.statusLine}>No insights generated yet.</div>
+          ) : (
+            <ul className={styles.recentList}>
+              {overview.recentInsights.map(i => (
+                <li key={i.id} className={styles.recentItem}>
+                  <span className={styles.recentHeadline}>{i.headline}</span>
+                  <CategoryBadge category={i.category} label={i.categoryLabel} />
+                  <span className={styles.mutedCell}>{formatDay(i.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 const REPORT_SETTINGS_TABS = [
   { path: 'general', label: 'General' },
   { path: 'prompts', label: 'Prompts' },
@@ -933,7 +1062,8 @@ export function IntelligenceDatasetSection({ datasetId }: { datasetId: string })
     <AdminPage>
       <Routes>
         <Route element={<DatasetLayout datasetId={datasetId} datasets={datasets} reload={reload} />}>
-          <Route index element={<Navigate to="report-settings" replace />} />
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={<DatasetOverviewPage />} />
           <Route path="report-settings" element={<ReportSettingsLayout />}>
             <Route index element={<Navigate to="general" replace />} />
             <Route path="general" element={<DatasetConfigPage />} />
