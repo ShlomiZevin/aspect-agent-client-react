@@ -699,7 +699,7 @@ function DatasetQuickQuestionsPage() {
 
   return (
     <>
-      <h2 className={styles.sectionTitle}>Quick Questions</h2>
+      <h2 className={styles.sectionTitle}>Chat Quick Questions</h2>
       <p className={styles.subtitle}>
         The quick-question tiles on the Data Chat welcome screen for this client. Leave empty to keep using
         the agent's built-in default questions. Hidden from customers — set here, not by them, for now.
@@ -896,11 +896,11 @@ function DatasetInsightsPage() {
 const REPORT_SETTINGS_TABS = [
   { path: 'general', label: 'General' },
   { path: 'prompts', label: 'Prompts' },
-  { path: 'quick-questions', label: 'Quick Questions' },
+  { path: 'quick-questions', label: 'Chat Quick Questions' },
 ];
 
 /**
- * Report Settings — what used to be three sidebar items (Config, Prompts,
+ * Intelligence Settings — what used to be three sidebar items (Config, Prompts,
  * Quick Questions) as tabs of one page. Each tab is a real link with its own
  * URL (`intelligence/report-settings/<tab>`), so a refresh, a shared link or
  * Back stays on the same tab.
