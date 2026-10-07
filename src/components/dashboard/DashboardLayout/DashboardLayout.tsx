@@ -208,7 +208,7 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
       label: 'Intelligence',
       items: [
         ...(showIntelligence ? INTELLIGENCE_ITEMS : []),
-        ...(showQueryOptimizer ? [DATA_LOADER_ITEM, QUERY_OPTIMIZER_ITEM] : []),
+        ...(showQueryOptimizer ? [DATA_LOADER_ITEM] : []),
         ...(showModules ? [MODULES_ITEM] : []),
       ],
     },
@@ -229,7 +229,9 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
       id: 'platform',
       label: 'Platform',
       note: 'Same for all clients',
-      items: [INTELLIGENCE_OVERVIEW_ITEM, BILLING_ITEM, LLM_USAGE_ITEM, CLOUD_RUN_LOGS_ITEM],
+      // Query Optimizer lists slow queries of every client's schema, not this
+      // one's — so it lives here, for every client, rather than per dataset.
+      items: [INTELLIGENCE_OVERVIEW_ITEM, BILLING_ITEM, LLM_USAGE_ITEM, QUERY_OPTIMIZER_ITEM, CLOUD_RUN_LOGS_ITEM],
     },
   ];
 

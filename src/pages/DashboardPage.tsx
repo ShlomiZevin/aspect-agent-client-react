@@ -211,12 +211,12 @@ export function DashboardPage() {
               path="library"
               element={<PineconeAdmin agentName={config.agentName} baseURL={config.baseURL} />}
             />
-            {showQueryOptimizer && (
-              <Route
-                path="query-optimizer"
-                element={<QueryOptimizerPage agentName={config.agentName} baseURL={config.baseURL} />}
-              />
-            )}
+            {/* Platform-wide (all schemas' slow queries), so not gated on this
+                agent having a database. */}
+            <Route
+              path="query-optimizer"
+              element={<QueryOptimizerPage agentName={config.agentName} baseURL={config.baseURL} />}
+            />
             {showQueryOptimizer && (
               <Route
                 path="data-loader"

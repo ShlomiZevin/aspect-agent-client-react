@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
 import { ApiKeysPage } from '../ApiKeysPage';
-import { AdminPage, adminUi } from '../AdminPage';
+import { AdminPage, adminUi, useUrlTab } from '../AdminPage';
 import styles from './SettingsPage.module.css';
 
 interface Props {
@@ -416,10 +416,10 @@ function ScheduleTab({ baseURL = '' }: Props) {
   );
 }
 
-type Tab = 'api-keys' | 'notifications' | 'schedule';
+const TABS = ['api-keys', 'notifications', 'schedule'] as const;
 
 export function SettingsPage({ baseURL = '', agentName }: Props) {
-  const [tab, setTab] = useState<Tab>('api-keys');
+  const [tab, setTab] = useUrlTab(TABS);
 
   return (
     <AdminPage title="Settings" subtitle="Agent configuration and notification settings.">
