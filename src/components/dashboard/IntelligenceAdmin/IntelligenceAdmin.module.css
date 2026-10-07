@@ -277,6 +277,35 @@
   white-space: nowrap;
 }
 
+/* ── Apps table: origin + status pills ──────────────────────────────── */
+
+.pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pillOtto { background: #ede9fe; color: #6d28d9; }
+.pillMcp { background: #e0f2fe; color: #0369a1; }
+
+.appStatus_draft { background: #f3f4f6; color: #6b7280; }
+.appStatus_ready { background: #fef3c7; color: #b45309; }
+.appStatus_active { background: #dcfce7; color: #15803d; }
+.appStatus_archived { background: #f3f4f6; color: #9ca3af; text-decoration: line-through; }
+
+.appSummary {
+  margin-top: 2px;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  max-width: 520px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── One project's Overview ─────────────────────────────────────────── */
 
 .statSub {

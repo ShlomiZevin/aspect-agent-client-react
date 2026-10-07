@@ -47,6 +47,35 @@ export interface DatasetActivity {
   publishedApps: number;
 }
 
+/** One real chat conversation of a dataset (test traffic excluded). */
+export interface DatasetConversation {
+  id: number;
+  /** What the admin's per-user conversation viewer opens by; null rows can't be opened there. */
+  externalId: string | null;
+  userId: number | null;
+  /** Email, name or visitor id — whatever identifies the user best. */
+  user: string | null;
+  channel: string | null;
+  startedAt: string;
+  lastMessageAt: string;
+  messageCount: number;
+  firstQuestion: string | null;
+}
+
+/** One custom app of a dataset. */
+export interface DatasetApp {
+  id: string;
+  title: { en?: string; he?: string } | null;
+  summary: { en?: string; he?: string } | null;
+  status: 'draft' | 'ready' | 'active' | 'archived';
+  /** Built in Otto, or through the AI builder door with the client's own AI tool. */
+  origin: 'otto' | 'mcp';
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lastBuild: { status: 'running' | 'succeeded' | 'failed'; finishedAt: string | null } | null;
+}
+
 /** One project's own Overview page (GET /datasets/:id/overview). */
 export interface DatasetOverview {
   id: string;
@@ -93,6 +122,20 @@ export const intelligenceAdminService = {
       { method: 'GET' },
       baseURL || getBaseURL()
     ),
+
+  listConversations: (datasetId: string, baseURL?: string) =>
+    apiRequest<{ conversations: DatasetConversation[] }>(
+      `/api/admin/intelligence/datasets/${datasetId}/conversations`,
+      { method: 'GET' },
+      baseURL || getBaseURL()
+    ).then(r => r.conversations),
+
+  listApps: (datasetId: string, baseURL?: string) =>
+    apiRequest<{ apps: DatasetApp[] }>(
+      `/api/admin/intelligence/datasets/${datasetId}/apps`,
+      { method: 'GET' },
+      baseURL || getBaseURL()
+    ).then(r => r.apps),
 
   updateConfig: (datasetId: string, patch: Partial<IntelligenceDatasetConfig>, baseURL?: string) =>
     apiRequest<{ id: string; config: IntelligenceDatasetConfig }>(

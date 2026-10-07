@@ -13,14 +13,23 @@
  *        `quick-questions` — Data Chat quick-question tiles
  *      (the old `config` / `prompts` / `quick-questions` addresses redirect)
  *    `insights`        — generated-insight monitor + delete
+ *    `conversations`   — real users' chat conversations, each opening in the Users viewer
+ *    `apps`            — custom apps, Otto- and MCP-built
  *    (there's deliberately no "run bootstrap/investigate" admin page — that
  *    duplicated what's already available directly in the product itself)
  *  - IntelligenceOverviewPage — every dataset at once, enable/disable only.
  *    Cross-client, so it sits in the sidebar's Platform group.
  */
 import { useEffect, useState } from 'react';
-import { Routes, Route, Navigate, NavLink, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
-import { intelligenceAdminService, type DatasetOverview, type IntelligenceAdminDataset, type IntelligenceConfigVersion } from '../../../services/intelligenceAdminService';
+import { Routes, Route, Navigate, Link, NavLink, Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import {
+  intelligenceAdminService,
+  type DatasetApp,
+  type DatasetConversation,
+  type DatasetOverview,
+  type IntelligenceAdminDataset,
+  type IntelligenceConfigVersion,
+} from '../../../services/intelligenceAdminService';
 import type { InsightDetail } from '../../../types/insights';
 import type { QuickQuestion } from '../../../types/agent';
 import { useDocumentMeta } from '../../../hooks';
@@ -1054,6 +1063,205 @@ function ReportSettingsLayout() {
   );
 }
 
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+const EyeIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+/**
+ * This project's chat conversations — real users only (our replay batteries
+ * and Playground sessions are left out). The eye opens the conversation in
+ * the admin's existing per-user viewer (Users > user > conversation).
+ */
+function DatasetConversationsPage() {
+  const { dataset } = useOutletContext<DatasetOutletContext>();
+  const { pathname } = useLocation();
+  const [conversations, setConversations] = useState<DatasetConversation[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // `/:agent/admin` — the Users viewer lives beside this section, not under it.
+  const adminBase = pathname.split('/intelligence/')[0];
+
+  useEffect(() => {
+    let cancelled = false;
+    setConversations(null);
+    setError(null);
+    intelligenceAdminService.listConversations(dataset.id)
+      .then(c => { if (!cancelled) setConversations(c); })
+      .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load conversations'); });
+    return () => { cancelled = true; };
+  }, [dataset.id]);
+
+  return (
+    <>
+      <h2 className={styles.sectionTitle}>Conversations</h2>
+      <p className={styles.subtitle}>
+        Chat conversations with real users, most recently active first. Our own test runs (replay batteries,
+        Playground) are not counted. The eye opens the full conversation.
+        {conversations && conversations.length > 0 && ` ${conversations.length} shown.`}
+      </p>
+      {error && <div className={styles.statusLineError}>{error}</div>}
+      <div className={styles.tableContainer}>
+        {conversations === null ? (
+          <div className={styles.tableEmpty}>{error ? '—' : 'Loading…'}</div>
+        ) : conversations.length === 0 ? (
+          <div className={styles.tableEmpty}>No conversations yet for this dataset.</div>
+        ) : (
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>First question</th>
+                <th>User</th>
+                <th>Messages</th>
+                <th>Started</th>
+                <th>Last message</th>
+                <th className={styles.actionsCol}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {conversations.map(c => (
+                <tr key={c.id}>
+                  <td className={styles.insightHeadline}>{c.firstQuestion || <span className={styles.mutedCell}>(no question)</span>}</td>
+                  <td className={styles.mutedCell}>{c.user || '—'}</td>
+                  <td><span className={styles.metricValue}>{c.messageCount}</span></td>
+                  <td className={styles.mutedCell}>{formatDateTime(c.startedAt)}</td>
+                  <td className={styles.mutedCell}>{formatDateTime(c.lastMessageAt)}</td>
+                  <td className={styles.actionsCol}>
+                    {c.externalId && c.userId != null && (
+                      <div className={styles.rowActions}>
+                        <Link
+                          className={styles.rowViewBtn}
+                          to={`${adminBase}/users/${c.userId}/conversations/${c.externalId}`}
+                          aria-label="Open conversation"
+                          title="Open this conversation"
+                        >
+                          <EyeIcon />
+                        </Link>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </>
+  );
+}
+
+const APP_STATUS_LABEL: Record<DatasetApp['status'], string> = {
+  draft: 'Draft',
+  ready: 'Ready',
+  active: 'Published',
+  archived: 'Archived',
+};
+
+/**
+ * This project's custom apps — built in Otto or through the AI builder door
+ * (MCP) — in one table, origin as a column. Only published apps get the eye:
+ * a draft is visible to its creator alone (Otto's rule), so a link to one
+ * would open a "not found" for anyone else.
+ */
+function DatasetAppsPage() {
+  const { dataset } = useOutletContext<DatasetOutletContext>();
+  const [apps, setApps] = useState<DatasetApp[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setApps(null);
+    setError(null);
+    intelligenceAdminService.listApps(dataset.id)
+      .then(a => { if (!cancelled) setApps(a); })
+      .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load apps'); });
+    return () => { cancelled = true; };
+  }, [dataset.id]);
+
+  const ottoCount = apps?.filter(a => a.origin === 'otto' && a.status !== 'archived').length ?? 0;
+  const mcpCount = apps?.filter(a => a.origin === 'mcp' && a.status !== 'archived').length ?? 0;
+
+  return (
+    <>
+      <h2 className={styles.sectionTitle}>Apps</h2>
+      <p className={styles.subtitle}>
+        Custom apps for this dataset — built in Otto inside the Intelligence Center, or through the AI builder door
+        (MCP) with the client's own AI tool. Drafts are visible only to whoever is building them.
+        {apps && apps.length > 0 && ` ${ottoCount} Otto, ${mcpCount} MCP.`}
+      </p>
+      {error && <div className={styles.statusLineError}>{error}</div>}
+      <div className={styles.tableContainer}>
+        {apps === null ? (
+          <div className={styles.tableEmpty}>{error ? '—' : 'Loading…'}</div>
+        ) : apps.length === 0 ? (
+          <div className={styles.tableEmpty}>No apps built for this dataset yet.</div>
+        ) : (
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>App</th>
+                <th>Built with</th>
+                <th>Status</th>
+                <th>Created by</th>
+                <th>Last build</th>
+                <th>Updated</th>
+                <th className={styles.actionsCol}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {apps.map(app => (
+                <tr key={app.id}>
+                  <td>
+                    <div className={styles.insightHeadline}>{app.title?.en || app.title?.he || app.id}</div>
+                    {app.summary?.en && <div className={styles.appSummary}>{app.summary.en}</div>}
+                  </td>
+                  <td>
+                    <span className={`${styles.pill} ${app.origin === 'mcp' ? styles.pillMcp : styles.pillOtto}`}>
+                      {app.origin === 'mcp' ? 'MCP' : 'Otto'}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`${styles.pill} ${styles[`appStatus_${app.status}`]}`}>{APP_STATUS_LABEL[app.status]}</span>
+                  </td>
+                  <td className={styles.mutedCell}>{app.createdBy || '—'}</td>
+                  <td className={styles.mutedCell}>
+                    {app.lastBuild ? `${app.lastBuild.status === 'succeeded' ? 'OK' : app.lastBuild.status}${app.lastBuild.finishedAt ? ` · ${formatDateTime(app.lastBuild.finishedAt)}` : ''}` : '—'}
+                  </td>
+                  <td className={styles.mutedCell}>{formatDateTime(app.updatedAt)}</td>
+                  <td className={styles.actionsCol}>
+                    {app.status === 'active' && (
+                      <div className={styles.rowActions}>
+                        <a
+                          className={styles.rowViewBtn}
+                          href={`/${dataset.id}/intelligence/apps/${app.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Open app"
+                          title="Open this app on the live site (new tab)"
+                        >
+                          <EyeIcon />
+                        </a>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </>
+  );
+}
+
 /** One client's dataset, mounted by DashboardPage at `intelligence/*`. */
 export function IntelligenceDatasetSection({ datasetId }: { datasetId: string }) {
   const { datasets, reload } = useDatasetsState();
@@ -1075,6 +1283,8 @@ export function IntelligenceDatasetSection({ datasetId }: { datasetId: string })
           <Route path="prompts" element={<Navigate to="../report-settings/prompts" replace />} />
           <Route path="quick-questions" element={<Navigate to="../report-settings/quick-questions" replace />} />
           <Route path="insights" element={<DatasetInsightsPage />} />
+          <Route path="conversations" element={<DatasetConversationsPage />} />
+          <Route path="apps" element={<DatasetAppsPage />} />
         </Route>
       </Routes>
     </AdminPage>

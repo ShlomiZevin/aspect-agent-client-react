@@ -63,6 +63,9 @@ const INTELLIGENCE_SETTINGS_ITEM = { path: 'intelligence/report-settings', label
 
 const INTELLIGENCE_ITEMS = [
   { path: 'intelligence/insights', label: 'Insights', icon: 'M18 20V10 M12 20V4 M6 20v-6' },
+  { path: 'intelligence/conversations', label: 'Conversations', icon: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z' },
+  // Custom apps, Otto- and MCP-built (same icon family as Modules: a box).
+  { path: 'intelligence/apps', label: 'Apps', icon: 'M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M17 14v6 M14 17h6' },
 ];
 
 // Every client's dataset in one table — cross-client, so it sits in Platform.
