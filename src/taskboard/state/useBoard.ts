@@ -185,6 +185,16 @@ export function useBoard() {
     return task;
   }, []);
 
+  /**
+   * Publishes release notes to customers, then pulls the published tasks back
+   * so their "Published" stamp shows without waiting on the stream.
+   */
+  const publishNotes = useCallback(async (ids: number[]) => {
+    const result = await api.publishNotes(ids);
+    await Promise.all(result.published.map(id => resync(id)));
+    return result;
+  }, [resync]);
+
   return {
     tasks: state.byId,
     loading: state.loading,
@@ -194,6 +204,7 @@ export function useBoard() {
     update,
     remove,
     deploy,
+    publishNotes,
   };
 }
 

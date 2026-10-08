@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CommentThread } from '../CommentThread';
 import { RichTextEditor, sanitize } from '../RichTextEditor';
 import { useTranslation } from '../../state/useTranslation';
-import { LABELS, PRIORITIES, STATUSES, TYPES } from '../../types';
+import { LABELS, PRIORITIES, STATUSES, TYPES, isPublisher } from '../../types';
 import type { Person, Task, TaskDraft, TaskPriority, TaskStatus, TaskType } from '../../types';
 import styles from './TaskFormModal.module.css';
 
@@ -46,11 +46,15 @@ interface FormState {
   dependsOn: number | null;
   isDraft: boolean;
   atRisk: boolean;
+  customerNote: boolean;
+  noteHeadline: string;
+  noteBody: string;
 }
 
 const EMPTY: FormState = {
   title: '', description: '', type: 'feature', priority: 'medium', status: 'todo',
   assignee: '', dueDate: '', tags: '', dependsOn: null, isDraft: false, atRisk: false,
+  customerNote: false, noteHeadline: '', noteBody: '',
 };
 
 function seed(task?: Task): FormState {
@@ -67,6 +71,9 @@ function seed(task?: Task): FormState {
     dependsOn: task.dependsOn ?? null,
     isDraft: task.isDraft,
     atRisk: task.atRisk,
+    customerNote: task.customerNote,
+    noteHeadline: task.noteHeadline ?? '',
+    noteBody: task.noteBody ?? '',
   };
 }
 
@@ -145,6 +152,9 @@ export function TaskFormModal({
         dependsOn: form.dependsOn ?? undefined,
         isDraft: form.isDraft,
         atRisk: form.atRisk,
+        customerNote: form.customerNote,
+        noteHeadline: form.noteHeadline.trim() || null,
+        noteBody: form.noteBody.trim() || null,
         // Only on create: editing must not reassign who opened it.
         ...(task ? {} : { opener: me ?? undefined }),
       });
@@ -390,6 +400,39 @@ export function TaskFormModal({
                   )}
                 </div>
               </div>
+
+              {form.customerNote && (
+                <div className={styles.noteSection}>
+                  <div className={styles.noteHeader}>
+                    <span className={styles.noteLabel}>Customer release note (Hebrew)</span>
+                    <span className={task?.notePublishedAt ? styles.notePublished : styles.noteStatus}>
+                      {task?.notePublishedAt
+                        ? `Published ${new Date(task.notePublishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+                        : 'Not published yet'}
+                    </span>
+                  </div>
+                  <div className={styles.noteHint}>
+                    General wording - every customer sees it. Never name the customer who asked for it.
+                  </div>
+                  <input
+                    type="text"
+                    className={styles.noteInput}
+                    dir="rtl"
+                    maxLength={255}
+                    value={form.noteHeadline}
+                    placeholder="כותרת קצרה: מה חדש"
+                    onChange={e => set('noteHeadline', e.target.value)}
+                  />
+                  <textarea
+                    className={styles.noteInput}
+                    dir="rtl"
+                    rows={3}
+                    value={form.noteBody}
+                    placeholder="כמה מילים: מה השתנה ואיך משתמשים בזה"
+                    onChange={e => set('noteBody', e.target.value)}
+                  />
+                </div>
+              )}
             </div>
 
             <div className={styles.actions}>
@@ -428,6 +471,22 @@ export function TaskFormModal({
                     />
                     💀 Limbo
                   </label>
+                  {/* Shlomi decides which tasks reach customers; everyone else
+                      sees the mark but cannot change it. */}
+                  {(isPublisher(me) || form.customerNote) && (
+                    <label
+                      className={`${styles.toggleChip} ${form.customerNote ? styles.customerActive : ''} ${isPublisher(me) ? '' : styles.chipReadOnly}`}
+                      title={isPublisher(me) ? 'Gets a release note in the Intelligence Center' : 'Marked by Shlomi'}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={form.customerNote}
+                        disabled={!isPublisher(me)}
+                        onChange={e => set('customerNote', e.target.checked)}
+                      />
+                      For customers
+                    </label>
+                  )}
                   {task && form.status === 'done' && (
                     <label className={`${styles.toggleChip} ${task.acknowledged ? styles.completedActive : ''}`}>
                       <input

@@ -41,6 +41,13 @@ export interface Task {
   dependsOn?: number;
   linkedTaskIds: number[];
   deployedAt?: string;
+  /** Shlomi marked this task as relevant to customers — it gets a release note (task #102). */
+  customerNote: boolean;
+  /** The customer release note, in Hebrew. */
+  noteHeadline?: string;
+  noteBody?: string;
+  /** When Shlomi published the note to customers. Unset = not published. */
+  notePublishedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -51,8 +58,19 @@ export type TaskDraft = Partial<
     Task,
     'title' | 'description' | 'status' | 'priority' | 'type' | 'assignee' | 'opener'
     | 'dueDate' | 'tags' | 'atRisk' | 'acknowledged' | 'isDraft' | 'dependsOn' | 'linkedTaskIds'
+    | 'customerNote'
   >
->;
+> & {
+  // null clears the field; Task itself never holds null, so these widen it.
+  noteHeadline?: string | null;
+  noteBody?: string | null;
+};
+
+/** Publishing to customers is Shlomi's, as Release is on the LYBI board. */
+export const isPublisher = (me: string | null) => me?.toLowerCase() === 'shlomi';
+
+/** Marked for customers, Done, not yet published — what the Publish window lists. */
+export const awaitsPublishing = (t: Task) => t.customerNote && t.status === 'done' && !t.notePublishedAt;
 
 export interface Comment {
   id: number;

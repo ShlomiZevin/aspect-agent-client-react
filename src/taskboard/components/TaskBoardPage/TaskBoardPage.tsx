@@ -6,11 +6,12 @@ import { IdentityModal } from '../IdentityModal';
 import { ListView } from '../ListView';
 import { NotificationBell } from '../NotificationBell';
 import { WhatsNewModal } from '../WhatsNewModal';
+import { PublishNotesModal } from '../PublishNotesModal';
 import { EMPTY_FILTERS, activeCount, filtersReducer, matches } from '../../state/filters';
 import { useAttention, useBoard } from '../../state/useBoard';
 import { useIdentity, usePeople } from '../../state/useIdentity';
 import { useNotifications, useWhatsNew } from '../../state/useNotifications';
-import { LABELS, PRIORITIES, TYPES } from '../../types';
+import { LABELS, PRIORITIES, TYPES, awaitsPublishing, isPublisher } from '../../types';
 import type { Task, TaskPriority, TaskStatus, TaskType } from '../../types';
 import styles from './TaskBoardPage.module.css';
 
@@ -27,7 +28,7 @@ import styles from './TaskBoardPage.module.css';
  * deliberately not wired into i18n.
  */
 export function TaskBoardPage() {
-  const { tasks, loading, error, reload, create, update, remove, deploy } = useBoard();
+  const { tasks, loading, error, reload, create, update, remove, deploy, publishNotes } = useBoard();
   const { me, identify } = useIdentity();
   const { people, add: addPerson } = usePeople();
   const { ids: attentionIds, refresh: refreshAttention } = useAttention(me);
@@ -56,6 +57,7 @@ export function TaskBoardPage() {
   const [creating, setCreating] = useState(false);
   const [askingName, setAskingName] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const [showPublish, setShowPublish] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [idSearch, setIdSearch] = useState('');
@@ -101,6 +103,12 @@ export function TaskBoardPage() {
 
   const draftCount = useMemo(
     () => [...tasks.values()].filter(t => t.isDraft).length,
+    [tasks],
+  );
+
+  // Release notes waiting for Shlomi to publish to customers (task #102).
+  const publishable = useMemo(
+    () => [...tasks.values()].filter(awaitsPublishing).sort((a, b) => b.id - a.id),
     [tasks],
   );
 
@@ -173,6 +181,16 @@ export function TaskBoardPage() {
         </h2>
 
         <div className={styles.headerRight}>
+          {isPublisher(me) && (
+            <button
+              className={`${styles.whatsNewBtn} ${publishable.length > 0 ? styles.whatsNewActive : ''}`}
+              onClick={() => setShowPublish(true)}
+              title="Publish release notes to customers"
+            >
+              Publish{publishable.length > 0 ? ` (${publishable.length})` : ''}
+            </button>
+          )}
+
           {me && (
             <button
               className={`${styles.whatsNewBtn} ${whatsNew.tasks.length > 0 ? styles.whatsNewActive : ''}`}
@@ -424,6 +442,15 @@ export function TaskBoardPage() {
           onOpenTask={setOpenId}
           onDismiss={whatsNew.dismiss}
           onDismissAll={whatsNew.dismissAll}
+        />
+      )}
+
+      {showPublish && (
+        <PublishNotesModal
+          candidates={publishable}
+          onClose={() => setShowPublish(false)}
+          onOpenTask={setOpenId}
+          onPublish={publishNotes}
         />
       )}
 
