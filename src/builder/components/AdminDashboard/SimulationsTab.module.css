@@ -1,0 +1,147 @@
+/* SimulationsTab — only what the Conversations tab's styles don't cover. */
+
+.emptyList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #6b7280;
+}
+.emptyList b { color: #111827; font-size: 13px; }
+
+/* Status chips — steady colours, nothing animates. */
+.status {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.status_pending { background: #f3f4f6; color: #4b5563; }
+.status_running { background: #dbeafe; color: #1d4ed8; }
+.status_completed { background: #d1fae5; color: #047857; }
+.status_failed { background: #fee2e2; color: #b91c1c; }
+.status_interrupted { background: #fef3c7; color: #b45309; }
+
+.jobId {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The setup: who released it, what it tests, how it went. */
+.setup {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px 20px;
+  margin: 16px 16px 0;
+  padding: 14px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.factWide { grid-column: 1 / -1; }
+.factLabel {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+.factValue {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #111827;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.factDanger { color: #b91c1c; }
+
+/* ── "New simulation" ──────────────────────────────────────────── */
+.newRow { padding: 10px 12px; border-bottom: 1px solid #f1f1f4; }
+.newBtn {
+  width: 100%;
+  height: 32px;
+  border: 1px solid #6366f1;
+  border-radius: 8px;
+  background: #fff;
+  color: #4f46e5;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.newBtn:hover { background: #eef2ff; }
+
+.form { display: flex; flex-direction: column; gap: 14px; }
+.formRow { display: flex; gap: 14px; }
+.formField { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.formFieldNarrow { flex: 0 0 110px; }
+.formLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+.formLabel i { font-style: normal; font-weight: 500; text-transform: none; letter-spacing: 0; color: #9ca3af; }
+.formInput,
+.formArea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  font-size: 13px;
+}
+.formInput { height: 36px; }
+.formInput:disabled { background: #f9fafb; color: #9ca3af; }
+.formArea { resize: none; line-height: 1.5; }
+.formAreaTall { flex: 1; }
+/* Persona and script share this box, so switching never resizes the window. */
+.scenario { height: 178px; display: flex; flex-direction: column; gap: 14px; }
+.scenario > .formField:only-child { flex: 1; }
+
+.seg { display: flex; gap: 2px; padding: 3px; border-radius: 9px; background: #f1f2f5; height: 36px; box-sizing: border-box; }
+.segBtn {
+  flex: 1;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #6b7280;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.segOn { background: #fff; color: #111827; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1); }
+
+.formError { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; color: #b91c1c; overflow-wrap: anywhere; }
+.formBtn {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.formBtnPrimary { border-color: #4f46e5; background: #4f46e5; color: #fff; }
+.formBtnPrimary:disabled { opacity: 0.45; cursor: default; }

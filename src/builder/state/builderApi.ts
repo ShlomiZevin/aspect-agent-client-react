@@ -919,6 +919,75 @@ export async function listAdminConversations(args: {
 }
 
 /**
+ * One simulation job (task #897): a single simulated conversation the
+ * server runs by itself, released by an outside AI through the MCP link.
+ * Shape mirrors `shape()` in builder/services/simulationJobs.js.
+ */
+export interface SimulationJob {
+  id: number;
+  agent: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'interrupted';
+  label: string | null;
+  /** Who released it — a task-board name. */
+  by: string | null;
+  version: 'active' | 'published';
+  /** A fixed list of user lines, or a persona the platform plays. */
+  kind: 'script' | 'persona';
+  persona: string | null;
+  goal: string | null;
+  lines: string[] | null;
+  /** The model playing the user (persona jobs only). */
+  userModel: string | null;
+  maxTurns: number | null;
+  startCrew: string | null;
+  fields: Record<string, unknown> | null;
+  conversationId: number | null;
+  turns: number;
+  /** Why it ended, in words. */
+  stopped: string | null;
+  endedInCrew: string | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+  finishedAt: string | null;
+}
+
+/** Admin → Simulations: the agent's simulation jobs, newest first. */
+export async function listSimulations(args: { agentSlug: string }): Promise<SimulationJob[]> {
+  const res = await http<{ simulations: SimulationJob[] }>(
+    `/api/simulations?agentSlug=${encodeURIComponent(args.agentSlug)}`,
+  );
+  return res.simulations;
+}
+
+/** What the "New simulation" form sends. Either persona (+goal) or lines. */
+export interface NewSimulation {
+  version: 'active' | 'published';
+  label?: string;
+  persona?: string;
+  goal?: string;
+  lines?: string[];
+  maxTurns?: number;
+  model?: string;
+}
+
+/**
+ * Release one simulation from the Admin screen. The server answers at
+ * once with the job; the conversation then runs by itself.
+ */
+export async function releaseSimulation(args: {
+  agentSlug: string;
+  /** Who is releasing it — shown on the job. */
+  by: string;
+  simulation: NewSimulation;
+}): Promise<SimulationJob> {
+  return http<SimulationJob>('/api/simulations', {
+    method: 'POST',
+    body: JSON.stringify({ slug: args.agentSlug, by: args.by, body: args.simulation }),
+  });
+}
+
+/**
  * The runtime call. Posts a user message and returns an SSE
  * `Response`; consumer reads the body stream.
  */

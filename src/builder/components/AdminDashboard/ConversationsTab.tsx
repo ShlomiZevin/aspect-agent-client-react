@@ -198,25 +198,36 @@ export function ConversationsTab({ agentSlug, userId, backHref }: Props) {
   );
 }
 
-function ConversationDetail({ agentSlug, conversationId }: { agentSlug: string; conversationId: number }) {
-  const [messages, setMessages] = useState<ConversationMessage[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+/**
+ * One conversation's messages, each reply expandable into its addon trail.
+ *
+ * `refreshKey` — change it to re-read the same conversation (Simulations
+ * passes the job's turn count, so a running conversation grows on screen).
+ * A re-read keeps the messages in place; "Loading" shows only when the
+ * conversation itself changes.
+ */
+export function ConversationDetail({ agentSlug, conversationId, refreshKey = 0, emptyText }: {
+  agentSlug: string;
+  conversationId: number;
+  refreshKey?: number | string;
+  emptyText?: string;
+}) {
+  const [loaded, setLoaded] = useState<{ id: number; messages: ConversationMessage[] } | null>(null);
+  const [failed, setFailed] = useState<{ id: number; message: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
     fetchConversationMessages({ agentSlug, conversationId })
-      .then(msgs => { if (!cancelled) setMessages(msgs); })
-      .catch(e => { if (!cancelled) setError(e instanceof Error ? e.message : String(e)); })
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .then(msgs => { if (!cancelled) { setLoaded({ id: conversationId, messages: msgs }); setFailed(null); } })
+      .catch(e => { if (!cancelled) setFailed({ id: conversationId, message: e instanceof Error ? e.message : String(e) }); });
     return () => { cancelled = true; };
-  }, [agentSlug, conversationId]);
+  }, [agentSlug, conversationId, refreshKey]);
 
-  if (loading) return <div className={styles.detailEmpty}>Loading messages…</div>;
-  if (error) return <div className={styles.error}>{error}</div>;
-  if (messages.length === 0) return <div className={styles.detailEmpty}>No messages in this conversation.</div>;
+  const error = failed?.id === conversationId ? failed.message : null;
+  const messages = loaded?.id === conversationId ? loaded.messages : null;
+  if (error && !messages) return <div className={styles.error}>{error}</div>;
+  if (!messages) return <div className={styles.detailEmpty}>Loading messages…</div>;
+  if (messages.length === 0) return <div className={styles.detailEmpty}>{emptyText ?? 'No messages in this conversation.'}</div>;
 
   return (
     <div className={styles.thread}>
