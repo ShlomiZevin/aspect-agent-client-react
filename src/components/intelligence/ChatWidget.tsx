@@ -28,7 +28,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChatWelcome } from './ChatWelcome';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
-import { PREFILL_STORAGE_KEY, PREFILL_HIDDEN_STORAGE_KEY, SCOPE_STORAGE_KEY } from '../../pages/AgentChatWidgetPage';
+import { PREFILL_STORAGE_KEY, PREFILL_HIDDEN_STORAGE_KEY, PREFILL_ATTACHMENTS_STORAGE_KEY, SCOPE_STORAGE_KEY } from '../../pages/AgentChatWidgetPage';
+import type { ChatAttachmentRef } from '../../services/chatAttachmentsService';
 import { useLanguage } from '../../context/LanguageContext';
 import type { ModuleScope } from '../../services/chatService';
 import styles from './ChatWidget.module.css';
@@ -137,6 +138,7 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
   const selectConversation = (id: string) => {
     sessionStorage.removeItem(PREFILL_STORAGE_KEY);
     sessionStorage.removeItem(PREFILL_HIDDEN_STORAGE_KEY);
+    sessionStorage.removeItem(PREFILL_ATTACHMENTS_STORAGE_KEY);
     setConversationId(id);
     if (mobile) setHistoryOpen(false); // the overlay covered the chat — get back to it
   };
@@ -147,13 +149,16 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
   const newConversation = () => {
     sessionStorage.removeItem(PREFILL_STORAGE_KEY);
     sessionStorage.removeItem(PREFILL_HIDDEN_STORAGE_KEY);
+    sessionStorage.removeItem(PREFILL_ATTACHMENTS_STORAGE_KEY);
     setConversationId(null);
     if (mobile) setHistoryOpen(false);
   };
-  const send = (question: string, options?: { hidden?: boolean }) => {
+  const send = (question: string, options?: { hidden?: boolean; attachments?: ChatAttachmentRef[] }) => {
     sessionStorage.setItem(PREFILL_STORAGE_KEY, question);
     if (options?.hidden) sessionStorage.setItem(PREFILL_HIDDEN_STORAGE_KEY, '1');
     else sessionStorage.removeItem(PREFILL_HIDDEN_STORAGE_KEY);
+    if (options?.attachments?.length) sessionStorage.setItem(PREFILL_ATTACHMENTS_STORAGE_KEY, JSON.stringify(options.attachments));
+    else sessionStorage.removeItem(PREFILL_ATTACHMENTS_STORAGE_KEY);
     setConversationId(crypto.randomUUID());
   };
 

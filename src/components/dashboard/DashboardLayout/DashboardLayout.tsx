@@ -53,16 +53,32 @@ const LIBRARY_ITEM = { path: 'library', label: 'Library', icon: 'M12 2L2 7l10 5 
 // Aspect Intelligence admin for this client's dataset (see
 // components/dashboard/IntelligenceAdmin) — used to be its own app at
 // /intelligence/admin with a separate sidebar.
+// Settings items always go LAST in their group (Settings here and
+// Settings in Workspace) — the pages you use come first, the one you set up
+// once comes after them.
+// Intelligence Settings holds General / Prompts / Quick Questions as tabs,
+// each with its own URL under this path — so the item stays highlighted on
+// all three. Labelled just "Settings": the group header already says whose.
+const INTELLIGENCE_SETTINGS_ITEM = { path: 'intelligence/report-settings', label: 'Settings', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z' };
+
 const INTELLIGENCE_ITEMS = [
-  { path: 'intelligence/config', label: 'Config', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z' },
-  { path: 'intelligence/prompts', label: 'Prompts', icon: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z' },
-  { path: 'intelligence/quick-questions', label: 'Quick Questions', icon: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z' },
   { path: 'intelligence/insights', label: 'Insights', icon: 'M18 20V10 M12 20V4 M6 20v-6' },
+  { path: 'intelligence/conversations', label: 'Conversations', icon: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z' },
+  // Custom apps, Otto- and MCP-built (same icon family as Modules: a box).
+  { path: 'intelligence/apps', label: 'Apps', icon: 'M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M17 14v6 M14 17h6' },
 ];
 
+// Every client's dataset in one table — cross-client, so it sits in Platform.
 const INTELLIGENCE_OVERVIEW_ITEM = {
   path: 'intelligence-overview',
   label: 'Intelligence Overview',
+  icon: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
+};
+
+// THIS client's project in detail — first item of its Intelligence group.
+const DATASET_OVERVIEW_ITEM = {
+  path: 'intelligence/overview',
+  label: 'Overview',
   icon: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
 };
 
@@ -207,9 +223,10 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
       id: 'intelligence',
       label: 'Intelligence',
       items: [
-        ...(showIntelligence ? INTELLIGENCE_ITEMS : []),
-        ...(showQueryOptimizer ? [DATA_LOADER_ITEM, QUERY_OPTIMIZER_ITEM] : []),
+        ...(showIntelligence ? [DATASET_OVERVIEW_ITEM, ...INTELLIGENCE_ITEMS] : []),
+        ...(showQueryOptimizer ? [DATA_LOADER_ITEM] : []),
         ...(showModules ? [MODULES_ITEM] : []),
+        ...(showIntelligence ? [INTELLIGENCE_SETTINGS_ITEM] : []),
       ],
     },
     {
@@ -229,7 +246,9 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
       id: 'platform',
       label: 'Platform',
       note: 'Same for all clients',
-      items: [INTELLIGENCE_OVERVIEW_ITEM, BILLING_ITEM, LLM_USAGE_ITEM, CLOUD_RUN_LOGS_ITEM],
+      // Query Optimizer lists slow queries of every client's schema, not this
+      // one's — so it lives here, for every client, rather than per dataset.
+      items: [INTELLIGENCE_OVERVIEW_ITEM, BILLING_ITEM, LLM_USAGE_ITEM, QUERY_OPTIMIZER_ITEM, CLOUD_RUN_LOGS_ITEM],
     },
   ];
 
@@ -244,7 +263,7 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
       KNOWLEDGE_BASE_ITEM, DYNAMIC_KB_ITEM, LIBRARY_ITEM,
       ...(showQueryOptimizer ? [QUERY_OPTIMIZER_ITEM, DATA_LOADER_ITEM] : []),
       ...(showModules ? [MODULES_ITEM] : []),
-      ...(showIntelligence ? INTELLIGENCE_ITEMS : []),
+      ...(showIntelligence ? [INTELLIGENCE_SETTINGS_ITEM, ...INTELLIGENCE_ITEMS] : []),
       ...(showTaskboard ? [TASKBOARD_ITEM] : []),
       ...(showPodcast ? [PODCAST_ITEM] : []),
       ...(showConversationTrends || userType === 'business' ? [CONVERSATION_TRENDS_ITEM] : []),

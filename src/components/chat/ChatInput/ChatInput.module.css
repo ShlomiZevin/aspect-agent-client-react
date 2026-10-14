@@ -8,6 +8,26 @@
   flex-shrink: 0;
 }
 
+/* A file dragged over the composer: outline + a "drop to attach" hint. */
+.formDragging {
+  position: relative;
+}
+
+.formDragging::after {
+  content: attr(data-drop-label);
+  position: absolute;
+  inset: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--primary-color);
+  border-radius: var(--radius-lg);
+  background: var(--primary-light);
+  color: var(--primary-color);
+  font-weight: 600;
+  pointer-events: none;
+}
+
 .inputWrapper {
   display: flex;
   align-items: center;

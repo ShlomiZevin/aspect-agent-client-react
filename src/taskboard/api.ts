@@ -90,6 +90,15 @@ export const api = {
   markDeployed: (id: number) =>
     request<{ task: Task }>(`/tasks/${id}/deploy`, { method: 'POST' }).then(r => r.task),
 
+  /**
+   * Publishes these tasks' release notes to customers. The server skips any
+   * that are not marked, not Done, have no headline or are already published.
+   */
+  publishNotes: (taskIds: number[]) =>
+    request<{ published: number[]; skipped: number[] }>('/release-notes/publish', {
+      method: 'POST', body: JSON.stringify({ taskIds }),
+    }),
+
   // --- what's new ----------------------------------------------------------
   whatsNew: (person: string) =>
     request<{ tasks: Task[] }>(`/tasks/whats-new${qs({ person })}`).then(r => r.tasks),

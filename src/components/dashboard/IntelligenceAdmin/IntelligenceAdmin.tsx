@@ -5,23 +5,35 @@
  * now redirects here (App.tsx).
  *
  *  - IntelligenceDatasetSection — one client's dataset, rendered under
- *    `/:agent/admin/intelligence/*`, one sidebar item per sub-page:
- *    `config`          — brand label + data model description
- *    `prompts`         — example prompt chips
- *    `quick-questions` — Data Chat quick-question tiles
+ *    `/:agent/admin/intelligence/*`:
+ *    `overview`        — this project's usage, apps, data freshness, newest insights
+ *    `report-settings` — one sidebar item, three tabs with their own URLs:
+ *        `general`         — brand label + data model description
+ *        `prompts`         — example prompt chips
+ *        `quick-questions` — Data Chat quick-question tiles
+ *      (the old `config` / `prompts` / `quick-questions` addresses redirect)
  *    `insights`        — generated-insight monitor + delete
+ *    `conversations`   — real users' chat conversations, each opening in the Users viewer
+ *    `apps`            — custom apps, Otto- and MCP-built
  *    (there's deliberately no "run bootstrap/investigate" admin page — that
  *    duplicated what's already available directly in the product itself)
  *  - IntelligenceOverviewPage — every dataset at once, enable/disable only.
  *    Cross-client, so it sits in the sidebar's Platform group.
  */
 import { useEffect, useState } from 'react';
-import { Routes, Route, Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
-import { intelligenceAdminService, type IntelligenceAdminDataset, type IntelligenceConfigVersion } from '../../../services/intelligenceAdminService';
+import { Routes, Route, Navigate, Link, NavLink, Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import {
+  intelligenceAdminService,
+  type DatasetApp,
+  type DatasetConversation,
+  type DatasetOverview,
+  type IntelligenceAdminDataset,
+  type IntelligenceConfigVersion,
+} from '../../../services/intelligenceAdminService';
 import type { InsightDetail } from '../../../types/insights';
 import type { QuickQuestion } from '../../../types/agent';
 import { useDocumentMeta } from '../../../hooks';
-import { AdminPage, AdminPageHeader } from '../AdminPage';
+import { AdminPage, AdminPageHeader, adminUi } from '../AdminPage';
 import { intelligenceAdminPath } from './paths';
 import styles from './IntelligenceAdmin.module.css';
 
@@ -114,6 +126,9 @@ function OverviewPage({ datasets, reload }: DatasetsState) {
                 <th>Enabled</th>
                 <th>Insights</th>
                 <th>Tracked</th>
+                <th title="Chat conversations with real users (our replay / Playground tests excluded)">Conversations</th>
+                <th title="Custom apps built in Otto, inside the Intelligence Center (archived excluded)">Otto apps</th>
+                <th title="Custom apps built through the AI builder door (MCP) with the client's own AI tool">MCP apps</th>
               </tr>
             </thead>
             <tbody>
@@ -148,6 +163,14 @@ function OverviewPage({ datasets, reload }: DatasetsState) {
                   </td>
                   <td><span className={styles.metricValue}>{d.insightCount}</span></td>
                   <td><span className={styles.metricValue}>{d.trackedCount}</span></td>
+                  <td>
+                    <span className={styles.metricValue}>{d.activity?.conversations ?? '—'}</span>
+                    {!!d.activity?.conversations30d && (
+                      <span className={styles.metricSub}>{d.activity.conversations30d} in 30d</span>
+                    )}
+                  </td>
+                  <td><span className={styles.metricValue}>{d.activity?.ottoApps ?? '—'}</span></td>
+                  <td><span className={styles.metricValue}>{d.activity?.mcpApps ?? '—'}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -430,7 +453,7 @@ function DatasetConfigPage() {
     <>
       <div className={styles.sectionHeaderRow}>
         <div>
-          <h2 className={styles.sectionTitle}>Configuration</h2>
+          <h2 className={styles.sectionTitle}>General</h2>
           <p className={styles.subtitle}>
             These two fields tell Aspect what your business is and what its data can answer — this is what the AI
             reads before every investigation, so getting it right matters more than anything else on this page.
@@ -697,7 +720,7 @@ function DatasetQuickQuestionsPage() {
 
   return (
     <>
-      <h2 className={styles.sectionTitle}>Quick Questions</h2>
+      <h2 className={styles.sectionTitle}>Chat Quick Questions</h2>
       <p className={styles.subtitle}>
         The quick-question tiles on the Data Chat welcome screen for this client. Leave empty to keep using
         the agent's built-in default questions. Hidden from customers — set here, not by them, for now.
@@ -891,6 +914,354 @@ function DatasetInsightsPage() {
   );
 }
 
+function formatDay(value: string | number | null | undefined): string {
+  if (value == null) return '—';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatDurationMs(ms: number): string {
+  const m = Math.round(ms / 60000);
+  return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+}
+
+/**
+ * One project's own Overview — the first item of the client's Intelligence
+ * group. The cross-client table (Platform > Intelligence Overview) answers
+ * "which projects"; this answers "how is THIS one doing": usage, apps, data
+ * freshness and what Aspect found most recently.
+ */
+function DatasetOverviewPage() {
+  const { dataset } = useOutletContext<DatasetOutletContext>();
+  const [overview, setOverview] = useState<DatasetOverview | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setOverview(null);
+    setError(null);
+    intelligenceAdminService.getOverview(dataset.id)
+      .then(o => { if (!cancelled) setOverview(o); })
+      .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load the overview'); });
+    return () => { cancelled = true; };
+  }, [dataset.id]);
+
+  if (error) return <div className={styles.statusLineError}>{error}</div>;
+  if (!overview) return <div className={styles.statusLine}>Loading…</div>;
+
+  const a = overview.activity;
+  const cycle = overview.lastCycle;
+  const cycleText = !cycle?.importStartedAt
+    ? '—'
+    : cycle.importStatus === 'failed'
+      ? 'Import failed'
+      : cycle.durationMs == null
+        ? 'Indexing not caught up'
+        : formatDurationMs(cycle.durationMs);
+
+  return (
+    <>
+      <div className={styles.statGrid}>
+        <div className={styles.statCard}>
+          <div className={`${styles.statValue} ${styles.statValueAccent}`}>{overview.insightCount}</div>
+          <div className={styles.statLabel}>Insights generated</div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statValue}>{overview.trackedCount}</div>
+          <div className={styles.statLabel}>Tracked by users</div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statValue}>{a?.conversations ?? '—'}</div>
+          <div className={styles.statLabel}>Conversations</div>
+          {a && <div className={styles.statSub}>{a.conversations30d} in the last 30 days · {a.users} users</div>}
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statValue}>{a ? a.ottoApps + a.mcpApps : '—'}</div>
+          <div className={styles.statLabel}>Apps</div>
+          {a && <div className={styles.statSub}>Otto {a.ottoApps} · MCP {a.mcpApps} · {a.publishedApps} published</div>}
+        </div>
+      </div>
+
+      <div className={styles.overviewColumns}>
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3 className={styles.panelTitle}>Data</h3>
+          </div>
+          <dl className={styles.infoList}>
+            <dt>Data from</dt>
+            <dd>{formatDay(overview.data?.firstDataDate)}</dd>
+            <dt>Data through</dt>
+            <dd>{formatDay(overview.data?.lastDataDate)}</dd>
+            <dt>Last load</dt>
+            <dd>{formatDay(overview.data?.lastLoadAt)}</dd>
+            <dt>Last full load cycle</dt>
+            <dd>{cycleText}</dd>
+            {cycle?.totalRows != null && cycle.totalRows > 0 && (
+              <>
+                <dt>Rows loaded</dt>
+                <dd>{Number(cycle.totalRows).toLocaleString()}</dd>
+              </>
+            )}
+            <dt>Last conversation</dt>
+            <dd>{formatDay(a?.lastConversationAt)}</dd>
+          </dl>
+        </div>
+
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3 className={styles.panelTitle}>Newest insights</h3>
+            <NavLink to="../insights" className={styles.panelLink}>All insights →</NavLink>
+          </div>
+          {overview.recentInsights.length === 0 ? (
+            <div className={styles.statusLine}>No insights generated yet.</div>
+          ) : (
+            <ul className={styles.recentList}>
+              {overview.recentInsights.map(i => (
+                <li key={i.id} className={styles.recentItem}>
+                  <span className={styles.recentHeadline}>{i.headline}</span>
+                  <CategoryBadge category={i.category} label={i.categoryLabel} />
+                  <span className={styles.mutedCell}>{formatDay(i.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+const REPORT_SETTINGS_TABS = [
+  { path: 'general', label: 'General' },
+  { path: 'prompts', label: 'Prompts' },
+  { path: 'quick-questions', label: 'Chat Quick Questions' },
+];
+
+/**
+ * Intelligence Settings — what used to be three sidebar items (Config, Prompts,
+ * Quick Questions) as tabs of one page. Each tab is a real link with its own
+ * URL (`intelligence/report-settings/<tab>`), so a refresh, a shared link or
+ * Back stays on the same tab.
+ */
+function ReportSettingsLayout() {
+  const context = useOutletContext<DatasetOutletContext>();
+  return (
+    <>
+      <nav className={`${adminUi.tabs} ${styles.reportSettingsTabs}`}>
+        {REPORT_SETTINGS_TABS.map(tab => (
+          <NavLink
+            key={tab.path}
+            to={tab.path}
+            className={({ isActive }) => `${adminUi.tab} ${isActive ? adminUi.tabActive : ''}`}
+          >
+            {tab.label}
+          </NavLink>
+        ))}
+      </nav>
+      <Outlet context={context} />
+    </>
+  );
+}
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+const EyeIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+/**
+ * This project's chat conversations — real users only (our replay batteries
+ * and Playground sessions are left out). The eye opens the conversation in
+ * the admin's existing per-user viewer (Users > user > conversation).
+ */
+function DatasetConversationsPage() {
+  const { dataset } = useOutletContext<DatasetOutletContext>();
+  const { pathname } = useLocation();
+  const [conversations, setConversations] = useState<DatasetConversation[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // `/:agent/admin` — the Users viewer lives beside this section, not under it.
+  const adminBase = pathname.split('/intelligence/')[0];
+
+  useEffect(() => {
+    let cancelled = false;
+    setConversations(null);
+    setError(null);
+    intelligenceAdminService.listConversations(dataset.id)
+      .then(c => { if (!cancelled) setConversations(c); })
+      .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load conversations'); });
+    return () => { cancelled = true; };
+  }, [dataset.id]);
+
+  return (
+    <>
+      <h2 className={styles.sectionTitle}>Conversations</h2>
+      <p className={styles.subtitle}>
+        Chat conversations with real users, most recently active first. Our own test runs (replay batteries,
+        Playground) are not counted. The eye opens the full conversation.
+        {conversations && conversations.length > 0 && ` ${conversations.length} shown.`}
+      </p>
+      {error && <div className={styles.statusLineError}>{error}</div>}
+      <div className={styles.tableContainer}>
+        {conversations === null ? (
+          <div className={styles.tableEmpty}>{error ? '—' : 'Loading…'}</div>
+        ) : conversations.length === 0 ? (
+          <div className={styles.tableEmpty}>No conversations yet for this dataset.</div>
+        ) : (
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>First question</th>
+                <th>User</th>
+                <th>Messages</th>
+                <th>Started</th>
+                <th>Last message</th>
+                <th className={styles.actionsCol}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {conversations.map(c => (
+                <tr key={c.id}>
+                  <td className={styles.insightHeadline}>{c.firstQuestion || <span className={styles.mutedCell}>(no question)</span>}</td>
+                  <td className={styles.mutedCell}>{c.user || '—'}</td>
+                  <td><span className={styles.metricValue}>{c.messageCount}</span></td>
+                  <td className={styles.mutedCell}>{formatDateTime(c.startedAt)}</td>
+                  <td className={styles.mutedCell}>{formatDateTime(c.lastMessageAt)}</td>
+                  <td className={styles.actionsCol}>
+                    {c.externalId && c.userId != null && (
+                      <div className={styles.rowActions}>
+                        <Link
+                          className={styles.rowViewBtn}
+                          to={`${adminBase}/users/${c.userId}/conversations/${c.externalId}`}
+                          aria-label="Open conversation"
+                          title="Open this conversation"
+                        >
+                          <EyeIcon />
+                        </Link>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </>
+  );
+}
+
+const APP_STATUS_LABEL: Record<DatasetApp['status'], string> = {
+  draft: 'Draft',
+  ready: 'Ready',
+  active: 'Published',
+  archived: 'Archived',
+};
+
+/**
+ * This project's custom apps — built in Otto or through the AI builder door
+ * (MCP) — in one table, origin as a column. Only published apps get the eye:
+ * a draft is visible to its creator alone (Otto's rule), so a link to one
+ * would open a "not found" for anyone else.
+ */
+function DatasetAppsPage() {
+  const { dataset } = useOutletContext<DatasetOutletContext>();
+  const [apps, setApps] = useState<DatasetApp[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setApps(null);
+    setError(null);
+    intelligenceAdminService.listApps(dataset.id)
+      .then(a => { if (!cancelled) setApps(a); })
+      .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load apps'); });
+    return () => { cancelled = true; };
+  }, [dataset.id]);
+
+  const ottoCount = apps?.filter(a => a.origin === 'otto' && a.status !== 'archived').length ?? 0;
+  const mcpCount = apps?.filter(a => a.origin === 'mcp' && a.status !== 'archived').length ?? 0;
+
+  return (
+    <>
+      <h2 className={styles.sectionTitle}>Apps</h2>
+      <p className={styles.subtitle}>
+        Custom apps for this dataset — built in Otto inside the Intelligence Center, or through the AI builder door
+        (MCP) with the client's own AI tool. Drafts are visible only to whoever is building them.
+        {apps && apps.length > 0 && ` ${ottoCount} Otto, ${mcpCount} MCP.`}
+      </p>
+      {error && <div className={styles.statusLineError}>{error}</div>}
+      <div className={styles.tableContainer}>
+        {apps === null ? (
+          <div className={styles.tableEmpty}>{error ? '—' : 'Loading…'}</div>
+        ) : apps.length === 0 ? (
+          <div className={styles.tableEmpty}>No apps built for this dataset yet.</div>
+        ) : (
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>App</th>
+                <th>Built with</th>
+                <th>Status</th>
+                <th>Created by</th>
+                <th>Last build</th>
+                <th>Updated</th>
+                <th className={styles.actionsCol}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {apps.map(app => (
+                <tr key={app.id}>
+                  <td>
+                    <div className={styles.insightHeadline}>{app.title?.en || app.title?.he || app.id}</div>
+                    {app.summary?.en && <div className={styles.appSummary}>{app.summary.en}</div>}
+                  </td>
+                  <td>
+                    <span className={`${styles.pill} ${app.origin === 'mcp' ? styles.pillMcp : styles.pillOtto}`}>
+                      {app.origin === 'mcp' ? 'MCP' : 'Otto'}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`${styles.pill} ${styles[`appStatus_${app.status}`]}`}>{APP_STATUS_LABEL[app.status]}</span>
+                  </td>
+                  <td className={styles.mutedCell}>{app.createdBy || '—'}</td>
+                  <td className={styles.mutedCell}>
+                    {app.lastBuild ? `${app.lastBuild.status === 'succeeded' ? 'OK' : app.lastBuild.status}${app.lastBuild.finishedAt ? ` · ${formatDateTime(app.lastBuild.finishedAt)}` : ''}` : '—'}
+                  </td>
+                  <td className={styles.mutedCell}>{formatDateTime(app.updatedAt)}</td>
+                  <td className={styles.actionsCol}>
+                    {app.status === 'active' && (
+                      <div className={styles.rowActions}>
+                        <a
+                          className={styles.rowViewBtn}
+                          href={`/${dataset.id}/intelligence/apps/${app.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Open app"
+                          title="Open this app on the live site (new tab)"
+                        >
+                          <EyeIcon />
+                        </a>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </>
+  );
+}
+
 /** One client's dataset, mounted by DashboardPage at `intelligence/*`. */
 export function IntelligenceDatasetSection({ datasetId }: { datasetId: string }) {
   const { datasets, reload } = useDatasetsState();
@@ -899,11 +1270,21 @@ export function IntelligenceDatasetSection({ datasetId }: { datasetId: string })
     <AdminPage>
       <Routes>
         <Route element={<DatasetLayout datasetId={datasetId} datasets={datasets} reload={reload} />}>
-          <Route index element={<Navigate to="config" replace />} />
-          <Route path="config" element={<DatasetConfigPage />} />
-          <Route path="prompts" element={<DatasetPromptsPage />} />
-          <Route path="quick-questions" element={<DatasetQuickQuestionsPage />} />
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={<DatasetOverviewPage />} />
+          <Route path="report-settings" element={<ReportSettingsLayout />}>
+            <Route index element={<Navigate to="general" replace />} />
+            <Route path="general" element={<DatasetConfigPage />} />
+            <Route path="prompts" element={<DatasetPromptsPage />} />
+            <Route path="quick-questions" element={<DatasetQuickQuestionsPage />} />
+          </Route>
+          {/* The pages' addresses before they became tabs — old links and bookmarks. */}
+          <Route path="config" element={<Navigate to="../report-settings/general" replace />} />
+          <Route path="prompts" element={<Navigate to="../report-settings/prompts" replace />} />
+          <Route path="quick-questions" element={<Navigate to="../report-settings/quick-questions" replace />} />
           <Route path="insights" element={<DatasetInsightsPage />} />
+          <Route path="conversations" element={<DatasetConversationsPage />} />
+          <Route path="apps" element={<DatasetAppsPage />} />
         </Route>
       </Routes>
     </AdminPage>

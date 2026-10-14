@@ -28,6 +28,9 @@ const ASPECT_ONLY_REWRITES = [
   // so without this the SPA answered and the AI got an HTML app shell instead
   // of the server's "this link is missing its personal key".
   { source: '/intelligence/*/mcp', run: DOOR },
+  // ZolStock creative daily store inventory (tasks #106 / #107): the link Reut's
+  // Qlik loads. The server answers with a redirect to a signed storage URL.
+  { source: '/zolstock/creative-stock/**', run: DOOR },
 ];
 
 // First, so the catch-all "**" -> /index.html can never shadow them.

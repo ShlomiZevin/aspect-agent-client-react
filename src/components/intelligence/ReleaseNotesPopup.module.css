@@ -1,0 +1,160 @@
+/* "מה חדש" release-notes popup (task #102). Reads the shell's --ai-* tokens,
+   so it follows the client's brand colour and the light/dark toggle. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70; /* above the chat widget (40) and the other Intelligence dialogs (60) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: rgba(20, 14, 34, 0.5);
+}
+
+.panel {
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ai-surface);
+  color: var(--ai-text);
+  border-radius: 16px;
+  box-shadow: var(--ai-shadow);
+  font-family: var(--ai-font-body);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid var(--ai-border-soft);
+  flex-shrink: 0;
+}
+
+.icon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--ai-accent-soft);
+  font-size: 19px;
+}
+
+.headerText {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--ai-font-head);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ai-text);
+}
+
+.subtitle {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--ai-text-dim);
+}
+
+.closeBtn {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ai-text-mute);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.closeBtn:hover {
+  background: var(--ai-surface-alt);
+  color: var(--ai-text);
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 22px;
+}
+
+.item {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--ai-border-soft);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.headline {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ai-text);
+  overflow-wrap: anywhere;
+}
+
+.text {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ai-text-dim);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.date {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ai-text-mute);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 22px 18px;
+  border-top: 1px solid var(--ai-border-soft);
+  flex-shrink: 0;
+}
+
+.gotIt {
+  min-width: 110px;
+  padding: 9px 22px;
+  border: none;
+  border-radius: 10px;
+  background: var(--ai-accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gotIt:hover {
+  background: var(--ai-accent-2);
+}
+
+@media (max-width: 640px) {
+  .header,
+  .body,
+  .footer {
+    padding-inline: 16px;
+  }
+
+  .gotIt {
+    width: 100%;
+  }
+}

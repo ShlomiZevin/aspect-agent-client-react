@@ -59,6 +59,9 @@ export const PREFILL_STORAGE_KEY = 'aspect_intelligence_prefill';
 /** Set alongside the prefill when it came from a quick-question tile: the
  * question is sent `hidden`, so only the agent's reply shows. */
 export const PREFILL_HIDDEN_STORAGE_KEY = 'aspect_intelligence_prefill_hidden';
+/** Files attached on the welcome screen (task #100), already uploaded — a JSON
+ * array of ChatAttachmentRef sent along with the prefilled question. */
+export const PREFILL_ATTACHMENTS_STORAGE_KEY = 'aspect_intelligence_prefill_attachments';
 
 /**
  * Module-scope handoff (Aspect Modules — e.g. Smart Tune). The widget writes
@@ -117,9 +120,12 @@ function PrefillSender({ onSent }: { onSent: () => void }) {
     const timer = setTimeout(() => {
       if (sessionStorage.getItem(PREFILL_STORAGE_KEY) !== prefill) return;
       const hidden = sessionStorage.getItem(PREFILL_HIDDEN_STORAGE_KEY) === '1';
+      let attachments: import('../services/chatAttachmentsService').ChatAttachmentRef[] = [];
+      try { attachments = JSON.parse(sessionStorage.getItem(PREFILL_ATTACHMENTS_STORAGE_KEY) || '[]'); } catch { /* none */ }
       sessionStorage.removeItem(PREFILL_STORAGE_KEY);
       sessionStorage.removeItem(PREFILL_HIDDEN_STORAGE_KEY);
-      sendRef.current(prefill, { hidden });
+      sessionStorage.removeItem(PREFILL_ATTACHMENTS_STORAGE_KEY);
+      sendRef.current(prefill, { hidden, ...(attachments.length ? { attachments } : {}) });
       onSentRef.current();
     }, 300);
     return () => clearTimeout(timer);

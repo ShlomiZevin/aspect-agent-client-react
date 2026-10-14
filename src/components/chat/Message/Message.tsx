@@ -11,6 +11,8 @@ import { GeneralFeedbackModal } from '../GeneralFeedbackModal';
 import { AgentBugModal } from '../AgentBugModal/AgentBugModal';
 import { DataTableModal } from './DataTableModal';
 import type { DisplayColumn } from './DataTableModal';
+import { AttachmentChips } from '../Attachments/AttachmentChips';
+import { splitAttachments, downloadFilledAttachment, type FileQueryRef } from '../../../services/chatAttachmentsService';
 import { parseMarkdownTables } from './parseMarkdownTables';
 import { ChatActionCard } from './ChatActionCard';
 import { isChatActionEnvelope } from './chatAction';
@@ -93,7 +95,12 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
   const isDeveloper = message.role === 'developer';
   // Outside users never see thinking steps inside the bubble, never get the feedback button.
   const hasThinkingSteps = !restrictedMode && !isUser && !isDeveloper && message.thinkingSteps && message.thinkingSteps.length > 0;
-  const rtl = isRTL(message.content);
+  // A user message that carried files holds their digests between markers
+  // (task #100) — the bubble shows the user's own text plus file chips.
+  const { text: userText, files: userFiles } = isUser
+    ? splitAttachments(message.content)
+    : { text: message.content, files: [] };
+  const rtl = isRTL(isUser ? userText : message.content);
 
   // Full structured query results the agent attached to this message (one per
   // fetch). In the LIVE session these carry the COMPLETE row set; reopened
@@ -103,8 +110,9 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
   const dataTables = (!isUser && !isDeveloper && message.thinkingSteps)
     ? message.thinkingSteps.filter(s => {
         if (s.stepType !== 'data_table') return false;
-        const meta = s.metadata as { rows?: unknown[]; sql?: string } | null;
-        return Array.isArray(meta?.rows) || typeof meta?.sql === 'string';
+        const meta = s.metadata as { rows?: unknown[]; sql?: string; fileQuery?: unknown } | null;
+        // fileQuery: a query over a file the user attached (task #100).
+        return Array.isArray(meta?.rows) || typeof meta?.sql === 'string' || !!meta?.fileQuery;
       })
     : [];
   // Module chat-action cards (Aspect Modules — e.g. Smart Tune's previewed
@@ -139,6 +147,7 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
       title?: string;
       sql?: string;
       schema?: string;
+      fileQuery?: FileQueryRef;
     };
     return {
       rows: (meta.rows ?? []) as Record<string, unknown>[],
@@ -148,6 +157,7 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
       count: meta.rowCount ?? meta.rows?.length ?? 0,
       sql: meta.sql,
       schema: meta.schema,
+      fileQuery: meta.fileQuery,
     };
   });
   // A BI data-fetch tool (fetch_hypertoy_data, fetch_zer4u_data, ...) was called
@@ -170,9 +180,24 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
         count: tbl.rows.length,
         sql: undefined as string | undefined,
         schema: undefined as string | undefined,
+        fileQuery: undefined as FileQueryRef | undefined,
       }))
     : [];
   const viewerTables = toolTables.length ? toolTables : markdownTables;
+
+  // The spreadsheet the user attached most recently before this answer — its
+  // table can be downloaded written into that file's own structure.
+  const templateFile = (!isUser && !isDeveloper && viewerTables.length > 0)
+    ? (() => {
+        for (let i = (msgIndex >= 0 ? msgIndex : messages.length) - 1; i >= 0; i--) {
+          const m = messages[i];
+          if (m.role !== 'user') continue;
+          const sheet = splitAttachments(m.content).files.filter(f => f.kind === 'spreadsheet').pop();
+          if (sheet) return sheet;
+        }
+        return null;
+      })()
+    : null;
 
   // When disabled, parse the next user message to recover submitted input values (for display)
   const nextUserMsg = uiElements.length > 0
@@ -333,7 +358,11 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
           </div>
         ) : isUser ? (
           <div className={styles.userMessageWrapper}>
-            <span dir={rtl ? 'rtl' : undefined}>{message.content}</span>
+            <span dir={rtl ? 'rtl' : undefined}>{userText}</span>
+            <AttachmentChips
+              variant="message"
+              items={userFiles.map(f => ({ key: f.id, filename: f.filename, kind: f.kind }))}
+            />
             <div className={styles.messageActions}>
               <CopyActions />
               {SHOW_DELETE && showActions && <DeleteButton />}
@@ -431,6 +460,7 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
                 displayColumns={viewerTables[openTableIdx].displayColumns}
                 sql={viewerTables[openTableIdx].sql}
                 schema={viewerTables[openTableIdx].schema}
+                fileQuery={viewerTables[openTableIdx].fileQuery}
                 title={viewerTables[openTableIdx].title || t('chat.dataTableTitle')}
                 baseURL={config.baseURL}
                 exportLabel={t('chat.exportToExcel')}
@@ -439,6 +469,21 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
                 loadingLabel={t('chat.loadingTable')}
                 rowsLabel={(n) => `${n} ${t('chat.rows')}`}
                 onClose={() => setOpenTableIdx(null)}
+                templateExport={templateFile ? {
+                  label: `${t('chat.downloadAsFile')} "${templateFile.filename}"`,
+                  run: () => {
+                    const tbl = viewerTables[openTableIdx];
+                    return downloadFilledAttachment(
+                      templateFile.id,
+                      tbl.fileQuery
+                        ? { fileQuery: tbl.fileQuery }
+                        : tbl.sql && tbl.schema
+                          ? { schema: tbl.schema, sql: tbl.sql }
+                          : { columns: Object.keys(tbl.rows[0] ?? {}), rows: tbl.rows },
+                      config.baseURL,
+                    );
+                  },
+                } : undefined}
               />
             )}
             {uiElements.length > 0 && (() => {

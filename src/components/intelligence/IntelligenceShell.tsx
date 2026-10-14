@@ -27,6 +27,7 @@ import { ensureIntelligenceFontsLoaded } from './fonts';
 import { JobsProvider, useJobs, type Job } from './jobs/JobsContext';
 import { JobBadges } from './jobs/JobBadges';
 import { JobSidebar } from './jobs/JobSidebar';
+import { ReleaseNotesPopup } from './ReleaseNotesPopup';
 import { insightsService } from '../../services/insightsService';
 import { getAgentConfig } from '../../agents/agentRegistry';
 import { formatDateTime, formatDateOnly } from './dateFormat';
@@ -507,6 +508,9 @@ function IntelligenceShellInner({ datasetId, insightId, centerRoute, reportsRout
       </main>
 
       {selectedJobId && <JobSidebar datasetId={datasetId} onReview={reviewCompletedJob} />}
+
+      {/* "מה חדש" — release notes Shlomi published to customers (task #102). */}
+      <ReleaseNotesPopup userId={userId} baseURL={baseURL} />
 
       {chatEverOpened && (
         <ChatWidget

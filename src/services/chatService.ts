@@ -25,6 +25,7 @@ export interface StreamChatOptions {
   profilerEnabled?: boolean; // Debug: enable profiler (disabled by default)
   restrictedMode?: boolean; // Outside-user chat: use published crew version instead of active
   moduleScope?: ModuleScope | null; // Aspect Modules scoped session (e.g. Smart Tune) — inert unless a live module validates it server-side
+  attachments?: string[]; // Ids of files uploaded via /api/chat-attachments for THIS message (task #100)
 }
 
 /**
@@ -92,7 +93,7 @@ export async function streamChat(
   options: StreamChatOptions,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const { message, conversationId, agentName, userId, baseURL, language, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, profilerFreshStart, profilerEnabled, restrictedMode, moduleScope } = options;
+  const { message, conversationId, agentName, userId, baseURL, language, overrideCrewMember, debug, promptOverrides, modelOverrides, fallbackOverrides, personaOverride, kbOverrides, thinkingPromptOverrides, thinkingModelOverrides, thinkerDisabled, temperatureOverrides, topKOverrides, profilerFreshStart, profilerEnabled, restrictedMode, moduleScope, attachments } = options;
   const { onChunk, onComplete, onError, onThinkingStep, onThinkingComplete, onCrewInfo, onCrewTransition, onDebugData, onModelUsed, onDebugContextUpdate, onMessageSaved, onUserMessageSaved, onReplaceMessage, onFieldExtracted, onProfileUpdate, onProfilerRaw } = callbacks;
 
   const url = `${baseURL || getBaseURL()}/api/finance-assistant/stream`;
@@ -122,6 +123,7 @@ export async function streamChat(
         ...(profilerFreshStart && { profilerFreshStart: true }),
         ...(profilerEnabled && { profilerEnabled: true }),
         ...(restrictedMode && { restrictedMode: true }),
+        ...(attachments && attachments.length > 0 && { attachments }),
         // Only the addressing fields — the display extras stay client-side.
         ...(moduleScope && {
           moduleScope: {

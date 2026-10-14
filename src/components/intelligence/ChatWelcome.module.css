@@ -118,6 +118,23 @@
 }
 .input::placeholder { color: var(--ai-text-mute); }
 .micIcon { color: var(--ai-text-mute); flex-shrink: 0; }
+/* Attached files sit right above the composer, pinned with it. */
+.attachRow { margin: 0 24px; flex-shrink: 0; }
+.attachRow:empty { display: none; }
+.attachBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ai-text-mute);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.attachBtn:hover { color: var(--ai-text); background: var(--ai-border); }
 .sendBtn {
   width: 30px;
   height: 30px;

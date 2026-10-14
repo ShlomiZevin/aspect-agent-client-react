@@ -134,6 +134,8 @@
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
+  /* Tabs can be links (NavLink) as well as buttons — a tab that owns a URL. */
+  text-decoration: none;
   transition: color var(--transition-fast), border-color var(--transition-fast);
 }
 

@@ -63,7 +63,9 @@ export function parseMarkdownTables(text: string): ParsedTable[] {
       while (j < lines.length && isTableRow(lines[j]) && !isSeparator(lines[j])) {
         const cells = splitCells(lines[j]);
         const row: Record<string, string> = {};
-        columns.forEach((col, k) => { row[col || `col${k + 1}`] = cells[k] ?? ''; });
+        // Bold total rows (e.g. a P&L's subtotals) carry `**` in the cell;
+        // the viewer and the Excel export want the bare value.
+        columns.forEach((col, k) => { row[col || `col${k + 1}`] = (cells[k] ?? '').replace(/\*\*/g, ''); });
         rows.push(row);
         j++;
       }
