@@ -1,9 +1,9 @@
 import type { AppIcon as AppIconName } from '../../../types/apps';
 
 /**
- * The four app glyphs, drawn from the design's own paths.
+ * The app glyphs, drawn from the design's own paths.
  *
- * Inline rather than an icon font or sprite: there are four, they never change
+ * Inline rather than an icon font or sprite: there are a handful, they never change
  * independently of this page, and a missing glyph would show a client an empty
  * square. The `size` and stroke come from the mockup at both sizes it uses —
  * 32px on the shelf, 19px in the page header.
@@ -30,6 +30,13 @@ const PATHS: Record<AppIconName, React.ReactNode> = {
     </>
   ),
   pricing: <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />,
+  // A statement: a sheet of paper with its lines and a total rule.
+  finance: (
+    <>
+      <path d="M6 3h12v18H6z" />
+      <path d="M9 8h6M9 12h6M9 16h3" />
+    </>
+  ),
 };
 
 export function AppGlyph({ icon, size = 32, color = '#ffffff' }: {

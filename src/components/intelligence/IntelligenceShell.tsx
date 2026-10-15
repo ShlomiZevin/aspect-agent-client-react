@@ -14,6 +14,7 @@ import { ReportHistoryPage } from './Reports/ReportHistoryPage';
 import { InsightDetail } from './Insights/InsightDetail';
 import { AppsPage } from './Apps/AppsPage';
 import { ProcurementPage } from './Apps/ProcurementPage';
+import { FinanceReportPage } from './Apps/FinanceReportPage';
 import { CustomScreenRouter } from './Apps/custom/CustomScreenRouter';
 import { SettingsPage } from './Settings/SettingsPage';
 import { appsService } from '../../services/appsService';
@@ -34,6 +35,17 @@ import { formatDateTime, formatDateOnly } from './dateFormat';
 import styles from './IntelligenceShell.module.css';
 
 type Mode = 'light' | 'dark';
+
+/**
+ * The demo's statement screens: shelf tile id → the report it opens. Kept
+ * here because the shell is what routes /apps/:appId, and these are the only
+ * app ids that are neither Procurement nor one of Otto's screens (task #116).
+ */
+const FINANCE_APPS: Record<string, string> = {
+  'finance-pnl': 'pnl',
+  'finance-balance': 'balance_sheet',
+  'finance-cash': 'cash_flow',
+};
 
 const MODE_KEY = 'aspect_intelligence_mode';
 
@@ -121,6 +133,13 @@ function IntelligenceShellInner({ datasetId, insightId, centerRoute, reportsRout
   const [chatOpen, setChatOpen] = useState(false);
   const [chatExpanded, setChatExpanded] = useState(false);
   const [chatEverOpened, setChatEverOpened] = useState(false);
+  // How the user last left the chat ON HOME. Home IS Data Chat, so the first
+  // arrival opens it full screen — but once it has been shrunk or minimized,
+  // coming back from an app must not re-open it full screen over the page.
+  // A ref, not state: it only has to be true at the moment the URL lands on
+  // Home, and as state it would re-run the effect that reads it.
+  const homeChatPrefRef = useRef<'expanded' | 'docked' | 'closed'>('expanded');
+  const prevViewRef = useRef<string | null>(null);
   const [pendingChatQuestion, setPendingChatQuestion] = useState<string | null>(null);
   const [pendingChatScope, setPendingChatScope] = useState<ModuleScope | null>(null);
   // Real data-freshness info, not a hardcoded placeholder string — same
@@ -190,15 +209,26 @@ function IntelligenceShellInner({ datasetId, insightId, centerRoute, reportsRout
   // Measured so the expanded chat widget can sit flush "under the header"
   // (mockup 2c) instead of overlapping it — recalculated on resize since the
   // header wraps to a taller layout below 900px (see @media rule in the CSS).
-  const headerRef = useRef<HTMLElement>(null);
+  // A callback ref, not a mount-time effect: the header is UNMOUNTED while an
+  // Otto app is full screen and a brand-new <header> element mounts on the way
+  // back. An observer attached once on mount kept watching the detached node,
+  // so the measurement went stale (0 on a direct load of /apps/:appId) and the
+  // expanded chat then covered the header it was supposed to sit under —
+  // leaving no visible way out of the chat.
+  const headerRef = useRef<HTMLElement | null>(null);
+  const headerRoRef = useRef<ResizeObserver | null>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
-  useEffect(() => {
-    const el = headerRef.current;
+  const setHeaderEl = useCallback((el: HTMLElement | null) => {
+    headerRef.current = el;
+    headerRoRef.current?.disconnect();
+    headerRoRef.current = null;
     if (!el) return;
+    setHeaderHeight(el.getBoundingClientRect().height);
     const ro = new ResizeObserver(([entry]) => setHeaderHeight(entry.contentRect.height));
     ro.observe(el);
-    return () => ro.disconnect();
+    headerRoRef.current = ro;
   }, []);
+  useEffect(() => () => headerRoRef.current?.disconnect(), []);
   useEffect(() => { ensureIntelligenceFontsLoaded(); }, []);
   useEffect(() => { localStorage.setItem(MODE_KEY, mode); }, [mode]);
 
@@ -213,8 +243,19 @@ function IntelligenceShellInner({ datasetId, insightId, centerRoute, reportsRout
     fn();
   };
   // Home is the chat itself, so it opens it rather than closing it (the
-  // view effect above expands it once the URL lands on Home).
-  const goHome = () => navigate(`/${datasetId}/intelligence`);
+  // view effect below expands it once the URL lands on Home). Clicking Home
+  // while already there is the way BACK to the full-screen chat after it was
+  // minimized — without this the tab did nothing, because the view never
+  // changes and the effect never re-fires.
+  const goHome = () => {
+    if (view === 'home') {
+      homeChatPrefRef.current = 'expanded';
+      setChatOpen(true);
+      setChatEverOpened(true);
+      setChatExpanded(true);
+    }
+    navigate(`/${datasetId}/intelligence`);
+  };
   const goCenter = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/center`));
   const goReports = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/reports`));
   const goHistory = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/reports/history`));
@@ -227,18 +268,20 @@ function IntelligenceShellInner({ datasetId, insightId, centerRoute, reportsRout
     cancelJob(job.id);
     if (firstId) openInsight(firstId);
   };
-  // Controlled from here (not the widget's own state) so collapsing it on
-  // Home — where there is no page underneath — moves to the report center.
+  // Controlled from here (not the widget's own state) so Home can remember
+  // how the user left the chat.
   const handleChatExpandedChange = (expanded: boolean) => {
     setChatExpanded(expanded);
+    // On Home, shrinking the chat is a CHOICE, and it has to survive leaving
+    // for an app and coming back (task #116). It used to navigate to the
+    // report center instead, which read as "minimizing the chat threw me onto
+    // the Reports page"; Home now renders that same content underneath.
+    if (view === 'home') homeChatPrefRef.current = expanded ? 'expanded' : 'docked';
     // Expanding is PURELY VISUAL — the widget is an overlay, the page
     // underneath stays mounted and untouched, so collapsing puts the user
     // back exactly where they were (an insight, a report, the Procurement
     // screen). Navigating to /chat on expand — the old behavior — silently
-    // replaced that page with Home. The one case collapse must still
-    // navigate: on Home, which IS the chat and renders an empty main with
-    // nothing to come back to.
-    if (!expanded && view === 'home') goCenter();
+    // replaced that page with Home.
   };
 
   // "Ask a follow-up in chat" on an insight detail page — opens the same
@@ -275,19 +318,26 @@ function IntelligenceShellInner({ datasetId, insightId, centerRoute, reportsRout
   // The chat widget's open/expanded state follows the URL, not just its own
   // buttons — landing on Home (a fresh visit, a shared link, a refresh) must
   // open it expanded, same as clicking the Home tab.
+  //
+  // But only on ARRIVAL, and only as the user last left it: opening an app
+  // and coming back used to throw the full-screen chat over the screen again
+  // every single time, including on browser Back, with no memory of the user
+  // having just shrunk it (task #116).
   useEffect(() => {
-    if (view === 'home') {
-      setChatOpen(true);
-      setChatEverOpened(true);
-      setChatExpanded(true);
-    }
+    const entering = prevViewRef.current !== 'home';
+    prevViewRef.current = view;
+    if (view !== 'home' || !entering) return;
+    const pref = homeChatPrefRef.current;
+    setChatOpen(pref !== 'closed');
+    if (pref !== 'closed') setChatEverOpened(true);
+    setChatExpanded(pref === 'expanded');
   }, [view]);
 
   // Otto opens full screen, not as another tab inside the usual chrome (task
   // #66): the builder/canvas already has its own status rail and header, so
   // the outer header/nav/breadcrumb would just be a second one. `replenishment`
   // is the other thing under /apps/:appId and keeps the normal shell.
-  const ottoFullScreen = view === 'app' && appId !== 'replenishment';
+  const ottoFullScreen = view === 'app' && appId !== 'replenishment' && !FINANCE_APPS[appId!];
 
   const goApps = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/apps`));
   const goSettings = () => closeChatAnd(() => navigate(`/${datasetId}/intelligence/settings`));
@@ -304,7 +354,7 @@ function IntelligenceShellInner({ datasetId, insightId, centerRoute, reportsRout
           </button>
         </div>
       ) : (
-      <header className={styles.header} ref={headerRef}>
+      <header className={styles.header} ref={setHeaderEl}>
         <div className={styles.headerRow}>
           <div className={styles.brand}>
             {/* Client logo (task #68) when the agent config has one, falling
@@ -481,11 +531,23 @@ function IntelligenceShellInner({ datasetId, insightId, centerRoute, reportsRout
         {view === 'app' && hasApps === true && appId === 'replenishment' && (
           <ProcurementPage datasetId={datasetId} baseURL={baseURL} onAskInChat={askFollowUp} onOpenScopedChat={openScopedChat} />
         )}
+        {/* The demo's financial statements, each its own screen (task #116):
+            a P&L or a balance sheet is a REPORT, with sections that open, not
+            a grid of rows. Demo-only — the shelf offers these tiles for the
+            aspect dataset alone. */}
+        {view === 'app' && hasApps === true && FINANCE_APPS[appId!] && (
+          <FinanceReportPage
+            report={FINANCE_APPS[appId!]}
+            baseURL={baseURL}
+            onCrumb={reportCrumb}
+            onOpenReport={(id) => navigate(`/${datasetId}/intelligence/apps/${id}`)}
+          />
+        )}
         {/* Anything else under /apps/:appId is Otto's territory: 'new' opens
             the builder, a screen id resolves by status (builder for drafts,
             the published page for active), and an unknown id falls back to
             the shelf — exactly what this branch did before Otto existed. */}
-        {view === 'app' && hasApps === true && appId !== 'replenishment' && (
+        {view === 'app' && hasApps === true && appId !== 'replenishment' && !FINANCE_APPS[appId!] && (
           <CustomScreenRouter
             datasetId={datasetId}
             appId={appId!}
@@ -504,6 +566,17 @@ function IntelligenceShellInner({ datasetId, insightId, centerRoute, reportsRout
           <HomePage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onAskInChat={askFollowUp} onSeeAllReports={goReports} onOpenHistory={goHistory} />
         )}
         {view === 'center' && <HomePage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onAskInChat={askFollowUp} onSeeAllReports={goReports} onOpenHistory={goHistory} />}
+        {/* Home with the chat shrunk or minimized. Home IS the chat, so there
+            used to be nothing underneath it and collapsing had to navigate to
+            the report center — which read to the customer as "minimizing the
+            chat dumped me on Reports". The same content renders here instead,
+            so the URL, the nav highlight and the breadcrumb all stay on Home.
+            Only when the chat is NOT full screen: behind an expanded chat this
+            is invisible, and mounting it would fetch the report lists for a
+            page nobody is looking at. */}
+        {view === 'home' && !chatExpanded && (
+          <HomePage datasetId={datasetId} userId={userId} onOpenInsight={openInsight} onAskInChat={askFollowUp} onSeeAllReports={goReports} onOpenHistory={goHistory} />
+        )}
         {view === 'settings' && <SettingsPage datasetId={datasetId} />}
       </main>
 
@@ -518,7 +591,14 @@ function IntelligenceShellInner({ datasetId, insightId, centerRoute, reportsRout
           open={chatOpen}
           expanded={chatExpanded}
           onExpandedChange={handleChatExpandedChange}
-          onClose={() => { setChatOpen(false); if (view === 'home') goCenter(); }}
+          onClose={() => {
+            setChatOpen(false);
+            // Minimizing on Home stays on Home (the report center content is
+            // rendered underneath) and is remembered, so returning from an app
+            // does not re-open the chat over the page. The ✦ launcher brings
+            // it back, as does the Home tab.
+            if (view === 'home') homeChatPrefRef.current = 'closed';
+          }}
           headerHeight={headerHeight}
           pendingQuestion={pendingChatQuestion}
           onPendingQuestionConsumed={() => setPendingChatQuestion(null)}

@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { PageLoader } from './components/common/PageLoader';
 import { lazy, Suspense } from 'react';
-import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, AspectAgentsHomePage, ArchitecturePage, AspectBattleCardPage, AspectMarketingSalesPage, AspectPage, AspectLandingPage, AspectPlatformLandingPage, AspectPlatformSalesPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaNextPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, EnterpriseReadinessPage, LybiArchitecturePage, LybiTechnologyPage, LybiBankingDeckPage, LybiDecisionResearchPage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiBrainPage, LybiKnowledgePage, LybiCostPage, LybiInstallPage, LybiSupportPage, LybiLandingPage, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TeamPlanPage, ZolstockPurchasingSpecPage, ZolstockPurchasingClientPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage, AgentChatWidgetPage, ZolStockPage, SuperHistPage, TevaNaotPage, WeAreYourAIPage, WeAreYourAIVisualPage } from './pages';
+import { AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, AspectAgentsHomePage, ArchitecturePage, AspectBattleCardPage, AspectMarketingSalesPage, AspectPage, AspectLandingPage, AspectPlatformLandingPage, AspectPlatformSalesPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaNextPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, EnterpriseReadinessPage, LybiArchitecturePage, LybiTechnologyPage, LybiBankingDeckPage, LybiDecisionResearchPage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiBrainPage, LybiKnowledgePage, LybiCostPage, LybiInstallPage, LybiSupportPage, StaticPageRedirect, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TeamPlanPage, ZolstockPurchasingSpecPage, ZolstockPurchasingClientPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage, AgentChatWidgetPage, ZolStockPage, SuperHistPage, TevaNaotPage, WeAreYourAIPage, WeAreYourAIVisualPage } from './pages';
 
 // Builder lives in its own subtree — lazy so end-user routes don't pay for it.
 const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ default: m.BuilderPage })));
@@ -118,7 +118,7 @@ function AppContent() {
         {/* Home page - redirect to /lybi on lybi.ai domain, otherwise show agent selection */}
         <Route path="/" element={
           window.location.hostname === 'lybi.ai' || window.location.hostname === 'www.lybi.ai'
-            ? <Navigate to="/lybi" replace />
+            ? <StaticPageRedirect file="/lybi-site/index.html" url="/lybi" />
             : <HomePage />
         } />
 
@@ -284,7 +284,12 @@ function AppContent() {
             </Suspense>
           }
         />
-        <Route path="/lybi/*" element={<LybiLandingPage />} />
+        {/* The public Lybi site — static pages in public/lybi-site/, see StaticPageRedirect.
+            The old React landing's sub-pages point at their equivalents in the new site. */}
+        <Route path="/lybi" element={<StaticPageRedirect file="/lybi-site/index.html" />} />
+        <Route path="/lybi/team" element={<StaticPageRedirect file="/lybi-site/team/index.html" />} />
+        <Route path="/lybi/about" element={<Navigate to={{ pathname: '/lybi', hash: '#/company' }} replace />} />
+        <Route path="/lybi/*" element={<Navigate to="/lybi" replace />} />
 
         {/* Main agent routes with optional conversation ID */}
         <Route path="/aspect" element={<AspectPage />} />

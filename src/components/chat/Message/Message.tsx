@@ -121,6 +121,13 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
   const actionSteps = (!isUser && !isDeveloper && message.thinkingSteps)
     ? message.thinkingSteps.filter(s => s.stepType === 'chat_action' && isChatActionEnvelope(s.metadata))
     : [];
+  // A finance statement is THE ANSWER, not a follow-up action, so it renders
+  // ABOVE the reply: it is ready before the first word is written, and with it
+  // below, the report kept being pushed down the screen line by line while the
+  // commentary streamed in over it (task #116). Everything else — Smart Tune's
+  // previewed change — still follows the text it is proposing.
+  const leadingActions = actionSteps.filter(s => (s.metadata as { kind?: string }).kind === 'finance.report');
+  const trailingActions = actionSteps.filter(s => (s.metadata as { kind?: string }).kind !== 'finance.report');
   const canFeedback = !restrictedMode && !isUser && !isDeveloper && message.dbId;
   const canReportBug = debugMode && !isUser && !isDeveloper;
   // Agents whose backend has no message deletion hide per-message actions.
@@ -414,6 +421,13 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
                 isComplete={!isStreaming}
               />
             )}
+            {leadingActions.map((step, idx) => (
+              <ChatActionCard
+                key={`lead-action-${idx}`}
+                action={step.metadata as unknown as ChatActionEnvelope}
+                baseURL={config.baseURL}
+              />
+            ))}
             <div className={styles.markdownContent} dir={rtl ? 'rtl' : undefined}>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -446,7 +460,7 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
                 ))}
               </div>
             )}
-            {actionSteps.map((step, idx) => (
+            {trailingActions.map((step, idx) => (
               <ChatActionCard
                 key={`action-${idx}`}
                 action={step.metadata as unknown as ChatActionEnvelope}

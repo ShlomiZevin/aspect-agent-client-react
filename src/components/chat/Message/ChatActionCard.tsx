@@ -22,6 +22,7 @@ import { replenishmentService } from '../../../services/replenishmentService';
 import { formatDateOnly } from '../../intelligence/dateFormat';
 import type { ProcurementGroup, TuneProposal, TuneExecuteResult } from '../../../types/replenishment';
 import type { ChatActionEnvelope } from './chatAction';
+import { FinanceReportCard } from './FinanceReportCard';
 
 /**
  * Tell the page that hosts the chat that module state changed (the
@@ -45,6 +46,11 @@ export function ChatActionCard({ action, baseURL }: { action: ChatActionEnvelope
   // a branch here and nothing else in the chat changes.
   if (action.kind === 'replenishment.group_move_proposal') {
     return <ProposalActionCard action={action} baseURL={baseURL} />;
+  }
+  // A finance statement from the Aspect demo's books — read-only, no buttons:
+  // this one is a RENDERING of the answer, not a proposed change (task #116).
+  if (action.kind === 'finance.report') {
+    return <FinanceReportCard action={action} />;
   }
   return null;
 }

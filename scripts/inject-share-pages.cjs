@@ -55,10 +55,11 @@ const DEFAULTS = {
   },
   'lybi-prod': {
     baseUrl: 'https://lybi.ai',
-    title: 'LYBI — The Intelligent Relationship System',
-    description: "Built for organizations that can't afford to lose the connection with their customers.",
-    image: 'https://lybi.ai/img/og-lybi-default.png',
-    siteName: 'LYBI',
+    // Matches the public site (lybi-website/): same title, description and card.
+    title: 'Lybi · Conative AI',
+    description: 'Conative AI models customer decisions and directs agentic capabilities to connect organizational value with customer choice, action and growth.',
+    image: 'https://lybi.ai/img/og-lybi.jpg',
+    siteName: 'Lybi',
     locale: 'en_US',
   },
 };

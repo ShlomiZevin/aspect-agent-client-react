@@ -240,6 +240,10 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
               <button className={`${styles.iconBtn} ${styles.collapseBtn}`} onClick={() => onExpandedChange(false)} aria-label={t('intel.chat.collapseChat')} title={t('intel.chat.collapse')}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7.5 7.5M3 21l7.5-7.5" /></svg>
               </button>
+              {/* Full screen used to offer shrink-to-window and nothing else,
+                  so a customer who just wanted the chat GONE had no obvious
+                  button for it (task #116). Same − as the windowed header. */}
+              <button className={styles.iconBtn} onClick={onClose} aria-label={t('intel.chat.closeChat')} title={t('intel.chat.minimize')}>−</button>
             </div>
           ) : (
             <div className={styles.head}>

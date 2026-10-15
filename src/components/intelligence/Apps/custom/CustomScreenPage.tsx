@@ -112,7 +112,7 @@ export function CustomScreenPage({ datasetId, screenId, baseURL, onUnpublished, 
           )}
         </div>
       </div>
-      <ScreenRenderer spec={screen.screenSpec} data={data} />
+      <ScreenRenderer spec={screen.screenSpec} data={data} datasetId={datasetId} />
 
       {confirmEdit && (
         <div className={builderStyles.overlay} role="dialog" aria-modal="true">

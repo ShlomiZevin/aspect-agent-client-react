@@ -11,7 +11,7 @@ export interface Localized {
  * artwork, and a new name should fail the build rather than render an empty
  * square in front of a client.
  */
-export type AppIcon = 'procurement' | 'warehouse' | 'branches' | 'pricing';
+export type AppIcon = 'procurement' | 'warehouse' | 'branches' | 'pricing' | 'finance';
 
 /** The numbers under a live app's icon. Null when the app has none to give. */
 export interface AppHeadline {

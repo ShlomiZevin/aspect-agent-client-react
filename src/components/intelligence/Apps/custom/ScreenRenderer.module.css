@@ -185,3 +185,59 @@
   padding: 0;
   line-height: 1;
 }
+
+/* A financial statement inside a screen table (task #116): the total line is
+   the row you read, its own lines sit behind a disclosure. Only tables whose
+   rows carry an `is_total` flag render this way. */
+.statementTotal td {
+  font-weight: 700;
+  background: var(--ai-surface-alt, #f6f3fb);
+}
+
+.statementLine td:first-child {
+  padding-inline-start: 28px;
+  opacity: 0.9;
+}
+
+.statementToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: start;
+}
+
+.statementChevron {
+  display: inline-block;
+  font-size: 10px;
+  opacity: 0.6;
+  transition: transform 0.15s ease;
+  transform: rotate(90deg);
+}
+
+.statementChevronOpen { transform: rotate(0deg); }
+
+/* A section band in a folded report table: the repeated heading once, with
+   the number of rows behind it, instead of on every row (task #116). */
+.sectionRow td {
+  background: var(--ai-surface-alt, #f6f3fb);
+  font-weight: 700;
+}
+
+.sectionCount {
+  display: inline-block;
+  min-width: 20px;
+  margin-inline-start: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--ai-surface, #fff);
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.75;
+}

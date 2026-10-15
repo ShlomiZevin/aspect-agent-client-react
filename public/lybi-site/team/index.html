@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lybi — The team, modeled</title>
+<meta name="description" content="Meet Lybi's founders the way Lybi meets a customer: ask their agents, and watch your own decision path assemble.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lybi">
+<meta property="og:title" content="Lybi — The team, modeled">
+<meta property="og:description" content="Meet Lybi's founders the way Lybi meets a customer: ask their agents, and watch your own decision path assemble.">
+<meta property="og:url" content="https://lybi.ai/lybi/team">
+<meta property="og:image" content="https://lybi.ai/lybi-site/team/img/og-team.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Lybi founders Hila Carmel, Noa Assouline and Shlomi Zevin as agent cards">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://lybi.ai/lybi-site/team/img/og-team.jpg">
+<meta name="theme-color" content="#100B1B">
+<link rel="icon" href="/img/lybi-spiral.png">
+<link rel="preload" href="/lybi-site/team/img/hero.jpg" as="image">
+<link rel="stylesheet" href="/lybi-site/team/team.css">
+</head>
+<body class="is-booting">
+<a class="skip" href="#agents">Skip to the agents</a>
+
+<!-- Boot: the click that unlocks audio -->
+<div id="boot" role="dialog" aria-modal="true" aria-labelledby="boot-title">
+  <canvas class="boot__lines" aria-hidden="true"></canvas>
+  <div class="boot__inner">
+    <img class="boot__logo" src="/lybi-site/team/img/lybi-wordmark-white.svg" alt="Lybi">
+    <p class="eyebrow">The team · modeled</p>
+    <h2 id="boot-title" class="boot__title">Meet the people behind Lybi,<br><span class="grad">the way Lybi meets a customer.</span></h2>
+    <div class="boot__actions">
+      <button class="site-action site-action--dark" id="enter-sound" type="button">Enter with sound</button>
+      <button class="site-link site-link--dark" id="enter-quiet" type="button">Enter without sound</button>
+    </div>
+    <p class="boot__fine">While you are here, Lybi maps your decision path, live. It stays in this browser.</p>
+  </div>
+</div>
+
+<header class="nav" id="nav">
+  <a class="nav__logo" href="/lybi"><img src="/lybi-site/team/img/lybi-wordmark-white.svg" alt="Lybi home"></a>
+  <nav class="nav__links" aria-label="Site">
+    <a href="/lybi#/platform">Platform</a>
+    <a href="/lybi#/trust">Trust</a>
+    <a href="/lybi#/company">Company</a>
+  </nav>
+  <button class="sound" id="sound" type="button" aria-pressed="false" aria-label="Sound">
+    <span class="sound__eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <span class="sound__label">Sound off</span>
+  </button>
+  <a class="site-action site-action--dark nav__cta" href="/lybi#/demo">Request a demo</a>
+</header>
+
+<main>
+  <!-- Hero -->
+  <section class="hero" id="hero" data-process="hero">
+    <div class="hero__bg" aria-hidden="true"><img src="/lybi-site/team/img/hero.jpg" alt=""></div>
+    <canvas class="hero__lines" aria-hidden="true"></canvas>
+    <div class="hero__inner gutter">
+      <p class="eyebrow">Company · The team</p>
+      <h1 class="hero__title">We build agents that understand how people decide.<br><span class="grad">So we started with ourselves.</span></h1>
+      <p class="hero__lede">Three founders, modeled the Lybi way. Ask each agent what drives them, what they bring and why Lybi, then watch your own decision path assemble.</p>
+      <div class="hero__actions">
+        <a class="site-action site-action--dark" href="#agents">Meet the agents</a>
+        <a class="site-link site-link--dark" href="/lybi#/company">Read the company page</a>
+      </div>
+      <p class="hero__note"><span class="dot" aria-hidden="true"></span>Every answer comes only from the founder's approved bio. Nothing improvised.</p>
+    </div>
+    <div class="hero__cue" aria-hidden="true"><span></span></div>
+  </section>
+
+  <!-- Agents: one viewport, one grid -->
+  <section class="agents" id="agents" data-process="agents" aria-labelledby="agents-title">
+    <div class="agents__wrap gutter">
+      <div class="agents__head">
+        <div>
+          <p class="eyebrow">The crew</p>
+          <h2 id="agents-title" class="agents__title">Choose an agent. <span class="grad-light">Ask it anything on the list.</span></h2>
+        </div>
+        <div class="agents__meta">
+          <p class="roster__hint" aria-hidden="true"><kbd>&larr;</kbd><kbd>&rarr;</kbd> or <kbd>1</kbd>&ndash;<kbd>3</kbd> to switch</p>
+          <div class="met" aria-live="polite">
+            <span class="met__label">Agents met</span>
+            <span class="met__pips" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="met__count" id="met-count">0/3</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="station" id="stage" role="tabpanel">
+        <!-- Left: roster + portrait -->
+        <div class="side">
+          <div class="roster" role="tablist" aria-label="Agents" aria-orientation="vertical" id="roster"></div>
+          <figure class="card" id="card">
+            <div class="card__frame">
+              <img class="card__img" id="card-img" alt="">
+              <canvas class="card__assemble" id="card-canvas" aria-hidden="true"></canvas>
+              <span class="card__tag" id="card-tag">AGENT 01</span>
+              <div class="card__sheen" aria-hidden="true"></div>
+            </div>
+            <div class="card__toggle" role="group" aria-label="View">
+              <button type="button" class="is-on" data-view="agent" aria-pressed="true" aria-controls="console">Agent</button>
+              <button type="button" data-view="photo" aria-pressed="false" aria-controls="console">Human</button>
+            </div>
+          </figure>
+        </div>
+
+        <!-- Centre: the console (chat) or the About view -->
+        <div class="console" id="console">
+          <div class="console__head">
+            <div class="console__bar">
+              <span class="console__live" aria-hidden="true"></span>
+              <span class="console__title" id="console-title">Ask the agent</span>
+              <span class="guard" id="guard"><span class="switch is-on" aria-hidden="true"><i></i></span>Answers only from the approved bio</span>
+            </div>
+            <dl class="profile" id="sheet" aria-label="Agent profile">
+              <div><dt>Focus</dt><dd id="sheet-focus"></dd></div>
+              <div><dt>Crew members</dt><dd><ul class="chips" id="sheet-crew"></ul></dd></div>
+              <div><dt>Knowledge base</dt><dd><ul class="files" id="sheet-kb"></ul></dd></div>
+            </dl>
+          </div>
+          <div class="console__log" id="log" aria-live="polite"></div>
+          <div class="console__asks" id="asks" role="group" aria-label="Questions"></div>
+          <article class="about" id="about" aria-labelledby="about-name" hidden>
+            <div class="about__body">
+              <p class="about__kicker">About · approved bio</p>
+              <h3 class="about__name" id="about-name"></h3>
+              <p class="about__role" id="about-role"></p>
+              <p class="about__bio" id="about-bio"></p>
+            </div>
+            <div class="about__actions">
+              <a class="site-link site-link--dark" href="/lybi#/company">Read the company page</a>
+              <button class="about__back" id="about-back" type="button">Ask the agent instead</button>
+            </div>
+          </article>
+        </div>
+
+        <!-- Right: the visitor's decision path -->
+        <aside class="hud" id="hud" aria-label="Your decision path">
+          <button class="hud__head" id="hud-toggle" type="button" aria-expanded="true">
+            <span class="hud__title"><span class="console__live" aria-hidden="true"></span>Your decision path</span>
+            <span class="hud__score" id="hud-score">0/9</span>
+          </button>
+          <div class="hud__body">
+            <svg class="hud__graph" id="hud-graph" viewBox="0 0 252 150" aria-hidden="true"></svg>
+            <ol class="hud__stages" id="hud-stages"></ol>
+            <div class="hud__process">
+              <span>Process</span>
+              <span class="hud__pbar"><i id="hud-process"></i></span>
+              <span id="hud-process-v">0/4</span>
+            </div>
+            <p class="hud__label">Latest signals</p>
+            <ul class="hud__feed" id="hud-feed" aria-live="polite"></ul>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- Closing: the visitor's own path -->
+  <section class="close" id="close" data-process="close" aria-labelledby="close-title">
+    <div class="close__bg" aria-hidden="true"><img src="/lybi-site/team/img/path.jpg" alt="" loading="lazy"></div>
+    <div class="close__inner gutter">
+      <p class="eyebrow" id="close-eyebrow">Your path so far</p>
+      <h2 id="close-title" class="h2">Advancing the process<br><span class="grad">is not the same as advancing the decision.</span></h2>
+      <div class="ledger">
+        <div class="ledger__row">
+          <span class="ledger__k">Process</span>
+          <span class="ledger__bar"><i id="ledger-process"></i></span>
+          <span class="ledger__v" id="ledger-process-v">0/4 steps</span>
+        </div>
+        <div class="ledger__row ledger__row--decision">
+          <span class="ledger__k">Decision</span>
+          <span class="ledger__bar"><i id="ledger-decision"></i></span>
+          <span class="ledger__v" id="ledger-decision-v">0/9 signals</span>
+        </div>
+      </div>
+      <div class="found" id="found"></div>
+      <div class="close__cta">
+        <h3 class="close__q">Which customer decision <span class="grad">drives your top-line growth?</span></h3>
+        <div class="close__actions">
+          <a class="site-action site-action--dark" href="/lybi#/contact">Let’s talk</a>
+          <a class="site-link site-link--dark" href="/lybi#/demo">Request a demo</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot gutter">
+  <a href="/lybi"><img src="/lybi-site/team/img/lybi-wordmark-white.svg" alt="Lybi home"></a>
+  <nav aria-label="Footer">
+    <a href="/lybi#/platform">Platform</a>
+    <a href="/lybi#/banking">Banking</a>
+    <a href="/lybi#/health">Health</a>
+    <a href="/lybi#/trust">Trust</a>
+    <a href="/lybi#/company">Company</a>
+    <a href="/lybi#/contact">Contact</a>
+  </nav>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="won" id="won" role="dialog" aria-modal="true" aria-labelledby="won-title" hidden>
+  <div class="won__card">
+    <p class="eyebrow">UNCOVERS · ASSEMBLES · ESTABLISHES</p>
+    <h2 id="won-title" class="h2">Decision <span class="grad">established.</span></h2>
+    <p>Drivers uncovered, value assembled, conditions set. That is the path Lybi models for every customer decision.</p>
+    <div class="won__actions">
+      <button class="site-action site-action--dark" id="won-see" type="button">See your path</button>
+      <button class="site-link site-link--dark" id="won-close" type="button">Keep exploring</button>
+    </div>
+  </div>
+</div>
+
+<script src="/lybi-site/team/team.js"></script>
+</body>
+</html>

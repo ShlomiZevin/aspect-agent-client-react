@@ -18,7 +18,7 @@ export { FreedaPage } from './FreedaPage';
 export { FreedaNextPage } from './FreedaNextPage';
 export { HomePage } from './HomePage';
 export { AspectAgentsHomePage } from './AspectAgentsHomePage';
-export { LybiLandingPage } from './LybiLandingPage';
+export { StaticPageRedirect } from './StaticPageRedirect';
 export { AgentLoginPage } from './AgentLoginPage';
 export { AgentChatPage } from './AgentChatPage';
 export { SuperAdminUsersPage } from './SuperAdminUsersPage';

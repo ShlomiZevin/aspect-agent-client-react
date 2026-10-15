@@ -15,6 +15,14 @@
     ],
     "rewrites": [
       {
+        "source": "/lybi",
+        "destination": "/lybi-site/index.html"
+      },
+      {
+        "source": "/lybi/team",
+        "destination": "/lybi-site/team/index.html"
+      },
+      {
         "source": "/intelligence/zolstock",
         "destination": "/intelligence/zolstock.html"
       },

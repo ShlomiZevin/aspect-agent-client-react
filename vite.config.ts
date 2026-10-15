@@ -1,10 +1,32 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import type { Plugin } from 'vite'
+
+// The public Lybi site is static HTML in public/lybi-site/, served at clean
+// URLs by Firebase rewrites (firebase.json). Mirror those rewrites in dev so
+// /lybi and /lybi/team load the same files instead of the SPA.
+const STATIC_PAGES: Record<string, string> = {
+  '/lybi': '/lybi-site/index.html',
+  '/lybi/team': '/lybi-site/team/index.html',
+}
+
+function staticPages(): Plugin {
+  return {
+    name: 'static-pages',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const pathname = (req.url || '').split('?')[0].replace(/\/$/, '')
+        if (STATIC_PAGES[pathname]) req.url = STATIC_PAGES[pathname]
+        next()
+      })
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), staticPages()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

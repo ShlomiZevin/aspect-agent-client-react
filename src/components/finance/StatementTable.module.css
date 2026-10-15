@@ -1,0 +1,142 @@
+/* The statement itself (task #116). Used on two surfaces: inside the chat
+   bubble, where an injected sheet forces every text color, and on a full
+   screen — so a line never reads as a total by its COLOR alone, only by
+   weight and background. */
+
+.wrap {
+  width: 100%;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 0 12px;
+}
+
+.toggleAll {
+  padding: 5px 12px;
+  border: 1px solid var(--ai-border, #e4dff0);
+  border-radius: 999px;
+  background: var(--ai-surface, #fff);
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  cursor: pointer;
+}
+
+.toggleAll:hover { background: var(--ai-surface-alt, #f6f3fb); }
+
+.scroll { overflow-x: auto; }
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.table th {
+  padding: 11px 14px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: start;
+  background: var(--ai-surface-alt, #f6f3fb);
+  border-bottom: 1px solid var(--ai-border, #e4dff0);
+}
+
+.table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--ai-border-soft, #f0ecf7);
+}
+
+.labelCol {
+  text-align: start;
+  /* The widest column, but bounded: on a wide screen the eye should not have
+     to travel from a line's name to its number across half a monitor. */
+  width: 32%;
+  min-width: 190px;
+  white-space: normal;
+}
+
+.numCol {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A section's total — the line the statement is read from. */
+.totalRow {
+  font-weight: 700;
+  background: var(--ai-surface-alt, #f8f6fc);
+}
+
+/* Red for a negative, green only for a rise in a CHANGE column. Both are
+   backed by the parentheses and the row weight, so a statement still reads
+   correctly where the host page forces its own text color (the chat bubble)
+   or for a reader who cannot separate the two hues. */
+.neg { color: #b3243c; }
+.pos { color: #137a4b; }
+
+/* Gross profit, operating profit, total assets: the statement's own
+   subtotals, a step heavier than a section total — ruled above and below the
+   way a printed statement rules its profit lines. */
+.strongRow {
+  font-weight: 700;
+  background: var(--ai-accent-soft, #efeafc);
+}
+
+.strongRow td {
+  border-top: 1px solid var(--ai-border, #d9d2ea);
+  border-bottom: 1px solid var(--ai-border, #d9d2ea);
+}
+
+.strongRow .labelCol { letter-spacing: 0.01em; }
+
+.plainRow td { font-weight: 400; }
+
+.detailRow {
+  background: var(--ai-surface, #fff);
+  opacity: 0.92;
+}
+
+.detailRow td:first-child {
+  padding-inline-start: 34px;
+  font-weight: 400;
+}
+
+.sectionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: start;
+}
+
+.chevron {
+  display: inline-block;
+  font-size: 10px;
+  opacity: 0.6;
+  transition: transform 0.15s ease;
+  /* Collapsed points into the row it opens; rotates down when open. */
+  transform: rotate(90deg);
+}
+
+.chevronOpen { transform: rotate(0deg); }
+
+/* Inside a chat bubble: tighter, smaller, and the toolbar sits inline. */
+.compact .table { font-size: 12.5px; }
+.compact .table td { padding: 7px 12px; }
+.compact .table th { padding: 8px 12px; font-size: 11px; }
+.compact .toolbar { padding-bottom: 6px; }
+.compact .toggleAll { padding: 4px 10px; font-size: 11.5px; }
+
+@media (max-width: 640px) {
+  .table { font-size: 11.5px; }
+  .table td, .table th { padding: 6px 9px; }
+  .detailRow td:first-child { padding-inline-start: 22px; }
+}

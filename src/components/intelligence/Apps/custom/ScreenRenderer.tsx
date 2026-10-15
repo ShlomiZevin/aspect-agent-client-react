@@ -12,7 +12,7 @@
  * the cards state totals, the table shows rows, and a filter narrows the
  * table without quietly shrinking a verified headline.
  */
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import styles from './ScreenRenderer.module.css';
 import { formatValue } from './fmt';
 import { useLanguage } from '../../../../context/LanguageContext';
@@ -26,6 +26,10 @@ import type { Localized } from '../../../../types/apps';
 interface Props {
   spec: ScreenSpec;
   data: ScreenDataPayload;
+  /** Which client's screen this is. Only the Aspect demo's report tables fold
+      their repeated headings into sections (task #116); every other client's
+      screens render exactly as they did. */
+  datasetId?: string;
 }
 
 type Lang = 'en' | 'he';
@@ -35,6 +39,57 @@ const CHART_COLORS = ['#7C3AED', '#C026D3', '#0EA5E9', '#F59E0B', '#10B981', '#E
 
 const pick = (l: Localized | undefined, lang: Lang) => (l ? l[lang] || l.en : '');
 
+type Row = Record<string, CellValue>;
+
+/**
+ * Rows → statement blocks: every run of plain rows is closed by the first
+ * total row after it, which is the order the finance views emit (detail lines,
+ * then their "סה"כ" line; a profit row carries no lines of its own).
+ */
+/**
+ * The leading text columns that repeat down the page — a heading printed on
+ * every row (period, P&L line). At most two: enough to fold "this line, this
+ * period", not so many that every row becomes its own section. A column with
+ * one single value folds nothing, so it is skipped rather than used; a column
+ * with a value for nearly every row (a branch name) stops the search.
+ */
+function repeatedLeadingCols(rows: Row[], metas: ColumnMeta[]) {
+  const out: string[] = [];
+  for (const m of metas) {
+    if (m.type === 'number') break;
+    const distinct = new Set(rows.map(r => String(r[m.id] ?? ''))).size;
+    if (distinct === 1) continue;
+    if (distinct < 2 || distinct > rows.length / 3) break;
+    out.push(m.id);
+    if (out.length === 2) break;
+  }
+  return out;
+}
+
+/** Consecutive rows sharing the same values in `cols` become one section. */
+function groupRows(rows: Row[], cols: string[]) {
+  const out: { key: string; values: string[]; lines: Row[] }[] = [];
+  for (const r of rows) {
+    const values = cols.map(c => String(r[c] ?? ''));
+    const key = values.join(' § ');
+    const last = out[out.length - 1];
+    if (last && last.key === key) last.lines.push(r);
+    else out.push({ key, values, lines: [r] });
+  }
+  return out;
+}
+
+function toStatementBlocks(rows: Row[], isTotal: (r: Row) => boolean) {
+  const blocks: { total: Row | null; lines: Row[] }[] = [];
+  let pending: Row[] = [];
+  for (const r of rows) {
+    if (isTotal(r)) { blocks.push({ total: r, lines: pending }); pending = []; }
+    else pending.push(r);
+  }
+  if (pending.length) blocks.push({ total: null, lines: pending });
+  return blocks;
+}
+
 function applyFilters(set: ResultSetData, active: Record<string, string> | undefined) {
   if (!active) return set.rows;
   const entries = Object.entries(active).filter(([, v]) => v !== '');
@@ -42,7 +97,7 @@ function applyFilters(set: ResultSetData, active: Record<string, string> | undef
   return set.rows.filter(r => entries.every(([col, v]) => String(r[col] ?? '') === v));
 }
 
-export function ScreenRenderer({ spec, data }: Props) {
+export function ScreenRenderer({ spec, data, datasetId }: Props) {
   const { language } = useLanguage();
   const lang: Lang = language === 'he' ? 'he' : 'en';
   const locale = lang === 'he' ? 'he-IL' : 'en-GB';
@@ -58,6 +113,7 @@ export function ScreenRenderer({ spec, data }: Props) {
           key={i}
           block={block}
           data={data}
+          datasetId={datasetId}
           lang={lang}
           locale={locale}
           filters={filters}
@@ -71,13 +127,14 @@ export function ScreenRenderer({ spec, data }: Props) {
 interface BlockProps {
   block: ScreenBlock;
   data: ScreenDataPayload;
+  datasetId?: string;
   lang: Lang;
   locale: string;
   filters: Filters;
   setFilters: React.Dispatch<React.SetStateAction<Filters>>;
 }
 
-function Block({ block, data, lang, locale, filters, setFilters }: BlockProps) {
+function Block({ block, data, datasetId, lang, locale, filters, setFilters }: BlockProps) {
   switch (block.kind) {
     case 'noteLine':
       return <NoteLine caveatIds={block.caveatIds} data={data} lang={lang} />;
@@ -94,6 +151,7 @@ function Block({ block, data, lang, locale, filters, setFilters }: BlockProps) {
     case 'dataTable':
       return (
         <DataTable
+          datasetId={datasetId}
           from={block.from} columnIds={block.columns} sortable={block.sortable !== false}
           pageSize={block.pageSize || 50} data={data} lang={lang} locale={locale}
           active={filters[block.from]}
@@ -192,15 +250,17 @@ function FilterBar({ from, filterCols, data, lang, active, onChange }: {
 
 // ── dataTable ────────────────────────────────────────────────────────────
 
-function DataTable({ from, columnIds, sortable, pageSize, data, lang, locale, active }: {
+function DataTable({ from, columnIds, sortable, pageSize, data, datasetId, lang, locale, active }: {
   from: string; columnIds: string[]; sortable: boolean; pageSize: number;
-  data: ScreenDataPayload; lang: Lang; locale: string;
+  data: ScreenDataPayload; datasetId?: string; lang: Lang; locale: string;
   active?: Record<string, string>;
 }) {
   const { t } = useLanguage();
   const set = data.resultSets[from];
   const [sort, setSort] = useState<{ col: string; dir: 'asc' | 'desc' } | null>(null);
   const [page, setPage] = useState(0);
+  // Which statement sections are open (see the statement branch below).
+  const [openGroups, setOpenGroups] = useState<Record<number, boolean>>({});
 
   const rows = useMemo(() => {
     if (!set) return [];
@@ -220,9 +280,32 @@ function DataTable({ from, columnIds, sortable, pageSize, data, lang, locale, ac
   }, [set, active, sort, locale]);
 
   if (!set) return null;
-  const metas = columnIds
+  const allMetas = columnIds
     .map(id => set.columns.find(c => c.id === id))
     .filter((m): m is ColumnMeta => Boolean(m));
+
+  // Only the Aspect demo's screens fold; every other client's tables render
+  // exactly as they did before (ZolStock and HyperToy have Otto too).
+  const foldable = datasetId === 'aspect' && !sort;
+
+  // A FINANCIAL STATEMENT, not a list. The finance views carry their own
+  // `is_total` flag per row — it does not have to be one of the DISPLAYED
+  // columns — so the table renders the way a statement is read: totals, with
+  // their lines behind a disclosure, like the chat's finance card (task #116).
+  // Sorting would scramble a statement's order, so it turns folding off.
+  const hasTotalFlag = set.columns.some(c => c.id === 'is_total');
+  const labelMeta = allMetas.find(m => m.type !== 'number' && m.id !== 'is_total');
+  const asStatement = Boolean(foldable && hasTotalFlag && labelMeta && rows.length <= 400);
+  const metas = allMetas.filter(m => m.id !== 'is_total');
+
+  // Not a statement, but still a report that prints the same heading down the
+  // page — one P&L line repeated for 29 branches, period after period. Those
+  // fold under their own leading columns instead of repeating the heading on
+  // every single row.
+  const groupCols = !asStatement && foldable ? repeatedLeadingCols(rows, metas) : [];
+  const groups = groupCols.length ? groupRows(rows, groupCols) : [];
+  const asGrouped = groups.length > 1 && groups.length < rows.length;
+  const folded = asStatement || asGrouped;
 
   const pages = Math.max(1, Math.ceil(rows.length / pageSize));
   const pg = Math.min(page, pages - 1);
@@ -255,24 +338,102 @@ function DataTable({ from, columnIds, sortable, pageSize, data, lang, locale, ac
             </tr>
           </thead>
           <tbody>
-            {visible.map((r, i) => (
-              <tr key={i}>
-                {metas.map(m => (
+            {asStatement
+              ? toStatementBlocks(rows, r => Boolean(r.is_total)).map((block, i) => {
+                const cells = (r: Record<string, unknown>) => metas.map(m => (
                   <td key={m.id} className={m.type === 'number' ? styles.tdNum : undefined}>
                     {formatValue(r[m.id] as CellValue, m.format, locale)}
                   </td>
+                ));
+                if (!block.total) {
+                  return block.lines.map((r, j) => <tr key={`${i}-${j}`}>{cells(r)}</tr>);
+                }
+                const isOpen = Boolean(openGroups[i]) && block.lines.length > 0;
+                const totalCells = cells(block.total);
+                return (
+                  <Fragment key={i}>
+                    <tr className={styles.statementTotal}>
+                      {totalCells.map((cell, ci) => (ci === 0 && block.lines.length > 0
+                        ? (
+                          <td key={metas[ci].id}>
+                            <button
+                              type="button"
+                              className={styles.statementToggle}
+                              aria-expanded={isOpen}
+                              onClick={() => setOpenGroups(o => ({ ...o, [i]: !o[i] }))}
+                            >
+                              <span className={`${styles.statementChevron} ${isOpen ? styles.statementChevronOpen : ''}`} aria-hidden="true">▾</span>
+                              <span>{formatValue(block.total![metas[ci].id] as CellValue, metas[ci].format, locale)}</span>
+                            </button>
+                          </td>
+                        )
+                        : cell))}
+                    </tr>
+                    {isOpen && block.lines.map((r, j) => (
+                      <tr key={`${i}-${j}`} className={styles.statementLine}>{cells(r)}</tr>
+                    ))}
+                  </Fragment>
+                );
+              })
+              : asGrouped
+                ? groups.map((g, i) => {
+                  // The first section starts open: a band carries no numbers
+                  // of its own, so an all-closed table would open on a screen
+                  // with nothing on it.
+                  const isOpen = openGroups[i] ?? i === 0;
+                  return (
+                    <Fragment key={g.key}>
+                      <tr className={styles.sectionRow}>
+                        <td colSpan={metas.length}>
+                          <button
+                            type="button"
+                            className={styles.statementToggle}
+                            aria-expanded={isOpen}
+                            onClick={() => setOpenGroups(o => ({ ...o, [i]: !o[i] }))}
+                          >
+                            <span className={`${styles.statementChevron} ${isOpen ? styles.statementChevronOpen : ''}`} aria-hidden="true">▾</span>
+                            <span>{g.values.filter(Boolean).join(' · ')}</span>
+                            <span className={styles.sectionCount}>{g.lines.length}</span>
+                          </button>
+                        </td>
+                      </tr>
+                      {isOpen && g.lines.map((r, j) => (
+                        <tr key={j}>
+                          {metas.map(m => (
+                            <td key={m.id} className={m.type === 'number' ? styles.tdNum : undefined}>
+                              {/* The heading columns live in the section band
+                                  above — printing them again on every row is
+                                  exactly what made these tables unreadable. */}
+                              {groupCols.includes(m.id) ? '' : formatValue(r[m.id] as CellValue, m.format, locale)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </Fragment>
+                  );
+                })
+                : visible.map((r, i) => (
+                  <tr key={i}>
+                    {metas.map(m => (
+                      <td key={m.id} className={m.type === 'number' ? styles.tdNum : undefined}>
+                        {formatValue(r[m.id] as CellValue, m.format, locale)}
+                      </td>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
-            ))}
           </tbody>
         </table>
       </div>
       <div className={styles.tableFoot}>
         <span>
-          {t('otto.table.count').replace('{shown}', String(visible.length)).replace('{total}', String(rows.length))}
+          {t('otto.table.count')
+            .replace('{shown}', String(folded ? rows.length : visible.length))
+            .replace('{total}', String(rows.length))}
           {set.truncated ? ` · ${t('otto.table.truncated')}` : ''}
         </span>
-        {pages > 1 && (
+        {/* A folded table reads top to bottom — paging it would cut a section
+            off from its own heading or its own total. */}
+        {!folded && pages > 1 && (
           <span className={styles.pager}>
             <button type="button" className={styles.pagerBtn} disabled={pg === 0} onClick={() => setPage(pg - 1)}>‹</button>
             <span>{pg + 1} / {pages}</span>
