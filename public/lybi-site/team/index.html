@@ -40,17 +40,26 @@
 </div>
 
 <header class="nav" id="nav">
-  <a class="nav__logo" href="/lybi"><img src="/lybi-site/team/img/lybi-wordmark-white.svg" alt="Lybi home"></a>
-  <nav class="nav__links" aria-label="Site">
-    <a href="/lybi#/platform">Platform</a>
-    <a href="/lybi#/trust">Trust</a>
-    <a href="/lybi#/company">Company</a>
+  <a class="nav__logo" href="/lybi/immersive#/" aria-label="Lybi home"><img src="/lybi-site/team/img/lybi-wordmark-white.svg" alt="Lybi.AI"></a>
+  <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="nav-links">Menu</button>
+  <nav class="nav__links" id="nav-links" aria-label="Main">
+    <a href="/lybi/immersive#/platform">Platform</a>
+    <div class="nav__sol" id="sol">
+      <button type="button" aria-expanded="false" aria-controls="sol-drop">Solutions <svg class="chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="nav__drop" id="sol-drop">
+        <a href="/lybi/immersive#/banking"><b>Banking</b><span>Banking-ready Decision Journeys</span></a>
+        <a href="/lybi/immersive#/health"><b>Health</b><span>Keep care moving. Beyond the appointment.</span></a>
+      </div>
+    </div>
+    <a href="/lybi/immersive#/trust">Trust</a>
+    <a href="/lybi/immersive#/company">Company</a>
+    <a href="/lybi/team?from=immersive" aria-current="page">Team</a>
+    <button class="sound" id="sound" type="button" aria-pressed="false" aria-label="Sound">
+      <span class="sound__eq" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="sound__label">Sound</span>
+    </button>
+    <a class="site-action site-action--dark nav__cta" href="/lybi/immersive#/demo">Request a demo</a>
   </nav>
-  <button class="sound" id="sound" type="button" aria-pressed="false" aria-label="Sound">
-    <span class="sound__eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-    <span class="sound__label">Sound off</span>
-  </button>
-  <a class="site-action site-action--dark nav__cta" href="/lybi#/demo">Request a demo</a>
 </header>
 
 <main>
@@ -64,7 +73,7 @@
       <p class="hero__lede">Three founders, modeled the Lybi way. Ask each agent what drives them, what they bring and why Lybi, then watch your own decision path assemble.</p>
       <div class="hero__actions">
         <a class="site-action site-action--dark" href="#agents">Meet the agents</a>
-        <a class="site-link site-link--dark" href="/lybi#/company">Read the company page</a>
+        <a class="site-link site-link--dark" href="/lybi/immersive#/company">Read the company page</a>
       </div>
       <p class="hero__note"><span class="dot" aria-hidden="true"></span>Every answer comes only from the founder's approved bio. Nothing improvised.</p>
     </div>
@@ -131,7 +140,7 @@
               <p class="about__bio" id="about-bio"></p>
             </div>
             <div class="about__actions">
-              <a class="site-link site-link--dark" href="/lybi#/company">Read the company page</a>
+              <a class="site-link site-link--dark" href="/lybi/immersive#/company">Read the company page</a>
               <button class="about__back" id="about-back" type="button">Ask the agent instead</button>
             </div>
           </article>
@@ -181,8 +190,8 @@
       <div class="close__cta">
         <h3 class="close__q">Which customer decision <span class="grad">drives your top-line growth?</span></h3>
         <div class="close__actions">
-          <a class="site-action site-action--dark" href="/lybi#/contact">Let’s talk</a>
-          <a class="site-link site-link--dark" href="/lybi#/demo">Request a demo</a>
+          <a class="site-action site-action--dark" href="/lybi/immersive#/contact">Let’s talk</a>
+          <a class="site-link site-link--dark" href="/lybi/immersive#/demo">Request a demo</a>
         </div>
       </div>
     </div>
@@ -190,15 +199,11 @@
 </main>
 
 <footer class="foot gutter">
-  <a href="/lybi"><img src="/lybi-site/team/img/lybi-wordmark-white.svg" alt="Lybi home"></a>
+  <a href="/lybi/immersive#/" aria-label="Lybi home"><img src="/lybi-site/team/img/lybi-wordmark-white.svg" alt="Lybi.AI"></a>
   <nav aria-label="Footer">
-    <a href="/lybi#/platform">Platform</a>
-    <a href="/lybi#/banking">Banking</a>
-    <a href="/lybi#/health">Health</a>
-    <a href="/lybi#/trust">Trust</a>
-    <a href="/lybi#/company">Company</a>
-    <a href="/lybi#/contact">Contact</a>
+    <a href="/lybi/immersive#/platform">Platform</a><a href="/lybi/immersive#/banking">Banking</a><a href="/lybi/immersive#/health">Health</a><a href="/lybi/immersive#/trust">Trust</a><a href="/lybi/immersive#/company">Company</a><a href="/lybi/immersive#/contact">Contact</a><a href="/lybi/team?from=immersive">Team</a>
   </nav>
+  <small>© 2026 Lybi.AI</small>
 </footer>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

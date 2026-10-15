@@ -5,7 +5,8 @@
   --violet: #7B39C5; --electric: #6635D5; --radiant: #9E50EF; --lilac: #AE80FF;
   --night: #100B1B; --ink: #23182F; --on-dark: #D8D2E2; --muted: #A79DB5; --rule: #51465F;
   --glass: rgba(28, 19, 44, .62); --glass-strong: rgba(23, 16, 37, .86); --line: rgba(174, 128, 255, .2);
-  --gutter: max(24px, 6.8vw, calc((100vw - 1400px) / 2));
+  /* Shared with the team page (team.css) so the header never shifts between them. */
+  --gutter: max(24px, 4vw, calc((100vw - 1520px) / 2));
   --ease: cubic-bezier(.2, .7, .2, 1); --r: 14px;
   color-scheme: dark;
 }
@@ -206,7 +207,10 @@ details.more .body { margin-top: 12px; font-size: 16px; }
 
 /* ---------- Team (Company) ---------- */
 .founders { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
-.founder { padding: 0; }
+.founder { padding: 0; display: block; text-decoration: none; color: inherit; transition: transform 300ms var(--ease), border-color 300ms, box-shadow 300ms; }
+.founder:hover { transform: translateY(-4px); border-color: var(--lilac); box-shadow: 0 24px 60px -24px rgba(158, 80, 239, .9); }
+.founder__go { display: inline-block; margin-top: 14px; font-weight: 600; font-size: 16px; color: var(--lilac); }
+.founder:hover .founder__go { color: #fff; }
 .founder img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; object-position: center 18%; }
 .founder__b { padding: 22px 24px 26px; }
 .founder__b h3 { margin: 0; }
@@ -257,13 +261,17 @@ details.more .body { margin-top: 12px; font-size: 16px; }
   .rail { display: none; }
 }
 @media (max-width: 900px) {
+  :root { --gutter: max(20px, 5vw); }
   .nav { height: 68px; gap: 14px; }
   .nav__links { display: none; position: fixed; top: 68px; left: 0; right: 0; bottom: 0; flex-direction: column; align-items: stretch; gap: 0; padding: 12px var(--gutter) 30px; background: var(--night); overflow-y: auto; }
   .nav.menu-open .nav__links { display: flex; }
+  /* backdrop-filter would make the fixed menu panel size to the header. */
+  .nav.menu-open { background: var(--night); backdrop-filter: none; -webkit-backdrop-filter: none; }
   .nav__links > a:not(.btn), .nav__sol > button { padding: 16px 0; font-size: 20px; border-bottom: 1px solid rgba(216, 210, 226, .12); width: 100%; justify-content: space-between; }
   .nav__links .sound { margin-top: 18px; align-self: flex-start; }
   .nav__links .sound span.lbl { display: inline; }
   .nav__drop { position: static; width: auto; background: none; border: 0; box-shadow: none; padding: 0 0 10px 14px; }
+  .nav__links > a[aria-current="page"]::after { display: none; }
   .nav__cta { margin-top: 18px; }
   .menu-btn { display: inline-flex; align-items: center; }
   .scene { padding: 100px var(--gutter) 80px; }

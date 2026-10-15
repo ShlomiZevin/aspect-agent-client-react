@@ -80,6 +80,7 @@
   ];
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var el = function (tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
   var wait = function (ms) { return new Promise(function (r) { setTimeout(r, REDUCED ? 0 : ms); }); };
   var store = {
@@ -139,7 +140,7 @@
       store.set('lybi-team-sound', v ? 'on' : 'off');
       var btn = $('#sound');
       btn.setAttribute('aria-pressed', String(v));
-      $('.sound__label', btn).textContent = v ? 'Sound on' : 'Sound off';
+      $('.sound__label', btn).textContent = 'Sound';
       if (v) {
         init();
         if (!ctx) return;
@@ -280,6 +281,13 @@
   $('#enter-quiet').addEventListener('click', function () { enter(false); });
   $('#enter-sound').focus();
   $('#sound').addEventListener('click', function () { Sound.set(!Sound.isOn()); });
+
+  /* ================= Menus (same behaviour as the immersive site) ================= */
+  function closeMenus() { $('#sol').classList.remove('open'); $('#sol > button').setAttribute('aria-expanded', 'false'); $('#nav').classList.remove('menu-open'); $('#menu-btn').setAttribute('aria-expanded', 'false'); }
+  $('#sol > button').addEventListener('click', function (e) { e.stopPropagation(); var o = $('#sol').classList.toggle('open'); this.setAttribute('aria-expanded', String(o)); });
+  $('#menu-btn').addEventListener('click', function () { var o = $('#nav').classList.toggle('menu-open'); this.setAttribute('aria-expanded', String(o)); });
+  document.addEventListener('click', function (e) { if (!e.target.closest('#sol')) { $('#sol').classList.remove('open'); $('#sol > button').setAttribute('aria-expanded', 'false'); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenus(); });
 
   /* ================= Hero + nav ================= */
   var heroBg = $('.hero__bg');
@@ -712,7 +720,27 @@
   }
 
   /* ================= Start ================= */
-  select(0, true);
+  // Arriving from the immersive site (/lybi/team?from=immersive[&agent=noa]):
+  // no opening screen. A founder picked there is already selected (and the
+  // page opens on the agents, below). Sound stays off
+  // until the visitor turns it on (browsers block audio without a click).
+  var params = new URLSearchParams(location.search), fromSite = params.get('from') === 'immersive';
+  var picked = AGENTS.map(function (A) { return A.id; }).indexOf(params.get('agent'));
+  if (fromSite) {
+    bootLines.stop(); $('#boot').remove();
+    document.body.classList.remove('is-booting');
+    heroLines = filaments($('.hero__lines'), { count: 24, yMin: 0.5, yMax: 0.95, fadeFrom: 0.25 });
+    state.process.entered = true;
+  }
+  if (picked >= 0) state.touched = true;
+  select(picked >= 0 ? picked : 0, true);
   renderGraph(); renderStages(); renderProcess(); renderFound();
+  // A founder picked on the Company page goes straight to that agent; plain
+  // "Team" lands on the hero, which frames the page.
+  if (fromSite && picked >= 0) {
+    var agentsTop = document.getElementById('agents');
+    window.scrollTo({ top: agentsTop.getBoundingClientRect().top + window.scrollY, behavior: 'instant' });
+    roster.children[state.current].focus({ preventScroll: true });
+  }
   feed('Ask an agent a question to start your path.', true);
 })();

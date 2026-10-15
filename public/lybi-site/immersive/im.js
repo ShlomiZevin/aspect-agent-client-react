@@ -261,7 +261,7 @@
     return scene('CO01', 'Company', 'founders',
       '<div class="narrow stack"><p class="eyebrow" data-reveal>Company</p>' + title('t1', 'Intelligence built for action.', 'Designed around the decision.', 'h1') +
       '<p class="lead" data-reveal style="--d:3">Lybi brings together experience in business transformation, financial services, health and conversational AI. We turn that perspective into a product for the decisions that stand between an organization’s offer and a person’s action.</p>' +
-      '<div class="actions" data-reveal style="--d:4"><a class="link" href="#/platform">Learn more</a></div></div>') +
+      '<div class="actions" data-reveal style="--d:4"><a class="btn" href="/lybi/team?from=immersive">Meet the team</a><a class="link" href="#/platform">Learn more</a></div></div>') +
     scene('CO01-STORY', 'Why Lybi', null,
       '<div class="duo" style="gap:60px;align-items:start"><div class="stack"><p class="eyebrow" data-reveal>Why Lybi</p>' + title('t2', 'Build for the decision.', 'Not only the process around it.') + '</div>' +
       '<div class="stack" style="gap:16px"><p class="lead" data-reveal style="--d:2">We built Lybi around the customer’s developing decision, not just the record of the customer or the status of a process.</p><p class="body" data-reveal style="--d:3">That requires more than conversational fluency. It requires domain methods, an explicit model and the operating capabilities to put both to work. Lybi brings them together in one platform.</p></div></div>', 'scene--auto') +
@@ -269,8 +269,7 @@
       '<div class="stack" style="gap:40px"><div class="narrow stack"><p class="eyebrow" data-reveal>The experience behind Lybi</p>' + title('t2', 'The experience to see the gap.', 'The expertise to build Lybi.') +
       '<p class="body" data-reveal style="--d:2">Customer experience and business transformation bring an understanding of how organizations create value. Financial-services and health experience bring the professional context of the decisions people face. Together with AI engineering, that experience becomes the decision models, professional methods and platform behind Lybi.</p></div>' +
       '<div class="founders">' + TEAM.map(function (f, i) {
-        return '<article class="glass founder" data-reveal style="--d:' + i + '"><img src="/lybi-site/team/img/' + f[0] + '-agent.jpg" alt="' + f[1] + '" loading="lazy"><div class="founder__b"><h3>' + f[1] + '</h3><p class="role">' + f[2] + '</p><p>' + f[3] + '</p></div></article>'; }).join('') + '</div>' +
-      '<div class="actions" data-reveal><a class="btn" href="/lybi/team">Meet the team, modeled</a></div></div>', 'scene--auto') +
+        return '<a class="glass founder" href="/lybi/team?from=immersive&agent=' + f[0] + '" data-reveal style="--d:' + i + '"><img src="/lybi-site/team/img/' + f[0] + '-agent.jpg" alt="" loading="lazy"><div class="founder__b"><h3>' + f[1] + '</h3><p class="role">' + f[2] + '</p><p>' + f[3] + '</p><span class="founder__go">Ask ' + f[1].split(' ')[0] + '’s agent →</span></div></a>'; }).join('') + '</div></div>', 'scene--auto') +
     cta('CO04', 'Let’s talk', 'Which customer decision', 'drives your top-line growth?', 'Choose a ready Decision Journey built for your industry. Let’s align it to your growth priorities and plan a quick launch.', '<a class="btn" href="#/contact">Let’s talk</a>');
   } };
 
