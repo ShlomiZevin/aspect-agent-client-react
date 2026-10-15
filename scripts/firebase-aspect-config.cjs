@@ -31,6 +31,9 @@ const ASPECT_ONLY_REWRITES = [
   // ZolStock creative daily store inventory (tasks #106 / #107): the link Reut's
   // Qlik loads. The server answers with a redirect to a signed storage URL.
   { source: '/zolstock/creative-stock/**', run: DOOR },
+  // The same table at a plain, keyless address the client asked for:
+  // /zolstock/intelligence/data/creative-stock (server routes/intelligence-data.routes.js).
+  { source: '/zolstock/intelligence/data/**', run: DOOR },
 ];
 
 // First, so the catch-all "**" -> /index.html can never shadow them.
