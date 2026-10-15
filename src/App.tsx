@@ -288,6 +288,7 @@ function AppContent() {
             The old React landing's sub-pages point at their equivalents in the new site. */}
         <Route path="/lybi" element={<StaticPageRedirect file="/lybi-site/index.html" />} />
         <Route path="/lybi/team" element={<StaticPageRedirect file="/lybi-site/team/index.html" />} />
+        <Route path="/lybi/immersive" element={<StaticPageRedirect file="/lybi-site/immersive/index.html" />} />
         <Route path="/lybi/about" element={<Navigate to={{ pathname: '/lybi', hash: '#/company' }} replace />} />
         <Route path="/lybi/*" element={<Navigate to="/lybi" replace />} />
 

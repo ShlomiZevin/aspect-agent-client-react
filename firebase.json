@@ -23,6 +23,10 @@
         "destination": "/lybi-site/team/index.html"
       },
       {
+        "source": "/lybi/immersive",
+        "destination": "/lybi-site/immersive/index.html"
+      },
+      {
         "source": "/intelligence/zolstock",
         "destination": "/intelligence/zolstock.html"
       },

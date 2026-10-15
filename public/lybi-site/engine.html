@@ -2,6 +2,7 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:,">
 <title>Lybi · Conative Engine</title>
 <!--
   The Conative Engine, v2. Same story as the handed-off animation (Hila's
@@ -60,6 +61,14 @@ var EVENTS=[
  {at:15.7,angle:1.2,process:false},{at:20.8,angle:2.3,process:false},{at:25.9,angle:5.9,process:true}
 ];
 var UPDATE=4.2,GROW=1.1;
+// Words from the site's approved copy. Interactions: Platform "Interaction &
+// execution" + "Evidence & update". Sphere chips: Home "The customer: motives,
+// priorities, barriers and readiness", Value from "products, services and
+// support", Conditions as personal readiness and organizational requirements.
+var KINDS=['question','customer response','explanation','action result','comparison','permitted action'];
+var LEARN=[['motives','priorities','barriers','readiness','priorities','motives'],
+           ['products','services','support','services','products','support'],
+           ['readiness','requirements','readiness','requirements','requirements','readiness']];
 var TRACK={x0:300,process:110,decision:198};
 var PROCESS_STEPS=[330,400];
 var OUTS=[{dx:150,dy:-26},{dx:182,dy:44},{dx:160,dy:-46},{dx:190,dy:34},{dx:176,dy:-30},{dx:182,dy:24}];
@@ -101,33 +110,40 @@ function drawRings(time,front){
   var a0=front?0:Math.PI,a1=front?Math.PI:TAU;
   line(ellipsePts(k,a0,a1),front?.22:.14,k===0?1.3:1,C.lilac);
   // light travelling around each ring
-  var speed=(k%2?-1:1)*(.05+k*.012),n=3;
+  var speed=(k%2?-1:1)*(.05+k*.012),n=2;
   for(var j=0;j<n;j++){var a=mod(time*speed+j*TAU/n+k,TAU);var isFront=a<Math.PI;if(isFront!==front)continue;
-   var seg=ellipsePts(k,a-.28,a,24);line(seg,.55,1.8,C.pale,6);var p=seg[seg.length-1];glow(p[0],p[1],10,.6)}
+   var seg=ellipsePts(k,a-.34,a,30);line(seg,.4,1.6,C.pale,6);var p=seg[seg.length-1];glow(p[0],p[1],10,.5)}
  });
 }
 function drawBridges(time){
  BRIDGES.forEach(function(b,i){line(b,.18,6,C.radiant,0);line(b,.35,1.2,C.lilac,4);
   var u=mod(time*.12+i*.33,1);var p=at(b,u);glow(p[0],p[1],9,.5)});
 }
-function drawOrb(o,image,boost,time,phase){
+function drawOrb(o,image,boost,time,phase,spin){
  var bob=Math.sin(time*.6+phase)*4,breathe=1+Math.sin(time*.9+phase)*.012+boost*.05,r=o.r*breathe,x=o.x,y=o.y+bob;
  // soft halo
  glow(x,y,r*1.9,.18+boost*.45,'rgba(174,128,255,.7)');
- if(image.complete&&image.naturalWidth){ctx.drawImage(image,x-r,y-r,r*2,r*2);
-  if(boost>0){ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=boost*.75;ctx.drawImage(image,x-r,y-r,r*2,r*2);ctx.restore()}}
+ if(image.complete&&image.naturalWidth){ctx.save();ctx.translate(x,y);ctx.rotate(spin?time*spin:0);ctx.translate(-x,-y);ctx.drawImage(image,x-r,y-r,r*2,r*2);
+  if(boost>0){ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=boost*.55;ctx.drawImage(image,x-r,y-r,r*2,r*2);ctx.restore()}ctx.restore()}
  return {x:x,y:y,r:r};
 }
 function ripple(o,p){if(p<=0||p>=1)return;ctx.save();ctx.globalAlpha=(1-p)*.8;ctx.strokeStyle=C.pale;ctx.lineWidth=2;ctx.shadowBlur=14;ctx.shadowColor=C.radiant;
  ctx.beginPath();ctx.arc(o.x,o.y,o.r*(1+p*.45),0,TAU);ctx.stroke();ctx.restore()}
 function label(text,x,y,size,weight,color,align,spacing){ctx.save();ctx.font=(weight||600)+' '+size+'px Assistant, Arial, sans-serif';ctx.fillStyle=color;ctx.textAlign=align||'center';ctx.textBaseline='middle';
- if(spacing)ctx.letterSpacing=spacing+'px';ctx.shadowColor='rgba(16,11,27,.9)';ctx.shadowBlur=10;ctx.fillText(text,x,y);ctx.restore()}
-function bubble(x,y,a,time){if(a<=0)return;ctx.save();ctx.translate(x,y);ctx.globalAlpha=a;
- ctx.shadowBlur=22;ctx.shadowColor=C.radiant;ctx.fillStyle='rgba(32,23,47,.92)';ctx.strokeStyle=C.lilac;ctx.lineWidth=1.8;
- ctx.beginPath();ctx.roundRect(-30,-19,60,38,10);ctx.fill();ctx.stroke();
- ctx.beginPath();ctx.moveTo(-10,19);ctx.lineTo(-17,29);ctx.lineTo(4,19);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
- for(var i=-1;i<=1;i++){var b=Math.sin(time*7-i*.9)*2.5;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(i*12,b,3,0,TAU);ctx.fill()}
+ if(spacing)ctx.letterSpacing=spacing+'px';ctx.shadowColor='rgba(16,11,27,.95)';ctx.shadowBlur=12;ctx.fillText(text,x,y);ctx.shadowBlur=4;ctx.fillText(text,x,y);ctx.restore()}
+function bubble(x,y,a,time,kind){if(a<=0)return;ctx.save();ctx.translate(x,y);ctx.globalAlpha=a;
+ ctx.font='600 17px Assistant, Arial, sans-serif';var tw=ctx.measureText(kind).width,w=tw+70,h=40;
+ ctx.shadowBlur=24;ctx.shadowColor=C.radiant;ctx.fillStyle='rgba(32,23,47,.94)';ctx.strokeStyle=C.lilac;ctx.lineWidth=1.6;
+ ctx.beginPath();ctx.roundRect(-w/2,-h/2,w,h,12);ctx.fill();ctx.stroke();
+ ctx.beginPath();ctx.moveTo(-w/2+18,h/2);ctx.lineTo(-w/2+12,h/2+10);ctx.lineTo(-w/2+30,h/2);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+ for(var i=0;i<3;i++){var bb=Math.sin(time*7-i*.9)*2;ctx.fillStyle=C.lilac;ctx.beginPath();ctx.arc(-w/2+18+i*9,bb,2.6,0,TAU);ctx.fill()}
+ ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(kind,-w/2+50,1);
  ctx.restore()}
+// What a sphere just learned, rising out of it and fading.
+function chip(o,text,p){if(p<=0||p>=1)return;var a=bell(Math.min(1,p*1.25)),y=o.y-o.r-46-easeOut(p)*26;ctx.save();ctx.globalAlpha=a;
+ ctx.font='600 15px Assistant, Arial, sans-serif';var w=ctx.measureText('+ '+text).width+26;
+ ctx.fillStyle='rgba(16,11,27,.82)';ctx.strokeStyle='rgba(174,128,255,.7)';ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(o.x-w/2,y-15,w,30,15);ctx.fill();ctx.stroke();
+ ctx.fillStyle='#F3EAFF';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('+ '+text,o.x,y+1);ctx.restore()}
 
 /* ---------- Process vs Decision Path ---------- */
 function curveBetween(a,b){var dx=b.x-a.x;return bez([a.x,a.y],[a.x+dx*.42,a.y],[b.x-dx*.25,b.y],[b.x,b.y],60)}
@@ -142,9 +158,7 @@ function drawTracks(t,fade){ctx.save();ctx.globalAlpha=fade;
  graph(processNodes(t),false);graph(decisionNodes(t),true);ctx.restore();
  label('Process',70,TRACK.process,26,600,'#fff','left');
  label('Decision Path',70,TRACK.decision,26,600,'#fff','left');
- // Counters: the whole point at a glance.
- var p=processNodes(t).filter(function(n){return n.u>0}).length-1,d=decisionNodes(t).filter(function(n){return n.u>0}).length-1;
- label(String(p),1600,TRACK.process,22,700,C.lilac,'right');label(String(d),1600,TRACK.decision,22,700,C.pale,'right');
+
 }
 
 /* ---------- Legend ---------- */
@@ -154,23 +168,25 @@ function drawLegend(ph){label('Conative Engine',60,895,34,700,'#fff','left');
  for(var i=PHASES.length-1;i>=0;i--){x-=ws[i];var on=ph===i;label(PHASES[i],x,898,14,700,on?'#F3EAFF':'rgba(174,128,255,.55)','left',1.6);
   if(on){ctx.save();ctx.fillStyle=C.lilac;ctx.shadowBlur=10;ctx.shadowColor=C.radiant;ctx.fillRect(x,913,ws[i],2);ctx.restore()}x-=gap}}
 
+function cameraPush(t){var m=0;EVENTS.forEach(function(e){m=Math.max(m,bell((t-e.at-1.6)/2.6))});return ease(m)}
 /* ---------- One frame ---------- */
 function render(time){
  var t=mod(time,DUR),fade=1-ease((t-32.4)/1.6),ph=phaseAt(t);
  // Gentle camera drift for depth.
- var cx=Math.sin(time*.07)*7,cy=Math.cos(time*.05)*4,zoom=1.012+Math.sin(time*.04)*.008;
- ctx.save();ctx.translate(W/2+cx,H/2+cy);ctx.scale(zoom,zoom);ctx.translate(-W/2,-H/2);
+ var cam=cameraPush(t),cx=Math.sin(time*.07)*7,cy=Math.cos(time*.05)*4,zoom=1.012+Math.sin(time*.04)*.008+cam*.035;
+ // Push gently toward the core while the state is being worked on.
+ ctx.save();ctx.translate(W/2+cx,H/2+cy);ctx.scale(zoom,zoom);ctx.translate(-W/2,-H/2+(CORE.y-H/2)*cam*.03);
  drawBackdrop(time);
  drawRings(time,false);
  // What the interactions do to the engine this frame.
- var coreBoost=0,satBoost=[0,0,0],satRipple=[-1,-1,-1],coreRipple=-1;
+ var coreBoost=0,satBoost=[0,0,0],satRipple=[-1,-1,-1],coreRipple=-1,chips=[],push=0;
  var overlays=[];
  EVENTS.forEach(function(e,idx){var p=t-e.at;if(p<0||p>5.8)return;
   var hit=ringPoint(0,e.angle),from=[ORB.x+(RINGS[0].rx+260)*Math.cos(e.angle),ORB.y+(RINGS[0].ry+300)*Math.sin(e.angle)-120];
   from=[Math.max(40,Math.min(W-40,from[0])),Math.max(330,Math.min(H-60,from[1]))];
   var arrive=bez(from,[from[0],from[1]-60],[hit[0]-(hit[0]>ORB.x?-40:40),hit[1]-30],hit,60);
   overlays.push(function(){
-   if(p<1.05){var pt=at(arrive,easeOut(p/.9));bubble(pt[0],pt[1]-32,Math.min(1,p*4)*(1-ease((p-.85)/.2)),time)}
+   if(p<1.05){var pt=at(arrive,easeOut(p/.9));bubble(pt[0],pt[1]-34,Math.min(1,p*4)*(1-ease((p-.85)/.2)),time,KINDS[idx])}
    // Sensing: the rings catch it and a scan sweeps outward from the impact.
    if(p>=.8&&p<2.2){var u=(p-.8)/1.4;glow(hit[0],hit[1],46,bell(u));
     for(var k=0;k<4;k++){var q=clamp(u*1.8-k*.16);if(q>0&&q<1){var a=e.angle+(hit[0]>ORB.x?-1:1)*q*.7;line(ellipsePts(k,a-.4,a+.4,40),bell(q)*.95,3.2,C.pale,10)}}}
@@ -185,11 +201,13 @@ function render(time){
     if(e.process){var pf=frontier('p',idx);packet(bez([CORE.x,CORE.y-CORE.r],[CORE.x+90,CORE.y-CORE.r-120],[pf.x,pf.y+150],[pf.x,pf.y]),up,.7)}}
   });
   coreBoost=Math.max(coreBoost,bell((p-2.2)/.85));if(p>=2.25&&p<3.1)coreRipple=(p-2.25)/.85;
-  for(var j=0;j<3;j++){var q=(p-3.5-j*.1)/.75;satBoost[j]=Math.max(satBoost[j],bell(q));if(q>0&&q<1)satRipple[j]=q}
+  for(var j=0;j<3;j++){var q=(p-3.5-j*.1)/.75;satBoost[j]=Math.max(satBoost[j],bell(q));if(q>0&&q<1)satRipple[j]=q;
+   var cq=(p-3.55-j*.1)/1.6;if(cq>0&&cq<1)chips.push([j,LEARN[j][idx],cq])}
+  push=Math.max(push,bell((p-1.6)/2.6));
  });
  drawBridges(time);
  var sats=SATS.map(function(s,i){return drawOrb(s,satImg,satBoost[i],time,i*1.7)});
- var core=drawOrb(CORE,coreImg,coreBoost,time,.6);
+ var core=drawOrb(CORE,coreImg,coreBoost,time,.6,.035);
  // The state processing: sparks inside the core.
  if(coreBoost>0){for(var s=0;s<7;s++){var a=time*1.4+s*TAU/7,rr=CORE.r*(.25+.35*((s*37)%10)/10);glow(core.x+Math.cos(a)*rr,core.y+Math.sin(a)*rr*.8,14,coreBoost*.8)}}
  ripple(core,coreRipple);sats.forEach(function(o,i){ripple(o,satRipple[i])});
@@ -198,7 +216,10 @@ function render(time){
  // Labels: live text, centred in each sphere; verbs above the satellites.
  label(CORE.name[0],core.x,core.y-26,24,700,'#fff');label(CORE.name[1],core.x,core.y,24,700,'#fff');label(CORE.name[2],core.x,core.y+26,24,700,'#fff');
  sats.forEach(function(o,i){label(SATS[i].name,o.x,o.y,22,700,'#fff');
-  label(SATS[i].verb,o.x,o.y-o.r-22,13,700,satBoost[i]>.05?'#F3EAFF':'rgba(174,128,255,.75)','center',2.4)});
+  // Conditions sits low, between the core and the legend: its verb goes beside it.
+  if(i===2)label(SATS[i].verb,o.x-o.r-20,o.y,13,700,satBoost[i]>.05?'#F3EAFF':'rgba(174,128,255,.75)','right',2.4);
+  else label(SATS[i].verb,o.x,o.y-o.r-22,13,700,satBoost[i]>.05?'#F3EAFF':'rgba(174,128,255,.75)','center',2.4)});
+ chips.forEach(function(c){var o=sats[c[0]];chip(c[0]===2?{x:o.x+o.r+80,y:o.y+o.r+40,r:o.r}:o,c[1],c[2])});
  ctx.restore();
  drawTracks(t,fade);
  drawLegend(ph);
