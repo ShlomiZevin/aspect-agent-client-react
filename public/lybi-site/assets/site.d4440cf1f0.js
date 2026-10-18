@@ -224,7 +224,7 @@ function mount(){
  const hero=main.querySelector('#H01');document.body.classList.toggle('c27-home',!!hero);
  window.lybiMountInner?.(main);
  if(!hero)return;
- if(hero.querySelector('#field'))return;
+ if(hero.querySelector('#field,.hero-art'))return;
  window.lybiMountEngine?.(main);
  window.lybiMountPlatformVisuals?.(main);
  // Hila's narrative paragraph grouping: setup, human contrast + context, implication.
@@ -252,12 +252,16 @@ function mount(){
   const el=main.querySelector(selector);if(el)el.innerHTML=el.innerHTML.replace(phrase,'<span class="semantic-unit">'+phrase+'</span>');
  }
  const team=main.querySelector('#H06 .foundation-split article:last-child h3');if(team)team.innerHTML=team.innerHTML.replace(/Your objectives\.|Your offer\.|Your oversight\./g,t=>'<span class="semantic-unit">'+t+'</span>');
- const canvas=document.createElement('canvas');canvas.id='field';canvas.setAttribute('aria-hidden','true');hero.prepend(canvas);
+ // The immersive hero is the default (10-hero-variants.js mounts it); the handed-off
+ // particle field only shows with ?immersive=field.
+ const variant=(new URLSearchParams(location.search).get('immersive')||'').toLowerCase()!=='field';
+ if(!variant){const canvas=document.createElement('canvas');canvas.id='field';canvas.setAttribute('aria-hidden','true');hero.prepend(canvas);}
  const button=document.createElement('button');button.id='home-motion-control';button.type='button';button.dataset.lrExclude='';
  const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;window.lybiMotionPaused=reduced;
  const label=()=>{button.textContent=window.lybiMotionPaused?'Play motion':'Pause motion';button.setAttribute('aria-pressed',String(window.lybiMotionPaused));};label();
- button.onclick=()=>{window.lybiMotionPaused=!window.lybiMotionPaused;label();};hero.querySelector('.wrap').appendChild(button);
- window.lybiMountField?.();
+ button.onclick=()=>{window.lybiMotionPaused=!window.lybiMotionPaused;document.body.classList.toggle('hero-paused',window.lybiMotionPaused);label();};hero.querySelector('.wrap').appendChild(button);
+ document.body.classList.toggle('hero-paused',window.lybiMotionPaused);
+ if(!variant)window.lybiMountField?.();
 }
 new MutationObserver(mount).observe(main,{childList:true});mount();
 })();
@@ -425,4 +429,149 @@ var rt,lastW=window.innerWidth;window.addEventListener('resize',function(){clear
   // The router replaces main's children; annotation/style changes do not re-run this.
   new MutationObserver(() => normalize(document.getElementById('main')))
     .observe(document.getElementById('main'), {childList:true});
+})();
+
+;
+/* 10-hero-variants.js */
+/* Home hero. Default (Noa, 2026-10-18): the team page's hero — three points of light
+   joined by threads (Leonardo, GPT Image 2.5) with the same flowing light lines, the
+   home words on the left. Other versions stay reachable for comparison:
+     ?immersive=field — the handed-off particle field
+   Both answer Hila's note (2026-10-15) asking for an immersive hero:
+     a — the team page's opening screen, exactly (only the words differ): violet
+         glow, a dark halo behind the centred text, the same silk light lines.
+     b — a night scene: one person where the paths split, in fog, with a slow
+         push-in, drifting fog and rising motes.
+   The variant sticks while navigating (it is in the query, hashes change after it).
+   No "Pause motion" control in either (Shlomi, 2026-10-16). */
+(function(){
+"use strict";
+var VARIANT=(new URLSearchParams(location.search).get('immersive')||'').toLowerCase();
+window.lybiHeroVariant=VARIANT==='a'||VARIANT==='b'?VARIANT:VARIANT==='field'?'':'t';
+if(!window.lybiHeroVariant)return;
+document.body.classList.add('hero-variant-'+window.lybiHeroVariant);
+var RM=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+var running=null;
+
+/* ---- a: the team page's light lines (copied from team/team.js) ---- */
+  function filaments(canvas, opts) {
+    var g = canvas.getContext('2d'), w = 0, h = 0, dpr = 1, t = 0, raf = 0, visible = true, last = 0;
+    var lines = [];
+    for (var i = 0; i < opts.count; i++) {
+      lines.push({
+        y: opts.yMin + Math.random() * (opts.yMax - opts.yMin),
+        amp: 0.04 + Math.random() * 0.11, freq: 1.1 + Math.random() * 2.2,
+        speed: 0.22 + Math.random() * 0.38, phase: Math.random() * Math.PI * 2,
+        swell: 0.07 + Math.random() * 0.1, tilt: (Math.random() - 0.5) * 0.4,
+        // A few accent strands carry the light; the rest stay soft behind them.
+        alpha: i < 3 ? 0.42 + Math.random() * 0.18 : 0.06 + Math.random() * 0.16,
+        hue: Math.random() < 0.55 ? '174,128,255' : (Math.random() < 0.5 ? '158,80,239' : '216,190,255'),
+        width: i < 3 ? 1.4 + Math.random() * 0.6 : 0.7 + Math.random() * 1.0
+      });
+    }
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      w = canvas.clientWidth; h = canvas.clientHeight;
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // Gradients depend only on size: build them once per resize, not per frame.
+      lines.forEach(function (L) {
+        var x0 = w * opts.fadeFrom;
+        var core = g.createLinearGradient(x0, 0, w, 0);
+        core.addColorStop(0, 'rgba(' + L.hue + ',0)');
+        core.addColorStop(0.35, 'rgba(' + L.hue + ',' + L.alpha + ')');
+        core.addColorStop(0.8, 'rgba(' + L.hue + ',' + (L.alpha * 0.8) + ')');
+        core.addColorStop(1, 'rgba(' + L.hue + ',0)');
+        var glow = g.createLinearGradient(x0, 0, w, 0);
+        glow.addColorStop(0, 'rgba(' + L.hue + ',0)');
+        glow.addColorStop(0.4, 'rgba(' + L.hue + ',' + (L.alpha * 0.22) + ')');
+        glow.addColorStop(1, 'rgba(' + L.hue + ',0)');
+        L.core = core; L.glow = glow;
+      });
+    }
+    function draw() {
+      g.clearRect(0, 0, w, h);
+      g.globalCompositeOperation = 'lighter';
+      g.lineJoin = 'round';
+      for (var i = 0; i < lines.length; i++) {
+        var L = lines[i], path = new Path2D();
+        // The whole line also rises and falls slowly, so it never looks static.
+        var base = L.y + Math.sin(t * L.swell + L.phase) * 0.025;
+        for (var s = 0; s <= 60; s++) {
+          var x = s / 60;
+          var y = base + L.tilt * (x - 0.5)
+                + Math.sin(x * L.freq * Math.PI - t * L.speed + L.phase) * L.amp * (0.35 + 0.65 * x);
+          if (s === 0) path.moveTo(x * w, y * h); else path.lineTo(x * w, y * h);
+        }
+        g.strokeStyle = L.glow; g.lineWidth = L.width * 5; g.stroke(path);
+        g.strokeStyle = L.core; g.lineWidth = L.width; g.stroke(path);
+      }
+      g.globalCompositeOperation = 'source-over';
+    }
+    function frame(now) {
+      t += last && !window.lybiMotionPaused ? Math.min(0.05, (now - last) / 1000) : 0;
+      last = now;
+      draw();
+      raf = visible ? requestAnimationFrame(frame) : 0;
+      if (!raf) last = 0;
+    }
+    resize(); draw();
+    window.addEventListener('resize', function () { resize(); draw(); });
+    if (RM) return { stop: function () {} };
+    new IntersectionObserver(function (es) {
+      visible = es[0].isIntersecting;
+      if (visible && !raf) { last = 0; raf = requestAnimationFrame(frame); }
+    }).observe(canvas);
+    raf = requestAnimationFrame(frame);
+    return { stop: function () { visible = false; cancelAnimationFrame(raf); raf = 0; } };
+  }
+
+/* ---- b: rising motes ---- */
+function motes(cv){
+  var g=cv.getContext('2d'),w=0,h=0,t=0,last=0,list=[],raf=0,visible=true,io=null;
+  function size(){var d=Math.min(window.devicePixelRatio||1,1.5);w=cv.clientWidth;h=cv.clientHeight;cv.width=Math.round(w*d);cv.height=Math.round(h*d);g.setTransform(d,0,0,d,0,0);}
+  function seed(m){return {x:.35+Math.random()*.65,y:m?Math.random():1.05,r:.6+Math.random()*1.6,v:.006+Math.random()*.014,s:Math.random()*6.28,a:.25+Math.random()*.5};}
+  for(var i=0;i<38;i++)list.push(seed(true));
+  function draw(){
+    g.clearRect(0,0,w,h);g.globalCompositeOperation='lighter';
+    for(var i=0;i<list.length;i++){var m=list[i],x=(m.x+Math.sin(t*.35+m.s)*.012)*w,y=m.y*h,fade=Math.min(1,(1-m.y)*4,m.y*3),a=m.a*fade*(.6+.4*Math.sin(t*1.3+m.s));
+      if(a<=0)continue;var gr=g.createRadialGradient(x,y,0,x,y,m.r*6);gr.addColorStop(0,'rgba(236,222,255,'+a+')');gr.addColorStop(.3,'rgba(174,128,255,'+(a*.45)+')');gr.addColorStop(1,'rgba(123,57,197,0)');
+      g.fillStyle=gr;g.fillRect(x-m.r*6,y-m.r*6,m.r*12,m.r*12);}
+    g.globalCompositeOperation='source-over';
+  }
+  function frame(now){
+    var dt=last?Math.min(.05,(now-last)/1000):0;last=now;
+    if(!window.lybiMotionPaused&&!document.hidden&&visible){t+=dt;for(var i=0;i<list.length;i++){var m=list[i];m.y-=m.v*dt*3;if(m.y<-.05)list[i]=seed(false);}draw();}
+    raf=requestAnimationFrame(frame);
+  }
+  size();draw();window.addEventListener('resize',function(){size();draw();});
+  if('IntersectionObserver' in window){io=new IntersectionObserver(function(es){visible=es[0].isIntersecting;});io.observe(cv);}
+  if(!RM)raf=requestAnimationFrame(frame);
+  return {stop:function(){if(raf)cancelAnimationFrame(raf);raf=0;if(io)io.disconnect();}};
+}
+
+function mount(hero){
+  if(hero.querySelector('.hero-art'))return;
+  var art=document.createElement('div');art.className='hero-art hero-art--'+window.lybiHeroVariant;art.setAttribute('aria-hidden','true');
+  if(window.lybiHeroVariant==='t'){
+    art.innerHTML='<img src="/lybi-site/assets/hero-team.c6de04b993.webp" alt="" fetchpriority="high"><canvas class="hero-lines"></canvas>';
+    hero.prepend(art);
+    // Same settings as the team page's hero (team.js heroLines).
+    running=filaments(art.querySelector('canvas'),{count:24,yMin:.5,yMax:.95,fadeFrom:.25});
+  }else if(window.lybiHeroVariant==='a'){
+    art.innerHTML='<canvas class="hero-lines"></canvas>';
+    hero.prepend(art);
+    // Same settings as the team page's opening screen (team.js bootLines).
+    running=filaments(art.querySelector('canvas'),{count:30,yMin:.18,yMax:.88,fadeFrom:0});
+  }else{
+    art.innerHTML='<img src="/lybi-site/assets/hero-night.e2b328f115.webp" alt="" fetchpriority="high"><div class="hero-fog hero-fog--a"></div><div class="hero-fog hero-fog--b"></div><canvas class="hero-motes"></canvas>';
+    hero.prepend(art);
+    running=motes(art.querySelector('canvas'));
+  }
+}
+function stop(){if(running){running.stop();running=null;}}
+// This file loads after the router drew the first page: mount now, and on every route change.
+var main=document.getElementById('main');
+function sync(){var hero=main.querySelector('#H01');if(hero)mount(hero);else stop();}
+if(main){new MutationObserver(sync).observe(main,{childList:true});sync();}
 })();
