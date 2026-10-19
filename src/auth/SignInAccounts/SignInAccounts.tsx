@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { authApi } from '../api';
 import type { Invitation } from '../api';
 import { intelligenceAdminService } from '../../services/intelligenceAdminService';
@@ -105,7 +105,7 @@ export function SignInAccounts({ tenant }: Props) {
     }
   };
 
-  const update = async (row: Invitation, body: { role?: 'user' | 'admin'; tenant?: string | null }) => {
+  const update = async (row: Invitation, body: { role?: 'user' | 'admin'; tenants?: string[] | null }) => {
     setError(null);
     try {
       await authApi.updateAccount(row.id, body);
@@ -115,7 +115,7 @@ export function SignInAccounts({ tenant }: Props) {
     }
   };
 
-  const projectOptions = Array.from(new Set([tenant, ...projects, ...rows.map(r => r.tenant).filter((t): t is string => !!t)])).sort();
+  const projectOptions = Array.from(new Set([tenant, ...projects, ...rows.flatMap(r => r.tenants ?? [])])).sort();
 
   const revoke = async (row: Invitation) => {
     setError(null);
@@ -133,9 +133,10 @@ export function SignInAccounts({ tenant }: Props) {
         <h2 className={styles.title}>Sign-in accounts</h2>
         <p className={styles.sub}>
           Accounts that may sign in to <strong>{tenant}</strong> — the only way into its
-          Intelligence Center. An email signs in with Google or — if you give one — a
-          password; a user name such as <code>company.aspect.com</code> always gets a
-          password. A platform user appears when they first sign in.
+          Intelligence Center and admin. One account can open several projects (Project
+          column); adding a login that already exists adds this project to it. An email
+          signs in with Google or a password; a user name such as{' '}
+          <code>company.aspect.com</code> always gets a password.
         </p>
       </header>
 
@@ -228,16 +229,13 @@ export function SignInAccounts({ tenant }: Props) {
                   </select>
                 </td>
                 <td className={styles.td}>
-                  {/* No project = every project — that is us, not a customer. */}
-                  <select
-                    className={styles.select}
-                    value={row.tenant ?? ''}
+                  <ProjectsPicker
+                    value={row.tenants}
+                    options={projectOptions}
+                    current={tenant}
                     disabled={Boolean(row.revokedAt)}
-                    onChange={(e) => update(row, { tenant: e.target.value || null })}
-                  >
-                    <option value="">All projects</option>
-                    {projectOptions.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
+                    onChange={(tenants) => update(row, { tenants })}
+                  />
                 </td>
                 <td className={styles.td}>
                   {pwFor === row.id ? (
@@ -278,5 +276,65 @@ export function SignInAccounts({ tenant }: Props) {
         </table>
       )}
     </section>
+  );
+}
+
+/**
+ * Which projects one account opens: "All projects" (us) or any set of them.
+ * Saves on every tick. The last ticked project cannot be unticked — an
+ * account with no project is a revoke, and that has its own button.
+ */
+function ProjectsPicker({ value, options, current, disabled, onChange }: {
+  value: string[] | null;
+  options: string[];
+  /** The project whose page this is — what unticking "All" falls back to. */
+  current: string;
+  disabled: boolean;
+  onChange: (tenants: string[] | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open]);
+
+  const all = value === null;
+  const picked = value ?? [];
+  const toggle = (p: string) => {
+    const next = picked.includes(p) ? picked.filter(x => x !== p) : [...picked, p];
+    if (next.length) onChange(next.sort());
+  };
+
+  return (
+    <div className={styles.picker} ref={wrap}>
+      <button type="button" className={styles.select} disabled={disabled} onClick={() => setOpen(v => !v)}>
+        {all ? 'All projects' : picked.join(', ')}
+      </button>
+      {open && (
+        <div className={styles.pickerMenu}>
+          <label className={styles.pickerItem}>
+            <input type="checkbox" checked={all} onChange={() => onChange(all ? [current] : null)} />
+            <strong>All projects</strong>
+          </label>
+          {options.map(p => (
+            <label key={p} className={`${styles.pickerItem} ${all ? styles.muted : ''}`}>
+              <input
+                type="checkbox"
+                checked={all || picked.includes(p)}
+                disabled={all || (picked.length === 1 && picked[0] === p)}
+                onChange={() => toggle(p)}
+              />
+              {p}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

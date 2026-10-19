@@ -334,8 +334,7 @@ export function DashboardPage() {
  * Admin access is read from the account as it is NOW, not from the role saved
  * in the browser at sign-in — so ticking or unticking "Admin access" on the
  * Users page applies on the next page load, and a session saved before the
- * mark existed does not lock its owner out. Same precedence as the server: an
- * account for this project wins over an all-projects one.
+ * mark existed does not lock its owner out.
  */
 function AdminAccess({ tenant, signedInAs, onSignOut, children }: {
   tenant: string;
@@ -349,8 +348,8 @@ function AdminAccess({ tenant, signedInAs, onSignOut, children }: {
     const email = signedInAs.email.toLowerCase();
     authApi.listInvitations(tenant)
       .then(rows => {
-        const mine = rows.filter(r => !r.revokedAt && r.email === email);
-        const account = mine.find(r => r.tenant === tenant) ?? mine.find(r => r.tenant === null);
+        // The list is already this project's accounts (its own + all-projects).
+        const account = rows.find(r => !r.revokedAt && r.email === email);
         if (!cancelled) setAllowed(account?.role === 'admin');
       })
       // Unreachable: fall back to what the sign-in said.

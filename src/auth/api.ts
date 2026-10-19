@@ -76,7 +76,8 @@ export interface SignInContext {
 export interface Invitation {
   id: number;
   email: string;
-  tenant: string | null;
+  /** The projects this account opens; null = every project (us). */
+  tenants: string[] | null;
   role: 'user' | 'admin';
   invitedBy: string | null;
   note: string | null;
@@ -121,8 +122,8 @@ export const authApi = {
       method: 'POST', body: JSON.stringify(body),
     }),
 
-  /** Admin access (`role`) and/or project (`tenant`, null = every project). */
-  updateAccount: (id: number, body: { role?: 'user' | 'admin'; tenant?: string | null }) =>
+  /** Admin access (`role`) and/or projects (`tenants`, null = every project). */
+  updateAccount: (id: number, body: { role?: 'user' | 'admin'; tenants?: string[] | null }) =>
     request<{ allowed: Invitation }>(`/allowed/${id}`, {
       method: 'PUT', body: JSON.stringify(body),
     }),
