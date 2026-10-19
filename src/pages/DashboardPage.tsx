@@ -3,6 +3,7 @@ import { useParams, Navigate, Routes, Route } from 'react-router-dom';
 
 import { ThemeProvider, AgentProvider } from '../context';
 import { SignInGate } from '../auth';
+import type { SignedInAs } from '../auth';
 
 // Lazy for the same reason every other heavy subtree here is: an agent whose
 // Task Board module is switched off must not download it.
@@ -134,7 +135,7 @@ export function DashboardPage() {
   const flatMenu = FLAT_MENU_AGENTS.includes((agent ?? '').toLowerCase());
   const showConversationTrends = agent?.toLowerCase() === 'banking-v2';
 
-  return (
+  const renderDashboard = (signedInAs: SignedInAs, signOut: () => void) => (
     <ThemeProvider storagePrefix={config.storagePrefix}>
       <AgentProvider config={config}>
         <DashboardLayout
@@ -150,6 +151,8 @@ export function DashboardPage() {
           showPodcast={showPodcast}
           showConversationTrends={showConversationTrends}
           flatMenu={flatMenu}
+          signedInAs={signedInAs}
+          onSignOut={signOut}
         >
           <Routes>
             <Route index element={<Navigate to="feedback" replace />} />
@@ -310,5 +313,26 @@ export function DashboardPage() {
         </DashboardLayout>
       </AgentProvider>
     </ThemeProvider>
+  );
+
+  // The admin is for accounts with admin access only (task #113) — signed in,
+  // and marked so on the Users page. Same session as this project's
+  // Intelligence Center.
+  return (
+    <SignInGate tenant={agent ?? ''} agentName={`${config.displayName} — Admin`} required>
+      {(signedInAs, signOut) => (signedInAs?.role === 'admin'
+        ? renderDashboard(signedInAs, signOut)
+        : <NoAdminAccess email={signedInAs?.email ?? ''} onSignOut={signOut} />)}
+    </SignInGate>
+  );
+}
+
+function NoAdminAccess({ email, onSignOut }: { email: string; onSignOut: () => void }) {
+  return (
+    <div className={dashStyles.noAccess}>
+      <h1>No admin access</h1>
+      <p><strong>{email}</strong> does not have access to the admin.</p>
+      <button type="button" onClick={onSignOut}>Sign in with another account</button>
+    </div>
   );
 }

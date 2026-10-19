@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { authApi } from '../api';
 import type { Invitation } from '../api';
+import { intelligenceAdminService } from '../../services/intelligenceAdminService';
 import styles from './SignInAccounts.module.css';
 
 /**
@@ -33,6 +34,18 @@ export function SignInAccounts({ tenant }: Props) {
   // The generated password is shown here once and never again — the server
   // keeps only the hash — so it sits in a persistent banner, not a toast.
   const [issued, setIssued] = useState<{ email: string; password: string } | null>(null);
+
+  // Every project an account can belong to — the Intelligence Center datasets.
+  const [projects, setProjects] = useState<string[]>([]);
+  useEffect(() => {
+    intelligenceAdminService.listDatasets()
+      .then(list => setProjects(list.map(d => d.id).sort()))
+      .catch(() => { /* the select still offers this project and "all" */ });
+  }, []);
+
+  // The row whose password is being set by hand; empty value = generate one.
+  const [pwFor, setPwFor] = useState<number | null>(null);
+  const [pwValue, setPwValue] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -78,16 +91,31 @@ export function SignInAccounts({ tenant }: Props) {
     }
   };
 
-  const newPassword = async (row: Invitation) => {
+  const savePassword = async (row: Invitation) => {
     setError(null);
     try {
-      const res = await authApi.setPassword(row.id, {});
+      // Typed → that password; left empty → the server generates one.
+      const res = await authApi.setPassword(row.id, pwValue ? { password: pwValue } : {});
       if (res.password) setIssued({ email: row.email, password: res.password });
+      setPwFor(null);
+      setPwValue('');
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
   };
+
+  const update = async (row: Invitation, body: { role?: 'user' | 'admin'; tenant?: string | null }) => {
+    setError(null);
+    try {
+      await authApi.updateAccount(row.id, body);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const projectOptions = Array.from(new Set([tenant, ...projects, ...rows.map(r => r.tenant).filter((t): t is string => !!t)])).sort();
 
   const revoke = async (row: Invitation) => {
     setError(null);
@@ -143,8 +171,8 @@ export function SignInAccounts({ tenant }: Props) {
           value={role}
           onChange={(e) => setRole(e.target.value as 'user' | 'admin')}
         >
-          <option value="user">User</option>
-          <option value="admin">Admin</option>
+          <option value="user">No admin access</option>
+          <option value="admin">Admin access</option>
         </select>
         <input
           className={styles.input}
@@ -176,8 +204,8 @@ export function SignInAccounts({ tenant }: Props) {
           <thead>
             <tr>
               <th className={styles.th}>Email</th>
-              <th className={styles.th}>Role</th>
-              <th className={styles.th}>Scope</th>
+              <th className={styles.th}>Admin access</th>
+              <th className={styles.th}>Project</th>
               <th className={styles.th}>Password</th>
               <th className={styles.th}>Note</th>
               <th className={styles.th}>Added</th>
@@ -189,17 +217,44 @@ export function SignInAccounts({ tenant }: Props) {
               <tr key={row.id} className={row.revokedAt ? styles.revoked : undefined}>
                 <td className={styles.td}>{row.email}</td>
                 <td className={styles.td}>
-                  <span className={`${styles.chip} ${row.role === 'admin' ? styles.admin : ''}`}>
-                    {row.role}
-                  </span>
+                  <select
+                    className={styles.select}
+                    value={row.role}
+                    disabled={Boolean(row.revokedAt)}
+                    onChange={(e) => update(row, { role: e.target.value as 'user' | 'admin' })}
+                  >
+                    <option value="user">No</option>
+                    <option value="admin">Yes</option>
+                  </select>
                 </td>
                 <td className={styles.td}>
-                  {/* A grant with no tenant works on every agent — say so plainly,
-                      since revoking it here affects all of them. */}
-                  {row.tenant ?? <span className={styles.chip}>all agents</span>}
+                  {/* No project = every project — that is us, not a customer. */}
+                  <select
+                    className={styles.select}
+                    value={row.tenant ?? ''}
+                    disabled={Boolean(row.revokedAt)}
+                    onChange={(e) => update(row, { tenant: e.target.value || null })}
+                  >
+                    <option value="">All projects</option>
+                    {projectOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
                 </td>
                 <td className={styles.td}>
-                  {row.hasPassword ? 'set' : <span className={styles.muted}>Google only</span>}
+                  {pwFor === row.id ? (
+                    <span className={styles.pwEdit}>
+                      <input
+                        className={styles.input}
+                        type="text"
+                        autoFocus
+                        value={pwValue}
+                        placeholder="New password, or empty to generate"
+                        onChange={(e) => setPwValue(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') void savePassword(row); if (e.key === 'Escape') setPwFor(null); }}
+                      />
+                      <button type="button" className={styles.link} onClick={() => savePassword(row)}>Save</button>
+                      <button type="button" className={styles.link} onClick={() => setPwFor(null)}>Cancel</button>
+                    </span>
+                  ) : row.hasPassword ? 'set' : <span className={styles.muted}>Google only</span>}
                 </td>
                 <td className={styles.td}>{row.note || <span className={styles.muted}>—</span>}</td>
                 <td className={styles.td}>{new Date(row.createdAt).toLocaleDateString()}</td>
@@ -208,8 +263,8 @@ export function SignInAccounts({ tenant }: Props) {
                     <span className={styles.muted}>revoked</span>
                   ) : (
                     <>
-                      <button type="button" className={styles.link} onClick={() => newPassword(row)}>
-                        {row.hasPassword ? 'New password' : 'Give password'}
+                      <button type="button" className={styles.link} onClick={() => { setPwFor(row.id); setPwValue(''); }}>
+                        {row.hasPassword ? 'Change password' : 'Give password'}
                       </button>
                       <button type="button" className={styles.linkDanger} onClick={() => revoke(row)}>
                         Revoke

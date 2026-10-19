@@ -15,6 +15,12 @@ import type { SignInConfig } from './api';
  * surface that has been gated should use that identity rather than asking for a
  * name again, which is the whole point of gating it.
  */
+export interface SignedInAs {
+  name: string;
+  email: string;
+  role: 'user' | 'admin';
+}
+
 interface Props {
   tenant: string;
   agentName: string;
@@ -23,7 +29,7 @@ interface Props {
    * Center (task #113). Without it the gate follows the module's `purpose`.
    */
   required?: boolean;
-  children: (signedInAs: { name: string; email: string } | null) => ReactNode;
+  children: (signedInAs: SignedInAs | null, signOut: () => void) => ReactNode;
 }
 
 // Used when the config cannot be fetched on a `required` gate: it stays shut
@@ -31,7 +37,7 @@ interface Props {
 const FALLBACK: SignInConfig = { enabled: true, purpose: 'gate', google: false, password: true, clientId: '' };
 
 export function SignInGate({ tenant, agentName, required = false, children }: Props) {
-  const { session, config, loading, needsSignIn, signIn } = useSession(tenant);
+  const { session, config, loading, needsSignIn, signIn, signOut } = useSession(tenant);
 
   // Nothing is rendered while the answer is unknown. Showing the surface first
   // and the sign-in screen a moment later would flash the very content the gate
@@ -49,5 +55,5 @@ export function SignInGate({ tenant, agentName, required = false, children }: Pr
     );
   }
 
-  return <>{children(session ? { name: session.name, email: session.email } : null)}</>;
+  return <>{children(session ? { name: session.name, email: session.email, role: session.role } : null, signOut)}</>;
 }

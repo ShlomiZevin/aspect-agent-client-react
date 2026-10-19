@@ -24,6 +24,9 @@ interface DashboardLayoutProps {
   showConversationTrends?: boolean;
   /** Keep the original single flat list instead of the grouped menu. */
   flatMenu?: boolean;
+  /** Who is signed in to the admin, shown at the foot of the sidebar. */
+  signedInAs?: { name: string; email: string } | null;
+  onSignOut?: () => void;
   children: ReactNode;
 }
 
@@ -187,7 +190,7 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showModules, showIntelligence, showTaskboard, showLegacyTaskBoard, showPodcast, showConversationTrends, flatMenu, children }: DashboardLayoutProps) {
+export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQueryOptimizer, showModules, showIntelligence, showTaskboard, showLegacyTaskBoard, showPodcast, showConversationTrends, flatMenu, signedInAs, onSignOut, children }: DashboardLayoutProps) {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userType, setUserType] = useState<UserType>(() => (localStorage.getItem('adminUserType') as UserType) || 'admin');
@@ -391,6 +394,17 @@ export function DashboardLayout({ agentDisplayName, agentLogo, basePath, showQue
         </nav>
 
         <div className={styles.sidebarFooter}>
+          {signedInAs && (
+            <div className={styles.account}>
+              <div className={styles.accountId} title={signedInAs.email}>
+                <span className={styles.accountName}>{signedInAs.name || signedInAs.email}</span>
+                <span className={styles.accountEmail}>{signedInAs.email}</span>
+              </div>
+              {onSignOut && (
+                <button type="button" className={styles.signOut} onClick={onSignOut}>Sign out</button>
+              )}
+            </div>
+          )}
           <NavLink to={`/${basePath.split('/')[1]}`} className={styles.backLink}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="19" y1="12" x2="5" y2="12" />

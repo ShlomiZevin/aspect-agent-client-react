@@ -11,3 +11,29 @@
     overflow: hidden;
   }
 }
+
+.noAccess {
+  max-width: 420px;
+  margin: 15vh auto 0;
+  padding: 0 var(--spacing-md);
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.noAccess h1 {
+  font-size: 20px;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
+.noAccess button {
+  margin-top: var(--spacing-lg);
+  padding: 9px 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--primary-color);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
