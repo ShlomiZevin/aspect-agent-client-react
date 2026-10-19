@@ -274,9 +274,14 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
               {chatLinkCopied ? '✓ Copied' : '🔗 Chat link'}
             </button>
           )}
-          <button className={`${adminUi.btn} ${adminUi.btnPrimary}`} onClick={() => setShowAddModal(true)}>
-            + Add User
-          </button>
+          {/* On a project page, people are added as sign-in accounts below —
+              one way in (task #113). The old name + phone user stays only on
+              the cross-project super-admin page. */}
+          {superAdmin && (
+            <button className={`${adminUi.btn} ${adminUi.btnPrimary}`} onClick={() => setShowAddModal(true)}>
+              + Add User
+            </button>
+          )}
         </>
       }
     >
