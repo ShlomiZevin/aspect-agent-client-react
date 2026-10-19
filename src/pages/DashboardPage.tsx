@@ -1,8 +1,9 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useParams, Navigate, Routes, Route } from 'react-router-dom';
 
 import { ThemeProvider, AgentProvider } from '../context';
-import { SignInGate } from '../auth';
+import { SignInGate, authApi } from '../auth';
 import type { SignedInAs } from '../auth';
 
 // Lazy for the same reason every other heavy subtree here is: an agent whose
@@ -320,11 +321,45 @@ export function DashboardPage() {
   // Intelligence Center.
   return (
     <SignInGate tenant={agent ?? ''} agentName={`${config.displayName} — Admin`} required>
-      {(signedInAs, signOut) => (signedInAs?.role === 'admin'
-        ? renderDashboard(signedInAs, signOut)
-        : <NoAdminAccess email={signedInAs?.email ?? ''} onSignOut={signOut} />)}
+      {(signedInAs, signOut) => signedInAs && (
+        <AdminAccess tenant={agent ?? ''} signedInAs={signedInAs} onSignOut={signOut}>
+          {renderDashboard(signedInAs, signOut)}
+        </AdminAccess>
+      )}
     </SignInGate>
   );
+}
+
+/**
+ * Admin access is read from the account as it is NOW, not from the role saved
+ * in the browser at sign-in — so ticking or unticking "Admin access" on the
+ * Users page applies on the next page load, and a session saved before the
+ * mark existed does not lock its owner out. Same precedence as the server: an
+ * account for this project wins over an all-projects one.
+ */
+function AdminAccess({ tenant, signedInAs, onSignOut, children }: {
+  tenant: string;
+  signedInAs: SignedInAs;
+  onSignOut: () => void;
+  children: ReactNode;
+}) {
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const email = signedInAs.email.toLowerCase();
+    authApi.listInvitations(tenant)
+      .then(rows => {
+        const mine = rows.filter(r => !r.revokedAt && r.email === email);
+        const account = mine.find(r => r.tenant === tenant) ?? mine.find(r => r.tenant === null);
+        if (!cancelled) setAllowed(account?.role === 'admin');
+      })
+      // Unreachable: fall back to what the sign-in said.
+      .catch(() => { if (!cancelled) setAllowed(signedInAs.role === 'admin'); });
+    return () => { cancelled = true; };
+  }, [tenant, signedInAs.email, signedInAs.role]);
+
+  if (allowed === null) return null;
+  return allowed ? <>{children}</> : <NoAdminAccess email={signedInAs.email} onSignOut={onSignOut} />;
 }
 
 function NoAdminAccess({ email, onSignOut }: { email: string; onSignOut: () => void }) {
