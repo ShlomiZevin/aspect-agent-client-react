@@ -21,6 +21,7 @@ import { useParams, useLocation, Navigate } from 'react-router-dom';
 import { IntelligenceShell } from '../components/intelligence/IntelligenceShell';
 import { useDocumentMeta } from '../hooks';
 import { getAgentConfig } from '../agents/agentRegistry';
+import { SignInGate } from '../auth';
 
 export function IntelligencePage() {
   const { datasetId, insightId } = useParams<{ datasetId: string; insightId?: string }>();
@@ -53,16 +54,23 @@ export function IntelligencePage() {
   // bookmarks and shared links, it just lands on Home.
   if (isChatRoute) return <Navigate to={`/${datasetId}/intelligence`} replace />;
 
+  // Closed to anonymous visitors (task #113): sign in with an account for this
+  // project, or see only the sign-in screen. Same screen for a project that
+  // does not exist, so the URL is no way to probe customer names.
   return (
-    <IntelligenceShell
-      datasetId={datasetId}
-      insightId={insightId}
-      centerRoute={isCenterRoute}
-      reportsRoute={isReportsRoute}
-      historyRoute={isHistoryRoute}
-      appsRoute={isAppsRoute}
-      appId={appId}
-      settingsRoute={isSettingsRoute}
-    />
+    <SignInGate tenant={datasetId} agentName="Aspect Intelligence" required>
+      {() => (
+        <IntelligenceShell
+          datasetId={datasetId}
+          insightId={insightId}
+          centerRoute={isCenterRoute}
+          reportsRoute={isReportsRoute}
+          historyRoute={isHistoryRoute}
+          appsRoute={isAppsRoute}
+          appId={appId}
+          settingsRoute={isSettingsRoute}
+        />
+      )}
+    </SignInGate>
   );
 }

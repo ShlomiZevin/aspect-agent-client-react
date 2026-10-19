@@ -128,10 +128,11 @@ export function SignInMethods({ tenant, config, context = {}, onSignedIn, t = en
           <label className={styles.field}>
             <span className={styles.label}>{t('signIn.email')}</span>
             <input
-              type="email"
+              type="text"
               className={styles.input}
               value={email}
               autoComplete="username"
+              autoCapitalize="none"
               placeholder="you@company.com"
               onChange={(e) => setEmail(e.target.value)}
             />

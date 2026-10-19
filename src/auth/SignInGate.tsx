@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { SignInScreen } from './SignInScreen';
 import { useSession } from './useSession';
+import type { SignInConfig } from './api';
 
 /**
  * Puts a sign-in screen in front of a surface, but only where the Sign-In
@@ -17,10 +18,19 @@ import { useSession } from './useSession';
 interface Props {
   tenant: string;
   agentName: string;
+  /**
+   * Closed to anonymous visitors whatever the module says — the Intelligence
+   * Center (task #113). Without it the gate follows the module's `purpose`.
+   */
+  required?: boolean;
   children: (signedInAs: { name: string; email: string } | null) => ReactNode;
 }
 
-export function SignInGate({ tenant, agentName, children }: Props) {
+// Used when the config cannot be fetched on a `required` gate: it stays shut
+// and offers the password form rather than falling open.
+const FALLBACK: SignInConfig = { enabled: true, purpose: 'gate', google: false, password: true, clientId: '' };
+
+export function SignInGate({ tenant, agentName, required = false, children }: Props) {
   const { session, config, loading, needsSignIn, signIn } = useSession(tenant);
 
   // Nothing is rendered while the answer is unknown. Showing the surface first
@@ -28,12 +38,12 @@ export function SignInGate({ tenant, agentName, children }: Props) {
   // exists to withhold.
   if (loading) return null;
 
-  if (needsSignIn && config) {
+  if (required ? !session : needsSignIn && config) {
     return (
       <SignInScreen
         tenant={tenant}
         agentName={agentName}
-        config={config}
+        config={config ?? FALLBACK}
         onSignedIn={signIn}
       />
     );

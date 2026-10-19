@@ -29,6 +29,7 @@ import { AgentProvider } from '../context/AgentContext';
 import { LanguageProvider } from '../context/LanguageContext';
 import { ChatContainer } from '../components/chat';
 import { getAgentConfig } from '../agents/agentRegistry';
+import { SignInGate } from '../auth';
 import { useDocumentMeta } from '../hooks';
 import { ensureIntelligenceFontsLoaded } from '../components/intelligence/fonts';
 // Real-chat components (ThinkingIndicator, etc.) read theme CSS custom
@@ -178,90 +179,97 @@ export function AgentChatWidgetPage() {
 
   if (!config) return null;
 
+  // The Intelligence Center's Data Chat — closed to anonymous visitors like the
+  // shell around it (task #113). Inside the IC the session is already there,
+  // so this only shows when someone opens the widget address directly.
   return (
-    <ThemeProvider storagePrefix={config.storagePrefix}>
-      <LanguageProvider storagePrefix={config.storagePrefix}>
-        <UserProvider storagePrefix={config.storagePrefix} baseURL={config.baseURL}>
-          <AgentProvider config={config}>
-            <ChatProvider moduleScope={moduleScope}>
-              <PrefillSender onSent={() => setPendingPrefill(false)} />
-              {/* Scoped visual tweaks to match the design, without touching
-                  ChatContainer/Message's own CSS modules — substring class
-                  matches on their hashed module classnames, only in effect
-                  on this page. Shared across every agent (same compiled
-                  component/module names regardless of dataset):
-                  - body font/color: the real chat's native stack is Heebo /
-                    #1a1a1a; overridden to the design's Public Sans + #241A38
-                    so this page's text matches the rest of the widget
-                    (ChatWelcome, ChatHistoryPanel) instead of visibly
-                    switching fonts once a conversation starts.
-                  - crewHeader: hides the agent name + online-dot pill,
-                    redundant since the widget's own header shows "Data Chat".
-                  - _bot_: assistant reply bubble recolored to the design's
-                    light-lavender card (#F8F5FC) instead of plain white — but
-                    the descendant text-color override only reaches PLAIN
-                    prose, not table headers or the "view/download table"
-                    button, both of which keep their own purple background
-                    from the real chat's styles and need white text for
-                    contrast (the blanket `*` selector was overriding those
-                    too, leaving near-black text on a purple background).
-                  - _crewLabel_: hides the agent-name text above replies,
-                    not present in the design.
-                  - _bar_dz658_ (DataStatusBar's own hashed class, exact
-                    match not a substring — ImportingBanner uses the same
-                    source class name "bar" and must stay visible): hides
-                    its own "Last sync / Data from / Data through" line,
-                    redundant with the widget's expanded-mode header and the
-                    Aspect Intelligence page's own breadcrumb row, both of
-                    which already show the same sync info above this iframe. */}
-              <style>{`
-                body { font-family: 'Public Sans', system-ui, sans-serif !important; color: #241A38 !important; }
-                [class*="crewHeader"] { display: none !important; }
-                [class*="_bot_"] { background: #F8F5FC !important; border: none !important; border-radius: 4px 14px 14px 14px !important; }
-                [class*="_bot_"], [class*="_bot_"] * { color: #241A38 !important; }
-                /* ...except anything that carries its own colored
-                   background (table headers, the "view/download table"
-                   button — Message.tsx's styles.dataTableBtn) — those still
-                   need white text for contrast, the line above was
-                   clobbering them too. Targeting that ONE button by its own
-                   class (not "any <button>") on purpose: a blanket
-                   "[class*='_bot_'] button" previously also caught
-                   ThinkingIndicator's toggle buttons (its header AND its
-                   per-step file/SQL disclosure toggles, none of which carry
-                   a colored background), forcing their text/icons white and
-                   invisible against the light bubble. Whack-a-mole exceptions
-                   for each toggle kept missing new ones — matching the real
-                   button's own class instead is the actual fix. */
-                [class*="_bot_"] th, [class*="_bot_"] th *,
-                [class*="_dataTableBtn_"], [class*="_dataTableBtn_"] *,
-                [class*="_submit_"], [class*="_submit_"] *,
-                [class*="_processBtn_"], [class*="_processBtn_"] *,
-                [class*="_tag_"][aria-pressed="true"] {
-                  color: #fff !important;
-                }
-                /* _processBtn_: the Smart Tune action card's Process button —
-                   accent background inside the bot subtree, same contrast
-                   rule as th/_dataTableBtn_. */
-                /* _submit_ / pressed _tag_: the Reject-answer feedback modal
-                   (GeneralFeedbackModal) renders inside the bot subtree, so
-                   the blanket recolor above was painting its gradient submit
-                   button's text near-black-on-blue (2026-08-26 review, three
-                   rounds to find — the modal's own #fff !important loses the
-                   tie on source order to this page's injected sheet). Same
-                   contrast logic as th/_dataTableBtn_: colored background ⇒
-                   white text. */
-                [class*="_crewLabel_"] { display: none !important; }
-                [class^="_bar_dz658_"] { display: none !important; }
-              `}</style>
-              <div style={{ width: '100%', height: '100vh', display: 'flex', flexDirection: 'column' }}>
-                {pendingPrefill
-                  ? <PrefillLoading />
-                  : <ChatContainer crewMode="tabs" crewPosition="right" />}
-              </div>
-            </ChatProvider>
-          </AgentProvider>
-        </UserProvider>
-      </LanguageProvider>
-    </ThemeProvider>
+    <SignInGate tenant={agent ?? ''} agentName="Aspect Intelligence" required>
+      {() => (
+        <ThemeProvider storagePrefix={config.storagePrefix}>
+          <LanguageProvider storagePrefix={config.storagePrefix}>
+            <UserProvider storagePrefix={config.storagePrefix} baseURL={config.baseURL}>
+              <AgentProvider config={config}>
+                <ChatProvider moduleScope={moduleScope}>
+                  <PrefillSender onSent={() => setPendingPrefill(false)} />
+                  {/* Scoped visual tweaks to match the design, without touching
+                      ChatContainer/Message's own CSS modules — substring class
+                      matches on their hashed module classnames, only in effect
+                      on this page. Shared across every agent (same compiled
+                      component/module names regardless of dataset):
+                      - body font/color: the real chat's native stack is Heebo /
+                        #1a1a1a; overridden to the design's Public Sans + #241A38
+                        so this page's text matches the rest of the widget
+                        (ChatWelcome, ChatHistoryPanel) instead of visibly
+                        switching fonts once a conversation starts.
+                      - crewHeader: hides the agent name + online-dot pill,
+                        redundant since the widget's own header shows "Data Chat".
+                      - _bot_: assistant reply bubble recolored to the design's
+                        light-lavender card (#F8F5FC) instead of plain white — but
+                        the descendant text-color override only reaches PLAIN
+                        prose, not table headers or the "view/download table"
+                        button, both of which keep their own purple background
+                        from the real chat's styles and need white text for
+                        contrast (the blanket `*` selector was overriding those
+                        too, leaving near-black text on a purple background).
+                      - _crewLabel_: hides the agent-name text above replies,
+                        not present in the design.
+                      - _bar_dz658_ (DataStatusBar's own hashed class, exact
+                        match not a substring — ImportingBanner uses the same
+                        source class name "bar" and must stay visible): hides
+                        its own "Last sync / Data from / Data through" line,
+                        redundant with the widget's expanded-mode header and the
+                        Aspect Intelligence page's own breadcrumb row, both of
+                        which already show the same sync info above this iframe. */}
+                  <style>{`
+                    body { font-family: 'Public Sans', system-ui, sans-serif !important; color: #241A38 !important; }
+                    [class*="crewHeader"] { display: none !important; }
+                    [class*="_bot_"] { background: #F8F5FC !important; border: none !important; border-radius: 4px 14px 14px 14px !important; }
+                    [class*="_bot_"], [class*="_bot_"] * { color: #241A38 !important; }
+                    /* ...except anything that carries its own colored
+                       background (table headers, the "view/download table"
+                       button — Message.tsx's styles.dataTableBtn) — those still
+                       need white text for contrast, the line above was
+                       clobbering them too. Targeting that ONE button by its own
+                       class (not "any <button>") on purpose: a blanket
+                       "[class*='_bot_'] button" previously also caught
+                       ThinkingIndicator's toggle buttons (its header AND its
+                       per-step file/SQL disclosure toggles, none of which carry
+                       a colored background), forcing their text/icons white and
+                       invisible against the light bubble. Whack-a-mole exceptions
+                       for each toggle kept missing new ones — matching the real
+                       button's own class instead is the actual fix. */
+                    [class*="_bot_"] th, [class*="_bot_"] th *,
+                    [class*="_dataTableBtn_"], [class*="_dataTableBtn_"] *,
+                    [class*="_submit_"], [class*="_submit_"] *,
+                    [class*="_processBtn_"], [class*="_processBtn_"] *,
+                    [class*="_tag_"][aria-pressed="true"] {
+                      color: #fff !important;
+                    }
+                    /* _processBtn_: the Smart Tune action card's Process button —
+                       accent background inside the bot subtree, same contrast
+                       rule as th/_dataTableBtn_. */
+                    /* _submit_ / pressed _tag_: the Reject-answer feedback modal
+                       (GeneralFeedbackModal) renders inside the bot subtree, so
+                       the blanket recolor above was painting its gradient submit
+                       button's text near-black-on-blue (2026-08-26 review, three
+                       rounds to find — the modal's own #fff !important loses the
+                       tie on source order to this page's injected sheet). Same
+                       contrast logic as th/_dataTableBtn_: colored background ⇒
+                       white text. */
+                    [class*="_crewLabel_"] { display: none !important; }
+                    [class^="_bar_dz658_"] { display: none !important; }
+                  `}</style>
+                  <div style={{ width: '100%', height: '100vh', display: 'flex', flexDirection: 'column' }}>
+                    {pendingPrefill
+                      ? <PrefillLoading />
+                      : <ChatContainer crewMode="tabs" crewPosition="right" />}
+                  </div>
+                </ChatProvider>
+              </AgentProvider>
+            </UserProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      )}
+    </SignInGate>
   );
 }

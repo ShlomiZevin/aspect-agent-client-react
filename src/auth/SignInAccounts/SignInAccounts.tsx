@@ -63,7 +63,8 @@ export function SignInAccounts({ tenant }: Props) {
         tenant,
         role,
         note: note.trim() || undefined,
-        generatePassword: withPassword,
+        // A user name (no @) cannot sign in with Google, so it always gets one.
+        generatePassword: withPassword || !email.includes('@'),
       });
       if (res.password) setIssued({ email: res.allowed.email, password: res.password });
       setEmail('');
@@ -103,8 +104,10 @@ export function SignInAccounts({ tenant }: Props) {
       <header className={styles.head}>
         <h2 className={styles.title}>Sign-in accounts</h2>
         <p className={styles.sub}>
-          Addresses that may sign in to <strong>{tenant}</strong>, with Google or — if you
-          give one — a password. A platform user appears when they first sign in.
+          Accounts that may sign in to <strong>{tenant}</strong> — the only way into its
+          Intelligence Center. An email signs in with Google or — if you give one — a
+          password; a user name such as <code>company.aspect.com</code> always gets a
+          password. A platform user appears when they first sign in.
         </p>
       </header>
 
@@ -129,9 +132,10 @@ export function SignInAccounts({ tenant }: Props) {
       <form className={styles.addRow} onSubmit={add}>
         <input
           className={styles.input}
-          type="email"
+          type="text"
           value={email}
-          placeholder="name@company.com"
+          autoCapitalize="none"
+          placeholder="name@company.com or company.aspect.com"
           onChange={(e) => setEmail(e.target.value)}
         />
         <select

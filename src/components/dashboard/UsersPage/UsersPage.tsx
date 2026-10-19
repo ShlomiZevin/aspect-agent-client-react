@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUsers, getStats, updateUser } from '../../../services/adminService';
 import type { AdminUser, AdminUserFilters, AdminStats, UserSource, UserSubscription } from '../../../types/admin';
-import { authApi, SignInAccounts } from '../../../auth';
+import { SignInAccounts } from '../../../auth';
 import { AddUserModal } from '../AddUserModal';
 import { LinkWhatsAppModal } from '../LinkWhatsAppModal';
 import { DeleteUserModal } from '../DeleteUserModal';
@@ -55,17 +55,6 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
   // user stops typing so we don't hit the server on every keystroke.
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  // The Sign-In module, when it is on for this agent, manages who may sign in
-  // right here — there is no separate page for it.
-  const [signInLive, setSignInLive] = useState(false);
-  useEffect(() => {
-    if (!defaultTenant || superAdmin) return;
-    let cancelled = false;
-    authApi.config(defaultTenant)
-      .then(c => { if (!cancelled) setSignInLive(c.enabled); })
-      .catch(() => { /* not enabled, or unreachable — no section */ });
-    return () => { cancelled = true; };
-  }, [defaultTenant, superAdmin]);
 
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -316,7 +305,9 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
         </div>
       )}
 
-      {signInLive && defaultTenant && <SignInAccounts tenant={defaultTenant} />}
+      {/* Who may sign in is managed right here, for every project: the
+          Intelligence Center is closed without an account (task #113). */}
+      {defaultTenant && !superAdmin && <SignInAccounts tenant={defaultTenant} />}
 
       <div className={styles.filters}>
         <input

@@ -1,4 +1,5 @@
 import { getBaseURL } from '../services/api';
+import { getSuperAdminKey } from '../services/superAdminService';
 
 /**
  * The sign-in API.
@@ -20,9 +21,16 @@ export class AuthError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // The account routes are super-admin only; the key rides along once the
+  // admin has unlocked it, as services/api.ts does for its routes.
+  const superKey = getSuperAdminKey();
   const res = await fetch(`${ROOT()}${path}`, {
     ...init,
-    headers: init?.body ? { 'Content-Type': 'application/json', ...init.headers } : init?.headers,
+    headers: {
+      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(superKey ? { 'X-Super-Admin-Key': superKey } : {}),
+      ...init?.headers,
+    },
   });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
