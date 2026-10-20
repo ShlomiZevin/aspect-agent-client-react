@@ -4,7 +4,7 @@
  * Handles CRUD operations for tasks and assignees.
  */
 
-import type { Task, Assignee, CreateTaskData, UpdateTaskData, TaskFilters, WhatsNewResult, ReleaseCandidate } from '../types/task';
+import type { Task, Assignee, CreateTaskData, UpdateTaskData, TaskFilters, WhatsNewResult, WhatsNewItem, ReleaseCandidate } from '../types/task';
 
 // Base URL for task API (uses same server as main app)
 const getBaseURL = (): string => {
@@ -156,6 +156,14 @@ export async function markDeployed(id: number, identity?: string): Promise<Task>
 export async function getWhatsNew(identity: string): Promise<WhatsNewResult> {
   const data = await apiRequest<WhatsNewResult>(`/api/tasks/whats-new?identity=${encodeURIComponent(identity)}`);
   return { tasks: Array.isArray(data?.tasks) ? data.tasks : [], seenUntil: data?.seenUntil ?? null };
+}
+
+/**
+ * Every release ever made, newest first — the What's New "all updates" tab.
+ */
+export async function getReleaseHistory(): Promise<WhatsNewItem[]> {
+  const data = await apiRequest<{ tasks: WhatsNewItem[] }>('/api/tasks/releases');
+  return Array.isArray(data?.tasks) ? data.tasks : [];
 }
 
 /**

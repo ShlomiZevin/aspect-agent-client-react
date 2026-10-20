@@ -420,3 +420,29 @@
     max-height: calc(100vh - 32px);
   }
 }
+
+/* Tabs: "New" and "All updates". The panel keeps one height so switching never resizes it. */
+.panel { height: min(640px, calc(100vh - 110px)); }
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin: 12px 20px 4px;
+  padding: 3px;
+  border-radius: 9px;
+  background: #f1f2f5;
+  flex-shrink: 0;
+}
+.tab {
+  flex: 1;
+  height: 30px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #6b7280;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tab:hover { color: #111827; }
+.tabOn, .tabOn:hover { background: #fff; color: #111827; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1); }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { WhatsNewItem } from '../../../types/task';
+import { getReleaseHistory } from '../../../services/taskService';
 import { useWhatsNew } from './useWhatsNew';
 import styles from './WhatsNewPopup.module.css';
 
@@ -52,26 +53,52 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
+/** Group items (newest first) by the day they were released. */
+function groupByDay(list: WhatsNewItem[]) {
+  const out: { key: string; label: string; items: WhatsNewItem[] }[] = [];
+  for (const item of list) {
+    const key = dayKey(item.deployedAt);
+    const last = out[out.length - 1];
+    if (last && last.key === key) last.items.push(item);
+    else out.push({ key, label: dayLabel(item.deployedAt), items: [item] });
+  }
+  return out;
+}
+
 /**
  * Global What's New: the popup, the "incoming update" message, and the corner badge.
+ *
+ * Two tabs: "New" (since the last "Got it" — unchanged behaviour) and "All
+ * updates" — the whole release history, so a note can be read again after it
+ * was confirmed. The panel has a fixed height, so switching tabs never resizes it.
  * Mounted once in App. `auto` (Builder V2 pages) turns on everything that appears by
  * itself; elsewhere only the task board's What's New button opens it. Hebrew, RTL.
  */
 export function WhatsNewPopup({ auto }: { auto: boolean }) {
   const { items, incoming, isOpen, open, close, gotIt, dismissIncoming } = useWhatsNew(auto);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [tab, setTab] = useState<'new' | 'all'>('new');
+  const [history, setHistory] = useState<WhatsNewItem[] | null>(null);
+  const [historyFailed, setHistoryFailed] = useState(false);
+
+  // Closing resets to "New", so every opening starts there.
+  const reset = () => { setTab('new'); setExpandedId(null); };
+  const closePanel = () => { reset(); close(); };
+  const confirmSeen = () => { reset(); gotIt(); };
+  // The history is read each time its tab is opened.
+  useEffect(() => {
+    if (!isOpen || tab !== 'all') return;
+    let cancelled = false;
+    getReleaseHistory()
+      .then(list => { if (!cancelled) { setHistory(list); setHistoryFailed(false); } })
+      .catch(() => { if (!cancelled) setHistoryFailed(true); });
+    return () => { cancelled = true; };
+  }, [isOpen, tab]);
 
   // Items arrive newest first, so consecutive grouping keeps the days in order.
-  const groups = useMemo(() => {
-    const out: { key: string; label: string; items: WhatsNewItem[] }[] = [];
-    for (const item of items) {
-      const key = dayKey(item.deployedAt);
-      const last = out[out.length - 1];
-      if (last && last.key === key) last.items.push(item);
-      else out.push({ key, label: dayLabel(item.deployedAt), items: [item] });
-    }
-    return out;
-  }, [items]);
+  const groups = useMemo(() => groupByDay(items), [items]);
+  const historyGroups = useMemo(() => groupByDay(history ?? []), [history]);
+  const shownGroups = tab === 'new' ? groups : historyGroups;
 
   // Only announce what is still unseen
   const freshItems = useMemo(
@@ -124,7 +151,7 @@ export function WhatsNewPopup({ auto }: { auto: boolean }) {
   }
 
   return (
-    <div className={styles.overlay} onClick={close} dir="rtl" lang="he">
+    <div className={styles.overlay} onClick={closePanel} dir="rtl" lang="he">
       <div
         className={styles.panel}
         role="dialog"
@@ -137,20 +164,39 @@ export function WhatsNewPopup({ auto }: { auto: boolean }) {
           <div className={styles.headerText}>
             <h3 id="whats-new-title" className={styles.title}>מה חדש</h3>
             <div className={styles.subtitle}>
-              {items.length > 0 ? `${countLabel(items.length)} מאז הביקור האחרון` : 'מאז הביקור האחרון'}
+              {tab === 'all'
+                ? 'כל העדכונים שפורסמו, מהחדש לישן'
+                : items.length > 0 ? `${countLabel(items.length)} מאז הביקור האחרון` : 'מאז הביקור האחרון'}
             </div>
           </div>
-          <button type="button" className={styles.closeBtn} onClick={close} aria-label="סגירה">×</button>
+          <button type="button" className={styles.closeBtn} onClick={closePanel} aria-label="סגירה">×</button>
+        </div>
+
+        <div className={styles.tabs} role="tablist">
+          <button type="button" role="tab" aria-selected={tab === 'new'}
+            className={`${styles.tab} ${tab === 'new' ? styles.tabOn : ''}`}
+            onClick={() => { setTab('new'); setExpandedId(null); }}>
+            חדשים{items.length > 0 ? ` (${items.length})` : ''}
+          </button>
+          <button type="button" role="tab" aria-selected={tab === 'all'}
+            className={`${styles.tab} ${tab === 'all' ? styles.tabOn : ''}`}
+            onClick={() => { setTab('all'); setExpandedId(null); }}>
+            כל העדכונים
+          </button>
         </div>
 
         <div className={styles.body}>
-          {items.length === 0 ? (
+          {tab === 'all' && history === null ? (
+            <div className={styles.empty}>
+              {historyFailed ? 'לא הצלחתי לטעון את ההיסטוריה. אפשר לנסות שוב בעוד רגע.' : 'טוען…'}
+            </div>
+          ) : shownGroups.length === 0 ? (
             <div className={styles.empty}>
               <span className={styles.emptyIcon} aria-hidden="true">✨</span>
-              אין עדכונים חדשים. הכול מעודכן.
+              {tab === 'new' ? 'אין עדכונים חדשים. הכול מעודכן.' : 'עדיין לא פורסמו עדכונים.'}
             </div>
           ) : (
-            groups.map(group => (
+            shownGroups.map(group => (
               <section key={group.key} className={styles.group}>
                 <div className={styles.dayLabel}>{group.label}</div>
                 {group.items.map(item => {
@@ -193,8 +239,8 @@ export function WhatsNewPopup({ auto }: { auto: boolean }) {
         </div>
 
         <div className={styles.footer}>
-          <button type="button" className={styles.gotItBtn} onClick={items.length > 0 ? gotIt : close}>
-            הבנתי
+          <button type="button" className={styles.gotItBtn} onClick={tab === 'new' && items.length > 0 ? confirmSeen : closePanel}>
+            {tab === 'new' ? 'הבנתי' : 'סגירה'}
           </button>
         </div>
       </div>
