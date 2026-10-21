@@ -43,9 +43,19 @@ interface BrainState {
 
 const Ctx = createContext<BrainState | null>(null);
 
+/**
+ * The Brain Inspector (the 🧠 "memory" button in the top bar and its
+ * panel) is HIDDEN — Noa asked for it gone: switching it off in ⚙ did not
+ * stick, because the panel reopened from its remembered open state. The
+ * code stays; set this to true to bring the button, its panel and its ⚙
+ * switch back. While false, the panel always starts closed.
+ */
+export const BRAIN_INSPECTOR_VISIBLE = false;
+
 const POSTURE_KEY = 'builder:brain:posture';
 
 function loadPosture(): BrainPosture {
+  if (!BRAIN_INSPECTOR_VISIBLE) return 'collapsed';
   try {
     const raw = localStorage.getItem(POSTURE_KEY);
     if (raw === 'docked' || raw === 'fullscreen' || raw === 'collapsed') return raw;

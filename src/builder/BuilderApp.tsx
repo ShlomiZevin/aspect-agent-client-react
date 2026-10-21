@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Route, Routes } from 'react-router-dom';
 import { BuilderProvider, emptyProject } from './state/BuilderContext';
-import { BrainProvider } from './state/BrainContext';
+import { BRAIN_INSPECTOR_VISIBLE, BrainProvider } from './state/BrainContext';
 import { BuilderLayout } from './components/BuilderLayout/BuilderLayout';
 import { TopBar } from './components/TopBar/TopBar';
 import { Sidebar } from './components/Sidebar/Sidebar';
@@ -262,10 +262,10 @@ function BuilderShell() {
               the canvas so no column shrinks. Collapsed → nothing
               rendered; docked → overlays the canvas without pushing
               layout. */}
-          <BrainDockSlot />
+          {BRAIN_INSPECTOR_VISIBLE && <BrainDockSlot />}
           {/* Fullscreen posture overlays the whole center cell only —
               sidebar / topbar / chat stay clickable around it. */}
-          <BrainFullscreenLayer />
+          {BRAIN_INSPECTOR_VISIBLE && <BrainFullscreenLayer />}
         </>
       }
       chat={<ChatPanel />}

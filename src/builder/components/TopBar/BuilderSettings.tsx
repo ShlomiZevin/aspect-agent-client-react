@@ -18,6 +18,7 @@
  */
 
 import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { BRAIN_INSPECTOR_VISIBLE } from '../../state/BrainContext';
 import styles from './BuilderSettings.module.css';
 
 export interface BuilderSettingsState {
@@ -121,12 +122,12 @@ export function BuilderSettingsPopover({
         value={settings.autoSave}
         onChange={v => onChange('autoSave', v)}
       />
-      <ToggleRow
+      {BRAIN_INSPECTOR_VISIBLE && <ToggleRow
         label="Memory in the top bar"
         hint="The 🧠 button showing what the agent remembers, with its blinking “new activity” dot. Off hides it; memory itself keeps working."
         value={settings.brainInspector}
         onChange={v => onChange('brainInspector', v)}
-      />
+      />}
     </div>
   );
 }

@@ -13,7 +13,7 @@ import {
   isSupported as folderSupported, readBundleVersion, rememberedFolder,
 } from '../../state/folderDrafts';
 import { chosenTool } from '../FolderDrafts/aiSetupContent';
-import { useBrain } from '../../state/BrainContext';
+import { BRAIN_INSPECTOR_VISIBLE, useBrain } from '../../state/BrainContext';
 import { useBrainCounts } from '../../state/useBrainSnapshot';
 import styles from './TopBar.module.css';
 
@@ -117,7 +117,7 @@ export function TopBar({ back, place }: TopBarProps = {}) {
           THIS agent knows in the current conversation, and the right side
           is already the most crowded part of the bar. The dock drops from
           the canvas's left edge, directly under it. */}
-      {settings.brainInspector && <BrainInspectorButton />}
+      {BRAIN_INSPECTOR_VISIBLE && settings.brainInspector && <BrainInspectorButton />}
       <span className={styles.spacer} />
       <TopBarVersionMenu />
       {settings.autoSave && (
