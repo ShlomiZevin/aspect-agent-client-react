@@ -81,3 +81,53 @@
   transition: transform 120ms;
 }
 .toggleOn .toggleKnob { transform: translateX(14px); }
+
+/* "Your browser ID" (task #916). */
+.idRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 6px;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+  margin-top: 2px;
+}
+.idValue {
+  display: block;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: var(--bg-input, #f3f4f6);
+  font-size: 10.5px;
+  color: var(--text-primary, #111827);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: all;
+}
+.idActions { display: flex; gap: 6px; }
+.idBtn {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  background: var(--bg-surface, #fff);
+  color: var(--text-primary, #111827);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.idBtn:hover:not(:disabled) { background: var(--bg-input, #f3f4f6); }
+.idBtn:disabled { opacity: 0.45; cursor: default; }
+.idBtnPrimary, .idBtnPrimary:hover:not(:disabled) { border-color: var(--primary-color, #6366f1); background: var(--primary-color, #6366f1); color: #fff; }
+.modalText { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: var(--text-secondary, #4b5563); }
+.idInput {
+  width: 100%;
+  box-sizing: border-box;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+.modalNote { min-height: 18px; margin: 8px 0 0; font-size: 12px; color: var(--text-tertiary, #9ca3af); overflow-wrap: anywhere; }

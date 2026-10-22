@@ -17,9 +17,24 @@
  * Persisted in localStorage so the choice survives reloads.
  */
 
-import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { BRAIN_INSPECTOR_VISIBLE } from '../../state/BrainContext';
+import { Modal } from '../Modal/Modal';
 import styles from './BuilderSettings.module.css';
+
+/**
+ * The Builder has no user accounts: each browser gets a random "browser
+ * ID" the first time it opens the Builder (BuilderApp.getOrCreateOwnerUserId),
+ * and the Builder chat's history lists only that ID's conversations. A
+ * cleared browser or a new computer starts a new ID, and the old history
+ * seems gone (task #916). "Your browser ID" shows the ID and lets a person
+ * switch back to an older one — Shlomi can look it up and hand it over.
+ */
+const OWNER_KEY = 'builder:ownerUserId';
+
+function readOwnerId(): string {
+  try { return localStorage.getItem(OWNER_KEY) || ''; } catch { return ''; }
+}
 
 export interface BuilderSettingsState {
   autoSave: boolean;
@@ -93,9 +108,11 @@ export function BuilderSettingsPopover({
   open, onClose, triggerRef, settings, onChange,
 }: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const [changingId, setChangingId] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
+    // While the "change browser ID" window is open, it owns clicks and Esc.
+    if (!open || changingId) return;
     const onDoc = (e: MouseEvent) => {
       const target = e.target as Node;
       if (ref.current && ref.current.contains(target)) return;
@@ -111,7 +128,7 @@ export function BuilderSettingsPopover({
       document.removeEventListener('mousedown', onDoc);
       document.removeEventListener('keydown', onKey);
     };
-  }, [open, onClose, triggerRef]);
+  }, [open, onClose, triggerRef, changingId]);
 
   if (!open) return null;
   return (
@@ -128,7 +145,75 @@ export function BuilderSettingsPopover({
         value={settings.brainInspector}
         onChange={v => onChange('brainInspector', v)}
       />}
+      <IdentityRow onChange={() => setChangingId(true)} />
+      {changingId && <ChangeIdentityModal onClose={() => setChangingId(false)} />}
     </div>
+  );
+}
+
+function IdentityRow({ onChange }: { onChange: () => void }) {
+  const id = readOwnerId();
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(id); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* no clipboard */ }
+  };
+  return (
+    <div className={styles.idRow}>
+      <div className={styles.text}>
+        <span className={styles.label}>Your browser ID</span>
+        <span className={styles.hint}>Your Builder chat history belongs to this ID.</span>
+      </div>
+      <code className={styles.idValue} title={id}>{id || '—'}</code>
+      <div className={styles.idActions}>
+        <button type="button" className={styles.idBtn} onClick={copy} disabled={!id}>{copied ? 'Copied' : 'Copy'}</button>
+        <button type="button" className={styles.idBtn} onClick={onChange}>Change…</button>
+      </div>
+    </div>
+  );
+}
+
+function ChangeIdentityModal({ onClose }: { onClose: () => void }) {
+  const current = readOwnerId();
+  const [value, setValue] = useState('');
+  const next = value.trim();
+  const valid = /^[A-Za-z0-9_-]{6,100}$/.test(next) && next !== current;
+  const save = () => {
+    if (!valid) return;
+    try { localStorage.setItem(OWNER_KEY, next); } catch { return; }
+    window.location.reload();
+  };
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Change browser ID"
+      width={460}
+      footer={
+        <>
+          <span style={{ flex: 1 }} />
+          <button type="button" className={styles.idBtn} onClick={onClose}>Cancel</button>
+          <button type="button" className={`${styles.idBtn} ${styles.idBtnPrimary}`} onClick={save} disabled={!valid}>Switch and reload</button>
+        </>
+      }
+    >
+      <p className={styles.modalText}>
+        Paste the ID whose Builder chat history you want to see. The Builder reloads under that ID —
+        save any unsaved work first. Copy the current ID before switching, to be able to come back.
+      </p>
+      <input
+        className={styles.idInput}
+        value={value}
+        autoFocus
+        placeholder="builder-owner-…"
+        onChange={e => setValue(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') save(); }}
+      />
+      <p className={styles.modalNote}>
+        {next && next === current ? 'That is already this browser\'s ID.'
+          : next && !valid ? 'An ID has only letters, digits and dashes.'
+            : `Current: ${current || '—'}`}
+      </p>
+    </Modal>
   );
 }
 
