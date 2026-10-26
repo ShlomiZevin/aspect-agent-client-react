@@ -151,7 +151,7 @@ function migrateDraft(raw: unknown): ProjectDoc {
             enabled: true,
             config: {
               prompt: legacy.prompt,
-              model: { providerId: 'google', modelId: 'gemini-2.5-flash' },
+              model: { providerId: 'openai', modelId: 'gpt-5.6-terra' },
             },
             context: {
               history: { mode: 'last_n', n: 5 },

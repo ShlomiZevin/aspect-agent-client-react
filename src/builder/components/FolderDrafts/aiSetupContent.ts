@@ -98,8 +98,19 @@ export interface WizardStep {
  * folder is still better when the assistant runs on this machine (the
  * draft is two-way and live), but most people asking "how do I use my own
  * AI" want the one-line answer, and until now the dialog did not have one.
+ *
+ * Per environment: each Lybi environment serves its own page from its own
+ * server, so the Builder hands out the one it talks to. Origin keeps its
+ * short lybi.ai address; any other environment (staging, …) gives its
+ * server's address directly — lybi-staging.web.app/builder/mcp would
+ * redirect to Origin's server (shared hosting config).
  */
-export const MCP_URL = 'https://lybi.ai/builder/mcp';
+const ORIGIN_SERVER = 'https://aspect-agent-server-1018338671074.europe-west1.run.app';
+const API_URL =
+  (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || ORIGIN_SERVER;
+export const MCP_URL = API_URL.replace(/\/+$/, '') === ORIGIN_SERVER
+  ? 'https://lybi.ai/builder/mcp'
+  : `${API_URL.replace(/\/+$/, '')}/builder/mcp`;
 
 export const MCP_NOTE =
   'Tell any AI assistant to read this page. It can then explore your agents, read real conversations and make changes — with nothing installed.';

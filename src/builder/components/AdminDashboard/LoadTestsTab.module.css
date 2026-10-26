@@ -1,0 +1,130 @@
+/* LoadTestsTab — only what the Conversations / Simulations styles don't cover. */
+
+.factWide2 { grid-column: span 2; }
+.fieldNarrow { flex: 0 0 150px; }
+
+/* The run's one line in the list — always one line, so rows keep their height. */
+.rowVerdict {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: #4b5563;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The verdict — one line under the header, there from the first second. */
+.verdict {
+  margin: 16px 16px 0;
+  padding: 10px 16px;
+  min-height: 20px;
+  border: 1px solid #d1fae5;
+  border-radius: 10px;
+  background: #ecfdf5;
+  color: #065f46;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+}
+.verdictLive { border-color: #dbeafe; background: #eff6ff; color: #1d4ed8; }
+.verdictBad { border-color: #fee2e2; background: #fef2f2; color: #b91c1c; }
+
+/* ── Chart: turn time over the run ─────────────────────────────── */
+.chartBlock {
+  margin: 12px 16px 0;
+  padding: 10px 16px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+.chartHead { display: flex; align-items: center; gap: 16px; margin-bottom: 4px; }
+.gridHeadText,
+.gridHead,
+.convHead {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+.legend { display: flex; gap: 14px; margin-left: auto; }
+.legendItem { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: #4b5563; }
+.legendDot { width: 8px; height: 8px; border-radius: 50%; }
+.legendX { font-size: 12px; font-weight: 700; line-height: 1; }
+.chartWrap { position: relative; }
+.chart { display: block; width: 100%; height: auto; }
+.gridLine { stroke: #f1f2f5; stroke-width: 1; }
+.axisLine { stroke: #d1d5db; stroke-width: 1; }
+.tick { font-size: 10.5px; fill: #9ca3af; font-variant-numeric: tabular-nums; }
+.failMark { font-size: 13px; font-weight: 700; }
+.tooltip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 10px));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  background: #111827;
+  color: #f9fafb;
+  font-size: 11.5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.tooltip b { font-weight: 700; }
+
+/* ── Turn times side by side: fixed column widths, fills in without moving ── */
+.gridBlock {
+  margin: 12px 16px 0;
+  padding: 10px 0 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+.gridHead { padding: 0 16px 6px; }
+.convHead { margin: 16px 16px -6px; }
+.convNote { text-transform: none; letter-spacing: 0; font-weight: 600; color: #6b7280; }
+.convError { text-transform: none; letter-spacing: 0; font-weight: 600; color: #b91c1c; }
+.gridScroll { overflow-x: auto; }
+.grid {
+  border-collapse: collapse;
+  font-size: 12px;
+  color: #374151;
+  font-variant-numeric: tabular-nums;
+}
+.grid th {
+  height: 26px;
+  padding: 0 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #9ca3af;
+  border-bottom: 1px solid #f1f1f4;
+}
+.grid td { height: 30px; padding: 0 8px; border-bottom: 1px solid #f3f4f6; }
+.gridRow { cursor: pointer; }
+.gridRow:hover td { background: #f9fafb; }
+.gridRowOn td,
+.gridRowOn:hover td { background: #eef2ff; }
+.colConv { width: 150px; min-width: 150px; text-align: left; padding-left: 16px !important; white-space: nowrap; }
+.convNo { color: #9ca3af; }
+.colTurn { width: 52px; min-width: 52px; text-align: right; }
+.colStatus { width: 100px; min-width: 100px; text-align: left; padding-left: 16px !important; }
+.cellFailed { color: #b91c1c; font-weight: 700; }
+.cellWarn { color: #b45309; font-weight: 700; }
+
+/* The cost in the form's footer — one line, fixed place. */
+.costLine {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.costBad { color: #b91c1c; }
+
+/* Stop only does something while a run is going. */
+.stopBtn:disabled { opacity: 0.4; cursor: default; }
+.stopBtn:disabled:hover { background: #fff; }

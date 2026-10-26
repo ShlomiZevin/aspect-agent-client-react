@@ -942,7 +942,16 @@ export interface SimulationJob {
   startCrew: string | null;
   fields: Record<string, unknown> | null;
   conversationId: number | null;
+  /** The load test this conversation belongs to, if any (task #902). */
+  loadTestId: number | null;
   turns: number;
+  /** 'public' = turns went through the server's public address, like a
+   *  real user (load tests, task #902); 'direct' = straight to the server. */
+  via: 'direct' | 'public';
+  /** Every turn's time, in order; a failed turn carries its error kind. */
+  timings: SimulationTurnTiming[];
+  /** Median / slowest of the turns that answered; null before the first. */
+  timing: { turns: number; medianMs: number; p95Ms: number; maxMs: number } | null;
   /** Why it ended, in words. */
   stopped: string | null;
   endedInCrew: string | null;
@@ -950,6 +959,17 @@ export interface SimulationJob {
   createdAt: string;
   updatedAt: string;
   finishedAt: string | null;
+}
+
+export interface SimulationTurnTiming {
+  turn: number;
+  at: string;
+  ms: number;
+  ok: boolean;
+  /** Error-center kind of a failed turn. */
+  kind?: ErrorKind;
+  /** Add-ons that failed inside a turn that still answered. */
+  addonFailures?: number;
 }
 
 /** Admin → Simulations: the agent's simulation jobs, newest first. */
@@ -969,6 +989,7 @@ export interface NewSimulation {
   lines?: string[];
   maxTurns?: number;
   model?: string;
+  via?: 'direct' | 'public';
 }
 
 /**
@@ -985,6 +1006,227 @@ export async function releaseSimulation(args: {
     method: 'POST',
     body: JSON.stringify({ slug: args.agentSlug, by: args.by, body: args.simulation }),
   });
+}
+
+// ─── Load tests (task #902) ───────────────────────────────────────
+// Shape mirrors shape() in builder/services/loadTests.js.
+
+export interface LoadTestTiming { turns: number; medianMs: number; p95Ms: number; maxMs: number }
+
+/** What a run would cost, before it starts. Unpriced models are counted at the top known rate. */
+export interface LoadTestEstimate {
+  usd: number;
+  capUsd: number;
+  overCap: boolean;
+  perTurnUsd: number;
+  agentTurns: number;
+  conversations: number;
+  turns: number;
+  baseline: boolean;
+  basis: string;
+  unpriced: string[];
+}
+
+/** This server's own vitals, sampled every 2 s while the run went. */
+export interface LoadTestSample { t: number; cpuPct: number; rssMb: number; loopLagMs: number; dbInUse: number; dbWaiting: number }
+
+export interface LoadTestRun {
+  id: number;
+  agent: string;
+  status: 'running' | 'completed' | 'failed' | 'interrupted';
+  /** baseline = one conversation alone first; load = all of them; done. */
+  phase: 'baseline' | 'load' | 'done';
+  label: string | null;
+  by: string | null;
+  version: 'active' | 'published';
+  via: 'public';
+  start: 'together' | 'ramp';
+  kind: 'script' | 'persona';
+  lines: string[] | null;
+  persona: string | null;
+  goal: string | null;
+  userModel: string | null;
+  turnsEach: number;
+  conversations: number;
+  counts: { waiting: number; running: number; finished: number; failed: number };
+  baseline: { jobId: number; timing: LoadTestTiming | null; errors: number } | null;
+  /** Over every answered turn of the load phase. */
+  timing: LoadTestTiming | null;
+  slowdown: { median: number | null; p95: number | null } | null;
+  turnsDone: number;
+  turnsPlanned: number;
+  turnsPerSecond: number | null;
+  errors: number;
+  errorsByKind: Partial<Record<ErrorKind | 'other', number>>;
+  addonFailures: number;
+  /** "10 at once: turns 1.8× slower, no errors" — once finished. */
+  verdict: string | null;
+  vitals: { samples: number; cpuPctMax: number; rssMbMax: number; loopLagMsMax: number; dbInUseMax: number; dbWaitingMax: number; dbPoolMax: number | null } | null;
+  samples: LoadTestSample[];
+  estimate: LoadTestEstimate | null;
+  costUsd: number | null;
+  capUsd: number;
+  unpriced: string[];
+  stopped: string | null;
+  error: string | null;
+  createdAt: string;
+  finishedAt: string | null;
+  /** The run before with the same number of conversations — to compare. */
+  previous: { id: number; createdAt: string; medianMs: number; p95Ms: number; errors: number; verdict: string | null } | null;
+  jobs: SimulationJob[];
+}
+
+export interface NewLoadTest {
+  conversations: number;
+  version: 'active' | 'published';
+  start: 'together' | 'ramp';
+  lines?: string[];
+  persona?: string;
+  goal?: string;
+  turns?: number;
+  model?: string;
+  label?: string;
+}
+
+export async function listLoadTests(args: { agentSlug: string }): Promise<LoadTestRun[]> {
+  const res = await http<{ loadTests: LoadTestRun[] }>(`/api/load-tests?agentSlug=${encodeURIComponent(args.agentSlug)}`);
+  return res.loadTests;
+}
+
+export async function getLoadTest(id: number): Promise<LoadTestRun> {
+  const res = await http<{ loadTest: LoadTestRun }>(`/api/load-tests/${id}`);
+  return res.loadTest;
+}
+
+export async function estimateLoadTest(args: { agentSlug: string; loadTest: NewLoadTest }): Promise<LoadTestEstimate> {
+  const res = await http<{ estimate: LoadTestEstimate }>('/api/load-tests/estimate', {
+    method: 'POST',
+    body: JSON.stringify({ slug: args.agentSlug, body: args.loadTest }),
+  });
+  return res.estimate;
+}
+
+export async function releaseLoadTest(args: { agentSlug: string; by: string; loadTest: NewLoadTest }): Promise<LoadTestRun> {
+  return http<LoadTestRun>('/api/load-tests', {
+    method: 'POST',
+    body: JSON.stringify({ slug: args.agentSlug, by: args.by, body: args.loadTest }),
+  });
+}
+
+export async function stopLoadTest(args: { id: number; by: string }): Promise<LoadTestRun> {
+  const res = await http<{ loadTest: LoadTestRun }>(`/api/load-tests/${args.id}/stop`, {
+    method: 'POST',
+    body: JSON.stringify({ by: args.by }),
+  });
+  return res.loadTest;
+}
+
+// ─── Error center (task #903) ─────────────────────────────────────
+// Shapes mirror builder/services/errorCenter.js.
+
+export type ErrorArea = 'turn' | 'addon' | 'model' | 'offline' | 'trigger' | 'profiler' | 'live-brain' | 'simulation' | 'server';
+export type ErrorKind = 'model_rate_limit' | 'model_timeout' | 'model_refusal' | 'model_bad_answer' | 'model_other' | 'database' | 'external' | 'server_unavailable' | 'user_input' | 'code';
+export type ErrorSource = 'builder' | 'customer' | 'simulation';
+
+/** One kind of problem: every repeat of it counted on one line. */
+export interface ErrorGroup {
+  fingerprint: string;
+  area: ErrorArea;
+  kind: ErrorKind;
+  code: string | null;
+  /** The latest wording of the message. */
+  message: string;
+  /** The add-on / model / trigger it is about, in words — or null. */
+  where: string | null;
+  count: number;
+  conversations: number;
+  sources: Record<ErrorSource, number>;
+  firstSeen: string;
+  lastSeen: string;
+  /** New → Looking at it → Handled, or Ignored. A handled group whose
+   *  errors came back reads 'new' with `reopened: true`. */
+  status: ErrorStatus;
+  reopened: boolean;
+  note: string;
+  statusBy: string | null;
+  statusAt: string | null;
+}
+
+export type ErrorStatus = 'new' | 'looking' | 'handled' | 'ignored';
+
+/** One time a group happened. */
+export interface ErrorOccurrence {
+  id: number;
+  conversationId: number | null;
+  messageId: number | null;
+  addonRunId: string | null;
+  source: ErrorSource | null;
+  area: ErrorArea;
+  kind: ErrorKind;
+  code: string | null;
+  message: string;
+  detail: Record<string, unknown>;
+  createdAt: string;
+}
+
+/** Admin → Errors: the agent's error groups from the last month. */
+export async function listErrorGroups(args: {
+  agentSlug: string;
+  kind?: ErrorKind | '';
+  area?: ErrorArea | '';
+  source?: ErrorSource | '';
+  status?: ErrorStatus | '';
+  sort?: 'recent' | 'frequent';
+}): Promise<ErrorGroup[]> {
+  const params = new URLSearchParams({ agentSlug: args.agentSlug });
+  if (args.kind) params.set('kind', args.kind);
+  if (args.area) params.set('area', args.area);
+  if (args.source) params.set('source', args.source);
+  if (args.status) params.set('status', args.status);
+  if (args.sort) params.set('sort', args.sort);
+  const res = await http<{ groups: ErrorGroup[] }>(`/api/errors?${params}`);
+  return res.groups;
+}
+
+/** How many of the agent's error groups are new — the count on the Admin menu. */
+export async function countNewErrors(args: { agentSlug: string }): Promise<number> {
+  const res = await http<{ new: number }>(`/api/errors/count?agentSlug=${encodeURIComponent(args.agentSlug)}`);
+  return res.new ?? 0;
+}
+
+/** Decide about an error group: status + a short note on what was done. */
+export async function setErrorStatus(args: {
+  agentSlug: string; fingerprint: string; status: ErrorStatus; note: string; by: string;
+}): Promise<void> {
+  await http('/api/errors/status', { method: 'PUT', body: JSON.stringify(args) });
+}
+
+/** Write only an error group's note — its status stays as it is. */
+export async function setErrorNote(args: { agentSlug: string; fingerprint: string; note: string; by: string }): Promise<void> {
+  await http('/api/errors/note', { method: 'PUT', body: JSON.stringify(args) });
+}
+
+/** Fired after a status change so the Admin menu count refreshes. */
+export const ERRORS_CHANGED_EVENT = 'lybi:errors-changed';
+
+export interface ErrorDay { day: string; count: number }
+
+/** Every occurrence of one error group, newest first, + its count per day (14 days). */
+export async function listErrorOccurrences(args: { agentSlug: string; fingerprint: string }): Promise<{ occurrences: ErrorOccurrence[]; perDay: ErrorDay[] }> {
+  const params = new URLSearchParams({ agentSlug: args.agentSlug, fingerprint: args.fingerprint });
+  const res = await http<{ occurrences: ErrorOccurrence[]; perDay: ErrorDay[] }>(`/api/errors/occurrences?${params}`);
+  return { occurrences: res.occurrences ?? [], perDay: res.perDay ?? [] };
+}
+
+/** The strip on top of Admin → Errors. */
+export interface ErrorSummary {
+  byStatus: { new: number; back: number; looking: number; handled: number; ignored: number };
+  customerConversations24h: number;
+  perDay: ErrorDay[];
+}
+
+export async function getErrorSummary(args: { agentSlug: string }): Promise<ErrorSummary> {
+  return http<ErrorSummary>(`/api/errors/summary?agentSlug=${encodeURIComponent(args.agentSlug)}`);
 }
 
 /**

@@ -20,13 +20,17 @@
  *     /<agent>/builder/admin/feedback
  *     /<agent>/builder/admin/users           (+ /:userId drill-down)
  *     /<agent>/builder/admin/conversations
+ *     /<agent>/builder/admin/load-tests      (task #902)
+ *     /<agent>/builder/admin/errors          (task #903)
  *     /<agent>/builder/admin/usage
  *     /<agent>/builder/admin/billing
  *     /<agent>/builder/admin/settings
  */
 
-import { NavLink, Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
+import { countNewErrors, ERRORS_CHANGED_EVENT } from '../../state/builderApi';
 import { getBaseURL } from '../../../services/api';
 import { FeedbackPage } from '../../../components/dashboard/FeedbackPage';
 import { UsersPage } from '../../../components/dashboard/UsersPage';
@@ -36,6 +40,8 @@ import { SettingsPage } from '../../../components/dashboard/SettingsPage';
 import { TestRunnerPage } from '../../../components/dashboard/TestRunnerPage';
 import { ConversationsTab } from './ConversationsTab';
 import { SimulationsTab } from './SimulationsTab';
+import { ErrorsTab } from './ErrorsTab';
+import { LoadTestsTab } from './LoadTestsTab';
 import { TriggersTab } from './TriggersTab';
 import { KBWorkbench } from './KBWorkbench';
 import styles from './AdminDashboard.module.css';
@@ -70,6 +76,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: 'users',         icon: '👥', label: 'Users' },
   { to: 'conversations', icon: '🗨️', label: 'Conversations' },
   { to: 'simulations',   icon: '🎭', label: 'Simulations' },
+  { to: 'load-tests',    icon: '⏱️', label: 'Load tests' },
+  { to: 'errors',        icon: '⚠️', label: 'Errors' },
   { to: 'triggers',      icon: '🌙', label: 'Triggers' },
   { to: 'knowledge-base', icon: '📚', label: 'Knowledge Base' },
   { to: 'usage',         icon: '📊', label: 'LLM Usage' },
@@ -78,11 +86,40 @@ const NAV_ITEMS: NavItem[] = [
   { to: 'settings',      icon: '⚙',  label: 'Settings' },
 ];
 
+const ERRORS_POLL_MS = 60_000;
+
+/**
+ * How many of the agent's error groups are new (task #903) — the small
+ * count on the Errors menu item. Re-read every minute, on every page
+ * change inside Admin, and right after a status is set.
+ */
+function useNewErrorCount(slug: string | undefined): number {
+  const [count, setCount] = useState(0);
+  const { pathname } = useLocation();
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick(n => n + 1), ERRORS_POLL_MS);
+    const onChanged = () => setTick(n => n + 1);
+    window.addEventListener(ERRORS_CHANGED_EVENT, onChanged);
+    return () => { clearInterval(t); window.removeEventListener(ERRORS_CHANGED_EVENT, onChanged); };
+  }, []);
+  useEffect(() => {
+    if (!slug) return;
+    let cancelled = false;
+    countNewErrors({ agentSlug: slug })
+      .then(n => { if (!cancelled) setCount(n); })
+      .catch(() => { /* the count is a nicety; the tab itself shows errors */ });
+    return () => { cancelled = true; };
+  }, [slug, pathname, tick]);
+  return count;
+}
+
 export function AdminDashboard() {
   const { doc, selection } = useBuilder();
   // Mirror the Sidebar's agent resolution — selection-aware, with a
   // fallback to the first agent for the very first render.
   const agent = doc.agents.find(a => a.id === selection.agentId) ?? doc.agents[0];
+  const newErrors = useNewErrorCount(agent?.slug);
 
   if (!agent) {
     return <div className={styles.bootEmpty}>No agent loaded.</div>;
@@ -114,6 +151,11 @@ export function AdminDashboard() {
             >
               <span className={styles.navIcon} aria-hidden>{item.icon}</span>
               <span>{item.label}</span>
+              {item.to === 'errors' && newErrors > 0 && (
+                <span className={styles.navCount} title={`${newErrors} new error${newErrors === 1 ? '' : 's'}`}>
+                  {newErrors > 99 ? '99+' : newErrors}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -154,6 +196,14 @@ export function AdminDashboard() {
           <Route
             path="simulations"
             element={<SimulationsTab agentSlug={slug} />}
+          />
+          <Route
+            path="load-tests"
+            element={<LoadTestsTab agentSlug={slug} />}
+          />
+          <Route
+            path="errors"
+            element={<ErrorsTab agentSlug={slug} />}
           />
           <Route
             path="triggers"

@@ -23,8 +23,8 @@
  * the builder chat uses (task #882).
  */
 
-import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   listAdminConversations,
   fetchConversationMessages,
@@ -79,7 +79,12 @@ export function ConversationsTab({ agentSlug, userId, backHref }: Props) {
   const [convs, setConvs] = useState<AdminConversationListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  // `?c=<id>` opens a conversation directly (Admin → Errors' "Open conversation").
+  const [searchParams] = useSearchParams();
+  const [selectedId, setSelectedId] = useState<number | null>(() => {
+    const c = Number(searchParams.get('c'));
+    return Number.isInteger(c) && c > 0 ? c : null;
+  });
   const [filter, setFilterState] = useState<SourceFilter>(loadFilter);
   const [exportOpen, setExportOpen] = useState(false);
   const setFilter = (f: SourceFilter) => {
@@ -102,7 +107,12 @@ export function ConversationsTab({ agentSlug, userId, backHref }: Props) {
 
   useEffect(() => { loadConvs(); }, [loadConvs]);
   // Reset selection when the scope changes (e.g. navigating between users).
-  useEffect(() => { setSelectedId(null); }, [userId]);
+  const lastUserId = useRef(userId);
+  useEffect(() => {
+    if (lastUserId.current === userId) return;
+    lastUserId.current = userId;
+    setSelectedId(null);
+  }, [userId]);
 
   const counts = {
     all: convs.length,

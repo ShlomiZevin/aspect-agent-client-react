@@ -22,7 +22,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { listSimulations, releaseSimulation, type NewSimulation, type SimulationJob } from '../../state/builderApi';
+import { listSimulations, releaseSimulation, type NewSimulation, type SimulationJob, type SimulationTurnTiming } from '../../state/builderApi';
 import { getProviders } from '../../registry/providerModels';
 import { Modal } from '../Modal/Modal';
 import { ConversationDetail } from './ConversationsTab';
@@ -43,6 +43,17 @@ const isLive = (j: SimulationJob) => j.status === 'pending' || j.status === 'run
 
 function fmtDate(iso: string): string {
   try { return new Date(iso).toLocaleString(); } catch { return iso; }
+}
+
+/** Error-center kinds, short — for a failed turn's row. */
+const TURN_KIND_LABEL: Record<string, string> = {
+  model_rate_limit: 'Rate limit', model_timeout: 'Timeout', model_refusal: 'Refusal',
+  model_bad_answer: 'Bad answer', model_other: 'Model error', database: 'Database',
+  external: 'External service', server_unavailable: 'Server unavailable', user_input: 'User input', code: 'Our code',
+};
+
+function secs(ms: number): string {
+  return `${(ms / 1000).toFixed(1)} s`;
 }
 
 function scenarioLine(j: SimulationJob): string {
@@ -140,6 +151,10 @@ export function SimulationsTab({ agentSlug }: { agentSlug: string }) {
               <Fact label="Turns" value={`${selected.turns}${selected.kind === 'persona' && selected.maxTurns ? ` of up to ${selected.maxTurns}` : selected.lines ? ` of ${selected.lines.length}` : ''}`} />
               <Fact label="Started" value={fmtDate(selected.createdAt)} />
               <Fact label="Stopped because" value={selected.stopped ?? (isLive(selected) ? 'Still running' : null)} />
+              <Fact label="Sent through" value={selected.via === 'public' ? 'Public address' : 'Directly'}
+                title={selected.via === 'public' ? 'Each turn went through the public address, like a real user' : 'Each turn went straight to the server running the job'} />
+              <Fact label="Median turn" value={selected.timing ? secs(selected.timing.medianMs) : null} />
+              <Fact label="Slowest turn" value={selected.timing ? secs(selected.timing.maxMs) : null} />
               {selected.startCrew && <Fact label="Started in crew" value={selected.startCrew} />}
               {selected.endedInCrew && <Fact label="Ended in crew" value={selected.endedInCrew} />}
               {selected.persona && <Fact wide label="Persona" value={selected.persona} />}
@@ -152,6 +167,8 @@ export function SimulationsTab({ agentSlug }: { agentSlug: string }) {
               )}
               {selected.error && <Fact wide danger label="Error" value={selected.error} />}
             </div>
+
+            {selected.timings.length > 0 && <TurnTimes timings={selected.timings} />}
 
             {selected.conversationId != null && (
               <ConversationDetail
@@ -203,6 +220,7 @@ function NewSimulationModal({ agentSlug, onClose, onReleased }: {
   const [model, setModel] = useState('');
   const [maxTurns, setMaxTurns] = useState(8);
   const [label, setLabel] = useState('');
+  const [via, setVia] = useState<'direct' | 'public'>('direct');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const providers = getProviders();
@@ -217,6 +235,7 @@ function NewSimulationModal({ agentSlug, onClose, onReleased }: {
       ? { version, persona: persona.trim(), ...(goal.trim() ? { goal: goal.trim() } : {}), maxTurns, ...(model ? { model } : {}) }
       : { version, lines };
     if (label.trim()) simulation.label = label.trim();
+    if (via === 'public') simulation.via = 'public';
     try {
       try { localStorage.setItem(BY_KEY, by.trim()); } catch { /* private mode */ }
       onReleased(await releaseSimulation({ agentSlug, by: by.trim(), simulation }));
@@ -313,18 +332,52 @@ function NewSimulationModal({ agentSlug, onClose, onReleased }: {
           </label>
         </div>
 
-        <label className={styles.formField}>
-          <span className={styles.formLabel}>Name for this simulation <i>(optional)</i></span>
-          <input className={styles.formInput} dir="auto" value={label} onChange={e => setLabel(e.target.value)} placeholder="impatient student" />
-        </label>
+        <div className={styles.formRow}>
+          <label className={styles.formField}>
+            <span className={styles.formLabel}>Name for this simulation <i>(optional)</i></span>
+            <input className={styles.formInput} dir="auto" value={label} onChange={e => setLabel(e.target.value)} placeholder="impatient student" />
+          </label>
+          <div className={`${styles.formField} ${styles.formFieldVia}`}>
+            <span className={styles.formLabel}>Sent through</span>
+            <div className={styles.seg}>
+              <button type="button" className={`${styles.segBtn} ${via === 'direct' ? styles.segOn : ''}`} onClick={() => setVia('direct')}
+                title="Straight to the server running the simulation">Directly</button>
+              <button type="button" className={`${styles.segBtn} ${via === 'public' ? styles.segOn : ''}`} onClick={() => setVia('public')}
+                title="Through the public address, like a real user — the load-test way. Every turn is timed either way.">Public address</button>
+            </div>
+          </div>
+        </div>
       </div>
     </Modal>
   );
 }
 
-function Fact({ label, value, wide, danger }: { label: string; value: string | null | undefined; wide?: boolean; danger?: boolean }) {
+/** Each turn's time as a row with a bar; a failed turn shows its kind. */
+function TurnTimes({ timings }: { timings: SimulationTurnTiming[] }) {
+  const longest = Math.max(...timings.map(t => t.ms), 1);
   return (
-    <div className={`${styles.fact} ${wide ? styles.factWide : ''}`}>
+    <div className={styles.turnTimes}>
+      <div className={styles.turnTimesHead}>Turn times</div>
+      {timings.map(t => (
+        <div key={t.turn} className={styles.turnRow} title={new Date(t.at).toLocaleString()}>
+          <span className={styles.turnNo}>{t.turn}</span>
+          <span className={styles.turnBarTrack}>
+            <span className={`${styles.turnBar} ${t.ok ? '' : styles.turnBarFailed}`} style={{ width: `${(t.ms / longest) * 100}%` }} />
+          </span>
+          <span className={styles.turnMs}>{secs(t.ms)}</span>
+          <span className={`${styles.turnResult} ${t.ok && !t.addonFailures ? '' : styles.turnResultBad}`}>
+            {!t.ok ? (TURN_KIND_LABEL[t.kind ?? ''] ?? 'Failed')
+              : t.addonFailures ? `${t.addonFailures} add-on${t.addonFailures === 1 ? '' : 's'} failed` : 'OK'}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Fact({ label, value, wide, danger, title }: { label: string; value: string | null | undefined; wide?: boolean; danger?: boolean; title?: string }) {
+  return (
+    <div className={`${styles.fact} ${wide ? styles.factWide : ''}`} title={title}>
       <span className={styles.factLabel}>{label}</span>
       <span className={`${styles.factValue} ${danger ? styles.factDanger : ''}`} dir="auto">{value || '—'}</span>
     </div>

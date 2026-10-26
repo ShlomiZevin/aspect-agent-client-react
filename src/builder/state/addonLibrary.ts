@@ -106,7 +106,7 @@ const SEED: LibraryEntry[] = [
         "- Mirror the user's tone\n" +
         '- Use their name once it has been shared\n' +
         '- Never mention fees, costs, or limitations unless the user asks first',
-      model: { providerId: 'google', modelId: 'gemini-2.5-flash' },
+      model: { providerId: 'openai', modelId: 'gpt-5.6-terra' },
     },
     createdAt: new Date('2026-04-12T10:00:00Z').toISOString(),
   },

@@ -115,3 +115,17 @@
   color: #6b7280;
   font-size: 14px;
 }
+
+/* New-errors count on the Errors item (task #903) — at the row's end, so nothing else moves. */
+.navCount {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}

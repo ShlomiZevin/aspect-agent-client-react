@@ -111,10 +111,14 @@ export const DEFAULT_FAST_MODEL: ModelRef = {
   modelId: 'gpt-4o-mini',
 };
 
-/** Default for any new talker / generation step. */
+/**
+ * Default for any new talker / generation step. GPT, not Gemini: Google
+ * closed gemini-2.5-flash to new accounts, so every new environment (fresh
+ * keys) failed on it (found on lybi-staging, task #913).
+ */
 export const DEFAULT_BALANCED_MODEL: ModelRef = {
-  providerId: 'google',
-  modelId: 'gemini-2.5-flash',
+  providerId: 'openai',
+  modelId: 'gpt-5.6-terra',
 };
 
 /** Hardwired model for the AI Builder Chat helper. */
