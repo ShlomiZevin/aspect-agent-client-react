@@ -1008,6 +1008,33 @@ export async function releaseSimulation(args: {
   });
 }
 
+// ─── Simulation limits (task #926) — one set for the environment ──
+
+export interface SimulationLimits {
+  turnsPerDay: number;
+  userRepliesPerDay: number;
+  maxTurnsPerSimulation: number;
+  /** null = no dollar cap */
+  usdPerDay: number | null;
+}
+export interface SimulationLimitsSummary {
+  limits: SimulationLimits;
+  defaults: SimulationLimits;
+  updatedBy: string | null;
+  today: { turns: number; userReplies: number; usd: number };
+}
+
+export async function getSimulationLimits(): Promise<SimulationLimitsSummary> {
+  return http<SimulationLimitsSummary>('/api/simulations/limits');
+}
+
+export async function saveSimulationLimits(limits: Partial<SimulationLimits>, by: string): Promise<SimulationLimitsSummary> {
+  return http<SimulationLimitsSummary>('/api/simulations/limits', {
+    method: 'PUT',
+    body: JSON.stringify({ ...limits, by }),
+  });
+}
+
 // ─── Load tests (task #902) ───────────────────────────────────────
 // Shape mirrors shape() in builder/services/loadTests.js.
 
@@ -1125,7 +1152,7 @@ export async function stopLoadTest(args: { id: number; by: string }): Promise<Lo
 // Shapes mirror builder/services/errorCenter.js.
 
 export type ErrorArea = 'turn' | 'addon' | 'model' | 'offline' | 'trigger' | 'profiler' | 'live-brain' | 'simulation' | 'server';
-export type ErrorKind = 'model_rate_limit' | 'model_timeout' | 'model_refusal' | 'model_bad_answer' | 'model_other' | 'database' | 'external' | 'server_unavailable' | 'user_input' | 'code';
+export type ErrorKind = 'model_no_credit' | 'model_rate_limit' | 'model_timeout' | 'model_refusal' | 'model_bad_answer' | 'model_other' | 'database' | 'external' | 'server_unavailable' | 'user_input' | 'code';
 export type ErrorSource = 'builder' | 'customer' | 'simulation';
 
 /** One kind of problem: every repeat of it counted on one line. */

@@ -61,7 +61,7 @@ const JOB_STATUS: Record<SimulationJob['status'], string> = {
   pending: 'Waiting', running: 'Running', completed: 'Finished', failed: 'Failed', interrupted: 'Interrupted',
 };
 const KIND_LABEL: Record<string, string> = {
-  model_rate_limit: 'Rate limit', model_timeout: 'Timeout', model_refusal: 'Refusal',
+  model_no_credit: 'Out of credit', model_rate_limit: 'Rate limit', model_timeout: 'Timeout', model_refusal: 'Refusal',
   model_bad_answer: 'Bad answer', model_other: 'Model error', database: 'Database',
   external: 'External service', server_unavailable: 'Server unavailable', user_input: 'User input', code: 'Our code',
   other: 'Other',

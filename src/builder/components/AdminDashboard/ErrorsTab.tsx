@@ -75,6 +75,7 @@ const AREA_PHRASE: Record<ErrorArea, string> = {
 };
 
 const KIND_LABEL: Record<ErrorKind, string> = {
+  model_no_credit: 'Out of credit',
   model_rate_limit: 'Rate limit',
   model_timeout: 'Timeout',
   model_refusal: 'Refusal',
@@ -87,6 +88,7 @@ const KIND_LABEL: Record<ErrorKind, string> = {
   code: 'Our code',
 };
 const KIND_TITLE: Record<ErrorKind, string> = {
+  model_no_credit: 'The model provider account ran out of prepaid credit — nothing on that provider runs until credit is added',
   model_rate_limit: 'The model provider said "too many requests" — retried automatically',
   model_timeout: 'A call took too long and was cut off',
   model_refusal: 'The model refused to answer',

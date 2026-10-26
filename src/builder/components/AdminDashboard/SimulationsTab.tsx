@@ -21,8 +21,11 @@
  * the two screens read as one family.
  */
 
-import { useEffect, useState } from 'react';
-import { listSimulations, releaseSimulation, type NewSimulation, type SimulationJob, type SimulationTurnTiming } from '../../state/builderApi';
+import { useEffect, useState, type ReactNode } from 'react';
+import {
+  getSimulationLimits, listSimulations, releaseSimulation, saveSimulationLimits,
+  type NewSimulation, type SimulationJob, type SimulationLimits, type SimulationLimitsSummary, type SimulationTurnTiming,
+} from '../../state/builderApi';
 import { getProviders } from '../../registry/providerModels';
 import { Modal } from '../Modal/Modal';
 import { ConversationDetail } from './ConversationsTab';
@@ -47,7 +50,7 @@ function fmtDate(iso: string): string {
 
 /** Error-center kinds, short — for a failed turn's row. */
 const TURN_KIND_LABEL: Record<string, string> = {
-  model_rate_limit: 'Rate limit', model_timeout: 'Timeout', model_refusal: 'Refusal',
+  model_no_credit: 'Out of credit', model_rate_limit: 'Rate limit', model_timeout: 'Timeout', model_refusal: 'Refusal',
   model_bad_answer: 'Bad answer', model_other: 'Model error', database: 'Database',
   external: 'External service', server_unavailable: 'Server unavailable', user_input: 'User input', code: 'Our code',
 };
@@ -98,6 +101,7 @@ export function SimulationsTab({ agentSlug }: { agentSlug: string }) {
         <div className={styles.newRow}>
           <button type="button" className={styles.newBtn} onClick={() => setFormOpen(true)}>+ New simulation</button>
         </div>
+        <TodayLimits tick={tick} />
         {error && <div className={convStyles.error}>{error}</div>}
         {jobs !== null && jobs.length === 0 && !error && (
           <div className={styles.emptyList}>
@@ -198,6 +202,135 @@ export function SimulationsTab({ agentSlug }: { agentSlug: string }) {
 }
 
 const BY_KEY = 'builder:simulationBy';
+
+/**
+ * "Today · all agents" (task #926): today's use against the team's daily
+ * limits, and "Limits…" to change them. One set for the whole environment.
+ * Fixed height whatever the numbers — the list below never jumps.
+ * Designed with Leonardo: lybi-website/art-source/ui/sim-limits/.
+ */
+function TodayLimits({ tick }: { tick: number }) {
+  const [data, setData] = useState<SimulationLimitsSummary | null>(null);
+  const [editing, setEditing] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    getSimulationLimits().then(d => { if (!cancelled) setData(d); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [tick]);
+
+  const l = data?.limits;
+  const t = data?.today;
+  const rows: { label: string; used: number; cap: number | null; fmt: (n: number) => string }[] = [
+    { label: 'Turns', used: t?.turns ?? 0, cap: l?.turnsPerDay ?? null, fmt: n => n.toLocaleString('en-US') },
+    { label: 'Simulated user lines', used: t?.userReplies ?? 0, cap: l?.userRepliesPerDay ?? null, fmt: n => n.toLocaleString('en-US') },
+    { label: 'Spend', used: t?.usd ?? 0, cap: l?.usdPerDay ?? null, fmt: n => `$${n.toFixed(2)}` },
+  ];
+  return (
+    <div className={styles.today}>
+      <div className={styles.todayTitle}>Today · all agents</div>
+      {rows.map(r => {
+        const pct = r.cap ? Math.min(100, (r.used / r.cap) * 100) : 0;
+        const tone = pct >= 100 ? styles.barFull : pct >= 80 ? styles.barNear : '';
+        return (
+          <div key={r.label} className={styles.todayRow}>
+            <div className={styles.todayLine}>
+              <span>{r.label}</span>
+              <span className={styles.todayValue}>
+                {data ? `${r.fmt(r.used)} / ${r.cap == null ? 'no cap' : r.fmt(r.cap)}` : '…'}
+              </span>
+            </div>
+            <div className={styles.bar}><div className={`${styles.barFill} ${tone}`} style={{ width: `${pct}%` }} /></div>
+          </div>
+        );
+      })}
+      <div className={styles.todayFoot}>
+        <span>Resets at midnight UTC</span>
+        <button type="button" className={styles.linkBtn} onClick={() => setEditing(true)} disabled={!data}>Limits…</button>
+      </div>
+      {editing && data && (
+        <LimitsModal summary={data} onClose={() => setEditing(false)} onSaved={d => { setData(d); setEditing(false); }} />
+      )}
+    </div>
+  );
+}
+
+function LimitsModal({ summary, onClose, onSaved }: {
+  summary: SimulationLimitsSummary;
+  onClose: () => void;
+  onSaved: (d: SimulationLimitsSummary) => void;
+}) {
+  const [form, setForm] = useState({
+    turnsPerDay: String(summary.limits.turnsPerDay),
+    userRepliesPerDay: String(summary.limits.userRepliesPerDay),
+    maxTurnsPerSimulation: String(summary.limits.maxTurnsPerSimulation),
+    usdPerDay: summary.limits.usdPerDay == null ? '' : String(summary.limits.usdPerDay),
+  });
+  const [noCap, setNoCap] = useState(summary.limits.usdPerDay == null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  type FormKey = keyof typeof form;
+  const set = (k: FormKey) => (e: { target: { value: string } }) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const save = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      let by = '';
+      try { by = localStorage.getItem(BY_KEY) || ''; } catch { /* private mode */ }
+      const patch: Partial<SimulationLimits> = {
+        turnsPerDay: Number(form.turnsPerDay),
+        userRepliesPerDay: Number(form.userRepliesPerDay),
+        maxTurnsPerSimulation: Number(form.maxTurnsPerSimulation),
+        usdPerDay: noCap ? null : Number(form.usdPerDay),
+      };
+      onSaved(await saveSimulationLimits(patch, by));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not save');
+      setBusy(false);
+    }
+  };
+
+  const row = (label: string, k: FormKey, extra?: ReactNode) => (
+    <div className={styles.limitRow}>
+      <span>{label}</span>
+      <span className={styles.limitInputs}>
+        <input type="number" min={1} aria-label={label} className={styles.limitInput} value={form[k]} onChange={set(k)}
+          disabled={k === 'usdPerDay' && noCap} />
+        {extra}
+      </span>
+    </div>
+  );
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Simulation limits"
+      width={480}
+      footer={
+        <>
+          <span className={styles.formError}>{error}</span>
+          <button type="button" className={styles.formBtn} onClick={onClose}>Cancel</button>
+          <button type="button" className={`${styles.formBtn} ${styles.formBtnPrimary}`} disabled={busy} onClick={save}>
+            {busy ? 'Saving…' : 'Save'}
+          </button>
+        </>
+      }
+    >
+      <p className={styles.limitIntro}>One set for all agents in this environment. Days reset at midnight UTC.</p>
+      {row('Turns per day', 'turnsPerDay')}
+      {row('Simulated user lines per day', 'userRepliesPerDay')}
+      {row('Most turns in one simulation', 'maxTurnsPerSimulation')}
+      {row('Spend per day (USD)', 'usdPerDay', (
+        <label className={styles.noCap}>
+          <input type="checkbox" checked={noCap} onChange={e => setNoCap(e.target.checked)} /> No cap
+        </label>
+      ))}
+      <p className={styles.limitHint}>Estimated at list price. Reaching a limit pauses simulations until midnight UTC.</p>
+      {summary.updatedBy && <p className={styles.limitHint}>Last changed by {summary.updatedBy}.</p>}
+    </Modal>
+  );
+}
 
 /**
  * The same details an AI sends through the MCP link, as a form. Both
