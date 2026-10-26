@@ -1,0 +1,42 @@
+{
+  "findings": [
+    "<b>Basic two-person English dialogue is solved, even by the cheapest model.</b> All 12 models that ran said both lines word for word, gave him a male voice and her a female voice, moved the right mouth on each line, and ended with her lowering the phone.",
+    "<b>Veo 3.1 Lite cost $0.60 per 8-second clip</b>, between a half and a sixth of the other models' price, and passed every check. It's the candidate for trial and error. Wan 3.0 ($1.14) and Kling 3.0 ($1.51) are the next cheapest that passed everything.",
+    "<b>The models that cost 2–6× more (Seedance 2.0 / 2.5 / Fast, Veo 3.1 Fast) did not do anything visibly better in this scene.</b> Whether they act better or sound more natural is for the ear to judge.",
+    "<b>Leonardo charges more than the makers' list prices</b>: about ×1.5 for Veo Lite and ×2–3 for most others (see Price reference). Buying Veo directly from Google with our own Gemini key would cost the list price.",
+    "<b>A failed clip is still charged.</b> Full Veo 3.1 (the quality benchmark) failed without giving a reason and cost $4.78, while Veo Lite and Fast accepted the same frame.",
+    "<b>Gemini Omni Flash is out for this film.</b> It can't take a start frame, so the room and the woman's face change during the clip (new paintings, a different face by the end). The film needs the same four people in every shot.",
+    "<b>What the machine checks can't judge:</b> the acting, how natural the voices sound, and small lip errors. Please watch Scene 1 with sound and pick your favourites. That's the real decision.",
+    "<b>Next:</b> Scene 2 (the café) is harder: a prop, longer lines and a quiet emotion. I suggest running it on the shortlist only: Veo 3.1 Lite, Veo 3.1 Fast, Kling 3.0 and Wan 3.0, for about $5."
+  ],
+  "models": {
+    "veo-3.1-lite": { "verdict": "good", "summary": "Cheapest by far. Clean lines, she lowers the phone and turns to him; her face shifts slightly in the last second." },
+    "veo-3.1-fast-generate-001": { "verdict": "good", "summary": "Like Lite, with a warmer ending (both smile). 3× Lite's price." },
+    "veo-3.1-generate-001": { "verdict": "bad", "summary": "Failed with no reason given, and was charged anyway." },
+    "kling-3.0": { "verdict": "good", "summary": "The most faithful to the start frame and the most restrained. Longer pause between the lines (1.4 s)." },
+    "kling-3.0-turbo": { "verdict": "good", "summary": "Very close to Kling 3.0. Oddly, slightly more expensive on Leonardo." },
+    "alibaba/wan-3.0": { "verdict": "good", "summary": "Snappy timing (0.7 s between lines); they turn to each other at the end. Her face changes a little." },
+    "seedance-2.0-mini": { "verdict": "good", "summary": "Faithful and calm. Slow to make (2.5 min)." },
+    "seedance-2.0-fast": { "verdict": "good", "summary": "Fastest delivery: both lines over by 3.8 s, then a quiet hold. Not fast to make (3 min)." },
+    "seedance-2.0": { "verdict": "good", "summary": "Good, and they hold eye contact at the end. The most expensive that worked, and the slowest to make (3.7 min)." },
+    "bytedance/seedance-2.5": { "verdict": "good", "summary": "Good; one second of silence before his line." },
+    "happy-horse-1.1": { "verdict": "ok", "summary": "Slow delivery that fills all 8 seconds; heads turn back and forth." },
+    "gemini-omni-flash": { "verdict": "bad", "summary": "No start frame, so the set and her face drift. Can't keep a character across shots." },
+    "grok-imagine-1.5": { "verdict": "good", "summary": "Good; she lowers the phone and turns to him." }
+  },
+  "clips": {
+    "couple__veo-3.1-lite": { "transcript": "both lines exact · his voice ~100 Hz, hers ~190 Hz", "notes": "Lines over by 6.1 s. Her face shifts slightly as she turns at the end." },
+    "couple__veo-3.1-fast-generate-001": { "transcript": "both lines exact · his voice ~105 Hz, hers ~200 Hz", "notes": "Ends with both smiling at each other: warmer than the brief's quiet beat." },
+    "couple__kling-3.0": { "transcript": "both lines exact · his voice ~105 Hz, hers ~180 Hz", "notes": "Closest to the start frame; restrained. She keeps the phone until the very end." },
+    "couple__kling-3.0-turbo": { "transcript": "both lines exact · his voice ~100 Hz, hers ~195 Hz", "notes": "Same feel as Kling 3.0." },
+    "couple__alibaba/wan-3.0": { "transcript": "both lines exact · his voice ~115 Hz, hers ~215 Hz", "notes": "Quick back-and-forth; they turn to each other and smile at the end." },
+    "couple__seedance-2.0-mini": { "transcript": "both lines exact · his voice ~120 Hz, hers ~185 Hz", "notes": "Calm and faithful; she lowers the phone at the end." },
+    "couple__seedance-2.0-fast": { "transcript": "both lines exact · his voice ~110 Hz, hers ~200 Hz", "notes": "Lines over by 3.8 s; the rest is a quiet hold." },
+    "couple__seedance-2.0": { "transcript": "both lines exact · his voice ~105 Hz, hers ~205 Hz", "notes": "She turns to him; they hold a look at the end." },
+    "couple__bytedance/seedance-2.5": { "transcript": "both lines exact", "notes": "About 1 s of silence before his line." },
+    "couple__happy-horse-1.1": { "transcript": "both lines exact · his voice ~110 Hz, hers ~230 Hz", "notes": "His line only starts at 2.2 s; she finishes at 7.2 s." },
+    "couple__gemini-omni-flash": { "transcript": "both lines exact", "notes": "Drifts: the camera moves, paintings appear on the wall, and her face is different by the end." },
+    "couple__grok-imagine-1.5": { "transcript": "both lines exact · his voice ~100 Hz, hers ~205 Hz", "notes": "She lowers the phone and turns to him." },
+    "couple__veo-3.1-generate-001": { "notes": "Failed on Leonardo with no reason; charged $4.78." }
+  }
+}

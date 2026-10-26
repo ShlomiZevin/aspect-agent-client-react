@@ -23,6 +23,10 @@
         "destination": "/lybi-site/team/index.html"
       },
       {
+        "source": "/lybi/marketing/social",
+        "destination": "/lybi-site/marketing/social/index.html"
+      },
+      {
         "source": "/lybi/immersive",
         "destination": "/lybi-site/immersive/index.html"
       },
@@ -76,6 +80,15 @@
           {
             "key": "Cache-Control",
             "value": "max-age=31536000"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(mp4|webm|mov)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400"
           }
         ]
       }

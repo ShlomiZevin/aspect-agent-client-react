@@ -1,0 +1,451 @@
+{
+  "clips": [
+    {
+      "model": "seedance-2.0-mini",
+      "label": "Seedance 2.0 Mini",
+      "maker": "ByteDance",
+      "scene": "couple",
+      "file": "clips/couple__seedance-2.0-mini.mp4",
+      "status": "done",
+      "parameters": {
+        "prompt": "A couple sit on a sofa in a warm living room in the evening. The woman on the left, in the cream knit sweater, is looking at her phone. The man on the right, in the navy henley, looks up from his laptop and asks her casually: \"Is it done?\" She answers calmly, still looking at the phone: \"Not yet. Can we look at a couple of other banks first?\" Then she lowers the phone to her lap and they share a quiet beat. Natural, warm, understated performances. Restrained camera, a very slow gentle push-in. Quiet room tone, no music.",
+        "quantity": 1,
+        "duration": 8,
+        "width": 1280,
+        "height": 720,
+        "motion_has_audio": true,
+        "guidances": "start_frame"
+      },
+      "started": 1792736604551,
+      "generationId": "1f1ceaa4-07e7-6eb0-ac29-d869edc15513",
+      "costUsd": 1.5548,
+      "costRaw": {
+        "amount": "1.5548",
+        "unit": "DOLLARS"
+      },
+      "seconds": 155,
+      "bytes": 4279114,
+      "url": "https://cdn.leonardo.ai/users/cb0f1001-1c9a-4259-b85b-d3c4e1e6cafb/generations/1f1ceaa4-07e7-6eb0-ac29-d869edc15513/seedance-2.0-mini_A_couple_sit_on_a_sofa_in_a_warm_living_room_in_the_evening._The_woman_on_the_le-0.mp4"
+    },
+    {
+      "model": "veo-3.1-lite",
+      "label": "Veo 3.1 Lite",
+      "maker": "Google",
+      "scene": "couple",
+      "file": "clips/couple__veo-3.1-lite.mp4",
+      "status": "done",
+      "parameters": {
+        "prompt": "A couple sit on a sofa in a warm living room in the evening. The woman on the left, in the cream knit sweater, is looking at her phone. The man on the right, in the navy henley, looks up from his laptop and asks her casually: \"Is it done?\" She answers calmly, still looking at the phone: \"Not yet. Can we look at a couple of other banks first?\" Then she lowers the phone to her lap and they share a quiet beat. Natural, warm, understated performances. Restrained camera, a very slow gentle push-in. Quiet room tone, no music.",
+        "quantity": 1,
+        "duration": 8,
+        "width": 1280,
+        "height": 720,
+        "motion_has_audio": true,
+        "guidances": "start_frame"
+      },
+      "started": 1792736932073,
+      "generationId": "1f1ceab0-3b9b-6e30-80ed-34a2c9856e3d",
+      "costUsd": 0.598,
+      "costRaw": {
+        "amount": "0.598",
+        "unit": "DOLLARS"
+      },
+      "seconds": 59,
+      "bytes": 2033949,
+      "url": "https://cdn.leonardo.ai/users/cb0f1001-1c9a-4259-b85b-d3c4e1e6cafb/generations/1f1ceab0-3b9b-6e30-80ed-34a2c9856e3d/veo-3.1-lite_A_couple_sit_on_a_sofa_in_a_warm_living_room_in_the_evening._The_woman_on_the_le-0.mp4"
+    },
+    {
+      "model": "grok-imagine-1.5",
+      "label": "Grok Imagine 1.5",
+      "maker": "xAI",
+      "scene": "couple",
+      "file": "clips/couple__grok-imagine-1.5.mp4",
+      "status": "done",
+      "parameters": {
+        "prompt": "A couple sit on a sofa in a warm living room in the evening. The woman on the left, in the cream knit sweater, is looking at her phone. The man on the right, in the navy henley, looks up from his laptop and asks her casually: \"Is it done?\" She answers calmly, still looking at the phone: \"Not yet. Can we look at a couple of other banks first?\" Then she lowers the phone to her lap and they share a quiet beat. Natural, warm, understated performances. Restrained camera, a very slow gentle push-in. Quiet room tone, no music.",
+        "quantity": 1,
+        "duration": 8,
+        "width": 1280,
+        "height": 720,
+        "motion_has_audio": true,
+        "guidances": "start_frame"
+      },
+      "started": 1792736932073,
+      "generationId": "1f1ceab0-3d70-6a30-b1aa-9573b27bb92c",
+      "costUsd": 1.9136,
+      "costRaw": {
+        "amount": "1.9136",
+        "unit": "DOLLARS"
+      },
+      "seconds": 55,
+      "bytes": 3833383,
+      "url": "https://cdn.leonardo.ai/users/cb0f1001-1c9a-4259-b85b-d3c4e1e6cafb/generations/1f1ceab0-3d70-6a30-b1aa-9573b27bb92c/grok-imagine-1.5_A_couple_sit_on_a_sofa_in_a_warm_living_room_in_the_evening._The_woman_on_the_le-0.mp4"
+    },
+    {
+      "model": "alibaba/wan-3.0",
+      "label": "Wan 3.0",
+      "maker": "Alibaba",
+      "scene": "couple",
+      "file": "clips/couple__alibaba-wan-3.0.mp4",
+      "status": "done",
+      "parameters": {
+        "prompt": "A couple sit on a sofa in a warm living room in the evening. The woman on the left, in the cream knit sweater, is looking at her phone. The man on the right, in the navy henley, looks up from his laptop and asks her casually: \"Is it done?\" She answers calmly, still looking at the phone: \"Not yet. Can we look at a couple of other banks first?\" Then she lowers the phone to her lap and they share a quiet beat. Natural, warm, understated performances. Restrained camera, a very slow gentle push-in. Quiet room tone, no music.",
+        "quantity": 1,
+        "duration": 8,
+        "width": 1280,
+        "height": 720,
+        "motion_has_audio": true,
+        "guidances": "start_frame"
+      },
+      "started": 1792736987068,
+      "generationId": "1f1ceab2-484f-69e0-a560-584d0e64fede",
+      "costUsd": 1.1362,
+      "costRaw": {
+        "amount": "1.1362",
+        "unit": "DOLLARS"
+      },
+      "seconds": 87,
+      "bytes": 8207806,
+      "url": "https://cdn.leonardo.ai/users/cb0f1001-1c9a-4259-b85b-d3c4e1e6cafb/generations/1f1ceab2-484f-69e0-a560-584d0e64fede/alibaba/wan-3.0_A_couple_sit_on_a_sofa_in_a_warm_living_room_in_the_evening._The_woman_on_the_le-0.mp4"
+    },
+    {
+      "model": "seedance-2.0-fast",
+      "label": "Seedance 2.0 Fast",
+      "maker": "ByteDance",
+      "scene": "couple",
+      "file": "clips/couple__seedance-2.0-fast.mp4",
+      "status": "done",
+      "parameters": {
+        "prompt": "A couple sit on a sofa in a warm living room in the evening. The woman on the left, in the cream knit sweater, is looking at her phone. The man on the right, in the navy henley, looks up from his laptop and asks her casually: \"Is it done?\" She answers calmly, still looking at the phone: \"Not yet. Can we look at a couple of other banks first?\" Then she lowers the phone to her lap and they share a quiet beat. Natural, warm, understated performances. Restrained camera, a very slow gentle push-in. Quiet room tone, no music.",
+        "quantity": 1,
+        "duration": 8,
+        "width": 1280,
+        "height": 720,
+        "motion_has_audio": true,
+        "guidances": "start_frame"
+      },
+      "started": 1792736991412,
+      "generationId": "1f1ceab2-71f5-63d0-89f6-ca6a09af67bc",
+      "costUsd": 2.8928,
+      "costRaw": {
+        "amount": "2.8928",
+        "unit": "DOLLARS"
+      },
+      "seconds": 191,
+      "bytes": 4461513,
+      "url": "https://cdn.leonardo.ai/users/cb0f1001-1c9a-4259-b85b-d3c4e1e6cafb/generations/1f1ceab2-71f5-63d0-89f6-ca6a09af67bc/seedance-2.0-fast_A_couple_sit_on_a_sofa_in_a_warm_living_room_in_the_evening._The_woman_on_the_le-0.mp4"
+    },
+    {
+      "model": "veo-3.1-fast-generate-001",
+      "label": "Veo 3.1 Fast",
+      "maker": "Google",
+      "scene": "couple",
+      "file": "clips/couple__veo-3.1-fast-generate-001.mp4",
+      "status": "done",
+      "parameters": {
+        "prompt": "A couple sit on a sofa in a warm living room in the evening. The woman on the left, in the cream knit sweater, is looking at her phone. The man on the right, in the navy henley, looks up from his laptop and asks her casually: \"Is it done?\" She answers calmly, still looking at the phone: \"Not yet. Can we look at a couple of other banks first?\" Then she lowers the phone to her lap and they share a quiet beat. Natural, warm, understated performances. Restrained camera, a very slow gentle push-in. Quiet room tone, no music.",
+        "quantity": 1,
+        "duration": 8,
+        "width": 1280,
+        "height": 720,
+        "motion_has_audio": true,
+        "guidances": "start_frame"
+      },
+      "started": 1792737073632,
+      "generationId": "1f1ceab5-8238-6b90-bad1-decdaa409381",
+      "costUsd": 1.794,
+      "costRaw": {
+        "amount": "1.794",
+        "unit": "DOLLARS"
+      },
+      "seconds": 68,
+      "bytes": 2336428,
+      "url": "https://cdn.leonardo.ai/users/cb0f1001-1c9a-4259-b85b-d3c4e1e6cafb/generations/1f1ceab5-8238-6b90-bad1-decdaa409381/veo-3.1-fast-generate-001_A_couple_sit_on_a_sofa_in_a_warm_living_room_in_the_evening._The_woman_on_the_le-0.mp4"
+    },
+    {
+      "model": "kling-3.0-turbo",
+      "label": "Kling 3.0 Turbo",
+      "maker": "Kuaishou",
+      "scene": "couple",
+      "file": "clips/couple__kling-3.0-turbo.mp4",
+      "status": "done",
+      "parameters": {
+        "prompt": "A couple sit on a sofa in a warm living room in the evening. The woman on the left, in the cream knit sweater, is looking at her phone. The man on the right, in the navy henley, looks up from his laptop and asks her casually: \"Is it done?\" She answers calmly, still looking at the phone: \"Not yet. Can we look at a couple of other banks first?\" Then she lowers the phone to her lap and they share a quiet beat. Natural, warm, understated performances. Restrained camera, a very slow gentle push-in. Quiet room tone, no music.",
+        "quantity": 1,
+        "duration": 8,
+        "width": 1280,
+        "height": 720,
+        "motion_has_audio": true,
+        "guidances": "start_frame"
+      },
+      "started": 1792737141154,
+      "generationId": "1f1ceab8-05a3-6140-9e4b-4ae897361ba3",
+      "costUsd": 1.5548,
+      "costRaw": {
+        "amount": "1.5548",
+        "unit": "DOLLARS"
+      },
+      "seconds": 77,
+      "bytes": 6171029,
+      "url": "https://cdn.leonardo.ai/users/cb0f1001-1c9a-4259-b85b-d3c4e1e6cafb/generations/1f1ceab8-05a3-6140-9e4b-4ae897361ba3/kling-3.0-turbo_A_couple_sit_on_a_sofa_in_a_warm_living_room_in_the_evening._The_woman_on_the_le-0.mp4"
+    },
+    {
+      "model": "kling-3.0",
+      "label": "Kling 3.0",
+      "maker": "Kuaishou",
+      "scene": "couple",
+      "file": "clips/couple__kling-3.0.mp4",
+      "status": "done",
+      "parameters": {
+        "prompt": "A couple sit on a sofa in a warm living room in the evening. The woman on the left, in the cream knit sweater, is looking at her phone. The man on the right, in the navy henley, looks up from his laptop and asks her casually: \"Is it done?\" She answers calmly, still looking at the phone: \"Not yet. Can we look at a couple of other banks first?\" Then she lowers the phone to her lap and they share a quiet beat. Natural, warm, understated performances. Restrained camera, a very slow gentle push-in. Quiet room tone, no music.",
+        "quantity": 1,
+        "duration": 8,
+        "width": 1280,
+        "height": 720,
+        "motion_has_audio": true,
+        "mode": "RESOLUTION_720",
+        "guidances": "start_frame"
+      },
+      "started": 1792737182737,
+      "generationId": "1f1ceab9-9231-6a20-8b99-9463e637e0c1",
+      "costUsd": 1.507,
+      "costRaw": {
+        "amount": "1.507",
+        "unit": "DOLLARS"
+      },
+      "seconds": 82,
+      "bytes": 16365055,
+      "url": "https://cdn.leonardo.ai/users/cb0f1001-1c9a-4259-b85b-d3c4e1e6cafb/generations/1f1ceab9-9231-6a20-8b99-9463e637e0c1/kling-3.0_A_couple_sit_on_a_sofa_in_a_warm_living_room_in_the_evening._The_woman_on_the_le-0.mp4"
+    },
+    {
+      "model": "happy-horse-1.1",
+      "label": "Happy Horse 1.1",
+      "maker": "Alibaba",
+      "scene": "couple",
+      "file": "clips/couple__happy-horse-1.1.mp4",
+      "status": "done",
+      "parameters": {
+        "prompt": "A couple sit on a sofa in a warm living room in the evening. The woman on the left, in the cream knit sweater, is looking at her phone. The man on the right, in the navy henley, looks up from his laptop and asks her casually: \"Is it done?\" She answers calmly, still looking at the phone: \"Not yet. Can we look at a couple of other banks first?\" Then she lowers the phone to her lap and they share a quiet beat. Natural, warm, understated performances. Restrained camera, a very slow gentle push-in. Quiet room tone, no music.",
+        "quantity": 1,
+        "duration": 8,
+        "width": 1280,
+        "height": 720,
+        "motion_has_audio": true,
+        "guidances": "start_frame"
+      },
+      "started": 1792737218252,
+      "generationId": "1f1ceaba-e576-6a90-a161-21866b66baae",
+      "costUsd": 1.794,
+      "costRaw": {
+        "amount": "1.794",
+        "unit": "DOLLARS"
+      },
+      "seconds": 156,
+      "bytes": 5104198,
+      "url": "https://cdn.leonardo.ai/users/cb0f1001-1c9a-4259-b85b-d3c4e1e6cafb/generations/1f1ceaba-e576-6a90-a161-21866b66baae/happy-horse-1.1_A_couple_sit_on_a_sofa_in_a_warm_living_room_in_the_evening._The_woman_on_the_le-0.mp4"
+    },
+    {
+      "model": "gemini-omni-flash",
+      "label": "Gemini Omni Flash",
+      "maker": "Google",
+      "scene": "couple",
+      "file": "clips/couple__gemini-omni-flash.mp4",
+      "status": "done",
+      "parameters": {
+        "prompt": "A couple sit on a sofa in a warm living room in the evening. The woman on the left, in the cream knit sweater, is looking at her phone. The man on the right, in the navy henley, looks up from his laptop and asks her casually: \"Is it done?\" She answers calmly, still looking at the phone: \"Not yet. Can we look at a couple of other banks first?\" Then she lowers the phone to her lap and they share a quiet beat. Natural, warm, understated performances. Restrained camera, a very slow gentle push-in. Quiet room tone, no music.",
+        "quantity": 1,
+        "duration": 8,
+        "width": 1280,
+        "height": 720,
+        "motion_has_audio": true,
+        "guidances": "image_reference"
+      },
+      "started": 1792737265216,
+      "generationId": "1f1ceabc-a73e-6b40-937a-b51d63180640",
+      "costUsd": 0.9568,
+      "costRaw": {
+        "amount": "0.9568",
+        "unit": "DOLLARS"
+      },
+      "seconds": 51,
+      "bytes": 3074707,
+      "url": "https://cdn.leonardo.ai/users/cb0f1001-1c9a-4259-b85b-d3c4e1e6cafb/generations/1f1ceabc-a73e-6b40-937a-b51d63180640/gemini-omni-flash_A_couple_sit_on_a_sofa_in_a_warm_living_room_in_the_evening._The_woman_on_the_le-0.mp4"
+    },
+    {
+      "model": "seedance-2.0",
+      "label": "Seedance 2.0",
+      "maker": "ByteDance",
+      "scene": "couple",
+      "file": "clips/couple__seedance-2.0.mp4",
+      "status": "done",
+      "parameters": {
+        "prompt": "A couple sit on a sofa in a warm living room in the evening. The woman on the left, in the cream knit sweater, is looking at her phone. The man on the right, in the navy henley, looks up from his laptop and asks her casually: \"Is it done?\" She answers calmly, still looking at the phone: \"Not yet. Can we look at a couple of other banks first?\" Then she lowers the phone to her lap and they share a quiet beat. Natural, warm, understated performances. Restrained camera, a very slow gentle push-in. Quiet room tone, no music.",
+        "quantity": 1,
+        "duration": 8,
+        "width": 1280,
+        "height": 720,
+        "motion_has_audio": true,
+        "guidances": "start_frame"
+      },
+      "started": 1792737316391,
+      "generationId": "1f1ceabe-8c80-6c70-9900-374b24d74c10",
+      "costUsd": 3.6164,
+      "costRaw": {
+        "amount": "3.6164",
+        "unit": "DOLLARS"
+      },
+      "seconds": 223,
+      "bytes": 4200403,
+      "url": "https://cdn.leonardo.ai/users/cb0f1001-1c9a-4259-b85b-d3c4e1e6cafb/generations/1f1ceabe-8c80-6c70-9900-374b24d74c10/seedance-2.0_A_couple_sit_on_a_sofa_in_a_warm_living_room_in_the_evening._The_woman_on_the_le-0.mp4"
+    },
+    {
+      "model": "bytedance/seedance-2.5",
+      "label": "Seedance 2.5",
+      "maker": "ByteDance",
+      "scene": "couple",
+      "file": "clips/couple__bytedance-seedance-2.5.mp4",
+      "status": "done",
+      "parameters": {
+        "prompt": "A couple sit on a sofa in a warm living room in the evening. The woman on the left, in the cream knit sweater, is looking at her phone. The man on the right, in the navy henley, looks up from his laptop and asks her casually: \"Is it done?\" She answers calmly, still looking at the phone: \"Not yet. Can we look at a couple of other banks first?\" Then she lowers the phone to her lap and they share a quiet beat. Natural, warm, understated performances. Restrained camera, a very slow gentle push-in. Quiet room tone, no music.",
+        "quantity": 1,
+        "duration": 8,
+        "width": 1280,
+        "height": 720,
+        "motion_has_audio": true,
+        "guidances": "start_frame"
+      },
+      "started": 1792737374162,
+      "generationId": "1f1ceac0-b384-6590-8665-12ae9d1d4661",
+      "costUsd": 2.6192,
+      "costRaw": {
+        "amount": "2.6192",
+        "unit": "DOLLARS"
+      },
+      "seconds": 191,
+      "bytes": 7559633,
+      "url": "https://cdn.leonardo.ai/users/cb0f1001-1c9a-4259-b85b-d3c4e1e6cafb/generations/1f1ceac0-b384-6590-8665-12ae9d1d4661/bytedance/seedance-2.5_A_couple_sit_on_a_sofa_in_a_warm_living_room_in_the_evening._The_woman_on_the_le-0.mp4"
+    },
+    {
+      "model": "veo-3.1-generate-001",
+      "label": "Veo 3.1",
+      "maker": "Google",
+      "scene": "couple",
+      "file": "clips/couple__veo-3.1-generate-001.mp4",
+      "status": "failed",
+      "parameters": {
+        "prompt": "A couple sit on a sofa in a warm living room in the evening. The woman on the left, in the cream knit sweater, is looking at her phone. The man on the right, in the navy henley, looks up from his laptop and asks her casually: \"Is it done?\" She answers calmly, still looking at the phone: \"Not yet. Can we look at a couple of other banks first?\" Then she lowers the phone to her lap and they share a quiet beat. Natural, warm, understated performances. Restrained camera, a very slow gentle push-in. Quiet room tone, no music.",
+        "quantity": 1,
+        "duration": 8,
+        "width": 1280,
+        "height": 720,
+        "motion_has_audio": true,
+        "guidances": "start_frame"
+      },
+      "started": 1792737538916,
+      "generationId": "1f1ceac6-d84e-6a00-a7bc-38e8b0595ac7",
+      "costUsd": 4.784,
+      "costRaw": {
+        "amount": "4.784",
+        "unit": "DOLLARS"
+      },
+      "error": "failed: {\"generated_images\":[],\"modelId\":\"808b0a41-22b8-4b0c-905b-a7f52bf194f4\",\"motion\":true,\"motionModel\":\"VEO3_1\",\"motionStrength\":null,\"prompt\":\"A couple sit on a sofa in a warm living room in the evening. The woman on the left, in the cream knit sweater, is looking at her phone. The man on the right, in the navy henley, looks up from his laptop and asks her casually: \\\"Is it done?\\\" She answers calmly, still looking at the phone: \\\"Not yet. Can we look at a couple of other banks first?\\\" Then she l"
+    }
+  ],
+  "updated": "2026-10-23T06:40:10.617Z",
+  "scenes": {
+    "couple": {
+      "frame": "frames/couple.jpg",
+      "prompt": "A couple sit on a sofa in a warm living room in the evening. The woman on the left, in the cream knit sweater, is looking at her phone. The man on the right, in the navy henley, looks up from his laptop and asks her casually: \"Is it done?\" She answers calmly, still looking at the phone: \"Not yet. Can we look at a couple of other banks first?\" Then she lowers the phone to her lap and they share a quiet beat. Natural, warm, understated performances. Restrained camera, a very slow gentle push-in. Quiet room tone, no music."
+    },
+    "cafe": {
+      "frame": "frames/cafe.jpg",
+      "prompt": "Two women friends sit at a small wooden table in a quiet café by the window. The friend on the left, with curly auburn hair and a mustard cardigan, asks warmly: \"Did you start taking what the doctor prescribed?\" The woman on the right, in the olive-green shirt, holding a small plain white medication box, answers candidly: \"I was about to, but then I read the leaflet and got scared.\" She glances at the box and puts it back into her bag. Natural, understated performances, no panic. Restrained camera. Quiet café ambience, no music."
+    }
+  },
+  "models": [
+    {
+      "key": "seedance-2.0-mini",
+      "label": "Seedance 2.0 Mini",
+      "maker": "ByteDance",
+      "params": {}
+    },
+    {
+      "key": "veo-3.1-lite",
+      "label": "Veo 3.1 Lite",
+      "maker": "Google",
+      "params": {}
+    },
+    {
+      "key": "grok-imagine-1.5",
+      "label": "Grok Imagine 1.5",
+      "maker": "xAI",
+      "params": {}
+    },
+    {
+      "key": "alibaba/wan-3.0",
+      "label": "Wan 3.0",
+      "maker": "Alibaba",
+      "params": {}
+    },
+    {
+      "key": "seedance-2.0-fast",
+      "label": "Seedance 2.0 Fast",
+      "maker": "ByteDance",
+      "params": {}
+    },
+    {
+      "key": "veo-3.1-fast-generate-001",
+      "label": "Veo 3.1 Fast",
+      "maker": "Google",
+      "params": {}
+    },
+    {
+      "key": "kling-3.0-turbo",
+      "label": "Kling 3.0 Turbo",
+      "maker": "Kuaishou",
+      "params": {}
+    },
+    {
+      "key": "kling-3.0",
+      "label": "Kling 3.0",
+      "maker": "Kuaishou",
+      "params": {
+        "mode": "RESOLUTION_720"
+      }
+    },
+    {
+      "key": "happy-horse-1.1",
+      "label": "Happy Horse 1.1",
+      "maker": "Alibaba",
+      "params": {}
+    },
+    {
+      "key": "gemini-omni-flash",
+      "label": "Gemini Omni Flash",
+      "maker": "Google",
+      "params": {},
+      "guide": "image_reference"
+    },
+    {
+      "key": "seedance-2.0",
+      "label": "Seedance 2.0",
+      "maker": "ByteDance",
+      "params": {}
+    },
+    {
+      "key": "bytedance/seedance-2.5",
+      "label": "Seedance 2.5",
+      "maker": "ByteDance",
+      "params": {}
+    },
+    {
+      "key": "veo-3.1-generate-001",
+      "label": "Veo 3.1",
+      "maker": "Google",
+      "params": {},
+      "scenes": [
+        "couple"
+      ]
+    }
+  ]
+}
