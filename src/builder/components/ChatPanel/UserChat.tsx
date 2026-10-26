@@ -172,6 +172,8 @@ function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
     // treated as condition-skip by the card.
     filter?: AddonRunSnapshot['filter'];
     skipReason?: string;
+    /** A failed run's reason (cut off, empty, not JSON — #920). */
+    error?: { code: string; message: string };
   };
   return {
     instanceId:   r.instanceId,
@@ -190,6 +192,7 @@ function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
     firstTokenMs: d.firstTokenMs,
     filter:       d.filter,
     skipReason:   d.skipReason,
+    error:        d.error,
   };
 }
 
@@ -570,6 +573,11 @@ export function UserChat() {
             instanceId: e.instanceId!,
             status:     'error',
             error:      e.error,
+            // What the model returned before the run failed (#920).
+            ...(e.label !== undefined ? { label: e.label } : {}),
+            ...(e.modelLabel !== undefined ? { modelLabel: e.modelLabel } : {}),
+            ...(e.rawOutput !== undefined ? { rawOutput: e.rawOutput } : {}),
+            ...(e.durationMs !== undefined ? { durationMs: e.durationMs } : {}),
           }));
         } else {
           setErrorMsg(e.error.message || 'Runtime error');

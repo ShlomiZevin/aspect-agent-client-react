@@ -567,7 +567,12 @@ export function LiveBrainScreen() {
               ) : (
                 <>
                   <InlineField label="Model" hint="LLM used for this panel's run.">
-                    <ModelPicker value={editing.source.model} onChange={model => patchPrompt({ model })} />
+                    <ModelPicker
+                      value={editing.source.model}
+                      onChange={model => patchPrompt({ model })}
+                      outputLimit={editing.source.maxOutputTokens}
+                      onOutputLimitChange={maxOutputTokens => patchPrompt({ maxOutputTokens })}
+                    />
                   </InlineField>
 
                   <div className={styles.section}>

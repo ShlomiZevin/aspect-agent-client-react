@@ -71,6 +71,8 @@ export function ThinkerConfigComponent({
         <ModelPicker
           value={config.model}
           onChange={model => patch({ model })}
+          outputLimit={config.maxOutputTokens}
+          onOutputLimitChange={maxOutputTokens => patch({ maxOutputTokens })}
         />
       </InlineField>
 

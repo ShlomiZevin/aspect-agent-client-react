@@ -23,6 +23,8 @@ export interface ModelInfo {
   name: string;
   /** Short tagline shown in dropdowns and anywhere the model is named to a user. */
   notes?: string;
+  /** USD per 1M tokens at list price, where the server knows it. */
+  price?: { in: number; out: number };
 }
 
 export interface ProviderInfo {

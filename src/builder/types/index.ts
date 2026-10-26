@@ -390,6 +390,9 @@ export const KNOWN_PROMPT_PLACEHOLDERS = {
 export interface FieldExtractorConfig {
   prompt: string;
   model: ModelRef;
+  /** Most the model may write per run, thinking included ("Max output",
+   *  #889). Unset = 16,000. A run that reaches it fails, nothing saved. */
+  maxOutputTokens?: number;
   /**
    * User-editable name for this extractor instance. Lets users
    * distinguish "Date Extractor" from "Intent Extractor" in the
@@ -421,6 +424,9 @@ export interface FieldExtractorConfig {
 export interface FieldReasonerConfig {
   prompt: string;
   model: ModelRef;
+  /** Most the model may write per run, thinking included ("Max output",
+   *  #889). Unset = 16,000. A run that reaches it fails, nothing saved. */
+  maxOutputTokens?: number;
   /** Instance display name. Empty → falls back to "Field Reasoner [#N]". */
   name?: string;
   /** Length-1 array referencing the FieldDef this Reasoner populates.
@@ -446,6 +452,9 @@ export interface FieldReasonerConfig {
 export interface FieldInterviewerConfig {
   prompt: string;
   model: ModelRef;
+  /** Most the model may write per run, thinking included ("Max output",
+   *  #889). Unset = 16,000. A run that reaches it fails, nothing saved. */
+  maxOutputTokens?: number;
   /** Instance display name. Empty → falls back to "Field Interviewer [#N]". */
   name?: string;
   /** Length-1 array referencing the FieldDef this Interviewer populates. */
@@ -461,6 +470,9 @@ export interface TalkerConfig {
   /** The voice prompt — what the crew is supposed to say and how. */
   prompt: string;
   model: ModelRef;
+  /** Most the model may write per run, thinking included ("Max output",
+   *  #889). Unset = 16,000. A run that reaches it fails, nothing saved. */
+  maxOutputTokens?: number;
 }
 
 /**
@@ -478,6 +490,9 @@ export interface TalkerConfig {
 export interface ThinkerConfig {
   prompt: string;
   model: ModelRef;
+  /** Most the model may write per run, thinking included ("Max output",
+   *  #889). Unset = 16,000. A run that reaches it fails, nothing saved. */
+  maxOutputTokens?: number;
   /** User-editable instance name shown on the chain card. */
   name?: string;
   /**
@@ -505,6 +520,9 @@ export interface ThinkerConfig {
 export interface SummarizerConfig {
   prompt: string;
   model: ModelRef;
+  /** Most the model may write per run, thinking included ("Max output",
+   *  #889). Unset = 16,000. A run that reaches it fails, nothing saved. */
+  maxOutputTokens?: number;
   /** Token name used in `{{summary:NAME}}` AND in
    *  `since_summarizer: NAME` history references. Unique per agent. */
   name: string;
@@ -1338,6 +1356,9 @@ export interface PanelPromptSource {
   kind: 'prompt';
   prompt: string;
   model: ModelRef;
+  /** Most the model may write per run, thinking included ("Max output",
+   *  #889). Unset = 16,000. A run that reaches it fails, nothing saved. */
+  maxOutputTokens?: number;
   /**
    * How much conversation the addon sees. Same options as an addon's
    * History. Depth matters for a brain — default is several messages,

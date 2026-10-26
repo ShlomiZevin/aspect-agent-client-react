@@ -6,6 +6,9 @@
 
 import { useMemo } from 'react';
 import { useModels } from '../../registry/useModels';
+import {
+  DEFAULT_OUTPUT_TOKENS, OUTPUT_LIMIT_PRESETS, formatCost, fullLimitCost,
+} from '../../registry/outputLimit';
 import type { ModelRef } from '../../types';
 import styles from './ModelPicker.module.css';
 
@@ -14,9 +17,17 @@ interface Props {
   onChange: (next: ModelRef) => void;
   /** Optional label rendered above the controls. */
   label?: string;
+  /** The addon's "Max output" (#889). Shown only when onOutputLimitChange is given. */
+  outputLimit?: number;
+  /** undefined = back to the default. */
+  onOutputLimitChange?: (next: number | undefined) => void;
 }
 
-export function ModelPicker({ value, onChange, label }: Props) {
+const LIMIT_TIP =
+  'The most the model may write in one run, thinking included. A run that reaches it fails instead of saving half an answer. '
+  + 'You pay only for what is written — the price shown is a run that uses all of it.';
+
+export function ModelPicker({ value, onChange, label, outputLimit, onOutputLimitChange }: Props) {
   const { providers, loading, getProvider } = useModels();
   const provider = useMemo(() => getProvider(value.providerId), [value.providerId, getProvider, providers]);
 
@@ -78,6 +89,35 @@ export function ModelPicker({ value, onChange, label }: Props) {
       {selectedModel?.notes && (
         <span className={styles.notes}>{selectedModel.notes}</span>
       )}
+      {onOutputLimitChange && (() => {
+        const limit = outputLimit ?? DEFAULT_OUTPUT_TOKENS;
+        const options = OUTPUT_LIMIT_PRESETS.includes(limit)
+          ? OUTPUT_LIMIT_PRESETS
+          : [...OUTPUT_LIMIT_PRESETS, limit].sort((a, b) => a - b);
+        const cost = fullLimitCost(limit, selectedModel);
+        return (
+          <div className={styles.limitRow} title={LIMIT_TIP}>
+            <span className={styles.limitLabel}>Max output</span>
+            <select
+              className={`${styles.select} ${styles.limitSelect}`}
+              value={limit}
+              onChange={e => {
+                const n = Number(e.target.value);
+                onOutputLimitChange(n === DEFAULT_OUTPUT_TOKENS ? undefined : n);
+              }}
+            >
+              {options.map(n => (
+                <option key={n} value={n}>
+                  {n.toLocaleString('en-US')} tokens{n === DEFAULT_OUTPUT_TOKENS ? ' (default)' : ''}
+                </option>
+              ))}
+            </select>
+            <span className={styles.limitCost}>
+              {cost !== null ? `up to ${formatCost(cost)} a run` : 'price unknown'}
+            </span>
+          </div>
+        );
+      })()}
     </div>
   );
 }

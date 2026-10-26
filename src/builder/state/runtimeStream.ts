@@ -120,7 +120,15 @@ export type RuntimeEvent =
       reason: string;
       durationMs?: number;
     }
-  | { type: 'addon.error'; instanceId: string | null; error: { code: string; message: string } }
+  | {
+      type: 'addon.error'; instanceId: string | null; error: { code: string; message: string };
+      /** Set when the model answered but the run still failed — cut off at
+       *  the output limit, empty, or not JSON (#920). */
+      label?: string;
+      modelLabel?: { providerName: string; modelName: string } | null;
+      rawOutput?: string;
+      durationMs?: number;
+    }
   | { type: 'assistant.message'; messageId: number; text: string }
   /**
    * Enum aggregate resolution surfaced for the live chat trail.

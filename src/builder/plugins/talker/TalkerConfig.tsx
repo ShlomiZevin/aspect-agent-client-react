@@ -59,6 +59,8 @@ export function TalkerConfigComponent({
         <ModelPicker
           value={config.model}
           onChange={model => patch({ model })}
+          outputLimit={config.maxOutputTokens}
+          onOutputLimitChange={maxOutputTokens => patch({ maxOutputTokens })}
         />
       </InlineField>
 
