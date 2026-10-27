@@ -483,7 +483,7 @@ export function AddFieldModal({
                 </span>
               )}
               <Link
-                to={`/${agent.slug}/builder/enums/${encodeURIComponent(en.name)}`}
+                to={`/${agent.slug}/builder/targeted-kb/${encodeURIComponent(en.name)}`}
                 onClick={onClose}
                 className={styles.enumPreviewLink}
               >

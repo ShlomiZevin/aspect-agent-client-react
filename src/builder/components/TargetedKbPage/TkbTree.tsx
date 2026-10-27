@@ -5,8 +5,8 @@
  *   [ + New Targeted KB ]              ← fixed-height action row
  *   ▾ 📁 Products                      ← folder (collapsible)
  *     ▾ ▤ products                     ← KB
- *         ▸ 🏷️ basic account           ← values: only under the SELECTED KB
- *         ▾ 🏷️ premium account
+ *         ▸ ◆ basic account           ← values: only under the SELECTED KB
+ *         ▾ ◆ premium account
  *             ☂ Umbrella               ← the value's main text (special)
  *             📄 pitch · 📄 fees       ← its sections
  *
@@ -115,7 +115,7 @@ export function TkbTree({
                     <button type="button" className={styles.treeLabel}
                       onClick={() => { fold(v.id, false); onPickValue(e, v.id); }}
                       title={off ? `${v.value} — switched off` : v.value}>
-                      <span className={styles.treeIcon} aria-hidden>🏷️</span>
+                      <span className={styles.valueMark} aria-hidden />
                       <span className={styles.treeText}>{v.value}</span>
                     </button>
                   </div>

@@ -1,10 +1,10 @@
 /* Targeted KB page (task #830) — the builder's look: light grey ground,
    white cards, thin borders, small radii, blue accent.
-   One extra signal colour: warm amber = ☂ Umbrella (the value's main text),
+   One extra signal colour: Lybi purple = ☂ Umbrella (the value's main text),
    used on the tree, the tabs, the overview column and the card edge. */
 
 .page {
-  --tkb-umbrella: var(--warning-color, #d97706);
+  --tkb-umbrella: #6d4aff;
   --tkb-umbrella-bg: color-mix(in srgb, var(--tkb-umbrella) 9%, transparent);
   --tkb-accent-bg: var(--primary-light, rgba(37, 99, 235, 0.09));
   flex: 1;
@@ -338,6 +338,8 @@
 .treeOff .treeText { text-decoration: line-through; color: var(--text-muted, #94a3b8); }
 
 .treeText { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.valueMark { flex-shrink: 0; width: 16px; display: inline-flex; justify-content: center; }
+.valueMark::before { content: ''; width: 7px; height: 7px; border-radius: 2px; transform: rotate(45deg); background: var(--tkb-umbrella); opacity: .75; }
 .treeIcon { flex-shrink: 0; width: 16px; text-align: center; color: var(--text-muted, #94a3b8); }
 .treeDot { flex-shrink: 0; width: 12px; font-size: 9px; text-align: center; color: var(--text-muted, #94a3b8); }
 .treeCount { flex-shrink: 0; font-size: 11.5px; font-weight: 600; color: var(--text-muted, #94a3b8); font-variant-numeric: tabular-nums; }
@@ -600,7 +602,6 @@
   overflow-wrap: anywhere;
 }
 
-.valueIcon { font-size: 15px; }
 
 /* Tabs: [All texts] | [☂ Umbrella] | § sections… + Section */
 .tabs {
@@ -661,7 +662,7 @@
   scroll-margin-top: 12px;
 }
 
-/* ☂ Umbrella: the value's main text — amber edge. */
+/* ☂ Umbrella: the value's main text — purple edge. */
 .cardUmbrella { border-left: 3px solid var(--tkb-umbrella); }
 
 .cardEditing {
@@ -821,7 +822,7 @@
   cursor: help;
 }
 
-/* The umbrella is the value's lead text: a thin amber rule beside it. */
+/* The umbrella is the value's lead text: a thin purple rule beside it. */
 .passageUmbrella .passageBody { padding-left: 14px; border-left: 2px solid color-mix(in srgb, var(--tkb-umbrella) 55%, transparent); }
 
 .passageTools { display: inline-flex; align-items: center; gap: 8px; visibility: hidden; }

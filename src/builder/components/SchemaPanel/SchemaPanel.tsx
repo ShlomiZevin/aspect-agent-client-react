@@ -78,7 +78,7 @@ function EnumsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean }
         {!embedded && <span className={styles.title}>🎯 Targeted KB</span>}
         {!embedded && <span className={styles.count}>{enums.length}</span>}
         <span className={styles.spacer} />
-        <Link to={`/${slug}/builder/enums`} className={styles.addBtn}>+ Add</Link>
+        <Link to={`/${slug}/builder/targeted-kb`} className={styles.addBtn}>+ Add</Link>
       </div>
 
       {enums.length === 0 ? (
@@ -91,7 +91,7 @@ function EnumsSection({ agentId, embedded }: { agentId: ID; embedded?: boolean }
           {enums.map((en: EnumTypeDef) => (
             <Link
               key={en.id}
-              to={`/${slug}/builder/enums/${encodeURIComponent(en.name)}`}
+              to={`/${slug}/builder/targeted-kb/${encodeURIComponent(en.name)}`}
               className={styles.paramRow}
             >
               <div className={styles.paramHead}>
@@ -729,7 +729,7 @@ function FieldsGroup({
                 ))}
                 {boundEnum && (
                   <Link
-                    to={`/${agentSlug}/builder/enums/${encodeURIComponent(boundEnum.name)}`}
+                    to={`/${agentSlug}/builder/targeted-kb/${encodeURIComponent(boundEnum.name)}`}
                     className={styles.dcChip}
                     title={`Open the "${boundEnum.name}" enum bible (drives {{dc:${f.name}…}} and {{enum:${boundEnum.name}…}}).`}
                   >

@@ -428,7 +428,7 @@ export function SchemaFieldEditor({
               </span>
             )}
             <Link
-              to={`/${agent.slug}/builder/enums/${encodeURIComponent(en.name)}`}
+              to={`/${agent.slug}/builder/targeted-kb/${encodeURIComponent(en.name)}`}
               className={styles.enumPreviewLink}
             >
               Edit KB ↗

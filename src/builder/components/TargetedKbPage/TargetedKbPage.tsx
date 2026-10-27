@@ -19,8 +19,8 @@
  * 📄 sections are the named extras. Rarely used actions (rename, move,
  * delete) live in ⋯ menus, not as scattered links.
  *
- * Built next to the old screen (/enums), which stays until this one is
- * approved. Client-only; same data. Nothing shifts on click: menus float,
+ * The old screen (/enums) was retired in #908; its URLs redirect here.
+ * Client-only; same data. Nothing shifts on click: menus float,
  * the switch has a fixed width.
  */
 
@@ -180,7 +180,7 @@ export function TargetedKbPage() {
                   <div className={styles.legend}>
                     <span className={styles.legendItem}><b>▤</b> Targeted KB</span>
                     <span className={styles.legendArrow}>→</span>
-                    <span className={styles.legendItem}><b>🏷️</b> its values</span>
+                    <span className={styles.legendItem}><span className={styles.valueMark} aria-hidden /> its values</span>
                     <span className={styles.legendArrow}>→</span>
                     <span className={`${styles.legendItem} ${styles.legendUmbrella}`}><b>☂</b> Umbrella</span>
                     <span className={styles.legendPlus}>+</span>
@@ -257,7 +257,7 @@ export function TargetedKbPage() {
                     {activeEnum.values.map(v => (
                       <article key={v.id} id={`tkb-${v.id}`} className={`${styles.docValue} ${v.enabled === false ? styles.docOff : ''}`}>
                         <h2 className={styles.docValueTitle}>
-                          <span className={styles.valueIcon} aria-hidden>🏷️</span>
+                          <span className={styles.valueMark} aria-hidden />
                           {v.value}
                           {v.enabled === false && <span className={styles.offTag}>Off — never reaches a prompt</span>}
                         </h2>
@@ -311,7 +311,7 @@ export function TargetedKbPage() {
                                   <tr key={v.id} className={v.enabled === false ? styles.valueOff : ''}>
                                     <td className={styles.gridValueCol}>
                                       <button type="button" className={styles.gridValueBtn} onClick={() => go(activeEnum.name, v.value)}>
-                                        <span aria-hidden>🏷️</span>{v.value}
+                                        <span className={styles.valueMark} aria-hidden />{v.value}
                                       </button>
                                     </td>
                                     {[UMBRELLA_TAB, ...sections].map(t => (
@@ -335,7 +335,7 @@ export function TargetedKbPage() {
                         {/* ── The selected value ── */}
                         <div className={styles.valueBar}>
                           <h2 className={styles.valueName}>
-                            <span className={styles.valueIcon} aria-hidden>🏷️</span>
+                            <span className={styles.valueMark} aria-hidden />
                             {activeValue.value}
                           </h2>
                           <span className={styles.flex} />

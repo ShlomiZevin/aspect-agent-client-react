@@ -10,14 +10,13 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { BuilderProvider, emptyProject } from './state/BuilderContext';
 import { BRAIN_INSPECTOR_VISIBLE, BrainProvider } from './state/BrainContext';
 import { BuilderLayout } from './components/BuilderLayout/BuilderLayout';
 import { TopBar } from './components/TopBar/TopBar';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { Canvas } from './components/Canvas/Canvas';
-import { DynamicContextScreen } from './components/DynamicContextScreen/DynamicContextScreen';
 import { PersonasScreen } from './components/PersonasScreen/PersonasScreen';
 import { FieldsScreen } from './components/FieldsScreen/FieldsScreen';
 import { TagsScreen } from './components/TagsScreen/TagsScreen';
@@ -218,13 +217,13 @@ function BuilderShell() {
           <Routes>
             {/* Default: project / agent / crew views driven by selection. */}
             <Route index element={<Canvas />} />
-            {/* Enum bible: bookmarkable at every level. The screen
-                reads its own params (enumName / value / section) so a
-                single route component covers the four nesting depths. */}
-            <Route path="enums" element={<DynamicContextScreen />} />
-            <Route path="enums/:enumName" element={<DynamicContextScreen />} />
-            <Route path="enums/:enumName/:value" element={<DynamicContextScreen />} />
-            <Route path="enums/:enumName/:value/:section" element={<DynamicContextScreen />} />
+            {/* The old Targeted KB screen (/enums) was retired in #908:
+                its links and bookmarks land on the same KB / value / text
+                in the new page. */}
+            <Route path="enums" element={<OldTargetedKbRedirect />} />
+            <Route path="enums/:enumName" element={<OldTargetedKbRedirect />} />
+            <Route path="enums/:enumName/:value" element={<OldTargetedKbRedirect />} />
+            <Route path="enums/:enumName/:value/:section" element={<OldTargetedKbRedirect />} />
             {/* Personas: agent-level multi-persona editor. The screen
                 reads its own `personaName` param. */}
             <Route path="personas" element={<PersonasScreen />} />
@@ -275,6 +274,15 @@ function BuilderShell() {
 
 /** Card wrapper used by missing / error gates — the ones where the
  *  user has something to do. The loading gates use LoadingGate. */
+/** Old /enums[/:kb[/:value[/:section]]] links → the Targeted KB page at the same place. */
+function OldTargetedKbRedirect() {
+  const { pathname } = useLocation();
+  const [head, rest = ''] = pathname.split('/enums');
+  const parts = rest.split('/').filter(Boolean);
+  const to = `${head}/targeted-kb${parts.slice(0, 2).map(p => `/${p}`).join('')}${parts[2] ? `?tab=${parts[2]}` : ''}`;
+  return <Navigate to={to} replace />;
+}
+
 function GateScreen({ children }: { children: React.ReactNode }) {
   return (
     <div className={gateStyles.gateScreen}>

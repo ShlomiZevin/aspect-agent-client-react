@@ -173,35 +173,19 @@ export function AgentSetupArea({ agent }: Props) {
           <span className={styles.chipCount}>{(agent.triggers?.triggers ?? []).length}</span>
         </button>
 
-        {/* Targeted KB — own page; chip navigates instead of opening
-            the section modal. The page lists agent KBs + lets the
-            author edit each value's umbrella + sections. "Targeted"
+        {/* Targeted KB — its own full-screen page (#830; the old /enums
+            screen was retired in #908 and redirects here). "Targeted"
             because the agent picks ONE branch by value match instead
             of doing semantic search (RAG). Internal type still
             `enum` / `EnumTypeDef`; only the UI label changed. */}
         <button
           type="button"
           className={styles.chip}
-          onClick={() => navigate(`/${agent.slug}/builder/enums`)}
+          onClick={() => navigate(`/${agent.slug}/builder/targeted-kb`)}
           title="Open the Targeted KB editor"
         >
           <span className={styles.chipIcon}>🎯</span>
           <span className={styles.chipName}>Targeted KB</span>
-          <span className={styles.chipCount}>{enumsCount}</span>
-        </button>
-
-        {/* The new full-screen Targeted KB page (task #830), side by side
-            with the old one until it's approved — then this replaces the
-            chip above and the NEW tag goes. */}
-        <button
-          type="button"
-          className={styles.chip}
-          onClick={() => navigate(`/${agent.slug}/builder/targeted-kb`)}
-          title="Open the new Targeted KB page"
-        >
-          <span className={styles.chipIcon}>🎯</span>
-          <span className={styles.chipName}>Targeted KB</span>
-          <span className={styles.chipNew}>NEW</span>
           <span className={styles.chipCount}>{enumsCount}</span>
         </button>
       </div>
