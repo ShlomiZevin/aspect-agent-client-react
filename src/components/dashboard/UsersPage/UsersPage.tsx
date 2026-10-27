@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getUsers, getStats, updateUser } from '../../../services/adminService';
+import { getUsers, getStats, updateUser, setUserSuspended } from '../../../services/adminService';
 import type { AdminUser, AdminUserFilters, AdminStats, UserSource, UserSubscription } from '../../../types/admin';
 import { SignInAccounts } from '../../../auth';
 import { AddUserModal } from '../AddUserModal';
@@ -184,6 +184,20 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
   const handleWhatsAppLinked = (updatedUser: AdminUser) => {
     setUsers(prev => prev.map(u => (u.id === updatedUser.id ? { ...u, ...updatedUser } : u)));
     setLinkModalUser(null);
+  };
+
+  // Suspend / reactivate (#909): the user and their conversations stay.
+  const [suspendingId, setSuspendingId] = useState<number | null>(null);
+  const toggleSuspended = async (user: AdminUser) => {
+    setSuspendingId(user.id);
+    try {
+      const updated = await setUserSuspended(user.id, !user.metadata?.suspendedAt, baseURL);
+      setUsers(prev => prev.map(u => (u.id === updated.id ? { ...u, ...updated } : u)));
+    } catch (err) {
+      console.error('Error suspending user:', err);
+    } finally {
+      setSuspendingId(null);
+    }
   };
 
   // Handle user deleted
@@ -407,8 +421,9 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
           <tbody>
             {users.map(user => {
               const isSynthetic = user.metadata?.synthetic === true;
+              const suspended = !!user.metadata?.suspendedAt;
               return (
-              <tr key={user.id}>
+              <tr key={user.id} className={suspended ? styles.suspendedRow : undefined}>
                 <td>
                   <span className={`${styles.badge} ${styles[user.source]}`}>
                     {user.source}
@@ -419,6 +434,12 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
                       style={{ marginLeft: 6, fontSize: 14 }}
                     >
                       🤖
+                    </span>
+                  )}
+                  {suspended && (
+                    <span className={styles.suspendedBadge}
+                      title={`Suspended ${formatDate(String(user.metadata?.suspendedAt))} — can't chat; conversations kept`}>
+                      Suspended
                     </span>
                   )}
                 </td>
@@ -465,6 +486,24 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
                         WA
                       </span>
                     )}
+                    <button
+                      className={`${styles.actionButton} ${styles.suspendButton}`}
+                      onClick={() => toggleSuspended(user)}
+                      disabled={suspendingId === user.id}
+                      title={suspended ? 'Reactivate — the user can chat again' : "Suspend — the user can't chat; nothing is deleted"}
+                      aria-label={suspended ? 'Reactivate user' : 'Suspend user'}
+                    >
+                      {suspended ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polygon points="6 4 20 12 6 20 6 4" />
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="6" y="4" width="4" height="16" />
+                          <rect x="14" y="4" width="4" height="16" />
+                        </svg>
+                      )}
+                    </button>
                     <button
                       className={`${styles.actionButton} ${styles.deleteButton}`}
                       onClick={() => setDeleteModalUser(user)}

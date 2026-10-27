@@ -361,3 +361,9 @@
     width: 100%;
   }
 }
+
+/* Suspended users (#909): kept, greyed out, marked. */
+.suspendedRow td { color: #9ca3af; }
+.suspendedBadge { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #fff4dc; color: #a15c00; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.actionButton.suspendButton:hover { color: #a15c00; border-color: #f6e3b4; background: #fffaf0; }
+.actionButton:disabled { opacity: .5; cursor: default; }

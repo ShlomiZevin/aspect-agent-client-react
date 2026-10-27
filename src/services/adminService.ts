@@ -152,6 +152,19 @@ export async function unlinkWhatsApp(
 /**
  * Delete user and all their conversations/messages
  */
+/** Suspend or reactivate a user — keeps the user and all conversations (#909). */
+export async function setUserSuspended(
+  userId: number,
+  suspended: boolean,
+  baseURL?: string
+): Promise<AdminUser> {
+  return apiRequest<AdminUser>(
+    `/api/admin/users/${userId}/suspend`,
+    { method: 'POST', body: JSON.stringify({ suspended }) },
+    baseURL || getBaseURL()
+  );
+}
+
 export async function deleteUser(
   userId: number,
   baseURL?: string

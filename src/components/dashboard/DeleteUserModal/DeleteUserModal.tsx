@@ -71,6 +71,9 @@ export function DeleteUserModal({ baseURL, user, onClose, onDeleted }: DeleteUse
             <p className={styles.warningText}>
               This data cannot be recovered after deletion.
             </p>
+            <p className={styles.warningText}>
+              To keep the conversations, close this and use <b>Suspend</b> (⏸) instead.
+            </p>
           </div>
 
           {error && <div className={styles.error}>{error}</div>}
