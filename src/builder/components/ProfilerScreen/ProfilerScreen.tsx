@@ -10,6 +10,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
+import { FromCrewSelect } from '../Trigger/FromCrewSelect';
+import { formatTrigger } from '../Trigger/triggerFormat';
 import { fetchProfiler, fetchProfilerRuns, askProfiler, refreshProfiler } from '../../state/builderApi';
 import type { LiveBrainPanelData, LiveBrainPanelEntry, LiveBrainRun, ProfilerPanelData } from '../../state/builderApi';
 import { ProfilerPanels } from '../../../live-chat/components/ProfilerPanels';
@@ -26,7 +28,7 @@ import { RENDER_OPTIONS, returnsFor, snippetFor, buildDisplayPanels, PanelLogs }
 import { ICON_PATH, cleanLabel, type DisplayPanel } from '../LiveBrainScreen/PanelSurface';
 import { PanelSheet } from '../LiveBrainScreen/LiveBrainSheet';
 import type {
-  ProfilerPanel, ProfilerDef, PanelRender, PanelSource, HistoryMode, ModelRef, OfflineTrigger, AddonFilter,
+  ProfilerPanel, ProfilerDef, PanelRender, PanelSource, HistoryMode, ModelRef, OfflineTrigger, AddonFilter, CrewDoc,
 } from '../../types';
 import styles from '../LiveBrainScreen/LiveBrainScreen.module.css';
 import pstyles from './ProfilerScreen.module.css';
@@ -94,12 +96,12 @@ function runToSnapshot(r: LiveBrainRun): AddonRunSnapshot {
 function renderLabel(r: PanelRender): string {
   return RENDER_OPTIONS.find(o => o.value === r)?.label ?? r;
 }
-function panelSummary(p: ProfilerPanel): string {
+function panelSummary(p: ProfilerPanel, crews: CrewDoc[]): string {
   const r = renderLabel(p.render);
   const where = p.placement === 'header' ? 'Header' : 'Section';
   if (p.source.kind === 'text') return `${r} · ${where} · Text`;
   const t = p.source.trigger;
-  const cadence = t.kind === 'on_transition' ? 'on transition' : `every ${t.n} msg${t.n === 1 ? '' : 's'}`;
+  const cadence = formatTrigger(t, crews);
   return `${r} · ${where} · AI · ${cadence}`;
 }
 
@@ -250,6 +252,13 @@ function TriggerSelect({ trigger, onChange }: { trigger: OfflineTrigger; onChang
         <option value="every_n_messages">Every N messages</option>
         <option value="on_transition">On crew transition</option>
       </select>
+      {trigger.kind === 'on_transition' && (
+        <FromCrewSelect
+          className={styles.input}
+          value={trigger.fromCrewId}
+          onChange={fromCrewId => onChange({ kind: 'on_transition', ...(fromCrewId ? { fromCrewId } : {}) })}
+        />
+      )}
       {trigger.kind === 'every_n_messages' && (
         <input
           className={styles.miniInput}
@@ -454,7 +463,7 @@ export function ProfilerScreen() {
               </span>
               <div className={styles.chipMain}>
                 <span className={styles.chipTitle}>{cleanLabel(p.title, p.render) || 'Untitled'}</span>
-                <span className={styles.chipSummary}>{panelSummary(p)}</span>
+                <span className={styles.chipSummary}>{panelSummary(p, agent?.crews ?? [])}</span>
               </div>
               <span className={styles.chipMove}>
                 <button title="Move up" onClick={e => { e.stopPropagation(); move(p.id, -1); }} disabled={i === 0}>▲</button>

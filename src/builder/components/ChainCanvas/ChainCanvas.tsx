@@ -443,7 +443,7 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                             turn; main is the blocking chain). */}
                         {!compact && instance.lane === 'offline' && (
                           <span className={styles.cardTrigger}>
-                            {formatTrigger((instance.context as AddonContext | undefined)?.trigger)}
+                            {formatTrigger((instance.context as AddonContext | undefined)?.trigger, agent.crews)}
                           </span>
                         )}
                         {/* Filter indicator + launcher — absolute

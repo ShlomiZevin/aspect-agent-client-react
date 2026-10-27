@@ -19,6 +19,8 @@
 import { useAddonMutations } from '../../state/useAddonMutations';
 import { InlineField } from '../AddonModal/InlineField';
 import { describeTrigger } from './triggerFormat';
+import { FromCrewSelect } from './FromCrewSelect';
+import { useBuilder } from '../../state/BuilderContext';
 import type { AddonContext, AddonInstance, ID, OfflineTrigger } from '../../types';
 import styles from './AddonTriggerSection.module.css';
 
@@ -45,6 +47,8 @@ function defaultsForKind(kind: TriggerKind): OfflineTrigger {
 
 export function AddonTriggerSection({ agentId, crewId, instance }: Props) {
   const muts = useAddonMutations(agentId, crewId);
+  const { doc } = useBuilder();
+  const crews = doc.agents[0]?.crews ?? [];
   const ctx = instance.context;
   const trigger = ctx.trigger;
   const patch = (next: Partial<AddonContext>) =>
@@ -63,7 +67,7 @@ export function AddonTriggerSection({ agentId, crewId, instance }: Props) {
 
   return (
     <div className={styles.section}>
-      <InlineField label="Trigger" hint={describeTrigger(trigger)}>
+      <InlineField label="Trigger" hint={describeTrigger(trigger, crews)}>
         <select
           className={styles.select}
           value={kind}
@@ -73,6 +77,16 @@ export function AddonTriggerSection({ agentId, crewId, instance }: Props) {
           <option value="on_transition">On crew transition</option>
         </select>
       </InlineField>
+
+      {kind === 'on_transition' && (
+        <InlineField label="From" hint="Only when the conversation leaves this crew. Any crew it moves to counts.">
+          <FromCrewSelect
+            className={styles.select}
+            value={trigger?.kind === 'on_transition' ? trigger.fromCrewId : null}
+            onChange={fromCrewId => patch({ trigger: { kind: 'on_transition', ...(fromCrewId ? { fromCrewId } : {}) } })}
+          />
+        </InlineField>
+      )}
 
       {kind === 'every_n_messages' && (
         <InlineField

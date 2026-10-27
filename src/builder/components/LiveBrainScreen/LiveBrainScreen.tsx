@@ -18,6 +18,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
+import { FromCrewSelect } from '../Trigger/FromCrewSelect';
+import { formatTrigger } from '../Trigger/triggerFormat';
 import { fetchLiveBrain, fetchLiveBrainRuns } from '../../state/builderApi';
 import type { LiveBrainPanelData, LiveBrainPanelEntry, LiveBrainRun } from '../../state/builderApi';
 import type { AddonRunSnapshot } from '../AddonRun/AddonRunCard';
@@ -32,7 +34,7 @@ import { filterShortSummary, filterTooltip, isFilterActive } from '../Filter/fil
 import { LiveBrainPreview, RENDER_OPTIONS, returnsFor, snippetFor, buildDisplayPanels } from './panelRenderers';
 import { LiveBrainSheet } from './LiveBrainSheet';
 import type {
-  BrainPanel, PanelRender, PanelSource, HistoryMode, ModelRef, OfflineTrigger, AddonFilter,
+  BrainPanel, PanelRender, PanelSource, HistoryMode, ModelRef, OfflineTrigger, AddonFilter, CrewDoc,
 } from '../../types';
 import styles from './LiveBrainScreen.module.css';
 import addon from '../AddonModal/AddonModal.module.css';
@@ -85,11 +87,11 @@ function runToSnapshot(r: LiveBrainRun): AddonRunSnapshot {
 function renderLabel(r: PanelRender): string {
   return RENDER_OPTIONS.find(o => o.value === r)?.label ?? r;
 }
-function panelSummary(p: BrainPanel): string {
+function panelSummary(p: BrainPanel, crews: CrewDoc[]): string {
   const r = renderLabel(p.render);
   if (p.source.kind === 'text') return `${r} · Text`;
   const t = p.source.trigger;
-  const cadence = t.kind === 'on_transition' ? 'on transition' : `every ${t.n} msg${t.n === 1 ? '' : 's'}`;
+  const cadence = formatTrigger(t, crews);
   return `${r} · AI · ${cadence}`;
 }
 
@@ -248,6 +250,13 @@ function TriggerSelect({ trigger, onChange }: { trigger: OfflineTrigger; onChang
         <option value="every_n_messages">Every N messages</option>
         <option value="on_transition">On crew transition</option>
       </select>
+      {trigger.kind === 'on_transition' && (
+        <FromCrewSelect
+          className={styles.input}
+          value={trigger.fromCrewId}
+          onChange={fromCrewId => onChange({ kind: 'on_transition', ...(fromCrewId ? { fromCrewId } : {}) })}
+        />
+      )}
       {trigger.kind === 'every_n_messages' && (
         <input
           className={styles.miniInput}
@@ -418,7 +427,7 @@ export function LiveBrainScreen() {
               <span className={styles.chipBadge}>{p.source.kind === 'text' ? '📝' : '🤖'}</span>
               <div className={styles.chipMain}>
                 <span className={styles.chipTitle}>{p.title || 'Untitled'}</span>
-                <span className={styles.chipSummary}>{panelSummary(p)}</span>
+                <span className={styles.chipSummary}>{panelSummary(p, agent?.crews ?? [])}</span>
               </div>
               <span className={styles.chipMove}>
                 <button title="Move up" onClick={e => { e.stopPropagation(); move(p.id, -1); }} disabled={i === 0}>▲</button>
