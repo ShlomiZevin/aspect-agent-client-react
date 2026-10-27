@@ -630,9 +630,13 @@ function ChainRail({ agentSlug, turn, canPrev, canNext, onPrev, onNext, total }:
         </div>
       </div>
       {turn.user && (
-        <div className={s.trigger}>
-          <span className={s.triggerLabel}>👤 Set off by the user's message</span>
-          <span className={s.triggerText} dir="auto">{turn.user.content}</span>
+        <div className={s.trigger} title={turn.user.content}>
+          <div className={s.triggerHead}>
+            <span className={s.triggerPill}>⚡ Trigger</span>
+            <span className={s.triggerLabel}>The user's message that started this chain — not a step</span>
+          </div>
+          <span className={s.triggerText} dir="auto">“{turn.user.content}”</span>
+          <span className={s.triggerDown} aria-hidden>↓ the steps it set off</span>
         </div>
       )}
 
