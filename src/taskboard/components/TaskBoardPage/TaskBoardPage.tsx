@@ -56,6 +56,9 @@ export function TaskBoardPage() {
   }, [openId, setSearchParams]);
   const [creating, setCreating] = useState(false);
   const [askingName, setAskingName] = useState(false);
+  /** "Needs my attention" was clicked before the board knew who you are (#907):
+   *  turn the filter on once a name is picked. */
+  const [attentionAfterName, setAttentionAfterName] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -328,14 +331,21 @@ export function TaskBoardPage() {
 
         <button
           className={`${styles.selectToggleBtn} ${filters.needsAttention ? styles.selectActive : ''}`}
-          disabled={!me}
-          onClick={() => dispatch({ type: 'toggle', key: 'needsAttention' })}
-          title="Tasks where someone spoke after you last did and you have not replied"
+          onClick={() => {
+            if (!me) { setAttentionAfterName(true); setAskingName(true); return; }
+            dispatch({ type: 'toggle', key: 'needsAttention' });
+          }}
+          title={me
+            ? 'Tasks where someone spoke after you last did and you have not replied'
+            : 'Pick who you are first — then the board shows what is waiting on you'}
         >
           {filters.needsAttention && attentionIds
             ? `🔔 Attention (${attentionIds.size})`
-            : '🔔 Needs my attention'}
+            : `🔔 Needs my attention${attentionIds?.size ? ` (${attentionIds.size})` : ''}`}
         </button>
+        {filters.needsAttention && attentionIds?.size === 0 && (
+          <span className={styles.attentionHint}>Nothing is waiting on you</span>
+        )}
 
         <div className={styles.toggleGroup}>
           <Toggle on={filters.draftsOnly} onClick={() => { dispatch({ type: 'toggle', key: 'draftsOnly' }); setSelected(new Set()); }}>
@@ -457,8 +467,12 @@ export function TaskBoardPage() {
       {askingName && (
         <IdentityModal
           people={people}
-          onCancel={() => setAskingName(false)}
-          onPick={name => { identify(name); setAskingName(false); }}
+          onCancel={() => { setAskingName(false); setAttentionAfterName(false); }}
+          onPick={name => {
+            identify(name);
+            setAskingName(false);
+            if (attentionAfterName) { dispatch({ type: 'set', patch: { needsAttention: true } }); setAttentionAfterName(false); }
+          }}
           onAddPerson={addPerson}
         />
       )}

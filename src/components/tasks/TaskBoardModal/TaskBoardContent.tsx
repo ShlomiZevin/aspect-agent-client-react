@@ -114,6 +114,18 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
   const [filterAttention, setFilterAttention] = useState(false);
   const [attentionTaskIds, setAttentionTaskIds] = useState<Set<number> | null>(null);
   const [attentionLoading, setAttentionLoading] = useState(false);
+  /** "Needs my attention" clicked before the board knows who you are (#907): ask, then filter. */
+  const [attentionPickOpen, setAttentionPickOpen] = useState(false);
+  const showAttentionFor = async (identity: string) => {
+    setAttentionLoading(true);
+    try {
+      const ids = await taskService.getNeedsAttention(identity);
+      setAttentionTaskIds(new Set(ids));
+      setFilterAttention(true);
+    } finally {
+      setAttentionLoading(false);
+    }
+  };
 
   // Delete confirmation modal state
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
@@ -1158,20 +1170,35 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
                   setFilterAttention(false);
                   setAttentionTaskIds(null);
                 } else if (notificationsState.identity) {
-                  setAttentionLoading(true);
-                  try {
-                    const ids = await taskService.getNeedsAttention(notificationsState.identity);
-                    setAttentionTaskIds(new Set(ids));
-                    setFilterAttention(true);
-                  } finally {
-                    setAttentionLoading(false);
-                  }
+                  await showAttentionFor(notificationsState.identity);
+                } else {
+                  setAttentionPickOpen(o => !o);
                 }
               }}
-              title="Tasks where you were mentioned in the last comment and haven't replied"
+              title={notificationsState.identity
+                ? "Tasks where you were mentioned in the last comment and haven't replied"
+                : 'Pick who you are first — then the board shows what is waiting on you'}
             >
               {attentionLoading ? '⏳...' : filterAttention && attentionTaskIds ? `🔔 Attention (${attentionTaskIds.size})` : '🔔 Needs my attention'}
             </button>
+            {attentionPickOpen && !notificationsState.identity && (
+              <div className={styles.attentionPick} role="dialog" aria-label="Who are you?">
+                <span className={styles.attentionPickTitle}>Who are you?</span>
+                {assignees.map(a => (
+                  <button key={a.id} type="button" className={styles.attentionPickOption}
+                    onClick={async () => {
+                      notificationsState.setIdentity(a.name);
+                      setAttentionPickOpen(false);
+                      await showAttentionFor(a.name);
+                    }}>
+                    {a.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            {filterAttention && attentionTaskIds && attentionTaskIds.size === 0 && (
+              <span className={styles.attentionHint}>Nothing is waiting on you</span>
+            )}
             {filterAttention && attentionTaskIds && attentionTaskIds.size > 0 && boardTasks.filter(t => attentionTaskIds.has(t.id)).length === 0 && (
               <span className={styles.attentionHint}>All in completed</span>
             )}
