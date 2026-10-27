@@ -19,8 +19,9 @@ export function Canvas() {
   // block edits on the canvas (children get pointer-events:none) and
   // show a ribbon. The actions (Back to active / Edit this version)
   // live in the version bar above.
+  // An agent-version preview covers the agent AND its crews (#923).
   const isPreviewing = !!previewVersion && (
-    (selection.level === 'agent' && previewVersion.crewId === null && previewVersion.agentId === selection.agentId) ||
+    (previewVersion.crewId === null && previewVersion.agentId === selection.agentId) ||
     (selection.level === 'crew' && previewVersion.crewId === selection.crewId)
   );
 

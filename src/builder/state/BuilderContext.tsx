@@ -751,7 +751,7 @@ interface BuilderState {
   /** Overwrite the *viewing* version's snapshot with the current working state. */
   saveCrewVersion: (agentId: ID, crewId: ID, opts?: SaveOpts) => void;
   /** Create a new version from the current working state and start viewing it. Active stays where it was. */
-  saveCrewVersionAs: (agentId: ID, crewId: ID, description?: string, opts?: SaveOpts) => CrewVersion;
+  saveCrewVersionAs: (agentId: ID, crewId: ID, description?: string, opts?: SaveOpts, number?: number) => CrewVersion;
   /** Load a version's snapshot into the working state. Active stays where it was. */
   setViewingCrewVersion: (agentId: ID, crewId: ID, versionId: ID) => void;
   /** Flip the active-version pointer. Doesn't touch the working state. */
@@ -769,25 +769,24 @@ interface BuilderState {
 
   // Agent versioning — same shape as crew.
   saveAgentVersion: (agentId: ID, opts?: SaveOpts) => void;
-  saveAgentVersionAs: (agentId: ID, description?: string, opts?: SaveOpts) => AgentVersion;
+  saveAgentVersionAs: (agentId: ID, description?: string, opts?: SaveOpts, number?: number) => AgentVersion;
   /**
-   * "Save all as" — create a brand-new version row on the agent
-   * AND on every one of its crews, all sharing the same author-
-   * provided description. The runtime ends up with one synchronised
-   * snapshot across every entity, easily found later by scanning
-   * any entity's version history for the shared name. Each entity
-   * still gets its own version row + sync push (no batch endpoint).
+   * "Save as new version" — the agent AND every crew get a new version
+   * with ONE shared number (#923): one past the highest on the agent or
+   * any crew, so "v7" is the agent's v7 and each crew's v7. All of them
+   * become active + viewing. Each entity still gets its own row + push.
    */
   saveAllVersionsAs: (agentId: ID, description?: string, opts?: SaveOpts) => void;
   /** Commit every unsaved entity (agent + dirty crews) into their current
    *  versions in one click. Clean entities are skipped. */
   saveAllVersions: (agentId: ID, opts?: SaveOpts) => void;
   setViewingAgentVersion: (agentId: ID, versionId: ID) => void;
+  /** Make an agent version active — and every crew's version of the same
+   *  number (its latest at or below it), since the agent has one number. */
   setActiveAgentVersion: (agentId: ID, versionId: ID) => void;
-  /** Flip the agent's customer-facing published pointer. `null` unpublishes. */
+  /** Publish an agent version to customers together with each crew's
+   *  version of the same number. `null` unpublishes the agent and every crew. */
   setPublishedAgentVersion: (agentId: ID, versionId: ID | null) => void;
-  /** Publish the agent + every crew to their ACTIVE versions in one click. */
-  publishAllVersions: (agentId: ID) => void;
 
   // ── Read-only version preview ──
   /** Transient preview state — non-null while browsing a non-active
@@ -950,6 +949,23 @@ interface ProviderProps {
    *  state initialized from `doc` see the real shape, not a placeholder. */
   initialDoc: ProjectDoc;
   children: ReactNode;
+}
+
+/** A crew's version for agent version `n` (#923): the same number, or its
+ *  latest below it — a crew not re-saved since keeps its older version. */
+function crewVersionAt(crew: CrewDoc, n: number): CrewVersion | undefined {
+  let best: CrewVersion | undefined;
+  for (const v of crew.versions) if (v.number <= n && (!best || v.number > best.number)) best = v;
+  return best;
+}
+
+/** The next whole-agent version number (#923): one past the highest on the
+ *  agent or any of its crews. The server applies the same rule. */
+export function nextAgentWideNumber(agent: AgentDoc): number {
+  let max = 0;
+  for (const v of agent.versions) max = Math.max(max, v.number);
+  for (const c of agent.crews ?? []) for (const v of c.versions) max = Math.max(max, v.number);
+  return max + 1;
 }
 
 export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }: ProviderProps) {
@@ -2259,7 +2275,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   // version, so every save-as needed a "Set as active" click per crew.
   // The server does the same in one transaction.
   const saveCrewVersionAs = useCallback(
-    (agentId: ID, crewId: ID, description?: string, opts?: SaveOpts): CrewVersion => {
+    (agentId: ID, crewId: ID, description?: string, opts?: SaveOpts, number?: number): CrewVersion => {
       const newId = uid('ver');
       const d = docRef.current;
       let created: CrewVersion | null = null;
@@ -2272,8 +2288,11 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
             ...a,
             crews: a.crews.map(c => {
               if (c.id !== crewId) return c;
-              const nextNumber =
-                c.versions.reduce((max, v) => Math.max(max, v.number), 0) + 1;
+              // The whole-agent number when given (#923); never one it already has.
+              const nextNumber = Math.max(
+                c.versions.reduce((max, v) => Math.max(max, v.number), 0) + 1,
+                number ?? 0,
+              );
               const v: CrewVersion = {
                 id: newId,
                 number: nextNumber,
@@ -2297,7 +2316,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       setDoc(next);
       docRef.current = next;
       if (updatedCrew) {
-        syncRef.current?.pushSaveCrewVersionAs(updatedCrew, description);
+        syncRef.current?.pushSaveCrewVersionAs(updatedCrew, description, (created as CrewVersion | null)?.number);
         fireApplyLogIfPending({
           parentAgentId: agentId,
           entity:        'crew',
@@ -2510,7 +2529,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
    *  version (callers usually just want confirmation). */
 
   const saveAgentVersionAs = useCallback(
-    (agentId: ID, description?: string, opts?: SaveOpts): AgentVersion => {
+    (agentId: ID, description?: string, opts?: SaveOpts, number?: number): AgentVersion => {
       const newId = uid('ver');
       const d = docRef.current;
       let created: AgentVersion | null = null;
@@ -2519,8 +2538,10 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
         ...d,
         agents: d.agents.map(a => {
           if (a.id !== agentId) return a;
-          const nextNumber =
-            a.versions.reduce((max, v) => Math.max(max, v.number), 0) + 1;
+          const nextNumber = Math.max(
+            a.versions.reduce((max, v) => Math.max(max, v.number), 0) + 1,
+            number ?? 0,
+          );
           const v: AgentVersion = {
             id: newId,
             number: nextNumber,
@@ -2542,7 +2563,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       setDoc(next);
       docRef.current = next;
       if (updatedAgent) {
-        syncRef.current?.pushSaveAgentVersionAs(updatedAgent, description);
+        syncRef.current?.pushSaveAgentVersionAs(updatedAgent, description, (created as AgentVersion | null)?.number);
         fireApplyLogIfPending({
           parentAgentId: agentId,
           entity:        'agent',
@@ -2612,7 +2633,17 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
           }
           const target = a.versions.find(v => v.id === versionId);
           if (!target) return a;
-          return { ...a, ...target.body, viewingVersionId: versionId };
+          // One number for the whole agent (#923): previewing vN shows each
+          // crew as of vN too.
+          return {
+            ...a,
+            ...target.body,
+            viewingVersionId: versionId,
+            crews: a.crews.map(c => {
+              const cv = crewVersionAt(c, target.number);
+              return cv ? { ...c, ...cv.body, viewingVersionId: cv.id } : c;
+            }),
+          };
         }),
       }));
     },
@@ -2650,18 +2681,32 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
             ),
           };
         }
-        return { ...a, activeVersionId: p.versionId };
+        // The previewed crews already hold their vN bodies (enterPreview);
+        // they become the editable line along with the agent (#923).
+        return {
+          ...a,
+          activeVersionId: p.versionId,
+          crews: a.crews.map(c => ({ ...c, activeVersionId: c.viewingVersionId })),
+        };
       }),
     }));
     if (p.crewId) syncRef.current?.pushSetCrewActive(p.crewId, p.versionId);
-    else syncRef.current?.pushSetAgentActive(p.agentId, p.versionId);
+    else {
+      syncRef.current?.pushSetAgentActive(p.agentId, p.versionId);
+      const agent = docRef.current.agents.find(a => a.id === p.agentId);
+      for (const c of agent?.crews ?? []) syncRef.current?.pushSetCrewActive(c.id, c.viewingVersionId);
+    }
   }, [previewVersion]);
 
   // Navigating to a different entity leaves any read-only preview and
   // restores the editable draft. Keyed on selection only (checks the
   // stash ref, not `previewVersion`, so entering preview doesn't
   // immediately fire this and self-cancel).
+  // An agent-version preview (#923) covers every crew, so moving between
+  // the crews of that agent keeps it — that is how you look at vN.
   useEffect(() => {
+    const p = previewVersion;
+    if (p && p.crewId === null && p.agentId === selection.agentId) return;
     if (previewStashRef.current) exitPreview();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selection.level, selection.agentId, selection.crewId]);
@@ -2677,9 +2722,10 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     const d = docRef.current;
     const agent = d.agents.find(a => a.id === agentId);
     if (!agent) return;
-    saveAgentVersionAs(agentId, description, opts);
+    const number = nextAgentWideNumber(agent);
+    saveAgentVersionAs(agentId, description, opts, number);
     for (const c of agent.crews ?? []) {
-      saveCrewVersionAs(agentId, c.id, description, opts);
+      saveCrewVersionAs(agentId, c.id, description, opts, number);
     }
   }, [saveAgentVersionAs, saveCrewVersionAs]);
 
@@ -2689,56 +2735,59 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
         ...d,
         agents: d.agents.map(a => {
           if (a.id !== agentId) return a;
-          if (!a.versions.find(v => v.id === versionId)) return a;
-          return { ...a, activeVersionId: versionId };
+          const target = a.versions.find(v => v.id === versionId);
+          if (!target) return a;
+          return {
+            ...a,
+            activeVersionId: versionId,
+            crews: a.crews.map(c => {
+              const cv = crewVersionAt(c, target.number);
+              return cv ? { ...c, activeVersionId: cv.id } : c;
+            }),
+          };
         }),
       }));
       syncRef.current?.pushSetAgentActive(agentId, versionId);
+      const agent = docRef.current.agents.find(a => a.id === agentId);
+      const target = agent?.versions.find(v => v.id === versionId);
+      for (const c of agent?.crews ?? []) {
+        const cv = target && crewVersionAt(c, target.number);
+        if (cv) syncRef.current?.pushSetCrewActive(c.id, cv.id);
+      }
     },
     [],
   );
 
-  // Flip the agent's PUBLISHED (customer-facing) pointer. `null`
-  // unpublishes (runtime falls back to active→viewing).
+  // Publish (or, with null, unpublish) the WHOLE agent (#923): the agent
+  // version and each crew's version of the same number — its latest at or
+  // below it. A crew with nothing that old is left as it is.
   const setPublishedAgentVersion = useCallback(
     (agentId: ID, versionId: ID | null) => {
+      const agent = docRef.current.agents.find(a => a.id === agentId);
+      if (!agent) return;
+      const target = versionId === null ? null : agent.versions.find(v => v.id === versionId);
+      if (versionId !== null && !target) return;
+      const crewPick = new Map<ID, ID | null>();
+      for (const c of agent.crews) {
+        if (!target) crewPick.set(c.id, null);
+        else {
+          const cv = crewVersionAt(c, target.number);
+          if (cv) crewPick.set(c.id, cv.id);
+        }
+      }
       setDoc(d => ({
         ...d,
-        agents: d.agents.map(a => {
-          if (a.id !== agentId) return a;
-          if (versionId !== null && !a.versions.find(v => v.id === versionId)) return a;
-          return { ...a, publishedVersionId: versionId };
+        agents: d.agents.map(a => a.id !== agentId ? a : {
+          ...a,
+          publishedVersionId: versionId,
+          crews: a.crews.map(c => crewPick.has(c.id) ? { ...c, publishedVersionId: crewPick.get(c.id) ?? null } : c),
         }),
       }));
       syncRef.current?.pushSetAgentPublished(agentId, versionId);
+      for (const [crewId, cvId] of crewPick) syncRef.current?.pushSetCrewPublished(crewId, cvId);
     },
     [],
   );
-
-  // One-click "ship everything to customers": publish the agent's
-  // ACTIVE version and every crew's ACTIVE version. Active is the
-  // builder's canonical selection; this promotes the whole set to live
-  // in a single render + one push per entity.
-  const publishAllVersions = useCallback((agentId: ID) => {
-    const d = docRef.current;
-    const agent = d.agents.find(a => a.id === agentId);
-    if (!agent) return;
-    setDoc(prev => ({
-      ...prev,
-      agents: prev.agents.map(a => {
-        if (a.id !== agentId) return a;
-        return {
-          ...a,
-          publishedVersionId: a.activeVersionId,
-          crews: a.crews.map(c => ({ ...c, publishedVersionId: c.activeVersionId })),
-        };
-      }),
-    }));
-    syncRef.current?.pushSetAgentPublished(agentId, agent.activeVersionId);
-    for (const c of agent.crews) {
-      syncRef.current?.pushSetCrewPublished(c.id, c.activeVersionId);
-    }
-  }, []);
 
   const deleteAgentVersion = useCallback(
     async (agentId: ID, versionId: ID): Promise<void> => {
@@ -2903,7 +2952,6 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       setViewingAgentVersion,
       setActiveAgentVersion,
       setPublishedAgentVersion,
-      publishAllVersions,
       previewVersion,
       enterPreview,
       exitPreview,
@@ -2982,7 +3030,6 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       setViewingAgentVersion,
       setActiveAgentVersion,
       setPublishedAgentVersion,
-      publishAllVersions,
       previewVersion,
       enterPreview,
       exitPreview,

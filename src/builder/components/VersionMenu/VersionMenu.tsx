@@ -3,8 +3,8 @@
  *
  *   Description · 2h ago   ⭐ Active / ⭐ Set as active   [Save] [Save as…]
  *
- * Reused for both crew and agent versioning. Takes a single
- * `EntityVersionState` prop produced by either hook.
+ * Always the AGENT's state (#923): an agent has one version number, and
+ * every save, activation and publish covers the agent and all its crews.
  */
 
 import { useState } from 'react';
@@ -39,16 +39,10 @@ function relativeTime(iso: string): string {
 }
 
 export function VersionMenu({ state }: Props) {
-  const [saveAsOpen, setSaveAsOpen]                   = useState(false);
   const [saveAllAsOpen, setSaveAllAsOpen]             = useState(false);
   const [attributionOpen, setAttributionOpen]         = useState(false);
-  const [attributionVariant, setAttributionVariant]   = useState<'save' | 'save-as'>('save');
-  const [pendingDescription, setPendingDescription]   = useState<string | undefined>(undefined);
-  // Which save the attribution modal is standing in front of: the default
-  // whole-agent Save, or the "only this crew/agent" one from the menu.
-  const [attributionScope, setAttributionScope]       = useState<'all' | 'one'>('all');
-  // Which split-button dropdown is open (Save▾ or Publish▾), if any.
-  const [openMenu, setOpenMenu] = useState<null | 'save' | 'publish'>(null);
+  // Whether the Save▾ dropdown is open.
+  const [openMenu, setOpenMenu] = useState<null | 'save'>(null);
   const confirm = useConfirm();
   const { pendingAlfredApply, resetToServerState, doc, saveAllVersionsAs, saveAllVersions, selection } = useBuilder();
   // Global dirty flag (whole doc) — drives "Save all", which commits every
@@ -66,11 +60,8 @@ export function VersionMenu({ state }: Props) {
     isDirty,
     nextNumber,
     hasPendingAlfred,
-    save,
-    saveAs,
     setActive,
     setPublished,
-    publishAll,
     exitPreview,
     editThisVersion,
   } = state;
@@ -99,31 +90,14 @@ export function VersionMenu({ state }: Props) {
   // crew with unsaved changes, each into its current version. Saving one
   // crew at a time is what made people walk the sidebar crew by crew; it
   // stays available in the menu for the rare case it is wanted.
+  // Saving one crew or only the agent's setup on its own was removed in
+  // #923: those saves gave crews their own version numbers.
   const runSaveAll = () => {
     if (!agentId) return;
     if (pendingAlfredApply) {
-      setAttributionScope('all');
-      setAttributionVariant('save');
       setAttributionOpen(true);
     } else {
       saveAllVersions(agentId);
-    }
-  };
-
-  // The "only" rows name exactly what is and isn't included: "Save only
-  // this agent" was read as "the whole agent", when it meant the agent's
-  // own settings WITHOUT its crews.
-  const onlyLabel = entityLabel === 'crew' ? 'Save only this crew' : "Save only the agent's setup";
-  const onlyNote  = entityLabel === 'crew' ? 'The agent and the other crews are not saved' : 'Its addons, prompts and fields — without the crews';
-
-  // "Only this crew / agent" — the old per-entity Save.
-  const runSaveOne = () => {
-    if (hasPendingAlfred) {
-      setAttributionScope('one');
-      setAttributionVariant('save');
-      setAttributionOpen(true);
-    } else {
-      save();
     }
   };
 
@@ -137,16 +111,6 @@ export function VersionMenu({ state }: Props) {
       danger:   true,
     });
     if (ok) await resetToServerState();
-  };
-
-  const runPublishAll = async () => {
-    if (!publishAll) return;
-    const ok = await confirm({
-      title:        'Publish everything to customers?',
-      message:      'Publishes the agent AND every crew to their current active versions. Live customers will run this whole set.',
-      confirmLabel: 'Publish all',
-    });
-    if (ok) publishAll();
   };
 
   return (
@@ -228,18 +192,18 @@ export function VersionMenu({ state }: Props) {
         </button>
       )}
 
-      {/* ── Publish cluster (customer-facing) ──
-          Primary = publish/unpublish THIS version; the caret holds the
-          agent-wide "Publish all". */}
+      {/* ── Publish (customer-facing) ──
+          One button for the whole agent (#923): this version of the agent
+          and each crew's version of the same number. */}
       <div className={styles.split}>
         {viewingIsPublished ? (
           <button
             type="button"
-            className={`${styles.publishedBadge} ${publishAll ? styles.splitPrimary : ''}`}
+            className={styles.publishedBadge}
             onClick={async () => {
               const ok = await confirm({
                 title:        'Unpublish this version?',
-                message:      `Customers will fall back to the active ${entityLabel} version until you publish again.`,
+                message:      'Customers will fall back to the active version of the agent and its crews until you publish again.',
                 confirmLabel: 'Unpublish',
                 danger:       true,
               });
@@ -252,13 +216,13 @@ export function VersionMenu({ state }: Props) {
         ) : (
           <button
             type="button"
-            className={`${styles.publishBtn} ${publishAll ? styles.splitPrimary : ''}`}
+            className={styles.publishBtn}
             onClick={async () => {
               const ok = await confirm({
-                title:        'Publish this version to customers?',
-                message:      isDirty
-                  ? `This publishes the last SAVED state of this ${entityLabel} version to live customers. Unsaved edits are NOT included — Save first if you want them live.`
-                  : `Live customers will run this ${entityLabel} version. It stays put until you publish another.`,
+                title:        `Publish version ${viewing?.number ?? ''} to customers?`,
+                message:      anyDirty
+                  ? 'This publishes the last SAVED state of the agent and all its crews. Unsaved edits are NOT included — Save first if you want them live.'
+                  : 'Live customers will run this version of the agent and all its crews. It stays put until you publish another.',
                 confirmLabel: 'Publish',
               });
               if (ok) setPublished(viewingVersionId);
@@ -267,31 +231,6 @@ export function VersionMenu({ state }: Props) {
           >
             🚀 Publish
           </button>
-        )}
-        {publishAll && (
-          <>
-            <button
-              type="button"
-              className={`${styles.publishBtn} ${styles.splitCaret}`}
-              onClick={() => setOpenMenu(m => (m === 'publish' ? null : 'publish'))}
-              title="More publish options"
-              aria-label="More publish options"
-            >
-              ▾
-            </button>
-            {openMenu === 'publish' && (
-              <div className={styles.splitMenu} onMouseLeave={() => setOpenMenu(null)}>
-                <button
-                  type="button"
-                  className={styles.menuItem}
-                  onClick={() => { setOpenMenu(null); runPublishAll(); }}
-                >
-                  🚀 Publish all
-                  <span className={styles.menuItemSub}>Agent + every crew, to customers</span>
-                </button>
-              </div>
-            )}
-          </>
         )}
       </div>
 
@@ -354,28 +293,6 @@ export function VersionMenu({ state }: Props) {
                   : 'As a new version that is used from now on'}
               </span>
             </button>
-            {hasCrews && (
-              <>
-                <div className={styles.menuDivider} />
-                <button
-                  type="button"
-                  className={styles.menuItem}
-                  disabled={!isDirty}
-                  onClick={() => { setOpenMenu(null); runSaveOne(); }}
-                >
-                  {onlyLabel}
-                  <span className={styles.menuItemSub}>{onlyNote}</span>
-                </button>
-                <button
-                  type="button"
-                  className={styles.menuItem}
-                  onClick={() => { setOpenMenu(null); setSaveAsOpen(true); }}
-                >
-                  {onlyLabel} as a new version…
-                  <span className={styles.menuItemSub}>{onlyNote} · used from now on</span>
-                </button>
-              </>
-            )}
             {anyDirty && (
               <>
                 <div className={styles.menuDivider} />
@@ -395,35 +312,13 @@ export function VersionMenu({ state }: Props) {
       </>
       )}
 
-      <SaveAsModal
-        open={saveAsOpen}
-        onClose={() => setSaveAsOpen(false)}
-        entityLabel={entityLabel === 'crew' ? 'only this crew' : "only the agent's setup"}
-        nextNumber={nextNumber}
-        onSubmit={(description) => {
-          // If pending Alfred, ask for attribution AFTER the description
-          // step. Otherwise commit directly with default behaviour.
-          if (hasPendingAlfred) {
-            setPendingDescription(description);
-            setAttributionVariant('save-as');
-            setAttributionOpen(true);
-          } else {
-            saveAs(description);
-          }
-        }}
-      />
-
-      {/* Save-all-as picks ONE description that lands on every entity
-          (agent + every crew gets a new version row with this name).
-          `nextNumber` is intentionally omitted — each entity has its
-          OWN next-version number (agent might be on v3, crew A on v5,
-          crew B on v2). Showing one number would be misleading, so the
-          modal renders without a version badge and the button reads
-          "Save as new version". */}
+      {/* Save-all-as: one description and ONE number (#923) for the agent
+          and every crew, so the badge can show the number they all get. */}
       <SaveAsModal
         open={saveAllAsOpen}
         onClose={() => setSaveAllAsOpen(false)}
         entityLabel={hasCrews ? 'all (the agent and all its crews)' : 'all'}
+        nextNumber={nextNumber}
         onSubmit={(description) => {
           const agentId = selection.agentId;
           if (!agentId) return;
@@ -433,23 +328,11 @@ export function VersionMenu({ state }: Props) {
 
       <SaveAttributionModal
         open={attributionOpen}
-        onClose={() => {
-          setAttributionOpen(false);
-          setPendingDescription(undefined);
-        }}
-        variant={attributionVariant}
+        onClose={() => setAttributionOpen(false)}
+        variant="save"
         applyHeadline={pendingAlfredApply?.description}
         onChoose={(attribution) => {
-          if (attributionVariant === 'save') {
-            if (attributionScope === 'all') {
-              if (agentId) saveAllVersions(agentId, { attribution });
-            } else {
-              save({ attribution });
-            }
-          } else {
-            saveAs(pendingDescription, { attribution });
-            setPendingDescription(undefined);
-          }
+          if (agentId) saveAllVersions(agentId, { attribution });
         }}
       />
     </div>

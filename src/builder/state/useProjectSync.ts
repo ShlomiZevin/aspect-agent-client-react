@@ -77,7 +77,7 @@ export function bodyOfCrew(crew: CrewDoc): CrewBody {
 
 export interface ProjectSyncApi {
   pushSaveAgentVersion: (agent: AgentDoc) => Promise<void>;
-  pushSaveAgentVersionAs: (agent: AgentDoc, description?: string) => Promise<void>;
+  pushSaveAgentVersionAs: (agent: AgentDoc, description?: string, number?: number) => Promise<void>;
   pushSetAgentActive: (agentId: ID, versionId: ID) => Promise<void>;
   /** `versionId: null` unpublishes. */
   pushSetAgentPublished: (agentId: ID, versionId: ID | null) => Promise<void>;
@@ -91,7 +91,7 @@ export interface ProjectSyncApi {
   /** Persist the sidebar crew order. */
   pushReorderCrews: (agentId: ID, crewIds: ID[]) => Promise<void>;
   pushSaveCrewVersion: (crew: CrewDoc) => Promise<void>;
-  pushSaveCrewVersionAs: (crew: CrewDoc, description?: string) => Promise<void>;
+  pushSaveCrewVersionAs: (crew: CrewDoc, description?: string, number?: number) => Promise<void>;
   pushSetCrewActive: (crewId: ID, versionId: ID) => Promise<void>;
   /** `versionId: null` unpublishes. */
   pushSetCrewPublished: (crewId: ID, versionId: ID | null) => Promise<void>;
@@ -120,13 +120,14 @@ export function useProjectSync(_args: {
         console.error('[builder] saveAgentVersion failed:', err);
       }
     },
-    pushSaveAgentVersionAs: async (agent, description) => {
+    pushSaveAgentVersionAs: async (agent, description, number) => {
       try {
         await api.saveAgentVersionAsApi({
           agentId: agent.id,
           versionId: agent.viewingVersionId,
           body: bodyOfAgent(agent),
           description,
+          number,
         });
       } catch (err) {
         console.error('[builder] saveAgentVersionAs failed:', err);
@@ -162,13 +163,14 @@ export function useProjectSync(_args: {
         console.error('[builder] saveCrewVersion failed:', err);
       }
     },
-    pushSaveCrewVersionAs: async (crew, description) => {
+    pushSaveCrewVersionAs: async (crew, description, number) => {
       try {
         await api.saveCrewVersionAsApi({
           crewId: crew.id,
           versionId: crew.viewingVersionId,
           body: bodyOfCrew(crew),
           description,
+          number,
         });
       } catch (err) {
         console.error('[builder] saveCrewVersionAs failed:', err);

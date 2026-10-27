@@ -12,7 +12,7 @@
  */
 
 import { useMemo } from 'react';
-import { useBuilder, type SaveOpts } from './BuilderContext';
+import { useBuilder, nextAgentWideNumber, type SaveOpts } from './BuilderContext';
 import type { ID, VersionMeta } from '../types';
 
 export interface EntityVersionState {
@@ -55,9 +55,6 @@ export interface EntityVersionState {
   setActive: (versionId: ID) => void;
   /** Set the customer-facing published version. Pass `null` to unpublish. */
   setPublished: (versionId: ID | null) => void;
-  /** Agent-only: publish the agent + every crew to their ACTIVE
-   *  versions in one click. Undefined for crews. */
-  publishAll?: () => void;
 
   // ── Read-only preview (browse a non-active version) ──
   /** The version being previewed read-only for THIS entity, or null. */
@@ -80,85 +77,6 @@ export interface EntityVersionState {
   deleteVersion: (versionId: ID) => Promise<void>;
 }
 
-export function useCrewVersion(agentId: ID, crewId: ID): EntityVersionState | null {
-  const {
-    doc,
-    saveCrewVersion,
-    saveCrewVersionAs,
-    setViewingCrewVersion,
-    setActiveCrewVersion,
-    setPublishedCrewVersion,
-    previewVersion,
-    enterPreview: ctxEnterPreview,
-    exitPreview,
-    editThisVersion,
-    discardCrewChanges,
-    deleteCrewVersion,
-    isCrewDirty,
-    isAgentDirty,
-    pendingAlfredApply,
-  } = useBuilder();
-
-  const crew = useMemo(
-    () => doc.agents.find(a => a.id === agentId)?.crews.find(c => c.id === crewId),
-    [doc, agentId, crewId],
-  );
-
-  if (!crew) return null;
-
-  const crewDirty  = isCrewDirty(agentId, crewId);
-  const agentDirty = isAgentDirty(agentId);
-
-  const nextNumber =
-    crew.versions.reduce((max, v) => Math.max(max, v.number), 0) + 1;
-
-  const hasPendingAlfred = !!pendingAlfredApply?.targets.some(
-    t => !t.applied && (
-      (t.entity === 'crew' && t.entityId === crewId) ||
-      (t.entity === 'agent' && t.entityId === agentId && agentDirty)
-    ),
-  );
-
-  return {
-    entityLabel: 'crew',
-    versions: crew.versions,
-    viewingVersionId: crew.viewingVersionId,
-    activeVersionId: crew.activeVersionId,
-    publishedVersionId: crew.publishedVersionId ?? null,
-    // Each entity's Save reflects and persists ONLY its own changes.
-    // Editing a crew is the crew's business; it never marks the agent
-    // dirty or saves it as a side effect (and vice versa). Use the
-    // agent-level "Save all as…" to snapshot everything at once.
-    isDirty:   crewDirty,
-    ownDirty:  crewDirty,
-    crossDirtyLabel: '',
-    nextNumber,
-    hasPendingAlfred,
-    save: (opts) => {
-      if (crewDirty) saveCrewVersion(agentId, crewId, opts);
-    },
-    saveAs:      (d, opts)  => { saveCrewVersionAs(agentId, crewId, d, opts); },
-    setViewing:  id => setViewingCrewVersion(agentId, crewId, id),
-    setActive:   id => setActiveCrewVersion(agentId, crewId, id),
-    setPublished: id => setPublishedCrewVersion(agentId, crewId, id),
-    previewVersionId:
-      previewVersion && previewVersion.agentId === agentId && previewVersion.crewId === crewId
-        ? previewVersion.versionId
-        : null,
-    previewStashDirty:
-      previewVersion && previewVersion.agentId === agentId && previewVersion.crewId === crewId
-        ? previewVersion.stashDirty
-        : false,
-    enterPreview: id => ctxEnterPreview(agentId, crewId, id, crewDirty),
-    exitPreview,
-    editThisVersion,
-    discard:     () => {
-      if (crewDirty) discardCrewChanges(agentId, crewId);
-    },
-    deleteVersion: vId => deleteCrewVersion(agentId, crewId, vId),
-  };
-}
-
 export function useAgentVersion(agentId: ID): EntityVersionState | null {
   const {
     doc,
@@ -167,7 +85,6 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
     setViewingAgentVersion,
     setActiveAgentVersion,
     setPublishedAgentVersion,
-    publishAllVersions,
     previewVersion,
     enterPreview: ctxEnterPreview,
     exitPreview,
@@ -189,8 +106,8 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
   const agentDirty = isAgentDirty(agentId);
   const dirtyCrewIds = agent.crews.map(c => c.id).filter(id => isCrewDirty(agentId, id));
 
-  const nextNumber =
-    agent.versions.reduce((max, v) => Math.max(max, v.number), 0) + 1;
+  // One number for the whole agent (#923) — the agent and its crews share it.
+  const nextNumber = nextAgentWideNumber(agent);
 
   const hasPendingAlfred = !!pendingAlfredApply?.targets.some(
     t => !t.applied && (
@@ -221,7 +138,6 @@ export function useAgentVersion(agentId: ID): EntityVersionState | null {
     setViewing:  id => setViewingAgentVersion(agentId, id),
     setActive:   id => setActiveAgentVersion(agentId, id),
     setPublished: id => setPublishedAgentVersion(agentId, id),
-    publishAll:  () => publishAllVersions(agentId),
     previewVersionId:
       previewVersion && previewVersion.agentId === agentId && previewVersion.crewId === null
         ? previewVersion.versionId

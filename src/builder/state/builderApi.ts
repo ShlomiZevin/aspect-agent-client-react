@@ -459,6 +459,8 @@ export async function saveAgentVersionAsApi(args: {
   versionId: ID;
   body: AgentBody;
   description?: string;
+  /** The whole agent's shared version number (#923). */
+  number?: number;
 }): Promise<void> {
   await http(`/api/builder/agents/${args.agentId}/versions`, {
     method: 'POST',
@@ -466,6 +468,7 @@ export async function saveAgentVersionAsApi(args: {
       versionId: args.versionId,
       body: args.body,
       description: args.description,
+      number: args.number,
     }),
   });
 }
@@ -550,6 +553,8 @@ export async function saveCrewVersionAsApi(args: {
   versionId: ID;
   body: CrewBody;
   description?: string;
+  /** The whole agent's shared version number (#923). */
+  number?: number;
 }): Promise<void> {
   await http(`/api/builder/crews/${args.crewId}/versions`, {
     method: 'POST',
@@ -557,6 +562,7 @@ export async function saveCrewVersionAsApi(args: {
       versionId: args.versionId,
       body: args.body,
       description: args.description,
+      number: args.number,
     }),
   });
 }

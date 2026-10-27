@@ -156,9 +156,8 @@ export function Sidebar() {
               {agent.crews.map(c => {
                 const isActive = selection.level === 'crew' && selection.crewId === c.id;
                 const isDefault = agent.defaultCrewId === c.id;
-                // Show the ACTIVE version (the editable anchor) — see the
-                // agent pill above.
-                const activeVersion = c.versions.find(v => v.id === c.activeVersionId);
+                // No version number on a crew — the agent has one (#923).
+                // Unsaved changes still show as a dot.
                 const dirty = isCrewDirty(agent.id, c.id);
                 const isDragging = dragCrewId === c.id;
                 const isDropTarget = overCrewId === c.id && dragCrewId !== null && dragCrewId !== c.id;
@@ -208,13 +207,7 @@ export function Sidebar() {
                     >
                       <span className={styles.crewDot} />
                       <span className={styles.crewName}>{c.name}</span>
-                      <span
-                        className={`${styles.versionPill} ${dirty ? styles.versionPillDirty : ''}`}
-                        title={dirty ? 'Unsaved changes' : activeVersion?.description}
-                      >
-                        v{activeVersion?.number ?? '?'}
-                        {dirty && <span className={styles.versionDot} />}
-                      </span>
+                      {dirty && <span className={styles.versionDot} title="Unsaved changes" />}
                     </button>
                     <button
                       type="button"

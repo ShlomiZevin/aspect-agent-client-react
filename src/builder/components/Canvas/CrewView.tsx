@@ -18,11 +18,9 @@
 
 import { useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
-import { useCrewVersion } from '../../state/useEntityVersion';
 import { TitleBar } from '../TitleBar/TitleBar';
 import { ChainCanvas } from '../ChainCanvas/ChainCanvas';
 import { FieldsPanel } from '../FieldsPanel/FieldsPanel';
-import { VersionPill } from '../VersionMenu/VersionPill';
 import { BodyJsonModal } from '../BodyJsonModal/BodyJsonModal';
 import { ValidateAndLogModal } from '../ValidateAndLogModal/ValidateAndLogModal';
 import { HistoryModal } from '../HistoryModal/HistoryModal';
@@ -41,7 +39,6 @@ function findOwnerUserId(): string {
 
 export function CrewView({ agent, crew }: Props) {
   const { updateCrew, pendingAlfredApply } = useBuilder();
-  const versionState = useCrewVersion(agent.id, crew.id);
   const [jsonOpen,    setJsonOpen]    = useState(false);
   const [logOpen,     setLogOpen]     = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -95,12 +92,8 @@ export function CrewView({ agent, crew }: Props) {
           </>
         }
       >
-        {versionState && (
-          /* Save / Save as / Discard / ⭐ Set as active live in the
-             TopBar globally. Keep the pill here for quick "what
-             version am I editing" feedback. */
-          <VersionPill state={versionState} />
-        )}
+        {/* No crew version pill: the agent has one version number (#923),
+            shown on the agent and in the TopBar menu. */}
       </TitleBar>
 
       {hasPendingApplyForCrew && pendingAlfredApply && (

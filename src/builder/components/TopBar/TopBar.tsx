@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useMatch } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useBuilder } from '../../state/BuilderContext';
-import { useAgentVersion, useCrewVersion } from '../../state/useEntityVersion';
+import { useAgentVersion } from '../../state/useEntityVersion';
 import { useAnyDirty } from '../../hooks/useAutoSave';
 import { useConfirm } from '../Confirm/Confirm';
 import { VersionMenu } from '../VersionMenu/VersionMenu';
@@ -188,39 +188,16 @@ export function TopBar({ back, place }: TopBarProps = {}) {
 }
 
 /**
- * Context-aware VersionMenu hosted in the TopBar — global Save / Save
- * as / Discard / ⭐ Set as active for whichever entity the user is
- * editing.
- *
- * THE RULE: crew controls only on the builder's INDEX route (the
- * Cortex canvas). Every nested screen — enums, personas, fields, tags,
- * pinned, live-brain, profiler, triggers — edits the AGENT body, so
- * they all need agent controls.
- *
- * Stated as "index means crew" rather than a list of agent routes,
- * because the list version was already wrong. It matched only the
- * dynamic-context route, so on any OTHER agent-level screen with a crew
- * still selected in the sidebar (the normal state), Save targeted the
- * crew and the agent edit was never written. That is how a trigger
- * could be authored, appear saved, and simply not be there — and the
- * same trap was waiting for Live Brain and Profiler.
- *
- * Both `useAgentVersion` and `useCrewVersion` are called every render
- * to satisfy the rules of hooks; whichever doesn't apply returns null
- * and is ignored.
+ * The VersionMenu hosted in the TopBar — Save / Save as new version /
+ * Publish for the whole agent. Saves always cover the agent and every
+ * crew (#873), and since #923 the version number is the agent's alone,
+ * so there is no crew-level menu to pick between any more.
  */
 function TopBarVersionMenu() {
   const { selection } = useBuilder();
-  const agentId = selection.agentId ?? '';
-  const crewId  = selection.crewId  ?? '';
-  // Exact match — the canvas, with no sub-route after it.
-  const onCanvas = useMatch('/:agent/builder');
-
-  const agentVersion = useAgentVersion(agentId);
-  const crewVersion  = useCrewVersion(agentId, crewId);
-
-  const useCrew = selection.level === 'crew' && !!onCanvas && crewVersion;
-  const state   = useCrew ? crewVersion! : agentVersion;
+  // One version number for the whole agent (#923): the menu is the
+  // agent's on every screen, crew canvas included.
+  const state = useAgentVersion(selection.agentId ?? '');
   if (!state) return null;
   return <VersionMenu state={state} />;
 }
