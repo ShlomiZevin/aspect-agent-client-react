@@ -666,6 +666,117 @@ export interface ConversationMessage {
   createdAt: string;
 }
 
+// ─── Admin → Conversations: list screen + conversation screen (#922) ──
+
+export type ConversationSource = 'live' | 'builder' | 'simulation';
+
+export interface ConversationPageItem {
+  id: number;
+  name: string | null;
+  source: ConversationSource | null;
+  createdAt: string;
+  updatedAt: string;
+  messageCount: number;
+  userId: number | null;
+  ownerUserId: string | null;
+  ownerName: string | null;
+  simulatedBy: string | null;
+}
+
+export interface ConversationPage {
+  agent: { slug: string; name: string } | null;
+  total: number;
+  counts: { all: number; live: number; builder: number; simulation: number };
+  conversations: ConversationPageItem[];
+}
+
+export async function listConversationPage(args: {
+  agentSlug: string;
+  q?: string;
+  from?: string;
+  to?: string;
+  source?: ConversationSource;
+  userId?: number;
+  limit?: number;
+  offset?: number;
+}): Promise<ConversationPage> {
+  const p = new URLSearchParams();
+  for (const k of ['q', 'from', 'to', 'source', 'userId', 'limit', 'offset'] as const) {
+    const v = args[k];
+    if (v !== undefined && v !== null && v !== '') p.set(k, String(v));
+  }
+  return http<ConversationPage>(`/api/agents/${encodeURIComponent(args.agentSlug)}/admin/conversation-list?${p}`);
+}
+
+export interface ProfileField {
+  name: string;
+  domain: string | null;
+  type: string;
+  value: unknown;
+  filled: boolean;
+}
+
+export interface ProfilePanel {
+  id?: string;
+  title: string;
+  render?: string;
+  text?: string;
+  values?: unknown;
+}
+
+export interface ConversationRunSummary {
+  id: string;
+  instanceId: string;
+  pluginId: string;
+  label: string;
+  status: string;
+  startedAt: string;
+  durationMs: number | null;
+  messageId: number | null;
+  turn: number | null;
+  userLine: string;
+  modelLabel: { providerName: string; modelName: string } | null;
+  error: { code: string; message: string } | null;
+  /** 'main' = before the reply; 'offline' / 'background' = after it. */
+  lane: string;
+  /** Steps sharing a group number started together (ran in parallel). */
+  group: number;
+  /** What the step concluded, in one line. */
+  summary: string;
+  /** The crew it moved the conversation to, if it did. */
+  transitionTo: string | null;
+  /** The crew this add-on belongs to (null for agent-level cortex add-ons). */
+  crewName: string | null;
+  writes: { kind: string; domain: string | null; field: string; value: unknown }[];
+}
+
+export interface ConversationOverview {
+  conversation: {
+    id: number;
+    name: string | null;
+    source: ConversationSource | null;
+    agentName: string;
+    createdAt: string;
+    updatedAt: string;
+    messageCount: number;
+    ownerUserId: string | null;
+    ownerName: string | null;
+    simulatedBy: string | null;
+    crewName: string | null;
+  };
+  profile: { fields: ProfileField[]; panels: ProfilePanel[] };
+  runs: ConversationRunSummary[];
+}
+
+export async function getConversationOverview(args: { agentSlug: string; conversationId: number }): Promise<ConversationOverview> {
+  return http<ConversationOverview>(`/api/agents/${encodeURIComponent(args.agentSlug)}/admin/conversations/${args.conversationId}/overview`);
+}
+
+export async function getAddonRun(args: { agentSlug: string; runId: string }): Promise<PersistedAddonRun> {
+  const res = await http<{ run: PersistedAddonRun }>(`/api/agents/${encodeURIComponent(args.agentSlug)}/admin/runs/${encodeURIComponent(args.runId)}`);
+  return res.run;
+}
+
 export async function fetchConversationMessages(args: {
   agentSlug: string;
   conversationId: number;
