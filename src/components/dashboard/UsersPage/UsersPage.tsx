@@ -288,10 +288,11 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
               {chatLinkCopied ? '✓ Copied' : '🔗 Chat link'}
             </button>
           )}
-          {/* On a project page, people are added as sign-in accounts below —
-              one way in (task #113). The old name + phone user stays only on
-              the cross-project super-admin page. */}
-          {superAdmin && (
+          {/* Builder agents sign customers in at /:agent/go with name + phone,
+              so their Users page adds exactly that. Other project pages add
+              people as sign-in accounts below (task #113); the super-admin
+              page keeps both. */}
+          {(superAdmin || agentName) && (
             <button className={`${adminUi.btn} ${adminUi.btnPrimary}`} onClick={() => setShowAddModal(true)}>
               + Add User
             </button>
@@ -324,9 +325,10 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
         </div>
       )}
 
-      {/* Who may sign in is managed right here, for every project: the
-          Intelligence Center is closed without an account (task #113). */}
-      {defaultTenant && !superAdmin && <SignInAccounts tenant={defaultTenant} />}
+      {/* Who may sign in to the Intelligence Center is managed right here: it
+          is closed without an account (task #113). Builder agents use the
+          name + phone users above instead. */}
+      {defaultTenant && !superAdmin && !agentName && <SignInAccounts tenant={defaultTenant} />}
 
       <div className={styles.filters}>
         <input

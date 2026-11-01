@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { WhatsNewItem } from '../../../types/task';
-import { getReleaseHistory } from '../../../services/taskService';
+import { getAssignees, getReleaseHistory } from '../../../services/taskService';
 import { useWhatsNew } from './useWhatsNew';
 import styles from './WhatsNewPopup.module.css';
 
@@ -75,11 +75,23 @@ function groupByDay(list: WhatsNewItem[]) {
  * itself; elsewhere only the task board's What's New button opens it. Hebrew, RTL.
  */
 export function WhatsNewPopup({ auto }: { auto: boolean }) {
-  const { items, incoming, isOpen, open, close, gotIt, dismissIncoming } = useWhatsNew(auto);
+  const { identity, items, incoming, isOpen, open, close, gotIt, dismissIncoming, chooseName } = useWhatsNew(auto);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [tab, setTab] = useState<'new' | 'all'>('new');
   const [history, setHistory] = useState<WhatsNewItem[] | null>(null);
   const [historyFailed, setHistoryFailed] = useState(false);
+  const [team, setTeam] = useState<string[] | null>(null);
+  const askName = isOpen && !identity;
+
+  // No name on this site: the popup asks who is looking, from the team list.
+  useEffect(() => {
+    if (!askName) return;
+    let cancelled = false;
+    getAssignees()
+      .then(list => { if (!cancelled) setTeam(list.map(a => a.name).filter(n => n !== 'Claude' && n !== 'Limbo')); })
+      .catch(() => { if (!cancelled) setTeam([]); });
+    return () => { cancelled = true; };
+  }, [askName]);
 
   // Closing resets to "New", so every opening starts there.
   const reset = () => { setTab('new'); setExpandedId(null); };
@@ -146,6 +158,49 @@ export function WhatsNewPopup({ auto }: { auto: boolean }) {
             <span className={styles.badgeCount}>{items.length}</span>
           </button>
         )}
+      </div>
+    );
+  }
+
+  if (askName) {
+    return (
+      <div className={styles.overlay} onClick={closePanel} dir="rtl" lang="he">
+        <div
+          className={styles.panel}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="whats-new-title"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className={styles.header}>
+            <span className={styles.headerIcon} aria-hidden="true">🎁</span>
+            <div className={styles.headerText}>
+              <h3 id="whats-new-title" className={styles.title}>מה חדש</h3>
+              <div className={styles.subtitle}>בחירת שם פעם אחת, והאתר יזכור אותו</div>
+            </div>
+            <button type="button" className={styles.closeBtn} onClick={closePanel} aria-label="סגירה">×</button>
+          </div>
+          <div className={styles.body}>
+            <div className={styles.namePrompt}>מי צופה בעדכונים?</div>
+            {team === null ? (
+              <div className={styles.empty}>טוען…</div>
+            ) : team.length === 0 ? (
+              <div className={styles.empty}>לא הצלחתי לטעון את רשימת הצוות. אפשר לנסות שוב בעוד רגע.</div>
+            ) : (
+              team.map(name => (
+                <div key={name} className={styles.item}>
+                  <button type="button" className={styles.itemRow} onClick={() => chooseName(name)}>
+                    <span className={styles.dot} aria-hidden="true" />
+                    <span className={styles.itemText}>{name}</span>
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+          <div className={styles.footer}>
+            <button type="button" className={styles.gotItBtn} onClick={closePanel}>סגירה</button>
+          </div>
+        </div>
       </div>
     );
   }

@@ -6,6 +6,9 @@ import { useBoardStream } from '../../../hooks/useBoardStream';
 
 const IDENTITY_KEY = 'aspect_commenter_identity';
 
+/** Set once the popup has asked this browser for a name — it never asks by itself again. */
+const NAME_ASKED_KEY = 'lybi_whats_new_name_asked';
+
 /** Away this long (tab hidden, or no pointer activity) counts as coming back. */
 const AWAY_MS = 20 * 60 * 1000;
 
@@ -14,6 +17,14 @@ const POLL_MS = 60 * 1000;
 
 /** Fired by the task board's What's New button to open the popup on demand. */
 export const OPEN_WHATS_NEW_EVENT = 'lybi:open-whats-new';
+
+function nameAsked(): boolean {
+  try {
+    return localStorage.getItem(NAME_ASKED_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
 
 function readIdentity(): string | null {
   try {
@@ -72,6 +83,14 @@ export function useWhatsNew(auto: boolean) {
   }, []);
 
   const openIfAny = useCallback(async () => {
+    // No name on this site yet: ask once, instead of silently showing nothing.
+    if (!readIdentity()) {
+      if (!nameAsked()) {
+        try { localStorage.setItem(NAME_ASKED_KEY, '1'); } catch { /* still opens */ }
+        setIsOpen(true);
+      }
+      return;
+    }
     const list = await refresh();
     if (list.length > 0) {
       setIsOpen(true);
@@ -182,6 +201,14 @@ export function useWhatsNew(auto: boolean) {
   const close = useCallback(() => setIsOpen(false), []);
   const dismissIncoming = useCallback(() => setIncoming([]), []);
 
+  // The popup's name picker: same key the task board uses, so both know the person from now on.
+  const chooseName = useCallback(async (name: string) => {
+    try { localStorage.setItem(IDENTITY_KEY, name); } catch { /* shown for this visit only */ }
+    setIdentity(name);
+    knownIdsRef.current = null;
+    await refresh();
+  }, [refresh]);
+
   // Watermark = newest item shown, not "now": a release landing while the popup is open stays for next time.
   const gotIt = useCallback(async () => {
     const id = readIdentity();
@@ -201,5 +228,5 @@ export function useWhatsNew(auto: boolean) {
     }
   }, [refresh]);
 
-  return { items, incoming, isOpen, open, close, gotIt, dismissIncoming };
+  return { identity, items, incoming, isOpen, open, close, gotIt, dismissIncoming, chooseName };
 }

@@ -112,6 +112,14 @@
   font-size: 1.6rem;
 }
 
+/* Name picker — shown when this site doesn't know who is looking yet */
+.namePrompt {
+  padding: 18px 22px 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+}
+
 /* Release-day header — stays pinned while its items scroll under it */
 .dayLabel {
   position: sticky;
