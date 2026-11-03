@@ -3,7 +3,7 @@
  * are the statement, and each one opens to show the lines behind it.
  *
  * One component for both surfaces — the chat's answer card and the Apps
- * screens — so a fix to how a statement reads lands in both (task #116). The
+ * screens — so a fix to how a statement reads lands in both (task #112). The
  * server sends the same `blocks` shape to each.
  */
 

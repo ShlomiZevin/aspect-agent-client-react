@@ -242,7 +242,7 @@ export function ChatWidget({ datasetId, open, onClose, headerHeight, expanded, o
               </button>
               {/* Full screen used to offer shrink-to-window and nothing else,
                   so a customer who just wanted the chat GONE had no obvious
-                  button for it (task #116). Same − as the windowed header. */}
+                  button for it (task #112). Same − as the windowed header. */}
               <button className={styles.iconBtn} onClick={onClose} aria-label={t('intel.chat.closeChat')} title={t('intel.chat.minimize')}>−</button>
             </div>
           ) : (

@@ -186,7 +186,7 @@
   line-height: 1;
 }
 
-/* A financial statement inside a screen table (task #116): the total line is
+/* A financial statement inside a screen table (task #112): the total line is
    the row you read, its own lines sit behind a disclosure. Only tables whose
    rows carry an `is_total` flag render this way. */
 .statementTotal td {
@@ -224,7 +224,7 @@
 .statementChevronOpen { transform: rotate(0deg); }
 
 /* A section band in a folded report table: the repeated heading once, with
-   the number of rows behind it, instead of on every row (task #116). */
+   the number of rows behind it, instead of on every row (task #112). */
 .sectionRow td {
   background: var(--ai-surface-alt, #f6f3fb);
   font-weight: 700;

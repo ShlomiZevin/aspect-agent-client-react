@@ -27,7 +27,7 @@ interface Props {
   spec: ScreenSpec;
   data: ScreenDataPayload;
   /** Which client's screen this is. Only the Aspect demo's report tables fold
-      their repeated headings into sections (task #116); every other client's
+      their repeated headings into sections (task #112); every other client's
       screens render exactly as they did. */
   datasetId?: string;
 }
@@ -291,7 +291,7 @@ function DataTable({ from, columnIds, sortable, pageSize, data, datasetId, lang,
   // A FINANCIAL STATEMENT, not a list. The finance views carry their own
   // `is_total` flag per row — it does not have to be one of the DISPLAYED
   // columns — so the table renders the way a statement is read: totals, with
-  // their lines behind a disclosure, like the chat's finance card (task #116).
+  // their lines behind a disclosure, like the chat's finance card (task #112).
   // Sorting would scramble a statement's order, so it turns folding off.
   const hasTotalFlag = set.columns.some(c => c.id === 'is_total');
   const labelMeta = allMetas.find(m => m.type !== 'number' && m.id !== 'is_total');

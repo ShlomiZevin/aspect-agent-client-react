@@ -973,6 +973,7 @@
 
 .qqIconInput { width: 44px; text-align: center; flex-shrink: 0; }
 .qqTextInput { width: 220px; flex-shrink: 0; }
+.qqTopicInput { width: 150px; flex-shrink: 0; }
 .qqQuestionInput { flex: 1; min-width: 0; }
 
 .deleteBtn {

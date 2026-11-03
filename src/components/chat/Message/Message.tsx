@@ -124,7 +124,7 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
   // A finance statement is THE ANSWER, not a follow-up action, so it renders
   // ABOVE the reply: it is ready before the first word is written, and with it
   // below, the report kept being pushed down the screen line by line while the
-  // commentary streamed in over it (task #116). Everything else — Smart Tune's
+  // commentary streamed in over it (task #112). Everything else — Smart Tune's
   // previewed change — still follows the text it is proposing.
   const leadingActions = actionSteps.filter(s => (s.metadata as { kind?: string }).kind === 'finance.report');
   const trailingActions = actionSteps.filter(s => (s.metadata as { kind?: string }).kind !== 'finance.report');

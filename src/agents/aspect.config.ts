@@ -24,6 +24,9 @@ export const aspectConfig: AgentConfig = {
   welcomeMessage: 'Ask me anything about your business metrics, sales data, inventory, and more.',
   inputPlaceholder: 'Ask about your business...',
 
+  // Just "Aspect" on the Intelligence Center welcome, not "Aspect Insight BI".
+  welcomeHeading: 'Aspect',
+
   quickQuestions: [
     { icon: '💰', textKey: 'quick.aspect.salesOverview.text', questionKey: 'quick.aspect.salesOverview.question' },
     { icon: '📈', textKey: 'quick.aspect.topProducts.text', questionKey: 'quick.aspect.topProducts.question' },

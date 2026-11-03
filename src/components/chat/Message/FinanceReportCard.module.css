@@ -1,4 +1,4 @@
-/* The chat's finance card chrome (task #116). The statement inside it brings
+/* The chat's finance card chrome (task #112). The statement inside it brings
    its own styling — this file is only the card around it.
    It renders INSIDE the assistant bubble, which on the Intelligence chat page
    is recolored by an injected sheet (`[class*="_bot_"] *` forces #241A38), so

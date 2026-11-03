@@ -1,9 +1,9 @@
-/* A statement screen (task #116) — a company report, not a grid: a wide
+/* A statement screen (task #112) — a company report, not a grid: a wide
    white sheet, a quiet header, and the statement itself carrying the weight. */
 
 .page {
   /* A statement is a document: it reads as a page of a report, not as a band
-     stretched across the whole monitor (task #116 review). */
+     stretched across the whole monitor (task #112 review). */
   max-width: 1120px;
   margin-inline: auto;
   /* Room above the title: the statement opened hard against the top of the

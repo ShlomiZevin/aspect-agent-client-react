@@ -52,6 +52,49 @@
 
 .questionsLabel { font: 700 11px var(--ai-font-head); letter-spacing: .08em; color: var(--ai-text-mute); text-align: center; margin: 18px 0 12px; }
 
+/* One topic of questions: its name, then its own grid of tiles. A group with
+   no name (nothing was grouped) renders as the bare grid it always was.
+   Loud on purpose — this screen is driven live in front of a customer, and
+   the presenter has to land on the right subject without reading tiles. */
+.group + .group { margin-top: 26px; }
+
+.groupTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 24px 12px;
+}
+
+/* The subject itself: a filled chip, not a quiet caption. */
+.groupName {
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--ai-accent-soft, #efeafc);
+  font: 800 13px var(--ai-font-head);
+  color: var(--ai-text);
+  letter-spacing: .01em;
+}
+
+/* How many questions sit under it — "4 of them, then the next subject". */
+.groupCount {
+  min-width: 20px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--ai-border, #e4dff0);
+  font: 600 11px var(--ai-font-head);
+  color: var(--ai-text-mute);
+  text-align: center;
+}
+
+/* A rule running off the end of the title, so the eye catches where one
+   subject stops and the next begins during a live demo. */
+.groupTitle::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--ai-border, #e4dff0);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

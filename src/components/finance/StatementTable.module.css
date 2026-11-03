@@ -1,4 +1,4 @@
-/* The statement itself (task #116). Used on two surfaces: inside the chat
+/* The statement itself (task #112). Used on two surfaces: inside the chat
    bubble, where an injected sheet forces every text color, and on a full
    screen — so a line never reads as a total by its COLOR alone, only by
    weight and background. */

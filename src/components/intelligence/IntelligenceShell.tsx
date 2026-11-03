@@ -39,7 +39,7 @@ type Mode = 'light' | 'dark';
 /**
  * The demo's statement screens: shelf tile id → the report it opens. Kept
  * here because the shell is what routes /apps/:appId, and these are the only
- * app ids that are neither Procurement nor one of Otto's screens (task #116).
+ * app ids that are neither Procurement nor one of Otto's screens (task #112).
  */
 const FINANCE_APPS: Record<string, string> = {
   'finance-pnl': 'pnl',
@@ -273,7 +273,7 @@ function IntelligenceShellInner({ datasetId, insightId, centerRoute, reportsRout
   const handleChatExpandedChange = (expanded: boolean) => {
     setChatExpanded(expanded);
     // On Home, shrinking the chat is a CHOICE, and it has to survive leaving
-    // for an app and coming back (task #116). It used to navigate to the
+    // for an app and coming back (task #112). It used to navigate to the
     // report center instead, which read as "minimizing the chat threw me onto
     // the Reports page"; Home now renders that same content underneath.
     if (view === 'home') homeChatPrefRef.current = expanded ? 'expanded' : 'docked';
@@ -322,7 +322,7 @@ function IntelligenceShellInner({ datasetId, insightId, centerRoute, reportsRout
   // But only on ARRIVAL, and only as the user last left it: opening an app
   // and coming back used to throw the full-screen chat over the screen again
   // every single time, including on browser Back, with no memory of the user
-  // having just shrunk it (task #116).
+  // having just shrunk it (task #112).
   useEffect(() => {
     const entering = prevViewRef.current !== 'home';
     prevViewRef.current = view;
@@ -531,7 +531,7 @@ function IntelligenceShellInner({ datasetId, insightId, centerRoute, reportsRout
         {view === 'app' && hasApps === true && appId === 'replenishment' && (
           <ProcurementPage datasetId={datasetId} baseURL={baseURL} onAskInChat={askFollowUp} onOpenScopedChat={openScopedChat} />
         )}
-        {/* The demo's financial statements, each its own screen (task #116):
+        {/* The demo's financial statements, each its own screen (task #112):
             a P&L or a balance sheet is a REPORT, with sections that open, not
             a grid of rows. Demo-only — the shelf offers these tiles for the
             aspect dataset alone. */}

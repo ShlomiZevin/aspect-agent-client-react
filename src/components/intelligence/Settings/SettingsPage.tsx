@@ -42,7 +42,7 @@ export function SettingsPage({ datasetId }: Props) {
   // Label/question are edited in the language the UI is in: English edits the
   // base, any other language its own i18n entry — so each language keeps its
   // own wording and the tiles follow the EN/HE toggle.
-  const updateText = (i: number, field: 'text' | 'question', value: string) => {
+  const updateText = (i: number, field: 'text' | 'question' | 'group', value: string) => {
     if (language === 'en') return update(i, { [field]: value });
     setSaved(false);
     setRows(rs => rs.map((r, idx) => {
@@ -93,6 +93,7 @@ export function SettingsPage({ datasetId }: Props) {
             <div className={styles.headerLabels}>
               <span className={styles.iconCol}>{t('intel.settings.icon')}</span>
               <span className={styles.labelCol}>{t('intel.settings.label')}</span>
+              <span className={styles.topicCol}>{t('intel.settings.topic')}</span>
               <span className={styles.questionCol}>{t('intel.settings.question')}</span>
               <span className={styles.removeCol} />
             </div>
@@ -111,6 +112,15 @@ export function SettingsPage({ datasetId }: Props) {
                   value={localizedQuickQuestion(r, language).text}
                   onChange={e => updateText(i, 'text', e.target.value)}
                   placeholder={t('intel.settings.label')}
+                />
+                {/* The heading this tile sits under on the welcome screen.
+                    Tiles sharing a topic are shown together under its name;
+                    leave it empty and they all sit in one grid as before. */}
+                <input
+                  className={styles.qqTopicInput}
+                  value={localizedQuickQuestion(r, language).group}
+                  onChange={e => updateText(i, 'group', e.target.value)}
+                  placeholder={t('intel.settings.topic')}
                 />
                 <input
                   className={styles.qqQuestionInput}

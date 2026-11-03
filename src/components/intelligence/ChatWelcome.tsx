@@ -71,6 +71,22 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
   const usingDbQuestions = !!dbQuestions && dbQuestions.length > 0;
   const questions = usingDbQuestions ? dbQuestions! : (config?.quickQuestions || []);
 
+  // Topics in the order they first appear in the list, so the person who set
+  // the questions decides the running order of the demo. Questions with no
+  // topic fall into one unlabelled group, which is the old single grid.
+  const groups: { label: string; items: { q: QuickQuestion; i: number }[] }[] = [];
+  questions.forEach((q, i) => {
+    const label = localizedQuickQuestion(q, language).group;
+    const bucket = groups.find(g => g.label === label);
+    if (bucket) bucket.items.push({ q, i });
+    else groups.push({ label, items: [{ q, i }] });
+  });
+
+  // The brand on the welcome line. Without an override it is the agent's own
+  // header title plus the shared product suffix ("<name> BI").
+  const welcomeName = config?.welcomeHeading
+    || `${config?.headerTitle || config?.agentName || 'your'} ${t('intel.welcome.titleSuffix')}`;
+
   const submit = () => {
     const q = text.trim();
     const files = attachments.ready;
@@ -87,34 +103,49 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
       <div className={styles.scrollArea}>
       <div className={styles.hero}>
         <span className={styles.mark}>✦</span>
-        <div className={styles.title}>{t('intel.welcome.title')} {config?.headerTitle || config?.agentName || 'your'} {t('intel.welcome.titleSuffix')}</div>
+        <div className={styles.title}>{t('intel.welcome.title')} {welcomeName}</div>
         <div className={styles.subtitle}>{t('intel.welcome.subtitle')}</div>
       </div>
 
       <div className={styles.questionsLabel}>{t('intel.welcome.quickQuestions')}</div>
-      <div className={styles.grid}>
-        {questions.map((q, i) => {
-          const loc = localizedQuickQuestion(q, language);
-          const label = q.textKey ? translations[language][q.textKey] : loc.text;
-          const question = q.questionKey ? translations[language][q.questionKey] : loc.question;
-          return (
-            <button key={i} className={styles.tile} onClick={() => onSend(question, { hidden: true })}>
-              {/* Admin-set questions carry a real emoji to show as-is — that
-                  is the whole point of letting someone pick one per question.
-                  The hardcoded config path keeps its positional SVG set,
-                  unchanged for every agent that hasn't been configured here. */}
-              {usingDbQuestions ? (
-                <span className={styles.tileIcon} aria-hidden="true">{q.icon}</span>
-              ) : (
-                <svg className={styles.tileIcon} width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  {ICONS[KEY_TO_ICON[i] || 'revenue']}
-                </svg>
-              )}
-              <span className={styles.tileLabel}>{toSentenceCase(label)}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Grouped by topic when the questions carry one: on a live demo the
+          presenter has to find "the sales one" in a second, and a dozen
+          identical tiles in one grid is exactly what makes that hard
+          (task #112). A list with no groups renders as the single grid it
+          always was, so no other client's welcome screen moves. */}
+      {groups.map(group => (
+        <div key={group.label || '_'} className={styles.group}>
+          {group.label && (
+            <div className={styles.groupTitle}>
+              <span className={styles.groupName}>{group.label}</span>
+              <span className={styles.groupCount}>{group.items.length}</span>
+            </div>
+          )}
+          <div className={styles.grid}>
+            {group.items.map(({ q, i }) => {
+              const loc = localizedQuickQuestion(q, language);
+              const label = q.textKey ? translations[language][q.textKey] : loc.text;
+              const question = q.questionKey ? translations[language][q.questionKey] : loc.question;
+              return (
+                <button key={i} className={styles.tile} onClick={() => onSend(question, { hidden: true })}>
+                  {/* Admin-set questions carry a real emoji to show as-is — that
+                      is the whole point of letting someone pick one per question.
+                      The hardcoded config path keeps its positional SVG set,
+                      unchanged for every agent that hasn't been configured here. */}
+                  {usingDbQuestions ? (
+                    <span className={styles.tileIcon} aria-hidden="true">{q.icon}</span>
+                  ) : (
+                    <svg className={styles.tileIcon} width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      {ICONS[KEY_TO_ICON[i] || 'revenue']}
+                    </svg>
+                  )}
+                  <span className={styles.tileLabel}>{toSentenceCase(label)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
 
       <div className={styles.spacer} />
       </div>

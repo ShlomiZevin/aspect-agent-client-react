@@ -4,7 +4,7 @@
  * The statement itself is the shared `StatementTable` — the same component the
  * Apps finance screens draw — so the chat and the app never drift apart. This
  * file only adds the card chrome: the report's title, the periods it compares
- * and any notice the books came back with (task #116).
+ * and any notice the books came back with (task #112).
  *
  * Demo-only by construction: only the Aspect demo crew's `get_finance_report`
  * attaches the `finance.report` envelope, and an unknown action kind renders

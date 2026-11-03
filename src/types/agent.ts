@@ -5,16 +5,27 @@ export interface QuickQuestion {
   /** Admin/customer-set tiles: the English base. */
   text?: string;
   question?: string;
-  /** Per-language version of text/question, shown when the UI is in that language (e.g. `he`). */
-  i18n?: Partial<Record<string, { text: string; question: string }>>;
+  /**
+   * The topic this tile belongs to ("Sales", "Inventory"). Tiles that carry
+   * one are shown under that heading; a list where nobody has a group renders
+   * exactly as it always did (task #112 — a live demo needs the subjects
+   * named, not twelve lookalike tiles).
+   */
+  group?: string;
+  /** Per-language version of text/question/group, shown when the UI is in that language (e.g. `he`). */
+  i18n?: Partial<Record<string, { text: string; question: string; group?: string }>>;
   textKey?: string;
   questionKey?: string;
 }
 
-/** A DB-set tile's label + question in the viewer's language, falling back to the base. */
-export function localizedQuickQuestion(q: QuickQuestion, language: string): { text: string; question: string } {
+/** A DB-set tile's label, question and topic in the viewer's language, falling back to the base. */
+export function localizedQuickQuestion(q: QuickQuestion, language: string): { text: string; question: string; group: string } {
   const loc = q.i18n?.[language];
-  return { text: loc?.text || q.text || '', question: loc?.question || q.question || '' };
+  return {
+    text: loc?.text || q.text || '',
+    question: loc?.question || q.question || '',
+    group: loc?.group || q.group || '',
+  };
 }
 
 export interface AgentTheme {
@@ -54,6 +65,13 @@ export interface AgentConfig {
   welcomeIcon: string;
   welcomeTitle: string;
   welcomeMessage: string;
+  /**
+   * The name on the Intelligence Center welcome screen, when it should differ
+   * from `headerTitle` + the shared "BI" suffix — the Aspect demo is called
+   * just "Aspect" there. Every other client keeps the suffix.
+   */
+  welcomeHeading?: string;
+
   quickQuestions: QuickQuestion[];
   inputPlaceholder: string;
 

@@ -48,7 +48,7 @@ export function ChatActionCard({ action, baseURL }: { action: ChatActionEnvelope
     return <ProposalActionCard action={action} baseURL={baseURL} />;
   }
   // A finance statement from the Aspect demo's books — read-only, no buttons:
-  // this one is a RENDERING of the answer, not a proposed change (task #116).
+  // this one is a RENDERING of the answer, not a proposed change (task #112).
   if (action.kind === 'finance.report') {
     return <FinanceReportCard action={action} />;
   }

@@ -746,6 +746,16 @@ function DatasetQuickQuestionsPage() {
                     onChange={e => update(i, { text: e.target.value })}
                     placeholder="Button label"
                   />
+                  {/* The heading the tile sits under on the welcome screen.
+                      Tiles sharing a topic are grouped under its name; leave
+                      it empty and they all sit in one grid, as before. */}
+                  <input
+                    className={styles.qqTopicInput}
+                    value={r.group || ''}
+                    onChange={e => update(i, { group: e.target.value })}
+                    placeholder="Topic (optional)"
+                    title="Groups the tile under this heading"
+                  />
                   <input
                     className={styles.qqQuestionInput}
                     value={r.question || ''}
@@ -759,7 +769,7 @@ function DatasetQuickQuestionsPage() {
             <div className={styles.addRow}>
               <button className={styles.btn} onClick={add}>+ Add question</button>
             </div>
-            <div className={styles.fieldHint}>Icon is a single emoji. Label is the short text on the tile; question is the full text sent when it's clicked.</div>
+            <div className={styles.fieldHint}>Icon is a single emoji. Label is the short text on the tile; question is the full text sent when it's clicked. Topic is optional — tiles that share one are grouped under it on the welcome screen.</div>
           </div>
           <div className={styles.actionsRow}>
             <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={save} disabled={saving} title="Makes these the live quick questions end users see">
