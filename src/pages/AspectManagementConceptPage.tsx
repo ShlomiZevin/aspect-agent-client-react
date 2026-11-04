@@ -4,26 +4,31 @@ import { getBaseURL } from '../services/api';
 import styles from './AspectManagementConceptPage.module.css';
 
 /**
- * Aspect Management — הצעות קונספט למסכים.
+ * Aspect Management — version 0 look & feel.
  *
- * A concepts report, not a spec: for each screen of the system Itzik asked
- * for, two genuinely different design directions, generated as real
- * interfaces, with one question under each pair — which direction, and what
- * to change. His own written spec is NOT reproduced here; he wrote it through
- * an AI and what he actually needs to react to is what the thing looks like.
+ * Four looks for Itzik's management system, each shown on the SAME six
+ * screens (his morning, a developer's hour report, a client, projects, quotes,
+ * asking a question), so he compares looks, not features. One button per look
+ * ("this one"), notes under each, one note box at the end. Kept radically
+ * short: Itzik reads almost nothing — the screens do the talking.
+ *
+ * The looks were generated (GPT Image 2.5 flare / sunburst, LOW) from prompts
+ * that state what each screen is for and what it holds, plus a design
+ * direction per look — never a layout.
  *
  * The choice and the notes ride on the existing page-comments API rather than
- * a new endpoint: the client can be deployed on its own, the server cannot, so
- * a new route would mean this page could not ship. A choice is stored as a
- * comment under a `prio-<screen>` id — SectionComments only ever lists its own
- * section's id, so a choice never shows up inside the notes beside it.
+ * a new endpoint: the client can be deployed on its own, the server cannot. A
+ * choice is stored as a comment under the `prio-look` id; SectionComments only
+ * lists its own section's id, so a choice never shows up among the notes.
  */
 
 const PAGE_KEY = 'aspect-management';
-/** The id a choice is stored under. A HYPHEN, not a colon: the server
- *  validates ids against /^[a-z0-9][a-z0-9-]{0,99}$/ and refuses the rest. */
-const PRIO_PREFIX = 'prio-';
+/** The id the choice is stored under. A HYPHEN, not a colon: the server
+ *  validates ids against /^[a-z0-9][a-z0-9-]{0,99}$/ and refuses the rest.
+ *  A new id for this round — earlier rounds stored under `prio-direction`. */
+const CHOICE_ID = 'prio-look';
 const NAME_KEY = 'aspect_page_comment_author';
+const IMG_DIR = '/aspect-management/look';
 const FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&display=swap';
 
 function ensureFonts() {
@@ -47,9 +52,9 @@ const COMMENT_TOKENS: CommentTokens = {
     one: 'הערה אחת',
     many: '{n} הערות',
     hide: 'סגירת ההערות',
-    add: 'מה לשנות כאן?',
+    add: 'מה לשנות?',
     name: 'השם שלך',
-    placeholder: 'מה חסר, מה מיותר, ומה צריך להיראות אחרת',
+    placeholder: 'מה אהבת, מה לא',
     send: 'שליחה',
     sending: 'שולח…',
     cancel: 'ביטול',
@@ -61,17 +66,38 @@ const COMMENT_TOKENS: CommentTokens = {
   },
 };
 
-/** Which design language was chosen: the id of one of the three. */
-type ChoiceId = string;
-const VALID_CHOICES = ['calm', 'cards', 'talk'];
+/** The six screens, in the order every look shows them. */
+const SCREENS = [
+  { n: 1, name: 'הבוקר שלך' },
+  { n: 2, name: 'מפתח מדווח שעות' },
+  { n: 3, name: 'לקוח' },
+  { n: 4, name: 'פרויקטים' },
+  { n: 5, name: 'הצעות מחיר' },
+  { n: 6, name: 'שואלים את המערכת' },
+];
 
-interface StoredChoice { value: ChoiceId; author: string }
+interface LookDef {
+  id: string;
+  letter: string;
+  name: string;
+  line: string;
+}
 
-function useChoices() {
+const LOOKS: LookDef[] = [
+  { id: 'room', letter: 'א', name: 'חדר מצב', line: 'רואים מיד מה דורש החלטה ומה עובד.' },
+  { id: 'ledger', letter: 'ב', name: 'פנקס חכם', line: 'כל העבודה מסודרת במקום אחד שאי אפשר לפספס.' },
+  { id: 'brief', letter: 'ג', name: 'המנהל השקט', line: 'המערכת אומרת רק מה חשוב, בשפה פשוטה.' },
+  { id: 'route', letter: 'ד', name: 'על המסלול', line: 'כל לקוח ופרויקט מתקדם במסלול ברור.' },
+];
+const VALID = LOOKS.map(l => l.id);
+
+interface StoredChoice { value: string; author: string }
+
+function useChoice() {
   const base = getBaseURL();
-  const [chosen, setChosen] = useState<Record<string, StoredChoice>>({});
-  const chosenRef = useRef(chosen);
-  chosenRef.current = chosen;
+  const [choice, setChoice] = useState<StoredChoice | null>(null);
+  const choiceRef = useRef(choice);
+  choiceRef.current = choice;
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -80,135 +106,143 @@ function useChoices() {
       .then(r => (r.ok ? r.json() : { comments: [] }))
       .then(d => {
         if (cancelled) return;
-        const map: Record<string, StoredChoice> = {};
+        let last: StoredChoice | null = null;
+        // Last writer wins: the list arrives oldest first.
         for (const c of Array.isArray(d.comments) ? d.comments : []) {
-          if (typeof c.sectionId !== 'string' || !c.sectionId.startsWith(PRIO_PREFIX)) continue;
-          const value = String(c.body || '').trim() as ChoiceId;
-          if (!VALID_CHOICES.includes(value)) continue;
-          // Last writer wins: the list arrives oldest first.
-          map[c.sectionId.slice(PRIO_PREFIX.length)] = { value, author: String(c.author || '') };
+          if (c.sectionId !== CHOICE_ID) continue;
+          const value = String(c.body || '').trim();
+          if (VALID.includes(value)) last = { value, author: String(c.author || '') };
         }
-        setChosen(map);
+        setChoice(last);
       })
-      .catch(() => { /* the concepts still read without the marks */ });
+      .catch(() => { /* the looks still show without the mark */ });
     return () => { cancelled = true; };
   }, [base]);
 
-  const choose = useCallback(async (screenId: string, value: ChoiceId, author: string) => {
-    const previous = chosenRef.current[screenId];
-    setChosen(prev => ({ ...prev, [screenId]: { value, author } }));
+  const choose = useCallback(async (value: string, author: string) => {
+    const previous = choiceRef.current;
+    setChoice({ value, author });
     setFailed(false);
     try {
       const res = await fetch(`${base}/api/page-comments/${PAGE_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sectionId: `${PRIO_PREFIX}${screenId}`, author, body: value }),
+        body: JSON.stringify({ sectionId: CHOICE_ID, author, body: value }),
       });
       if (!res.ok) throw new Error(String(res.status));
     } catch {
       // A choice that was never stored must not sit there looking saved.
-      setChosen(prev => {
-        const next = { ...prev };
-        if (previous) next[screenId] = previous; else delete next[screenId];
-        return next;
-      });
+      setChoice(previous);
       setFailed(true);
     }
   }, [base]);
 
-  return { chosen, choose, failed };
+  return { choice, choose, failed };
 }
 
-interface DirectionDef {
-  id: string;
-  letter: string;
-  name: string;
-  idea: string;
-  what: string;
-  shots: { img: string; caption: string }[];
+function Look({ def, picked, onPick, onOpen }: {
+  def: LookDef;
+  picked: StoredChoice | null;
+  onPick: (value: string, author: string) => void;
+  onOpen: (src: string, alt: string) => void;
+}) {
+  const isPicked = picked?.value === def.id;
+  return (
+    <section className={`${styles.look} ${isPicked ? styles.lookPicked : ''}`} id={def.id}>
+      <div className={styles.lookHead}>
+        <span className={styles.letter}>{def.letter}</span>
+        <div>
+          <h2 className={styles.lookName}>{def.name}</h2>
+          <p className={styles.lookLine}>{def.line}</p>
+        </div>
+      </div>
+
+      <div className={styles.screens}>
+        {SCREENS.map(s => {
+          const src = `${IMG_DIR}/${def.id}-${s.n}.jpg`;
+          const alt = `${def.name} — ${s.name}`;
+          return (
+            <figure key={s.n} className={styles.screen}>
+              <button type="button" className={styles.shot} onClick={() => onOpen(src, alt)} aria-label={`הגדלה: ${alt}`}>
+                <img src={src} alt={alt} loading="lazy" />
+              </button>
+              <figcaption className={styles.screenName}>{s.name}</figcaption>
+            </figure>
+          );
+        })}
+      </div>
+
+      <div className={styles.lookFoot}>
+        <PickButton id={def.id} isPicked={isPicked} who={isPicked ? picked?.author : undefined} onPick={onPick} />
+      </div>
+      <div className={styles.notes}>
+        <SectionComments sectionId={`look-${def.id}`} />
+      </div>
+    </section>
+  );
 }
 
 /**
- * Three design LANGUAGES for the whole system, not seven screens to judge one
- * by one. Each is shown on the same two screens — the owner's daily view and
- * the developer's reporting — so they can be compared like for like, and the
- * reader makes ONE choice at the end.
+ * "This one". The choice needs a name; when none is known yet the first click
+ * asks for it right there, instead of a button that silently does nothing.
  */
-const DIRECTIONS: DirectionDef[] = [
-  {
-    id: 'calm',
-    letter: 'א',
-    name: 'שקט',
-    idea: 'מסך אחד אומר לך דבר אחד.',
-    what: 'המערכת עונה על השאלה החשובה — "הכל בסדר היום?" — במשפט גדול אחד, ומתחתיו ארבעה מספרים. כל השאר מחכה מאחורה עד שתבקש אותו.',
-    shots: [
-      { img: 'dir_calm_owner.jpg', caption: 'המסך שלך בבוקר' },
-      { img: 'dir_calm_dev.jpg', caption: 'הדיווח של המפתח' },
-    ],
-  },
-  {
-    id: 'cards',
-    letter: 'ב',
-    name: 'כרטיסים',
-    idea: 'כמה כרטיסים גדולים, בכל אחד נושא אחד ומה לעשות איתו.',
-    what: 'חריגה בתקציב, לקוחות שמחכים, הצעות שיצאו — כל נושא הוא כרטיס עם מספר אחד וכפתור אחד. בלי טבלאות, בלי תפריטים עמוקים.',
-    shots: [
-      { img: 'dir_cards_owner.jpg', caption: 'המסך שלך בבוקר' },
-      { img: 'dir_cards_dev.jpg', caption: 'הדיווח של המפתח' },
-    ],
-  },
-  {
-    id: 'talk',
-    letter: 'ג',
-    name: 'המערכת מדברת',
-    idea: 'משפטים קצרים במקום טבלאות.',
-    what: 'המערכת מספרת לך מה קרה אתמול ומה צריך החלטה, בשורות קצרות עם המספרים בתוך המשפט — כמו עוזר אישי שמעדכן אותך בבוקר.',
-    shots: [
-      { img: 'dir_talk_owner.jpg', caption: 'המסך שלך בבוקר' },
-      { img: 'dir_talk_dev.jpg', caption: 'הדיווח של המפתח' },
-    ],
-  },
-];
-
-function Direction({ def, chosen }: {
-  def: DirectionDef;
-  chosen: Record<string, StoredChoice>;
+function PickButton({ id, isPicked, who, onPick }: {
+  id: string;
+  isPicked: boolean;
+  who?: string;
+  onPick: (value: string, author: string) => void;
 }) {
-  const picked = chosen.direction?.value === def.id;
+  const [asking, setAsking] = useState(false);
+  const [name, setName] = useState('');
+
+  const storedName = () => {
+    try { return localStorage.getItem(NAME_KEY) || ''; } catch { return ''; }
+  };
+
+  const click = () => {
+    const known = storedName().trim();
+    if (known) onPick(id, known);
+    else setAsking(true);
+  };
+
+  const confirm = () => {
+    const who = name.trim();
+    if (!who) return;
+    try { localStorage.setItem(NAME_KEY, who); } catch { /* private mode */ }
+    setAsking(false);
+    onPick(id, who);
+  };
+
+  if (asking) {
+    return (
+      <form className={styles.nameAsk} onSubmit={e => { e.preventDefault(); confirm(); }}>
+        <input
+          className={styles.nameInput}
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="השם שלך"
+          aria-label="השם שלך"
+          autoFocus
+        />
+        <button type="submit" className={styles.pick} disabled={!name.trim()}>אישור</button>
+      </form>
+    );
+  }
+
   return (
-    <section className={`${styles.section} ${picked ? styles.sectionChosen : ''}`} id={def.id}>
-      <div className={styles.sectionHead}>
-        <span className={styles.num}>{def.letter}</span>
-        <h2 className={styles.h2}>{def.name}</h2>
-      </div>
-      <p className={styles.idea}>{def.idea}</p>
-      <p className={styles.lead}>{def.what}</p>
-
-      <div className={styles.concepts}>
-        {def.shots.map(shot => (
-          <figure key={shot.img} className={styles.concept}>
-            <figcaption className={styles.conceptHead}>
-              <span className={styles.conceptCaption}>{shot.caption}</span>
-            </figcaption>
-            {/* Opens full size in a new tab — the point is the screen itself. */}
-            <a href={`/aspect-management/${shot.img}`} target="_blank" rel="noreferrer">
-              <img src={`/aspect-management/${shot.img}`} alt={`${def.name} — ${shot.caption}`} loading="lazy" />
-            </a>
-          </figure>
-        ))}
-      </div>
-
-      <div className={styles.notes}>
-        <SectionComments sectionId={def.id} />
-      </div>
-    </section>
+    <div className={styles.pickRow}>
+      <button type="button" className={styles.pick} aria-pressed={isPicked} onClick={click}>
+        {isPicked ? '✓ זה שבחרת' : 'זה מוצא חן בעיניי'}
+      </button>
+      {isPicked && who && <span className={styles.pickWho}>נבחר על ידי {who}</span>}
+    </div>
   );
 }
 
 export function AspectManagementConceptPage() {
   useEffect(() => {
     ensureFonts();
-    document.title = 'Aspect Management — הצעות קונספט';
+    document.title = 'Aspect Management — איך המערכת תיראה';
 
     // The app's global CSS pins html, body and #root to height:100% with
     // overflow:hidden — right for the chat, fatal for a document: the page
@@ -224,7 +258,7 @@ export function AspectManagementConceptPage() {
     document.documentElement.style.height = 'auto';
     document.body.style.overflow = 'auto';
     document.body.style.height = 'auto';
-    document.body.style.background = '#f6f7fb';
+    document.body.style.background = '#f4f4f1';
     if (root) {
       root.style.overflow = 'visible';
       root.style.height = 'auto';
@@ -237,100 +271,53 @@ export function AspectManagementConceptPage() {
     };
   }, []);
 
-  const { chosen, choose, failed } = useChoices();
-  const picked = chosen.direction;
-  const pickedName = picked ? DIRECTIONS.find(d => d.id === picked.value)?.name : null;
+  const { choice, choose, failed } = useChoice();
+  const [open, setOpen] = useState<{ src: string; alt: string } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
 
   return (
     <PageCommentsProvider pageKey={PAGE_KEY} t={COMMENT_TOKENS}>
       <div className={styles.page}>
         <div className={styles.bar}>
-          <span className={styles.barName}>Aspect Management · הצעת עיצוב</span>
+          <span className={styles.barName}>Aspect Management</span>
           <nav className={styles.barNav}>
-            {DIRECTIONS.map(d => (
-              <a key={d.id} className={styles.barLink} href={`#${d.id}`}>{d.name}</a>
+            {LOOKS.map(l => (
+              <a key={l.id} className={styles.barLink} href={`#${l.id}`}>{l.letter}. {l.name}</a>
             ))}
-            <a className={styles.barLink} href="#choose">הבחירה</a>
           </nav>
         </div>
 
         <header className={styles.hero}>
-          <h1 className={styles.h1}>שלוש דרכים שבהן המערכת יכולה להיראות</h1>
-          <p className={styles.lede}>
-            אותה מערכת, שלוש שפות עיצוב. כל אחת מוצגת על אותם שני מסכים: מה אתה רואה בבוקר,
-            ואיך מפתח מדווח בסוף היום. תבחר אחת למטה — זו שנבחר תהיה השפה של כל המערכת.
-          </p>
-          <p className={styles.note}>
-            השמות והמספרים בתמונות הם דוגמה בלבד. לחיצה על תמונה פותחת אותה בגדול.
-          </p>
-          {failed && <p className={styles.saveFailed}>הבחירה לא נשמרה. בדקו את החיבור ונסו שוב.</p>}
+          <h1 className={styles.h1}>איך המערכת שלך תיראה?</h1>
+          <p className={styles.lede}>ארבעה סגנונות. אותם שישה מסכים. תבחר את מה שנעים לך.</p>
+          <p className={styles.note}>השמות והמספרים — דוגמה. לחיצה על מסך מגדילה אותו.</p>
+          {failed && <p className={styles.saveFailed}>הבחירה לא נשמרה. נסו שוב.</p>}
         </header>
 
-        {DIRECTIONS.map(def => <Direction key={def.id} def={def} chosen={chosen} />)}
+        {LOOKS.map(def => (
+          <Look key={def.id} def={def} picked={choice} onPick={choose} onOpen={(src, alt) => setOpen({ src, alt })} />
+        ))}
 
-        <div className={styles.closing} id="choose">
-          <div className={styles.closingCard}>
-            <h2 className={styles.closingTitle}>איזו מהשלוש?</h2>
-            <p className={styles.lead}>
-              {pickedName
-                ? `נבחר: ${pickedName}. אפשר לשנות בכל רגע, ולכתוב למטה מה להתאים.`
-                : 'בחר אחת, וכתוב למטה אם משהו צריך להיות אחרת.'}
-            </p>
-            <DirectionChoice chosen={chosen} choose={choose} />
-            <div className={styles.notes}>
-              <SectionComments sectionId="closing" />
-            </div>
+        <div className={styles.closing}>
+          <h2 className={styles.closingTitle}>משהו חסר? משהו מיותר?</h2>
+          <div className={styles.notes}>
+            <SectionComments sectionId="look-closing" />
           </div>
         </div>
+
+        {open && (
+          <div className={styles.lightbox} onClick={() => setOpen(null)} role="dialog" aria-label={open.alt}>
+            <img src={open.src} alt={open.alt} />
+            <button type="button" className={styles.lightboxClose} onClick={() => setOpen(null)} aria-label="סגירה">✕</button>
+          </div>
+        )}
       </div>
     </PageCommentsProvider>
-  );
-}
-
-/** The one question the page asks: which of the three. */
-function DirectionChoice({ chosen, choose }: {
-  chosen: Record<string, StoredChoice>;
-  choose: (screenId: string, value: ChoiceId, author: string) => void;
-}) {
-  const [name, setName] = useState(() => {
-    try { return localStorage.getItem(NAME_KEY) || ''; } catch { return ''; }
-  });
-  const current = chosen.direction;
-
-  const pick = (value: string) => {
-    const who = name.trim();
-    if (!who) return;
-    try { localStorage.setItem(NAME_KEY, who); } catch { /* private mode */ }
-    choose('direction', value as ChoiceId, who);
-  };
-
-  return (
-    <div className={styles.priority}>
-      {!name.trim() && (
-        <span className={styles.nameAsk}>
-          <input
-            className={styles.nameInput}
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="השם שלך"
-            aria-label="השם שלך"
-          />
-        </span>
-      )}
-      {DIRECTIONS.map(d => (
-        <button
-          key={d.id}
-          type="button"
-          className={`${styles.chip} ${styles.chipBig}`}
-          aria-pressed={current?.value === d.id}
-          onClick={() => pick(d.id)}
-          disabled={!name.trim()}
-          title={name.trim() ? undefined : 'כתבו קודם את השם'}
-        >
-          {d.letter}. {d.name}
-        </button>
-      ))}
-      {current && <span className={styles.priorityWho}>נבחר על ידי {current.author}</span>}
-    </div>
   );
 }
