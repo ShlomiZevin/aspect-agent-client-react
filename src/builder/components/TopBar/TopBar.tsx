@@ -7,7 +7,7 @@ import { useConfirm } from '../Confirm/Confirm';
 import { VersionMenu } from '../VersionMenu/VersionMenu';
 import { BuilderSettingsPopover, useBuilderSettings } from './BuilderSettings';
 import { PromptGuideModal } from '../PromptGuide/PromptGuideModal';
-import { FolderDraftsModal, IncomingDraftModal } from '../FolderDrafts';
+import { FolderDraftsModal, IncomingDraftModal, IncomingServerVersionModal } from '../FolderDrafts';
 import { fetchAgentDelisted, fetchAiBundleVersion, setAgentDelisted } from '../../state/builderApi';
 import {
   isSupported as folderSupported, readBundleVersion, rememberedFolder,
@@ -183,6 +183,7 @@ export function TopBar({ back, place }: TopBarProps = {}) {
       {/* Mounted here because it must appear wherever the user is — an
           assistant can finish while they are on any screen. */}
       <IncomingDraftModal />
+      <IncomingServerVersionModal />
     </>
   );
 }

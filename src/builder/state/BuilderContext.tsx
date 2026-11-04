@@ -19,7 +19,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useProjectSync, type ProjectSyncApi } from './useProjectSync';
-import { fetchProject, saveProjectSpecApi, writeApplyLog, type LiveBrainPanelData } from './builderApi';
+import { fetchAgentHead, fetchProject, saveProjectSpecApi, writeApplyLog, type LiveBrainPanelData } from './builderApi';
 import type {
   AddonContext,
   AddonInstance,
@@ -857,6 +857,13 @@ interface BuilderState {
   acceptIncomingDraft: () => void;
   dismissIncomingDraft: () => void;
 
+  /** Set when a version of this agent was saved outside this screen — an AI
+   *  assistant over the MCP, another tab (#952). `dirty`: the screen has
+   *  unsaved changes that loading would replace. */
+  incomingServerVersion: { number: number | null; description: string | null; dirty: boolean } | null;
+  acceptServerVersion: () => Promise<void>;
+  dismissServerVersion: () => void;
+
   // Preview conversation — the conversationId for the in-builder
   // "User Chat" panel. Exposed so prompt-preview views can fetch
   // the actual transcript for the history sidebar.
@@ -1004,6 +1011,22 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   const docRef = useRef<ProjectDoc>(doc);
   docRef.current = doc;
 
+  // Every agent / crew / version id this screen has held. A server id not in
+  // here was saved somewhere else (#952). Ids only ever join: a crew deleted
+  // here, still on the server for a moment, must not look like news.
+  const knownIdsRef = useRef<Set<string>>(new Set());
+  for (const agent of doc.agents) {
+    knownIdsRef.current.add(agent.id);
+    for (const v of agent.versions) knownIdsRef.current.add(v.id);
+    for (const crew of agent.crews) {
+      knownIdsRef.current.add(crew.id);
+      for (const v of crew.versions) knownIdsRef.current.add(v.id);
+    }
+  }
+  const [incomingServerVersion, setIncomingServerVersion] = useState<
+    { number: number | null; description: string | null; dirty: boolean; ids: string[] } | null
+  >(null);
+
   // ── Read-only version preview ──────────────────────────────────
   // Browsing a NON-active version shows it read-only WITHOUT disturbing
   // your editable draft: we stash the current doc, load the previewed
@@ -1135,6 +1158,43 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
         }
       })();
     }, 3000);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [agentSlug, previewVersion]);
+
+  /**
+   * Notice saves made outside this screen (#952). An AI assistant posting
+   * over the MCP saves a new version on the server directly — no folder
+   * file, so the watcher above never fires, and the screen kept showing
+   * the old agent. Saving from it then put the old content back on top.
+   *
+   * Asks the server which versions are current; any id this screen has
+   * never held is someone else's save, and is offered like a folder draft.
+   * Our own saves never trigger it: their ids are minted here before they
+   * reach the server.
+   */
+  useEffect(() => {
+    if (previewVersion) return;
+    let cancelled = false;
+    const check = async () => {
+      if (cancelled || document.visibilityState !== 'visible') return;
+      try {
+        const head = await fetchAgentHead(agentSlug);
+        if (cancelled || !head) return;
+        const known = knownIdsRef.current;
+        const ids = [head.activeVersionId, ...head.crews.flatMap(c => [c.id, c.activeVersionId])]
+          .filter((id): id is string => !!id && !known.has(id));
+        // Nothing new — or it arrived here meanwhile (a reload, Alfred's Apply).
+        if (ids.length === 0) { setIncomingServerVersion(null); return; }
+        setIncomingServerVersion({
+          number: head.number,
+          description: head.description,
+          dirty: draftHasUnsavedWork(docRef.current),
+          ids,
+        });
+      } catch { /* offline for a moment — try again next tick */ }
+    };
+    void check();
+    const id = window.setInterval(() => void check(), 4000);
     return () => { cancelled = true; window.clearInterval(id); };
   }, [agentSlug, previewVersion]);
 
@@ -2881,6 +2941,19 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     }
   }, [agentSlug, ownerUserId]);
 
+  /** Load the version saved elsewhere — the server's current agent replaces the screen. */
+  const acceptServerVersion = useCallback(async () => {
+    await reloadProject();
+    setIncomingServerVersion(null);
+  }, [reloadProject]);
+
+  /** Keep the screen. That save stays the server's latest until the next save here. */
+  const dismissServerVersion = useCallback(() => {
+    const incoming = incomingServerVersion;
+    if (incoming) for (const id of incoming.ids) knownIdsRef.current.add(id);
+    setIncomingServerVersion(null);
+  }, [incomingServerVersion]);
+
   const resetToServerState = useCallback(async () => {
     // Bulletproof Reset: wipe the local draft AND hard-reload. We used
     // to do clearDraft + fetchProject + setDoc, but the in-memory React
@@ -2968,6 +3041,9 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       incomingFolderDraft,
       acceptIncomingDraft,
       dismissIncomingDraft,
+      incomingServerVersion,
+      acceptServerVersion,
+      dismissServerVersion,
       previewConversationId,
       setPreviewConversationId,
       pendingSeeds,
@@ -3046,6 +3122,9 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       incomingFolderDraft,
       acceptIncomingDraft,
       dismissIncomingDraft,
+      incomingServerVersion,
+      acceptServerVersion,
+      dismissServerVersion,
       previewConversationId,
       pendingSeeds,
       liveBrainPanelEvent,

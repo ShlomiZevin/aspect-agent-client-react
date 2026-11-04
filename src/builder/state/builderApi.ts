@@ -423,6 +423,22 @@ export async function fetchProject(args: {
   return res.json();
 }
 
+/** The agent's and crews' current version ids on the server, no bodies (#952). */
+export interface AgentHead {
+  agentId: string;
+  activeVersionId: string | null;
+  number: number | null;
+  description: string | null;
+  crews: { id: string; activeVersionId: string | null }[];
+}
+
+export async function fetchAgentHead(agentSlug: string): Promise<AgentHead | null> {
+  const res = await fetch(`${BASE_URL}/api/builder/projects/head?${new URLSearchParams({ agentSlug })}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`fetchAgentHead ${res.status}`);
+  return res.json();
+}
+
 export async function bootstrapProject(args: {
   ownerUserId: string;
   projectId: string;
