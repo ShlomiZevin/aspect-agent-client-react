@@ -17,6 +17,7 @@ import {
   subscribeToLibrary,
   type LibraryEntry,
 } from '../../state/addonLibrary';
+import { useRetiredAddons } from '../../state/useRetiredAddons';
 import type { AddonLane } from '../../types';
 import styles from './AddStepModal.module.css';
 
@@ -64,11 +65,13 @@ export function AddStepModal({ open, onClose, lane, onPick, scope = 'crew' }: Pr
     if (open) setTab('blank');
   }, [open]);
 
+  // Not offered on this environment (#955) — existing ones still run.
+  const retired = useRetiredAddons();
   const plugins = listPlugins().filter(p =>
-    scope === 'agent' ? !AGENT_FORBIDDEN_PLUGINS.has(p.id) : true,
+    !retired.has(p.id) && (scope === 'agent' ? !AGENT_FORBIDDEN_PLUGINS.has(p.id) : true),
   );
   const visibleEntries = entries.filter(e =>
-    scope === 'agent' ? !AGENT_FORBIDDEN_PLUGINS.has(e.pluginId) : true,
+    !retired.has(e.pluginId) && (scope === 'agent' ? !AGENT_FORBIDDEN_PLUGINS.has(e.pluginId) : true),
   );
 
   return (

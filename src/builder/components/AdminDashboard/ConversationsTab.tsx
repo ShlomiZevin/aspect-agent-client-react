@@ -559,7 +559,7 @@ function fmtClock(iso: string): string {
 
 /** Each add-on type as the Builder shows it — same emoji (builder/addons/*.addon.json). */
 const TYPES: Record<string, { label: string; icon: string; tone: string }> = {
-  'field-extractor':   { label: 'Field extractor', icon: '📥', tone: 'blue' },
+  'field-extractor':   { label: 'Extractor', icon: '📥', tone: 'blue' },
   'field-interviewer': { label: 'Field interviewer', icon: '🎤', tone: 'blue' },
   'field-reasoner':    { label: 'Field reasoner', icon: '🧠', tone: 'blue' },
   'vibe-extractor':    { label: 'Vibe extractor', icon: '🧐', tone: 'blue' },

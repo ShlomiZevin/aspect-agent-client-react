@@ -313,7 +313,7 @@ export function FieldsPanel({ agentId, crewId, layout = 'stack' }: Props) {
         {allFields.length === 0 ? (
           <div className={styles.empty}>
             {crewId
-              ? <>No fields yet. Click <strong>+ Add field</strong> — if you don't have a Field Extractor yet, one will be created automatically.</>
+              ? <>No fields yet. Click <strong>+ Add field</strong> — if you don't have an Extractor yet, one will be created automatically.</>
               : 'No fields yet. Add one from a crew view.'
             }
           </div>
@@ -821,7 +821,7 @@ function FieldRow({ cf, onPick, onDelete, liveValue, showCrewChip, enumNameById,
         ) : extractorCount === 0 && mentionRefs.length === 0 ? (
           <span
             className={styles.unwired}
-            title="No Field Extractor references this field — open the editor to wire one"
+            title="No Extractor references this field — open the editor to wire one"
           >
             ⚠ no extractor
           </span>

@@ -183,7 +183,7 @@ export function WireToCrewModal({
         <div className={styles.list}>
           <div className={styles.hint}>
             Pick declared agent fields to collect in {crewName}.
-            They'll be added to the crew's Field Extractor
+            They'll be added to the crew's Extractor
             (one will be created if none exists yet).
           </div>
           {grouped.groups.map(([domainName, list]) => (

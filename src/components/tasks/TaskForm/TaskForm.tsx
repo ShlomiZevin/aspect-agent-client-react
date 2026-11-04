@@ -3,6 +3,7 @@ import type { Task, Assignee, CreateTaskData, TaskStatus, TaskPriority, TaskType
 import type { CrewMember } from '../../../types/crew';
 import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
 import { CommentsSection } from '../CommentsSection/CommentsSection';
+import { AttachmentsSection } from '../AttachmentsSection/AttachmentsSection';
 import { WhatChangedSection, DeliveredBar } from './ReleaseSections';
 import { getDraftDefault } from '../../../utils/userIdentifier';
 import * as commentsService from '../../../services/commentsService';
@@ -688,6 +689,8 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
               placeholder="Optional description..."
             />
           </div>
+
+          {task && <AttachmentsSection taskId={task.id} />}
 
           {/* === Goal-specific simplified fields === */}
           {isGoal ? (

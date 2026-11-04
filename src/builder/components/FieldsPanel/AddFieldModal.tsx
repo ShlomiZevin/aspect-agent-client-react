@@ -548,8 +548,8 @@ export function AddFieldModal({
             {noExtractorsAnywhere && (
               <div className={styles.extractorPickEmpty}>
                 {willCreateExtractor
-                  ? 'No Field Extractors anywhere yet. A new one will be created in this crew when you add the field.'
-                  : 'No Field Extractors anywhere yet — none will be created for this field.'}
+                  ? 'No Extractors anywhere yet. A new one will be created in this crew when you add the field.'
+                  : 'No Extractors anywhere yet — none will be created for this field.'}
               </div>
             )}
             {byCrew.map(group => (

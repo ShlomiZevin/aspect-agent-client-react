@@ -423,6 +423,11 @@ export async function fetchProject(args: {
   return res.json();
 }
 
+/** What the Builder needs to know about this environment (#955). */
+export async function fetchBuilderEnvironment(): Promise<{ id: string; retiredAddons: string[] }> {
+  return http<{ id: string; retiredAddons: string[] }>('/api/builder/environment');
+}
+
 /** The agent's and crews' current version ids on the server, no bodies (#952). */
 export interface AgentHead {
   agentId: string;

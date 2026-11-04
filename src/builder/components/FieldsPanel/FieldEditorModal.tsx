@@ -573,7 +573,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
               <div className={styles.extractorPickGroups}>
                 {agentExtractors.length === 0 && mentionRefs.length === 0 && (
                   <div className={styles.extractorPickEmpty}>
-                    No Field Extractors anywhere in this agent yet.
+                    No Extractors anywhere in this agent yet.
                   </div>
                 )}
                 {byCrew.map(group => (
