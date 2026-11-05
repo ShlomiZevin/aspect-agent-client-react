@@ -28,6 +28,19 @@ Offline rules battery: `node scripts/test-aspect-management-unit.js` in the serv
 | A developer cannot reach other screens | pass in the UI only, see the known gap in the server README |
 | **Total** | **71/71** (`results.json`) |
 
-Not covered: real Google sign-in. The stand does not serve the sign-in config, so
+## Ten runs
+
+`run-10.sh` repeats everything ten times, each on its own fresh database. The result
+is 710/710 checks and 10/10 runs of the offline battery (`ten-runs/summary.txt`), with
+30 real model answers (`ten-runs/answers.json`). The wording differs between runs; the
+facts in the answers were the same, read through by eye. The fact checks that are
+automated cover only the total hours and the over-budget client.
+
+This shows the behaviour is stable on one scenario. It adds no new cases: every run
+uses the same data on the same date.
+
+## Not covered
+
+Real Google sign-in. The stand does not serve the sign-in config, so
 the screen fell back to the password form, and signing in was simulated by setting
 the session. It needs one real check after deploy.

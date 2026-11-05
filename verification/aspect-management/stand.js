@@ -6,8 +6,8 @@ const EmbeddedPostgres = require('embedded-postgres').default;
 
 const SERVER = 'G:/Shlomi/freeda2/aspect-agent-server';
 const req = Module.createRequire(path.join(SERVER, 'server.js'));
-const DATA = path.join(__dirname, 'data');
-const PORT = 55433;
+const DATA = path.join(__dirname, `data-${process.env.RUN || 0}`);
+const PORT = 55433 + Number(process.env.RUN || 0);
 
 Object.assign(process.env, {
   DB_HOST: '127.0.0.1', DB_PORT: String(PORT), DB_NAME: 'agents_platform_db',

@@ -1,0 +1,11 @@
+run 1: unit=0 stand=yes ui=0 71/71 passed 55s
+run 2: unit=0 stand=yes ui=0 71/71 passed 49s
+run 3: unit=0 stand=yes ui=0 71/71 passed 48s
+run 4: unit=0 stand=yes ui=0 71/71 passed 46s
+run 5: unit=0 stand=yes ui=0 71/71 passed 43s
+run 6: unit=0 stand=yes ui=0 71/71 passed 48s
+run 7: unit=0 stand=yes ui=0 71/71 passed 43s
+run 8: unit=0 stand=yes ui=0 71/71 passed 48s
+run 9: unit=0 stand=yes ui=0 71/71 passed 48s
+run 10: unit=0 stand=yes ui=0 71/71 passed 48s
+DONE
