@@ -1,0 +1,357 @@
+[
+  {
+    "name": "morning: late project",
+    "ok": true,
+    "detail": "late:מעדני גל,over:קבוצת אלון,blocker:דנה,no_followup:רשת פרחי"
+  },
+  {
+    "name": "morning: over budget (10.5 of 10)",
+    "ok": true,
+    "detail": "late:מעדני גל,over:קבוצת אלון,blocker:דנה,no_followup:רשת פרחי"
+  },
+  {
+    "name": "morning: 3 of 20 hours is not a budget alert",
+    "ok": true,
+    "detail": "late:מעדני גל,over:קבוצת אלון,blocker:דנה,no_followup:רשת פרחי"
+  },
+  {
+    "name": "morning: blocker",
+    "ok": true,
+    "detail": "late:מעדני גל,over:קבוצת אלון,blocker:דנה,no_followup:רשת פרחי"
+  },
+  {
+    "name": "morning: a developer added today is not flagged",
+    "ok": true,
+    "detail": "late:מעדני גל,over:קבוצת אלון,blocker:דנה,no_followup:רשת פרחי"
+  },
+  {
+    "name": "morning: quote 9 days without follow-up",
+    "ok": true,
+    "detail": "late:מעדני גל,over:קבוצת אלון,blocker:דנה,no_followup:רשת פרחי"
+  },
+  {
+    "name": "morning: quote at 4 days is not flagged",
+    "ok": true,
+    "detail": "late:מעדני גל,over:קבוצת אלון,blocker:דנה,no_followup:רשת פרחי"
+  },
+  {
+    "name": "report: 25 hours refused in Hebrew",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "report: empty description refused",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "report: future day refused",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "report: a project of another client refused",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "report: a refused send changed nothing",
+    "ok": true,
+    "detail": "3"
+  },
+  {
+    "name": "person: duplicate email refused in Hebrew",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "quote: converting a quote that is not won refused",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "me: on the list",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "me: aspect admin with no row becomes owner",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "me: aspect account that is not admin stays out",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "me: unknown address stays out",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "screen 1: greeting",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "screen 1: root is rtl and Hebrew",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "screen 1: no stray Latin",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "alert action opens the project",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "closing the dialog stays closed",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "screen 4: late tag",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "screen 4: over tag",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "screen 4: on-time tag",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "screen 4: over-budget percent",
+    "ok": true,
+    "detail": "פרויקטים פעילים\n\n3 פרויקטים\n\nלעמוד בזמנים!\nפרויקט חדש\nלקוח\nסוג\nניצול שעות\nסטטוס\nמעדני גל\nדשבורד מכירות\n15%\nבאיחור\n5 ימים באיחור\nקבוצת אלון\nפריסת סוכן AI\n105%\nחריגה מתקציב\nרשת פרחי\nדשבורד מלאי\n0%\nבזמן"
+  },
+  {
+    "name": "screen 3: billable hours vs package",
+    "ok": true,
+    "detail": "לקוחות › קבוצת אלון\nק\nקבוצת אלון\nעריכה\nשעות החודש\n10.5\nמתוך 50\nשירותים\nדשבורד מכירות\nפעיל\nסוכן AI ב-Intelligence Center\nבהטמעה\nפתוחים\n2\nפרויקטים פעילים והצעות מחיר פתוחות\nהבא בתור\nהאישור על סוכן ה-AI\n8.11.2026\nהערה אחרונה\nפגישה עם רון, המנכ\"ל\n5.11.2026, איציק\nפרויקטים\nפריסת סוכן AI\n10.5 שעות מתוך 10"
+  },
+  {
+    "name": "screen 3: services",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "screen 3: last note with who",
+    "ok": true,
+    "detail": "לקוחות › קבוצת אלון\nק\nקבוצת אלון\nעריכה\nשעות החודש\n10.5\nמתוך 50\nשירותים\nדשבורד מכירות\nפעיל\nסוכן AI ב-Intelligence Center\nבהטמעה\nפתוחים\n2\nפרויקטים פעילים והצעות מחיר פתוחות\nהבא בתור\nהאישור על סוכן ה-AI\n8.11.2026\nהערה אחרונה\nפגישה עם רון, המנכ\"ל\n5.11.2026, איציק\nפרויקטים\nפריסת סוכן AI\n10.5 שעות מתוך 10"
+  },
+  {
+    "name": "screen 3: next step",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "screen 3: note added through the modal",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "screen 5: open total (48k+40k+26k)",
+    "ok": true,
+    "detail": "הכסף שבדרך\n\nהצעות מחיר פתוחות\n\nלסגור עוד עסק!\nהצעה חדשה\nסה״כ הצעות פתוחות\n₪114,000\n3\nהצעות פתוחות\nלקוח\nנושא\nסכום\nסטטוס\nעודכן לפני\nרשת פרחי\nהצעה לסוכן AI\n₪48,000\nנשלח\n9 ימים\nמעדני גל\nעבודה נוספת מעבר להסכם\n₪40,000\nממתין לאישור\n4 ימים\nקבוצת אלון\nהצעת מחיר בהכנה\n₪26,000\nבהכנה\nהיום\nנסגר החודש\nקבוצת אלון"
+  },
+  {
+    "name": "screen 5: lost quote not listed",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "screen 5: 9 days flagged",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "convert: client and amount prefilled",
+    "ok": true,
+    "detail": "1 דשבורד מלאי,,,120000"
+  },
+  {
+    "name": "convert: quote now says it became a project",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "convert: a second conversion refuses",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "convert: the project exists with the amount",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "follow-up clears the alert",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "team: lists developers only",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "team: a person shows reports and the blocker",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "team: one hour reads as natural Hebrew",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "settings: a refusal shows in Hebrew",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "screen 6: greeting",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "screen 6: Hebrew answer to \"מה עשו המפתחים אתמול?\"",
+    "ok": true,
+    "detail": "דנה עבדה אתמול 14.5 שעות: 10.5 שעות על בניית הסוכן בפרויקט פריסת סוכן AI של קבוצת אלון, 3 שעות על דשבורד המכירות של מעדני גל, ושעה אחת של למידה פנימית. יוסי לא דיווח שעות אתמול.\nדנה גם דיווחה על חסם: אין לה גישה לשרת של הלקוח."
+  },
+  {
+    "name": "screen 6: Hebrew answer to \"מי חורג מהשעות?\"",
+    "ok": true,
+    "detail": "קבוצת אלון חורגת מתקציב השעות בפרויקט \"פריסת סוכן AI\": נוצלו 10.5 שעות מתוך 10, כלומר 105% מהתקציב, חריגה של 5%. אף פרויקט אחר לא חורג, ואין פרויקט שקרוב לחריגה. מעדני גל לא חורג בשעות, אבל הפרויקט שלהם \"דשבורד מכירות\" באיחור של 5 ימים."
+  },
+  {
+    "name": "screen 6: Hebrew answer to \"מה מחכה להחלטה שלי?\"",
+    "ok": true,
+    "detail": "שלושה דברים דורשים תשומת לב היום. הפרויקט דשבורד מכירות של מעדני גל באיחור של 5 ימים, פריסת סוכן ה-AI של קבוצת אלון ניצלה 105% מתקציב השעות (חריגה של 5%), ודנה תקועה כי אין לה גישה לשרת של הלקוח. בנוסף, האישור על סוכן ה-AI מול קבוצת אלון מתוכנן ל-8 בנובמבר. ההצעה למעדני גל על 40,000 ש\"ח עדיין ממתינה"
+  },
+  {
+    "name": "screen 6: yesterday = 14.5 hours reported",
+    "ok": true,
+    "detail": "דנה עבדה אתמול 14.5 שעות: 10.5 שעות על בניית הסוכן בפרויקט פריסת סוכן AI של קבוצת אלון, 3 שעות על דשבורד המכירות של מעדני גל, ושעה אחת של למידה פנימית. יוסי לא דיווח שעות אתמול.\nדנה גם דיווחה על חסם: אין לה גישה לשרת של הלקוח."
+  },
+  {
+    "name": "screen 6: names the over-budget project",
+    "ok": true,
+    "detail": "קבוצת אלון חורגת מתקציב השעות בפרויקט \"פריסת סוכן AI\": נוצלו 10.5 שעות מתוך 10, כלומר 105% מהתקציב, חריגה של 5%. אף פרויקט אחר לא חורג, ואין פרויקט שקרוב לחריגה. מעדני גל לא חורג בשעות, אבל הפרויקט שלהם \"דשבורד מכירות\" באיחור של 5 ימים."
+  },
+  {
+    "name": "owner: no page errors",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "developer: other screens are not reachable",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "report: recent client prefilled",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "report: the client's only project preselected",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "report: no horizontal overflow on a phone",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "report: internal work defaults to not billable",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "report: daily total adds up",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "report: saved two rows, dropped the empty one",
+    "ok": true,
+    "detail": "[{\"id\":4,\"clientId\":2,\"projectId\":1,\"hours\":3,\"description\":\"בניית דשבורד מכירות\",\"billable\":true},{\"id\":5,\"clientId\":null,\"projectId\":null,\"hours\":1.5,\"description\":\"למידה\",\"billable\":false}]"
+  },
+  {
+    "name": "report: internal row has no client",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "report: blocker saved",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "report: reopening shows the sent rows",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "report: resending replaces, never doubles",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "report: cannot go to tomorrow",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "report: previous day loads",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "developer: no page errors",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "package counts billable hours only",
+    "ok": true,
+    "detail": "10.5"
+  },
+  {
+    "name": "not on the list: says so in Hebrew",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "sign-in: Hebrew",
+    "ok": true,
+    "detail": "Aspect\nכניסה למערכת\nאימייל או שם משתמש\nסיסמה\nהתחברות"
+  },
+  {
+    "name": "sign-in: no stray Latin",
+    "ok": true,
+    "detail": "Aspect\nכניסה למערכת\nאימייל או שם משתמש\nסיסמה\nהתחברות"
+  },
+  {
+    "name": "owner on a phone: no horizontal overflow",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "owner on a phone: two blockers from one person cause no page errors",
+    "ok": true,
+    "detail": ""
+  }
+]

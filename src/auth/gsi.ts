@@ -35,6 +35,7 @@ export function renderGoogleButton(
   clientId: string,
   onCredential: (idToken: string) => void,
   width = 320,
+  locale?: string,
 ): boolean {
   const id = api();
   if (!id) return false;
@@ -51,6 +52,7 @@ export function renderGoogleButton(
     shape: 'pill',
     logo_alignment: 'left',
     width,
+    ...(locale ? { locale } : {}),
   });
   return true;
 }

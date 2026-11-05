@@ -27,9 +27,14 @@ interface Props {
   context?: SignInContext;
   onSignedIn: (session: Session) => void;
   t?: Translate;
+  /** The language of Google's own button; left to the browser when unset. */
+  googleLocale?: string;
+  /** A Hebrew-only surface cannot show the server's English refusal as it is. */
+  describeError?: (message: string) => string;
+  emailPlaceholder?: string;
 }
 
-export function SignInMethods({ tenant, config, context = {}, onSignedIn, t = englishT }: Props) {
+export function SignInMethods({ tenant, config, context = {}, onSignedIn, t = englishT, googleLocale, describeError, emailPlaceholder = 'you@company.com' }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -59,11 +64,12 @@ export function SignInMethods({ tenant, config, context = {}, onSignedIn, t = en
       try {
         onSignedIn(await call());
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        const message = err instanceof Error ? err.message : String(err);
+        setError(describeError ? describeError(message) : message);
         setBusy(false);
       }
     };
-  }, [onSignedIn]);
+  }, [onSignedIn, describeError]);
 
   // The sign-in context reaches the callback through a ref for the same
   // reason: with anonUserId in the effect's dependencies, the anon user
@@ -80,8 +86,8 @@ export function SignInMethods({ tenant, config, context = {}, onSignedIn, t = en
     renderGoogleButton(googleSlot.current, config.clientId, (idToken) => {
       const { tenant: tn, anonUserId: anon, agentName: agent } = ctxRef.current;
       void runSignIn.current(() => authApi.withGoogle(idToken, tn, { anonUserId: anon, agentName: agent }));
-    });
-  }, [script, config.clientId]);
+    }, undefined, googleLocale);
+  }, [script, config.clientId, googleLocale]);
 
   const submitPassword = (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,7 +139,7 @@ export function SignInMethods({ tenant, config, context = {}, onSignedIn, t = en
               value={email}
               autoComplete="username"
               autoCapitalize="none"
-              placeholder="you@company.com"
+              placeholder={emailPlaceholder}
               onChange={(e) => setEmail(e.target.value)}
             />
           </label>

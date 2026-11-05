@@ -12,6 +12,8 @@ const AspectTaskBoard = lazy(() => import('./taskboard/components/TaskBoardRoute
 const BuilderHomePage = lazy(() => import('./pages/BuilderHomePage').then(m => ({ default: m.BuilderHomePage })));
 // Customer-facing Live chat — its own subtree, lazy-loaded.
 const LiveChatPage = lazy(() => import('./pages/LiveChatPage').then(m => ({ default: m.LiveChatPage })));
+// Aspect Management (task #115): Itzik's internal tool, its own subtree.
+const ManagementRoute = lazy(() => import('./aspect-management/ManagementRoute').then(m => ({ default: m.ManagementRoute })));
 // Live Brain mockup — standalone demo of the configurable brain panel + setup.
 const LiveBrainMockPage = lazy(() => import('./pages/LiveBrainMockPage').then(m => ({ default: m.LiveBrainMockPage })));
 const CustomerChatPage = lazy(() => import('./pages/CustomerChatPage').then(m => ({ default: m.CustomerChatPage })));
@@ -64,6 +66,7 @@ import './styles/global.css';
 // (task board, quick bug, debug shortcut) must not be accessible.
 function isRestrictedRoute(pathname: string): boolean {
   const parts = pathname.split('/').filter(Boolean);
+  if (parts[0] === 'management') return true;
   return parts.length >= 2 && (parts[1] === 'login' || parts[1] === 'chat');
 }
 
@@ -153,6 +156,15 @@ function AppContent() {
         {/* Zol Stock smart-replenishment spec — English engineering brief + its Hebrew customer companion. */}
         {/* Aspect Management — the concept document Itzik reads and marks up. */}
         <Route path="/aspect/management" element={<AspectManagementConceptPage />} />
+        {/* Aspect Management itself. Hebrew only, tied to no customer. */}
+        <Route
+          path="/management/*"
+          element={
+            <Suspense fallback={null}>
+              <ManagementRoute />
+            </Suspense>
+          }
+        />
         <Route path="/aspect/zolstock-purchasing" element={<ZolstockPurchasingSpecPage />} />
         <Route path="/aspect/zolstock-purchasing-he" element={<ZolstockPurchasingClientPage />} />
         <Route path="/lybi/llm-guide" element={<LLMGuidePage />} />
