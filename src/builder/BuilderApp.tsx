@@ -24,6 +24,7 @@ import { PinnedFieldsScreen } from './components/PinnedFieldsScreen/PinnedFields
 import { LiveBrainScreen } from './components/LiveBrainScreen/LiveBrainScreen';
 import { ProfilerScreen } from './components/ProfilerScreen/ProfilerScreen';
 import { TriggersScreen } from './components/TriggersScreen/TriggersScreen';
+import { CrewMapScreen } from './components/CrewMapScreen/CrewMapScreen';
 // Side-effect: register the built-in trigger types (Silence today).
 import './triggers';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
@@ -192,6 +193,9 @@ export function BuilderApp({ agentSlug }: Props) {
               {/* Targeted KB, full screen (task #830) — sibling of the
                   shell like admin; the page mounts its own top bar. */}
               <Route path="targeted-kb/*" element={<TargetedKbPage />} />
+              {/* Crew map (task #855): how a conversation can move between
+                  crews, drawn from the agent's own rules. Full screen too. */}
+              <Route path="crew-map" element={<CrewMapScreen />} />
               <Route path="*" element={<BuilderShell />} />
             </Routes>
           </SnippetCreatorProvider>

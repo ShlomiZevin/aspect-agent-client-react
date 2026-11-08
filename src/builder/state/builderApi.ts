@@ -1394,6 +1394,119 @@ export async function getErrorSummary(args: { agentSlug: string }): Promise<Erro
   return http<ErrorSummary>(`/api/errors/summary?agentSlug=${encodeURIComponent(args.agentSlug)}`);
 }
 
+// ─── Admin → LLM Usage (task #953) ────────────────────────────────
+
+/** 'today' | '7d' | '30d' | '90d' | 'all' | a local day 'YYYY-MM-DD'. */
+export type UsagePeriod = string;
+
+/** One model call, with the add-on that made it and its interaction. */
+export interface UsageRun {
+  id: number;
+  /** Epoch ms — when the model answered. */
+  at: number;
+  crew: string | null;
+  /** `<instanceId>:<pluginId>`, or `process:<p>` for a call no add-on run explains. */
+  addonId: string;
+  addonName: string;
+  addonType: string;
+  /** The add-on's crew in the config, or 'Agent level'; null when unknown. */
+  addonScope: string | null;
+  model: string;
+  modelName: string;
+  /** null = a call made outside a conversation. */
+  conversationId: string | null;
+  /** n-th assistant message of the conversation; null when unknown. */
+  interaction: number | null;
+  input: number;
+  output: number;
+  durationMs: number | null;
+  /** USD at list price; null = the model has no known price. */
+  cost: number | null;
+}
+
+export interface UsageTotals {
+  calls: number;
+  input: number;
+  output: number;
+  /** Priced calls only. */
+  cost: number;
+  /** Calls on a model with no known price — not in `cost`. */
+  unpriced: number;
+}
+
+export interface UsageConversation extends UsageTotals {
+  /** null = the unlinked calls. */
+  id: string | null;
+  kind: string | null;
+  startedAt: number;
+  lastAt: number;
+  interactions: number | null;
+}
+
+export interface UsageReport {
+  agent: { slug: string; name: string };
+  period: UsagePeriod;
+  timezone: string;
+  days: { day: string; n: number }[];
+  capped: boolean;
+  options: {
+    crews: { name: string; calls: number }[];
+    addons: { id: string; name: string; type: string; crew: string | null; calls: number }[];
+    models: { id: string; name: string; calls: number; priced: boolean }[];
+  };
+  summary: UsageTotals & { conversations: number };
+  runs?: UsageRun[];
+  offset?: number;
+  total?: number;
+  conversations?: UsageConversation[];
+}
+
+export interface UsageFilters {
+  agentSlug: string;
+  period: UsagePeriod;
+  crew?: string;
+  addon?: string;
+  model?: string;
+}
+
+function usageParams(f: UsageFilters): URLSearchParams {
+  const p = new URLSearchParams({ agentSlug: f.agentSlug, period: f.period });
+  if (f.crew != null && f.crew !== '') p.set('crew', f.crew);
+  if (f.addon) p.set('addon', f.addon);
+  if (f.model) p.set('model', f.model);
+  return p;
+}
+
+/** The screen's read: the cards, filter options, and a page of calls or the conversations. */
+export async function fetchLlmUsage(args: UsageFilters & {
+  view: 'runs' | 'conversations';
+  offset?: number;
+  limit?: number;
+}): Promise<UsageReport> {
+  const p = usageParams(args);
+  p.set('view', args.view);
+  if (args.offset) p.set('offset', String(args.offset));
+  if (args.limit) p.set('limit', String(args.limit));
+  const res = await http<UsageReport & { error?: string }>(`/api/llm-usage?${p}`);
+  if (res.error) throw new Error(res.error);
+  return res;
+}
+
+export interface UsageInteraction extends UsageTotals {
+  /** null = calls outside a conversation / interaction unknown. */
+  interaction: number | null;
+  runs: UsageRun[];
+}
+
+/** One conversation's calls (id 'unlinked' = outside a conversation), split by interaction. */
+export async function fetchLlmUsageConversation(args: UsageFilters & { id: string }): Promise<UsageInteraction[]> {
+  const p = usageParams(args);
+  p.set('id', args.id);
+  const res = await http<{ interactions?: UsageInteraction[]; error?: string }>(`/api/llm-usage/conversation?${p}`);
+  if (res.error) throw new Error(res.error);
+  return res.interactions ?? [];
+}
+
 /**
  * The runtime call. Posts a user message and returns an SSE
  * `Response`; consumer reads the body stream.

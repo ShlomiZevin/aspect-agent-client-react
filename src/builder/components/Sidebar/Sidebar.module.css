@@ -95,6 +95,29 @@
   color: var(--primary-color, #6366f1);
 }
 
+.headerBtns { display: flex; align-items: center; gap: 6px; }
+
+/* Crew map (task #855) — a labelled button, not an icon: it's the one
+   way into the map, and "Map" says what it opens. */
+.mapBtn {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #d1d5db);
+  background: var(--bg-surface, #fff);
+  color: var(--text-secondary, #6b7280);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mapBtn:hover {
+  border-color: var(--primary-color, #6366f1);
+  color: var(--primary-color, #6366f1);
+}
+
 .row {
   display: flex;
   align-items: center;

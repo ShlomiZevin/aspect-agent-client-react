@@ -139,17 +139,27 @@ export function Sidebar() {
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
               <span className={styles.sectionTitle}>Crews</span>
-              <button
-                type="button"
-                className={styles.addBtn}
-                onClick={() => {
-                  goHome();
-                  const crew = addCrew(agent.id);
-                  setSelection({ level: 'crew', agentId: agent.id, crewId: crew.id });
-                }}
-              >
-                +
-              </button>
+              <span className={styles.headerBtns}>
+                <button
+                  type="button"
+                  className={styles.mapBtn}
+                  onClick={() => { if (urlAgentSlug) navigate(`/${urlAgentSlug}/builder/crew-map`); }}
+                  title="See how a conversation moves between crews"
+                >
+                  Map
+                </button>
+                <button
+                  type="button"
+                  className={styles.addBtn}
+                  onClick={() => {
+                    goHome();
+                    const crew = addCrew(agent.id);
+                    setSelection({ level: 'crew', agentId: agent.id, crewId: crew.id });
+                  }}
+                >
+                  +
+                </button>
+              </span>
             </div>
 
             <div className={styles.crewList}>

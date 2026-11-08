@@ -22,7 +22,7 @@
  *     /<agent>/builder/admin/conversations
  *     /<agent>/builder/admin/load-tests      (task #902)
  *     /<agent>/builder/admin/errors          (task #903)
- *     /<agent>/builder/admin/usage
+ *     /<agent>/builder/admin/usage          (task #953, UsageTab)
  *     /<agent>/builder/admin/billing
  *     /<agent>/builder/admin/settings
  */
@@ -34,7 +34,6 @@ import { countNewErrors, ERRORS_CHANGED_EVENT } from '../../state/builderApi';
 import { getBaseURL } from '../../../services/api';
 import { FeedbackPage } from '../../../components/dashboard/FeedbackPage';
 import { UsersPage } from '../../../components/dashboard/UsersPage';
-import { LLMUsagePage } from '../../../components/dashboard/LLMUsagePage';
 import { BillingPage } from '../../../components/dashboard/BillingPage';
 import { SettingsPage } from '../../../components/dashboard/SettingsPage';
 import { TestRunnerPage } from '../../../components/dashboard/TestRunnerPage';
@@ -44,6 +43,7 @@ import { ErrorsTab } from './ErrorsTab';
 import { LoadTestsTab } from './LoadTestsTab';
 import { TriggersTab } from './TriggersTab';
 import { KBWorkbench } from './KBWorkbench';
+import { UsageTab } from './UsageTab';
 import styles from './AdminDashboard.module.css';
 
 /**
@@ -215,14 +215,10 @@ export function AdminDashboard() {
           />
           <Route
             path="usage"
-            /* Pass the display name AS `agentName` and the slug AS
-               `agentSlug`. The V2 builder runtime logs usage rows with
-               `body.name` (display name) in `agent_name`; passing the
-               slug into both props here would only match rows whose
-               display name happens to equal the slug — which is why
-               most agents' usage looked empty. The server ORs the two
-               values, so pre-V2 rows keyed by slug still surface. */
-            element={<LLMUsagePage baseURL={baseURL} agentName={agent.name} agentSlug={slug} />}
+            /* Builder-only screen (task #953): every model call by crew,
+               add-on, interaction and conversation. The Aspect BI
+               dashboard keeps the shared LLMUsagePage. */
+            element={<UsageTab agentSlug={slug} agentName={agent.name} />}
           />
           <Route
             path="billing"
