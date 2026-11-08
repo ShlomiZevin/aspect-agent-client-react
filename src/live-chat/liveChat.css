@@ -648,3 +648,11 @@
   .lybi-chat .divider { display: none; }
   .lybi-chat .icon-btn { width: 38px; height: 38px; }
 }
+
+/* Web search lines inside the thinking bubble (task #967). With searches the
+ * bubble stacks: dots, then one line per search. */
+.lybi-chat .bubble.thinking:has(.web-searches) { flex-direction: column; align-items: flex-start; gap: 6px; }
+.lybi-chat .web-searches { display: flex; flex-direction: column; gap: 3px; }
+.lybi-chat .web-search { font-size: 12.5px; line-height: 1.4; color: var(--text-2); word-break: break-word; }
+.lybi-chat .web-search.live { animation: lybiWebSearchPulse 1.4s ease-in-out infinite; }
+@keyframes lybiWebSearchPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }

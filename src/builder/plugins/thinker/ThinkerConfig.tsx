@@ -17,6 +17,7 @@ import { ModelPicker } from '../../components/ModelPicker/ModelPicker';
 import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../../components/MentionTextarea/useMentionOptions';
 import { InlineField } from '../../components/AddonModal/InlineField';
+import { WebSearchSetting } from '../../components/WebSearch/WebSearchSetting';
 import { SnippetsUsedFooter } from '../../components/Snippets/SnippetsUsedFooter';
 import { useSnippetCreator } from '../../components/Snippets/SnippetCreator';
 import { PromptPreviewToggle } from '../../components/PromptPreview/PromptPreviewToggle';
@@ -75,6 +76,11 @@ export function ThinkerConfigComponent({
           onOutputLimitChange={maxOutputTokens => patch({ maxOutputTokens })}
         />
       </InlineField>
+      <WebSearchSetting
+        value={config.webSearch}
+        model={config.model}
+        onChange={webSearch => patch({ webSearch })}
+      />
 
       <div className={styles.field}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>

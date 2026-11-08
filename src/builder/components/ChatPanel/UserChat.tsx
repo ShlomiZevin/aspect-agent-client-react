@@ -29,9 +29,9 @@ import {
   type PersistedAddonRun,
 } from '../../state/builderApi';
 import { bodyOfAgent, bodyOfCrew } from '../../state/useProjectSync';
-import { sendRuntimeMessage, type RuntimeEvent } from '../../state/runtimeStream';
+import { sendRuntimeMessage, type RuntimeEvent, type WebSearchRun } from '../../state/runtimeStream';
 import { AddonRunTimeline, type RunCat } from '../AddonRun/AddonRunTimeline';
-import type { AddonRunSnapshot } from '../AddonRun/AddonRunCard';
+import { webSearchLine, type AddonRunSnapshot } from '../AddonRun/AddonRunCard';
 import { useConfirm } from '../Confirm/Confirm';
 import { HistoryPanel } from './HistoryPanel';
 import { ExportConversationModal } from './ExportConversationModal';
@@ -77,6 +77,16 @@ interface Turn {
   runs: AddonRunSnapshot[];
   runsLoaded: boolean;
   dcResolutions: DcResolution[];
+  /** Live web searches this turn (task #967) — "Searching the web: '…'"
+   *  lines above the answer. Live only; the run card keeps them after reload. */
+  webSearches?: LiveWebSearch[];
+}
+
+interface LiveWebSearch {
+  id: string;
+  query: string | null;
+  kind?: string;
+  status: 'searching' | 'done' | 'error';
 }
 
 function findOwnerUserId(): string {
@@ -174,6 +184,8 @@ function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
     skipReason?: string;
     /** A failed run's reason (cut off, empty, not JSON — #920). */
     error?: { code: string; message: string };
+    /** Web search switch (#967). */
+    webSearch?: WebSearchRun;
   };
   return {
     instanceId:   r.instanceId,
@@ -193,6 +205,7 @@ function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
     filter:       d.filter,
     skipReason:   d.skipReason,
     error:        d.error,
+    webSearch:    d.webSearch,
   };
 }
 
@@ -510,6 +523,24 @@ export function UserChat() {
       case 'addon.token':
         updateTurn(turnId, t => ({ ...t, assistantText: t.assistantText + e.token }));
         return;
+      case 'addon.websearch':
+        // One line per search; the 'done' event updates the same line (and
+        // brings the query on GPT models, which only name it then).
+        updateTurn(turnId, t => {
+          const list = t.webSearches ?? [];
+          const idx = list.findIndex(s => s.id === e.id);
+          const next: LiveWebSearch = {
+            id: e.id,
+            query: e.query ?? (idx >= 0 ? list[idx].query : null),
+            kind: e.kind ?? (idx >= 0 ? list[idx].kind : undefined),
+            status: e.status,
+          };
+          return {
+            ...t,
+            webSearches: idx === -1 ? [...list, next] : list.map((s, i) => (i === idx ? next : s)),
+          };
+        });
+        return;
       case 'addon.output': {
         // Split memory/thinking writes from summary writes. The card
         // and the local memory cache understand the domain-keyed
@@ -541,6 +572,7 @@ export function UserChat() {
           lane:         e.lane,
           historyMode:  e.historyMode,
           historyCount: e.historyCount,
+          webSearch:    e.webSearch,
         }));
         // Talker just finished — release the input gate IF this stream
         // is the latest send. Older sends' Talker outputs (which would
@@ -578,6 +610,7 @@ export function UserChat() {
             ...(e.modelLabel !== undefined ? { modelLabel: e.modelLabel } : {}),
             ...(e.rawOutput !== undefined ? { rawOutput: e.rawOutput } : {}),
             ...(e.durationMs !== undefined ? { durationMs: e.durationMs } : {}),
+            ...(e.webSearch !== undefined ? { webSearch: e.webSearch } : {}),
           }));
         } else {
           setErrorMsg(e.error.message || 'Runtime error');
@@ -1144,6 +1177,17 @@ function Turn({ turn, rtl, showTimeline, runHidden, awaiting, onExpand, onReport
         <div className={styles.thinkingLine}>
           <span className={styles.thinkingPulse} />
           {runningLabel ?? 'Thinking'}…
+        </div>
+      )}
+      {/* Web search (#967): one line per search, live, above the answer. */}
+      {(turn.webSearches?.length ?? 0) > 0 && (
+        <div className={styles.webSearchLines}>
+          {turn.webSearches!.map(s => (
+            <div key={s.id} className={`${styles.webSearchLine} ${s.status === 'searching' ? styles.webSearchLineLive : ''}`}>
+              <span className={styles.webSearchIcon}>{s.status === 'error' ? '⚠' : '🌐'}</span>
+              {webSearchLine(s, s.status !== 'searching')}
+            </div>
+          ))}
         </div>
       )}
       {/* DC resolutions are surfaced in the BrainPanel — keep them out

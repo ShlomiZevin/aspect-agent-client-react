@@ -5,6 +5,15 @@ import type { Dict } from '../i18n';
 import { ThinkingProcess } from './ThinkingProcess';
 import { IconBug, IconChevron, IconTrash, IconTrashDown } from '../icons';
 
+/** "Searching the web: 'query'…" — a page open (GPT) shows the site. */
+function searchText(label: string, s: { query: string | null; kind?: string }): string {
+  if (!s.query) return `${label}…`;
+  if (s.kind === 'open_page') {
+    try { return `${label}: ${new URL(s.query).hostname.replace(/^www\./, '')}…`; } catch { return `${label}…`; }
+  }
+  return `${label}: '${s.query}'…`;
+}
+
 interface Props {
   turn: LiveTurn;
   t: Dict;
@@ -64,6 +73,17 @@ export function MessageBubble({ turn, t, debug, botLabel, crewNames, defaultCrew
               // belongs). thinkingLabel still drives the thinking STATE.
               <div className="bubble thinking" dir="ltr">
                 <span className="dots"><i /><i /><i /></span>
+                {/* Web search (#967): the customer sees what is being
+                    looked up while the answer is on its way. */}
+                {(turn.webSearches?.length ?? 0) > 0 && (
+                  <div className="web-searches" dir="auto">
+                    {turn.webSearches!.map(s => (
+                      <div key={s.id} className={`web-search ${s.status === 'searching' ? 'live' : ''}`}>
+                        {searchText(t.searchingWeb, s)}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="bubble"><div className="bubble-md" dir="auto"><MarkdownBody text={turn.assistantText} /></div></div>

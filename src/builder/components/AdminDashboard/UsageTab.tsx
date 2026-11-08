@@ -73,7 +73,12 @@ function totalCost(c: number): string {
 
 /** A group's cost: "—" when none of its calls has a price. */
 function groupCost(t: { calls: number; cost: number; unpriced: number }): string {
-  return t.unpriced >= t.calls ? '—' : totalCost(t.cost);
+  return t.unpriced > 0 && t.unpriced >= t.calls && t.cost === 0 ? '—' : totalCost(t.cost);
+}
+
+/** " · 3 web searches" — empty when none (task #967). */
+function searchesNote(n: number | undefined): string {
+  return n ? ` · ${int(n)} web search${n === 1 ? '' : 'es'}` : '';
 }
 
 function seconds(ms: number | null): string {
@@ -157,9 +162,15 @@ function RunTable({ runs, oneDay, nested, onOpenConversation }: {
                   )}
                 </td>
               )}
-              <td className={styles.num} title={`${int(r.input)} input · ${int(r.output)} output tokens`}>
-                {compact(r.input)} <span className={styles.slash}>/</span> {compact(r.output)}
-              </td>
+              {r.kind === 'web_search' ? (
+                <td className={styles.num} title="Web searches — about $0.01 each; the pages read are in the model call's input tokens">
+                  {int(r.searches ?? 0)} search{r.searches === 1 ? '' : 'es'}
+                </td>
+              ) : (
+                <td className={styles.num} title={`${int(r.input)} input · ${int(r.output)} output tokens`}>
+                  {compact(r.input)} <span className={styles.slash}>/</span> {compact(r.output)}
+                </td>
+              )}
               <td className={styles.num}>{seconds(r.durationMs)}</td>
               <td className={styles.num} title={r.cost == null ? 'No known price for this model — not counted' : undefined}>
                 {rowCost(r.cost)}
@@ -193,7 +204,7 @@ function ConversationDetail({ state, oneDay, linked }: {
               {g.interaction != null ? `Interaction ${g.interaction}` : linked ? 'Interaction unknown' : 'Outside a conversation'}
             </span>
             <span className={styles.turnMeta}>
-              {int(g.calls)} call{g.calls === 1 ? '' : 's'} · {compact(g.input)} / {compact(g.output)} tokens · {groupCost(g)}
+              {int(g.calls)} call{g.calls === 1 ? '' : 's'}{searchesNote(g.searches)} · {compact(g.input)} / {compact(g.output)} tokens · {groupCost(g)}
               {g.unpriced > 0 && g.unpriced < g.calls && ` + ${g.unpriced} unpriced`}
             </span>
           </div>
@@ -323,7 +334,12 @@ export function UsageTab({ agentSlug, agentName }: { agentSlug: string; agentNam
   const periodKnown = PERIODS.some(p => p.id === period) || (report?.days || []).some(d => d.day === period);
 
   const stats: { label: string; value: string; note?: string; title?: string }[] = [
-    { label: 'Total calls', value: summary ? int(summary.calls) : '—' },
+    {
+      label: 'Total calls',
+      value: summary ? int(summary.calls) : '—',
+      // Web searches (#967) are priced lines, not model calls — named here.
+      note: summary?.searches ? `+ ${int(summary.searches)} web search${summary.searches === 1 ? '' : 'es'} (in the cost)` : undefined,
+    },
     { label: 'Conversations', value: summary ? int(summary.conversations) : '—' },
     {
       label: 'Input / Output',
@@ -483,7 +499,9 @@ export function UsageTab({ agentSlug, agentName }: { agentSlug: string; agentNam
                           </td>
                           <td>{c.id ? startedFmt.format(c.startedAt) : '—'}</td>
                           <td className={styles.num}>{c.interactions ?? '—'}</td>
-                          <td className={styles.num}>{int(c.calls)}</td>
+                          <td className={styles.num} title={c.searches ? `${int(c.calls)} model calls${searchesNote(c.searches)}` : undefined}>
+                            {int(c.calls)}{c.searches ? <span className={styles.sub}>{int(c.searches)} web search{c.searches === 1 ? '' : 'es'}</span> : null}
+                          </td>
                           <td className={styles.num} title={`${int(c.input)} input · ${int(c.output)} output tokens`}>
                             {compact(c.input)} <span className={styles.slash}>/</span> {compact(c.output)}
                           </td>

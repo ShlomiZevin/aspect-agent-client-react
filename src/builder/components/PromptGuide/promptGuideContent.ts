@@ -133,6 +133,16 @@ export const GUIDE_GROUPS: GuideGroup[] = [
         example: 'You work at {{param:storeName}}.',
         renders: 'You work at Fashionista.',
       },
+      {
+        token: '{{today}}',
+        sigil: '/',
+        what: {
+          en: 'Today\'s date and time in Israel. The model does not know the date by itself — add this whenever "today" matters, especially with Web search on.',
+          he: 'התאריך והשעה של היום, לפי שעון ישראל. המודל לא יודע לבד איזה יום היום — הוסיפו את זה בכל פעם שהיום חשוב, במיוחד כשחיפוש ברשת פועל.',
+        },
+        example: 'Today is {{today}}.',
+        renders: 'Today is Sunday, 8 November 2026, 14:05 (Israel time).',
+      },
     ],
   },
   {

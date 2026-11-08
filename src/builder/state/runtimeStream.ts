@@ -8,7 +8,41 @@
 
 import { runtimeMessageStream, type LiveBrainPanelData, type ProfilerPanelData } from './builderApi';
 
+/** One source a web search returned (task #967). */
+export interface WebSearchSource { url: string; title: string | null }
+
+/**
+ * What a Talker / Thinker with the "Web search" switch did this run (task
+ * #967) — on `addon.output` / `addon.error` and the persisted run. Absent when
+ * the model did not search. `kind` is 'search' (a query) or, on GPT models,
+ * 'open_page' / 'find' (query = the page URL / the pattern).
+ */
+export interface WebSearchRun {
+  count: number;
+  searches: Array<{
+    id: string;
+    query: string | null;
+    kind: string;
+    status: 'searching' | 'done' | 'error';
+    sources: WebSearchSource[];
+    error?: string;
+  }>;
+  citations?: WebSearchSource[];
+  allowedDomains?: string[];
+  maxSearches?: number;
+  /** Sites Anthropic cannot reach — dropped from this run's search. */
+  blockedDomains?: string[];
+}
+
 export type RuntimeEvent =
+  /**
+   * Live web search (task #967): one event when a search starts (GPT models
+   * only name the query once it is done → `query: null` until then) and one
+   * when it is done. Shown as "Searching the web: '…'" lines in the chat.
+   */
+  | { type: 'addon.websearch'; instanceId: string; id: string;
+      status: 'searching' | 'done' | 'error'; query: string | null; kind?: string;
+      sources?: WebSearchSource[] }
   | { type: 'conversation'; conversationId: number; messageId: number; currentCrewId?: string | null }
   /**
    * Live Brain update — emitted PER PANEL the moment its value is ready
@@ -84,6 +118,8 @@ export type RuntimeEvent =
       durationMs: number;
       /** Time-to-first-token (Talker only). Perceived latency. */
       firstTokenMs?: number;
+      /** Web search switch (#967) — present when the model searched. */
+      webSearch?: WebSearchRun;
       parseError?: string;
       transition?: { to: string; reason?: string };
       broke?: boolean;
@@ -128,6 +164,7 @@ export type RuntimeEvent =
       modelLabel?: { providerName: string; modelName: string } | null;
       rawOutput?: string;
       durationMs?: number;
+      webSearch?: WebSearchRun;
     }
   | { type: 'assistant.message'; messageId: number; text: string }
   /**

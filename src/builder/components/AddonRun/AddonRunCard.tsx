@@ -12,6 +12,7 @@ import { getPlugin } from '../../registry/plugins';
 import { useBuilder } from '../../state/BuilderContext';
 import { KbRetrieverRunBody, type KbParsed } from './KbRetrieverRunBody';
 import { formatDuration } from '../../formatDuration';
+import type { WebSearchRun } from '../../state/runtimeStream';
 import styles from './AddonRunCard.module.css';
 
 const KB_RETRIEVER_PLUGIN_ID = 'kb-retriever';
@@ -107,6 +108,71 @@ export interface AddonRunSnapshot {
   /** Time-to-first-token for streaming plugins (Talker). Perceived latency. */
   firstTokenMs?: number;
   error?: { code: string; message: string };
+  /** Web search switch (task #967): queries, sources, count. Absent = no search. */
+  webSearch?: WebSearchRun;
+}
+
+/** "Searching the web: '…'" — or, for a GPT page open, the page. */
+export function webSearchLine(s: { query: string | null; kind?: string }, done: boolean): string {
+  if (s.kind === 'open_page') return s.query ? `${done ? 'Opened' : 'Opening'} ${s.query}` : 'Opening a page…';
+  if (s.kind === 'find') return s.query ? `Looked in a page for '${s.query}'` : 'Looking in a page…';
+  if (!s.query) return 'Searching the web…';
+  return done ? `Searched the web: '${s.query}'` : `Searching the web: '${s.query}'…`;
+}
+
+function hostOf(url: string): string {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
+}
+
+/** Run-card section: each search with its sources (title + link). */
+function WebSearchSection({ ws }: { ws: WebSearchRun }) {
+  return (
+    <div className={styles.webSearch}>
+      {ws.searches.map(s => (
+        <div key={s.id} className={styles.webSearchItem}>
+          <div className={styles.webSearchQuery}>
+            {webSearchLine(s, true)}
+            {s.error && <span className={styles.webSearchError}> — {s.error}</span>}
+          </div>
+          {s.sources.length > 0 && (
+            <ul className={styles.webSearchSources}>
+              {s.sources.slice(0, 8).map((src, i) => (
+                <li key={i}>
+                  <a href={src.url} target="_blank" rel="noreferrer noopener" title={src.url}>
+                    {src.title || src.url}
+                  </a>
+                  <span className={styles.webSearchHost}>{hostOf(src.url)}</span>
+                </li>
+              ))}
+              {s.sources.length > 8 && <li className={styles.webSearchMore}>+{s.sources.length - 8} more</li>}
+            </ul>
+          )}
+        </div>
+      ))}
+      {(ws.citations?.length ?? 0) > 0 && (
+        <div className={styles.webSearchItem}>
+          <div className={styles.webSearchQuery}>Cited in the answer</div>
+          <ul className={styles.webSearchSources}>
+            {ws.citations!.slice(0, 8).map((src, i) => (
+              <li key={i}>
+                <a href={src.url} target="_blank" rel="noreferrer noopener" title={src.url}>{src.title || src.url}</a>
+                <span className={styles.webSearchHost}>{hostOf(src.url)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div className={styles.webSearchMeta}>
+        {ws.count} search{ws.count === 1 ? '' : 'es'}
+        {ws.maxSearches ? ` of up to ${ws.maxSearches}` : ''}
+        {' · '}
+        {ws.allowedDomains && ws.allowedDomains.length ? ws.allowedDomains.join(', ') : 'any site'}
+        {ws.blockedDomains && ws.blockedDomains.length > 0 && (
+          <span className={styles.webSearchError}> · skipped (the provider can't reach them): {ws.blockedDomains.join(', ')}</span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 interface Props {
@@ -400,6 +466,15 @@ export function AddonRunCard({ run }: Props) {
         {/* A crew transition is a turn-defining event — show it on the
             collapsed header too, so a CLOSED Rules/Router card still
             says it moved the conversation (task #828). */}
+        {/* Web search (#967): how many searches this run made. */}
+        {run.webSearch && run.webSearch.count > 0 && (
+          <span
+            className={styles.historyPill}
+            title={run.webSearch.searches.map(s => webSearchLine(s, true)).join('\n')}
+          >
+            🌐 {run.webSearch.count} search{run.webSearch.count === 1 ? '' : 'es'}
+          </span>
+        )}
         {hasTransition && (
           <span
             className={styles.transitionPill}
@@ -549,6 +624,12 @@ export function AddonRunCard({ run }: Props) {
               }
             >
               <pre className={styles.pre}>{run.prompt}</pre>
+            </Section>
+          )}
+
+          {run.webSearch && (run.webSearch.searches.length > 0 || (run.webSearch.blockedDomains?.length ?? 0) > 0) && (
+            <Section title="Web search">
+              <WebSearchSection ws={run.webSearch} />
             </Section>
           )}
 

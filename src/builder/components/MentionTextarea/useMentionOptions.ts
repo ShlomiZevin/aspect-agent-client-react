@@ -701,6 +701,12 @@ export function useMentionOptions(
       caretOffset: 4,
       group:       'Notes',
       description: 'A note for builders — shown greyed, removed before the model reads the prompt.',
+    }, {
+      // Task #967 follow-up: models don't know the date — say it.
+      label:       'Today (date & time)',
+      insertion:   '{{today}}',
+      group:       'Date & time',
+      description: 'Today\'s date and time in Israel, e.g. "Sunday, 8 November 2026, 14:05 (Israel time)". Use it when the answer depends on the date — above all with Web search on.',
     }];
 
     return { '/': slash, '@': at, '!': bang, '#': hash, '^': caret, '*': star, '%': percent, '+': plus, '&': amp, '~': tilde };

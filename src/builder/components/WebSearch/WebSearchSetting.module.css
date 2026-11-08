@@ -1,0 +1,184 @@
+/* Web search switch row (task #967). Same switch as Chat settings, same
+ * buttons / fields as the Move addon modal — nothing new to learn. The row
+ * has a fixed height so toggling never moves what is below it. */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+}
+
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 16px;
+  background: var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  flex: 0 0 auto;
+  transition: background 120ms;
+}
+
+.toggleOn {
+  background: var(--primary-color, #6366f1);
+}
+
+.toggleDisabled {
+  opacity: 0.45;
+}
+
+.toggleInput {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.toggleInput:disabled {
+  cursor: not-allowed;
+}
+
+.toggleKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  transition: transform 120ms;
+  pointer-events: none;
+}
+
+.toggleOn .toggleKnob {
+  transform: translateX(14px);
+}
+
+.summary {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--text-primary, #111827);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summaryOff {
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.editBtn {
+  flex: 0 0 auto;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-color, #6366f1);
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.editBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ── Modal ── */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary, #4b5563);
+  cursor: default;
+}
+
+.textarea,
+.select {
+  width: 100%;
+  padding: 9px 10px;
+  font-size: 13.5px;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  background: var(--bg-surface, #fff);
+  font-family: inherit;
+  outline: none;
+}
+
+.textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.textarea:focus,
+.select:focus {
+  border-color: var(--primary-color, #6366f1);
+}
+
+.note {
+  min-height: 16px;
+  font-size: 11.5px;
+  color: var(--text-tertiary, #9ca3af);
+  line-height: 1.4;
+}
+
+.noteBad {
+  color: #b45309;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.footerSpacer {
+  flex: 1;
+}
+
+.cancelBtn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary, #4b5563);
+  background: transparent;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.saveBtn {
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary-color, #6366f1);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.saveBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

@@ -560,3 +560,77 @@
   text-overflow: ellipsis;
   flex-shrink: 0;
 }
+
+/* ── Web search section (task #967) ── */
+.webSearch {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-input, #f9fafb);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+}
+
+.webSearchItem {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.webSearchQuery {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  word-break: break-word;
+}
+
+.webSearchSources {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.webSearchSources li {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11px;
+}
+
+.webSearchSources a {
+  color: var(--primary-color, #6366f1);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.webSearchSources a:hover {
+  text-decoration: underline;
+}
+
+.webSearchHost {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.webSearchMore {
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.webSearchMeta {
+  font-size: 10.5px;
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.webSearchError {
+  color: #b45309;
+  font-weight: 500;
+}

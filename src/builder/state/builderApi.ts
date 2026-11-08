@@ -1417,6 +1417,10 @@ export interface UsageRun {
   conversationId: string | null;
   /** n-th assistant message of the conversation; null when unknown. */
   interaction: number | null;
+  /** 'web_search' = a row of web searches (task #967): `searches` is the
+   *  count, input/output are 0, `cost` is the search fee. */
+  kind?: 'web_search';
+  searches?: number;
   input: number;
   output: number;
   durationMs: number | null;
@@ -1432,6 +1436,8 @@ export interface UsageTotals {
   cost: number;
   /** Calls on a model with no known price — not in `cost`. */
   unpriced: number;
+  /** Web searches (task #967) — their fee is in `cost`; not in `calls`. */
+  searches?: number;
 }
 
 export interface UsageConversation extends UsageTotals {

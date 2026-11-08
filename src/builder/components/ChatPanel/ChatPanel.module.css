@@ -1035,3 +1035,32 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* Web search lines (task #967) — one per search, above the answer. Same
+ * quiet look as the "Thinking…" line; the live one pulses. */
+.webSearchLines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 4px;
+}
+
+.webSearchLine {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary, #9ca3af);
+  word-break: break-word;
+}
+
+.webSearchLineLive {
+  color: var(--text-secondary, #6b7280);
+  animation: toolNotePulse 1.4s ease-in-out infinite;
+}
+
+.webSearchIcon {
+  flex: 0 0 auto;
+  font-size: 11px;
+}

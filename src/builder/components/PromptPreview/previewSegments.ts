@@ -90,8 +90,21 @@ export function stripPromptComments(text: string): string {
 }
 
 const STATIC_NO_ARG = new Set([
-  'fields_schema', 'fields_current', 'this_field', 'enum_values', 'these_fields',
+  'fields_schema', 'fields_current', 'this_field', 'enum_values', 'these_fields', 'today',
 ]);
+
+/** `{{today}}` — same line the server writes (promptAssembler formatToday):
+ *  "Sunday, 8 November 2026, 14:05 (Israel time)". */
+const TODAY_FMT = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Jerusalem',
+  weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+});
+export function formatToday(date: Date = new Date()): string {
+  const p: Record<string, string> = {};
+  for (const part of TODAY_FMT.formatToParts(date)) p[part.type] = part.value;
+  return `${p.weekday}, ${p.day} ${p.month} ${p.year}, ${p.hour}:${p.minute} (Israel time)`;
+}
 const DYNAMIC_PREFIXES = new Set(['field', 'memory', 'thinking', 'summary', 'dc', 'kb']);
 
 // ─── Static resolvers (mirror the server) ──────────────────────────
@@ -278,6 +291,7 @@ function classify(
 
   // ── Static, no-arg ──
   if (STATIC_NO_ARG.has(prefix)) {
+    if (prefix === 'today') return staticNode(token, formatToday(), ctx, deps, depth);
     if (prefix === 'fields_schema') return staticNode(token, isExtractor ? buildFieldsSchema(ctx.extractorFields, ctx.enums) : '', ctx, deps, depth);
     if (prefix === 'fields_current') return staticNode(token, isExtractor ? '{}' : '', ctx, deps, depth);
     if (prefix === 'this_field') return staticNode(token, isExtractor && ctx.extractorFields[0] ? ctx.extractorFields[0].name : '', ctx, deps, depth);

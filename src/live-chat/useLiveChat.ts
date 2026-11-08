@@ -59,6 +59,9 @@ export interface LiveTurn {
   /** Crew that produced this turn's response (from the `conversation` event
    *  + any transition). Used to label the bubble. Null when unknown. */
   crewId: string | null;
+  /** Live web searches (task #967) — shown in the thinking bubble until the
+   *  answer starts. */
+  webSearches?: Array<{ id: string; query: string | null; kind?: string; status: 'searching' | 'done' | 'error' }>;
 }
 
 function pairMessagesToTurns(messages: ConversationMessage[]): LiveTurn[] {
@@ -227,6 +230,19 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
         return;
       case 'addon.token':
         updateLastTurn(t => ({ ...t, assistantText: t.assistantText + e.token }));
+        return;
+      case 'addon.websearch':
+        updateLastTurn(t => {
+          const list = t.webSearches ?? [];
+          const idx = list.findIndex(s => s.id === e.id);
+          const next = {
+            id: e.id,
+            query: e.query ?? (idx >= 0 ? list[idx].query : null),
+            kind: e.kind ?? (idx >= 0 ? list[idx].kind : undefined),
+            status: e.status,
+          };
+          return { ...t, webSearches: idx === -1 ? [...list, next] : list.map((s, i) => (i === idx ? next : s)) };
+        });
         return;
       case 'addon.output':
         updateLastTurn(t => {

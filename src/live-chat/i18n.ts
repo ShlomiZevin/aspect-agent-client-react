@@ -35,6 +35,8 @@ export interface Dict {
   placeholder: string;
   // extra (not in the mockup)
   thinking: string;
+  /** "Searching the web" — before a web search's query (task #967). */
+  searchingWeb: string;
   quickTitle: string;
   /** Welcome/empty-state headline (Noa: "I run a conversation, not a form"). */
   welcomeIntro: string;
@@ -124,6 +126,7 @@ export const I18N: Record<Lang, Dict> = {
     report: 'דווח',
     placeholder: 'כתוב/כתבי לליבי…',
     thinking: 'חושב…',
+    searchingWeb: 'מחפש ברשת',
     quickTitle: 'איך אפשר לעזור?',
     welcomeIntro: 'אני ליבי. אני מנהלת שיחה, לא טופס.',
     welcomePlaceholder: 'ספרו לי במילים שלכם מה מביא אתכם…',
@@ -207,6 +210,7 @@ export const I18N: Record<Lang, Dict> = {
     report: 'Report',
     placeholder: 'Write to Lybi…',
     thinking: 'Thinking…',
+    searchingWeb: 'Searching the web',
     quickTitle: 'How can I help?',
     welcomeIntro: "I'm Lybi. I run a conversation, not a form.",
     welcomePlaceholder: 'Tell me in your own words what brings you here…',

@@ -32,7 +32,19 @@ export interface ProviderInfo {
   label: string;
   /** Single emoji or short symbol used in dense UI. */
   icon: string;
+  /** The provider has a built-in web search tool — drives the Talker /
+   *  Thinker "Web search" switch (task #967). */
+  webSearch?: boolean;
   models: ModelInfo[];
+}
+
+/** Can a model of this provider use the "Web search" switch? Falls back to
+ *  the known pair while the registry is still loading. */
+export function providerSupportsWebSearch(providerId: string | undefined): boolean {
+  if (!providerId) return false;
+  const p = getProvider(providerId);
+  if (p && typeof p.webSearch === 'boolean') return p.webSearch;
+  return providerId === 'openai' || providerId === 'anthropic';
 }
 
 // ─── In-memory cache, populated by loadModelsFromServer() ──────────
