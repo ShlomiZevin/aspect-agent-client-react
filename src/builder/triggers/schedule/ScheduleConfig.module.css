@@ -1,0 +1,111 @@
+/* Schedule trigger form (#950). Control sizes follow TriggerRow.module.css
+   (13px, 6px radius, #fafafa fill) so these sit beside the shared inputs
+   without looking like a second system. */
+
+/* Weekly / Once — a two-option segmented control. */
+.segment {
+  display: inline-flex;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 7px;
+  background: var(--bg-input, #fafafa);
+  padding: 2px;
+  gap: 2px;
+}
+.seg, .segOn {
+  font-family: inherit; font-size: 12.5px; font-weight: 600;
+  padding: 4px 14px; border-radius: 5px; border: 1px solid transparent;
+  background: transparent; color: var(--text-secondary, #6b7280); cursor: pointer;
+}
+.seg:hover { color: var(--text-primary, #111827); }
+.segOn {
+  background: #fff; color: var(--primary-color, #6366f1);
+  border-color: color-mix(in srgb, var(--primary-color, #6366f1) 35%, transparent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+}
+
+/* Weekly rows and Once rows share ONE grid cell, so the box is always as
+   tall as the taller set and switching between them moves nothing. */
+.stack { display: grid; }
+.layer, .layerHidden {
+  grid-area: 1 / 1;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.layerHidden { visibility: hidden; }
+
+/* Days */
+.daysBlock { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.days { display: flex; gap: 4px; flex-wrap: nowrap; }
+.day, .dayOn {
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  min-width: 40px; height: 28px; padding: 0 6px;
+  border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-input, #fafafa); color: var(--text-secondary, #6b7280);
+  transition: background 120ms, color 120ms, border-color 120ms;
+}
+.day:hover { border-color: var(--primary-color, #6366f1); color: var(--text-primary, #111827); }
+.dayOn {
+  background: var(--primary-color, #6366f1); border-color: var(--primary-color, #6366f1); color: #fff;
+}
+.picks { display: flex; gap: 6px; }
+.pick, .pickOn {
+  font-family: inherit; font-size: 11.5px; font-weight: 600;
+  padding: 2px 10px; height: 22px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: #fff; color: var(--text-secondary, #6b7280);
+}
+.pick:hover { border-color: var(--primary-color, #6366f1); color: var(--primary-color, #6366f1); }
+.pickOn {
+  border-color: color-mix(in srgb, var(--primary-color, #6366f1) 40%, transparent);
+  background: color-mix(in srgb, var(--primary-color, #6366f1) 10%, #fff);
+  color: var(--primary-color, #6366f1);
+}
+
+/* Times — one chip per time, the remove × inside it. */
+.times { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.timeChip, .timeChipWarn {
+  display: inline-flex; align-items: center; gap: 2px;
+  border: 1px solid var(--border-color, #e5e7eb); border-radius: 6px;
+  background: var(--bg-input, #fafafa); padding: 0 4px 0 0;
+}
+.timeChipWarn { border-color: #f59e0b; background: #fffbeb; }
+.timeInput {
+  font-family: inherit; font-size: 13px; color: var(--text-primary, #111827);
+  background: transparent; border: 0; padding: 5px 4px 5px 8px; width: auto;
+}
+.timeInput:focus { outline: none; }
+.timeChip:focus-within, .timeChipWarn:focus-within { border-color: var(--primary-color, #6366f1); background: #fff; }
+.timeX {
+  font-family: inherit; font-size: 15px; line-height: 1; width: 18px; height: 18px;
+  border: 0; border-radius: 4px; background: transparent; cursor: pointer;
+  color: var(--text-tertiary, #9ca3af);
+}
+.timeX:hover:not(:disabled) { background: #fee2e2; color: #b91c1c; }
+.timeX:disabled { opacity: .35; cursor: default; }
+.addTime {
+  font-family: inherit; font-size: 12.5px; font-weight: 600;
+  padding: 5px 10px; border-radius: 6px; cursor: pointer;
+  border: 1px dashed color-mix(in srgb, var(--primary-color, #6366f1) 45%, transparent);
+  background: transparent; color: var(--primary-color, #6366f1);
+}
+.addTime:hover:not(:disabled) { background: color-mix(in srgb, var(--primary-color, #6366f1) 8%, #fff); }
+.addTime:disabled { opacity: .45; cursor: default; }
+
+.date { width: 140px; }
+.date:disabled { opacity: .5; cursor: default; }
+
+/* Result — one line, never wraps (a long value is clipped, the title has it). */
+.result {
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+  font-size: 13px; white-space: nowrap; overflow: hidden;
+}
+.resultMain { color: var(--text-primary, #111827); font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.resultDot { color: var(--text-tertiary, #9ca3af); }
+.resultNext { color: var(--text-secondary, #6b7280); }
+
+.warnPill {
+  flex: none; font-size: 11px; font-weight: 700;
+  padding: 1px 8px; border-radius: 999px;
+  background: #fffbeb; color: #b45309; border: 1px solid #fcd34d;
+  white-space: nowrap;
+}

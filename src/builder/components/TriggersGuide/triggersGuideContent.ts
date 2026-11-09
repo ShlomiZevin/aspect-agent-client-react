@@ -67,7 +67,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     points: [
       {
         label: 'Type',
-        text: 'What the rule looks for. "Silence" is the one that exists today: the customer has stopped replying.',
+        text: 'What the rule looks for. "Silence": the customer has stopped replying. "Schedule": a set time on the calendar — every Sun–Thu at 09:00, or once on a date.',
       },
       {
         label: 'Crew',
@@ -265,7 +265,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     points: [
       {
         label: 'Quiet hours',
-        text: 'If you set them, anything matching outside your allowed hours is held back. It is not saved for later — it simply is not sent, and it matches again on the next check inside the window.',
+        text: 'If you set them, anything matching outside your allowed hours is held back. It is not saved for later — it simply is not sent. A Silence trigger matches again on the next check inside the window; a Schedule time that falls inside quiet hours is skipped for that day.',
       },
       {
         label: 'The message limit',

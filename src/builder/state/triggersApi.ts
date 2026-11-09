@@ -209,6 +209,21 @@ export function sweepTrigger(args: {
   });
 }
 
+/**
+ * When each calendar-driven trigger (Schedule) next acts, keyed by
+ * trigger id — the card's "next: tomorrow 09:00". Computed by the server
+ * with the clock's own slot code; sends the WORKING copies so an unsaved
+ * change shows its new next time at once. Types without a calendar are
+ * absent from the answer.
+ */
+export function fetchNextFires(agentSlug: string, triggers: AgentTrigger[]) {
+  return http<{ now: string; next: Record<string, { at: string | null; skippedForQuietHours: number }> }>(
+    `/api/agents/${agentSlug}/triggers/next-fires`, {
+      method: 'POST',
+      body: JSON.stringify({ triggers }),
+    });
+}
+
 // ─── The clock (system level — the slug in the path is ignored) ────
 
 export function fetchClockHealth(agentSlug: string) {

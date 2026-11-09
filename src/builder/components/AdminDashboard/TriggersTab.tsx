@@ -23,8 +23,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ClockBar } from '../TriggersScreen/ClockBar';
 import { TriggersGuideModal } from '../TriggersGuide';
+import { getTriggerType, type NextFire } from '../../triggers';
 import {
   fetchAgentTriggerEvents,
+  fetchNextFires,
   fetchTriggerStatus,
   type TriggerEventRow,
   type TriggerStatusRow,
@@ -78,6 +80,9 @@ export function TriggersTab({ agentSlug }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
   const [guideOpen, setGuideOpen] = useState(false);
+  // Calendar triggers (Schedule) carry a "next:" — from the server, for
+  // the SAVED rules this page describes.
+  const [nextFires, setNextFires] = useState<Record<string, NextFire>>({});
   const reload = useCallback(() => setNonce(n => n + 1), []);
 
   // Fetch in an async continuation, deduped by key — React 19's
@@ -98,10 +103,18 @@ export function TriggersTab({ agentSlug }: Props) {
         setEvents(ev.events || []);
         setStatus(st.status || {});
         setError(null);
+        const calendar = triggers.filter(t => getTriggerType(t.typeId)?.calendar);
+        if (calendar.length) {
+          const nf = await fetchNextFires(agentSlug, calendar).catch(() => null);
+          if (nf) setNextFires(nf.next || {});
+        }
       } catch (e) {
         setError((e as Error).message);
       }
     })();
+    // `triggers` is read once per load on purpose: this page describes
+    // saved rules and refreshes on demand, not on every working-copy edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agentSlug, nonce]);
 
   const nameOf = (triggerId: string) => {
@@ -158,13 +171,26 @@ export function TriggersTab({ agentSlug }: Props) {
           </div>
         ) : (
           <ul className={styles.rules}>
-            {triggers.map(t => (
-              <li key={t.id} className={styles.rule}>
-                <span className={t.enabled ? styles.dotOn : styles.dotOff} aria-hidden />
-                <span className={styles.ruleName}>{t.name || t.typeId || 'Untitled trigger'}</span>
-                <span className={styles.ruleMeta}>{statusLine(t, status[t.id] || null)}</span>
-              </li>
-            ))}
+            {triggers.map(t => {
+              const type = getTriggerType(t.typeId);
+              return (
+                <li key={t.id} className={styles.rule}>
+                  <span className={t.enabled ? styles.dotOn : styles.dotOff} aria-hidden />
+                  <span className={styles.ruleName}>{t.name || t.typeId || 'Untitled trigger'}</span>
+                  {/* The type and what it is set to — "which rule is this?"
+                      should not need a trip to the Triggers screen. */}
+                  {type && (
+                    <span className={styles.ruleType} title={type.description}>
+                      {type.icon} {type.summarize(t.config as never)}
+                      {type.calendar && type.formatNext && (
+                        <> · {type.formatNext(nextFires[t.id], t.config as never)}</>
+                      )}
+                    </span>
+                  )}
+                  <span className={styles.ruleMeta}>{statusLine(t, status[t.id] || null)}</span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

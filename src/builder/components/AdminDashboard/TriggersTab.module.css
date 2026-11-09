@@ -80,6 +80,10 @@
 .dotOff { background: #d1d5db; }
 .ruleName { font-weight: 600; color: #111827; }
 .ruleMeta { font-size: 12px; color: #6b7280; }
+.ruleType {
+  font-size: 11.5px; color: #374151; background: #f3f4f6;
+  border-radius: 999px; padding: 1px 9px; white-space: nowrap;
+}
 
 /* ── filter chips ── */
 .chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 11px 14px 0; }

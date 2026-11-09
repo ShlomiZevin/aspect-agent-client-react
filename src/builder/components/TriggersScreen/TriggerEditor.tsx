@@ -23,7 +23,7 @@ import { useMemo } from 'react';
 import { Modal } from '../Modal/Modal';
 import { HelpDot } from './HelpDot';
 import { TriggerTestButtons } from './TriggerTestButtons';
-import { getTriggerType } from '../../triggers';
+import { getTriggerType, type NextFire } from '../../triggers';
 import { TriggerRow } from '../../triggers/TriggerRow';
 import { rowStyles as s } from '../../triggers/triggerRowStyles';
 import { groupedTimezones, shortZoneLabel } from '../../triggers/timezones';
@@ -40,9 +40,11 @@ interface Props {
   /** A manual run writes a real event; refresh the heartbeat after it. */
   onRan?: () => void;
   onClose: () => void;
+  /** Calendar types (Schedule): the server's next fire for the working copy. */
+  nextFire?: NextFire | null;
 }
 
-export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose, agentSlug, onRan }: Props) {
+export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose, agentSlug, onRan, nextFire }: Props) {
   const type = getTriggerType(trigger.typeId);
   const quiet = trigger.quietHours;
   const cap = trigger.limits?.perConversation;
@@ -92,12 +94,16 @@ export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose, age
         <div className={styles.groupTitle}>
           When it fires
           <HelpDot label="How the timing works">
-            Quiet is measured from the <strong>customer's</strong> last message — a nudge
-            doesn't reset it, so someone silent for three days stays silent for three days.
-            Attempts are counted whether or not the crew ends up speaking, so a crew that
-            decides to stay quiet can't loop forever. If they reply, the count starts again.
-            A trigger only ever reaches conversations whose customer has spoken since you
-            switched it on.
+            {type?.timingHelp ?? (
+              <>
+                Quiet is measured from the <strong>customer's</strong> last message — a nudge
+                doesn't reset it, so someone silent for three days stays silent for three days.
+                Attempts are counted whether or not the crew ends up speaking, so a crew that
+                decides to stay quiet can't loop forever. If they reply, the count starts again.
+                A trigger only ever reaches conversations whose customer has spoken since you
+                switched it on.
+              </>
+            )}
           </HelpDot>
         </div>
         <div className={styles.group}>
@@ -105,6 +111,7 @@ export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose, age
             ? <type.ConfigComponent
                 config={trigger.config as never}
                 onChange={next => onChange({ config: next })}
+                context={{ quietHours: quiet, nextFire }}
               />
             : <p className={styles.err}>Unknown trigger type "{trigger.typeId}".</p>}
         </div>
@@ -114,9 +121,12 @@ export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose, age
           When it must not
           <span className={styles.optional}>optional</span>
           <HelpDot label="About these limits">
-            A nudge held back at night isn't lost — the customer is still quiet in the
-            morning, so it goes then. Held-back attempts are recorded, so you can see the
-            trigger wanted to fire.
+            {type?.calendar
+              ? <>A scheduled time inside quiet hours is <strong>skipped</strong> that day, not sent
+                  later. It is still recorded, so you can see the trigger wanted to fire.</>
+              : <>A nudge held back at night isn't lost — the customer is still quiet in the
+                  morning, so it goes then. Held-back attempts are recorded, so you can see the
+                  trigger wanted to fire.</>}
             <br /><br />
             The message limit counts messages the customer actually <strong>received</strong>,
             not runs. A run that ended without a message didn't bother anyone, so it doesn't
@@ -146,7 +156,7 @@ export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose, age
               </label>
               {quiet ? (
                 <>
-                  <span className={s.trail}>Hold nudges between</span>
+                  <span className={s.trail}>{type?.calendar ? 'Skip times between' : 'Hold nudges between'}</span>
                   <input className={s.time} type="time" value={quiet.from}
                     onChange={e => onChange({ quietHours: { ...quiet, from: e.target.value } })} />
                   <span className={s.trail}>and</span>
@@ -278,7 +288,7 @@ export function TriggerEditor({ agent, trigger, onChange, onDelete, onClose, age
               id="trg-brief"
               className={s.textarea}
               rows={3}
-              placeholder="The customer has gone quiet. Decide whether to re-engage, and if so, send one short follow-up."
+              placeholder={type?.briefPlaceholder ?? 'The customer has gone quiet. Decide whether to re-engage, and if so, send one short follow-up.'}
               value={trigger.run?.brief || ''}
               onChange={e => onChange({ run: { ...(trigger.run ?? { crewId: '' }), brief: e.target.value } })}
             />

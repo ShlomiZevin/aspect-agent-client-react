@@ -26,7 +26,8 @@ import { TriggerActivity } from './TriggerActivity';
 import { AgentTestPanel } from './AgentTestPanel';
 import { ActivityLogProvider } from './ActivityLogProvider';
 import { TriggersGuideModal } from '../TriggersGuide';
-import { fetchTriggerStatus, type TriggerStatusRow } from '../../state/triggersApi';
+import { fetchNextFires, fetchTriggerStatus, type TriggerStatusRow } from '../../state/triggersApi';
+import type { NextFire } from '../../triggers';
 import type { AgentTrigger, ID } from '../../types';
 import styles from './TriggersScreen.module.css';
 
@@ -87,6 +88,31 @@ function TriggersScreenInner() {
       }
     })();
   }, [slug, statusNonce]);
+
+  // "next:" for calendar triggers (Schedule), from the server, for the
+  // WORKING copies — so an edit shows its new next time without a save.
+  // Debounced: typing a time should not send a request per keystroke.
+  // Re-asked every minute so "today 09:00" turns into "tomorrow" on time.
+  const [nextFires, setNextFires] = useState<Record<string, NextFire>>({});
+  const [minute, setMinute] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setMinute(m => m + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  useEffect(() => {
+    if (!slug) return;
+    const calendar = triggers.filter(t => getTriggerType(t.typeId)?.calendar);
+    if (calendar.length === 0) return;
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const r = await fetchNextFires(slug, calendar);
+          setNextFires(r.next || {});
+        } catch { /* keep the last answer; the card shows it or "…" */ }
+      })();
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [slug, triggers, minute]);
 
   if (!agent) return null;
 
@@ -201,6 +227,7 @@ function TriggersScreenInner() {
               trigger={t}
               status={status[t.id] || null}
               masterOn={allEnabled}
+              next={nextFires[t.id]}
               onEdit={() => setEditingId(t.id)}
               onToggle={() => patchTrigger(t.id, { enabled: !t.enabled })}
             />
@@ -240,6 +267,7 @@ function TriggersScreenInner() {
           agentSlug={slug}
           onRan={loadStatus}
           trigger={editing}
+          nextFire={nextFires[editing.id]}
           onChange={patch => patchTrigger(editing.id, patch)}
           onDelete={() => void removeTrigger(editing)}
           onClose={() => { setEditingId(null); loadStatus(); }}

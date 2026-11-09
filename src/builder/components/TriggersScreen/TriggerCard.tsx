@@ -20,7 +20,7 @@
  * OFF — a trigger that isn't watching should say so at a glance.
  */
 
-import { getTriggerType } from '../../triggers';
+import { getTriggerType, type NextFire } from '../../triggers';
 import type { AgentDoc, AgentTrigger } from '../../types';
 import type { TriggerStatusRow } from '../../state/triggersApi';
 import styles from './TriggersScreen.module.css';
@@ -30,6 +30,8 @@ interface Props {
   trigger: AgentTrigger;
   status: TriggerStatusRow | null;
   masterOn: boolean;
+  /** Calendar types only (Schedule): the server's next fire. undefined = loading. */
+  next?: NextFire | null;
   onEdit: () => void;
   onToggle: () => void;
 }
@@ -63,7 +65,7 @@ function tooltip(trigger: AgentTrigger, status: TriggerStatusRow | null, masterO
   return `Checked ${relative(status.lastEvaluatedAt)} · ${why}${n > 1 ? ` (${n} checks in a row)` : ''}`;
 }
 
-export function TriggerCard({ agent, trigger, status, masterOn, onEdit, onToggle }: Props) {
+export function TriggerCard({ agent, trigger, status, masterOn, next, onEdit, onToggle }: Props) {
   const type = getTriggerType(trigger.typeId);
   const crew = agent.crews.find(c => c.id === trigger.run?.crewId);
   const summary = type?.summarize ? type.summarize(trigger.config as never) : trigger.typeId;
@@ -94,6 +96,13 @@ export function TriggerCard({ agent, trigger, status, masterOn, onEdit, onToggle
             ? <><span className={styles.cardDot}>·</span>{crew.name}</>
             : <span className={styles.cardWarn}> · no crew</span>}
         </span>
+        {/* Calendar types always draw this line — "next: …" while the
+            server answers — so the chip never grows when it lands. */}
+        {type?.calendar && (
+          <span className={styles.cardNext}>
+            {type.formatNext ? type.formatNext(next, trigger.config as never) : ''}
+          </span>
+        )}
       </button>
     </div>
   );

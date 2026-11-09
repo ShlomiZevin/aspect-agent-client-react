@@ -15,10 +15,35 @@
  */
 
 import type { ComponentType } from 'react';
+import type { QuietHours } from '../types';
+
+/**
+ * When a calendar-driven trigger (Schedule) will next act, as computed by
+ * the SERVER (`POST /triggers/next-fires`) — the same slot code the clock
+ * runs, so the card can never promise a time the clock would not use.
+ * `at: null` = nothing left on the schedule.
+ */
+export interface NextFire {
+  at: string | null;
+  /** Times stepped over because they fall inside quiet hours. */
+  skippedForQuietHours: number;
+}
+
+/**
+ * Read-only facts a type's form may want from outside its own config:
+ * the envelope's quiet hours (Schedule marks a time that falls inside
+ * them) and the server's next fire. Optional — Silence uses neither.
+ */
+export interface TriggerConfigContext {
+  quietHours?: QuietHours;
+  /** undefined = not loaded yet; null = the server has no answer. */
+  nextFire?: NextFire | null;
+}
 
 export interface TriggerTypeConfigProps<TConfig = Record<string, unknown>> {
   config: TConfig;
   onChange: (next: TConfig) => void;
+  context?: TriggerConfigContext;
 }
 
 /**
@@ -61,6 +86,18 @@ export interface TriggerTypeDescriptor<TConfig = Record<string, unknown>> {
   summarize: (config: TConfig) => string;
   /** Plain-language explanation for the Triggers guide. */
   guide?: TriggerTypeGuide;
+  /**
+   * Fires on the calendar, so it has ONE next fire for the whole agent
+   * (Schedule). The card then always draws a "next:" line — reserved
+   * even while loading, so the chip never grows when the answer lands.
+   */
+  calendar?: boolean;
+  /** The card's "next:" line, from the server's answer. */
+  formatNext?: (next: NextFire | null | undefined, config: TConfig) => string;
+  /** The "?" text on the editor's "When it fires" header. Absent → Silence's. */
+  timingHelp?: string;
+  /** Placeholder for the Brief box — what a brief for THIS type looks like. */
+  briefPlaceholder?: string;
 }
 
 const registry = new Map<string, TriggerTypeDescriptor<never>>();

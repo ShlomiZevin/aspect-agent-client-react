@@ -158,6 +158,12 @@
   color: var(--text-tertiary, #9ca3af);
 }
 .cardDot { margin: 0 4px; }
+/* Calendar types (Schedule): "next: tomorrow 09:00". Always drawn for
+   them, so the chip keeps its height while the server answers. */
+.cardNext {
+  font-size: 10.5px; line-height: 1.3; min-height: 14px;
+  color: var(--card-color); font-weight: 600;
+}
 .cardWarn { color: #b45309; font-weight: 700; }
 
 /* ── enable switch — same pill, same corner, same hover rule ── */
