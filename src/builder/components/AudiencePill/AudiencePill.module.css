@@ -1,0 +1,36 @@
+/* Real / Test pill (#968). One fixed width for both states and while
+   saving, so flipping it never moves anything around it. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  box-sizing: border-box;
+  width: 58px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  flex: none;
+  transition: background-color 0.12s, border-color 0.12s;
+}
+.pill:disabled { cursor: default; }
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.real { background: #d1fae5; color: #047857; border-color: #a7f3d0; }
+.real:hover:not(:disabled) { background: #bbf7d0; }
+.test { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
+.test .dot { background: transparent; border: 1.5px solid currentColor; box-sizing: border-box; }
+.test:hover:not(:disabled) { background: #e5e7eb; }
+.saving { opacity: 0.6; }
+.error { border-color: #fca5a5; }

@@ -22,7 +22,7 @@
 
 import { getTriggerType, type NextFire } from '../../triggers';
 import type { AgentDoc, AgentTrigger } from '../../types';
-import type { TriggerStatusRow } from '../../state/triggersApi';
+import { testSkippedSuffix, type TriggerStatusRow } from '../../state/triggersApi';
 import styles from './TriggersScreen.module.css';
 
 interface Props {
@@ -56,7 +56,7 @@ function tooltip(trigger: AgentTrigger, status: TriggerStatusRow | null, masterO
   if (!status?.lastEvaluatedAt) return 'On — not checked yet.';
   if (status.lastResult === 'error') return `Last check failed: ${status.lastError || 'unknown error'}`;
   if (status.lastResult === 'matched') {
-    return `Checked ${relative(status.lastEvaluatedAt)} · ${status.lastMatched} matched · last fired ${relative(status.lastFiredAt)}`;
+    return `Checked ${relative(status.lastEvaluatedAt)} · ${status.lastMatched} matched · last fired ${relative(status.lastFiredAt)}${testSkippedSuffix(status.lastReason)}`;
   }
   const n = status.consecutiveEmpty;
   // Prefer the server's specific reason; the generic line is only a

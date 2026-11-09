@@ -165,6 +165,23 @@ export async function setUserSuspended(
   );
 }
 
+/**
+ * Mark a user as a real customer (#968). Their NEW customer-chat
+ * conversations are then born real, and triggers may reach them; past
+ * conversations keep the mark they were born with.
+ */
+export async function setUserRealCustomer(
+  userId: number,
+  real: boolean,
+  baseURL?: string
+): Promise<AdminUser> {
+  return apiRequest<AdminUser>(
+    `/api/admin/users/${userId}/real-customer`,
+    { method: 'POST', body: JSON.stringify({ real }) },
+    baseURL || getBaseURL()
+  );
+}
+
 export async function deleteUser(
   userId: number,
   baseURL?: string

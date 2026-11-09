@@ -128,6 +128,11 @@
 .table th:nth-child(9) { width: 90px; }  /* Created */
 .table th:nth-child(10) { width: 90px; } /* Last Active */
 .table th:nth-child(11) { width: 80px; } /* Actions */
+/* By class, after the positional rules: the optional "Real customer"
+   column (#968, builder agents) shifts the positions, and Actions must
+   keep room for its three buttons whichever columns are shown. */
+.table th.realCol { width: 120px; }
+.table th.actionsCol { width: 120px; }
 
 .table td {
   padding: var(--spacing-sm) var(--spacing-md);

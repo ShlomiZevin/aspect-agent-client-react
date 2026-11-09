@@ -28,6 +28,7 @@ import {
   fetchAgentTriggerEvents,
   fetchNextFires,
   fetchTriggerStatus,
+  testSkippedSuffix,
   type TriggerEventRow,
   type TriggerStatusRow,
 } from '../../state/triggersApi';
@@ -62,7 +63,7 @@ function statusLine(t: { enabled: boolean }, s: TriggerStatusRow | null): string
   if (!s?.lastEvaluatedAt) return 'On — not checked yet';
   if (s.lastResult === 'error') return `Last check failed — ${s.lastError || 'unknown error'}`;
   if (s.lastResult === 'matched') {
-    return `Checked ${relative(s.lastEvaluatedAt)} · ${s.lastMatched} matched · last fired ${relative(s.lastFiredAt)}`;
+    return `Checked ${relative(s.lastEvaluatedAt)} · ${s.lastMatched} matched · last fired ${relative(s.lastFiredAt)}${testSkippedSuffix(s.lastReason)}`;
   }
   const n = s.consecutiveEmpty;
   const why = s.lastReason || 'nobody was quiet enough';

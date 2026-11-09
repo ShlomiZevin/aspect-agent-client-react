@@ -141,6 +141,16 @@ export interface SweepResult {
 
 // ─── Calls ────────────────────────────────────────────────────────
 
+/**
+ * " · 2 test conversations skipped" from a status reason (#968) — the
+ * server appends it to every sweep's line; a "matched" line is built on
+ * the client, so it picks the suffix out here. Empty when there is none.
+ */
+export function testSkippedSuffix(reason: string | null | undefined): string {
+  const m = (reason || '').match(/ · \d+ test conversations? skipped$/);
+  return m ? m[0] : '';
+}
+
 export function fetchTriggerTypes(agentSlug: string) {
   return http<{ types: TriggerTypeDescriptor[] }>(`/api/agents/${agentSlug}/triggers/types`);
 }

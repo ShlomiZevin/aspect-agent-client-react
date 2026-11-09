@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getUsers, getStats, updateUser, setUserSuspended } from '../../../services/adminService';
+import { getUsers, getStats, updateUser, setUserSuspended, setUserRealCustomer } from '../../../services/adminService';
 import type { AdminUser, AdminUserFilters, AdminStats, UserSource, UserSubscription } from '../../../types/admin';
 import { SignInAccounts } from '../../../auth';
 import { AddUserModal } from '../AddUserModal';
@@ -197,6 +197,22 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
       console.error('Error suspending user:', err);
     } finally {
       setSuspendingId(null);
+    }
+  };
+
+  // Real customer (#968, builder agents only): their NEW customer-chat
+  // conversations are born real, so triggers may reach them. Off by
+  // default; unticking later leaves past conversations as they were.
+  const [realSavingId, setRealSavingId] = useState<number | null>(null);
+  const toggleRealCustomer = async (user: AdminUser) => {
+    setRealSavingId(user.id);
+    try {
+      const updated = await setUserRealCustomer(user.id, user.metadata?.realCustomer !== true, baseURL);
+      setUsers(prev => prev.map(u => (u.id === updated.id ? { ...u, ...updated } : u)));
+    } catch (err) {
+      console.error('Error marking real customer:', err);
+    } finally {
+      setRealSavingId(null);
     }
   };
 
@@ -413,11 +429,16 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
               <th>Name</th>
               <th>Role</th>
               <th>Subscription</th>
+              {agentName && (
+                <th className={styles.realCol} title="Triggers reach real customers only. Ticked: this user's new customer-chat conversations are real.">
+                  Real customer
+                </th>
+              )}
               {superAdmin && <th>Tenant</th>}
               <th>Conversations</th>
               <th>Created</th>
               <th>Last Active</th>
-              <th>Actions</th>
+              <th className={styles.actionsCol}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -454,6 +475,21 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
                 <td>{renderEditableCell(user, 'name', user.name)}</td>
                 <td>{renderEditableCell(user, 'role', user.role, ['user', 'admin'])}</td>
                 <td>{renderEditableCell(user, 'subscription', user.subscription, ['demo', 'pro'])}</td>
+                {agentName && (
+                  <td className={styles.centered}>
+                    <input
+                      type="checkbox"
+                      checked={user.metadata?.realCustomer === true}
+                      disabled={realSavingId === user.id}
+                      onChange={() => toggleRealCustomer(user)}
+                      title={user.metadata?.realCustomer === true
+                        ? 'Real customer — new customer-chat conversations are real; triggers can reach them. Untick: new ones are test (existing ones keep their mark).'
+                        : 'Test user — triggers never reach their conversations. Tick if this is a real customer.'}
+                      aria-label="Real customer"
+                      style={{ cursor: 'pointer', width: 16, height: 16 }}
+                    />
+                  </td>
+                )}
                 {superAdmin && <td>{renderEditableCell(user, 'tenant', user.tenant)}</td>}
                 <td className={styles.centered}>
                   {user.conversationCount > 0 ? (

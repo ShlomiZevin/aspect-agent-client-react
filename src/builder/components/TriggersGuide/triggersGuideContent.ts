@@ -108,6 +108,31 @@ export const GUIDE_SECTIONS: GuideSection[] = [
   },
 
   {
+    id: 'real',
+    group: 'Basics',
+    title: 'Real customers only',
+    body: [
+      'A trigger reaches only conversations marked REAL. Every other conversation is a '
+      + 'TEST — your chats in the Builder, simulations, and anyone you have not marked '
+      + 'as a real customer — and the clock never messages a test.',
+    ],
+    points: [
+      {
+        label: 'Real customer',
+        text: 'Tick "Real customer" next to the person in Admin → Users. Conversations they start in the customer chat from then on are real. Unticking later does not change conversations they already have.',
+      },
+      {
+        label: 'By hand',
+        text: 'The Real / Test pill in the Builder chat header, and in Admin → Conversations, flips one conversation. Mark your own Builder chat real to watch the clock reach it.',
+      },
+      {
+        label: 'Testing',
+        text: '"Run it now" and "Run them all now" work on the chat you have open, test or not. "Will it trigger?" says "real customer ✗" on a test chat — that is the clock’s answer.',
+      },
+    ],
+  },
+
+  {
     id: 'clock',
     group: 'Running it',
     title: 'The clock',

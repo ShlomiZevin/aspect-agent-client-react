@@ -686,6 +686,38 @@ export async function renameConversation(args: {
   });
 }
 
+/**
+ * Real customer or test (#968). Triggers reach REAL conversations only;
+ * everything is test unless marked — born real when a user marked "Real
+ * customer" (Admin → Users) starts it in the customer chat, or flipped by
+ * hand. Stored as `metadata.audience`; anything but 'real' reads as test.
+ */
+export type ConversationAudience = 'real' | 'test';
+
+export function audienceOfMetadata(meta: Record<string, unknown> | null | undefined): ConversationAudience {
+  return meta && meta.audience === 'real' ? 'real' : 'test';
+}
+
+export async function getConversationAudience(args: {
+  agentSlug: string;
+  conversationId: number;
+}): Promise<ConversationAudience> {
+  const r = await http<{ audience: ConversationAudience }>(
+    `/api/agents/${encodeURIComponent(args.agentSlug)}/conversations/${args.conversationId}/audience`);
+  return r.audience === 'real' ? 'real' : 'test';
+}
+
+export async function setConversationAudience(args: {
+  agentSlug: string;
+  conversationId: number;
+  audience: ConversationAudience;
+}): Promise<{ ok: boolean; audience: ConversationAudience }> {
+  return http(`/api/agents/${encodeURIComponent(args.agentSlug)}/conversations/${args.conversationId}/audience`, {
+    method: 'PATCH',
+    body: JSON.stringify({ audience: args.audience }),
+  });
+}
+
 export interface ConversationMessage {
   id: number;
   role: 'user' | 'assistant' | 'system';
@@ -701,6 +733,7 @@ export interface ConversationPageItem {
   id: number;
   name: string | null;
   source: ConversationSource | null;
+  audience: ConversationAudience;
   createdAt: string;
   updatedAt: string;
   messageCount: number;
@@ -782,6 +815,7 @@ export interface ConversationOverview {
     id: number;
     name: string | null;
     source: ConversationSource | null;
+    audience: ConversationAudience;
     agentName: string;
     createdAt: string;
     updatedAt: string;

@@ -21,9 +21,11 @@ import {
   deleteMessage,
   fetchConversationMessages,
   fetchRunsForMessage,
+  getConversationAudience,
   listConversations,
   renameConversation,
   stopRuntimeTurn,
+  type ConversationAudience,
   type ConversationListItem,
   type ConversationMessage,
   type PersistedAddonRun,
@@ -34,6 +36,7 @@ import { AddonRunTimeline, type RunCat } from '../AddonRun/AddonRunTimeline';
 import { webSearchLine, type AddonRunSnapshot } from '../AddonRun/AddonRunCard';
 import { useConfirm } from '../Confirm/Confirm';
 import { HistoryPanel } from './HistoryPanel';
+import { AudiencePill } from '../AudiencePill/AudiencePill';
 import { ExportConversationModal } from './ExportConversationModal';
 import { ChatSettingsPopover, useChatSettings } from './ChatSettings';
 // Report-a-bug reuses the live chat's lightweight modal verbatim — same
@@ -270,6 +273,12 @@ export function UserChat() {
   //   - new chat / slug change (cleared → falls back to default crew)
   const [currentCrewId, setCurrentCrewId] = useState<string | null>(null);
 
+  // Real customer or test (#968) for the conversation on screen — the
+  // header pill. Fetched per conversation (a deep-linked customer chat
+  // is not in this owner's list). Keyed by id so a stale answer for the
+  // previous conversation is never shown; a new chat is test.
+  const [audience, setAudience] = useState<{ id: number; value: ConversationAudience } | null>(null);
+
   const turnsRef = useRef<Turn[]>(turns);
   turnsRef.current = turns;
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -437,6 +446,17 @@ export function UserChat() {
     paused: awaitingTalker,
     onArrived: () => { void refreshTurns(); },
   });
+
+  useEffect(() => {
+    if (conversationId === null || !slug) return;
+    let cancelled = false;
+    getConversationAudience({ agentSlug: slug, conversationId })
+      .then(value => { if (!cancelled) setAudience({ id: conversationId, value }); })
+      .catch(() => { /* the pill stays "Test" — the fail-closed reading */ });
+    return () => { cancelled = true; };
+  }, [slug, conversationId]);
+  const currentAudience: ConversationAudience =
+    audience && audience.id === conversationId ? audience.value : 'test';
 
   // Deep-link: the customer Live chat links back here with `?c=<convId>`
   // ("Open in builder"). Load that conversation once on mount so the
@@ -983,6 +1003,15 @@ export function UserChat() {
           ) : (
             <div className={styles.crewBadge}>No crew selected</div>
           )}
+          {/* Always rendered (disabled with no conversation) so the row
+              never changes when a chat starts. */}
+          <span className={styles.headerSpacer} />
+          <AudiencePill
+            agentSlug={slug}
+            conversationId={conversationId}
+            audience={currentAudience}
+            onChange={value => { if (conversationId !== null) setAudience({ id: conversationId, value }); }}
+          />
           {/* Pin swap chips retired from the chat header — the user's
               preference is to surface this stuff only inside the live
               memory / brain panel (where collected fields also live).

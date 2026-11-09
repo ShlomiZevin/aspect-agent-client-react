@@ -36,11 +36,13 @@ import {
   type ConversationOverview,
   type ConversationPage,
   type ConversationRunSummary,
+  type ConversationAudience,
   type ConversationSource,
   type PersistedAddonRun,
 } from '../../state/builderApi';
 import { formatDuration } from '../../formatDuration';
 import { ExportConversationModal } from '../ChatPanel/ExportConversationModal';
+import { AudiencePill } from '../AudiencePill/AudiencePill';
 import { MarkdownBody } from '../ChatPanel/MarkdownBody';
 import styles from './ConversationsTab.module.css';
 import s from './AdminConversations.module.css';
@@ -157,6 +159,11 @@ function ConversationList({ agentSlug, userId, backHref, params, update }: Props
   const loading = loaded?.key !== requestKey;
 
   const counts = data?.counts ?? { all: 0, live: 0, builder: 0, simulation: 0 };
+  // A flip (#968) updates the row in place — no refetch, nothing moves.
+  const setRowAudience = (id: number, audience: ConversationAudience) => setLoaded(prev => prev && {
+    ...prev,
+    data: { ...prev.data, conversations: prev.data.conversations.map(c => (c.id === id ? { ...c, audience } : c)) },
+  });
   const pages = Math.max(Math.ceil((data?.total ?? 0) / PAGE), 1);
 
   return (
@@ -198,7 +205,8 @@ function ConversationList({ agentSlug, userId, backHref, params, update }: Props
         <table className={s.table}>
           <thead>
             <tr>
-              <th>ID</th><th>Started</th><th>Kind</th><th>User</th>
+              <th>ID</th><th>Started</th><th>Kind</th>
+              <th title="Triggers reach real customers only. Click a pill to flip it.">Audience</th><th>User</th>
               <th className={s.num}>Messages</th><th>Last update</th><th aria-label="Actions" />
             </tr>
           </thead>
@@ -212,6 +220,10 @@ function ConversationList({ agentSlug, userId, backHref, params, update }: Props
                 </td>
                 <td className={s.nowrap}>{fmtDate(c.createdAt)}</td>
                 <td>{c.source ? <span className={`${s.pill} ${s[`pill_${c.source}`]}`}>{SOURCE_LABEL[c.source]}</span> : <span className={s.muted}>—</span>}</td>
+                <td>
+                  <AudiencePill agentSlug={agentSlug} conversationId={c.id} audience={c.audience ?? 'test'}
+                    onChange={a => setRowAudience(c.id, a)} />
+                </td>
                 <td className={s.userCell} title={c.ownerUserId || ''}>{c.simulatedBy || c.ownerName || c.ownerUserId || '—'}</td>
                 <td className={s.num}>{c.messageCount}</td>
                 <td className={s.nowrap} title={fmtDate(c.updatedAt)}>{ago(c.updatedAt)}</td>
@@ -410,6 +422,13 @@ function ConversationReader({ agentSlug, conversationId, turn, onTurn, onBack }:
           <span className={s.convId}>#{conversationId}</span>
           {c?.name && <span className={s.convName} dir="auto">{c.name}</span>}
           {c?.source && <span className={`${s.pill} ${s[`pill_${c.source}`]}`}>{SOURCE_LABEL[c.source]}</span>}
+          {c && (
+            <AudiencePill agentSlug={agentSlug} conversationId={conversationId} audience={c.audience ?? 'test'}
+              onChange={a => setLoaded(prev => prev && {
+                ...prev,
+                overview: { ...prev.overview, conversation: { ...prev.overview.conversation, audience: a } },
+              })} />
+          )}
           <span className={s.facts}>
             {c ? [who, fmtDate(c.createdAt), `${lastUserTurn} turn${lastUserTurn === 1 ? '' : 's'}`, c.crewName ? `now in ${c.crewName}` : null].filter(Boolean).join(' · ') : (error || 'Loading…')}
           </span>
