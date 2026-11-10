@@ -60,6 +60,9 @@ export function bodyOfAgent(agent: AgentDoc): AgentBody {
     // is never written to the server at all, while the builder keeps
     // showing it from the in-memory working copy until you reload.
     ...((agent.triggers?.triggers?.length || agent.triggers?.enabled === false) ? { triggers: agent.triggers } : {}),
+    // CREWS sidebar tree (#855) — display only; empty == absent, in
+    // lockstep with BuilderContext.bodyOfAgent.
+    ...(Object.keys(agent.crewTree?.parents ?? {}).length ? { crewTree: agent.crewTree } : {}),
   };
 }
 
@@ -77,6 +80,8 @@ export function bodyOfCrew(crew: CrewDoc): CrewBody {
 
 export interface ProjectSyncApi {
   pushSaveAgentVersion: (agent: AgentDoc) => Promise<void>;
+  /** Overwrite one agent version with an exact body (the crew tree, #855). */
+  pushSaveAgentBody: (agentId: ID, versionId: ID, body: AgentBody) => Promise<void>;
   pushSaveAgentVersionAs: (agent: AgentDoc, description?: string, number?: number) => Promise<void>;
   pushSetAgentActive: (agentId: ID, versionId: ID) => Promise<void>;
   /** `versionId: null` unpublishes. */
@@ -118,6 +123,13 @@ export function useProjectSync(_args: {
         });
       } catch (err) {
         console.error('[builder] saveAgentVersion failed:', err);
+      }
+    },
+    pushSaveAgentBody: async (agentId, versionId, body) => {
+      try {
+        await api.saveAgentVersionApi({ agentId, versionId, body });
+      } catch (err) {
+        console.error('[builder] saving the crew tree failed:', err);
       }
     },
     pushSaveAgentVersionAs: async (agent, description, number) => {

@@ -168,6 +168,8 @@ export function bodyOfAgent(agent: AgentDoc): AgentBody {
     // saved version body doesn't have, and show a permanent phantom
     // "unsaved changes" the moment the builder loads.
     ...((agent.triggers?.triggers?.length || agent.triggers?.enabled === false) ? { triggers: agent.triggers } : {}),
+    // CREWS sidebar tree (#855) — display only. Same empty==absent trick.
+    ...(Object.keys(agent.crewTree?.parents ?? {}).length ? { crewTree: agent.crewTree } : {}),
   };
 }
 
@@ -316,7 +318,10 @@ function draftBaseline(doc: ProjectDoc): Record<string, string> {
 }
 
 /** Keys that belong to the Builder's bookkeeping, never to the content. */
-const AGENT_STRUCTURAL = new Set(['id', 'slug', 'crews', 'versions', 'activeVersionId', 'viewingVersionId', 'publishedVersionId']);
+// `crewTree` (#855) is the sidebar's display-only grouping, saved in place
+// the moment it changes — never taken from a folder file, so an older or
+// hand-edited draft can't silently drop it.
+const AGENT_STRUCTURAL = new Set(['id', 'slug', 'crews', 'versions', 'activeVersionId', 'viewingVersionId', 'publishedVersionId', 'crewTree']);
 const CREW_STRUCTURAL  = new Set(['id', 'versions', 'activeVersionId', 'viewingVersionId', 'publishedVersionId']);
 
 function withContentOf<T extends object>(base: T, incoming: T, structural: Set<string>): T {
@@ -633,6 +638,12 @@ interface BuilderState {
   removeCrew: (agentId: ID, crewId: ID) => void;
   /** Reorder the crew list (sidebar drag). Visual only. */
   reorderCrews: (agentId: ID, orderedCrewIds: ID[]) => void;
+  /**
+   * Set the CREWS sidebar hierarchy (#855) — `parents` maps crewId →
+   * the crew it is shown under. Display only. Saved at once, in place,
+   * into the viewing version body: no new version, never "unsaved".
+   */
+  setCrewParents: (agentId: ID, parents: Record<ID, ID>) => void;
   updateCrew: (
     agentId: ID,
     crewId: ID,
@@ -1633,6 +1644,32 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     syncRef.current?.pushReorderCrews(agentId, orderedCrewIds);
   }, []);
 
+  // The crew tree (#855) is organisation, not an edit: it is written into
+  // the working copy AND the viewing version's saved body at once, and the
+  // saved body (not the working copy) is what gets pushed — so other
+  // unsaved agent edits stay unsaved and nothing turns "dirty".
+  const setCrewParents = useCallback((agentId: ID, parents: Record<ID, ID>) => {
+    const d = docRef.current;
+    const a = d.agents.find(x => x.id === agentId);
+    const viewing = a?.versions.find(v => v.id === a.viewingVersionId);
+    if (!a || !viewing) return;
+    const crewTree = Object.keys(parents).length ? { parents } : undefined;
+    const savedBody: AgentBody = { ...viewing.body };
+    if (crewTree) savedBody.crewTree = crewTree; else delete savedBody.crewTree;
+    // Functional update: a move calls reorderCrews (also functional) just
+    // before this — replacing the doc with a copy built from docRef here
+    // would silently undo that new order.
+    setDoc(prev => ({
+      ...prev,
+      agents: prev.agents.map(x => x.id !== agentId ? x : {
+        ...x,
+        crewTree,
+        versions: x.versions.map(v => (v.id === viewing.id ? { ...v, body: savedBody } : v)),
+      }),
+    }));
+    syncRef.current?.pushSaveAgentBody(agentId, viewing.id, savedBody);
+  }, []);
+
   const updateCrew = useCallback(
     (
       agentId: ID,
@@ -2155,6 +2192,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
               ...(ab.liveBrain !== undefined   && { liveBrain: ab.liveBrain as AgentDoc['liveBrain'] }),
               ...(ab.profiler !== undefined    && { profiler: ab.profiler as AgentDoc['profiler'] }),
               ...(ab.triggers !== undefined    && { triggers: ab.triggers as AgentDoc['triggers'] }),
+              ...(ab.crewTree !== undefined    && { crewTree: ab.crewTree as AgentDoc['crewTree'] }),
             };
           }
           agent = {
@@ -2648,6 +2686,9 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
           return {
             ...a,
             ...target.body,
+            // A spread never removes a key: a version saved before the
+            // crew tree (#855) existed must show no tree, not keep this one.
+            crewTree: target.body.crewTree,
             viewingVersionId: versionId,
           };
         }),
@@ -2990,6 +3031,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       addCrew,
       removeCrew,
       reorderCrews,
+      setCrewParents,
       updateCrew,
       addAddon,
       updateAddonConfig,
@@ -3071,6 +3113,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       addCrew,
       removeCrew,
       reorderCrews,
+      setCrewParents,
       updateCrew,
       addAddon,
       updateAddonConfig,

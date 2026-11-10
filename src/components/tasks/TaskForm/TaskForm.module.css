@@ -1,4 +1,33 @@
 /* Two-column wrapper: form left, comments right */
+/* Task #954: the whole modal takes dropped files. The overlay floats above
+   the form, so the highlight never resizes anything. */
+.dropZone {
+  position: relative;
+}
+
+.dropOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--primary-color, #3b82f6);
+  border-radius: var(--radius-md);
+  background: rgba(59, 130, 246, 0.08);
+  pointer-events: none;
+}
+
+.dropOverlay span {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--primary-color, #3b82f6);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
 .twoColumn {
   display: flex;
   align-items: stretch;
@@ -505,6 +534,7 @@
 }
 
 .submitBtn {
+  min-width: 84px; /* Create → Uploading… keeps its width (#954) */
   background: var(--primary-color);
   border: none;
   color: white;

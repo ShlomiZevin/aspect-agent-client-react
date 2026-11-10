@@ -31,6 +31,10 @@
         "destination": "/lybi-site/immersive/index.html"
       },
       {
+        "source": "/lybi/why-lybi",
+        "destination": "/lybi-site/why-lybi/index.html"
+      },
+      {
         "source": "/intelligence/zolstock",
         "destination": "/intelligence/zolstock.html"
       },

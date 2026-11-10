@@ -10,6 +10,23 @@ export interface TaskAttachment {
   createdAt: string;
 }
 
+/** Same cap as the server (services/taskAttachments.service.js): 25 MB, not empty, any type. */
+export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+
+/** A file that did not make it onto the task. `retryable` is false when the file itself breaks the limits. */
+export interface FailedUpload {
+  file: File;
+  error: string;
+  retryable: boolean;
+}
+
+/** Why a file can't be attached at all, or null when it is fine. */
+export function attachmentProblem(file: File): string | null {
+  if (file.size === 0) return 'empty file';
+  if (file.size > MAX_ATTACHMENT_BYTES) return 'over 25 MB';
+  return null;
+}
+
 const getBaseURL = (): string => {
   if (import.meta.env.DEV) return 'http://localhost:3000';
   return import.meta.env.VITE_API_URL || 'https://aspect-server-138665194481.us-central1.run.app';
@@ -35,6 +52,21 @@ export async function uploadAttachment(taskId: number, file: File, uploadedBy: s
   const data = await readJson<{ attachment: TaskAttachment }>(
     await fetch(`${getBaseURL()}/api/tasks/${taskId}/attachments`, { method: 'POST', body: form }));
   return data.attachment;
+}
+
+/** Upload files one by one; returns the ones that failed (never throws). */
+export async function uploadAttachments(taskId: number, files: File[], uploadedBy: string | null): Promise<FailedUpload[]> {
+  const failed: FailedUpload[] = [];
+  for (const file of files) {
+    const problem = attachmentProblem(file);
+    if (problem) { failed.push({ file, error: problem, retryable: false }); continue; }
+    try {
+      await uploadAttachment(taskId, file, uploadedBy);
+    } catch (err) {
+      failed.push({ file, error: err instanceof Error ? err.message : 'Upload failed', retryable: true });
+    }
+  }
+  return failed;
 }
 
 export async function deleteAttachment(taskId: number, id: number): Promise<void> {

@@ -3,7 +3,8 @@ import type { Task, Assignee, CreateTaskData, TaskStatus, TaskPriority, TaskType
 import type { CrewMember } from '../../../types/crew';
 import { RichTextEditor } from '../RichTextEditor/RichTextEditor';
 import { CommentsSection } from '../CommentsSection/CommentsSection';
-import { AttachmentsSection } from '../AttachmentsSection/AttachmentsSection';
+import { AttachmentsSection, type AttachmentsHandle } from '../AttachmentsSection/AttachmentsSection';
+import type { FailedUpload } from '../../../services/taskAttachmentsService';
 import { WhatChangedSection, DeliveredBar } from './ReleaseSections';
 import { getDraftDefault } from '../../../utils/userIdentifier';
 import * as commentsService from '../../../services/commentsService';
@@ -40,7 +41,9 @@ interface TaskFormProps {
   commentRefreshTrigger?: number;
   initialType?: TaskType; // Pre-fill type when creating (e.g., 'goal' from Goals sidebar)
   currentIdentity?: string; // Current user identity for permission checks
-  onSubmit: (data: CreateTaskData) => void;
+  /** New task: `files` are the attachments to upload once the task exists (task #954). */
+  onSubmit: (data: CreateTaskData, files?: File[]) => void | Promise<void>;
+  failedUploads?: FailedUpload[]; // Attachments that failed right after Create — shown with Retry
   onAutoSave?: (data: CreateTaskData) => Promise<void>;
   onDirtyChange?: (isDirty: boolean) => void;
   onMarkRead?: () => void;
@@ -147,7 +150,7 @@ function TestStepsSidebar({ description, onStepClick, onNoteChange }: { descript
   );
 }
 
-export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, currentIdentity, onSubmit, onAutoSave, onDirtyChange, onMarkRead, onLinkedTaskClick, onDeploy, onUndeploy, onWorks, onNotYet, onCancel, onDelete }: TaskFormProps) {
+export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDomains, crewMembers, commentRefreshTrigger, initialType, currentIdentity, onSubmit, failedUploads, onAutoSave, onDirtyChange, onMarkRead, onLinkedTaskClick, onDeploy, onUndeploy, onWorks, onNotYet, onCancel, onDelete }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [description, setDescription] = useState('');
@@ -181,6 +184,47 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
   const dependsOnRef = useRef<HTMLDivElement>(null);
   const dependsOnInputRef = useRef<HTMLInputElement>(null);
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
+  // Attachments (task #954): held locally on a new task, dropped anywhere on the modal
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const dragDepthRef = useRef(0);
+  const attachmentsRef = useRef<AttachmentsHandle>(null);
+
+  // A file dropped beside the modal must not make the browser navigate away from the form
+  useEffect(() => {
+    const block = (e: DragEvent) => { if (e.dataTransfer?.types.includes('Files')) e.preventDefault(); };
+    window.addEventListener('dragover', block);
+    window.addEventListener('drop', block);
+    return () => { window.removeEventListener('dragover', block); window.removeEventListener('drop', block); };
+  }, []);
+
+  const hasFiles = (e: React.DragEvent) => e.dataTransfer.types.includes('Files');
+  const dropHandlers = {
+    onDragEnter: (e: React.DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      dragDepthRef.current += 1;
+      setDragActive(true);
+    },
+    onDragOver: (e: React.DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = submitting ? 'none' : 'copy';
+    },
+    onDragLeave: (e: React.DragEvent) => {
+      if (!hasFiles(e)) return;
+      dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+      if (dragDepthRef.current === 0) setDragActive(false);
+    },
+    onDrop: (e: React.DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      dragDepthRef.current = 0;
+      setDragActive(false);
+      if (!submitting && e.dataTransfer.files.length) attachmentsRef.current?.addFiles(Array.from(e.dataTransfer.files));
+    },
+  };
 
   // Load comment count for mobile button
   useEffect(() => {
@@ -355,6 +399,7 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
       setIsDraft(task.isDraft || false);
       setWhatChanged(task.whatChanged || '');
       setWhatsNewHeadline(task.whatsNewHeadline || '');
+      setPendingFiles([]);
     } else {
       // Default to general for new tasks
       setDomain('general');
@@ -473,59 +518,11 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
-
-
-    // For goals, preserve internal tags (meetingDate, order) but skip user tags input
-    let tags: string[];
-    if (isGoal && task) {
-      // Keep existing internal tags (order for sorting)
-      tags = task.tags.filter(t => t.startsWith('order:'));
-    } else if (isGoal) {
-      tags = [];
-    } else {
-      tags = tagsInput
-        .split(',')
-        .map(t => t.trim())
-        .filter(t => t.length > 0);
-    }
-
-    // Linkify URLs in description before saving
-    const processedDescription = description.trim() ? linkifyHtml(description.trim()) : undefined;
-
-    if (isGoal) {
-      // Goals have a minimal data shape
-      onSubmit({
-        title: title.trim(),
-        description: processedDescription,
-        type,
-        assignee: type === 'agenda' ? null : (assignee || null),
-        dependsOn: null,
-        linkedTasks,
-        tags,
-        // Set sensible defaults for required fields
-        status: task?.status || 'todo',
-        priority: task?.priority || 'medium',
-        domain: task?.domain || 'general',
-      });
-    } else {
-      onSubmit({
-        title: title.trim(),
-        description: processedDescription,
-        status,
-        priority,
-        type,
-        domain,
-        assignee: assignee || null,
-        dueDate: dueDate || undefined,
-        atRisk,
-        isCompleted,
-        dependsOn,
-        tags,
-        crewMember: crewMember || null,
-        isDraft,
-        ...(canEditWhatChanged ? { whatChanged: whatChanged.trim() || null, whatsNewHeadline: whatsNewHeadline.trim() || null } : {}),
-      });
+    if (!title.trim() || submitting) return;
+    const result = onSubmit(buildSubmitData(), !task && pendingFiles.length ? pendingFiles : undefined);
+    if (result instanceof Promise) {
+      setSubmitting(true);
+      result.then(() => setSubmitting(false), (err) => { setSubmitting(false); console.error('Saving the task failed:', err); });
     }
   };
 
@@ -589,7 +586,8 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
 
   return (
     <>
-      <div className={task ? styles.twoColumn : undefined}>
+      <div className={`${styles.dropZone} ${task ? styles.twoColumn : ''}`} {...dropHandlers}>
+      {dragActive && <div className={styles.dropOverlay} aria-hidden="true"><span>Drop files to attach</span></div>}
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.header}>
           <h3>
@@ -690,7 +688,14 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
             />
           </div>
 
-          {task && <AttachmentsSection taskId={task.id} />}
+          <AttachmentsSection
+            key={task?.id ?? 'new'}
+            ref={attachmentsRef}
+            taskId={task?.id}
+            pending={pendingFiles}
+            onPendingChange={setPendingFiles}
+            initialFailed={task ? failedUploads : undefined}
+          />
 
           {/* === Goal-specific simplified fields === */}
           {isGoal ? (
@@ -1012,11 +1017,11 @@ export function TaskForm({ task, assignees, allTasks, currentDomain, showAllDoma
             <button
               type="submit"
               className={styles.submitBtn}
-              disabled={saveStatus === 'saving'}
+              disabled={saveStatus === 'saving' || submitting}
             >
               {task
                 ? (saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? '✓ Saved' : 'Save')
-                : 'Create'}
+                : (submitting ? (pendingFiles.length ? 'Uploading…' : 'Creating…') : 'Create')}
             </button>
           </div>
         </div>

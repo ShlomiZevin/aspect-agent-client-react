@@ -1,15 +1,8 @@
-/* Files on a task (#954) — sits under the description, same label style. */
+/* Files on a task (#954) — sits under the description, same label style.
+   The drop highlight lives on the whole modal (TaskForm .dropOverlay). */
 
 .section {
   margin-bottom: var(--spacing-sm);
-  border-radius: var(--radius-sm);
-  outline: 2px dashed transparent;
-  outline-offset: 2px;
-  transition: outline-color var(--transition-fast);
-}
-
-.dragOver {
-  outline-color: var(--primary-color, #3b82f6);
 }
 
 .header {
@@ -64,6 +57,16 @@
 
 .pending {
   opacity: 0.6;
+}
+
+.failed {
+  border-color: var(--error-color, #dc2626);
+}
+
+.failedMeta {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--error-color, #dc2626);
 }
 
 .icon {

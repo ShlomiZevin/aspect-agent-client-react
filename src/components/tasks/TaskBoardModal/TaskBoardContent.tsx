@@ -14,6 +14,8 @@ import { NotificationBell } from '../NotificationBell/NotificationBell';
 import { ReleaseModal } from '../ReleaseModal/ReleaseModal';
 import { OPEN_WHATS_NEW_EVENT } from '../WhatsNewPopup/useWhatsNew';
 import * as commentsService from '../../../services/commentsService';
+import { uploadAttachments, type FailedUpload } from '../../../services/taskAttachmentsService';
+import { useCommenterIdentity } from '../../../hooks/useCommenterIdentity';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { getUserId } from '../../../utils/userIdentifier';
 import styles from './TaskBoardModal.module.css';
@@ -155,6 +157,9 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
   const editingTaskRef = useRef<Task | null>(null);
   editingTaskRef.current = editingTask;
   const formDirtyRef = useRef(false);
+  // Attachments that failed right after Create (task #954) — the new task opens with them listed for Retry
+  const [uploadRetry, setUploadRetry] = useState<{ taskId: number; failed: FailedUpload[] } | null>(null);
+  const { identity: commenterIdentity } = useCommenterIdentity();
 
   // When tasks refresh (SSE), sync editingTask with fresh server data — but only when form is clean
   useEffect(() => {
@@ -438,7 +443,7 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
     setAssignees(prev => [...prev, assignee]);
   };
 
-  const handleCreateTask = async (data: CreateTaskData) => {
+  const handleCreateTask = async (data: CreateTaskData, files?: File[]) => {
     // Add createdBy for draft tasks - always set it if isDraft is true
     // Add opener (human-readable identity) if set
     const taskData = {
@@ -449,9 +454,16 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
     };
     const task = await taskService.createTask(taskData);
     setTasks(prev => [task, ...prev]);
-    setShowForm(false);
+    // Files added before the task existed upload now; the task stays created whatever happens to them
+    const failed = files?.length ? await uploadAttachments(task.id, files, commenterIdentity) : [];
     setPresetGoalMode(false);
     setPresetType(null);
+    if (failed.length) {
+      setUploadRetry({ taskId: task.id, failed });
+      setEditingTask(task);
+      return;
+    }
+    setShowForm(false);
   };
 
   // Pending form data when test warning is shown
@@ -728,6 +740,7 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
 
   const handleCloseForm = async () => {
     setEditingTask(null);
+    setUploadRetry(null);
     setShowForm(false);
     setSideTask(null);
     setPresetGoalMode(false);
@@ -1359,6 +1372,7 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
               initialType={presetGoalMode ? (presetType || 'goal') : undefined}
               currentIdentity={notificationsState.identity || undefined}
               onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
+              failedUploads={uploadRetry && uploadRetry.taskId === editingTask?.id ? uploadRetry.failed : undefined}
               onAutoSave={editingTask ? handleAutoSave : undefined}
               onDirtyChange={(dirty) => { formDirtyRef.current = dirty; }}
               onMarkRead={(editingTask?.type === 'read' || editingTask?.type === 'test') ? async () => {

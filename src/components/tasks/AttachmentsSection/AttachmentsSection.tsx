@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import {
-  listAttachments, uploadAttachment, deleteAttachment, attachmentUrl, type TaskAttachment,
+  listAttachments, uploadAttachment, deleteAttachment, attachmentUrl, attachmentProblem,
+  type TaskAttachment, type FailedUpload,
 } from '../../../services/taskAttachmentsService';
 import { useCommenterIdentity } from '../../../hooks/useCommenterIdentity';
 import { ConfirmDialog } from '../../common/ConfirmDialog/ConfirmDialog';
 import styles from './AttachmentsSection.module.css';
-
-const MAX_BYTES = 25 * 1024 * 1024;
 
 function fileSize(n: number): string {
   return n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
@@ -21,45 +20,82 @@ function fileIcon(mime: string, name: string): string {
   return '📎';
 }
 
+const sameFile = (a: File, b: File) => a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
+
+/** Lets the task modal hand over files dropped anywhere on it. */
+export interface AttachmentsHandle {
+  addFiles: (files: File[]) => void;
+}
+
+interface AttachmentsSectionProps {
+  /** Existing task: files upload right away. */
+  taskId?: number;
+  /** New task: files are held here until Create returns the task id. */
+  pending?: File[];
+  onPendingChange?: (files: File[]) => void;
+  /** Files that failed right after Create — shown with Retry. */
+  initialFailed?: FailedUpload[];
+  ref?: Ref<AttachmentsHandle>;
+}
+
 /**
- * Files on a task (task #954) — under the description, existing tasks only.
- * Drop files on the section or use "+ Attach". Codex attaches through the
+ * Files on a task (task #954) — under the description. On a new task the
+ * files wait locally and upload after Create (TaskBoardContent.handleCreateTask).
+ * The whole task modal is the drop zone (TaskForm). Codex attaches through the
  * Builder MCP into the same list.
  */
-export function AttachmentsSection({ taskId }: { taskId: number }) {
+export function AttachmentsSection({ taskId, pending = [], onPendingChange, initialFailed, ref }: AttachmentsSectionProps) {
   const { identity } = useCommenterIdentity();
   const [files, setFiles] = useState<TaskAttachment[]>([]);
-  const [uploading, setUploading] = useState<string[]>([]);
+  const [uploading, setUploading] = useState<File[]>([]);
+  const [failed, setFailed] = useState<FailedUpload[]>(() => initialFailed ?? []);
   const [error, setError] = useState<string | null>(null);
-  const [dragOver, setDragOver] = useState(false);
   const [toDelete, setToDelete] = useState<TaskAttachment | null>(null);
   const [deleting, setDeleting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => {
+    if (taskId == null) return;
     listAttachments(taskId).then(setFiles).catch(() => setFiles([]));
   }, [taskId]);
   useEffect(load, [load]);
 
-  const upload = async (list: FileList | File[]) => {
-    const picked = Array.from(list);
-    const tooBig = picked.filter(f => f.size > MAX_BYTES);
-    setError(tooBig.length ? `${tooBig.map(f => f.name).join(', ')}: over 25 MB` : null);
-    for (const f of picked.filter(p => p.size <= MAX_BYTES)) {
-      setUploading(u => [...u, f.name]);
+  const upload = async (picked: File[]) => {
+    if (taskId == null) return;
+    for (const f of picked) {
+      setUploading(u => [...u, f]);
       try {
         await uploadAttachment(taskId, f, identity);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Upload failed');
+        setFailed(fs => [...fs, { file: f, error: err instanceof Error ? err.message : 'Upload failed', retryable: true }]);
       } finally {
-        setUploading(u => u.filter(n => n !== f.name));
+        setUploading(u => u.filter(x => x !== f));
       }
     }
     load();
   };
 
+  const addFiles = (list: File[]) => {
+    const rejected = list.filter(f => attachmentProblem(f));
+    const ok = list.filter(f => !attachmentProblem(f));
+    setFailed(fs => [
+      ...fs.filter(x => !list.some(f => sameFile(f, x.file))),
+      ...rejected.map(f => ({ file: f, error: attachmentProblem(f)!, retryable: false })),
+    ]);
+    if (!ok.length) return;
+    if (taskId != null) void upload(ok);
+    else onPendingChange?.([...pending, ...ok.filter(f => !pending.some(p => sameFile(p, f)))]);
+  };
+
+  useImperativeHandle(ref, () => ({ addFiles }));
+
+  const retry = (item: FailedUpload) => {
+    setFailed(fs => fs.filter(x => x !== item));
+    void upload([item.file]);
+  };
+
   const confirmDelete = async () => {
-    if (!toDelete) return;
+    if (!toDelete || taskId == null) return;
     setDeleting(true);
     try {
       await deleteAttachment(taskId, toDelete.id);
@@ -72,20 +108,13 @@ export function AttachmentsSection({ taskId }: { taskId: number }) {
     }
   };
 
+  const count = taskId != null ? files.length : pending.length;
+  const isEmpty = count === 0 && uploading.length === 0 && failed.length === 0;
+
   return (
-    <div
-      className={`${styles.section} ${dragOver ? styles.dragOver : ''}`}
-      onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDragOver(true); } }}
-      onDragLeave={() => setDragOver(false)}
-      onDrop={e => {
-        if (!e.dataTransfer.files.length) return;
-        e.preventDefault();
-        setDragOver(false);
-        void upload(e.dataTransfer.files);
-      }}
-    >
+    <div className={styles.section}>
       <div className={styles.header}>
-        <label>Files{files.length ? ` (${files.length})` : ''}</label>
+        <label>Files{count ? ` (${count})` : ''}</label>
         <button type="button" className={styles.attachBtn} onClick={() => inputRef.current?.click()}>
           + Attach
         </button>
@@ -94,15 +123,13 @@ export function AttachmentsSection({ taskId }: { taskId: number }) {
           type="file"
           multiple
           hidden
-          onChange={e => { if (e.target.files?.length) void upload(e.target.files); e.target.value = ''; }}
+          onChange={e => { if (e.target.files?.length) addFiles(Array.from(e.target.files)); e.target.value = ''; }}
         />
       </div>
 
-      {files.length === 0 && uploading.length === 0 && (
-        <div className={styles.empty}>Drop files here</div>
-      )}
+      {isEmpty && <div className={styles.empty}>Drop files here</div>}
 
-      {files.map(f => (
+      {taskId != null && files.map(f => (
         <div key={f.id} className={styles.row}>
           <span className={styles.icon} aria-hidden="true">{fileIcon(f.mimeType, f.fileName)}</span>
           <a className={styles.name} href={attachmentUrl(taskId, f.id)} target="_blank" rel="noopener noreferrer" title={f.fileName}>
@@ -117,11 +144,48 @@ export function AttachmentsSection({ taskId }: { taskId: number }) {
         </div>
       ))}
 
-      {uploading.map(name => (
-        <div key={name} className={`${styles.row} ${styles.pending}`}>
+      {taskId == null && pending.map((f, i) => (
+        <div key={`${f.name}-${f.size}-${f.lastModified}-${i}`} className={styles.row}>
+          <span className={styles.icon} aria-hidden="true">{fileIcon(f.type, f.name)}</span>
+          <span className={styles.name} title={f.name}>{f.name}</span>
+          <span className={styles.meta}>{fileSize(f.size)}</span>
+          <button
+            type="button"
+            className={styles.removeBtn}
+            onClick={() => onPendingChange?.(pending.filter(p => p !== f))}
+            title="Remove"
+            aria-label={`Remove ${f.name}`}
+          >
+            ×
+          </button>
+        </div>
+      ))}
+
+      {uploading.map((f, i) => (
+        <div key={`up-${f.name}-${i}`} className={`${styles.row} ${styles.pending}`}>
           <span className={styles.icon} aria-hidden="true">⏳</span>
-          <span className={styles.name}>{name}</span>
+          <span className={styles.name}>{f.name}</span>
           <span className={styles.meta}>Uploading…</span>
+        </div>
+      ))}
+
+      {failed.map((item, i) => (
+        <div key={`fail-${item.file.name}-${i}`} className={`${styles.row} ${styles.failed}`}>
+          <span className={styles.icon} aria-hidden="true">⚠️</span>
+          <span className={styles.name} title={item.file.name}>{item.file.name}</span>
+          <span className={styles.failedMeta} title={item.error}>{item.retryable ? 'Upload failed' : item.error}</span>
+          {item.retryable && taskId != null && (
+            <button type="button" className={styles.attachBtn} onClick={() => retry(item)}>Retry</button>
+          )}
+          <button
+            type="button"
+            className={styles.removeBtn}
+            onClick={() => setFailed(fs => fs.filter(x => x !== item))}
+            title="Dismiss"
+            aria-label={`Dismiss ${item.file.name}`}
+          >
+            ×
+          </button>
         </div>
       ))}
 

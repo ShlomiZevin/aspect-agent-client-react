@@ -5,6 +5,11 @@
  * (Edit is disabled while the switch is off), and the sites list + the
  * per-turn cap are edited in a small modal.
  *
+ * The switch only makes the tool available: the agent searches ONLY where
+ * its prompt allows it (Noa's review — the runtime appends a built-in rule,
+ * services/webSearch.js WEB_SEARCH_RULE). The row's "Prompt must allow" pill
+ * carries a one-line example in its tooltip; the modal shows it as one line.
+ *
  * On a model whose provider has no built-in search (Gemini) the switch is
  * disabled with a one-line tooltip. Config shape: WebSearchConfig in
  * builder/types (server: services/webSearch.js).
@@ -21,7 +26,9 @@ const DEFAULT_MAX = 3;
 const MAX_MAX = 10;
 const MAX_SITES = 20;
 
-const ROW_TIP = 'Lets the model search the web when a turn needs it — it decides by itself. About $0.01 per search, plus the pages read.';
+const EXAMPLE_LINE = 'Search the web for current exchange rates when asked.';
+const ROW_TIP = 'Searches the web only where the prompt allows it. About $0.01 per search, plus the pages read.';
+const PILL_TIP = `Searches only where the prompt allows it. Add a line like:\n"${EXAMPLE_LINE}"`;
 const UNSUPPORTED_TIP = 'Web search works with OpenAI and Anthropic models only.';
 
 /** "https://www.gov.il/he/x" → "gov.il"; junk → null. Mirrors the server. */
@@ -79,6 +86,10 @@ export function WebSearchSetting({ value, model, onChange }: Props) {
         </span>
         <span className={`${styles.summary} ${on && supported ? '' : styles.summaryOff}`} title={on && sites.length > 1 ? sites.join(', ') : undefined}>
           {summary}
+        </span>
+        {/* Always rendered (dimmed when off) so the row never changes size. */}
+        <span className={`${styles.permPill} ${on && supported ? '' : styles.permPillOff}`} title={PILL_TIP}>
+          Prompt must allow
         </span>
         <button
           type="button"
@@ -145,6 +156,9 @@ function WebSearchModal({ value, onClose, onSave }: {
       }
     >
       <div className={styles.body}>
+        <p className={styles.permLine} title="Without a line like this in the prompt, the agent never searches.">
+          Allow it in the prompt, e.g. <q>{EXAMPLE_LINE}</q>
+        </p>
         <label className={styles.field}>
           <span className={styles.label} title="Subdomains are included. Leave empty to search the whole web.">
             Only these sites
@@ -171,7 +185,7 @@ function WebSearchModal({ value, onClose, onSave }: {
         </label>
 
         <label className={styles.field}>
-          <span className={styles.label} title="The model may search fewer times — it decides. Each search is about $0.01.">
+          <span className={styles.label} title="A cap — it may search fewer times. Each search is about $0.01.">
             Most searches per turn
           </span>
           <select className={styles.select} value={max} onChange={e => setMax(Number(e.target.value))}>

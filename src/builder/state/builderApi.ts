@@ -420,7 +420,18 @@ export async function fetchProject(args: {
   const res = await fetch(`${BASE_URL}/api/builder/projects?${params}`);
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`fetchProject ${res.status}`);
-  return res.json();
+  const doc = (await res.json()) as ProjectDoc;
+  // The CREWS sidebar tree (#855): a server that predates it maps body keys
+  // one by one and leaves `crewTree` off the working copy, though the
+  // version bodies carry it. Take it from the active body so the tree shows
+  // (and the agent doesn't look dirty) on either server.
+  for (const a of doc?.agents ?? []) {
+    if (a.crewTree === undefined) {
+      const active = a.versions?.find(v => v.id === a.activeVersionId)?.body;
+      if (active?.crewTree) a.crewTree = active.crewTree;
+    }
+  }
+  return doc;
 }
 
 /** What the Builder needs to know about this environment (#955). */

@@ -10,6 +10,7 @@ const STATIC_PAGES: Record<string, string> = {
   '/lybi': '/lybi-site/index.html',
   '/lybi/team': '/lybi-site/team/index.html',
   '/lybi/immersive': '/lybi-site/immersive/index.html',
+  '/lybi/why-lybi': '/lybi-site/why-lybi/index.html',
 }
 
 function staticPages(): Plugin {

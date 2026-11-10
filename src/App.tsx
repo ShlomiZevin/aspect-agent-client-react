@@ -303,6 +303,7 @@ function AppContent() {
         <Route path="/lybi" element={<StaticPageRedirect file="/lybi-site/index.html" />} />
         <Route path="/lybi/team" element={<StaticPageRedirect file="/lybi-site/team/index.html" />} />
         <Route path="/lybi/immersive" element={<StaticPageRedirect file="/lybi-site/immersive/index.html" />} />
+        <Route path="/lybi/why-lybi" element={<StaticPageRedirect file="/lybi-site/why-lybi/index.html" />} />
         <Route path="/lybi/about" element={<Navigate to={{ pathname: '/lybi', hash: '#/company' }} replace />} />
         <Route path="/lybi/*" element={<Navigate to="/lybi" replace />} />
 

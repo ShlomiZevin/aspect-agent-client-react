@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const PAGES = [
+  { path: '/lybi/why-lybi', icon: '🧠', title: 'למה Lybi בונה מוח, לא גרף', desc: 'למה מוח, איך הוא עובד, ולמה קשה להעתיק אותו.' },
   { path: '/lybi/technology', icon: '⚙️', title: 'Adaptive Reasoning Runtime — how it works', desc: 'Runtime spec: signal-driven context, the Cortex (thinker→talker), SAG vs RAG, and per-turn prompt synthesis' },
   { path: '/lybi/banking-deck', icon: '🏦', title: 'Banking Deck', desc: 'Hila’s banking deck — all 14 slides, plus notes and a suggested version' },
   { path: '/lybi/decision-research', icon: '🔬', title: 'מחקר — איך לומדים מה מוביל לסגירה', desc: 'לגלות אילו מצבים לא-גלויים של אנשים מובילים לסגירה, ומה כדאי לעשות בכל מצב' },
