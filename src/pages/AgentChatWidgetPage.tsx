@@ -240,11 +240,15 @@ export function AgentChatWidgetPage() {
                        button's own class instead is the actual fix. */
                     [class*="_bot_"] th, [class*="_bot_"] th *,
                     [class*="_dataTableBtn_"], [class*="_dataTableBtn_"] *,
+                    [class*="_exportBtn_"], [class*="_exportBtn_"] *,
                     [class*="_submit_"], [class*="_submit_"] *,
                     [class*="_processBtn_"], [class*="_processBtn_"] *,
                     [class*="_tag_"][aria-pressed="true"] {
                       color: #fff !important;
                     }
+                    /* _exportBtn_: the full-table modal's "Export to Excel"
+                       button (DataTableModal) — the modal renders inside the
+                       bot subtree, so it was near-black on purple too. */
                     /* _processBtn_: the Smart Tune action card's Process button —
                        accent background inside the bot subtree, same contrast
                        rule as th/_dataTableBtn_. */

@@ -167,18 +167,11 @@ export function Message({ message, isStreaming = false, precedingUserText }: Mes
       fileQuery: meta.fileQuery,
     };
   });
-  // A BI data-fetch tool (fetch_hypertoy_data, fetch_zer4u_data, ...) was called
-  // but returned no data_table step — meaning the result was small enough
-  // (≤20 rows) to already be shown IN FULL in the chat text itself. In that
-  // case do NOT fall back to parsing a markdown table out of the reply: the
-  // text already IS the complete data, a second "view full table" button would
-  // be redundant and confusing (nothing more to see than what's already shown).
-  const hasBIDataFetchCall = (message.thinkingSteps ?? []).some(s => {
-    if (s.stepType !== 'function_call') return false;
-    const fn = (s.metadata as { functionName?: string } | null)?.functionName;
-    return typeof fn === 'string' && /^fetch_.*_data$/.test(fn);
-  });
-  const markdownTables = (toolTables.length === 0 && !hasBIDataFetchCall && !isUser && !isDeveloper)
+  // A BI data-fetch tool that returned no data_table step had a small result
+  // (≤20 rows), shown IN FULL in the chat text. The markdown fallback still
+  // applies there: the table in the text is the complete data, and users want
+  // to take even a top-10 into Excel.
+  const markdownTables = (toolTables.length === 0 && !isUser && !isDeveloper)
     ? parseMarkdownTables(uiCleanText).map(tbl => ({
         rows: tbl.rows as Record<string, unknown>[],
         columns: tbl.columns,

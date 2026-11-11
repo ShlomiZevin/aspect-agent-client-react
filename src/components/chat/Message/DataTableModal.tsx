@@ -196,8 +196,20 @@ export function DataTableModal({
       // from the browser as a JSON body was the other half of the prod hang:
       // a ~29MB POST for the same table that overflowed the live SSE stream.
       let blob: Blob;
+      let ext = 'xlsx';
       if (fileQuery) {
         blob = await exportFileQuery(fileQuery, cols, title, baseURL);
+      } else if (!sql || !schema) {
+        // A table read out of the reply text (markdown fallback) has no query
+        // for the server to re-run, so write it here: CSV with a BOM so Excel
+        // opens the Hebrew correctly.
+        const esc = (s: string) => /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        const lines = [
+          cols.map(c => esc(c.label)).join(','),
+          ...view.map(r => cols.map(c => esc(formatCell(r[c.key], c))).join(',')),
+        ];
+        blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+        ext = 'csv';
       } else {
         const res = await fetch(`${baseURL}/api/data-query/export-excel`, {
           method: 'POST',
@@ -210,7 +222,7 @@ export function DataTableModal({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `table-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.xlsx`;
+      a.download = `table-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.${ext}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
