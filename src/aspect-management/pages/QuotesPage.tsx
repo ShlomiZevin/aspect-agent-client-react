@@ -63,8 +63,9 @@ export function QuotesPage() {
       {!data ? <Loading error={error} /> : (
         <>
           <div className={styles.moneyBand}>
-            <div>
-              <span className={styles.cellSoft}>סה״כ הצעות פתוחות</span>
+            <span className={styles.moneyIcon}><Icon name="money" size={64} stroke={1.6} /></span>
+            <div className={styles.moneyMain}>
+              <span className={styles.moneyLabel}>סה״כ הצעות פתוחות</span>
               <div className={styles.moneyTotal}><Num>{money(data.openTotal)}</Num></div>
             </div>
             <div className={styles.moneyCount}>
@@ -76,7 +77,7 @@ export function QuotesPage() {
           {data.open.length > 0 && (
             <>
               <div className={`${styles.tableHead} ${styles.quotesGrid}`}>
-                <span>לקוח</span><span>נושא</span><span>סכום</span><span>סטטוס</span><span>עודכן לפני</span>
+                <span>לקוח</span><span>סכום</span><span>נושא</span><span>סטטוס</span><span>עודכן לפני</span>
               </div>
               {data.open.map(quote => (
                 <div
@@ -88,10 +89,12 @@ export function QuotesPage() {
                   onKeyDown={e => { if (e.key === 'Enter') setPicked({ quote }); }}
                 >
                   <span className={styles.cellName}>{quote.clientName}</span>
-                  <span>{quote.subject}</span>
                   <span><Num>{money(quote.amount)}</Num></span>
+                  <span>{quote.subject}</span>
                   <span><Tag tone={STATUS[quote.status].tone}>{STATUS[quote.status].label}</Tag></span>
-                  <span className={quote.ageDays >= 7 ? styles.ageLate : undefined}>{daysText(quote.ageDays)}</span>
+                  <span className={quote.ageDays >= 7 ? styles.ageLate : undefined}>
+                    {quote.ageDays >= 7 && <Icon name="alert" size={20} stroke={2.2} />} {daysText(quote.ageDays)}
+                  </span>
                 </div>
               ))}
             </>
@@ -99,7 +102,7 @@ export function QuotesPage() {
 
           {data.closed.length > 0 && (
             <section className={styles.closedBlock}>
-              <h2 className={`${styles.sectionTitle} ${styles.closedBand}`}>נסגר החודש</h2>
+              <h2 className={styles.closedBand}><Icon name="trophy" size={30} stroke={2} /> נסגר החודש</h2>
               {data.closed.map(quote => (
                 <div className={`${styles.tableRow} ${styles.closedGrid}`} key={quote.id}>
                   <span className={styles.cellName}>{quote.clientName}</span>

@@ -14,6 +14,7 @@ export function AskPage({ person }: { person: Person }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [answeredAt, setAnsweredAt] = useState('');
 
   const ask = async (text: string) => {
     if (!text.trim() || busy) return;
@@ -24,6 +25,7 @@ export function AskPage({ person }: { person: Person }) {
     setCopied(false);
     try {
       setAnswer(await api.ask(text));
+      setAnsweredAt(new Intl.DateTimeFormat('he-IL', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jerusalem' }).format(new Date()));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -39,15 +41,16 @@ export function AskPage({ person }: { person: Person }) {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.title} style={{ marginBottom: 12 }}>איך אפשר לעזור, {firstName(person.name)}?</h1>
+      <h1 className={styles.askTitle}>איך אפשר לעזור, {firstName(person.name)}?</h1>
       <form className={styles.askBox} onSubmit={e => { e.preventDefault(); void ask(question); }}>
+        <button type="submit" className={styles.askSend} aria-label="שליחה" disabled={busy}><Icon name="send" size={24} stroke={2} /></button>
         <input
           className={styles.askInput}
           aria-label="השאלה שלך"
           value={question}
           onChange={e => setQuestion(e.target.value)}
         />
-        <button type="submit" className={styles.btnPrimary} aria-label="שליחה" disabled={busy}><Icon name="send" /></button>
+        <span className={styles.askSearch}><Icon name="search" size={26} /></span>
       </form>
       <div className={styles.chips}>
         {SUGGESTED.map(text => (
@@ -60,10 +63,15 @@ export function AskPage({ person }: { person: Person }) {
       {answer && (
         <section className={styles.answer}>
           <div className={styles.answerHead}>
-            <span>תשובה</span>
-            <button type="button" className={styles.linkBtn} onClick={() => void copy()}>{copied ? 'הועתק' : 'העתקה'}</button>
+            <span className={styles.answerFrom}><Icon name="sparkle" size={22} /> תשובה מ-Aspect</span>
+            <span>היום, {answeredAt}</span>
           </div>
           <p className={styles.answerText}>{answer}</p>
+          <div className={styles.answerFoot}>
+            <button type="button" className={styles.copyBtn} onClick={() => void copy()}>
+              <Icon name="copy" size={20} /> {copied ? 'הועתק' : 'העתקה'}
+            </button>
+          </div>
         </section>
       )}
     </div>

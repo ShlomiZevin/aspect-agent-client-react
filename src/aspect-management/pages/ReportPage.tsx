@@ -128,9 +128,9 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
   return (
     <>
       <div className={styles.reportDate}>
-        <button type="button" className={styles.dayBtn} aria-label="היום הקודם" onClick={() => goTo(shiftDate(report.date, -1))}>›</button>
+        <button type="button" className={styles.dayBtn} aria-label="היום הקודם" onClick={() => goTo(shiftDate(report.date, -1))}><Icon name="chevronStart" size={26} stroke={2} /></button>
         <span>{longDate(report.date)}</span>
-        <button type="button" className={styles.dayBtn} aria-label="היום הבא" disabled={report.date >= today} onClick={() => goTo(shiftDate(report.date, 1))}>‹</button>
+        <button type="button" className={styles.dayBtn} aria-label="היום הבא" disabled={report.date >= today} onClick={() => goTo(shiftDate(report.date, 1))}><Icon name="chevronEnd" size={26} stroke={2} /></button>
       </div>
 
       <h1 className={styles.title} style={{ marginBottom: 14 }}>מה עשית היום?</h1>
@@ -187,14 +187,13 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
               onChange={e => update(row.key, { hours: e.target.value })}
             />
             <textarea
-              className={styles.input}
-              style={{ minHeight: 40 }}
+              className={`${styles.input} ${styles.reportDesc}`}
               rows={1}
               aria-label="מה עשית"
               value={row.description}
               onChange={e => update(row.key, { description: e.target.value })}
             />
-            <div className={styles.reportCheck}>
+            <label className={styles.reportCheck}>
               <input
                 className={styles.checkbox}
                 type="checkbox"
@@ -202,14 +201,15 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
                 checked={row.billable}
                 onChange={e => update(row.key, { billable: e.target.checked })}
               />
-            </div>
+              <span className={styles.phoneOnly}>לחיוב</span>
+            </label>
             <button
               type="button"
               className={styles.deleteBtn}
               aria-label="מחיקת שורה"
               onClick={() => { setSent(false); setRows(current => current.filter(r => r.key !== row.key)); }}
             >
-              <Icon name="trash" size={21} />
+              <Icon name="trash" size={26} stroke={1.6} />
             </button>
           </div>
         );
@@ -220,7 +220,7 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
         className={styles.addRow}
         onClick={() => { setSent(false); setRows(current => [...current, emptyRow(report, recentClients[0] ? String(recentClients[0].id) : '')]); }}
       >
-        <Icon name="plus" size={20} /> הוספת שורה
+        <Icon name="plus" size={28} stroke={2} /> הוספת שורה
       </button>
 
       <div className={styles.total}>
@@ -243,6 +243,10 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
       {sent && <p className={styles.success}>נשלח. תודה!</p>}
 
       <div className={styles.reportActions}>
+        <button type="button" className={`${styles.btnPrimary} ${styles.sendBtn}`} disabled={busy} onClick={send}>
+          <span className={styles.sendLabel}>{busy ? 'שולח…' : 'שליחה'}</span>
+          <Icon name="arrowEnd" size={26} stroke={2} />
+        </button>
         <label className={styles.stuck}>
           <input
             className={styles.checkbox}
@@ -252,9 +256,6 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
           />
           משהו תקוע
         </label>
-        <button type="button" className={styles.btnPrimary} disabled={busy} onClick={send}>
-          {busy ? 'שולח…' : 'שליחה'}
-        </button>
       </div>
     </>
   );

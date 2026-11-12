@@ -9,12 +9,12 @@ import styles from '../ledger.module.css';
 
 export function ProjectStatus({ project }: { project: Project }) {
   if (project.status === 'done') return <Tag>הסתיים</Tag>;
-  if (!project.late && !project.over && !project.near) return <Tag tone="ok">בזמן</Tag>;
+  if (!project.late && !project.over && !project.near) return <Tag tone="ok"><Icon name="check" size={16} stroke={2.4} /> בזמן</Tag>;
   return (
     <div>
       <div className={styles.tags}>
-        {project.late && <Tag tone="late">באיחור</Tag>}
-        {project.over && <Tag tone="late">חריגה מתקציב</Tag>}
+        {project.late && <Tag tone="late"><Icon name="warning" size={16} stroke={2.2} /> באיחור</Tag>}
+        {project.over && <Tag tone="late"><Icon name="warning" size={16} stroke={2.2} /> חריגה מתקציב</Tag>}
         {project.near && <Tag tone="wait">קרוב לתקציב</Tag>}
       </div>
       {project.late && <span className={styles.lateDays}>{daysText(project.lateDays)} באיחור</span>}
@@ -57,10 +57,10 @@ export function ProjectsPage() {
         title="פרויקטים פעילים"
         sub={projects ? `${projects.length} פרויקטים` : undefined}
         accent="לעמוד בזמנים!"
-        action={<button type="button" className={styles.btnPrimary} onClick={() => setPicked({ project: null })}><Icon name="plus" size={20} /> פרויקט חדש</button>}
+        action={<button type="button" className={styles.btnPrimary} onClick={() => setPicked({ project: null })}><Icon name="plus" size={22} stroke={2.2} /> פרויקט חדש</button>}
       />
       {!projects ? <Loading error={error} /> : projects.length === 0 ? <p className={styles.quietLine}>אין פרויקטים פעילים.</p> : (
-        <>
+        <div className={styles.ruled}>
           <div className={`${styles.tableHead} ${styles.projectsGrid}`}>
             <span>לקוח</span><span>סוג</span><span>ניצול שעות</span><span>סטטוס</span>
           </div>
@@ -74,12 +74,12 @@ export function ProjectsPage() {
               onKeyDown={e => { if (e.key === 'Enter') setPicked({ project }); }}
             >
               <span className={styles.cellName}>{project.clientName}</span>
-              <span>{project.name}</span>
+              <span className={styles.typeCell}><Icon name="chart" size={26} />{project.name}</span>
               <HoursBar project={project} />
               <ProjectStatus project={project} />
             </div>
           ))}
-        </>
+        </div>
       )}
       {dialog && (
         <ProjectDialog

@@ -1,11 +1,11 @@
-import { useCallback, useEffect } from 'react';
+import { Fragment, useCallback, useEffect } from 'react';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import { SignInMethods, useSession } from '../auth';
 import type { Session, SignInConfig } from '../auth';
 import { translations } from '../i18n/translations';
 import { api } from './api';
 import { firstName } from './format';
-import { Icon, Loading } from './ui';
+import { BarsMark, Icon, Loading } from './ui';
 import { useLoad } from './useLoad';
 import type { Person } from './types';
 import { MorningPage } from './pages/MorningPage';
@@ -122,11 +122,12 @@ function DeveloperShell({ person, signOut }: { person: Person; signOut: () => vo
   return (
     <div className={styles.phoneShell}>
       <header className={styles.phoneHead}>
-        <span className={styles.wordmarkInk}>Aspect</span>
         <span className={styles.phoneUser}>
-          {firstName(person.name)}
+          <span className={styles.avatar}>{firstName(person.name)}</span>
           <button type="button" className={styles.linkBtn} onClick={signOut}>יציאה</button>
         </span>
+        <span className={styles.wordmarkInk}>Aspect <BarsMark size={24} /></span>
+        <span className={styles.phoneHeadSpacer} />
       </header>
       <main className={styles.phoneMain}><ReportPage person={person} /></main>
     </div>
@@ -137,19 +138,27 @@ function OwnerShell({ person, signOut }: { person: Person; signOut: () => void }
   return (
     <div className={styles.shell}>
       <nav className={styles.nav} aria-label="ניווט ראשי">
-        <div className={styles.wordmark}>Aspect</div>
+        <div className={styles.brand}>
+          <div className={styles.wordmark}>Aspect <BarsMark /></div>
+          <div className={styles.brandLine}>ניהול עסק פשוט</div>
+        </div>
         {NAV.map(item => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
-          >
-            <Icon name={item.icon} />
-            <span>{item.label}</span>
-          </NavLink>
+          <Fragment key={item.to}>
+            {item.icon === 'settings' && <hr className={styles.navRule} />}
+            <NavLink
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
+            >
+              <Icon name={item.icon} size={24} stroke={2} />
+              <span>{item.label}</span>
+            </NavLink>
+          </Fragment>
         ))}
-        <button type="button" className={styles.navSignOut} onClick={signOut}>יציאה</button>
+        <div className={styles.navUser}>
+          <span className={styles.navUserName}>{person.name}</span>
+          <button type="button" className={styles.navSignOut} onClick={signOut}>יציאה</button>
+        </div>
       </nav>
       <main className={styles.main}>
         <Routes>

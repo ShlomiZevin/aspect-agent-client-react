@@ -117,13 +117,52 @@ const ICONS: Record<string, ReactNode> = {
   trash: <path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13" />,
   send: <path d="M20 4L3 11l7 3 3 7zM10 14l5-5" />,
   plus: <path d="M12 5v14M5 12h14" />,
+  person: <><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-7.5 8-7.5s8 3.1 8 7.5" /></>,
+  flag: <path d="M6 21V4M6 4h11l-2.5 4L17 12H6" />,
+  calendar: <><rect x="4" y="5.5" width="16" height="15" rx="2" /><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01" /></>,
+  money: <><path d="M9 4h6l-1.6 3.2h-2.8z" /><path d="M10.6 7.2C6.6 9 4.5 12.5 4.5 15.6 4.5 19 7.6 21 12 21s7.5-2 7.5-5.4c0-3.1-2.1-6.6-6.1-8.4" /><path d="M13.8 11.3c-.4-.6-1-.9-1.8-.9-1.1 0-1.9.6-1.9 1.5 0 2 3.9 1 3.9 3.1 0 .9-.8 1.6-2 1.6-.8 0-1.6-.3-2-1M12 9.4v1M12 16.6v1" /></>,
+  trophy: <path d="M8 4h8v5a4 4 0 01-8 0zM8 6H5a3 3 0 003 4M16 6h3a3 3 0 01-3 4M12 13v4M8.5 20h7M10 17h4v3h-4z" />,
+  search: <><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></>,
+  chevronStart: <path d="M9 6l6 6-6 6" />,
+  chevronEnd: <path d="M15 6l-6 6 6 6" />,
+  arrowEnd: <path d="M19 12H5M11 6l-6 6 6 6" />,
+  alert: <><circle cx="12" cy="12" r="9" /><path d="M12 7.5v5.5M12 16.5v.1" /></>,
+  copy: <><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3" /></>,
+  sparkle: <path d="M12 3l2 6.5 6.5 2-6.5 2L12 20l-2-6.5-6.5-2 6.5-2z" />,
+  chart: <path d="M5 20V14M10 20V9M15 20V12M20 20V5M3 20h18" />,
+  menu: <path d="M4 7h16M4 12h16M4 17h16" />,
 };
 
-export function Icon({ name, size = 22 }: { name: keyof typeof ICONS | string; size?: number }) {
+export function Icon({ name, size = 22, stroke = 1.8 }: { name: keyof typeof ICONS | string; size?: number; stroke?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke}
       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {ICONS[name]}
+    </svg>
+  );
+}
+
+/** The ochre bar mark beside the "Aspect" wordmark in the concepts. */
+export function BarsMark({ size = 26 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3" y="13" width="4" height="8" rx="1" fill="#B38A3E" />
+      <rect x="10" y="8" width="4" height="13" rx="1" fill="#B38A3E" />
+      <rect x="17" y="3" width="4" height="18" rx="1" fill="#B38A3E" />
+    </svg>
+  );
+}
+
+/** The sprig drawn at the end of the "on track" strip. */
+export function Sprig() {
+  return (
+    <svg width="120" height="84" viewBox="0 0 120 84" fill="none" stroke="#6B675F" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+      <path d="M14 78c22-2 52-2 92 0" stroke="#D3CEC4" strokeWidth="3" />
+      <path d="M62 76c-2-20 4-40 20-58" />
+      <path d="M70 46c-12-6-18-16-16-28 12 4 18 14 16 28z" />
+      <path d="M76 34c4-12 14-20 28-20-2 14-12 22-28 20z" />
+      <path d="M66 60c-10 0-18-6-22-16 10-2 20 4 22 16z" />
+      <path d="M73 52c8-6 18-6 26 0-8 6-18 6-26 0z" />
     </svg>
   );
 }
