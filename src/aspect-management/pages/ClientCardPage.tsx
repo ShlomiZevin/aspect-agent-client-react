@@ -2,12 +2,12 @@ import { useCallback, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api';
 import { hours, hoursText, shortDate } from '../format';
-import { Card, Loading, Num, Page, Tag, adminUi, type Tone } from '../ui';
+import { Loading, Num, Tag, type Tone } from '../ui';
 import { useLoad } from '../useLoad';
 import type { ClientCard, Person } from '../types';
 import { ClientDialog } from './ClientsPage';
 import { ProjectStatus } from './ProjectsPage';
-import styles from '../management.module.css';
+import styles from '../ledger.module.css';
 
 const SERVICE_TONE: Record<string, Tone> = { 'פעיל': 'ok', 'בהטמעה': 'wait' };
 
@@ -18,10 +18,10 @@ function HoursRing({ used, total }: { used: number; total: number | null }) {
   const over = total !== null && used > total;
   return (
     <svg className={styles.ring} width="160" height="160" viewBox="0 0 160 160" role="img" aria-label={`${hours(used)} שעות`}>
-      <circle cx="80" cy="80" r={radius} fill="none" stroke="var(--surface-light)" strokeWidth="11" />
+      <circle cx="80" cy="80" r={radius} fill="none" stroke="var(--paper-2)" strokeWidth="11" />
       <circle
         cx="80" cy="80" r={radius} fill="none"
-        stroke={over ? 'var(--error-color)' : 'var(--primary-color)'}
+        stroke={over ? 'var(--oxblood)' : 'var(--forest)'}
         strokeWidth="11"
         strokeDasharray={`${share * circumference} ${circumference}`}
         strokeLinecap="round"
@@ -40,91 +40,87 @@ export function ClientCardPage({ person }: { person: Person }) {
   const { data: client, error, reload } = useLoad(load);
   const [editing, setEditing] = useState(false);
 
-  const crumbs = <span className={styles.crumbs}><Link to="/management/clients">לקוחות</Link> › {client?.name ?? '…'}</span>;
-
-  if (!client) return <Page title={crumbs}><Loading error={error} /></Page>;
+  if (!client) return <div className={styles.page}><Loading error={error} /></div>;
 
   return (
-    <Page
-      title={(
-        <span className={styles.clientTitle}>
-          <span className={styles.clientLogo}>
-            {client.logoUrl ? <img src={client.logoUrl} alt="" /> : client.name.charAt(0)}
-          </span>
-          {client.name}
-        </span>
-      )}
-      sub={crumbs}
-      action={<button type="button" className={`${adminUi.btn} ${adminUi.btnPrimary}`} onClick={() => setEditing(true)}>עריכה</button>}
-    >
-      <div className={styles.grid3}>
-        <Card title="שעות החודש" note={client.packageHours === null ? 'אין חבילה חודשית' : undefined}>
-          <div className={styles.cardBody}><HoursRing used={client.hoursThisMonth} total={client.packageHours} /></div>
-        </Card>
-        <Card title="שירותים">
-          <div className={styles.cardBody}>
-            {client.services.length === 0 ? <span className={styles.cellSoft}>אין שירותים</span> : (
-              <div className={styles.services}>
-                {client.services.map(service => (
-                  <div className={styles.serviceLine} key={service.name}>
-                    <span>{service.name}</span>
-                    <Tag tone={SERVICE_TONE[service.status] ?? 'plain'}>{service.status}</Tag>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Card>
-        <Card title="פתוחים">
-          <div className={styles.cardBody}>
-            <span className={client.openItems > 0 ? `${styles.bigNumber} ${styles.bigNumberLate}` : styles.bigNumber}>{client.openItems}</span>
-            <span className={styles.cellSoft}>פרויקטים פעילים והצעות מחיר פתוחות</span>
-          </div>
-        </Card>
+    <div className={styles.page}>
+      <div className={styles.crumbs}><Link to="/aspect/management/clients">לקוחות</Link> › {client.name}</div>
+      <div className={styles.clientHead}>
+        <div className={styles.logo}>
+          {client.logoUrl ? <img src={client.logoUrl} alt="" /> : client.name.charAt(0)}
+        </div>
+        <h1 className={styles.title} style={{ flex: 1 }}>{client.name}</h1>
+        <button type="button" className={styles.btnPrimary} onClick={() => setEditing(true)}>עריכה</button>
       </div>
 
-      <div className={styles.grid2}>
-        <Card title="הבא בתור">
-          <div className={styles.cardBody}>
-            {client.nextStep ? (
-              <>
-                <div className={styles.nextStep}>{client.nextStep}</div>
-                {client.nextStepDate && <span className={styles.cellSoft}><Num>{shortDate(client.nextStepDate)}</Num></span>}
-              </>
-            ) : <span className={styles.cellSoft}>עוד לא נקבע</span>}
-          </div>
-        </Card>
-        <Card title="הערה אחרונה">
-          <div className={styles.cardBody}>
-            {client.lastNote ? (
-              <>
-                <div className={styles.noteText}>{client.lastNote.body}</div>
-                <span className={styles.cellSoft}>
-                  <Num>{shortDate(client.lastNote.date)}</Num>
-                  {client.lastNote.personName && `, ${client.lastNote.personName}`}
-                </span>
-              </>
-            ) : <span className={styles.cellSoft}>אין עדיין</span>}
-          </div>
-        </Card>
-      </div>
-
-      <Card title="פרויקטים" note={`${client.projects.length} פרויקטים`}>
-        {client.projects.length === 0 ? <p className={styles.quietLine}>אין פרויקטים.</p> : (
-          client.projects.map(project => (
-            <div className={styles.row} key={project.id}>
-              <div className={styles.rowBody}>
-                <Link to={`/management/projects?open=${project.id}`} className={styles.rowName}>{project.name}</Link>
-                <span className={styles.rowLine}>
-                  {hoursText(project.hoursUsed)}
-                  {project.hoursBudget !== null && <> מתוך <Num>{hours(project.hoursBudget)}</Num></>}
-                </span>
-              </div>
-              <ProjectStatus project={project} />
+      <div className={styles.cardGrid}>
+        <section className={styles.cardCell}>
+          <h2 className={styles.cellTitle}>שעות החודש</h2>
+          <HoursRing used={client.hoursThisMonth} total={client.packageHours} />
+        </section>
+        <section className={styles.cardCell}>
+          <h2 className={styles.cellTitle}>שירותים</h2>
+          {client.services.length === 0 ? <span className={styles.quietLine}>—</span> : (
+            <div className={styles.services}>
+              {client.services.map(service => (
+                <div className={styles.serviceLine} key={service.name}>
+                  <span>{service.name}</span>
+                  <Tag tone={SERVICE_TONE[service.status] ?? 'plain'}>{service.status}</Tag>
+                </div>
+              ))}
             </div>
-          ))
+          )}
+        </section>
+        <section className={styles.cardCell}>
+          <h2 className={styles.cellTitle}>פתוחים</h2>
+          <div className={styles.bigRed}>{client.openItems}</div>
+          <span className={styles.cellSoft}>פרויקטים פעילים והצעות מחיר פתוחות</span>
+        </section>
+      </div>
+
+      <div className={styles.cardGrid} style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <section className={styles.cardCell}>
+          <h2 className={styles.cellTitle}>הבא בתור</h2>
+          {client.nextStep ? (
+            <>
+              <div className={styles.nextStep}>{client.nextStep}</div>
+              {client.nextStepDate && <span className={styles.cellSoft}><Num>{shortDate(client.nextStepDate)}</Num></span>}
+            </>
+          ) : <span className={styles.cellSoft}>עוד לא נקבע</span>}
+        </section>
+        <section className={styles.cardCell}>
+          <h2 className={styles.cellTitle}>הערה אחרונה</h2>
+          {client.lastNote ? (
+            <>
+              <div>{client.lastNote.body}</div>
+              <span className={styles.cellSoft}>
+                <Num>{shortDate(client.lastNote.date)}</Num>
+                {client.lastNote.personName && `, ${client.lastNote.personName}`}
+              </span>
+            </>
+          ) : <span className={styles.cellSoft}>אין עדיין</span>}
+        </section>
+      </div>
+
+      <section className={styles.cardFoot}>
+        <h2 className={styles.sectionTitle}>פרויקטים</h2>
+        {client.projects.length === 0 ? <p className={styles.quietLine}>אין פרויקטים.</p> : (
+          <div className={styles.rows}>
+            {client.projects.map(project => (
+              <div className={styles.row} key={project.id}>
+                <div className={styles.rowBody}>
+                  <Link to={`/aspect/management/projects?open=${project.id}`} className={styles.rowName}>{project.name}</Link>
+                  <span className={styles.rowLine}>
+                    {hoursText(project.hoursUsed)}
+                    {project.hoursBudget !== null && <> מתוך <Num>{hours(project.hoursBudget)}</Num></>}
+                  </span>
+                </div>
+                <ProjectStatus project={project} />
+              </div>
+            ))}
+          </div>
         )}
-      </Card>
+      </section>
 
       {editing && (
         <ClientDialog
@@ -139,7 +135,7 @@ export function ClientCardPage({ person }: { person: Person }) {
           onDone={() => { setEditing(false); reload(); }}
         />
       )}
-    </Page>
+    </div>
   );
 }
 

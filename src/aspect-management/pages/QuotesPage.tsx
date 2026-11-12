@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { daysText, money, shortDate, todayInIsrael } from '../format';
-import { Card, Dialog, DialogForm, Field, Icon, Loading, Num, Page, Stat, Tag, adminUi, type Tone } from '../ui';
+import { Dialog, DialogForm, Field, Icon, Loading, Num, PageHead, Tag, type Tone } from '../ui';
 import { useLoad } from '../useLoad';
 import type { ProjectDraft, Quote, QuoteDraft, QuoteStatus } from '../types';
 import { ProjectDialog } from './ProjectsPage';
-import styles from '../management.module.css';
+import styles from '../ledger.module.css';
 
 const STATUS: Record<QuoteStatus, { label: string; tone: Tone }> = {
   preparing: { label: 'בהכנה', tone: 'wait' },
@@ -52,54 +52,54 @@ export function QuotesPage() {
     quoteId: quote.id,
   });
 
-  const waiting = data?.open.filter(q => q.ageDays >= 7).length ?? 0;
-  // The closed list also keeps an older won quote until it becomes a project.
-  const monthStart = `${todayInIsrael().slice(0, 8)}01`;
-  const wonThisMonth = data?.closed.filter(q => q.closedDate && q.closedDate >= monthStart) ?? [];
-
   return (
-    <Page
-      title="הכסף שבדרך"
-      sub="הצעות מחיר פתוחות"
-      action={<button type="button" className={`${adminUi.btn} ${adminUi.btnPrimary}`} onClick={() => setPicked({ quote: null })}><Icon name="plus" size={16} /> הצעה חדשה</button>}
-    >
+    <div className={styles.page}>
+      <PageHead
+        title="הכסף שבדרך"
+        sub="הצעות מחיר פתוחות"
+        accent="לסגור עוד עסק!"
+        action={<button type="button" className={styles.btnPrimary} onClick={() => setPicked({ quote: null })}><Icon name="plus" size={20} /> הצעה חדשה</button>}
+      />
       {!data ? <Loading error={error} /> : (
         <>
-          <div className={styles.stats}>
-            <Stat label="סה״כ הצעות פתוחות" value={<Num>{money(data.openTotal)}</Num>} />
-            <Stat label="הצעות פתוחות" value={data.open.length} />
-            <Stat label="בלי מעקב שבוע ומעלה" value={waiting} late={waiting > 0} />
-            <Stat label="נסגרו החודש" value={wonThisMonth.length} note={<Num>{money(wonThisMonth.reduce((sum, q) => sum + q.amount, 0))}</Num>} />
+          <div className={styles.moneyBand}>
+            <div>
+              <span className={styles.cellSoft}>סה״כ הצעות פתוחות</span>
+              <div className={styles.moneyTotal}><Num>{money(data.openTotal)}</Num></div>
+            </div>
+            <div className={styles.moneyCount}>
+              <span className={styles.bigNumber}>{data.open.length}</span>
+              הצעות פתוחות
+            </div>
           </div>
 
-          <Card title="הצעות פתוחות">
-            {data.open.length === 0 ? <p className={styles.quietLine}>אין הצעות פתוחות.</p> : (
-              <>
-                <div className={`${styles.tableHead} ${styles.quotesGrid}`}>
-                  <span>לקוח</span><span>נושא</span><span>סכום</span><span>סטטוס</span><span>עודכן לפני</span>
+          {data.open.length > 0 && (
+            <>
+              <div className={`${styles.tableHead} ${styles.quotesGrid}`}>
+                <span>לקוח</span><span>נושא</span><span>סכום</span><span>סטטוס</span><span>עודכן לפני</span>
+              </div>
+              {data.open.map(quote => (
+                <div
+                  key={quote.id}
+                  className={`${styles.tableRow} ${styles.quotesGrid} ${styles.rowLink}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setPicked({ quote })}
+                  onKeyDown={e => { if (e.key === 'Enter') setPicked({ quote }); }}
+                >
+                  <span className={styles.cellName}>{quote.clientName}</span>
+                  <span>{quote.subject}</span>
+                  <span><Num>{money(quote.amount)}</Num></span>
+                  <span><Tag tone={STATUS[quote.status].tone}>{STATUS[quote.status].label}</Tag></span>
+                  <span className={quote.ageDays >= 7 ? styles.ageLate : undefined}>{daysText(quote.ageDays)}</span>
                 </div>
-                {data.open.map(quote => (
-                  <div
-                    key={quote.id}
-                    className={`${styles.tableRow} ${styles.quotesGrid} ${styles.rowLink}`}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setPicked({ quote })}
-                    onKeyDown={e => { if (e.key === 'Enter') setPicked({ quote }); }}
-                  >
-                    <span className={styles.cellName}>{quote.clientName}</span>
-                    <span>{quote.subject}</span>
-                    <span><Num>{money(quote.amount)}</Num></span>
-                    <span><Tag tone={STATUS[quote.status].tone}>{STATUS[quote.status].label}</Tag></span>
-                    <span>{quote.ageDays >= 7 ? <Tag tone="late">{daysText(quote.ageDays)}</Tag> : daysText(quote.ageDays)}</span>
-                  </div>
-                ))}
-              </>
-            )}
-          </Card>
+              ))}
+            </>
+          )}
 
           {data.closed.length > 0 && (
-            <Card title="נסגרו">
+            <section className={styles.closedBlock}>
+              <h2 className={`${styles.sectionTitle} ${styles.closedBand}`}>נסגר החודש</h2>
               {data.closed.map(quote => (
                 <div className={`${styles.tableRow} ${styles.closedGrid}`} key={quote.id}>
                   <span className={styles.cellName}>{quote.clientName}</span>
@@ -110,10 +110,10 @@ export function QuotesPage() {
                   <span><Num>{money(quote.amount)}</Num></span>
                   {quote.projectId
                     ? <span><Tag tone="ok">הפך לפרויקט</Tag></span>
-                    : <span><button type="button" className={adminUi.btn} onClick={() => startConvert(quote)}>הפוך לפרויקט</button></span>}
+                    : <button type="button" className={styles.btnPrimary} onClick={() => startConvert(quote)}>הפוך לפרויקט</button>}
                 </div>
               ))}
-            </Card>
+            </section>
           )}
         </>
       )}
@@ -132,7 +132,7 @@ export function QuotesPage() {
           onDone={() => { setConverting(null); reload(); }}
         />
       )}
-    </Page>
+    </div>
   );
 }
 
@@ -176,8 +176,8 @@ function QuoteDialog({ quote, onClose, onDone }: { quote: Quote | null; onClose:
           </Field>
         </div>
         <div>
-          <button type="button" className={adminUi.btn} onClick={() => set({ lastFollowupDate: todayInIsrael() })}>
-            <Icon name="check" size={16} /> עקבתי היום
+          <button type="button" className={styles.btnQuiet} onClick={() => set({ lastFollowupDate: todayInIsrael() })}>
+            עקבתי היום
           </button>
         </div>
       </DialogForm>

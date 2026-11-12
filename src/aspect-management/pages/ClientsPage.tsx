@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { hours, shortDate } from '../format';
-import { Card, Dialog, DialogForm, Field, Icon, Loading, Num, Page, adminUi } from '../ui';
+import { Dialog, DialogForm, Field, Icon, Loading, Num, PageHead } from '../ui';
 import { useLoad } from '../useLoad';
 import type { ClientDraft, Service } from '../types';
-import styles from '../management.module.css';
+import styles from '../ledger.module.css';
 
 const SERVICE_STATUSES = ['פעיל', 'בהטמעה', 'מושהה'];
 
@@ -15,41 +15,38 @@ export function ClientsPage() {
   const navigate = useNavigate();
 
   return (
-    <Page
-      title="לקוחות"
-      sub={clients ? `${clients.length} לקוחות` : undefined}
-      action={<button type="button" className={`${adminUi.btn} ${adminUi.btnPrimary}`} onClick={() => setAdding(true)}><Icon name="plus" size={16} /> לקוח חדש</button>}
-    >
-      {!clients ? <Loading error={error} /> : (
-        <Card>
-          {clients.length === 0 ? <p className={styles.quietLine}>עוד אין לקוחות.</p> : (
-            <>
-              <div className={`${styles.tableHead} ${styles.clientsGrid}`}>
-                <span>לקוח</span><span>שעות החודש</span><span>הבא בתור</span>
-              </div>
-              {clients.map(client => (
-                <div
-                  key={client.id}
-                  className={`${styles.tableRow} ${styles.clientsGrid} ${styles.rowLink}`}
-                  role="link"
-                  tabIndex={0}
-                  onClick={() => navigate(`/management/clients/${client.id}`)}
-                  onKeyDown={e => { if (e.key === 'Enter') navigate(`/management/clients/${client.id}`); }}
-                >
-                  <span className={styles.cellName}>{client.name}</span>
-                  <span>
-                    <Num>{hours(client.hoursThisMonth)}</Num>
-                    {client.packageHours !== null && <> מתוך <Num>{hours(client.packageHours)}</Num></>}
-                  </span>
-                  <span>
-                    {client.nextStep || '—'}
-                    {client.nextStepDate && <span className={styles.cellSoft}><Num>{shortDate(client.nextStepDate)}</Num></span>}
-                  </span>
-                </div>
-              ))}
-            </>
-          )}
-        </Card>
+    <div className={styles.page}>
+      <PageHead
+        title="לקוחות"
+        sub={clients ? `${clients.length} לקוחות` : undefined}
+        action={<button type="button" className={styles.btnPrimary} onClick={() => setAdding(true)}><Icon name="plus" size={20} /> לקוח חדש</button>}
+      />
+      {!clients ? <Loading error={error} /> : clients.length === 0 ? <p className={styles.quietLine}>עוד אין לקוחות.</p> : (
+        <>
+          <div className={`${styles.tableHead} ${styles.clientsGrid}`}>
+            <span>לקוח</span><span>שעות החודש</span><span>הבא בתור</span>
+          </div>
+          {clients.map(client => (
+            <div
+              key={client.id}
+              className={`${styles.tableRow} ${styles.clientsGrid} ${styles.rowLink}`}
+              role="link"
+              tabIndex={0}
+              onClick={() => navigate(`/aspect/management/clients/${client.id}`)}
+              onKeyDown={e => { if (e.key === 'Enter') navigate(`/aspect/management/clients/${client.id}`); }}
+            >
+              <span className={styles.cellName}>{client.name}</span>
+              <span>
+                <Num>{hours(client.hoursThisMonth)}</Num>
+                {client.packageHours !== null && <> מתוך <Num>{hours(client.packageHours)}</Num></>}
+              </span>
+              <span>
+                {client.nextStep || '—'}
+                {client.nextStepDate && <span className={styles.cellSoft}>{shortDate(client.nextStepDate)}</span>}
+              </span>
+            </div>
+          ))}
+        </>
       )}
       {adding && (
         <ClientDialog
@@ -60,7 +57,7 @@ export function ClientsPage() {
           onDone={() => { setAdding(false); reload(); }}
         />
       )}
-    </Page>
+    </div>
   );
 }
 
@@ -101,14 +98,12 @@ export function ClientDialog({ title, initial, onSave, onClose, onDone, showNote
               <select className={styles.input} aria-label="סטטוס" value={service.status} onChange={e => setService(index, { status: e.target.value })}>
                 {SERVICE_STATUSES.map(status => <option key={status}>{status}</option>)}
               </select>
-              <button type="button" className={`${styles.iconBtn} ${styles.iconBtnDanger}`} aria-label="הסרת השירות" onClick={() => set({ services: draft.services.filter((_, i) => i !== index) })}>
-                <Icon name="trash" />
-              </button>
+              <button type="button" className={styles.linkBtn} onClick={() => set({ services: draft.services.filter((_, i) => i !== index) })}>הסרה</button>
             </div>
           ))}
           <div>
-            <button type="button" className={adminUi.btn} onClick={() => set({ services: [...draft.services, { name: '', status: SERVICE_STATUSES[0] }] })}>
-              <Icon name="plus" size={16} /> הוספת שירות
+            <button type="button" className={styles.linkBtn} onClick={() => set({ services: [...draft.services, { name: '', status: SERVICE_STATUSES[0] }] })}>
+              הוספת שירות
             </button>
           </div>
         </div>

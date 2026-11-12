@@ -1,11 +1,11 @@
 import { useCallback, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
-import { Card, Dialog, DialogForm, Field, Icon, Loading, Num, Page, Tag, adminUi } from '../ui';
+import { Dialog, DialogForm, Field, Icon, Loading, Num, PageHead, Tag } from '../ui';
 import { useLoad } from '../useLoad';
 import { daysText } from '../format';
 import type { Project, ProjectDraft } from '../types';
-import styles from '../management.module.css';
+import styles from '../ledger.module.css';
 
 export function ProjectStatus({ project }: { project: Project }) {
   if (project.status === 'done') return <Tag>הסתיים</Tag>;
@@ -52,36 +52,34 @@ export function ProjectsPage() {
   };
 
   return (
-    <Page
-      title="פרויקטים פעילים"
-      sub={projects ? `${projects.length} פרויקטים` : undefined}
-      action={<button type="button" className={`${adminUi.btn} ${adminUi.btnPrimary}`} onClick={() => setPicked({ project: null })}><Icon name="plus" size={16} /> פרויקט חדש</button>}
-    >
-      {!projects ? <Loading error={error} /> : (
-        <Card>
-          {projects.length === 0 ? <p className={styles.quietLine}>אין פרויקטים פעילים.</p> : (
-            <>
-              <div className={`${styles.tableHead} ${styles.projectsGrid}`}>
-                <span>לקוח</span><span>סוג</span><span>ניצול שעות</span><span>סטטוס</span>
-              </div>
-              {projects.map(project => (
-                <div
-                  key={project.id}
-                  className={`${styles.tableRow} ${styles.projectsGrid} ${styles.rowLink}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setPicked({ project })}
-                  onKeyDown={e => { if (e.key === 'Enter') setPicked({ project }); }}
-                >
-                  <span className={styles.cellName}>{project.clientName}</span>
-                  <span>{project.name}</span>
-                  <HoursBar project={project} />
-                  <ProjectStatus project={project} />
-                </div>
-              ))}
-            </>
-          )}
-        </Card>
+    <div className={styles.page}>
+      <PageHead
+        title="פרויקטים פעילים"
+        sub={projects ? `${projects.length} פרויקטים` : undefined}
+        accent="לעמוד בזמנים!"
+        action={<button type="button" className={styles.btnPrimary} onClick={() => setPicked({ project: null })}><Icon name="plus" size={20} /> פרויקט חדש</button>}
+      />
+      {!projects ? <Loading error={error} /> : projects.length === 0 ? <p className={styles.quietLine}>אין פרויקטים פעילים.</p> : (
+        <>
+          <div className={`${styles.tableHead} ${styles.projectsGrid}`}>
+            <span>לקוח</span><span>סוג</span><span>ניצול שעות</span><span>סטטוס</span>
+          </div>
+          {projects.map(project => (
+            <div
+              key={project.id}
+              className={`${styles.tableRow} ${styles.projectsGrid} ${styles.rowLink}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => setPicked({ project })}
+              onKeyDown={e => { if (e.key === 'Enter') setPicked({ project }); }}
+            >
+              <span className={styles.cellName}>{project.clientName}</span>
+              <span>{project.name}</span>
+              <HoursBar project={project} />
+              <ProjectStatus project={project} />
+            </div>
+          ))}
+        </>
       )}
       {dialog && (
         <ProjectDialog
@@ -91,7 +89,7 @@ export function ProjectsPage() {
           onDone={() => { close(); reload(); }}
         />
       )}
-    </Page>
+    </div>
   );
 }
 

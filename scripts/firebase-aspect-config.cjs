@@ -57,9 +57,24 @@ console.log('[firebase-aspect-config] wrote firebase.aspect.json');
 
 // The static Lybi pages are copied into dist/ as-is from public/, so the
 // server address in them is rewritten here, after the build.
-const lybiSite = path.join(root, 'dist', 'lybi-site');
+const dist = path.join(root, 'dist');
+const lybiSite = path.join(dist, 'lybi-site');
 const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e =>
   e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]);
+
+// The tab icon and title: index.html is shared with every Lybi build and ships
+// Lybi's spiral, so only the aspect site's built pages are switched to Aspect's
+// mark here. A page that sets its own icon (agent pages, dashboards) still does;
+// the Lybi pages under lybi-site/ keep theirs. Lybi must never show Aspect's.
+const LYBI_ICON = '<link rel="icon" type="image/png" href="/img/lybi-spiral.png" />';
+const ASPECT_ICON = '<link rel="icon" type="image/png" href="/img/aspect-favicon.png" />\n'
+  + '    <link rel="apple-touch-icon" href="/img/aspect-touch-icon.png" />';
+for (const file of walk(dist).filter(f => f.endsWith('.html') && !f.startsWith(lybiSite + path.sep))) {
+  const text = fs.readFileSync(file, 'utf8');
+  if (!text.includes(LYBI_ICON)) continue;
+  fs.writeFileSync(file, text.replace(LYBI_ICON, ASPECT_ICON).replace('<title>AI Agent</title>', '<title>Aspect</title>'));
+  console.log(`[firebase-aspect-config] ${path.relative(root, file)} -> Aspect icon`);
+}
 if (fs.existsSync(lybiSite)) {
   for (const file of walk(lybiSite).filter(f => /\.(html|js)$/.test(f))) {
     const text = fs.readFileSync(file, 'utf8');

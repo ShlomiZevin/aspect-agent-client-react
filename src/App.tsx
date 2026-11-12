@@ -66,7 +66,7 @@ import './styles/global.css';
 // (task board, quick bug, debug shortcut) must not be accessible.
 function isRestrictedRoute(pathname: string): boolean {
   const parts = pathname.split('/').filter(Boolean);
-  if (parts[0] === 'management') return true;
+  if (parts[0] === 'aspect' && parts[1] === 'management') return true;
   return parts.length >= 2 && (parts[1] === 'login' || parts[1] === 'chat');
 }
 
@@ -155,10 +155,11 @@ function AppContent() {
         <Route path="/aspect/plan" element={<TeamPlanPage />} />
         {/* Zol Stock smart-replenishment spec — English engineering brief + its Hebrew customer companion. */}
         {/* Aspect Management — the concept document Itzik reads and marks up. */}
-        <Route path="/aspect/management" element={<AspectManagementConceptPage />} />
-        {/* Aspect Management itself. Hebrew only, tied to no customer. */}
+        <Route path="/aspect/management-looks" element={<AspectManagementConceptPage />} />
+        {/* Aspect Management itself. Hebrew only, tied to no customer. Under
+            /aspect/ like every Aspect page: the client is shared with Lybi. */}
         <Route
-          path="/management/*"
+          path="/aspect/management/*"
           element={
             <Suspense fallback={null}>
               <ManagementRoute />

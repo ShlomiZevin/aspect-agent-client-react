@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { api } from '../api';
-import { Card, Dialog, DialogForm, Field, Icon, Loading, Page, Tag, adminUi } from '../ui';
+import { Dialog, DialogForm, Field, Icon, Loading, PageHead, Tag } from '../ui';
 import { useLoad } from '../useLoad';
 import type { PersonDraft, PersonWithHours, Role } from '../types';
-import styles from '../management.module.css';
+import styles from '../ledger.module.css';
 
 const ROLE_LABEL: Record<Role, string> = { owner: 'בעלים', developer: 'מפתח' };
 
@@ -13,13 +13,14 @@ export function SettingsPage() {
   const [dialog, setDialog] = useState<{ person: PersonWithHours | null } | null>(null);
 
   return (
-    <Page
-      title="הגדרות"
-      sub="מי נמצא ברשימה. הגישה עצמה למערכת נפתחת בנפרד, בדף ההרשאות של Aspect."
-      action={<button type="button" className={`${adminUi.btn} ${adminUi.btnPrimary}`} onClick={() => setDialog({ person: null })}><Icon name="plus" size={16} /> אדם חדש</button>}
-    >
+    <div className={styles.page}>
+      <PageHead
+        title="הגדרות"
+        sub="מי נמצא ברשימה"
+        action={<button type="button" className={styles.btnPrimary} onClick={() => setDialog({ person: null })}><Icon name="plus" size={20} /> אדם חדש</button>}
+      />
       {!people ? <Loading error={error} /> : (
-        <Card title="צוות" note={`${people.length} אנשים`}>
+        <div className={styles.rows}>
           {people.map(person => (
             <div
               key={person.id}
@@ -36,7 +37,7 @@ export function SettingsPage() {
               <Tag tone={person.active ? 'ok' : 'plain'}>{person.active ? ROLE_LABEL[person.role] : 'לא פעיל'}</Tag>
             </div>
           ))}
-        </Card>
+        </div>
       )}
       {dialog && (
         <PersonDialog
@@ -45,7 +46,7 @@ export function SettingsPage() {
           onDone={() => { setDialog(null); reload(); }}
         />
       )}
-    </Page>
+    </div>
   );
 }
 
