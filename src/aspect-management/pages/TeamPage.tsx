@@ -2,10 +2,10 @@ import { useCallback, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { hoursText, longDate, shortDate } from '../format';
-import { Dialog, Loading, Num, PageHead, Tag } from '../ui';
+import { Card, Dialog, Loading, Num, Page, Tag } from '../ui';
 import { useLoad } from '../useLoad';
 import type { PersonWithHours } from '../types';
-import styles from '../ledger.module.css';
+import styles from '../management.module.css';
 
 /** צוות: who reported what. Opening a person shows their last two weeks. */
 export function TeamPage() {
@@ -23,36 +23,39 @@ export function TeamPage() {
   const team = people?.filter(p => p.active && p.role === 'developer');
 
   return (
-    <div className={styles.page}>
-      <PageHead title="צוות" sub={team ? `${team.length} מפתחים` : undefined} accent="כל הכבוד לצוות!" />
-      {!team ? <Loading error={error} /> : team.length === 0 ? <p className={styles.quietLine}>עוד אין מפתחים. מוסיפים אותם בהגדרות.</p> : (
-        <>
-          <div className={`${styles.tableHead} ${styles.teamGrid}`}>
-            <span>שם</span><span>יום העבודה הקודם</span><span>החודש</span><span>דיווח אחרון</span>
-          </div>
-          {team.map(person => (
-            <div
-              key={person.id}
-              className={`${styles.tableRow} ${styles.teamGrid} ${styles.rowLink}`}
-              role="button"
-              tabIndex={0}
-              onClick={() => setPicked(person)}
-              onKeyDown={e => { if (e.key === 'Enter') setPicked(person); }}
-            >
-              <span className={styles.cellName}>{person.name}</span>
-              <span>
-                {person.hoursPreviousWorkday > 0
-                  ? hoursText(person.hoursPreviousWorkday)
-                  : <Tag tone="wait">לא דיווח</Tag>}
-              </span>
-              <span>{hoursText(person.hoursThisMonth)}</span>
-              <span>{person.lastReportDate ? <Num>{shortDate(person.lastReportDate)}</Num> : '—'}</span>
-            </div>
-          ))}
-        </>
+    <Page title="צוות" sub={team ? `${team.length} מפתחים` : undefined}>
+      {!team ? <Loading error={error} /> : (
+        <Card>
+          {team.length === 0 ? <p className={styles.quietLine}>עוד אין מפתחים. מוסיפים אותם בהגדרות.</p> : (
+            <>
+              <div className={`${styles.tableHead} ${styles.teamGrid}`}>
+                <span>שם</span><span>יום העבודה הקודם</span><span>החודש</span><span>דיווח אחרון</span>
+              </div>
+              {team.map(person => (
+                <div
+                  key={person.id}
+                  className={`${styles.tableRow} ${styles.teamGrid} ${styles.rowLink}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setPicked(person)}
+                  onKeyDown={e => { if (e.key === 'Enter') setPicked(person); }}
+                >
+                  <span className={styles.cellName}>{person.name}</span>
+                  <span>
+                    {person.hoursPreviousWorkday > 0
+                      ? hoursText(person.hoursPreviousWorkday)
+                      : <Tag tone="wait">לא דיווח</Tag>}
+                  </span>
+                  <span>{hoursText(person.hoursThisMonth)}</span>
+                  <span>{person.lastReportDate ? <Num>{shortDate(person.lastReportDate)}</Num> : '—'}</span>
+                </div>
+              ))}
+            </>
+          )}
+        </Card>
       )}
       {open && <PersonDialog person={open} onClose={close} />}
-    </div>
+    </Page>
   );
 }
 
@@ -69,14 +72,14 @@ function PersonDialog({ person, onClose }: { person: PersonWithHours; onClose: (
           <div className={styles.dayBlock} key={day}>
             <div className={styles.dayTitle}>{longDate(day)}</div>
             {data.entries.filter(e => e.date === day).map(entry => (
-              <div key={entry.id}>
+              <div key={entry.id} className={styles.entryLine}>
                 {hoursText(entry.hours)}, {entry.clientName ?? 'פנימי'}
                 {entry.projectName && ` (${entry.projectName})`}: {entry.description}
-                {!entry.billable && <span className={styles.cellSoft}>לא לחיוב</span>}
+                {!entry.billable && <> <Tag>לא לחיוב</Tag></>}
               </div>
             ))}
             {data.blockers.filter(b => b.date === day).map(blocker => (
-              <div key={blocker.body} className={styles.ageLate}>משהו תקוע: {blocker.body}</div>
+              <div key={blocker.body} className={styles.blockerLine}>משהו תקוע: {blocker.body}</div>
             ))}
           </div>
         ))

@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import { api } from '../api';
 import { hours as formatHours, longDate, shiftDate, todayInIsrael } from '../format';
-import { Icon, Loading, Num } from '../ui';
+import { Card, Icon, Loading, Num, Page, adminUi } from '../ui';
 import { useLoad } from '../useLoad';
 import type { Person, Report, ReportEntry } from '../types';
-import styles from '../ledger.module.css';
+import styles from '../management.module.css';
 
 /** The select's value for internal work: a time entry with no client. */
 const INTERNAL = 'internal';
@@ -61,14 +61,10 @@ export function ReportPage({ person }: { person: Person }) {
   const load = useCallback(() => api.report(person.id, date), [person.id, date]);
   const { data, error } = useLoad(load);
 
-  return (
-    <div className={styles.page}>
-      {/* While the next day loads, `data` is still the day before. */}
-      {data?.date === date
-        ? <ReportForm key={date} person={person} report={data} onDate={setDate} />
-        : <Loading error={error} />}
-    </div>
-  );
+  // While the next day loads, `data` is still the day before.
+  return data?.date === date
+    ? <ReportForm key={date} person={person} report={data} onDate={setDate} />
+    : <Page title="מה עשית היום?"><Loading error={error} /></Page>;
 }
 
 function ReportForm({ person, report, onDate }: { person: Person; report: Report; onDate: (d: string) => void }) {
@@ -125,137 +121,145 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
     }
   };
 
+  const dayNav = (
+    <div className={styles.dayNav}>
+      <button type="button" className={styles.iconBtn} aria-label="היום הקודם" onClick={() => goTo(shiftDate(report.date, -1))}>
+        <Icon name="prev" />
+      </button>
+      <span>{longDate(report.date)}</span>
+      <button type="button" className={styles.iconBtn} aria-label="היום הבא" disabled={report.date >= today} onClick={() => goTo(shiftDate(report.date, 1))}>
+        <Icon name="next" />
+      </button>
+    </div>
+  );
+
   return (
-    <>
-      <div className={styles.reportDate}>
-        <button type="button" className={styles.dayBtn} aria-label="היום הקודם" onClick={() => goTo(shiftDate(report.date, -1))}>›</button>
-        <span>{longDate(report.date)}</span>
-        <button type="button" className={styles.dayBtn} aria-label="היום הבא" disabled={report.date >= today} onClick={() => goTo(shiftDate(report.date, 1))}>‹</button>
-      </div>
+    <Page title="מה עשית היום?" sub="שורה לכל לקוח. פחות מדקה." action={dayNav}>
+      <Card>
+        <div className={styles.reportHead}>
+          <span>לקוח</span><span>שעות</span><span>מה עשית</span><span>לחיוב</span><span />
+        </div>
 
-      <h1 className={styles.title} style={{ marginBottom: 14 }}>מה עשית היום?</h1>
-
-      <div className={styles.reportHead}>
-        <span>לקוח</span><span>שעות</span><span>מה עשית</span><span>לחיוב</span><span />
-      </div>
-
-      {rows.map(row => {
-        const projects = report.projects.filter(p => String(p.clientId) === row.client);
-        return (
-          <div className={styles.reportRow} key={row.key}>
-            <div className={styles.reportClient}>
-              <select
-                className={styles.input}
-                aria-label="לקוח"
-                value={row.client}
-                onChange={e => update(row.key, forClient(report, e.target.value))}
-              >
-                <option value="">בחירה</option>
-                {recentClients.length > 0 && (
-                  <optgroup label="אחרונים">
-                    {recentClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </optgroup>
-                )}
-                {otherClients.length > 0 && (
-                  <optgroup label={recentClients.length > 0 ? 'כל השאר' : 'לקוחות'}>
-                    {otherClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </optgroup>
-                )}
-                <option value={INTERNAL}>פנימי</option>
-              </select>
-              {projects.length > 0 && (
+        {rows.map(row => {
+          const projects = report.projects.filter(p => String(p.clientId) === row.client);
+          return (
+            <div className={styles.reportRow} key={row.key}>
+              <div className={styles.reportClient}>
                 <select
                   className={styles.input}
-                  aria-label="פרויקט"
-                  value={row.project}
-                  onChange={e => update(row.key, { project: e.target.value })}
+                  aria-label="לקוח"
+                  value={row.client}
+                  onChange={e => update(row.key, forClient(report, e.target.value))}
                 >
-                  <option value="">ללא פרויקט</option>
-                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  <option value="">בחירה</option>
+                  {recentClients.length > 0 && (
+                    <optgroup label="אחרונים">
+                      {recentClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </optgroup>
+                  )}
+                  {otherClients.length > 0 && (
+                    <optgroup label={recentClients.length > 0 ? 'כל השאר' : 'לקוחות'}>
+                      {otherClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </optgroup>
+                  )}
+                  <option value={INTERNAL}>פנימי</option>
                 </select>
-              )}
+                {projects.length > 0 && (
+                  <select
+                    className={styles.input}
+                    aria-label="פרויקט"
+                    value={row.project}
+                    onChange={e => update(row.key, { project: e.target.value })}
+                  >
+                    <option value="">ללא פרויקט</option>
+                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                )}
+              </div>
+              <input
+                className={`${styles.input} ${styles.reportHours}`}
+                aria-label="שעות"
+                placeholder="שעות"
+                type="number"
+                inputMode="decimal"
+                min="0"
+                max="24"
+                step="0.25"
+                value={row.hours}
+                onChange={e => update(row.key, { hours: e.target.value })}
+              />
+              <textarea
+                className={`${styles.input} ${styles.reportDesc}`}
+                style={{ minHeight: 38 }}
+                rows={1}
+                aria-label="מה עשית"
+                value={row.description}
+                onChange={e => update(row.key, { description: e.target.value })}
+              />
+              <label className={styles.reportCheck}>
+                <input
+                  className={styles.checkbox}
+                  type="checkbox"
+                  aria-label="לחיוב"
+                  checked={row.billable}
+                  onChange={e => update(row.key, { billable: e.target.checked })}
+                />
+                <span className={styles.phoneOnly}>לחיוב</span>
+              </label>
+              <button
+                type="button"
+                className={`${styles.iconBtn} ${styles.iconBtnDanger} ${styles.reportDelete}`}
+                aria-label="מחיקת שורה"
+                onClick={() => { setSent(false); setRows(current => current.filter(r => r.key !== row.key)); }}
+              >
+                <Icon name="trash" />
+              </button>
             </div>
-            <input
-              className={`${styles.input} ${styles.reportHours}`}
-              aria-label="שעות"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              max="24"
-              step="0.25"
-              value={row.hours}
-              onChange={e => update(row.key, { hours: e.target.value })}
-            />
+          );
+        })}
+
+        <button
+          type="button"
+          className={styles.addRow}
+          onClick={() => { setSent(false); setRows(current => [...current, emptyRow(report, recentClients[0] ? String(recentClients[0].id) : '')]); }}
+        >
+          <Icon name="plus" /> הוספת שורה
+        </button>
+
+        {stuck && (
+          <div className={styles.blockerBox}>
             <textarea
               className={styles.input}
-              style={{ minHeight: 40 }}
-              rows={1}
-              aria-label="מה עשית"
-              value={row.description}
-              onChange={e => update(row.key, { description: e.target.value })}
+              aria-label="מה תקוע?"
+              placeholder="מה תקוע? מה צריך כדי להתקדם?"
+              value={blocker}
+              onChange={e => { setSent(false); setBlocker(e.target.value); }}
             />
-            <div className={styles.reportCheck}>
+          </div>
+        )}
+
+        <div className={styles.reportFoot}>
+          <span className={styles.total}>
+            סה״כ היום<span className={styles.totalNumber}><Num>{formatHours(total)}</Num></span>שעות
+          </span>
+          <div className={styles.reportActions}>
+            {error && <p className={styles.errorLine}>{error}</p>}
+            {sent && <p className={styles.success}>נשלח. תודה!</p>}
+            <label className={stuck ? `${styles.stuck} ${styles.stuckOn}` : styles.stuck}>
               <input
                 className={styles.checkbox}
                 type="checkbox"
-                aria-label="לחיוב"
-                checked={row.billable}
-                onChange={e => update(row.key, { billable: e.target.checked })}
+                checked={stuck}
+                onChange={e => { setSent(false); setStuck(e.target.checked); }}
               />
-            </div>
-            <button
-              type="button"
-              className={styles.deleteBtn}
-              aria-label="מחיקת שורה"
-              onClick={() => { setSent(false); setRows(current => current.filter(r => r.key !== row.key)); }}
-            >
-              <Icon name="trash" size={21} />
+              משהו תקוע
+            </label>
+            <button type="button" className={`${adminUi.btn} ${adminUi.btnPrimary}`} disabled={busy} onClick={send}>
+              <Icon name="send" size={16} /> {busy ? 'שולח…' : 'שליחה'}
             </button>
           </div>
-        );
-      })}
-
-      <button
-        type="button"
-        className={styles.addRow}
-        onClick={() => { setSent(false); setRows(current => [...current, emptyRow(report, recentClients[0] ? String(recentClients[0].id) : '')]); }}
-      >
-        <Icon name="plus" size={20} /> הוספת שורה
-      </button>
-
-      <div className={styles.total}>
-        <span>סה״כ היום</span>
-        <span><span className={styles.totalNumber}><Num>{formatHours(total)}</Num></span> שעות</span>
-      </div>
-
-      {stuck && (
-        <textarea
-          className={styles.input}
-          style={{ marginBottom: 12 }}
-          aria-label="מה תקוע?"
-          placeholder="מה תקוע?"
-          value={blocker}
-          onChange={e => { setSent(false); setBlocker(e.target.value); }}
-        />
-      )}
-
-      {error && <p className={styles.errorLine}>{error}</p>}
-      {sent && <p className={styles.success}>נשלח. תודה!</p>}
-
-      <div className={styles.reportActions}>
-        <label className={styles.stuck}>
-          <input
-            className={styles.checkbox}
-            type="checkbox"
-            checked={stuck}
-            onChange={e => { setSent(false); setStuck(e.target.checked); }}
-          />
-          משהו תקוע
-        </label>
-        <button type="button" className={styles.btnPrimary} disabled={busy} onClick={send}>
-          {busy ? 'שולח…' : 'שליחה'}
-        </button>
-      </div>
-    </>
+        </div>
+      </Card>
+    </Page>
   );
 }
