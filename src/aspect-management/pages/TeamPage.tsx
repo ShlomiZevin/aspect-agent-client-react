@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
-import { hoursText, longDate, shortDate } from '../format';
-import { Dialog, Loading, Num, PageHead, Tag } from '../ui';
+import { hours, hoursText, longDate, shortDate } from '../format';
+import { Dialog, Icon, Loading, Num, PageHead } from '../ui';
 import { useLoad } from '../useLoad';
 import type { PersonWithHours } from '../types';
 import styles from '../ledger.module.css';
@@ -28,7 +28,7 @@ export function TeamPage() {
       {!team ? <Loading error={error} /> : team.length === 0 ? <p className={styles.quietLine}>עוד אין מפתחים. מוסיפים אותם בהגדרות.</p> : (
         <>
           <div className={`${styles.tableHead} ${styles.teamGrid}`}>
-            <span>שם</span><span>יום העבודה הקודם</span><span>החודש</span><span>דיווח אחרון</span>
+            <span>שם</span><span>יום העבודה הקודם</span><span>שעות החודש</span><span>דיווח אחרון</span><span />
           </div>
           {team.map(person => (
             <div
@@ -43,10 +43,13 @@ export function TeamPage() {
               <span>
                 {person.hoursPreviousWorkday > 0
                   ? hoursText(person.hoursPreviousWorkday)
-                  : <Tag tone="wait">לא דיווח</Tag>}
+                  : <span className={styles.highlight}>לא דיווח</span>}
               </span>
-              <span>{hoursText(person.hoursThisMonth)}</span>
+              <span className={styles.monthHours}><Num>{hours(person.hoursThisMonth)}</Num></span>
               <span>{person.lastReportDate ? <Num>{shortDate(person.lastReportDate)}</Num> : '—'}</span>
+              <span className={person.hoursPreviousWorkday > 0 ? styles.statusOk : styles.statusLate}>
+                <Icon name={person.hoursPreviousWorkday > 0 ? 'check' : 'alert'} size={22} stroke={2.4} />
+              </span>
             </div>
           ))}
         </>

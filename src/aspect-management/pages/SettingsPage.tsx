@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api';
-import { Dialog, DialogForm, Field, Icon, Loading, PageHead, Tag } from '../ui';
+import { Dialog, DialogForm, Field, Icon, Loading, PageHead } from '../ui';
 import { useLoad } from '../useLoad';
 import type { PersonDraft, PersonWithHours, Role } from '../types';
 import styles from '../ledger.module.css';
@@ -17,27 +17,31 @@ export function SettingsPage() {
       <PageHead
         title="הגדרות"
         sub="מי נמצא ברשימה"
-        action={<button type="button" className={styles.btnPrimary} onClick={() => setDialog({ person: null })}><Icon name="plus" size={20} /> אדם חדש</button>}
+        action={<button type="button" className={styles.btnPrimary} onClick={() => setDialog({ person: null })}><Icon name="plus" size={22} stroke={2.2} /> אדם חדש</button>}
       />
       {!people ? <Loading error={error} /> : (
-        <div className={styles.rows}>
-          {people.map(person => (
-            <div
-              key={person.id}
-              className={`${styles.row} ${styles.rowLink}`}
-              role="button"
-              tabIndex={0}
-              onClick={() => setDialog({ person })}
-              onKeyDown={e => { if (e.key === 'Enter') setDialog({ person }); }}
-            >
-              <div className={styles.rowBody}>
+        <>
+          <div className={styles.rows}>
+            {people.map(person => (
+              <div
+                key={person.id}
+                className={`${styles.row} ${styles.rowLink} ${styles.personRow}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => setDialog({ person })}
+                onKeyDown={e => { if (e.key === 'Enter') setDialog({ person }); }}
+              >
+                <span className={styles.rowChevron}><Icon name="chevronStart" size={22} stroke={2} /></span>
                 <span className={styles.rowName}>{person.name}</span>
-                <span className={styles.rowLine} dir="ltr" style={{ textAlign: 'right' }}>{person.email}</span>
+                <span className={`${styles.roleTag} ${!person.active ? styles.roleOff : person.role === 'owner' ? styles.roleOwner : styles.roleDev}`}>
+                  {person.active ? ROLE_LABEL[person.role] : 'לא פעיל'}
+                </span>
+                <span className={styles.personEmail} dir="ltr">{person.email}</span>
               </div>
-              <Tag tone={person.active ? 'ok' : 'plain'}>{person.active ? ROLE_LABEL[person.role] : 'לא פעיל'}</Tag>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <p className={styles.handNote}>הגישה עצמה למערכת נפתחת בנפרד, בדף ההרשאות של Aspect</p>
+        </>
       )}
       {dialog && (
         <PersonDialog

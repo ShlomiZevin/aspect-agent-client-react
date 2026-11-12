@@ -72,7 +72,7 @@ export function ManagementRoute() {
 function SignIn({ config, onSignedIn }: { config: SignInConfig; onSignedIn: (s: Session) => void }) {
   return (
     <main className={styles.signIn}>
-      <div className={styles.wordmark}>Aspect</div>
+      <SignInBrand />
       <h1 className={styles.title}>כניסה למערכת</h1>
       <SignInMethods
         tenant={TENANT}
@@ -85,7 +85,18 @@ function SignIn({ config, onSignedIn }: { config: SignInConfig; onSignedIn: (s: 
         describeError={() => SIGN_IN_FAILED}
         emailPlaceholder=""
       />
+      <p className={styles.signInQuiet}>אין לכם גישה? בקשו מאיציק</p>
     </main>
+  );
+}
+
+/** The sign-in's wordmark (ledger-7): Aspect, the bar mark, an ochre stroke, the line. */
+function SignInBrand() {
+  return (
+    <div className={styles.signInBrand}>
+      <div className={styles.signInWordmark}>Aspect <BarsMark size={44} /></div>
+      <div className={styles.signInLine}>ניהול עסק פשוט</div>
+    </div>
   );
 }
 
@@ -104,7 +115,7 @@ function SignedIn({ session, signOut }: { session: Session; signOut: () => void 
   if (!person) {
     return (
       <main className={styles.signIn}>
-        <div className={styles.wordmark}>Aspect</div>
+        <SignInBrand />
         <h1 className={styles.title}>עוד לא ברשימה</h1>
         <p className={styles.sub}>{session.email} לא נמצא ברשימת הצוות. בקשו מאיציק להוסיף אתכם.</p>
         <button type="button" className={styles.linkBtn} onClick={signOut}>יציאה</button>

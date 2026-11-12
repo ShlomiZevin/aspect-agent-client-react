@@ -19,12 +19,12 @@ export function ClientsPage() {
       <PageHead
         title="לקוחות"
         sub={clients ? `${clients.length} לקוחות` : undefined}
-        action={<button type="button" className={styles.btnPrimary} onClick={() => setAdding(true)}><Icon name="plus" size={20} /> לקוח חדש</button>}
+        action={<button type="button" className={styles.btnPrimary} onClick={() => setAdding(true)}><Icon name="plus" size={22} stroke={2.2} /> לקוח חדש</button>}
       />
       {!clients ? <Loading error={error} /> : clients.length === 0 ? <p className={styles.quietLine}>עוד אין לקוחות.</p> : (
         <>
           <div className={`${styles.tableHead} ${styles.clientsGrid}`}>
-            <span>לקוח</span><span>שעות החודש</span><span>הבא בתור</span>
+            <span /><span>לקוח</span><span>שעות החודש<small className={styles.headNote}>מתוך החבילה החודשית</small></span><span>פרויקטים פעילים</span><span>הצעד הבא</span>
           </div>
           {clients.map(client => (
             <div
@@ -35,14 +35,17 @@ export function ClientsPage() {
               onClick={() => navigate(`/aspect/management/clients/${client.id}`)}
               onKeyDown={e => { if (e.key === 'Enter') navigate(`/aspect/management/clients/${client.id}`); }}
             >
+              <span className={styles.rowChevron}><Icon name="chevronStart" size={22} stroke={2} /></span>
               <span className={styles.cellName}>{client.name}</span>
-              <span>
-                <Num>{hours(client.hoursThisMonth)}</Num>
-                {client.packageHours !== null && <> מתוך <Num>{hours(client.packageHours)}</Num></>}
+              <span className={client.packageHours !== null && client.hoursThisMonth > client.packageHours ? styles.hoursOver : styles.hoursOk}>
+                <b><Num>{hours(client.hoursThisMonth)}</Num></b>
+                {client.packageHours !== null && <> מתוך <Num>{hours(client.packageHours)}</Num></>} שעות
               </span>
-              <span>
+              <span className={styles.countCell}>{client.activeProjects}</span>
+              <span className={styles.nextCell}>
+                {client.nextStep ? <Icon name="calendar" size={22} stroke={1.6} /> : null}
                 {client.nextStep || '—'}
-                {client.nextStepDate && <span className={styles.cellSoft}>{shortDate(client.nextStepDate)}</span>}
+                {client.nextStepDate && <span className={styles.nextDate}> · <Num>{shortDate(client.nextStepDate)}</Num></span>}
               </span>
             </div>
           ))}
