@@ -6,6 +6,7 @@
 
 import { useMemo } from 'react';
 import { useModels } from '../../registry/useModels';
+import { firstCurrentModel, splitLegacy, type ModelInfo } from '../../registry/providerModels';
 import {
   DEFAULT_OUTPUT_TOKENS, OUTPUT_LIMIT_PRESETS, formatCost, fullLimitCost,
 } from '../../registry/outputLimit';
@@ -32,10 +33,10 @@ export function ModelPicker({ value, onChange, label, outputLimit, onOutputLimit
   const provider = useMemo(() => getProvider(value.providerId), [value.providerId, getProvider, providers]);
 
   const handleProvider = (providerId: string) => {
-    const next = getProvider(providerId);
-    if (!next || next.models.length === 0) return;
-    // When provider changes, snap to its first model.
-    onChange({ providerId, modelId: next.models[0].id });
+    const first = firstCurrentModel(getProvider(providerId));
+    if (!first) return;
+    // When provider changes, snap to its first current (non-legacy) model.
+    onChange({ providerId, modelId: first.id });
   };
 
   const handleModel = (modelId: string) => {
@@ -54,6 +55,17 @@ export function ModelPicker({ value, onChange, label, outputLimit, onOutputLimit
   }
 
   const selectedModel = provider?.models.find(m => m.id === value.modelId);
+  // #975: superseded models stay selectable (existing agents use them) but
+  // sit in a "Legacy" group after the current ones, grey + italic. A native
+  // <option> may ignore the styling (macOS), so the group label carries it too.
+  const { current, legacy } = splitLegacy(provider?.models ?? []);
+  const optionOf = (m: ModelInfo) => (
+    // Option label is just the model name — clean, never truncates. Notes
+    // render as a small caption below the row when this model is selected.
+    <option key={m.id} value={m.id} title={m.notes ?? ''} className={m.legacy ? styles.legacyOption : undefined}>
+      {m.name}
+    </option>
+  );
 
   return (
     <div className={styles.wrap}>
@@ -72,22 +84,22 @@ export function ModelPicker({ value, onChange, label, outputLimit, onOutputLimit
         </select>
         <span className={styles.sep}>›</span>
         <select
-          className={styles.select}
+          className={`${styles.select} ${selectedModel?.legacy ? styles.legacySelected : ''}`}
           value={value.modelId}
           onChange={e => handleModel(e.target.value)}
         >
-          {(provider?.models ?? []).map(m => (
-            // Option label is just the model name — clean, never
-            // truncates. Notes render as a small caption below the
-            // row when this model is selected.
-            <option key={m.id} value={m.id} title={m.notes ?? ''}>
-              {m.name}
-            </option>
-          ))}
+          {current.map(optionOf)}
+          {legacy.length > 0 && (
+            <optgroup label="Legacy" className={styles.legacyGroup}>
+              {legacy.map(optionOf)}
+            </optgroup>
+          )}
         </select>
       </div>
       {selectedModel?.notes && (
-        <span className={styles.notes}>{selectedModel.notes}</span>
+        <span className={`${styles.notes} ${selectedModel.legacy ? styles.notesLegacy : ''}`}>
+          {selectedModel.legacy ? `Legacy · ${selectedModel.notes}` : selectedModel.notes}
+        </span>
       )}
       {onOutputLimitChange && (() => {
         const limit = outputLimit ?? DEFAULT_OUTPUT_TOKENS;

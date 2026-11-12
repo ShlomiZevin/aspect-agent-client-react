@@ -60,6 +60,8 @@ const SOURCES: ConversationSource[] = ['live', 'builder', 'simulation'];
 const RANGES = { all: 'Any time', today: 'Today', '7d': 'Last 7 days', '30d': 'Last 30 days' } as const;
 type Range = keyof typeof RANGES;
 const PAGE = 50;
+/** Bottom "All turns" strip in the conversation reader — hidden on request (task #973). */
+const SHOW_TURN_STRIP = false;
 
 const builderHref = (agentSlug: string, id: number) => `/${agentSlug}/builder?c=${id}`;
 
@@ -491,7 +493,8 @@ function ConversationReader({ agentSlug, conversationId, turn, onTurn, onBack }:
         )}
       </div>
 
-      {turns.length > 0 && (
+      {/* The "All turns" strip is hidden (task #973). Flip SHOW_TURN_STRIP to bring it back. */}
+      {SHOW_TURN_STRIP && turns.length > 0 && (
         <nav className={s.strip} aria-label="All turns">
           <span className={s.stripTitle}>All turns</span>
           <div className={s.stripTrack}>

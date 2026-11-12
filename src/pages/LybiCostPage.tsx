@@ -5,20 +5,29 @@ import { Link } from 'react-router-dom';
 // One interaction = one user message + every model call made to answer it.
 // Word counts are expressed as simple levels (Reads / Writes); the words
 // behind each level are editable under Advanced.
-// Token prices are USD list prices per 1M tokens (verified July 2026).
+// Token prices are USD list prices per 1M tokens (verified 2026-11-12 on the
+// providers' pricing pages; same figures as services/models.service.js — #975).
 
 interface ModelPrice { id: string; name: string; prov: string; pin: number; pout: number }
 interface Row { kind: string; name: string; desc: string; model: string; read: string; write: string; runs: number; count: number }
 interface Tier { key: string; badge: string; title: string; tagline: string; rows: Row[] }
 
 const MODELS: ModelPrice[] = [
-  { id: 'gpt-5.6', name: 'GPT-5.6 Sol', prov: 'OpenAI', pin: 5.0, pout: 30.0 },
-  { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra', prov: 'OpenAI', pin: 2.5, pout: 15.0 },
-  { id: 'gpt-5.6-luna', name: 'GPT-5.6 Luna', prov: 'OpenAI', pin: 1.0, pout: 6.0 },
+  { id: 'gpt-6.1-terra', name: 'GPT-6.1 Terra', prov: 'OpenAI', pin: 1.0, pout: 5.0 },
+  { id: 'gpt-6.1-sol', name: 'GPT-6.1 Sol', prov: 'OpenAI', pin: 2.0, pout: 10.0 },
+  { id: 'gpt-6-astra', name: 'GPT-6 Astra', prov: 'OpenAI', pin: 10.0, pout: 50.0 },
+  { id: 'gpt-6-luna', name: 'GPT-6 Luna', prov: 'OpenAI', pin: 0.1, pout: 0.5 },
+  { id: 'gpt-5.6', name: 'GPT-5.6 Sol', prov: 'OpenAI', pin: 4.0, pout: 20.0 },
+  { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra', prov: 'OpenAI', pin: 2.0, pout: 12.0 },
+  { id: 'gpt-5.6-luna', name: 'GPT-5.6 Luna', prov: 'OpenAI', pin: 0.2, pout: 1.2 },
   { id: 'gpt-5.5', name: 'GPT-5.5', prov: 'OpenAI', pin: 5.0, pout: 30.0 },
   { id: 'gpt-4o', name: 'GPT-4o', prov: 'OpenAI', pin: 2.5, pout: 10.0 },
   { id: 'gpt-5.4-mini', name: 'GPT-5.4 mini', prov: 'OpenAI', pin: 0.75, pout: 4.5 },
   { id: 'gpt-4o-mini', name: 'GPT-4o mini', prov: 'OpenAI', pin: 0.15, pout: 0.6 },
+  { id: 'claude-fable-5-2', name: 'Claude Fable 5.2', prov: 'Anthropic', pin: 8.0, pout: 40.0 },
+  { id: 'claude-opus-5-5', name: 'Claude Opus 5.5', prov: 'Anthropic', pin: 4.0, pout: 20.0 },
+  { id: 'claude-sonnet-5-5', name: 'Claude Sonnet 5.5', prov: 'Anthropic', pin: 2.0, pout: 10.0 },
+  { id: 'claude-haiku-5-5', name: 'Claude Haiku 5.5', prov: 'Anthropic', pin: 0.1, pout: 0.5 },
   { id: 'claude-opus-4-7', name: 'Claude Opus 4.7', prov: 'Anthropic', pin: 5.0, pout: 25.0 },
   { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', prov: 'Anthropic', pin: 3.0, pout: 15.0 },
   { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', prov: 'Anthropic', pin: 1.0, pout: 5.0 },
@@ -34,9 +43,9 @@ interface ComponentType {
   model: string; read: string; write: string; runs: number;
   addable: boolean;
 }
-const GPT_MODELS = ['gpt-5.6', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-4o', 'gpt-5.4-mini', 'gpt-4o-mini'];
+const GPT_MODELS = MODELS.filter(m => m.prov === 'OpenAI').map(m => m.id);
 const ALL_MODELS = MODELS.map(m => m.id);
-const CHEAP_MODELS = ['gpt-4o-mini', 'gpt-5.4-mini', 'gpt-5.6-luna', 'claude-haiku-4-5', 'gemini-2.5-flash'];
+const CHEAP_MODELS = ['gpt-4o-mini', 'gpt-6-luna', 'gpt-5.4-mini', 'gpt-5.6-luna', 'claude-haiku-5-5', 'claude-haiku-4-5', 'gemini-2.5-flash'];
 
 const COMPONENT_TYPES: Record<string, ComponentType> = {
   talker: { base: 'Talker', desc: 'prompt + history + KB + message', models: GPT_MODELS, model: 'gpt-5.5', read: 'alot', write: 'normal', runs: 1, addable: false },

@@ -83,3 +83,28 @@
   color: var(--text-tertiary, #9ca3af);
   white-space: nowrap;
 }
+
+/* #975 — superseded ("legacy") models: still selectable, visibly older.
+ * Chromium on Windows/Linux styles <option>/<optgroup>; macOS menus may not,
+ * which is why they also sit in a "Legacy" group and the caption says so. */
+.legacyOption {
+  color: var(--text-tertiary, #9ca3af);
+  font-style: italic;
+}
+.legacyGroup {
+  color: var(--text-tertiary, #9ca3af);
+  font-style: italic;
+}
+/* The closed select itself, while a legacy model is the chosen one. Its open
+ * list keeps the normal colour for the current models. */
+.legacySelected {
+  color: var(--text-tertiary, #9ca3af);
+  font-style: italic;
+}
+.legacySelected option:not(.legacyOption) {
+  color: var(--text-primary, #111827);
+  font-style: normal;
+}
+.notesLegacy {
+  font-style: italic;
+}

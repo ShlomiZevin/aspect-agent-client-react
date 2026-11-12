@@ -25,6 +25,21 @@ export interface ModelInfo {
   notes?: string;
   /** USD per 1M tokens at list price, where the server knows it. */
   price?: { in: number; out: number };
+  /** Superseded by a newer model (#975): still selectable — existing agents
+   *  use it — but shown grey + italic, after the current models. */
+  legacy?: boolean;
+}
+
+/** The provider's first current (non-legacy) model — what a provider
+ *  switch snaps to. Falls back to the first model of any kind. */
+export function firstCurrentModel(provider: ProviderInfo | undefined): ModelInfo | undefined {
+  if (!provider) return undefined;
+  return provider.models.find(m => !m.legacy) ?? provider.models[0];
+}
+
+/** A provider's models split for a picker: current first, legacy after. */
+export function splitLegacy(models: ModelInfo[]): { current: ModelInfo[]; legacy: ModelInfo[] } {
+  return { current: models.filter(m => !m.legacy), legacy: models.filter(m => m.legacy) };
 }
 
 export interface ProviderInfo {

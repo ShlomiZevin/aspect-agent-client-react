@@ -453,7 +453,10 @@ function NewSimulationModal({ agentSlug, onClose, onReleased }: {
               <option value="">Default — the everyday model</option>
               {providers.map(p => (
                 <optgroup key={p.id} label={p.label}>
-                  {p.models.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  {/* #975: current models first, superseded ones after — grey italic + "(legacy)" (a native <option> may ignore the styling). */}
+                  {[...p.models.filter(m => !m.legacy), ...p.models.filter(m => m.legacy)].map(m => (
+                    <option key={m.id} value={m.id} className={m.legacy ? styles.legacyOption : undefined}>{m.legacy ? `${m.name} (legacy)` : m.name}</option>
+                  ))}
                 </optgroup>
               ))}
             </select>

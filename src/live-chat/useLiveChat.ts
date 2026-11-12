@@ -106,10 +106,31 @@ function pairMessagesToTurns(messages: ConversationMessage[]): LiveTurn[] {
   return turns;
 }
 
+function newLiveTurn(id: string, userText: string): LiveTurn {
+  return {
+    id,
+    userText,
+    userMessageId: null,
+    assistantText: '',
+    assistantMessageId: null,
+    runMap: {},
+    thinkRuns: [],
+    thinkLoaded: false,
+    // Non-null from the start → the "thinking" dots show at once.
+    thinkingLabel: '',
+    crewId: null,
+  };
+}
+
 export interface UseLiveChat {
   turns: LiveTurn[];
   convList: ConversationListItem[];
   conversationId: number | null;
+  /** Composer lock: true while the LATEST send is waiting for its reply
+   *  (or a conversation is loading). It clears the moment the reply is
+   *  final (`assistant.message`) — NOT when the stream closes, because
+   *  the stream stays open while the turn's background add-ons run
+   *  (task #974: 5–8 s of a disabled Send button after the answer). */
   busy: boolean;
   error: string | null;
   /** Render-ready Live Brain panels for the open conversation. Pushed
@@ -154,9 +175,44 @@ interface Args {
 export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
   const [turns, setTurns] = useState<LiveTurn[]>([]);
   const [convList, setConvList] = useState<ConversationListItem[]>([]);
-  const [conversationId, setConversationId] = useState<number | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [conversationId, setConversationIdState] = useState<number | null>(null);
+  // The open conversation, readable from stream handlers that outlive a
+  // switch (a turn's background tail can still be streaming after the
+  // customer opened another conversation or started a new one).
+  const conversationIdRef = useRef<number | null>(null);
+  const setConversationId = useCallback((id: number | null) => {
+    conversationIdRef.current = id;
+    setConversationIdState(id);
+  }, []);
   const [error, setError] = useState<string | null>(null);
+
+  // ── Input gate (task #974) ──────────────────────────────────────
+  // A turn's SSE stream stays open after the reply, while its OFFLINE
+  // lane / Live Brain / Profiler run. The composer used to unlock only
+  // when the stream closed. Now:
+  //  - `awaitingReply` — the latest send has no final reply yet. Cleared
+  //    on `assistant.message` (or `turn.stopped` / `done` / an error).
+  //  - A new send goes out at once, even while the previous turn's
+  //    offline add-ons are still running — the same as the Builder chat.
+  //  - `streamsOpen` — any stream still open (tail included). Proactive
+  //    push stays paused until it is 0, as it did while `busy`.
+  const [awaitingReply, setAwaitingReply] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [streamsOpen, setStreamsOpen] = useState(0);
+  const awaitingReplyRef = useRef(false);
+  const loadingRef = useRef(false);
+  const latestSendRef = useRef<string | null>(null);
+  const busy = awaitingReply || loading;
+
+  const releaseComposer = useCallback(() => {
+    latestSendRef.current = null;
+    awaitingReplyRef.current = false;
+    setAwaitingReply(false);
+  }, []);
+  /** The reply of `turnId` is final — unlock if it is still the latest send. */
+  const replyDone = useCallback((turnId: string) => {
+    if (latestSendRef.current === turnId) releaseComposer();
+  }, [releaseComposer]);
   const [livePanels, setLivePanels] = useState<LiveBrainPanelData[]>([]);
   const [liveFrame, setLiveFrame] = useState<LiveBrainFrame | null>(null);
   // Panels merged by id (per-panel live updates); derived into the sorted
@@ -181,11 +237,16 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     setProfilerAsk(null);
   }, []);
 
-  const updateLastTurn = useCallback((mut: (t: LiveTurn) => LiveTurn) => {
+  // Events update THEIR turn by id — never "the last turn": a previous
+  // turn's tail can still be streaming after the next turn was added
+  // (#974), and a turn that is no longer on screen is simply skipped.
+  const updateTurn = useCallback((turnId: string, mut: (t: LiveTurn) => LiveTurn) => {
     setTurns(prev => {
-      if (prev.length === 0) return prev;
-      const last = prev[prev.length - 1];
-      return [...prev.slice(0, -1), mut(last)];
+      const idx = prev.findIndex(t => t.id === turnId);
+      if (idx === -1) return prev;
+      const next = prev.slice();
+      next[idx] = mut(prev[idx]);
+      return next;
     });
   }, []);
 
@@ -204,23 +265,26 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     setTurns([]);
     setConvList([]);
     setError(null);
+    releaseComposer();
     resetLivePanels();
     resetProfilerPanels();
     reloadConvList();
-  }, [slug, reloadConvList, resetLivePanels, resetProfilerPanels]);
+  }, [slug, reloadConvList, resetLivePanels, resetProfilerPanels, setConversationId, releaseComposer]);
 
-  const handleEvent = useCallback((e: RuntimeEvent) => {
+  /** The SSE handler of ONE send — bound to its turn and conversation. */
+  const makeHandleEvent = useCallback((turnId: string, convId: number) => (e: RuntimeEvent) => {
+    const onScreen = () => conversationIdRef.current === convId;
     switch (e.type) {
       case 'conversation':
-        setConversationId(e.conversationId);
-        updateLastTurn(t => ({
+        if (onScreen()) setConversationId(e.conversationId);
+        updateTurn(turnId, t => ({
           ...t,
           userMessageId: e.messageId,
           crewId: e.currentCrewId ?? t.crewId,
         }));
         return;
       case 'addon.start':
-        updateLastTurn(t => ({
+        updateTurn(turnId, t => ({
           ...t,
           runMap: { ...t.runMap, [e.instanceId]: e.pluginId },
           // Surface activity so the customer sees a "thinking…" pulse even
@@ -229,10 +293,10 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
         }));
         return;
       case 'addon.token':
-        updateLastTurn(t => ({ ...t, assistantText: t.assistantText + e.token }));
+        updateTurn(turnId, t => ({ ...t, assistantText: t.assistantText + e.token }));
         return;
       case 'addon.websearch':
-        updateLastTurn(t => {
+        updateTurn(turnId, t => {
           const list = t.webSearches ?? [];
           const idx = list.findIndex(s => s.id === e.id);
           const next = {
@@ -245,7 +309,7 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
         });
         return;
       case 'addon.output':
-        updateLastTurn(t => {
+        updateTurn(turnId, t => {
           // A transition router can move the conversation to a new crew —
           // reflect that as the responding crew for this turn.
           const crewId = e.transition?.to ?? t.crewId;
@@ -271,20 +335,31 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
         // Only a fatal (instanceId === null) error should surface — a
         // single failed extractor must not break the customer bubble.
         if (e.instanceId === null) {
-          setError(e.error.message || 'Runtime error');
-          updateLastTurn(t => ({ ...t, thinkingLabel: null }));
+          if (onScreen()) setError(e.error.message || 'Runtime error');
+          updateTurn(turnId, t => ({ ...t, thinkingLabel: null }));
+          replyDone(turnId);
         }
         return;
       case 'assistant.message':
-        updateLastTurn(t => ({
+        updateTurn(turnId, t => ({
           ...t,
           assistantText: e.text,
           assistantMessageId: e.messageId,
           thinkLoaded: true,
           thinkingLabel: null,
         }));
+        // The reply is final and saved — the customer may type AND send
+        // now. The stream stays open for the background add-ons (#974).
+        replyDone(turnId);
+        return;
+      case 'turn.stopped':
+        updateTurn(turnId, t => ({ ...t, thinkingLabel: null }));
+        replyDone(turnId);
         return;
       case 'brain.panel': {
+        // Panels belong to the open conversation — a tail that finishes
+        // after the customer switched away must not paint the new one.
+        if (!onScreen()) return;
         // Merge one panel as it arrives (panel-by-panel). Hidden/cleared
         // → remove it. Re-derive the sorted array so the UI updates just
         // that card (with its own animation).
@@ -296,6 +371,7 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
       }
       case 'profiler.panel': {
         // Same per-panel merge as brain.panel, for the Profiler surface.
+        if (!onScreen()) return;
         const map = profilerPanelsRef.current;
         if (e.panel) map.set(e.panelId, { index: e.index, panel: e.panel });
         else map.delete(e.panelId);
@@ -303,21 +379,27 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
         return;
       }
       case 'done':
-        updateLastTurn(t => ({ ...t, thinkingLabel: null }));
+        updateTurn(turnId, t => ({ ...t, thinkingLabel: null }));
+        replyDone(turnId); // a turn with no reply text never sends assistant.message
         reloadConvList();
         return;
       default:
         return;
     }
-  }, [updateLastTurn, reloadConvList]);
+  }, [updateTurn, replyDone, reloadConvList, setConversationId]);
 
   const send = useCallback(async (raw: string) => {
     const text = raw.trim();
-    if (!text || busy || !slug) return;
+    if (!text || awaitingReplyRef.current || loadingRef.current || !slug) return;
     setError(null);
-    setBusy(true);
+    const turnId = `turn_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    latestSendRef.current = turnId;
+    awaitingReplyRef.current = true;
+    setAwaitingReply(true);
+    setStreamsOpen(n => n + 1);
+    let sentConvId: number | null = null;
     try {
-      let convId = conversationId;
+      let convId = conversationIdRef.current;
       if (convId === null) {
         const created = await createConversation({ agentSlug: slug, ownerUserId, source: 'live' });
         convId = created.conversationId;
@@ -329,36 +411,40 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
           .then(res => { setProfilerFrame(res?.frame ?? null); setProfilerAsk(res?.ask ?? null); })
           .catch(() => {});
       }
-      setTurns(prev => [...prev, {
-        id: `turn_${Date.now()}`,
-        userText: text,
-        userMessageId: null,
-        assistantText: '',
-        assistantMessageId: null,
-        runMap: {},
-        thinkRuns: [],
-        thinkLoaded: false,
-        thinkingLabel: null,
-        crewId: null,
-      }]);
+      sentConvId = convId;
+      setTurns(prev => [...prev, newLiveTurn(turnId, text)]);
+
+      // Sent at once, like the Builder chat — the previous turn's offline
+      // add-ons are not waited for (they never block a reply).
       await sendRuntimeMessage({
         agentSlug: slug,
         conversationId: convId,
         ownerUserId,
         userMessage: text,
         version,
-        onEvent: handleEvent,
+        onEvent: makeHandleEvent(turnId, convId),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      // Not when the customer has moved to another conversation meanwhile.
+      if (sentConvId === null || conversationIdRef.current === sentConvId) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      }
     } finally {
-      setBusy(false);
+      setStreamsOpen(n => Math.max(0, n - 1));
+      // Defensive: the stream closed without a final-reply event (network
+      // error, no Talker) — never leave the composer or the dots stuck.
+      updateTurn(turnId, t => (t.thinkingLabel === null ? t : { ...t, thinkingLabel: null }));
+      replyDone(turnId);
     }
-  }, [busy, slug, conversationId, ownerUserId, version, handleEvent]);
+  }, [slug, ownerUserId, version, makeHandleEvent, updateTurn, replyDone, setConversationId]);
 
   const loadConversation = useCallback(async (id: number) => {
     if (!slug) return;
-    setBusy(true);
+    // Opening a conversation abandons any reply still on its way in the
+    // one on screen (its events are bound to a turn that is gone).
+    releaseComposer();
+    loadingRef.current = true;
+    setLoading(true);
     setError(null);
     try {
       const msgs = await fetchConversationMessages({ agentSlug: slug, conversationId: id });
@@ -394,9 +480,10 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load conversation');
     } finally {
-      setBusy(false);
+      loadingRef.current = false;
+      setLoading(false);
     }
-  }, [slug, ownerUserId, version, resetLivePanels, resetProfilerPanels]);
+  }, [slug, ownerUserId, version, resetLivePanels, resetProfilerPanels, releaseComposer, setConversationId]);
 
   const refresh = useCallback(async () => {
     await reloadConvList();
@@ -409,14 +496,15 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
   // history load uses, so a pushed message renders identically to one
   // that was already there.
   //
-  // Paused while `busy`: the user's own turn is streaming its reply
-  // through handleEvent, and reloading underneath it would fight that.
-  // Nothing is lost — the message is already saved, so it appears on the
-  // next reload either way.
+  // Paused while any of the user's own streams is open (its background
+  // tail included, #974) or a conversation is loading: those events are
+  // being applied to the turns on screen, and reloading underneath would
+  // fight that. Nothing is lost — the message is already saved, so it
+  // appears on the next reload either way.
   useProactivePush({
     agentSlug: slug,
     conversationId,
-    paused: busy,
+    paused: streamsOpen > 0 || loading,
     onArrived: () => { void refresh(); },
   });
 
@@ -435,11 +523,12 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     if (conversationId !== null && ids.includes(conversationId)) {
       setConversationId(null);
       setTurns([]);
+      releaseComposer();
       resetLivePanels();
       resetProfilerPanels();
     }
     reloadConvList();
-  }, [slug, conversationId, reloadConvList, resetLivePanels, resetProfilerPanels]);
+  }, [slug, conversationId, reloadConvList, resetLivePanels, resetProfilerPanels, setConversationId, releaseComposer]);
 
   const renameConversation = useCallback(async (id: number, name: string) => {
     const trimmed = name.trim();
@@ -460,9 +549,11 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     setConversationId(null);
     setTurns([]);
     setError(null);
+    // A reply still on its way belongs to the conversation left behind.
+    releaseComposer();
     resetLivePanels();
     resetProfilerPanels();
-  }, [resetLivePanels, resetProfilerPanels]);
+  }, [resetLivePanels, resetProfilerPanels, setConversationId, releaseComposer]);
 
   const askProfiler = useCallback(async (question: string): Promise<string> => {
     const q = question.trim();
