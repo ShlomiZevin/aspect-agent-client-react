@@ -30,3 +30,15 @@ How to reproduce:
 
 Result: 34 screenshots, no page errors, no console errors. The only write calls
 are the two "ask" questions, answered by the script. `tsc` clean.
+
+## On the live site
+
+`node verification/aspect-management/site-style/prod-check.mjs` opens
+https://aspect-agents.web.app/management against the real `aspect-server`,
+read-only: only `/me` is stubbed, and any non-GET request is aborted and counted.
+`prod-*.png` are its shots.
+
+Result (2026-11-12, after the deploy): sign-in, "not on the list" (real `/me`)
+and seven owner screens on the real, still nearly empty `am_*` tables. 23 API
+responses, all 2xx/304, all from `aspect-server`; 0 writes; no page or console
+errors.
