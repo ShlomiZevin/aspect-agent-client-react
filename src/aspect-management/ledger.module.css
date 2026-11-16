@@ -457,7 +457,7 @@ textarea.input { resize: vertical; min-height: 80px; }
 .dayBtn { display: inline-flex; border: 0; background: none; padding: 4px; color: var(--ink); }
 .reportHead, .reportRow {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) 76px minmax(0, 1.5fr) 50px 34px;
+  grid-template-columns: minmax(0, 1.25fr) 130px minmax(0, 1.5fr) 50px 34px;
   gap: 12px;
   align-items: start;
 }
@@ -465,7 +465,9 @@ textarea.input { resize: vertical; min-height: 80px; }
 .reportRow { padding: 18px 0; border-bottom: 1px solid var(--rule); }
 .reportRow .input { font-size: 21px; min-height: 56px; }
 .reportClient { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.reportHours { text-align: center; padding-inline: 2px; }
+.reportTimes { display: flex; flex-direction: column; gap: 8px; }
+.reportTimes .input { text-align: center; padding-inline: 4px; }
+.rowHours { text-align: center; color: var(--ink-soft); font-size: 17px; }
 .reportCheck { display: flex; justify-content: center; padding-top: 12px; }
 .phoneOnly { display: none; }
 .deleteBtn { border: 0; background: none; padding: 12px 0 0; color: var(--oxblood); }
@@ -628,6 +630,14 @@ textarea.input { resize: vertical; min-height: 80px; }
 .answerFoot { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--rule); }
 .copyBtn { display: inline-flex; align-items: center; gap: 10px; border: 0; background: none; color: var(--ink); font-size: 20px; }
 
+/* ---- the month report ---- */
+.filters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 26px; }
+.hoursGrid { grid-template-columns: minmax(0, 1fr) 130px 130px; }
+.groupRow { padding-top: 26px; }
+.lineRow { padding-block: 10px; padding-inline-start: 34px; font-size: 19px; }
+.splitLine { display: flex; justify-content: space-between; gap: 16px; padding: 6px 0; font-size: 20px; border-bottom: 1px solid var(--rule); }
+.splitLine:last-child { border-bottom: 0; }
+
 /* ---- a person's reports ---- */
 .dayBlock { padding: 12px 0; border-bottom: 1px solid var(--rule); }
 .dayTitle { font-weight: 700; margin-bottom: 4px; }
@@ -669,6 +679,13 @@ textarea.input { resize: vertical; min-height: 80px; }
   .totalNumber { font-size: 54px; }
   .sendBtn { min-height: 66px; font-size: 26px; }
   .stuck { font-size: 21px; }
+  .filters { grid-template-columns: 1fr; gap: 10px; }
+  /* The month table keeps its three columns and its head on a phone. */
+  .tableHead.hoursGrid { display: grid; }
+  .tableRow.hoursGrid, .tableHead.hoursGrid { grid-template-columns: minmax(0, 1fr) 64px 64px; gap: 10px; }
+  .lineRow { padding-inline-start: 14px; font-size: 17px; }
+  .groupRow .cellName { font-size: 22px; }
+  .groupRow .monthHours { font-size: 21px; }
 }
 
 /* The report on a phone (ledger-2): client and hours, then what was done,
@@ -681,12 +698,12 @@ textarea.input { resize: vertical; min-height: 80px; }
   .reportDate { font-size: 20px; gap: 14px; padding: 16px 0 18px; margin-bottom: 18px; }
   .reportHead { display: none; }
   .reportRow {
-    grid-template-columns: minmax(0, 1fr) 84px;
-    grid-template-areas: "client hours" "desc desc" "check del";
+    grid-template-columns: minmax(0, 1fr) 120px;
+    grid-template-areas: "client times" "desc desc" "check del";
     gap: 10px;
   }
   .reportClient { grid-area: client; }
-  .reportHours { grid-area: hours; }
+  .reportTimes { grid-area: times; }
   .reportDesc { grid-area: desc; }
   .reportCheck { grid-area: check; justify-content: flex-start; align-items: center; gap: 10px; padding-top: 0; font-size: 18px; color: var(--ink-soft); }
   .deleteBtn { grid-area: del; justify-self: end; padding-top: 0; }

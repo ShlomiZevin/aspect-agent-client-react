@@ -5,7 +5,7 @@
  */
 import { getBaseURL } from '../services/api';
 import type {
-  Client, ClientCard, ClientDraft, Morning, Person, PersonDraft, PersonReports, PersonWithHours,
+  Client, ClientCard, ClientDraft, MonthHours, Morning, Person, PersonDraft, PersonReports, PersonWithHours,
   Project, ProjectDraft, Quote, QuoteDraft, QuotesView, Report, ReportDraft,
 } from './types';
 
@@ -57,6 +57,7 @@ export const api = {
 
   report: (personId: number, date: string) => request<Report>(`/report?${query({ personId, date })}`),
   saveReport: (draft: ReportDraft) => send<{ saved: number }>('PUT', '/report', draft),
+  monthHours: (month: string) => request<MonthHours>(`/hours?${query({ month })}`),
 
   quotes: () => request<QuotesView>('/quotes'),
   createQuote: (draft: QuoteDraft) => send<Quote>('POST', '/quotes', draft),

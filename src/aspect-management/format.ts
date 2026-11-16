@@ -41,3 +41,16 @@ export function daysText(n: number): string {
 }
 
 export const firstName = (name: string) => name.trim().split(/\s+/)[0];
+
+/** 'YYYY-MM' as "נובמבר 2026". */
+export const monthName = (month: string) =>
+  new Intl.DateTimeFormat('he-IL', { month: 'long', year: 'numeric' }).format(parse(`${month}-01`));
+
+export function shiftMonth(month: string, by: number): string {
+  const [y, m] = month.split('-').map(Number);
+  const d = new Date(y, m - 1 + by, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export const TASK_TYPES = { development: 'פיתוח מיוחד', maintenance: 'תחזוקה' } as const;
+export const BILLING_TYPES = { retainer: 'ריטיינר חודשי', hourly: 'תשלום לפי שעות', fixed: 'תשלום פיקס' } as const;

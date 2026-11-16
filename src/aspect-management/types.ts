@@ -1,4 +1,6 @@
 export type Role = 'owner' | 'developer';
+export type TaskType = 'maintenance' | 'development';
+export type BillingType = 'retainer' | 'hourly' | 'fixed';
 
 export interface Person {
   id: number;
@@ -21,6 +23,9 @@ export interface PersonReports {
     id: number;
     date: string;
     hours: number;
+    start: string | null;
+    end: string | null;
+    taskType: TaskType | null;
     description: string;
     billable: boolean;
     clientName: string | null;
@@ -42,6 +47,7 @@ export interface Client {
   services: Service[];
   nextStep: string | null;
   nextStepDate: string | null;
+  billingType: BillingType | null;
   hoursThisMonth: number;
   activeProjects: number;
 }
@@ -54,6 +60,7 @@ export interface ClientCard extends Omit<Client, 'activeProjects'> {
 
 export type ClientDraft = Pick<Client, 'name' | 'logoUrl' | 'services' | 'nextStep' | 'nextStepDate'> & {
   packageHours: string;
+  billingType: BillingType | '';
 };
 
 export interface Project {
@@ -66,6 +73,9 @@ export interface Project {
   dueDate: string | null;
   status: 'active' | 'done';
   amount: number | null;
+  /** Null: the client's billing type applies. */
+  billingType: BillingType | null;
+  clientBillingType: BillingType | null;
   pct: number | null;
   late: boolean;
   lateDays: number;
@@ -80,13 +90,18 @@ export interface ProjectDraft {
   dueDate: string;
   status: 'active' | 'done';
   amount: string;
+  billingType: BillingType | '';
   quoteId?: number;
 }
 
 export interface ReportEntry {
   clientId: number | null;
   projectId: number | null;
+  /** 'HH:MM'. Rows sent before start and end existed have neither, only hours. */
+  start: string | null;
+  end: string | null;
   hours: number;
+  taskType: TaskType | null;
   description: string;
   billable: boolean;
 }
@@ -151,4 +166,23 @@ export interface Morning {
   today: string;
   alerts: Alert[];
   clientCount: number;
+}
+
+/** One month's hours, summed per developer x client x project x task type. */
+export interface MonthHoursRow {
+  personId: number;
+  personName: string;
+  clientId: number | null;
+  clientName: string | null;
+  projectId: number | null;
+  projectName: string | null;
+  billingType: BillingType | null;
+  taskType: TaskType | null;
+  hours: number;
+  billableHours: number;
+}
+
+export interface MonthHours {
+  month: string;
+  rows: MonthHoursRow[];
 }

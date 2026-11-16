@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
-import { Dialog, DialogForm, Field, Icon, Loading, Num, PageHead, Tag } from '../ui';
+import { BillingSelect, Dialog, DialogForm, Field, Icon, Loading, Num, PageHead, Tag } from '../ui';
 import { useLoad } from '../useLoad';
-import { daysText } from '../format';
+import { BILLING_TYPES, daysText } from '../format';
 import type { Project, ProjectDraft } from '../types';
 import styles from '../ledger.module.css';
 
@@ -35,7 +35,7 @@ function HoursBar({ project }: { project: Project }) {
   );
 }
 
-const emptyDraft: ProjectDraft = { clientId: '', name: '', hoursBudget: '', dueDate: '', status: 'active', amount: '' };
+const emptyDraft: ProjectDraft = { clientId: '', name: '', hoursBudget: '', dueDate: '', status: 'active', amount: '', billingType: '' };
 
 /** 4. פרויקטים: one row per active project. */
 export function ProjectsPage() {
@@ -64,21 +64,30 @@ export function ProjectsPage() {
           <div className={`${styles.tableHead} ${styles.projectsGrid}`}>
             <span>לקוח</span><span>סוג</span><span>ניצול שעות</span><span>סטטוס</span>
           </div>
-          {projects.map(project => (
-            <div
-              key={project.id}
-              className={`${styles.tableRow} ${styles.projectsGrid} ${styles.rowLink}`}
-              role="button"
-              tabIndex={0}
-              onClick={() => setPicked({ project })}
-              onKeyDown={e => { if (e.key === 'Enter') setPicked({ project }); }}
-            >
-              <span className={styles.cellName}>{project.clientName}</span>
-              <span className={styles.typeCell}><Icon name="chart" size={26} />{project.name}</span>
-              <HoursBar project={project} />
-              <ProjectStatus project={project} />
-            </div>
-          ))}
+          {projects.map(project => {
+            const billing = project.billingType ?? project.clientBillingType;
+            return (
+              <div
+                key={project.id}
+                className={`${styles.tableRow} ${styles.projectsGrid} ${styles.rowLink}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => setPicked({ project })}
+                onKeyDown={e => { if (e.key === 'Enter') setPicked({ project }); }}
+              >
+                <span className={styles.cellName}>{project.clientName}</span>
+                <span className={styles.typeCell}>
+                  <Icon name="chart" size={26} />
+                  <span>
+                    {project.name}
+                    {billing && <span className={styles.cellSoft}>{BILLING_TYPES[billing]}</span>}
+                  </span>
+                </span>
+                <HoursBar project={project} />
+                <ProjectStatus project={project} />
+              </div>
+            );
+          })}
         </div>
       )}
       {dialog && (
@@ -100,6 +109,7 @@ const toDraft = (project: Project): ProjectDraft => ({
   dueDate: project.dueDate ?? '',
   status: project.status,
   amount: project.amount === null ? '' : String(project.amount),
+  billingType: project.billingType ?? '',
 });
 
 export function ProjectDialog({ projectId, initial, onClose, onDone }: {
@@ -111,6 +121,7 @@ export function ProjectDialog({ projectId, initial, onClose, onDone }: {
   const [draft, setDraft] = useState(initial);
   const set = (change: Partial<ProjectDraft>) => setDraft(current => ({ ...current, ...change }));
   const { data: clients } = useLoad(api.clients);
+  const clientBilling = clients?.find(c => c.id === draft.clientId)?.billingType;
   const save = useCallback(
     () => (projectId ? api.updateProject(projectId, draft) : api.createProject(draft)),
     [projectId, draft],
@@ -137,9 +148,18 @@ export function ProjectDialog({ projectId, initial, onClose, onDone }: {
           </Field>
         </div>
         <div className={styles.formRow}>
+          <Field label="סוג תשלום">
+            <BillingSelect
+              value={draft.billingType}
+              onChange={billingType => set({ billingType })}
+              emptyLabel={clientBilling ? `כמו הלקוח (${BILLING_TYPES[clientBilling]})` : 'כמו הלקוח'}
+            />
+          </Field>
           <Field label="סכום (₪)">
             <input className={styles.input} type="number" min="0" value={draft.amount} onChange={e => set({ amount: e.target.value })} />
           </Field>
+        </div>
+        <div className={styles.formRow}>
           <Field label="סטטוס">
             <select className={styles.input} value={draft.status} onChange={e => set({ status: e.target.value as ProjectDraft['status'] })}>
               <option value="active">פעיל</option>

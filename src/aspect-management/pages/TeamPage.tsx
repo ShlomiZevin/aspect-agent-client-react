@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
-import { hours, hoursText, longDate, shortDate } from '../format';
+import { TASK_TYPES, hours, hoursText, longDate, shortDate } from '../format';
 import { Dialog, Icon, Loading, Num, PageHead } from '../ui';
 import { useLoad } from '../useLoad';
 import type { PersonWithHours } from '../types';
@@ -73,9 +73,14 @@ function PersonDialog({ person, onClose }: { person: PersonWithHours; onClose: (
             <div className={styles.dayTitle}>{longDate(day)}</div>
             {data.entries.filter(e => e.date === day).map(entry => (
               <div key={entry.id}>
+                {entry.start && <Num>{entry.start}–{entry.end} </Num>}
                 {hoursText(entry.hours)}, {entry.clientName ?? 'פנימי'}
                 {entry.projectName && ` (${entry.projectName})`}: {entry.description}
-                {!entry.billable && <span className={styles.cellSoft}>לא לחיוב</span>}
+                {(entry.taskType || !entry.billable) && (
+                  <span className={styles.cellSoft}>
+                    {[entry.taskType && TASK_TYPES[entry.taskType], !entry.billable && 'לא לחיוב'].filter(Boolean).join(' · ')}
+                  </span>
+                )}
               </div>
             ))}
             {data.blockers.filter(b => b.date === day).map(blocker => (

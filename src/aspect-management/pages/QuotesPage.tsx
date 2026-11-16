@@ -49,6 +49,8 @@ export function QuotesPage() {
     dueDate: '',
     status: 'active',
     amount: String(quote.amount),
+    // A quote is a price agreed in advance.
+    billingType: 'fixed',
     quoteId: quote.id,
   });
 

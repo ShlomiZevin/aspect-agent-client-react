@@ -1,4 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { BILLING_TYPES } from './format';
+import type { BillingType } from './types';
 import styles from './ledger.module.css';
 
 /** The small pieces every screen shares. */
@@ -43,6 +45,20 @@ export function Field({ label, children }: { label: string; children: ReactNode 
       <span className={styles.fieldLabel}>{label}</span>
       {children}
     </label>
+  );
+}
+
+/** Retainer, hourly or fixed. The empty choice says what applies instead. */
+export function BillingSelect({ value, onChange, emptyLabel = 'לא הוגדר' }: {
+  value: BillingType | '';
+  onChange: (value: BillingType | '') => void;
+  emptyLabel?: string;
+}) {
+  return (
+    <select className={styles.input} value={value} onChange={e => onChange(e.target.value as BillingType | '')}>
+      <option value="">{emptyLabel}</option>
+      {Object.entries(BILLING_TYPES).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+    </select>
   );
 }
 

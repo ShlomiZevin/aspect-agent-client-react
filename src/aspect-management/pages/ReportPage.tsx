@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import { api } from '../api';
-import { hours as formatHours, longDate, shiftDate, todayInIsrael } from '../format';
+import { TASK_TYPES, hours as formatHours, hoursText, longDate, shiftDate, todayInIsrael } from '../format';
 import { Icon, Loading, Num } from '../ui';
 import { useLoad } from '../useLoad';
-import type { Person, Report, ReportEntry } from '../types';
+import type { Person, Report, ReportEntry, TaskType } from '../types';
 import styles from '../ledger.module.css';
 
 /** The select's value for internal work: a time entry with no client. */
@@ -13,15 +13,20 @@ interface Row {
   key: number;
   client: string;
   project: string;
-  hours: string;
+  start: string;
+  end: string;
+  /** The hours of a row sent before start and end existed; '' for every other row. */
+  legacyHours: string;
+  taskType: TaskType | '';
   description: string;
   billable: boolean;
 }
 
 let nextKey = 1;
 
-function emptyRow(report: Report, client: string): Row {
-  return { key: nextKey++, ...forClient(report, client), hours: '', description: '' };
+/** A new row starts where the one before it ended. */
+function emptyRow(report: Report, client: string, start = ''): Row {
+  return { key: nextKey++, ...forClient(report, client), start, end: '', legacyHours: '', taskType: '', description: '' };
 }
 
 /** Choosing a client decides the rest: its only project, and whether it bills. */
@@ -43,15 +48,33 @@ function toRows(report: Report): Row[] {
     key: nextKey++,
     client: entry.clientId ? String(entry.clientId) : INTERNAL,
     project: entry.projectId ? String(entry.projectId) : '',
-    hours: String(entry.hours),
+    start: entry.start ?? '',
+    end: entry.end ?? '',
+    legacyHours: entry.start ? '' : String(entry.hours),
+    taskType: entry.taskType ?? '',
     description: entry.description,
     billable: entry.billable,
   }));
 }
 
+const minutes = (time: string) => {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+};
+
+/** The server computes the same; this is for the row's line and the day's total. */
+function rowHours(row: Row): number {
+  if (row.start && row.end) {
+    const span = minutes(row.end) - minutes(row.start);
+    return span > 0 ? Math.round((span / 60) * 100) / 100 : 0;
+  }
+  return row.start || row.end ? 0 : Number(row.legacyHours) || 0;
+}
+
 /** The form's content without its row keys, to tell whether anything changed. */
 const snapshot = (rows: Row[], stuck: boolean, blocker: string) => JSON.stringify({
-  rows: rows.map(({ client, project, hours, description, billable }) => ({ client, project, hours, description, billable })),
+  rows: rows.map(({ client, project, start, end, legacyHours, taskType, description, billable }) =>
+    ({ client, project, start, end, legacyHours, taskType, description, billable })),
   blocker: stuck ? blocker.trim() : '',
 });
 
@@ -82,7 +105,7 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
 
   const today = todayInIsrael();
   const dirty = snapshot(rows, stuck, blocker) !== saved;
-  const total = useMemo(() => rows.reduce((sum, r) => sum + (Number(r.hours) || 0), 0), [rows]);
+  const total = useMemo(() => rows.reduce((sum, r) => sum + rowHours(r), 0), [rows]);
   const recentClients = report.clients.filter(c => c.recent);
   const otherClients = report.clients.filter(c => !c.recent);
 
@@ -96,18 +119,30 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
     onDate(date);
   };
 
+  const addRow = () => {
+    setSent(false);
+    setRows(current => [
+      ...current,
+      emptyRow(report, recentClients[0] ? String(recentClients[0].id) : '', current[current.length - 1]?.end ?? ''),
+    ]);
+  };
+
   const send = async () => {
     // A row nobody typed in is not a mistake to report; it is just not a row.
-    const filled = rows.filter(r => r.hours.trim() || r.description.trim());
+    const filled = rows.filter(r => r.start || r.end || r.legacyHours || r.description.trim());
     const missingClient = filled.findIndex(r => !r.client);
     if (missingClient >= 0) {
       setError(`שורה ${missingClient + 1}: חסר לקוח`);
       return;
     }
+    // The server checks the times and the task type, and names the row.
     const entries: ReportEntry[] = filled.map(r => ({
       clientId: r.client === INTERNAL ? null : Number(r.client),
       projectId: r.project ? Number(r.project) : null,
-      hours: Number(r.hours),
+      start: r.start || null,
+      end: r.end || null,
+      hours: rowHours(r),
+      taskType: r.taskType || null,
       description: r.description,
       billable: r.billable,
     }));
@@ -136,11 +171,12 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
       <h1 className={styles.title} style={{ marginBottom: 14 }}>מה עשית היום?</h1>
 
       <div className={styles.reportHead}>
-        <span>לקוח</span><span>שעות</span><span>מה עשית</span><span>לחיוב</span><span />
+        <span>לקוח</span><span>משעה עד שעה</span><span>מה עשית</span><span>לחיוב</span><span />
       </div>
 
       {rows.map(row => {
         const projects = report.projects.filter(p => String(p.clientId) === row.client);
+        const hours = rowHours(row);
         return (
           <div className={styles.reportRow} key={row.key}>
             <div className={styles.reportClient}>
@@ -174,18 +210,35 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
                   {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               )}
+              <select
+                className={styles.input}
+                aria-label="סוג המשימה"
+                value={row.taskType}
+                onChange={e => update(row.key, { taskType: e.target.value as TaskType | '' })}
+              >
+                <option value="">סוג המשימה</option>
+                {Object.entries(TASK_TYPES).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+              </select>
             </div>
-            <input
-              className={`${styles.input} ${styles.reportHours}`}
-              aria-label="שעות"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              max="24"
-              step="0.25"
-              value={row.hours}
-              onChange={e => update(row.key, { hours: e.target.value })}
-            />
+            <div className={styles.reportTimes}>
+              <input
+                className={styles.input}
+                aria-label="משעה"
+                type="time"
+                dir="ltr"
+                value={row.start}
+                onChange={e => update(row.key, { start: e.target.value })}
+              />
+              <input
+                className={styles.input}
+                aria-label="עד שעה"
+                type="time"
+                dir="ltr"
+                value={row.end}
+                onChange={e => update(row.key, { end: e.target.value })}
+              />
+              {hours > 0 && <span className={styles.rowHours}>{hoursText(hours)}</span>}
+            </div>
             <textarea
               className={`${styles.input} ${styles.reportDesc}`}
               rows={1}
@@ -215,11 +268,7 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
         );
       })}
 
-      <button
-        type="button"
-        className={styles.addRow}
-        onClick={() => { setSent(false); setRows(current => [...current, emptyRow(report, recentClients[0] ? String(recentClients[0].id) : '')]); }}
-      >
+      <button type="button" className={styles.addRow} onClick={addRow}>
         <Icon name="plus" size={28} stroke={2} /> הוספת שורה
       </button>
 

@@ -17,6 +17,7 @@ import { QuotesPage } from './pages/QuotesPage';
 import { TeamPage } from './pages/TeamPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AskPage } from './pages/AskPage';
+import { ReportsPage } from './pages/ReportsPage';
 import styles from './ledger.module.css';
 
 /**
@@ -41,6 +42,7 @@ const NAV = [
   { to: '/aspect/management/team', label: 'צוות', icon: 'team' },
   { to: '/aspect/management/clients', label: 'לקוחות', icon: 'clients' },
   { to: '/aspect/management/quotes', label: 'הצעות מחיר', icon: 'quotes' },
+  { to: '/aspect/management/reports', label: 'דוחות', icon: 'chart' },
   { to: '/aspect/management/ask', label: 'שואלים את המערכת', icon: 'ask' },
   { to: '/aspect/management/settings', label: 'הגדרות', icon: 'settings' },
 ];
@@ -180,6 +182,7 @@ function OwnerShell({ person, signOut }: { person: Person; signOut: () => void }
           <Route path="clients" element={<ClientsPage />} />
           <Route path="clients/:id" element={<ClientCardPage person={person} />} />
           <Route path="quotes" element={<QuotesPage />} />
+          <Route path="reports" element={<ReportsPage />} />
           <Route path="ask" element={<AskPage person={person} />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/aspect/management" replace />} />

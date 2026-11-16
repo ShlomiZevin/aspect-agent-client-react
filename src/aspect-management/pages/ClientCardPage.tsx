@@ -4,7 +4,7 @@ import { api } from '../api';
 import { hours, hoursText, shortDate } from '../format';
 import { Icon, Loading, Num, Tag, type Tone } from '../ui';
 import { useLoad } from '../useLoad';
-import type { ClientCard, Person } from '../types';
+import type { ClientCard, ClientDraft, Person } from '../types';
 import { ClientDialog } from './ClientsPage';
 import { ProjectStatus } from './ProjectsPage';
 import styles from '../ledger.module.css';
@@ -145,11 +145,12 @@ export function ClientCardPage({ person }: { person: Person }) {
   );
 }
 
-const toDraft = (client: ClientCard) => ({
+const toDraft = (client: ClientCard): ClientDraft => ({
   name: client.name,
   logoUrl: client.logoUrl,
   packageHours: client.packageHours === null ? '' : String(client.packageHours),
   services: client.services,
   nextStep: client.nextStep,
   nextStepDate: client.nextStepDate,
+  billingType: client.billingType ?? '',
 });

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { hours, shortDate } from '../format';
-import { Dialog, DialogForm, Field, Icon, Loading, Num, PageHead } from '../ui';
+import { BillingSelect, Dialog, DialogForm, Field, Icon, Loading, Num, PageHead } from '../ui';
 import { useLoad } from '../useLoad';
 import type { ClientDraft, Service } from '../types';
 import styles from '../ledger.module.css';
@@ -54,7 +54,7 @@ export function ClientsPage() {
       {adding && (
         <ClientDialog
           title="לקוח חדש"
-          initial={{ name: '', logoUrl: '', packageHours: '', services: [], nextStep: '', nextStepDate: '' }}
+          initial={{ name: '', logoUrl: '', packageHours: '', services: [], nextStep: '', nextStepDate: '', billingType: '' }}
           onSave={draft => api.createClient(draft)}
           onClose={() => setAdding(false)}
           onDone={() => { setAdding(false); reload(); }}
@@ -85,13 +85,16 @@ export function ClientDialog({ title, initial, onSave, onClose, onDone, showNote
           <input className={styles.input} value={draft.name} onChange={e => set({ name: e.target.value })} />
         </Field>
         <div className={styles.formRow}>
+          <Field label="סוג תשלום">
+            <BillingSelect value={draft.billingType} onChange={billingType => set({ billingType })} />
+          </Field>
           <Field label="שעות בחבילה בחודש">
             <input className={styles.input} type="number" min="0" step="0.5" value={draft.packageHours} onChange={e => set({ packageHours: e.target.value })} />
           </Field>
-          <Field label="קישור ללוגו (לא חובה)">
-            <input className={styles.input} dir="ltr" value={draft.logoUrl ?? ''} onChange={e => set({ logoUrl: e.target.value })} />
-          </Field>
         </div>
+        <Field label="קישור ללוגו (לא חובה)">
+          <input className={styles.input} dir="ltr" value={draft.logoUrl ?? ''} onChange={e => set({ logoUrl: e.target.value })} />
+        </Field>
 
         <div className={styles.field}>
           <span className={styles.fieldLabel}>שירותים</span>
