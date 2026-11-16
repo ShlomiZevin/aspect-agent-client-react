@@ -159,6 +159,11 @@ export interface Alert {
   name: string;
   line: string;
   detail?: string;
+  /** What the line says, for the screen to word it: late or unanswered days, budget %, the blocker, the missed day (null: yesterday). */
+  days?: number;
+  pct?: number;
+  body?: string;
+  weekday?: number | null;
   target: { type: 'project' | 'person' | 'quote'; id: number };
 }
 

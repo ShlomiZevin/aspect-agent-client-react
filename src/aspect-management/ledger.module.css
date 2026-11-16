@@ -32,7 +32,7 @@
   font-family: var(--sans);
   font-size: 18px;
   line-height: 1.45;
-  text-align: right;
+  text-align: start;
 }
 
 .ledger h1, .ledger h2, .ledger h3 { color: var(--ink); margin: 0; }
@@ -84,7 +84,7 @@
 .navRule { border: 0; border-top: 1px solid rgba(245, 241, 234, .25); margin: 14px 10px; }
 .navUser { margin-top: auto; padding: 14px 16px 0; border-top: 1px solid rgba(245, 241, 234, .25); display: flex; flex-direction: column; gap: 4px; }
 .navUserName { font-weight: 700; font-size: 17px; }
-.navSignOut { padding: 0; border: 0; background: none; color: var(--paper); opacity: .75; font-size: 15px; text-align: right; }
+.navSignOut { padding: 0; border: 0; background: none; color: var(--paper); opacity: .75; font-size: 15px; text-align: start; }
 .main { flex: 1; min-width: 0; overflow-y: auto; padding: 34px 64px 64px; }
 .page { max-width: 1180px; margin: 0 auto; }
 
@@ -240,6 +240,9 @@
   padding-bottom: 16px;
   border-bottom: 1px solid var(--rule);
 }
+/* The arrows are drawn pointing the right-to-left way; the English view turns them. */
+.ledger[dir='ltr'] .mirrored { transform: scaleX(-1); }
+
 .num { display: inline-block; direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
 .quietLine { color: var(--ink-soft); padding: 18px 0; }
 .errorLine { color: var(--oxblood); font-weight: 600; padding: 8px 0; }
@@ -321,8 +324,8 @@
 .roleOwner { background: #E6C46E; color: #4A3810; }
 .roleDev { background: #B8C4A6; color: #2C3A24; }
 .roleOff { background: #DCDAD5; color: var(--ink-soft); }
-.personEmail { flex: 1; text-align: left; font-family: var(--serif); font-size: 21px; color: var(--ink); }
-.handNote { margin-top: 46px; text-align: left; font-family: var(--hand); font-size: 22px; color: var(--ink); }
+.personEmail { flex: 1; text-align: end; font-family: var(--serif); font-size: 21px; color: var(--ink); }
+.handNote { margin-top: 46px; text-align: end; font-family: var(--hand); font-size: 22px; color: var(--ink); }
 .handNote::after { content: ''; display: block; width: 110px; margin-top: 8px; margin-inline-start: auto; border-top: 3px solid var(--ochre); border-radius: 50%; }
 .cellName { font-size: 27px; font-weight: 700; }
 .cellSoft { color: var(--ink-soft); font-size: 16px; display: block; }
@@ -533,7 +536,7 @@ textarea.input { resize: vertical; min-height: 80px; }
 .cardCell { padding: 26px 30px; border-inline-start: 1px solid var(--rule); min-width: 0; margin: 18px 0; }
 .cardCell:first-child { border-inline-start: 0; padding-inline-start: 0; }
 .centerCell { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; }
-.centerCell .cellTitle { align-self: stretch; text-align: right; }
+.centerCell .cellTitle { align-self: stretch; text-align: start; }
 .ledger .cellTitle { font-family: var(--serif); font-size: 30px; font-weight: 700; margin-bottom: 16px; }
 .cellIcon { color: var(--oxblood); }
 .cellIconInk { color: var(--ink-soft); }
@@ -661,7 +664,7 @@ textarea.input { resize: vertical; min-height: 80px; }
   .signInWordmark { font-size: 54px; }
   .personRow { flex-wrap: wrap; gap: 10px; }
   .personRow .rowName { flex-basis: 100%; }
-  .personEmail { text-align: right; font-size: 18px; }
+  .personEmail { text-align: start; font-size: 18px; }
   .ruled { border-inline-end: 0; padding-inline-end: 0; }
   .cardGrid { grid-template-columns: 1fr !important; }
   .cardCell { border-inline-start: 0; padding-inline: 0; border-bottom: 1px solid var(--rule); margin: 0; }

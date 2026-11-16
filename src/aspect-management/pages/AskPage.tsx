@@ -1,33 +1,35 @@
 import { useState } from 'react';
 import { api } from '../api';
-import { firstName } from '../format';
+import { firstName, useText } from '../format';
 import { Icon } from '../ui';
 import type { Person } from '../types';
 import styles from '../ledger.module.css';
 
-const SUGGESTED = ['מה עשו המפתחים אתמול?', 'מי חורג מהשעות?', 'מה מחכה להחלטה שלי?'];
+const SUGGESTED = ['ask.suggest1', 'ask.suggest2', 'ask.suggest3'];
 
 /** 6. שואלים את המערכת: a question, a short plain-Hebrew answer. */
 export function AskPage({ person }: { person: Person }) {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [copied, setCopied] = useState(false);
-  const [answeredAt, setAnsweredAt] = useState('');
+  const [answeredAt, setAnsweredAt] = useState<Date | null>(null);
+  const text = useText();
+  const { t } = text;
 
-  const ask = async (text: string) => {
-    if (!text.trim() || busy) return;
-    setQuestion(text);
+  const ask = async (question: string) => {
+    if (!question.trim() || busy) return;
+    setQuestion(question);
     setBusy(true);
     setError(null);
     setAnswer(null);
     setCopied(false);
     try {
-      setAnswer(await api.ask(text));
-      setAnsweredAt(new Intl.DateTimeFormat('he-IL', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jerusalem' }).format(new Date()));
+      setAnswer(await api.ask(question, text.language));
+      setAnsweredAt(new Date());
     } catch (err) {
-      setError((err as Error).message);
+      setError(err);
     } finally {
       setBusy(false);
     }
@@ -41,35 +43,35 @@ export function AskPage({ person }: { person: Person }) {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.askTitle}>איך אפשר לעזור, {firstName(person.name)}?</h1>
+      <h1 className={styles.askTitle}>{t('ask.title', { name: firstName(person.name) })}</h1>
       <form className={styles.askBox} onSubmit={e => { e.preventDefault(); void ask(question); }}>
-        <button type="submit" className={styles.askSend} aria-label="שליחה" disabled={busy}><Icon name="send" size={24} stroke={2} /></button>
+        <button type="submit" className={styles.askSend} aria-label={t('ask.send')} disabled={busy}><Icon name="send" size={24} stroke={2} /></button>
         <input
           className={styles.askInput}
-          aria-label="השאלה שלך"
+          aria-label={t('ask.question')}
           value={question}
           onChange={e => setQuestion(e.target.value)}
         />
         <span className={styles.askSearch}><Icon name="search" size={26} /></span>
       </form>
       <div className={styles.chips}>
-        {SUGGESTED.map(text => (
-          <button type="button" className={styles.chip} key={text} disabled={busy} onClick={() => void ask(text)}>{text}</button>
+        {SUGGESTED.map(key => (
+          <button type="button" className={styles.chip} key={key} disabled={busy} onClick={() => void ask(t(key))}>{t(key)}</button>
         ))}
       </div>
 
-      {busy && <p className={styles.quietLine}>בודק…</p>}
-      {error && <p className={styles.errorLine}>{error}</p>}
+      {busy && <p className={styles.quietLine}>{t('ask.checking')}</p>}
+      {error !== null && <p className={styles.errorLine}>{text.error(error)}</p>}
       {answer && (
         <section className={styles.answer}>
           <div className={styles.answerHead}>
-            <span className={styles.answerFrom}><Icon name="sparkle" size={22} /> תשובה מ-Aspect</span>
-            <span>היום, {answeredAt}</span>
+            <span className={styles.answerFrom}><Icon name="sparkle" size={22} /> {t('ask.from')}</span>
+            {answeredAt && <span>{t('ask.today', { time: text.clock(answeredAt) })}</span>}
           </div>
           <p className={styles.answerText}>{answer}</p>
           <div className={styles.answerFoot}>
             <button type="button" className={styles.copyBtn} onClick={() => void copy()}>
-              <Icon name="copy" size={20} /> {copied ? 'הועתק' : 'העתקה'}
+              <Icon name="copy" size={20} /> {copied ? t('ask.copied') : t('ask.copy')}
             </button>
           </div>
         </section>

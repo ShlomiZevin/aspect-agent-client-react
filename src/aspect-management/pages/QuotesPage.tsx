@@ -1,19 +1,19 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
-import { daysText, money, shortDate, todayInIsrael } from '../format';
+import { todayInIsrael, useText } from '../format';
 import { Dialog, DialogForm, Field, Icon, Loading, Num, PageHead, Tag, type Tone } from '../ui';
 import { useLoad } from '../useLoad';
 import type { ProjectDraft, Quote, QuoteDraft, QuoteStatus } from '../types';
 import { ProjectDialog } from './ProjectsPage';
 import styles from '../ledger.module.css';
 
-const STATUS: Record<QuoteStatus, { label: string; tone: Tone }> = {
-  preparing: { label: 'בהכנה', tone: 'wait' },
-  sent: { label: 'נשלח', tone: 'plain' },
-  pending: { label: 'ממתין לאישור', tone: 'wait' },
-  won: { label: 'נסגר', tone: 'ok' },
-  lost: { label: 'אבד', tone: 'plain' },
+const STATUS_TONE: Record<QuoteStatus, Tone> = {
+  preparing: 'wait',
+  sent: 'plain',
+  pending: 'wait',
+  won: 'ok',
+  lost: 'plain',
 };
 
 const emptyDraft: QuoteDraft = { clientId: '', subject: '', amount: '', status: 'preparing', sentDate: '', lastFollowupDate: '' };
@@ -33,6 +33,7 @@ export function QuotesPage() {
   const [picked, setPicked] = useState<{ quote: Quote | null } | null>(null);
   const [converting, setConverting] = useState<ProjectDraft | null>(null);
   const [params, setParams] = useSearchParams();
+  const { t, money, daysText, shortDate } = useText();
 
   // Arriving from a morning alert opens that quote.
   const fromLink = data && [...data.open, ...data.closed].find(q => q.id === Number(params.get('open')));
@@ -57,29 +58,29 @@ export function QuotesPage() {
   return (
     <div className={styles.page}>
       <PageHead
-        title="הכסף שבדרך"
-        sub="הצעות מחיר פתוחות"
-        accent="לסגור עוד עסק!"
-        action={<button type="button" className={styles.btnPrimary} onClick={() => setPicked({ quote: null })}><Icon name="plus" size={20} /> הצעה חדשה</button>}
+        title={t('quotes.title')}
+        sub={t('quotes.sub')}
+        accent={t('quotes.accent')}
+        action={<button type="button" className={styles.btnPrimary} onClick={() => setPicked({ quote: null })}><Icon name="plus" size={20} /> {t('quotes.new')}</button>}
       />
       {!data ? <Loading error={error} /> : (
         <>
           <div className={styles.moneyBand}>
             <span className={styles.moneyIcon}><Icon name="money" size={64} stroke={1.6} /></span>
             <div className={styles.moneyMain}>
-              <span className={styles.moneyLabel}>סה״כ הצעות פתוחות</span>
+              <span className={styles.moneyLabel}>{t('quotes.totalOpen')}</span>
               <div className={styles.moneyTotal}><Num>{money(data.openTotal)}</Num></div>
             </div>
             <div className={styles.moneyCount}>
               <span className={styles.bigNumber}>{data.open.length}</span>
-              הצעות פתוחות
+              {t('quotes.openCount')}
             </div>
           </div>
 
           {data.open.length > 0 && (
             <>
               <div className={`${styles.tableHead} ${styles.quotesGrid}`}>
-                <span>לקוח</span><span>סכום</span><span>נושא</span><span>סטטוס</span><span>עודכן לפני</span>
+                <span>{t('common.client')}</span><span>{t('quotes.amount')}</span><span>{t('quotes.subject')}</span><span>{t('common.status')}</span><span>{t('quotes.age')}</span>
               </div>
               {data.open.map(quote => (
                 <div
@@ -93,7 +94,7 @@ export function QuotesPage() {
                   <span className={styles.cellName}>{quote.clientName}</span>
                   <span><Num>{money(quote.amount)}</Num></span>
                   <span>{quote.subject}</span>
-                  <span><Tag tone={STATUS[quote.status].tone}>{STATUS[quote.status].label}</Tag></span>
+                  <span><Tag tone={STATUS_TONE[quote.status]}>{t(`quoteStatus.${quote.status}`)}</Tag></span>
                   <span className={quote.ageDays >= 7 ? styles.ageLate : undefined}>
                     {quote.ageDays >= 7 && <Icon name="alert" size={20} stroke={2.2} />} {daysText(quote.ageDays)}
                   </span>
@@ -104,7 +105,7 @@ export function QuotesPage() {
 
           {data.closed.length > 0 && (
             <section className={styles.closedBlock}>
-              <h2 className={styles.closedBand}><Icon name="trophy" size={30} stroke={2} /> נסגר החודש</h2>
+              <h2 className={styles.closedBand}><Icon name="trophy" size={30} stroke={2} /> {t('quotes.wonThisMonth')}</h2>
               {data.closed.map(quote => (
                 <div className={`${styles.tableRow} ${styles.closedGrid}`} key={quote.id}>
                   <span className={styles.cellName}>{quote.clientName}</span>
@@ -114,8 +115,8 @@ export function QuotesPage() {
                   </span>
                   <span><Num>{money(quote.amount)}</Num></span>
                   {quote.projectId
-                    ? <span><Tag tone="ok">הפך לפרויקט</Tag></span>
-                    : <button type="button" className={styles.btnPrimary} onClick={() => startConvert(quote)}>הפוך לפרויקט</button>}
+                    ? <span><Tag tone="ok">{t('quotes.becameProject')}</Tag></span>
+                    : <button type="button" className={styles.btnPrimary} onClick={() => startConvert(quote)}>{t('quotes.toProject')}</button>}
                 </div>
               ))}
             </section>
@@ -145,44 +146,45 @@ function QuoteDialog({ quote, onClose, onDone }: { quote: Quote | null; onClose:
   const [draft, setDraft] = useState(quote ? toDraft(quote) : emptyDraft);
   const set = (change: Partial<QuoteDraft>) => setDraft(current => ({ ...current, ...change }));
   const { data: clients } = useLoad(api.clients);
+  const { t } = useText();
 
   return (
-    <Dialog title={quote ? quote.subject : 'הצעה חדשה'} onClose={onClose}>
+    <Dialog title={quote ? quote.subject : t('quotes.new')} onClose={onClose}>
       <DialogForm
         onSave={() => (quote ? api.updateQuote(quote.id, draft) : api.createQuote(draft))}
         onDone={onDone}
         onCancel={onClose}
       >
-        <Field label="לקוח">
+        <Field label={t('common.client')}>
           <select className={styles.input} value={draft.clientId} onChange={e => set({ clientId: Number(e.target.value) || '' })}>
-            <option value="">בחירה</option>
+            <option value="">{t('common.choose')}</option>
             {clients?.map(client => <option key={client.id} value={client.id}>{client.name}</option>)}
           </select>
         </Field>
-        <Field label="נושא">
+        <Field label={t('quotes.subject')}>
           <input className={styles.input} value={draft.subject} onChange={e => set({ subject: e.target.value })} />
         </Field>
         <div className={styles.formRow}>
-          <Field label="סכום (₪)">
+          <Field label={t('common.amount')}>
             <input className={styles.input} type="number" min="0" value={draft.amount} onChange={e => set({ amount: e.target.value })} />
           </Field>
-          <Field label="סטטוס">
+          <Field label={t('common.status')}>
             <select className={styles.input} value={draft.status} onChange={e => set({ status: e.target.value as QuoteStatus })}>
-              {(Object.keys(STATUS) as QuoteStatus[]).map(status => <option key={status} value={status}>{STATUS[status].label}</option>)}
+              {(Object.keys(STATUS_TONE) as QuoteStatus[]).map(status => <option key={status} value={status}>{t(`quoteStatus.${status}`)}</option>)}
             </select>
           </Field>
         </div>
         <div className={styles.formRow}>
-          <Field label="נשלח בתאריך">
+          <Field label={t('quotes.sentOn')}>
             <input className={styles.input} type="date" value={draft.sentDate} onChange={e => set({ sentDate: e.target.value })} />
           </Field>
-          <Field label="מעקב אחרון">
+          <Field label={t('quotes.lastFollowup')}>
             <input className={styles.input} type="date" value={draft.lastFollowupDate} onChange={e => set({ lastFollowupDate: e.target.value })} />
           </Field>
         </div>
         <div>
           <button type="button" className={styles.btnQuiet} onClick={() => set({ lastFollowupDate: todayInIsrael() })}>
-            עקבתי היום
+            {t('quotes.followedToday')}
           </button>
         </div>
       </DialogForm>

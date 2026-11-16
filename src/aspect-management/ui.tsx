@@ -1,13 +1,14 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { BILLING_TYPES } from './format';
+import { BILLING_TYPES, useText } from './format';
 import type { BillingType } from './types';
 import styles from './ledger.module.css';
 
 /** The small pieces every screen shares. */
 
 /** Holds a screen's body until its data is in, or says why it is not. */
-export function Loading({ error }: { error: string | null }) {
-  return <p className={error ? styles.errorLine : styles.quietLine}>{error ?? 'טוען…'}</p>;
+export function Loading({ error }: { error: Error | null }) {
+  const text = useText();
+  return <p className={error ? styles.errorLine : styles.quietLine}>{error ? text.error(error) : text.t('common.loading')}</p>;
 }
 
 export function PageHead({ title, sub, accent, action }: {
@@ -49,20 +50,22 @@ export function Field({ label, children }: { label: string; children: ReactNode 
 }
 
 /** Retainer, hourly or fixed. The empty choice says what applies instead. */
-export function BillingSelect({ value, onChange, emptyLabel = 'לא הוגדר' }: {
+export function BillingSelect({ value, onChange, emptyLabel }: {
   value: BillingType | '';
   onChange: (value: BillingType | '') => void;
   emptyLabel?: string;
 }) {
+  const { t, billingType } = useText();
   return (
     <select className={styles.input} value={value} onChange={e => onChange(e.target.value as BillingType | '')}>
-      <option value="">{emptyLabel}</option>
-      {Object.entries(BILLING_TYPES).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+      <option value="">{emptyLabel ?? t('common.notSet')}</option>
+      {BILLING_TYPES.map(code => <option key={code} value={code}>{billingType(code)}</option>)}
     </select>
   );
 }
 
 export function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  const { t } = useText();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
@@ -74,7 +77,7 @@ export function Dialog({ title, onClose, children }: { title: string; onClose: (
       <div className={styles.dialog} role="dialog" aria-modal="true" aria-label={title} onClick={e => e.stopPropagation()}>
         <div className={styles.dialogHead}>
           <h2 className={styles.dialogTitle}>{title}</h2>
-          <button type="button" className={styles.linkBtn} onClick={onClose}>סגירה</button>
+          <button type="button" className={styles.linkBtn} onClick={onClose}>{t('common.close')}</button>
         </div>
         {children}
       </div>
@@ -83,15 +86,16 @@ export function Dialog({ title, onClose, children }: { title: string; onClose: (
 }
 
 /** A dialog's form: save, wait, show the server's sentence if it refuses. */
-export function DialogForm({ onSave, onDone, onCancel, saveLabel = 'שמירה', children }: {
+export function DialogForm({ onSave, onDone, onCancel, saveLabel, children }: {
   onSave: () => Promise<unknown>;
   onDone: () => void;
   onCancel: () => void;
   saveLabel?: string;
   children: ReactNode;
 }) {
+  const text = useText();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,7 +106,7 @@ export function DialogForm({ onSave, onDone, onCancel, saveLabel = 'שמירה',
       await onSave();
       onDone();
     } catch (err) {
-      setError((err as Error).message);
+      setError(err);
       setBusy(false);
     }
   };
@@ -110,10 +114,10 @@ export function DialogForm({ onSave, onDone, onCancel, saveLabel = 'שמירה',
   return (
     <form className={styles.form} onSubmit={submit}>
       {children}
-      {error && <p className={styles.errorLine}>{error}</p>}
+      {error !== null && <p className={styles.errorLine}>{text.error(error)}</p>}
       <div className={styles.formActions}>
-        <button type="submit" className={styles.btnPrimary} disabled={busy}>{busy ? 'שומר…' : saveLabel}</button>
-        <button type="button" className={styles.linkBtn} onClick={onCancel}>ביטול</button>
+        <button type="submit" className={styles.btnPrimary} disabled={busy}>{busy ? text.t('common.saving') : saveLabel ?? text.t('common.save')}</button>
+        <button type="button" className={styles.linkBtn} onClick={onCancel}>{text.t('common.cancel')}</button>
       </div>
     </form>
   );
@@ -149,10 +153,13 @@ const ICONS: Record<string, ReactNode> = {
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
 };
 
+/** Drawn pointing the right-to-left way; the English view turns them around. */
+const MIRRORED = ['chevronStart', 'chevronEnd', 'arrowEnd'];
+
 export function Icon({ name, size = 22, stroke = 1.8 }: { name: keyof typeof ICONS | string; size?: number; stroke?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke}
-      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={MIRRORED.includes(name) ? styles.mirrored : undefined}>
       {ICONS[name]}
     </svg>
   );

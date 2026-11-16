@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import { api } from '../api';
-import { TASK_TYPES, hours as formatHours, hoursText, longDate, shiftDate, todayInIsrael } from '../format';
+import { ManagementError, api } from '../api';
+import { TASK_TYPES, shiftDate, todayInIsrael, useText } from '../format';
 import { Icon, Loading, Num } from '../ui';
 import { useLoad } from '../useLoad';
 import type { Person, Report, ReportEntry, TaskType } from '../types';
@@ -100,8 +100,10 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
   const [blocker, setBlocker] = useState(report.blocker);
   const [saved, setSaved] = useState(() => snapshot(rows, stuck, blocker));
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [sent, setSent] = useState(false);
+  const text = useText();
+  const { t, hoursText, longDate } = text;
 
   const today = todayInIsrael();
   const dirty = snapshot(rows, stuck, blocker) !== saved;
@@ -115,7 +117,7 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
   };
 
   const goTo = (date: string) => {
-    if (dirty && !window.confirm('יש שינויים שלא נשלחו. לעבור יום בלי לשלוח?')) return;
+    if (dirty && !window.confirm(t('report.unsent'))) return;
     onDate(date);
   };
 
@@ -132,7 +134,7 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
     const filled = rows.filter(r => r.start || r.end || r.legacyHours || r.description.trim());
     const missingClient = filled.findIndex(r => !r.client);
     if (missingClient >= 0) {
-      setError(`שורה ${missingClient + 1}: חסר לקוח`);
+      setError(new ManagementError('', 'rowNoClient', { row: missingClient + 1 }));
       return;
     }
     // The server checks the times and the task type, and names the row.
@@ -154,7 +156,7 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
       setSaved(snapshot(rows, stuck, blocker));
       setSent(true);
     } catch (err) {
-      setError((err as Error).message);
+      setError(err);
     } finally {
       setBusy(false);
     }
@@ -163,15 +165,15 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
   return (
     <>
       <div className={styles.reportDate}>
-        <button type="button" className={styles.dayBtn} aria-label="היום הקודם" onClick={() => goTo(shiftDate(report.date, -1))}><Icon name="chevronStart" size={26} stroke={2} /></button>
+        <button type="button" className={styles.dayBtn} aria-label={t('report.prevDay')} onClick={() => goTo(shiftDate(report.date, -1))}><Icon name="chevronStart" size={26} stroke={2} /></button>
         <span>{longDate(report.date)}</span>
-        <button type="button" className={styles.dayBtn} aria-label="היום הבא" disabled={report.date >= today} onClick={() => goTo(shiftDate(report.date, 1))}><Icon name="chevronEnd" size={26} stroke={2} /></button>
+        <button type="button" className={styles.dayBtn} aria-label={t('report.nextDay')} disabled={report.date >= today} onClick={() => goTo(shiftDate(report.date, 1))}><Icon name="chevronEnd" size={26} stroke={2} /></button>
       </div>
 
-      <h1 className={styles.title} style={{ marginBottom: 14 }}>מה עשית היום?</h1>
+      <h1 className={styles.title} style={{ marginBottom: 14 }}>{t('report.title')}</h1>
 
       <div className={styles.reportHead}>
-        <span>לקוח</span><span>משעה עד שעה</span><span>מה עשית</span><span>לחיוב</span><span />
+        <span>{t('common.client')}</span><span>{t('report.times')}</span><span>{t('report.what')}</span><span>{t('common.billable')}</span><span />
       </div>
 
       {rows.map(row => {
@@ -182,48 +184,48 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
             <div className={styles.reportClient}>
               <select
                 className={styles.input}
-                aria-label="לקוח"
+                aria-label={t('common.client')}
                 value={row.client}
                 onChange={e => update(row.key, forClient(report, e.target.value))}
               >
-                <option value="">בחירה</option>
+                <option value="">{t('common.choose')}</option>
                 {recentClients.length > 0 && (
-                  <optgroup label="אחרונים">
+                  <optgroup label={t('report.recent')}>
                     {recentClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </optgroup>
                 )}
                 {otherClients.length > 0 && (
-                  <optgroup label={recentClients.length > 0 ? 'כל השאר' : 'לקוחות'}>
+                  <optgroup label={recentClients.length > 0 ? t('report.others') : t('report.clients')}>
                     {otherClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </optgroup>
                 )}
-                <option value={INTERNAL}>פנימי</option>
+                <option value={INTERNAL}>{t('common.internal')}</option>
               </select>
               {projects.length > 0 && (
                 <select
                   className={styles.input}
-                  aria-label="פרויקט"
+                  aria-label={t('common.project')}
                   value={row.project}
                   onChange={e => update(row.key, { project: e.target.value })}
                 >
-                  <option value="">ללא פרויקט</option>
+                  <option value="">{t('common.noProject')}</option>
                   {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               )}
               <select
                 className={styles.input}
-                aria-label="סוג המשימה"
+                aria-label={t('report.taskType')}
                 value={row.taskType}
                 onChange={e => update(row.key, { taskType: e.target.value as TaskType | '' })}
               >
-                <option value="">סוג המשימה</option>
-                {Object.entries(TASK_TYPES).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+                <option value="">{t('report.taskType')}</option>
+                {TASK_TYPES.map(code => <option key={code} value={code}>{text.taskType(code)}</option>)}
               </select>
             </div>
             <div className={styles.reportTimes}>
               <input
                 className={styles.input}
-                aria-label="משעה"
+                aria-label={t('report.from')}
                 type="time"
                 dir="ltr"
                 value={row.start}
@@ -231,7 +233,7 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
               />
               <input
                 className={styles.input}
-                aria-label="עד שעה"
+                aria-label={t('report.to')}
                 type="time"
                 dir="ltr"
                 value={row.end}
@@ -242,7 +244,7 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
             <textarea
               className={`${styles.input} ${styles.reportDesc}`}
               rows={1}
-              aria-label="מה עשית"
+              aria-label={t('report.what')}
               value={row.description}
               onChange={e => update(row.key, { description: e.target.value })}
             />
@@ -250,16 +252,16 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
               <input
                 className={styles.checkbox}
                 type="checkbox"
-                aria-label="לחיוב"
+                aria-label={t('common.billable')}
                 checked={row.billable}
                 onChange={e => update(row.key, { billable: e.target.checked })}
               />
-              <span className={styles.phoneOnly}>לחיוב</span>
+              <span className={styles.phoneOnly}>{t('common.billable')}</span>
             </label>
             <button
               type="button"
               className={styles.deleteBtn}
-              aria-label="מחיקת שורה"
+              aria-label={t('report.deleteRow')}
               onClick={() => { setSent(false); setRows(current => current.filter(r => r.key !== row.key)); }}
             >
               <Icon name="trash" size={26} stroke={1.6} />
@@ -269,31 +271,31 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
       })}
 
       <button type="button" className={styles.addRow} onClick={addRow}>
-        <Icon name="plus" size={28} stroke={2} /> הוספת שורה
+        <Icon name="plus" size={28} stroke={2} /> {t('report.addRow')}
       </button>
 
       <div className={styles.total}>
-        <span>סה״כ היום</span>
-        <span><span className={styles.totalNumber}><Num>{formatHours(total)}</Num></span> שעות</span>
+        <span>{t('report.totalToday')}</span>
+        <span><span className={styles.totalNumber}><Num>{text.hours(total)}</Num></span> {t('common.hours')}</span>
       </div>
 
       {stuck && (
         <textarea
           className={styles.input}
           style={{ marginBottom: 12 }}
-          aria-label="מה תקוע?"
-          placeholder="מה תקוע?"
+          aria-label={t('report.whatIsStuck')}
+          placeholder={t('report.whatIsStuck')}
           value={blocker}
           onChange={e => { setSent(false); setBlocker(e.target.value); }}
         />
       )}
 
-      {error && <p className={styles.errorLine}>{error}</p>}
-      {sent && <p className={styles.success}>נשלח. תודה!</p>}
+      {error !== null && <p className={styles.errorLine}>{text.error(error)}</p>}
+      {sent && <p className={styles.success}>{t('report.sent')}</p>}
 
       <div className={styles.reportActions}>
         <button type="button" className={`${styles.btnPrimary} ${styles.sendBtn}`} disabled={busy} onClick={send}>
-          <span className={styles.sendLabel}>{busy ? 'שולח…' : 'שליחה'}</span>
+          <span className={styles.sendLabel}>{busy ? t('report.sending') : t('report.send')}</span>
           <Icon name="arrowEnd" size={26} stroke={2} />
         </button>
         <label className={styles.stuck}>
@@ -303,7 +305,7 @@ function ReportForm({ person, report, onDate }: { person: Person; report: Report
             checked={stuck}
             onChange={e => { setSent(false); setStuck(e.target.checked); }}
           />
-          משהו תקוע
+          {t('report.stuck')}
         </label>
       </div>
     </>

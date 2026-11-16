@@ -1,30 +1,29 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
-import { hours, shortDate } from '../format';
+import { SERVICE_STATUSES, useText } from '../format';
 import { BillingSelect, Dialog, DialogForm, Field, Icon, Loading, Num, PageHead } from '../ui';
 import { useLoad } from '../useLoad';
 import type { ClientDraft, Service } from '../types';
 import styles from '../ledger.module.css';
 
-const SERVICE_STATUSES = ['פעיל', 'בהטמעה', 'מושהה'];
-
 export function ClientsPage() {
   const { data: clients, error, reload } = useLoad(api.clients);
   const [adding, setAdding] = useState(false);
   const navigate = useNavigate();
+  const { t, hours, shortDate } = useText();
 
   return (
     <div className={styles.page}>
       <PageHead
-        title="לקוחות"
-        sub={clients ? `${clients.length} לקוחות` : undefined}
-        action={<button type="button" className={styles.btnPrimary} onClick={() => setAdding(true)}><Icon name="plus" size={22} stroke={2.2} /> לקוח חדש</button>}
+        title={t('clients.title')}
+        sub={clients ? t('clients.count', { n: clients.length }) : undefined}
+        action={<button type="button" className={styles.btnPrimary} onClick={() => setAdding(true)}><Icon name="plus" size={22} stroke={2.2} /> {t('clients.new')}</button>}
       />
-      {!clients ? <Loading error={error} /> : clients.length === 0 ? <p className={styles.quietLine}>עוד אין לקוחות.</p> : (
+      {!clients ? <Loading error={error} /> : clients.length === 0 ? <p className={styles.quietLine}>{t('clients.empty')}</p> : (
         <>
           <div className={`${styles.tableHead} ${styles.clientsGrid}`}>
-            <span /><span>לקוח</span><span>שעות החודש<small className={styles.headNote}>מתוך החבילה החודשית</small></span><span>פרויקטים פעילים</span><span>הצעד הבא</span>
+            <span /><span>{t('common.client')}</span><span>{t('common.hoursThisMonth')}<small className={styles.headNote}>{t('clients.ofPackage')}</small></span><span>{t('clients.activeProjects')}</span><span>{t('common.nextStep')}</span>
           </div>
           {clients.map(client => (
             <div
@@ -39,7 +38,7 @@ export function ClientsPage() {
               <span className={styles.cellName}>{client.name}</span>
               <span className={client.packageHours !== null && client.hoursThisMonth > client.packageHours ? styles.hoursOver : styles.hoursOk}>
                 <b><Num>{hours(client.hoursThisMonth)}</Num></b>
-                {client.packageHours !== null && <> מתוך <Num>{hours(client.packageHours)}</Num></>} שעות
+                {client.packageHours !== null && <> {t('common.of')} <Num>{hours(client.packageHours)}</Num></>} {t('common.hours')}
               </span>
               <span className={styles.countCell}>{client.activeProjects}</span>
               <span className={styles.nextCell}>
@@ -53,7 +52,7 @@ export function ClientsPage() {
       )}
       {adding && (
         <ClientDialog
-          title="לקוח חדש"
+          title={t('clients.new')}
           initial={{ name: '', logoUrl: '', packageHours: '', services: [], nextStep: '', nextStepDate: '', billingType: '' }}
           onSave={draft => api.createClient(draft)}
           onClose={() => setAdding(false)}
@@ -74,6 +73,7 @@ export function ClientDialog({ title, initial, onSave, onClose, onDone, showNote
 }) {
   const [draft, setDraft] = useState(initial);
   const [note, setNote] = useState('');
+  const { t, serviceStatus } = useText();
   const set = (change: Partial<ClientDraft>) => setDraft(current => ({ ...current, ...change }));
   const setService = (index: number, change: Partial<Service>) =>
     set({ services: draft.services.map((s, i) => (i === index ? { ...s, ...change } : s)) });
@@ -81,50 +81,50 @@ export function ClientDialog({ title, initial, onSave, onClose, onDone, showNote
   return (
     <Dialog title={title} onClose={onClose}>
       <DialogForm onSave={() => onSave(draft, note)} onDone={onDone} onCancel={onClose}>
-        <Field label="שם הלקוח">
+        <Field label={t('clients.name')}>
           <input className={styles.input} value={draft.name} onChange={e => set({ name: e.target.value })} />
         </Field>
         <div className={styles.formRow}>
-          <Field label="סוג תשלום">
+          <Field label={t('common.billingType')}>
             <BillingSelect value={draft.billingType} onChange={billingType => set({ billingType })} />
           </Field>
-          <Field label="שעות בחבילה בחודש">
+          <Field label={t('clients.package')}>
             <input className={styles.input} type="number" min="0" step="0.5" value={draft.packageHours} onChange={e => set({ packageHours: e.target.value })} />
           </Field>
         </div>
-        <Field label="קישור ללוגו (לא חובה)">
+        <Field label={t('clients.logo')}>
           <input className={styles.input} dir="ltr" value={draft.logoUrl ?? ''} onChange={e => set({ logoUrl: e.target.value })} />
         </Field>
 
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>שירותים</span>
+          <span className={styles.fieldLabel}>{t('clients.services')}</span>
           {draft.services.map((service, index) => (
             <div className={styles.serviceRow} key={index}>
-              <input className={styles.input} aria-label="שם השירות" value={service.name} onChange={e => setService(index, { name: e.target.value })} />
-              <select className={styles.input} aria-label="סטטוס" value={service.status} onChange={e => setService(index, { status: e.target.value })}>
-                {SERVICE_STATUSES.map(status => <option key={status}>{status}</option>)}
+              <input className={styles.input} aria-label={t('clients.serviceName')} value={service.name} onChange={e => setService(index, { name: e.target.value })} />
+              <select className={styles.input} aria-label={t('common.status')} value={service.status} onChange={e => setService(index, { status: e.target.value })}>
+                {Object.keys(SERVICE_STATUSES).map(status => <option key={status} value={status}>{serviceStatus(status)}</option>)}
               </select>
-              <button type="button" className={styles.linkBtn} onClick={() => set({ services: draft.services.filter((_, i) => i !== index) })}>הסרה</button>
+              <button type="button" className={styles.linkBtn} onClick={() => set({ services: draft.services.filter((_, i) => i !== index) })}>{t('clients.remove')}</button>
             </div>
           ))}
           <div>
-            <button type="button" className={styles.linkBtn} onClick={() => set({ services: [...draft.services, { name: '', status: SERVICE_STATUSES[0] }] })}>
-              הוספת שירות
+            <button type="button" className={styles.linkBtn} onClick={() => set({ services: [...draft.services, { name: '', status: Object.keys(SERVICE_STATUSES)[0] }] })}>
+              {t('clients.addService')}
             </button>
           </div>
         </div>
 
         <div className={styles.formRow}>
-          <Field label="הצעד הבא">
+          <Field label={t('common.nextStep')}>
             <input className={styles.input} value={draft.nextStep ?? ''} onChange={e => set({ nextStep: e.target.value })} />
           </Field>
-          <Field label="תאריך">
+          <Field label={t('common.date')}>
             <input className={styles.input} type="date" value={draft.nextStepDate ?? ''} onChange={e => set({ nextStepDate: e.target.value })} />
           </Field>
         </div>
 
         {showNote && (
-          <Field label="הערה חדשה (פגישה, שיחה)">
+          <Field label={t('clients.note')}>
             <textarea className={styles.input} value={note} onChange={e => setNote(e.target.value)} />
           </Field>
         )}

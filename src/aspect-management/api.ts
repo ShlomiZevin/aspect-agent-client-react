@@ -1,7 +1,8 @@
 /**
  * HTTP client for /api/management/*. Same shape as the task board's: one
- * `request` helper, one place that knows the base URL. The server's error
- * messages are Hebrew and are shown as they are.
+ * `request` helper, one place that knows the base URL. A refusal carries the
+ * server's Hebrew sentence and its code, which format.ts turns into the
+ * current language.
  */
 import { getBaseURL } from '../services/api';
 import type {
@@ -11,6 +12,17 @@ import type {
 
 const ROOT = () => `${import.meta.env.DEV ? 'http://localhost:3000' : getBaseURL()}/api/management`;
 
+export class ManagementError extends Error {
+  readonly code: string;
+  readonly params: Record<string, string | number>;
+
+  constructor(message: string, code: string, params: Record<string, string | number> = {}) {
+    super(message);
+    this.code = code;
+    this.params = params;
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
@@ -19,11 +31,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
     });
   } catch {
-    throw new Error('אין חיבור לשרת. נסו שוב.');
+    throw new ManagementError('אין חיבור לשרת. נסו שוב.', 'offline');
   }
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    throw new Error(body?.error || 'משהו השתבש. נסו שוב.');
+    throw body?.error
+      ? new ManagementError(body.error, body.code ?? '', body.params)
+      : new ManagementError('משהו השתבש. נסו שוב.', 'failed');
   }
   return res.json();
 }
@@ -63,5 +77,5 @@ export const api = {
   createQuote: (draft: QuoteDraft) => send<Quote>('POST', '/quotes', draft),
   updateQuote: (id: number, draft: QuoteDraft) => send<Quote>('PATCH', `/quotes/${id}`, draft),
 
-  ask: (question: string) => send<{ answer: string }>('POST', '/ask', { question }).then(r => r.answer),
+  ask: (question: string, lang: string) => send<{ answer: string }>('POST', '/ask', { question, lang }).then(r => r.answer),
 };

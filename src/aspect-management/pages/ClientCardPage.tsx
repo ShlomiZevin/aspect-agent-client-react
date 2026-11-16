@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api';
-import { hours, hoursText, shortDate } from '../format';
+import { useText } from '../format';
 import { Icon, Loading, Num, Tag, type Tone } from '../ui';
 import { useLoad } from '../useLoad';
 import type { ClientCard, ClientDraft, Person } from '../types';
@@ -9,15 +9,17 @@ import { ClientDialog } from './ClientsPage';
 import { ProjectStatus } from './ProjectsPage';
 import styles from '../ledger.module.css';
 
+// By the Hebrew status the service is saved with.
 const SERVICE_TONE: Record<string, Tone> = { 'פעיל': 'ok', 'בהטמעה': 'wait' };
 
 function HoursRing({ used, total }: { used: number; total: number | null }) {
+  const { t, hours, hoursText } = useText();
   const radius = 62;
   const circumference = 2 * Math.PI * radius;
   const share = total ? Math.min(used / total, 1) : 0;
   const over = total !== null && used > total;
   return (
-    <svg className={styles.ring} width="180" height="180" viewBox="0 0 160 160" role="img" aria-label={`${hours(used)} שעות`}>
+    <svg className={styles.ring} width="180" height="180" viewBox="0 0 160 160" role="img" aria-label={hoursText(used)}>
       <circle cx="80" cy="80" r={radius} fill="none" stroke="var(--rule)" strokeWidth="9" />
       <circle
         cx="80" cy="80" r={radius} fill="none"
@@ -28,7 +30,7 @@ function HoursRing({ used, total }: { used: number; total: number | null }) {
         transform="rotate(-90 80 80)"
       />
       <text x="80" y={total === null ? 90 : 82} className={styles.ringNumber}>{hours(used)}</text>
-      {total !== null && <text x="80" y="104" className={styles.ringOf}>מתוך {hours(total)}</text>}
+      {total !== null && <text x="80" y="104" className={styles.ringOf}>{t('common.of')} {hours(total)}</text>}
     </svg>
   );
 }
@@ -39,39 +41,40 @@ export function ClientCardPage({ person }: { person: Person }) {
   const load = useCallback(() => api.client(Number(id)), [id]);
   const { data: client, error, reload } = useLoad(load);
   const [editing, setEditing] = useState(false);
+  const { t, hours, hoursText, shortDate, serviceStatus } = useText();
 
   if (!client) return <div className={styles.page}><Loading error={error} /></div>;
 
   return (
     <div className={styles.page}>
-      <div className={styles.crumbs}><Link to="/aspect/management/clients">לקוחות</Link> <span aria-hidden="true">›</span> {client.name}</div>
+      <div className={styles.crumbs}><Link to="/aspect/management/clients">{t('clients.title')}</Link> <span aria-hidden="true">›</span> {client.name}</div>
       <div className={styles.clientHead}>
         <div className={styles.logo}>
           {client.logoUrl ? <img src={client.logoUrl} alt="" /> : client.name.charAt(0)}
         </div>
         <h1 className={styles.title} style={{ flex: 1 }}>{client.name}</h1>
-        <button type="button" className={styles.btnPrimary} onClick={() => setEditing(true)}>עריכה</button>
+        <button type="button" className={styles.btnPrimary} onClick={() => setEditing(true)}>{t('client.edit')}</button>
       </div>
 
       <div className={styles.cardGrid}>
         <section className={styles.cardCell}>
-          <h2 className={styles.cellTitle}>פתוחים</h2>
+          <h2 className={styles.cellTitle}>{t('client.open')}</h2>
           <div className={styles.bigRed}>{client.openItems}</div>
-          <span className={styles.cellSoft}>פרויקטים פעילים והצעות מחיר פתוחות</span>
+          <span className={styles.cellSoft}>{t('client.openNote')}</span>
         </section>
         <section className={styles.cardCell}>
-          <h2 className={styles.cellTitle}>שעות החודש</h2>
+          <h2 className={styles.cellTitle}>{t('common.hoursThisMonth')}</h2>
           <HoursRing used={client.hoursThisMonth} total={client.packageHours} />
         </section>
         <section className={styles.cardCell}>
-          <h2 className={styles.cellTitle}>מוצרים ושירותים</h2>
-          {client.services.length === 0 ? <span className={styles.cellSoft}>אין עדיין</span> : (
+          <h2 className={styles.cellTitle}>{t('client.services')}</h2>
+          {client.services.length === 0 ? <span className={styles.cellSoft}>{t('client.noneYet')}</span> : (
             <div className={styles.serviceTiles}>
               {client.services.map(service => (
                 <div className={styles.serviceTile} key={service.name}>
                   <Icon name="chart" size={40} stroke={1.6} />
                   <span className={styles.serviceName}>{service.name}</span>
-                  <Tag tone={SERVICE_TONE[service.status] ?? 'plain'}>{service.status}</Tag>
+                  <Tag tone={SERVICE_TONE[service.status] ?? 'plain'}>{serviceStatus(service.status)}</Tag>
                 </div>
               ))}
             </div>
@@ -81,17 +84,17 @@ export function ClientCardPage({ person }: { person: Person }) {
 
       <div className={styles.cardGrid} style={{ gridTemplateColumns: '1fr 1fr' }}>
         <section className={`${styles.cardCell} ${styles.centerCell}`}>
-          <h2 className={styles.cellTitle}>הבא בתור</h2>
+          <h2 className={styles.cellTitle}>{t('client.nextUp')}</h2>
           <span className={styles.cellIcon}><Icon name="flag" size={34} stroke={1.8} /></span>
           {client.nextStep ? (
             <>
               <div className={styles.nextStep}>{client.nextStep}</div>
               {client.nextStepDate && <span className={styles.nextStepDate}><Num>{shortDate(client.nextStepDate)}</Num></span>}
             </>
-          ) : <span className={styles.cellSoft}>עוד לא נקבע</span>}
+          ) : <span className={styles.cellSoft}>{t('client.notSetYet')}</span>}
         </section>
         <section className={`${styles.cardCell} ${styles.centerCell}`}>
-          <h2 className={styles.cellTitle}>הערה אחרונה</h2>
+          <h2 className={styles.cellTitle}>{t('client.lastNote')}</h2>
           <span className={styles.cellIconInk}><Icon name="calendar" size={34} stroke={1.6} /></span>
           {client.lastNote ? (
             <>
@@ -101,13 +104,13 @@ export function ClientCardPage({ person }: { person: Person }) {
                 {client.lastNote.personName && `, ${client.lastNote.personName}`}
               </span>
             </>
-          ) : <span className={styles.cellSoft}>אין עדיין</span>}
+          ) : <span className={styles.cellSoft}>{t('client.noneYet')}</span>}
         </section>
       </div>
 
       <section className={styles.cardFoot}>
-        <h2 className={styles.sectionTitle}>פרויקטים</h2>
-        {client.projects.length === 0 ? <p className={styles.quietLine}>אין פרויקטים.</p> : (
+        <h2 className={styles.sectionTitle}>{t('client.projects')}</h2>
+        {client.projects.length === 0 ? <p className={styles.quietLine}>{t('client.noProjects')}</p> : (
           <div className={styles.rows}>
             {client.projects.map(project => (
               <div className={styles.row} key={project.id}>
@@ -115,7 +118,7 @@ export function ClientCardPage({ person }: { person: Person }) {
                   <Link to={`/aspect/management/projects?open=${project.id}`} className={styles.rowName}>{project.name}</Link>
                   <span className={styles.rowLine}>
                     {hoursText(project.hoursUsed)}
-                    {project.hoursBudget !== null && <> מתוך <Num>{hours(project.hoursBudget)}</Num></>}
+                    {project.hoursBudget !== null && <> {t('common.of')} <Num>{hours(project.hoursBudget)}</Num></>}
                   </span>
                 </div>
                 <ProjectStatus project={project} />
@@ -124,7 +127,7 @@ export function ClientCardPage({ person }: { person: Person }) {
           </div>
         )}
         <Link to="/aspect/management/clients" className={styles.backLink}>
-          <Icon name="chevronEnd" size={18} stroke={2} /> חזרה לרשימת לקוחות
+          <Icon name="chevronEnd" size={18} stroke={2} /> {t('client.back')}
         </Link>
       </section>
 

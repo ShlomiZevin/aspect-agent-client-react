@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
-import { TASK_TYPES, hours, hoursText, longDate, shortDate } from '../format';
+import { useText } from '../format';
 import { Dialog, Icon, Loading, Num, PageHead } from '../ui';
 import { useLoad } from '../useLoad';
 import type { PersonWithHours } from '../types';
@@ -12,6 +12,7 @@ export function TeamPage() {
   const { data: people, error } = useLoad(api.people);
   const [picked, setPicked] = useState<PersonWithHours | null>(null);
   const [params, setParams] = useSearchParams();
+  const { t, hours, hoursText, shortDate } = useText();
 
   // Arriving from a morning alert opens that person.
   const open = picked ?? people?.find(p => p.id === Number(params.get('person')));
@@ -24,11 +25,11 @@ export function TeamPage() {
 
   return (
     <div className={styles.page}>
-      <PageHead title="צוות" sub={team ? `${team.length} מפתחים` : undefined} accent="כל הכבוד לצוות!" />
-      {!team ? <Loading error={error} /> : team.length === 0 ? <p className={styles.quietLine}>עוד אין מפתחים. מוסיפים אותם בהגדרות.</p> : (
+      <PageHead title={t('team.title')} sub={team ? t('team.count', { n: team.length }) : undefined} accent={t('team.accent')} />
+      {!team ? <Loading error={error} /> : team.length === 0 ? <p className={styles.quietLine}>{t('team.empty')}</p> : (
         <>
           <div className={`${styles.tableHead} ${styles.teamGrid}`}>
-            <span>שם</span><span>יום העבודה הקודם</span><span>שעות החודש</span><span>דיווח אחרון</span><span />
+            <span>{t('team.name')}</span><span>{t('team.previousWorkday')}</span><span>{t('common.hoursThisMonth')}</span><span>{t('team.lastReport')}</span><span />
           </div>
           {team.map(person => (
             <div
@@ -43,7 +44,7 @@ export function TeamPage() {
               <span>
                 {person.hoursPreviousWorkday > 0
                   ? hoursText(person.hoursPreviousWorkday)
-                  : <span className={styles.highlight}>לא דיווח</span>}
+                  : <span className={styles.highlight}>{t('team.notReported')}</span>}
               </span>
               <span className={styles.monthHours}><Num>{hours(person.hoursThisMonth)}</Num></span>
               <span>{person.lastReportDate ? <Num>{shortDate(person.lastReportDate)}</Num> : '—'}</span>
@@ -62,29 +63,30 @@ export function TeamPage() {
 function PersonDialog({ person, onClose }: { person: PersonWithHours; onClose: () => void }) {
   const load = useCallback(() => api.personReports(person.id), [person.id]);
   const { data, error } = useLoad(load);
+  const { t, hoursText, longDate, taskType } = useText();
 
   const days = data ? [...new Set([...data.entries, ...data.blockers].map(x => x.date))].sort().reverse() : [];
 
   return (
     <Dialog title={person.name} onClose={onClose}>
-      {!data ? <Loading error={error} /> : days.length === 0 ? <p className={styles.quietLine}>אין דיווחים בשבועיים האחרונים.</p> : (
+      {!data ? <Loading error={error} /> : days.length === 0 ? <p className={styles.quietLine}>{t('team.noReports')}</p> : (
         days.map(day => (
           <div className={styles.dayBlock} key={day}>
             <div className={styles.dayTitle}>{longDate(day)}</div>
             {data.entries.filter(e => e.date === day).map(entry => (
               <div key={entry.id}>
                 {entry.start && <><Num>{entry.start}–{entry.end}</Num>, </>}
-                {hoursText(entry.hours)}, {entry.clientName ?? 'פנימי'}
+                {hoursText(entry.hours)}, {entry.clientName ?? t('common.internal')}
                 {entry.projectName && ` (${entry.projectName})`}: {entry.description}
                 {(entry.taskType || !entry.billable) && (
                   <span className={styles.cellSoft}>
-                    {[entry.taskType && TASK_TYPES[entry.taskType], !entry.billable && 'לא לחיוב'].filter(Boolean).join(' · ')}
+                    {[entry.taskType && taskType(entry.taskType), !entry.billable && t('common.notBillable')].filter(Boolean).join(' · ')}
                   </span>
                 )}
               </div>
             ))}
             {data.blockers.filter(b => b.date === day).map(blocker => (
-              <div key={blocker.body} className={styles.ageLate}>משהו תקוע: {blocker.body}</div>
+              <div key={blocker.body} className={styles.ageLate}>{t('alert.blocker', { body: blocker.body })}</div>
             ))}
           </div>
         ))
