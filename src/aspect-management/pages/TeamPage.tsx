@@ -73,7 +73,7 @@ function PersonDialog({ person, onClose }: { person: PersonWithHours; onClose: (
             <div className={styles.dayTitle}>{longDate(day)}</div>
             {data.entries.filter(e => e.date === day).map(entry => (
               <div key={entry.id}>
-                {entry.start && <Num>{entry.start}–{entry.end} </Num>}
+                {entry.start && <><Num>{entry.start}–{entry.end}</Num>, </>}
                 {hoursText(entry.hours)}, {entry.clientName ?? 'פנימי'}
                 {entry.projectName && ` (${entry.projectName})`}: {entry.description}
                 {(entry.taskType || !entry.billable) && (
