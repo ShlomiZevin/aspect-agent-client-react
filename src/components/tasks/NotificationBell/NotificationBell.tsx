@@ -17,6 +17,10 @@ const STATUS_LABELS: Record<string, string> = {
 
 function formatText(type: string, taskId: number): string {
   if (type === 'mention') return `Someone mentioned you in task #${taskId}`;
+  if (type === 'blocker' || type.startsWith('blocker_by:')) {
+    const by = type.startsWith('blocker_by:') ? type.slice('blocker_by:'.length) : '';
+    return `🚨 BLOCKER – task #${taskId}${by ? ` from ${by}` : ''} needs fixing now`;
+  }
   if (type.startsWith('assigned_by:')) {
     const by = type.slice('assigned_by:'.length);
     return `User ${by} opened assigned you task #${taskId}`;
@@ -34,6 +38,7 @@ function formatText(type: string, taskId: number): string {
 
 function dotClass(type: string): string {
   if (type === 'mention') return 'dotMention';
+  if (type === 'blocker' || type.startsWith('blocker_by:')) return 'dotBlocker';
   if (type === 'assigned' || type.startsWith('assigned_by:')) return 'dotAssigned';
   if (type.startsWith('moved_to_') || type === 'status_changed') return 'dotStatus';
   if (type === 'deployed') return 'dotStatus';

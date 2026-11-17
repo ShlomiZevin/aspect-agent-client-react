@@ -23,7 +23,7 @@ const STATUS_LABELS: Record<string, string> = {
   todo: 'Todo', in_progress: 'In Progress', done: 'Done',
 };
 const PRIORITY_LABELS: Record<string, string> = {
-  low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical',
+  low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical', blocker: '🚨 Blocker',
 };
 
 function formatDueDate(dueDate: string | Date | null | undefined): { text: string; isOverdue: boolean } | null {

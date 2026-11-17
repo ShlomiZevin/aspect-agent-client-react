@@ -309,6 +309,11 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
       const me = notificationsState.identity.toLowerCase();
       result = result.filter(t => t.assignee?.toLowerCase() === me);
     }
+    // Blocker = fix now: pinned to the top of every column / the list
+    // (stable sort, so everything else keeps its order).
+    if (result.some(t => t.priority === 'blocker')) {
+      result = [...result].sort((a, b) => Number(b.priority === 'blocker') - Number(a.priority === 'blocker'));
+    }
     return result;
   }, [boardTasksAll, titleSearch, myTasksMode, notificationsState.identity]);
 
@@ -1130,6 +1135,7 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
                 onChange={(e) => setFilterPriority(e.target.value || null)}
               >
                 <option value="">All Priorities</option>
+                <option value="blocker">🚨 Blocker</option>
                 <option value="critical">Critical</option>
                 <option value="high">High</option>
                 <option value="medium">Medium</option>

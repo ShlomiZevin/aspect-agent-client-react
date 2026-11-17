@@ -132,7 +132,17 @@
    column (#968, builder agents) shifts the positions, and Actions must
    keep room for its three buttons whichever columns are shown. */
 .table th.realCol { width: 120px; }
-.table th.actionsCol { width: 120px; }
+.table th.actionsCol { width: 150px; }
+/* #989: Actions (pause / delete) stay in view when the table is wider
+   than the screen — pinned to the row's end instead of off-screen. */
+.table th.actionsCol,
+.table td.actionsCell {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  box-shadow: inset 1px 0 0 var(--border);
+}
+.table td.actionsCell { background-color: var(--surface); overflow: visible; }
 
 .table td {
   padding: var(--spacing-sm) var(--spacing-md);

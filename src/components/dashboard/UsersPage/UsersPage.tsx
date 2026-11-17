@@ -506,7 +506,7 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
                 </td>
                 <td>{formatDate(user.createdAt)}</td>
                 <td>{formatDate(user.lastActiveAt)}</td>
-                <td>
+                <td className={styles.actionsCell}>
                   <div className={styles.actions}>
                     {user.source === 'web' && !user.whatsappConversationId && (
                       <button

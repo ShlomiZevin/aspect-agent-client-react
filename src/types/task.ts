@@ -1,5 +1,5 @@
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
-export type TaskPriority = 'low' | 'medium' | 'high' | 'critical';
+export type TaskPriority = 'low' | 'medium' | 'high' | 'critical' | 'blocker'; // blocker = fix now, emails Shlomi immediately
 export type TaskType = 'task' | 'bug' | 'feature' | 'idea' | 'goal' | 'agenda' | 'read' | 'test';
 
 export interface Assignee {

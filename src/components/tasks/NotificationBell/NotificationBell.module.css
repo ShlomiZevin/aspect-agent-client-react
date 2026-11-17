@@ -138,6 +138,10 @@
   background: #0891b2;
 }
 
+.dotBlocker {
+  background: #991b1b;
+}
+
 .itemBody {
   display: flex;
   flex-direction: column;

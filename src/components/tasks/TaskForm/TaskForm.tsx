@@ -67,6 +67,7 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
   { value: 'medium', label: 'Medium' },
   { value: 'high', label: 'High' },
   { value: 'critical', label: 'Critical' },
+  { value: 'blocker', label: '🚨 Blocker – fix now' },
 ];
 
 const TYPE_OPTIONS: { value: TaskType; label: string }[] = [

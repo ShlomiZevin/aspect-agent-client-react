@@ -26,6 +26,7 @@ const PRIORITY_COLORS: Record<string, string> = {
   medium: '#f59e0b',   // yellow
   high: '#f97316',     // orange
   critical: '#ef4444', // red
+  blocker: '#991b1b',  // deep red — fix now
 };
 
 // Strip HTML tags for plain text preview
@@ -148,7 +149,7 @@ export function TaskCard({ task, dependencyInfo, crewDisplayNames, onClick, onAt
 
   return (
     <div
-      className={`${styles.card} ${task.atRisk ? styles.atRisk : ''} ${task.isCompleted ? styles.completed : ''} ${isLimbo ? styles.limbo : isOrphan ? styles.orphan : styles.assigned} ${task.isDraft ? styles.draft : ''}`}
+      className={`${styles.card} ${task.atRisk ? styles.atRisk : ''} ${task.isCompleted ? styles.completed : ''} ${isLimbo ? styles.limbo : isOrphan ? styles.orphan : styles.assigned} ${task.isDraft ? styles.draft : ''} ${task.priority === 'blocker' ? styles.blocker : ''}`}
       style={cardStyle}
       onClick={onClick}
     >
@@ -196,10 +197,11 @@ export function TaskCard({ task, dependencyInfo, crewDisplayNames, onClick, onAt
           )}
         </div>
         <span
-          className={styles.priority}
+          className={`${styles.priority} ${task.priority === 'blocker' ? styles.priorityBlocker : ''}`}
           style={{ backgroundColor: PRIORITY_COLORS[task.priority] }}
+          title={task.priority === 'blocker' ? 'Blocker – fix now' : undefined}
         >
-          {task.priority.toUpperCase()}
+          {task.priority === 'blocker' ? '🚨 BLOCKER' : task.priority.toUpperCase()}
         </span>
       </div>
       <h4 className={styles.title} style={containsHebrew(task.title) ? { direction: 'rtl', textAlign: 'right' } : undefined}>{task.title}</h4>
