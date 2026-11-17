@@ -1,0 +1,373 @@
+/* The management center (task #985) — design D (round3/D-*-sunburst.jpg):
+   a dark plum top bar, a soft lavender right panel, white paper. */
+
+.root {
+  --m-plum: #4a1a4e;
+  --m-plum-hover: #3a1240;
+  --m-bar: #3f1543;
+  --m-ink: #3a1240;
+  --m-text: #2b2233;
+  --m-muted: #675d70;
+  --m-faint: #958ca0;
+  --m-line: #e9e2f1;
+  --m-bg: #ffffff;
+  --m-panel: #f6f2fb;
+  --m-lav-50: #fbf9fe;
+  --m-lav-100: #f3eefa;
+  --m-lav-200: #e9e0f5;
+  --m-lav-300: #d6c8ea;
+  --m-lav-ink: #6b3e93;
+  --m-pink-bg: #fde9ef;
+  --m-pink-line: #f5c7d4;
+  --m-pink-ink: #8f1d3a;
+  --m-pink: #c2264f;
+  --m-green-bg: #eaf6ea;
+  --m-green-line: #cde8cf;
+  --m-green-ink: #1e6e2b;
+  --m-green: #2f8f3f;
+  --m-shadow: 0 4px 18px rgba(70, 30, 90, 0.07), 0 1px 3px rgba(70, 30, 90, 0.05);
+  --m-radius: 16px;
+
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--m-bg);
+  color: var(--m-text);
+  font-family: 'Assistant', 'Heebo', 'Segoe UI', Arial, sans-serif;
+  line-height: 1.45;
+}
+
+/* ── Top bar ───────────────────────────────────────────────── */
+
+.topbar {
+  flex: 0 0 72px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 28px;
+  background: var(--m-bar);
+  color: #fff;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+}
+
+.logo {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
+.topSep {
+  width: 1.5px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.centerName {
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.team {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.teamPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.teamExit {
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.8);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* ── Body: panel + page ───────────────────────────────────── */
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.panel {
+  flex: 0 0 318px;
+  display: flex;
+  flex-direction: column;
+  padding: 30px 18px 24px;
+  background: var(--m-panel);
+  border-inline-end: 1px solid var(--m-line);
+  overflow-y: auto;
+}
+
+.sectionTitle {
+  padding: 0 6px 14px;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--m-ink);
+}
+
+.worlds {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* many agents scroll here, so the world's menu below stays in view */
+  max-height: calc(100vh - 360px);
+  overflow-y: auto;
+  margin: 0 -6px;
+  padding: 2px 6px 6px;
+}
+
+.world {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  min-height: 72px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--m-line);
+  box-shadow: 0 2px 8px rgba(70, 30, 90, 0.05);
+  color: var(--m-text);
+  text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.world:hover {
+  border-color: var(--m-lav-300);
+  box-shadow: var(--m-shadow);
+}
+
+.worldOn,
+.worldOn:hover {
+  background: var(--m-plum);
+  border-color: var(--m-plum);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(74, 26, 78, 0.28);
+}
+
+.worldIcon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--m-plum);
+}
+
+.worldOn .worldIcon {
+  color: #fff;
+}
+
+.worldText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.worldName {
+  font-size: 18px;
+  unicode-bidi: plaintext;
+  text-align: right;
+  font-weight: 800;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worldSub {
+  font-size: 14.5px;
+  color: var(--m-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.worldOn .worldSub {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.status {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.statusOk {
+  background: var(--m-green-bg);
+  color: var(--m-green-ink);
+}
+
+.statusAct {
+  background: var(--m-pink-bg);
+  color: var(--m-pink-ink);
+}
+
+.statusOnDark.statusOk {
+  background: rgba(255, 255, 255, 0.16);
+  color: #d9f5dc;
+}
+
+.statusOnDark.statusAct {
+  background: #fde9ef;
+  color: var(--m-pink-ink);
+}
+
+.divider {
+  height: 1px;
+  margin: 26px 6px 24px;
+  background: var(--m-lav-300);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  color: var(--m-text);
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.navItem:hover {
+  background: var(--m-lav-100);
+}
+
+.navItemActive,
+.navItemActive:hover {
+  background: var(--m-lav-200);
+  color: var(--m-ink);
+  font-weight: 800;
+}
+
+.navIcon {
+  display: inline-flex;
+  color: var(--m-ink);
+}
+
+.navLabel {
+  min-width: 0;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ── Phone ─────────────────────────────────────────────────── */
+
+.mobileBar {
+  display: none;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+@media (max-width: 860px) {
+  .topbar {
+    flex-basis: 58px;
+    padding: 0 16px;
+    gap: 12px;
+  }
+  .logo { height: 30px; }
+  .topSep { height: 24px; }
+  .centerName { font-size: 20px; }
+  .teamExit { display: none; }
+  .teamPill { font-size: 13px; padding: 3px 10px; }
+  .panel { display: none; }
+
+  .mobileBar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--m-panel);
+    border-bottom: 1px solid var(--m-line);
+  }
+  .mobileWorld {
+    position: relative;
+    display: block;
+  }
+  .mobileWorld select {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    height: 48px;
+    padding: 0 16px 0 44px;
+    border: none;
+    border-radius: 12px;
+    background: var(--m-plum);
+    color: #fff;
+    font: inherit;
+    font-size: 18px;
+    font-weight: 800;
+  }
+  .mobileChevron {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #fff;
+    pointer-events: none;
+  }
+  .mobileNav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+  }
+  .mobileNavItem {
+    flex: 0 0 auto;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid var(--m-line);
+    color: var(--m-text);
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .mobileNavActive {
+    background: var(--m-lav-200);
+    color: var(--m-ink);
+    font-weight: 800;
+  }
+}

@@ -1,0 +1,553 @@
+/* The customer-problems page — design D (round3/D-*-sunburst.jpg). */
+
+.page {
+  max-width: 1280px;
+  padding: 30px 30px 48px 26px;
+}
+
+/* ── Masthead ── */
+
+.masthead {
+  margin-bottom: 18px;
+}
+
+.mastTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.kicker {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--m-ink);
+}
+
+.date {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--m-text);
+}
+
+.mastRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+  margin-top: 2px;
+}
+
+.worldTitle {
+  margin: 0;
+  font-size: 74px;
+  line-height: 1.08;
+  font-weight: 800;
+  color: var(--m-ink);
+  letter-spacing: -0.5px;
+}
+
+.ribbon {
+  display: inline-flex;
+  align-items: center;
+  height: 52px;
+  padding: 0 38px 0 30px;
+  background: var(--m-lav-200);
+  color: var(--m-ink);
+  font-size: 22px;
+  font-weight: 700;
+  /* the notched ribbon end of design D */
+  clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 50%, 100% 100%, 0 100%, 14px 50%);
+}
+
+.rule {
+  height: 9px;
+  margin-top: 18px;
+  border-top: 4px solid var(--m-ink);
+  border-bottom: 1.5px solid var(--m-ink);
+}
+
+/* ── Controls ── */
+
+.controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+  margin-bottom: 26px;
+}
+
+.toggle {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--m-lav-100);
+  border: 1px solid var(--m-line);
+}
+
+.toggleBtn {
+  min-width: 96px;
+  height: 40px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--m-text);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggleOn {
+  background: var(--m-plum);
+  color: #fff;
+  font-weight: 700;
+}
+
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filterLabel {
+  font-size: 18px;
+  color: var(--m-muted);
+}
+
+.selectWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 250px;
+  height: 46px;
+  padding: 0 18px 0 44px;
+  border: 1px solid var(--m-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--m-text);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.selectChevron {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.checked {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: auto;
+  padding: 6px 2px;
+  border: none;
+  background: none;
+  color: var(--m-muted);
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.checked svg {
+  color: var(--m-plum);
+}
+
+.spin {
+  animation: manageSpin 0.9s linear infinite;
+}
+
+@keyframes manageSpin {
+  to { transform: rotate(-360deg); }
+}
+
+.content {
+  transition: opacity 0.15s ease;
+}
+
+.contentLoading {
+  opacity: 0.55;
+}
+
+.message {
+  padding: 40px 24px;
+  text-align: center;
+  font-size: 19px;
+  color: var(--m-muted);
+  border: 1px dashed var(--m-lav-300);
+  border-radius: var(--m-radius);
+}
+
+/* ── Headline + count boxes ── */
+
+.headline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 24px 40px;
+  margin-bottom: 34px;
+}
+
+.headText {
+  min-width: 0;
+}
+
+/* The calm day sits in a soft green band (D-all "היום הכול תקין"). */
+.headTextCalm {
+  padding: 22px 28px 26px;
+  border-radius: 18px;
+  background: linear-gradient(100deg, #e9f5e8 0%, #f1f8ef 70%, #f6faf4 100%);
+  border: 1px solid #d9ecd8;
+}
+
+.headTag {
+  display: inline-block;
+  padding: 7px 20px;
+  border-radius: 10px;
+  background: var(--m-plum);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.headTitle {
+  margin: 16px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 48px;
+  line-height: 1.15;
+  font-weight: 800;
+  color: var(--m-ink);
+}
+
+.headCalm {
+  color: #1d6b2a;
+}
+
+.headCalm svg {
+  flex: 0 0 auto;
+  color: var(--m-green);
+}
+
+.headSub {
+  margin: 0;
+  max-width: 760px;
+  font-size: 21px;
+  line-height: 1.6;
+  color: var(--m-text);
+}
+
+.boxes {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.box {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 22px;
+  border-radius: 14px;
+  border: 1.5px solid;
+}
+
+.boxNeed {
+  background: var(--m-pink-bg);
+  border-color: var(--m-pink-line);
+  color: var(--m-pink-ink);
+}
+
+.boxNeed .boxIcon {
+  color: var(--m-pink);
+}
+
+.boxOk {
+  background: var(--m-green-bg);
+  border-color: var(--m-green-line);
+  color: var(--m-green-ink);
+}
+
+.boxOk .boxIcon {
+  color: var(--m-green);
+}
+
+.boxIcon {
+  display: inline-flex;
+}
+
+.boxText {
+  display: flex;
+  flex-direction: column;
+}
+
+.boxLabel {
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.boxValue {
+  font-size: 32px;
+  line-height: 1.15;
+  font-weight: 800;
+}
+
+/* ── Lower grid ── */
+
+.lower {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+  gap: 24px;
+}
+
+.mainCol {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.card {
+  border: 1px solid var(--m-line);
+  border-radius: var(--m-radius);
+  background: var(--m-lav-50);
+  overflow: hidden;
+}
+
+.cardNeed {
+  border-color: #f2d3dc;
+}
+
+.cardHead {
+  padding: 20px 24px 16px;
+  background: var(--m-lav-100);
+}
+
+.cardHeadNeed {
+  background: #fcebf0;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--m-ink);
+}
+
+.cardSub {
+  margin: 4px 0 0;
+  font-size: 17px;
+  color: var(--m-muted);
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 14px;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--m-green-ink);
+}
+
+.empty svg {
+  color: var(--m-green);
+}
+
+/* Each agent, in the all world (D-all "עיקרי היום בסוכנים") */
+
+.agentRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid var(--m-line);
+  border-radius: 12px;
+  color: var(--m-text);
+  text-decoration: none;
+}
+
+.agentRow:hover {
+  border-color: var(--m-lav-300);
+}
+
+.agentIcon {
+  display: inline-flex;
+  color: var(--m-ink);
+}
+
+.agentText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.agentName {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--m-ink);
+}
+
+.agentLine {
+  font-size: 16px;
+  color: var(--m-muted);
+  white-space: pre;
+}
+
+.agentStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 17px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.agentStatusOk {
+  background: var(--m-green-bg);
+  color: var(--m-green-ink);
+}
+
+.agentStatusOk svg {
+  color: var(--m-green);
+}
+
+.agentStatusAct {
+  background: var(--m-pink-bg);
+  color: var(--m-pink-ink);
+}
+
+.agentChevron {
+  color: var(--m-muted);
+}
+
+/* ── Quick look ── */
+
+.quick {
+  border: 1px solid var(--m-line);
+  border-radius: var(--m-radius);
+  background: #fff;
+  overflow: hidden;
+}
+
+.quickHead {
+  padding: 20px 24px 16px;
+  background: var(--m-lav-100);
+}
+
+.quickTitle {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--m-ink);
+}
+
+.quickSub {
+  margin: 4px 0 0;
+  font-size: 16px;
+  color: var(--m-muted);
+}
+
+.quickList {
+  margin: 0;
+  padding: 6px 20px 14px;
+}
+
+.quickRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 4px;
+  border-bottom: 1px solid var(--m-line);
+}
+
+.quickRow:last-child {
+  border-bottom: none;
+}
+
+.quickRow dt {
+  font-size: 18px;
+  color: var(--m-text);
+}
+
+.quickRow dd {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--m-ink);
+}
+
+.quickRowOk,
+.quickRowAct {
+  margin: 6px -8px 0;
+  padding: 15px 12px;
+  border-radius: 10px;
+}
+
+.quickRowOk {
+  background: var(--m-green-bg);
+}
+
+.quickRowOk dd {
+  color: var(--m-green-ink);
+}
+
+.quickRowAct {
+  background: var(--m-pink-bg);
+}
+
+.quickRowAct dd {
+  color: var(--m-pink-ink);
+}
+
+@media (max-width: 1180px) {
+  .lower { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 860px) {
+  .page { padding: 18px 16px 32px; }
+  .kicker { font-size: 18px; }
+  .date { font-size: 14px; }
+  .worldTitle { font-size: 40px; }
+  .ribbon { height: 40px; font-size: 17px; padding: 0 26px 0 22px; }
+  .headline { grid-template-columns: 1fr; margin-bottom: 24px; }
+  .headTitle { font-size: 30px; }
+  .headTitle svg { width: 32px; height: 32px; }
+  .headSub { font-size: 17px; }
+  .boxes { flex-direction: row; }
+  .box { flex: 1; padding: 12px 14px; gap: 10px; }
+  .boxIcon svg { width: 28px; height: 28px; }
+  .boxLabel { font-size: 15px; }
+  .boxValue { font-size: 22px; }
+  .cardTitle { font-size: 22px; }
+  .select { width: 100%; }
+  .filter { width: 100%; }
+  .selectWrap { flex: 1; }
+  .checked { margin-inline-start: 0; }
+  .agentName { font-size: 19px; }
+}
