@@ -18,6 +18,7 @@ export { FreedaPage } from './FreedaPage';
 export { FreedaNextPage } from './FreedaNextPage';
 export { HomePage } from './HomePage';
 export { AspectAgentsHomePage } from './AspectAgentsHomePage';
+export { AspectAllAgentsPage } from './AspectAllAgentsPage';
 export { StaticPageRedirect } from './StaticPageRedirect';
 export { AgentLoginPage } from './AgentLoginPage';
 export { AgentChatPage } from './AgentChatPage';
