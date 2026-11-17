@@ -91,15 +91,15 @@ export function AspectAllAgentsPage() {
   useEffect(() => {
     const base = getBaseURL();
     const datasets = [...DATA_AGENTS, ...DEMO_AGENTS].map(a => a.dataset).filter((d): d is string => !!d);
-    // Each card fills in on its own; one schema failing leaves only its own line blank.
-    for (const ds of datasets) {
+    // Each card fills in on its own; one schema failing leaves only its own line
+    // blank. One retry: eight lookups at once can trip a transient error.
+    const loadInfo = (ds: string, retry: boolean) => {
       fetch(`${base}/api/admin/data-loader/${ds}/data-info`)
-        .then(r => (r.ok ? r.json() : null))
-        .then(info => {
-          if (info) setDataInfo(prev => ({ ...prev, [ds]: { lastDataDate: info.lastDataDate ?? null } }));
-        })
-        .catch(() => {});
-    }
+        .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+        .then(info => setDataInfo(prev => ({ ...prev, [ds]: { lastDataDate: info.lastDataDate ?? null } })))
+        .catch(() => { if (retry) setTimeout(() => loadInfo(ds, false), 1500); });
+    };
+    for (const ds of datasets) loadInfo(ds, true);
     fetch(`${base}/api/admin/intelligence/datasets`)
       .then(r => (r.ok ? r.json() : null))
       .then(body => {
