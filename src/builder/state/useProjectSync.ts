@@ -63,6 +63,9 @@ export function bodyOfAgent(agent: AgentDoc): AgentBody {
     // CREWS sidebar tree (#855) — display only; empty == absent, in
     // lockstep with BuilderContext.bodyOfAgent.
     ...(Object.keys(agent.crewTree?.parents ?? {}).length ? { crewTree: agent.crewTree } : {}),
+    // Model route (#984) — THE copy that persists it. Direct == absent, in
+    // lockstep with BuilderContext.bodyOfAgent.
+    ...(agent.modelRoute === 'vertex' ? { modelRoute: 'vertex' as const } : {}),
   };
 }
 

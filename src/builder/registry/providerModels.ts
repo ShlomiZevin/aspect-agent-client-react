@@ -28,6 +28,11 @@ export interface ModelInfo {
   /** Superseded by a newer model (#975): still selectable — existing agents
    *  use it — but shown grey + italic, after the current models. */
   legacy?: boolean;
+  /** Available on Google Vertex AI (task #984) — a Vertex-route agent may
+   *  use only these; anything else fails loudly at runtime. */
+  vertex?: boolean;
+  /** The id Vertex knows the model by, when it differs from ours. */
+  vertexId?: string;
 }
 
 /** The provider's first current (non-legacy) model — what a provider

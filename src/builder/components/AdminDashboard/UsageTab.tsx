@@ -139,7 +139,10 @@ function RunTable({ runs, oneDay, nested, onOpenConversation }: {
                 <span className={styles.addonName}>{r.addonName}</span>
                 <span className={styles.sub}>{r.addonType}</span>
               </td>
-              <td title={r.model}>{r.modelName}</td>
+              <td title={r.route === 'vertex' ? `${r.model} · through Google Vertex AI` : r.model}>
+                {r.modelName}
+                {r.route === 'vertex' && <span className={styles.sub}>via Vertex</span>}
+              </td>
               {!nested && (
                 <td>
                   {r.conversationId ? (

@@ -18,6 +18,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SchemaSectionModal } from './SchemaSectionModal';
+import { ModelRouteControl } from './ModelRouteControl';
 import type { SchemaSectionKind } from '../SchemaPanel/SchemaPanel';
 import type { AgentDoc } from '../../types';
 import styles from './AgentSetupArea.module.css';
@@ -57,6 +58,9 @@ export function AgentSetupArea({ agent }: Props) {
       <div className={styles.header}>
         <span className={styles.title}>⚙ Setup</span>
       </div>
+      {/* Model route: Direct / Vertex (task #984, beta) — an agent setting,
+          not a page: its own row, above the chips. */}
+      <ModelRouteControl agent={agent} />
       <div className={styles.chips}>
         <button
           type="button"

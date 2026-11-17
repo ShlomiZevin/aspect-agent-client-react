@@ -1471,6 +1471,8 @@ export interface UsageRun {
   durationMs: number | null;
   /** USD at list price; null = the model has no known price. */
   cost: number | null;
+  /** 'vertex' = the call went through Google Vertex AI (task #984); absent = direct. */
+  route?: 'vertex';
 }
 
 export interface UsageTotals {

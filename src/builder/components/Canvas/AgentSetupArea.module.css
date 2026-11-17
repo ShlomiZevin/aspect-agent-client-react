@@ -94,3 +94,92 @@
 .chipPersona .chipName {
   color: #be185d;
 }
+
+/* ── Model route: Direct / Vertex (task #984, beta) ─────────────────
+ * A settings row of its own under the Setup title, divided from the chips
+ * by a hairline. The warning pill is LAST and ALWAYS rendered, only hidden
+ * with visibility, so flipping the toggle never moves or resizes anything. */
+.route {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.routeLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #4b5563);
+  white-space: nowrap;
+  cursor: help;
+}
+
+/* "Beta" badge (Vertex not active yet) — the version pill's family
+ * (999px radius, hairline border, 700 weight), smaller; indigo like the
+ * toggle. */
+.routeBeta {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 14px;
+  color: #4338ca;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 999px;
+}
+
+.routeSeg {
+  display: inline-flex;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.routeOpt {
+  padding: 4px 10px;
+  border: none;
+  background: var(--bg-surface, #fff);
+  color: var(--text-secondary, #4b5563);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.routeOpt + .routeOpt {
+  border-left: 1px solid var(--border-color, #e5e7eb);
+}
+
+.routeOpt:hover {
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.routeOptOn,
+.routeOptOn:hover {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4338ca;
+}
+
+.routeWarn {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.routeWarnHidden {
+  visibility: hidden;
+}
