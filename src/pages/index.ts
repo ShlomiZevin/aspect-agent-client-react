@@ -54,6 +54,7 @@ export { LybiKnowledgePage } from './LybiKnowledgePage';
 export { LybiCostPage } from './LybiCostPage';
 export { LybiInstallPage } from './LybiInstallPage';
 export { LybiSupportPage } from './LybiSupportPage';
+export { LybiBankJerusalemEstimatePage } from './LybiBankJerusalemEstimatePage';
 export { LybiBrainPage } from './LybiBrainPage';
 export { LLMGuidePage } from './LLMGuidePage';
 export { PitchDeckPage } from './PitchDeckPage';

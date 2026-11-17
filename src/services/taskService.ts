@@ -107,6 +107,27 @@ export async function updateTask(id: number, updates: UpdateTaskData): Promise<T
 }
 
 /**
+ * Agenda page: tick / untick one checklist line of an agenda topic, or set /
+ * clear the note under it. The server finds the line by index AND text and
+ * never overwrites lines added meanwhile (409 when the line moved/changed).
+ * note: string sets it, '' removes it, omitted leaves it.
+ */
+export async function updateAgendaLine(
+  id: number,
+  change: { index: number; text: string; checked?: boolean; note?: string },
+): Promise<Task> {
+  const data = await apiRequest<{ task: Task }>(`/api/tasks/${id}/agenda-line`, {
+    method: 'PATCH',
+    body: JSON.stringify(change),
+  });
+  return {
+    ...data.task,
+    createdAt: new Date(data.task.createdAt),
+    updatedAt: new Date(data.task.updatedAt),
+  };
+}
+
+/**
  * Delete a task
  */
 export async function deleteTask(id: number): Promise<void> {

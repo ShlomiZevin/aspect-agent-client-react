@@ -26,6 +26,8 @@ interface GoalsSectionProps {
   onToggleFullScreen?: () => void;
   onMeetingDateChange?: (date: string) => void;
   onMeetingNotesChange?: (notes: string) => void;
+  /** A page that shows this list on its own (Agenda → /tasks/center) */
+  openHref?: string;
 }
 
 const STATUS_ICONS: Record<string, string> = {
@@ -62,7 +64,7 @@ function formatCreatedAt(date: Date | string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, title = 'Goals', emoji = '🎯', tint, headerTint, showOpener, meetingDate, meetingDateLabel = 'Last meeting:', meetingNotes, showNotesModal: externalShowNotes, onShowNotesModal, onGoalClick, onDeleteGoal, onAddGoal, onUpdateGoal, onLinkedTaskClick, onToggleFullScreen, onMeetingDateChange, onMeetingNotesChange }: GoalsSectionProps) {
+export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, title = 'Goals', emoji = '🎯', tint, headerTint, showOpener, meetingDate, meetingDateLabel = 'Last meeting:', meetingNotes, showNotesModal: externalShowNotes, onShowNotesModal, onGoalClick, onDeleteGoal, onAddGoal, onUpdateGoal, onLinkedTaskClick, onToggleFullScreen, onMeetingDateChange, onMeetingNotesChange, openHref }: GoalsSectionProps) {
   const [internalShowNotes, setInternalShowNotes] = useState(false);
   const showNotesModal = externalShowNotes ?? internalShowNotes;
   const setShowNotesModal = onShowNotesModal ?? setInternalShowNotes;
@@ -165,6 +167,9 @@ export function GoalsSection({ goals, allTasks, isFullScreen, hideHeader, title 
               {notesButton}
             </h3>
             <div className={styles.headerActions}>
+              {openHref && (
+                <a className={styles.openLink} href={openHref} title="Open as a page">Open</a>
+              )}
               <button className={styles.addBtn} onClick={onAddGoal}>+</button>
               {onToggleFullScreen && (
                 <button

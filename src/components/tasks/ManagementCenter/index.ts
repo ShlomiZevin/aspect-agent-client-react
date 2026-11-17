@@ -1,0 +1,1 @@
+export { ManagementCenter } from './ManagementCenter';

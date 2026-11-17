@@ -952,6 +952,7 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
             isFullScreen
             title="Agenda"
             emoji="📋"
+            openHref="/tasks/center"
             showOpener
             meetingDate={nextMeetingDate}
             meetingDateLabel="Next meeting:"
@@ -1349,6 +1350,7 @@ export function TaskBoardContent({ isActive, onClose, openInDraftsMode, onDrafts
             headerTint="rgba(99, 102, 241, 0.07)"
             title="Agenda"
             emoji="📋"
+            openHref="/tasks/center"
             showOpener
             meetingDate={nextMeetingDate}
             meetingDateLabel="Next meeting:"

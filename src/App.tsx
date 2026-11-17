@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { PageLoader } from './components/common/PageLoader';
 import { lazy, Suspense } from 'react';
-import { AspectManagementConceptPage, AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, AspectAgentsHomePage, ArchitecturePage, AspectBattleCardPage, AspectMarketingSalesPage, AspectPage, AspectLandingPage, AspectPlatformLandingPage, AspectPlatformSalesPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaNextPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, EnterpriseReadinessPage, LybiArchitecturePage, LybiTechnologyPage, LybiBankingDeckPage, LybiDecisionResearchPage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiBrainPage, LybiKnowledgePage, LybiCostPage, LybiInstallPage, LybiSupportPage, StaticPageRedirect, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TeamPlanPage, ZolstockPurchasingSpecPage, ZolstockPurchasingClientPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage, AgentChatWidgetPage, ZolStockPage, SuperHistPage, TevaNaotPage, WeAreYourAIPage, WeAreYourAIVisualPage } from './pages';
+import { AspectManagementConceptPage, AboutShlomiPage, AgentChatPage, AgentLoginPage, AICompliancePage, AspectArchDiagramPage, AspectAgentsHomePage, ArchitecturePage, AspectBattleCardPage, AspectMarketingSalesPage, AspectPage, AspectLandingPage, AspectPlatformLandingPage, AspectPlatformSalesPage, BankingOnboarderPage, BankingOnboarderV2Page, BylinePage, ChainArchitecturePage, CompassPage, CrewBuilderMockupPage, DemoPage, ForemanPage, FreedaPage, FreedaNextPage, FreedaLegacyFlowPage, HomePage, HowWeBuildPage, InfrastructurePage, EnterpriseReadinessPage, LybiArchitecturePage, LybiTechnologyPage, LybiBankingDeckPage, LybiDecisionResearchPage, IPDisclosurePage, KBvsTriggeredPage, KostaHandoffPage, LLMGuidePage, LybiBrainPage, LybiKnowledgePage, LybiCostPage, LybiInstallPage, LybiSupportPage, LybiBankJerusalemEstimatePage, StaticPageRedirect, KBPage, DashboardPage, NotFoundPage, OneZeroPage, OneZeroDashboardPage, OneZeroLandingPage, PitchDeckPage, TeamPlanPage, ZolstockPurchasingSpecPage, ZolstockPurchasingClientPage, SuperAdminUsersPage, TaskBoardPage, TechBacklogPage, TiktokPage, Zer4UPage, NewDeliPage, TheStockPage, HyperToyPage, AgentChatWidgetPage, ZolStockPage, SuperHistPage, TevaNaotPage, WeAreYourAIPage, WeAreYourAIVisualPage } from './pages';
 
 // Builder lives in its own subtree — lazy so end-user routes don't pay for it.
 const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ default: m.BuilderPage })));
@@ -9,6 +9,8 @@ const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ defaul
 // Our own task board — separate tool, separate database (aspect_tasks_db).
 // Lazy so the agent-chat routes don't download it.
 const AspectTaskBoard = lazy(() => import('./taskboard/components/TaskBoardRoute/TaskBoardRoute').then(m => ({ default: m.TaskBoardRoute })));
+// Shlomi's management center (/tasks/center) — tasks in work + the call agenda.
+const ManagementCenter = lazy(() => import('./components/tasks/ManagementCenter').then(m => ({ default: m.ManagementCenter })));
 const BuilderHomePage = lazy(() => import('./pages/BuilderHomePage').then(m => ({ default: m.BuilderHomePage })));
 // Customer-facing Live chat — its own subtree, lazy-loaded.
 const LiveChatPage = lazy(() => import('./pages/LiveChatPage').then(m => ({ default: m.LiveChatPage })));
@@ -184,6 +186,7 @@ function AppContent() {
         <Route path="/lybi/cost" element={<LybiCostPage />} />
         <Route path="/lybi/installation" element={<LybiInstallPage />} />
         <Route path="/lybi/support" element={<LybiSupportPage />} />
+        <Route path="/lybi/bank-jerusalem" element={<LybiBankJerusalemEstimatePage />} />
         <Route path="/lybi/backlog" element={<TechBacklogPage />} />
 
         {/* Lybi HQ — internal only. Must sit above the /lybi/* splat below,
@@ -499,6 +502,15 @@ function AppContent() {
             and is untouched — a different tool against a different database. */}
         <Route path="/:agent/taskboard" element={<AspectTaskBoard />} />
         <Route path="/tasks" element={<TaskBoardPage />} />
+        {/* Shlomi's management center: tasks in work + the call agenda (static path wins over :taskId) */}
+        <Route
+          path="/tasks/center"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <ManagementCenter />
+            </Suspense>
+          }
+        />
         <Route path="/tasks/:taskId" element={<TaskBoardPage />} />
 
         {/* Hidden super-admin users page (code-gated; sees all tenants) */}
