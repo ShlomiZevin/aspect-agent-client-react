@@ -22,7 +22,10 @@ import styles from './ManagementCenter.module.css';
  *    overwrites concurrent edits. Topic text is never edited here.
  *  • ONGOING (left) — open tasks Claude is on, any Blocker, and any open task
  *    with a now: tag. Tasks tagged `focus` lead as hero cards; the star on any
- *    task adds / removes only that tag. Clicking a task opens a read-only modal.
+ *    task adds / removes only that tag. Right after them, quieter, come the
+ *    tasks tagged `next` (any open task: what Shlomi takes after the focus);
+ *    the "next" mark beside the star adds / removes that tag. A task is focus
+ *    or next, never both. Clicking a task opens a read-only modal.
  * Look: the Lybi team page (public/lybi-site/team) — its font, violet tokens,
  * glow values and light threads. No sounds (Shlomi, 17.11).
  */
@@ -31,6 +34,8 @@ const PRIORITY_RANK: Record<string, number> = { blocker: 0, critical: 1, high: 2
 const PRIORITY_LABEL: Record<string, string> = { blocker: 'Blocker', critical: 'קריטי', high: 'גבוה', medium: 'בינוני', low: 'נמוך' };
 const LOGO_SRC = '/lybi-site/team/img/lybi-wordmark-white.svg';
 const FOCUS_TAG = 'focus';
+const NEXT_TAG = 'next';
+type MarkTag = typeof FOCUS_TAG | typeof NEXT_TAG;
 const OPEN_KEY = 'lybi-center-agenda-open';
 
 type LineBlock = Extract<AgendaBlock, { kind: 'line' }>;
@@ -38,6 +43,12 @@ type NoteDraft = { taskId: number; index: number; text: string; value: string; h
 type Topic = { task: Task; blocks: AgendaBlock[]; total: number; ticked: number; done: boolean };
 /** Open / closed overrides: t = topic id → open, d = "<topicId>:<line index>" → details open. */
 type OpenPrefs = { t: Record<string, boolean>; d: Record<string, boolean> };
+
+/** Focus and next exclude each other: setting one drops the other; every other tag stays. */
+function withMark(tags: string[], tag: MarkTag, want: boolean): string[] {
+  const other = tag === FOCUS_TAG ? NEXT_TAG : FOCUS_TAG;
+  return want ? [...tags.filter(x => x !== tag && x !== other), tag] : tags.filter(x => x !== tag);
+}
 
 function withDates(task: Task): Task {
   return { ...task, createdAt: new Date(task.createdAt), updatedAt: new Date(task.updatedAt) };
@@ -140,6 +151,14 @@ const PencilIcon = () => (
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
     <line x1="14.5" y1="5.5" x2="18.5" y2="9.5" />
+  </svg>
+);
+
+/** "Up next": two chevrons pointing the way the page reads on (left, RTL). */
+const NextIcon = ({ filled = false, size = 22 }: { filled?: boolean; size?: number }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={filled ? 2.4 : 1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="12 6 6 12 12 18" />
+    <polyline points="19 6 13 12 19 18" />
   </svg>
 );
 
@@ -305,19 +324,20 @@ export function ManagementCenter() {
     }
   }, [upsert, showToast]);
 
-  /** Star: add / remove only the `focus` tag, on a fresh read, keeping every other tag. */
-  const toggleFocus = useCallback(async (task: Task) => {
+  /**
+   * Star / next: add or remove only that tag, on a fresh read, keeping every
+   * other tag. Marking one removes the other (a task is focus or next).
+   */
+  const toggleMark = useCallback(async (task: Task, tag: MarkTag) => {
     if (busyStar.has(task.id)) return;
-    const want = !task.tags.includes(FOCUS_TAG);
+    const want = !task.tags.includes(tag);
     setBusyStar(prev => new Set(prev).add(task.id));
-    setTasks(prev => prev && prev.map(t => (t.id === task.id
-      ? { ...t, tags: want ? [...t.tags.filter(x => x !== FOCUS_TAG), FOCUS_TAG] : t.tags.filter(x => x !== FOCUS_TAG) }
-      : t)));
+    setTasks(prev => prev && prev.map(t => (t.id === task.id ? { ...t, tags: withMark(t.tags, tag, want) } : t)));
     try {
       const fresh = await getTask(task.id);
-      const has = fresh.tags.includes(FOCUS_TAG);
-      if (has === want) { upsert(fresh); return; }
-      const tags = want ? [...fresh.tags, FOCUS_TAG] : fresh.tags.filter(x => x !== FOCUS_TAG);
+      const tags = withMark(fresh.tags, tag, want);
+      const same = tags.length === fresh.tags.length && tags.every(x => fresh.tags.includes(x));
+      if (same) { upsert(fresh); return; }
       upsert(await updateTask(task.id, { tags }));
     } catch (err) {
       showToast(err instanceof Error && err.message ? `לא נשמר: ${err.message}` : 'לא נשמר — נסה שוב');
@@ -326,6 +346,8 @@ export function ManagementCenter() {
       setBusyStar(prev => { const next = new Set(prev); next.delete(task.id); return next; });
     }
   }, [busyStar, upsert, showToast]);
+  const toggleFocus = (task: Task) => toggleMark(task, FOCUS_TAG);
+  const toggleNext = (task: Task) => toggleMark(task, NEXT_TAG);
 
   // ── Ongoing ──
   const working = useMemo(() => {
@@ -340,7 +362,15 @@ export function ManagementCenter() {
         b.id - a.id);
   }, [tasks]);
   const focusTasks = working.filter(t => t.tags.includes(FOCUS_TAG));
-  const otherTasks = working.filter(t => !t.tags.includes(FOCUS_TAG));
+  // Next: any open task marked `next` (it is often not being worked on yet), in priority order.
+  const nextTasks = useMemo(() => {
+    if (!tasks) return [];
+    return tasks
+      .filter(t => t.type !== 'agenda' && t.type !== 'goal' && !t.isDraft && t.status !== 'done')
+      .filter(t => t.tags.includes(NEXT_TAG) && !t.tags.includes(FOCUS_TAG))
+      .sort((a, b) => (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) || b.id - a.id);
+  }, [tasks]);
+  const otherTasks = working.filter(t => !t.tags.includes(FOCUS_TAG) && !t.tags.includes(NEXT_TAG));
 
   // ── Agenda — one topic at a time, in board order (finished topics stay in place) ──
   const topics = useMemo<Topic[]>(() => {
@@ -550,6 +580,55 @@ export function ManagementCenter() {
             </span>
           )}
         </button>
+        <button
+          type="button"
+          className={`${styles.nextBtn} ${styles.focusNextBtn}`}
+          aria-label="להעביר לבא בתור"
+          title="להעביר לבא בתור"
+          disabled={busyStar.has(t.id)}
+          onClick={() => void toggleNext(t)}
+        >
+          <NextIcon size={20} />
+        </button>
+      </div>
+    );
+  };
+
+  /** Up next: quieter than focus. A slim card, smaller type, no ring. */
+  const renderNext = (t: Task) => {
+    const pill = statusPill(t);
+    const now = nowStatus(t);
+    return (
+      <div key={t.id} className={styles.nextCard} dir="ltr">
+        <button
+          type="button"
+          className={`${styles.nextBtn} ${styles.nextBtnOn}`}
+          aria-label="הסרה מהבא בתור"
+          title="הסרה מהבא בתור"
+          aria-pressed="true"
+          disabled={busyStar.has(t.id)}
+          onClick={() => void toggleNext(t)}
+        >
+          <NextIcon filled size={20} />
+        </button>
+        <button type="button" className={styles.nextLink} title={now ? `${t.title}\nעכשיו: ${now}` : t.title} onClick={() => openTask(t)}>
+          <span className={`${styles.pill} ${styles.pillSmall} ${pill.cls}`}>{pill.text}</span>
+          <span className={styles.nextText}>
+            <span className={styles.nextTitle} dir={textDir(t.title)}>{t.title}</span>
+            {now && <span className={styles.taskNow} dir={textDir(now)}>{now}</span>}
+          </span>
+          <span className={styles.nextId}>#{t.id}</span>
+        </button>
+        <button
+          type="button"
+          className={`${styles.starBtn} ${styles.starBtnSmall}`}
+          aria-label="לשים בפוקוס"
+          title="לשים בפוקוס"
+          disabled={busyStar.has(t.id)}
+          onClick={() => void toggleFocus(t)}
+        >
+          <StarIcon size={20} />
+        </button>
       </div>
     );
   };
@@ -568,6 +647,16 @@ export function ManagementCenter() {
           onClick={() => void toggleFocus(t)}
         >
           <StarIcon />
+        </button>
+        <button
+          type="button"
+          className={styles.nextBtn}
+          aria-label="לסמן כבא בתור"
+          title="לסמן כבא בתור"
+          disabled={busyStar.has(t.id)}
+          onClick={() => void toggleNext(t)}
+        >
+          <NextIcon />
         </button>
         <button type="button" className={styles.taskLink} title={now ? `${t.title}\nעכשיו: ${now}` : t.title} onClick={() => openTask(t)}>
           <span className={`${styles.pill} ${pill.cls}`}>{pill.text}</span>
@@ -657,8 +746,8 @@ export function ManagementCenter() {
                   <div className={styles.skeletonBar} />
                 </div>
               )}
-              {tasks && working.length === 0 && <div className={styles.empty}>אין משימות בטיפול כרגע.</div>}
-              {tasks && working.length > 0 && (
+              {tasks && working.length === 0 && nextTasks.length === 0 && <div className={styles.empty}>אין משימות בטיפול כרגע.</div>}
+              {tasks && (working.length > 0 || nextTasks.length > 0) && (
                 <>
                   {focusTasks.length > 0
                     ? <div className={styles.focusList}>{focusTasks.map(renderFocus)}</div>
@@ -668,7 +757,17 @@ export function ManagementCenter() {
                         <span>סמנו משימה בכוכב כדי לשים אותה בפוקוס</span>
                       </div>
                     )}
-                  <div className={styles.taskList}>{otherTasks.map(renderRow)}</div>
+                  {nextTasks.length > 0 && (
+                    <div className={styles.nextArea}>
+                      <div className={styles.nextHead} dir="ltr">
+                        <span className={styles.nextLabel}>NEXT</span>
+                        <span className={styles.nextHeadTitle} dir="rtl">הבא בתור</span>
+                        <span className={styles.nextRule} />
+                      </div>
+                      <div className={styles.nextList}>{nextTasks.map(renderNext)}</div>
+                    </div>
+                  )}
+                  {otherTasks.length > 0 && <div className={styles.taskList}>{otherTasks.map(renderRow)}</div>}
                 </>
               )}
             </div>
