@@ -1646,6 +1646,30 @@ export async function recordProtectionBlock(args: {
   }
 }
 
+/** One agent's data protection report (Admin → Data protection, #986 P3). */
+export interface ProtectionReport {
+  days: number;
+  total: number;
+  mistakes: number;
+  bySide: Partial<Record<'client' | 'server', number>>;
+  bySurface: Partial<Record<'live' | 'builder' | 'simulation' | 'api', number>>;
+  byDetector: { id: string; blocks: number; mistakes: number }[];
+  recent: {
+    id: number;
+    at: string;
+    side: 'client' | 'server';
+    surface: 'live' | 'builder' | 'simulation' | 'api';
+    detectors: string[];
+    conversationId: number | null;
+    lang: string | null;
+    mistakeReportedAt: string | null;
+  }[];
+}
+
+export async function fetchProtectionReport(args: { agentSlug: string; days: number }): Promise<ProtectionReport> {
+  return http<ProtectionReport>(`/api/agents/${args.agentSlug}/protection-events?days=${args.days}`);
+}
+
 /** The customer's one tap "blocked by mistake" — only records. */
 export async function reportProtectionMistake(args: { agentSlug: string; blockId: number }): Promise<void> {
   await http(`/api/agents/${args.agentSlug}/protection-events/${args.blockId}/mistake`, { method: 'POST', body: '{}' });

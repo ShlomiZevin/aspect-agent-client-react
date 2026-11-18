@@ -40,6 +40,7 @@ import { TestRunnerPage } from '../../../components/dashboard/TestRunnerPage';
 import { ConversationsTab } from './ConversationsTab';
 import { SimulationsTab } from './SimulationsTab';
 import { ErrorsTab } from './ErrorsTab';
+import { ProtectionTab } from './ProtectionTab';
 import { LoadTestsTab } from './LoadTestsTab';
 import { TriggersTab } from './TriggersTab';
 import { KBWorkbench } from './KBWorkbench';
@@ -78,6 +79,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: 'simulations',   icon: '🎭', label: 'Simulations' },
   { to: 'load-tests',    icon: '⏱️', label: 'Load tests' },
   { to: 'errors',        icon: '⚠️', label: 'Errors' },
+  { to: 'data-protection', icon: '🛡', label: 'Data protection' },
   { to: 'triggers',      icon: '🌙', label: 'Triggers' },
   { to: 'knowledge-base', icon: '📚', label: 'Knowledge Base' },
   { to: 'usage',         icon: '📊', label: 'LLM Usage' },
@@ -204,6 +206,11 @@ export function AdminDashboard() {
           <Route
             path="errors"
             element={<ErrorsTab agentSlug={slug} />}
+          />
+          <Route
+            path="data-protection"
+            /* Blocks + "blocked by mistake" reports (task #986 P3). */
+            element={<ProtectionTab agent={agent} />}
           />
           <Route
             path="triggers"
