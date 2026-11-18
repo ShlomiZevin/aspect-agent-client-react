@@ -1,0 +1,165 @@
+/* The scope control (task #985, round 6) — a light field on the dark side
+   panel, and a white list. Tokens: src/manage/tokens.css. */
+
+.root {
+  position: relative;
+  min-width: 0;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--m-scope-bg);
+  color: var(--m-text);
+  font: inherit;
+  font-size: var(--m-fs);
+  font-weight: 700;
+  text-align: start;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+.field:hover {
+  background: #fff;
+}
+
+.field:focus-visible {
+  outline: 2px solid var(--m-scope-ring);
+  outline-offset: 2px;
+}
+
+.fieldOpen {
+  background: #fff;
+  border-color: var(--m-scope-ring);
+}
+
+.fieldStatic {
+  cursor: default;
+}
+
+.fieldIcon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--m-plum);
+}
+
+.fieldLabel {
+  /* An English agent name still sits against the icon (RTL panel). */
+  text-align: right;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  flex: 0 0 auto;
+  color: var(--m-plum);
+  transition: transform 0.15s;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+/* The open list */
+.list {
+  position: absolute;
+  top: calc(100% + 6px);
+  inset-inline-start: 0;
+  z-index: 50;
+  width: 100%;
+  min-width: 220px;
+  max-height: min(360px, 60vh);
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--m-line);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: var(--m-shadow-pop);
+  box-sizing: border-box;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--m-text);
+  font-size: var(--m-fs);
+  cursor: pointer;
+  outline: none;
+}
+
+.option:hover,
+.option:focus {
+  background: var(--m-lav-100);
+}
+
+.optionAll {
+  margin-bottom: 4px;
+  position: relative;
+}
+
+.optionAll::after {
+  content: '';
+  position: absolute;
+  inset-inline: 6px;
+  bottom: -3px;
+  height: 1px;
+  background: var(--m-line);
+}
+
+.optionSelected,
+.optionSelected:hover,
+.optionSelected:focus {
+  background: var(--m-lav-200);
+  color: var(--m-plum);
+  font-weight: 700;
+}
+
+.optionIcon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--m-muted);
+}
+
+.optionSelected .optionIcon {
+  color: var(--m-plum);
+}
+
+.optionLabel {
+  /* An English agent name still sits against the icon (RTL panel). */
+  text-align: right;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tick {
+  flex: 0 0 auto;
+  color: var(--m-plum);
+}
+
+/* Phone bar */
+.compact .field {
+  height: 34px;
+  padding: 0 10px;
+}
+
+.compact .list {
+  min-width: 240px;
+}

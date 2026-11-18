@@ -1,4 +1,7 @@
-/* The management center's door (task #985). Tokens: src/manage/tokens.css. */
+/* The management center's door (task #985, round 6 — stronger contrast and
+   hierarchy): the aubergine of the frame runs down behind the top of a
+   raised white card; a clear heading, a plain line, Google's button.
+   Tokens: src/manage/tokens.css. */
 
 .root {
   height: 100%;
@@ -42,70 +45,102 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 12vh 16px 24px;
+  padding: 10vh 16px 24px;
+  /* The frame's colour continues behind the card's upper half. */
+  background:
+    linear-gradient(180deg, var(--m-bar) 0, #452052 30vh, var(--m-bg) 30vh) no-repeat;
 }
 
 .card {
   width: 100%;
-  max-width: 380px;
-  padding: 28px 28px 20px;
+  max-width: 400px;
+  padding: 30px 32px 22px;
   border: 1px solid var(--m-line);
-  border-radius: var(--m-radius);
+  border-radius: 14px;
   background: var(--m-card);
-  box-shadow: var(--m-shadow);
+  box-shadow: var(--m-shadow-pop);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
+  box-sizing: border-box;
+}
+
+.mark {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 14px;
 }
 
 .title {
-  margin: 0 0 6px;
-  font-size: var(--m-fs-title);
-  font-weight: 700;
-  color: var(--m-text);
-  line-height: 1.35;
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--m-plum);
+  line-height: 1.3;
 }
 
 .email {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: var(--m-lav-100);
   color: var(--m-plum);
+  font-size: 0.85em;
+  font-weight: 800;
+  direction: ltr;
 }
 
 .sub {
   margin: 0;
-  color: var(--m-muted);
-  font-size: var(--m-fs);
+  color: #4d4357;
+  font-size: 14px;
 }
 
 .badge {
   display: inline-grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  margin-bottom: 10px;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 12px;
   border-radius: 50%;
   background: var(--m-pink-bg);
+  border: 1px solid var(--m-pink-line);
   color: var(--m-pink-ink);
+  font-size: 18px;
   font-weight: 800;
 }
 
 .other {
-  margin: 18px 0 0;
+  align-self: stretch;
+  margin: 20px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--m-line);
   color: var(--m-text);
-  font-size: var(--m-fs-sm);
+  font-size: var(--m-fs);
   font-weight: 700;
 }
 
+/* Google's own button, on a divider line in the sign-in mode. */
 .googleArea {
-  margin-top: 16px;
+  align-self: stretch;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--m-line);
   min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.other + .googleArea {
+  margin-top: 10px;
+  padding-top: 0;
+  border-top: 0;
+}
+
 .googleSlot {
-  min-height: 40px;
+  min-height: 44px;
 }
 
 .busy {
@@ -114,21 +149,22 @@
 }
 
 .hint {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   min-height: 18px;
-  color: var(--m-faint);
+  color: var(--m-muted);
   font-size: var(--m-fs-sm);
 }
 
 .quiet {
   margin: 0;
   color: var(--m-muted);
+  font-size: 14px;
 }
 
 .button {
   margin-top: 14px;
-  height: 32px;
-  padding: 0 16px;
+  height: 34px;
+  padding: 0 18px;
   border: 0;
   border-radius: 999px;
   background: var(--m-plum);
@@ -153,6 +189,16 @@
   }
 
   .main {
-    padding-top: 8vh;
+    padding-top: 6vh;
+    background:
+      linear-gradient(180deg, var(--m-bar) 0, #452052 22vh, var(--m-bg) 22vh) no-repeat;
+  }
+
+  .card {
+    padding: 24px 20px 18px;
+  }
+
+  .title {
+    font-size: 20px;
   }
 }

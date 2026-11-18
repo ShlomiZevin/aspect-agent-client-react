@@ -3,9 +3,9 @@
  *
  * Signed in with Google (useManageMe → /api/manage/me); the server says
  * which agents the address may open:
- *   every agent (Lybi team)  /manage/all/<page> + /manage/<any agent>/<page>
- *   some agents              /manage/<one of theirs>/<page>
- * The bare /manage lands on "all" or on the person's first agent. A page is
+ *   every agent (Lybi team)  /lybi/manage/all/<page> + /lybi/manage/<any agent>/<page>
+ *   some agents              /lybi/manage/<one of theirs>/<page>
+ * The bare /lybi/manage lands on "all" or on the person's first agent. A page is
  * built for one scope at a time; the side panel switches scope and lists
  * the pages (the registry in pages.ts).
  *

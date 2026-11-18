@@ -56,7 +56,7 @@ export function SignInPage({ mode, email, onCredential, onRetry }: Props) {
       const message = await handler.current(idToken);
       if (message) setError(COPY.signInFailed);
       setBusy(false);
-    }, 260, 'he');
+    }, 300, 'he');
   }, [wantsGoogle, script, clientId, mode]);
 
   return (
@@ -69,6 +69,7 @@ export function SignInPage({ mode, email, onCredential, onRetry }: Props) {
 
       <main className={styles.main}>
         <section className={styles.card} aria-busy={mode === 'loading' || busy}>
+          {mode !== 'no-access' && <img className={styles.mark} src="/img/lybi-spiral-gradient.svg" alt="" aria-hidden />}
           {mode === 'loading' && <p className={styles.quiet}>{COPY.loading}</p>}
 
           {mode === 'error' && (

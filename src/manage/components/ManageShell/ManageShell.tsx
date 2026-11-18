@@ -9,12 +9,13 @@
  * same scope control and menu. Colours: src/manage/tokens.css.
  */
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import type { ManagePageDef } from '../../pages';
 import type { ManageMe } from '../../../types/manage';
-import { IconChevronDown, IconSignOut } from '../../icons';
-import { scopePath } from '../../links';
+import { IconSignOut } from '../../icons';
+import { ScopeDropdown } from '../ScopeDropdown/ScopeDropdown';
+import { MANAGE_BASE, scopePath } from '../../links';
 import { COPY } from '../../copy';
 import styles from './ManageShell.module.css';
 
@@ -38,20 +39,31 @@ function ScopeControl({ me, current, currentPage, compact }: { me: ManageMe; cur
     ...(me.all ? [{ value: 'all', label: COPY.allAgents }] : []),
     ...agents.map(a => ({ value: a.slug, label: a.name })),
   ];
-  const cls = `${styles.scope} ${compact ? styles.scopeCompact : ''}`;
-
-  if (options.length <= 1) {
-    const only = options[0] || { label: current };
-    return <div className={cls}><span className={styles.scopeStatic} dir="auto">{only.label}</span></div>;
-  }
   return (
-    <label className={cls}>
-      <span className={styles.srOnly}>{COPY.scopeLabel}</span>
-      <select className={styles.scopeSelect} value={current} onChange={e => navigate(scopePath(e.target.value, currentPage))}>
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-      <IconChevronDown size={14} className={styles.scopeChevron} />
-    </label>
+    <div className={compact ? styles.scopeCompact : styles.scope}>
+      <ScopeDropdown options={options} value={current} compact={compact} onChange={v => navigate(scopePath(v, currentPage))} />
+    </div>
+  );
+}
+
+/** Who is signed in (Google picture, or the first letter) — RTL: picture, address, then יציאה at the line's end. */
+function UserArea({ me, onSignOut }: { me: ManageMe; onSignOut: () => void }) {
+  const [broken, setBroken] = useState(false);
+  const initial = (me.name || me.email).trim().charAt(0).toUpperCase();
+  return (
+    <div className={styles.user}>
+      <span className={styles.avatar} aria-hidden>
+        {me.picture && !broken
+          ? <img src={me.picture} alt="" referrerPolicy="no-referrer" onError={() => setBroken(true)} />
+          : initial}
+      </span>
+      <span className={styles.userEmail} dir="ltr" title={me.name}>{me.email}</span>
+      <span className={styles.userSep} aria-hidden />
+      <button type="button" className={styles.signOut} onClick={onSignOut} title={COPY.signOutTitle}>
+        <span>{COPY.signOut}</span>
+        <IconSignOut size={15} />
+      </button>
+    </div>
   );
 }
 
@@ -62,18 +74,12 @@ export function ManageShell({ me, scope, agentSlug, pages, currentPage, onSignOu
   return (
     <div className={styles.root} data-manage-root dir="rtl" lang="he">
       <header className={styles.topbar}>
-        <Link to={current ? scopePath(current, currentPage) : '/manage'} className={styles.brand}>
+        <Link to={current ? scopePath(current, currentPage) : MANAGE_BASE} className={styles.brand}>
           <img className={styles.logo} src="/img/lybi-logo-white.png" alt={COPY.brandAlt} />
         </Link>
         <span className={styles.topSep} aria-hidden />
         <span className={styles.centerName}>{COPY.centerName}</span>
-        <div className={styles.user}>
-          <span className={styles.userEmail} dir="ltr" title={me.name}>{me.email}</span>
-          <button type="button" className={styles.signOut} onClick={onSignOut}>
-            <IconSignOut size={14} />
-            <span>{COPY.signOut}</span>
-          </button>
-        </div>
+        <UserArea me={me} onSignOut={onSignOut} />
       </header>
 
       {/* Phone: the side panel folds into this bar. */}

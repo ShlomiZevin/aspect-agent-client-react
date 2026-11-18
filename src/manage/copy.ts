@@ -11,6 +11,7 @@ export const COPY = {
   centerName: 'מרכז הניהול',
   pageTitle: 'Lybi · מרכז הניהול',
   signOut: 'יציאה',
+  signOutTitle: 'יציאה מהחשבון',
 
   // Sign-in
   signInTitle: 'כניסה למרכז הניהול',
@@ -21,7 +22,7 @@ export const COPY = {
   signInFailed: 'הכניסה לא הצליחה. אפשר לנסות שוב.',
   // "לכתובת <email> אין עדיין גישה" — the address sits in a <bdi> between the two.
   noAccessBefore: 'לכתובת',
-  noAccessAfter: 'אין עדיין גישה',
+  noAccessAfter: 'אין עדיין גישה', // kept on one line
   noAccessTitleUnknown: 'לכתובת הזו אין עדיין גישה',
   noAccessSub: 'כדי לקבל גישה צריך לפנות לצוות Lybi.',
   otherAccount: 'כניסה עם חשבון אחר',

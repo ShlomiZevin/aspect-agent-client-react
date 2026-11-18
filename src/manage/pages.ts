@@ -12,7 +12,7 @@ import { COPY } from './copy';
 import type { ManageMe } from '../types/manage';
 
 export interface ManagePageProps {
-  /** 'agent' = /manage/<slug> · 'all' = /manage/all (every-agent grant only). */
+  /** 'agent' = /lybi/manage/<slug> · 'all' = /lybi/manage/all (every-agent grant only). */
   scope: 'agent' | 'all';
   /** The agent of a per-agent page; null on "all". */
   agentSlug: string | null;
@@ -21,7 +21,7 @@ export interface ManagePageProps {
 }
 
 export interface ManagePageDef {
-  /** Path under /manage/<scope>/ */
+  /** Path under /lybi/manage/<scope>/ */
   path: string;
   label: string;
   Icon: ComponentType<{ size?: number }>;

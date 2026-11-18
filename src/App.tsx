@@ -33,9 +33,15 @@ const IntelligenceHomePage = lazy(() => import('./pages/IntelligenceHomePage').t
 // Lybi HQ — our internal company brain. Its own subtree under src/hq/, lazy so
 // no customer-facing route ever downloads it. Never a product surface.
 const HQApp = lazy(() => import('./hq/HQApp').then(m => ({ default: m.HQApp })));
-// Management center for non-technical users (task #985) — /manage, /manage/<slug>, /manage/all.
-// Its own subtree under src/manage/, lazy like HQ.
+// Management center for non-technical users (task #985) — /lybi/manage, /lybi/manage/<slug>,
+// /lybi/manage/all. Its own subtree under src/manage/, lazy like HQ.
 const ManageApp = lazy(() => import('./manage/ManageApp').then(m => ({ default: m.ManageApp })));
+
+/** Old /manage/... links → /lybi/manage/..., same rest of path, query and hash. */
+function ManageLegacyRedirect() {
+  const { pathname, search, hash } = useLocation();
+  return <Navigate to={legacyManageRedirect(pathname, search, hash)} replace />;
+}
 
 const ZER4U_MAINTENANCE = false;
 
@@ -59,6 +65,7 @@ function MaybeDashboard() {
   return <DashboardPage />;
 }
 import { intelligenceAdminPath } from './components/dashboard/IntelligenceAdmin';
+import { legacyManageRedirect } from './manage/links';
 import { useTaskBoard, useQuickBug } from './hooks';
 import { TaskBoardModal } from './components/tasks/TaskBoardModal/TaskBoardModal';
 import { QuickBugModal } from './components/tasks/QuickBugModal/QuickBugModal';
@@ -519,10 +526,11 @@ function AppContent() {
         <Route path="/tasks/:taskId" element={<TaskBoardPage />} />
 
         {/* Management center for non-technical users (task #985): Google
-            sign-in; /manage lands on "all" (every-agent grant) or the
-            person's first agent. */}
+            sign-in; /lybi/manage lands on "all" (every-agent grant) or the
+            person's first agent. Old /manage/... links redirect there. */}
+        <Route path="/manage/*" element={<ManageLegacyRedirect />} />
         <Route
-          path="/manage"
+          path="/lybi/manage"
           element={
             <Suspense fallback={<PageLoader />}>
               <ManageApp />
@@ -530,7 +538,7 @@ function AppContent() {
           }
         />
         <Route
-          path="/manage/:agentSlug/*"
+          path="/lybi/manage/:agentSlug/*"
           element={
             <Suspense fallback={<PageLoader />}>
               <ManageApp />
