@@ -17,5 +17,6 @@ import './talker/addon.talker';
 import './transitionRouter/addon.transitionRouter';
 import './rules/addon.rules';
 import './kbRetriever/addon.kbRetriever';
+import './guardrail/addon.guardrail';
 
 export {};

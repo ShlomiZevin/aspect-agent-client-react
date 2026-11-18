@@ -196,6 +196,8 @@ function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
     error?: { code: string; message: string };
     /** Web search switch (#967). */
     webSearch?: WebSearchRun;
+    /** Guardrail verdict (#963). */
+    guardrail?: AddonRunSnapshot['guardrail'];
   };
   return {
     instanceId:   r.instanceId,
@@ -216,6 +218,7 @@ function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
     skipReason:   d.skipReason,
     error:        d.error,
     webSearch:    d.webSearch,
+    guardrail:    d.guardrail,
   };
 }
 
@@ -609,6 +612,7 @@ export function UserChat() {
           historyMode:  e.historyMode,
           historyCount: e.historyCount,
           webSearch:    e.webSearch,
+          guardrail:    e.guardrail,
         }));
         // Talker just finished — release the input gate IF this stream
         // is the latest send. Older sends' Talker outputs (which would

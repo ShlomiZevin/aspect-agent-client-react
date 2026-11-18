@@ -7,6 +7,7 @@
  */
 
 import { runtimeMessageStream, type LiveBrainPanelData, type ProfilerPanelData } from './builderApi';
+import type { GuardrailVerdict } from '../types';
 
 /** One source a web search returned (task #967). */
 export interface WebSearchSource { url: string; title: string | null }
@@ -120,6 +121,8 @@ export type RuntimeEvent =
       firstTokenMs?: number;
       /** Web search switch (#967) — present when the model searched. */
       webSearch?: WebSearchRun;
+      /** Guardrail (#963): the verdict and what was applied. */
+      guardrail?: GuardrailVerdict;
       parseError?: string;
       transition?: { to: string; reason?: string };
       broke?: boolean;

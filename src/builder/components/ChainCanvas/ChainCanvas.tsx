@@ -326,7 +326,13 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                   // Don't flag it.
                   const isPostTalker = talkerIdx >= 0
                     && i > talkerIdx
-                    && instance.pluginId !== 'transition-router';
+                    && instance.pluginId !== 'transition-router'
+                    // A Guardrail's home is after the Talker (#963).
+                    && instance.pluginId !== 'guardrail';
+                  // "Hold the answer" on: the reply waits for this card.
+                  const holdsReply = instance.pluginId === 'guardrail'
+                    && isMainLane
+                    && (instance.config as { holdReply?: boolean } | undefined)?.holdReply === true;
                   const postTalkerTitle = isPostTalker
                     ? "Runs after the Talker has spoken — won't affect this turn's reply. May influence future turns by writing memory. Consider moving to the Background tier (not yet available)."
                     : undefined;
@@ -434,6 +440,15 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                             title="Won't affect this turn's reply"
                           >
                             after talker
+                          </span>
+                        )}
+                        {holdsReply && (
+                          <span
+                            className={styles.orphanBadge}
+                            aria-hidden="true"
+                            title="Hold the answer is on — the Talker's reply waits for this Guardrail (nothing streams to the customer until it decided)"
+                          >
+                            reply waits
                           </span>
                         )}
                         {!compact && (

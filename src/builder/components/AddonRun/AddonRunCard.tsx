@@ -13,6 +13,7 @@ import { useBuilder } from '../../state/BuilderContext';
 import { KbRetrieverRunBody, type KbParsed } from './KbRetrieverRunBody';
 import { formatDuration } from '../../formatDuration';
 import type { WebSearchRun } from '../../state/runtimeStream';
+import type { GuardrailVerdict } from '../../types';
 import styles from './AddonRunCard.module.css';
 
 const KB_RETRIEVER_PLUGIN_ID = 'kb-retriever';
@@ -110,6 +111,8 @@ export interface AddonRunSnapshot {
   error?: { code: string; message: string };
   /** Web search switch (task #967): queries, sources, count. Absent = no search. */
   webSearch?: WebSearchRun;
+  /** Guardrail (task #963): the verdict, what was applied, why. */
+  guardrail?: GuardrailVerdict;
 }
 
 /** "Searching the web: '…'" — or, for a GPT page open, the page. */
@@ -473,6 +476,20 @@ export function AddonRunCard({ run }: Props) {
             title={run.webSearch.searches.map(s => webSearchLine(s, true)).join('\n')}
           >
             🌐 {run.webSearch.count} search{run.webSearch.count === 1 ? '' : 'es'}
+          </span>
+        )}
+        {/* Guardrail (#963): what it decided and what happened. */}
+        {run.guardrail && (
+          <span
+            className={styles.historyPill}
+            title={[
+              `Verdict: ${run.guardrail.verdict}`,
+              `Applied: ${run.guardrail.applied}${run.guardrail.held ? ' (the reply was held)' : ' (flag only — the reply was not changed)'}`,
+              run.guardrail.reason ? `Why: ${run.guardrail.reason}` : '',
+              run.guardrail.note ? `Note: ${run.guardrail.note}` : '',
+            ].filter(Boolean).join('\n')}
+          >
+            🚦 {run.guardrail.applied === 'flag' ? `flag · ${run.guardrail.verdict}` : run.guardrail.applied}
           </span>
         )}
         {hasTransition && (
