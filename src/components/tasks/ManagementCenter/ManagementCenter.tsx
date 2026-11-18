@@ -26,6 +26,12 @@ import styles from './ManagementCenter.module.css';
  *    tasks tagged `next` (any open task: what Shlomi takes after the focus);
  *    the "next" mark beside the star adds / removes that tag. A task is focus
  *    or next, never both. Clicking a task opens a read-only modal.
+ *    A started task that is now waiting on something (status in_progress +
+ *    tag `waiting`) gets its own label and a compact row whose now: line says
+ *    what it waits for — also when it is in focus. Connected tasks (the
+ *    board's `linkedTasks`, read both ways) show a chip that opens the other
+ *    task, and connected focus tasks are drawn as one group. Links are
+ *    read-only here.
  * Look: the Lybi team page (public/lybi-site/team) — its font, violet tokens,
  * glow values and light threads. No sounds (Shlomi, 17.11).
  */
@@ -36,6 +42,8 @@ const LOGO_SRC = '/lybi-site/team/img/lybi-wordmark-white.svg';
 const FOCUS_TAG = 'focus';
 const NEXT_TAG = 'next';
 type MarkTag = typeof FOCUS_TAG | typeof NEXT_TAG;
+const WAITING_TAG = 'waiting';
+const MAX_LINK_CHIPS = 2;
 const OPEN_KEY = 'lybi-center-agenda-open';
 
 type LineBlock = Extract<AgendaBlock, { kind: 'line' }>;
@@ -65,11 +73,44 @@ function workRank(task: Task): number {
   return task.status === 'in_progress' ? 1 : 2;
 }
 
+/** Started, and now waiting on something outside (Google, a decision, a meeting). */
+function isWaiting(task: Task): boolean {
+  return task.status === 'in_progress' && task.tags.includes(WAITING_TAG);
+}
+
 function statusPill(task: Task): { cls: string; text: string } {
   if (task.priority === 'blocker') return { cls: styles.pillBlocker, text: 'Blocker' };
+  if (isWaiting(task)) return { cls: styles.pillWaiting, text: 'בהמתנה' };
   if (task.status === 'in_progress') return { cls: styles.pillProgress, text: 'בעבודה' };
   if (task.status === 'done') return { cls: styles.pillTodo, text: 'הושלמה' };
-  return { cls: styles.pillTodo, text: 'ממתינה' };
+  return { cls: styles.pillTodo, text: 'טרם התחלנו' };
+}
+
+/**
+ * Focus tasks in display order, connected ones side by side: each group is
+ * the focus tasks reachable from each other through links, placed where its
+ * first member stood.
+ */
+function groupLinked(list: Task[], linksOf: (t: Task) => number[]): Task[][] {
+  const byId = new Map(list.map(t => [t.id, t]));
+  const seen = new Set<number>();
+  const groups: Task[][] = [];
+  for (const t of list) {
+    if (seen.has(t.id)) continue;
+    const group: Task[] = [];
+    const stack = [t];
+    seen.add(t.id);
+    while (stack.length) {
+      const cur = stack.shift()!;
+      group.push(cur);
+      for (const id of linksOf(cur)) {
+        const other = byId.get(id);
+        if (other && !seen.has(id)) { seen.add(id); stack.push(other); }
+      }
+    }
+    groups.push(group.sort((a, b) => list.indexOf(a) - list.indexOf(b)));
+  }
+  return groups;
 }
 
 /**
@@ -162,7 +203,21 @@ const NextIcon = ({ filled = false, size = 22 }: { filled?: boolean; size?: numb
   </svg>
 );
 
-const STAR_POINTS = '12,2.6 14.75,8.6 21.3,9.3 16.4,13.75 17.8,20.2 12,16.9 6.2,20.2 7.6,13.75 2.7,9.3 9.25,8.6';
+const LinkIcon = ({ size = 13 }: { size?: number }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M10 13.5a4.5 4.5 0 0 0 6.4.4l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2" />
+    <path d="M14 10.5a4.5 4.5 0 0 0-6.4-.4l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2" />
+  </svg>
+);
+
+const HourglassIcon = ({ size = 18 }: { size?: number }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M6.5 3h11M6.5 21h11" />
+    <path d="M7.5 3c0 4.5 4.5 6 4.5 9s-4.5 4.5-4.5 9M16.5 3c0 4.5-4.5 6-4.5 9s4.5 4.5 4.5 9" />
+  </svg>
+);
+
+const STAR_POINTS ='12,2.6 14.75,8.6 21.3,9.3 16.4,13.75 17.8,20.2 12,16.9 6.2,20.2 7.6,13.75 2.7,9.3 9.25,8.6';
 
 const StarIcon = ({ filled = false, size = 28 }: { filled?: boolean; size?: number }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
@@ -361,7 +416,27 @@ export function ManagementCenter() {
         (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) ||
         b.id - a.id);
   }, [tasks]);
-  const focusTasks = working.filter(t => t.tags.includes(FOCUS_TAG));
+  // Connections, read both ways (a link written on either task counts for both).
+  const linkMap = useMemo(() => {
+    const map = new Map<number, Set<number>>();
+    const add = (a: number, b: number) => {
+      if (a === b) return;
+      if (!map.has(a)) map.set(a, new Set());
+      map.get(a)!.add(b);
+    };
+    (tasks || []).forEach(t => (t.linkedTasks || []).forEach(id => {
+      if (typeof id !== 'number') return;
+      add(t.id, id);
+      add(id, t.id);
+    }));
+    return map;
+  }, [tasks]);
+  const linksOf = useCallback((t: Task) => [...(linkMap.get(t.id) || [])].sort((a, b) => a - b), [linkMap]);
+  // Focus: the full cards first, the compact waiting ones after them.
+  const focusTasks = working
+    .filter(t => t.tags.includes(FOCUS_TAG))
+    .sort((a, b) => Number(isWaiting(a)) - Number(isWaiting(b)));
+  const focusGroups = groupLinked(focusTasks, linksOf);
   // Next: any open task marked `next` (it is often not being worked on yet), in priority order.
   const nextTasks = useMemo(() => {
     if (!tasks) return [];
@@ -370,7 +445,9 @@ export function ManagementCenter() {
       .filter(t => t.tags.includes(NEXT_TAG) && !t.tags.includes(FOCUS_TAG))
       .sort((a, b) => (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) || b.id - a.id);
   }, [tasks]);
-  const otherTasks = working.filter(t => !t.tags.includes(FOCUS_TAG) && !t.tags.includes(NEXT_TAG));
+  const unmarked = working.filter(t => !t.tags.includes(FOCUS_TAG) && !t.tags.includes(NEXT_TAG));
+  const waitingTasks = unmarked.filter(isWaiting);
+  const otherTasks = unmarked.filter(t => !isWaiting(t));
 
   // ── Agenda — one topic at a time, in board order (finished topics stay in place) ──
   const topics = useMemo<Topic[]>(() => {
@@ -547,7 +624,81 @@ export function ManagementCenter() {
     );
   };
 
+  /** "מחובר ל־#986" chips: open the connected task (read-only; links are edited on the board). */
+  const renderLinks = (t: Task, compact = false) => {
+    const ids = linksOf(t);
+    if (ids.length === 0) return null;
+    const shown = ids.slice(0, MAX_LINK_CHIPS);
+    const rest = ids.length - shown.length;
+    return (
+      <span className={`${styles.linkChips} ${compact ? styles.linkChipsCompact : ''}`} dir="rtl">
+        {shown.map((id, i) => {
+          const other = tasks?.find(x => x.id === id);
+          const label = compact || i > 0 ? `#${id}` : `מחובר ל־#${id}`;
+          const title = other ? `מחובר ל־#${id}: ${other.title}` : `מחובר ל־#${id}`;
+          return other ? (
+            <button key={id} type="button" className={styles.linkChip} title={title} onClick={() => openTask(other)}>
+              <LinkIcon /> <span dir="rtl">{label}</span>
+            </button>
+          ) : (
+            <Link key={id} to={`/tasks/${id}`} className={styles.linkChip} title={title}>
+              <LinkIcon /> <span dir="rtl">{label}</span>
+            </Link>
+          );
+        })}
+        {rest > 0 && <span className={styles.linkMore} title={ids.slice(MAX_LINK_CHIPS).map(id => `#${id}`).join(' ')}>+{rest}</span>}
+      </span>
+    );
+  };
+
+  /**
+   * Waiting: started, now held by something outside. A slim row — lighter
+   * than a focus card even when it is in focus — whose now: line says what
+   * it waits for.
+   */
+  const renderWaiting = (t: Task) => {
+    const now = nowStatus(t);
+    const inFocus = t.tags.includes(FOCUS_TAG);
+    return (
+      <div key={t.id} className={`${styles.waitRow} ${inFocus ? styles.waitRowFocus : ''}`} dir="ltr">
+        <button
+          type="button"
+          className={`${styles.starBtn} ${styles.starBtnSmall} ${inFocus ? styles.starBtnOn : ''}`}
+          aria-label={inFocus ? 'הסרה מהפוקוס' : 'לשים בפוקוס'}
+          title={inFocus ? 'הסרה מהפוקוס' : 'לשים בפוקוס'}
+          aria-pressed={inFocus}
+          disabled={busyStar.has(t.id)}
+          onClick={() => void toggleFocus(t)}
+        >
+          <StarIcon filled={inFocus} size={20} />
+        </button>
+        <button
+          type="button"
+          className={styles.nextBtn}
+          aria-label="לסמן כבא בתור"
+          title="לסמן כבא בתור"
+          disabled={busyStar.has(t.id)}
+          onClick={() => void toggleNext(t)}
+        >
+          <NextIcon size={20} />
+        </button>
+        <button type="button" className={styles.waitLink} title={now ? `${t.title}\nמחכה: ${now}` : t.title} onClick={() => openTask(t)}>
+          <span className={`${styles.pill} ${styles.pillSmall} ${styles.pillWaiting} ${styles.waitPill}`}>
+            <HourglassIcon size={13} /> <span className={styles.waitPillText}>בהמתנה</span>
+          </span>
+          <span className={styles.nextText}>
+            <span className={styles.waitTitle} dir={textDir(t.title)}>{t.title}</span>
+            <span className={styles.waitFor} dir={textDir(now || 'מחכה')}>{now || 'מחכה — לא נכתב למה'}</span>
+          </span>
+          <span className={styles.nextId}>#{t.id}</span>
+        </button>
+        {renderLinks(t, true)}
+      </div>
+    );
+  };
+
   const renderFocus = (t: Task) => {
+    if (isWaiting(t)) return renderWaiting(t);
     const now = nowStatus(t);
     const pill = statusPill(t);
     return (
@@ -566,20 +717,25 @@ export function ManagementCenter() {
         >
           <FocusRing />
         </button>
-        <button type="button" className={styles.focusBody} onClick={() => openTask(t)}>
-          <span className={styles.focusMeta}>
-            <span className={`${styles.pill} ${styles.pillSquare} ${pill.cls}`}>{pill.text}</span>
-            <span className={styles.vsep} />
-            <span className={styles.focusId}>#{t.id}</span>
-          </span>
-          <span className={styles.focusTitle} dir={textDir(t.title)} title={t.title}>{t.title}</span>
-          <span className={styles.focusRule} />
-          {now && (
-            <span className={styles.focusNow} dir="rtl" title={now}>
-              <strong>עכשיו:</strong> {now}
-            </span>
-          )}
-        </button>
+        <div className={styles.focusMain}>
+          <div className={styles.focusMeta}>
+            <button type="button" className={styles.focusMetaOpen} onClick={() => openTask(t)} tabIndex={-1}>
+              <span className={`${styles.pill} ${styles.pillSquare} ${pill.cls}`}>{pill.text}</span>
+              <span className={styles.vsep} />
+              <span className={styles.focusId}>#{t.id}</span>
+            </button>
+            {renderLinks(t)}
+          </div>
+          <button type="button" className={styles.focusBody} onClick={() => openTask(t)}>
+            <span className={styles.focusTitle} dir={textDir(t.title)} title={t.title}>{t.title}</span>
+            <span className={styles.focusRule} />
+            {now && (
+              <span className={styles.focusNow} dir="rtl" title={now}>
+                <strong>עכשיו:</strong> {now}
+              </span>
+            )}
+          </button>
+        </div>
         <button
           type="button"
           className={`${styles.nextBtn} ${styles.focusNextBtn}`}
@@ -619,6 +775,7 @@ export function ManagementCenter() {
           </span>
           <span className={styles.nextId}>#{t.id}</span>
         </button>
+        {renderLinks(t, true)}
         <button
           type="button"
           className={`${styles.starBtn} ${styles.starBtnSmall}`}
@@ -667,6 +824,7 @@ export function ManagementCenter() {
           <span className={styles.vsep} />
           <span className={styles.taskId}>#{t.id}</span>
         </button>
+        {renderLinks(t, true)}
       </div>
     );
   };
@@ -750,7 +908,18 @@ export function ManagementCenter() {
               {tasks && (working.length > 0 || nextTasks.length > 0) && (
                 <>
                   {focusTasks.length > 0
-                    ? <div className={styles.focusList}>{focusTasks.map(renderFocus)}</div>
+                    ? (
+                      <div className={styles.focusList}>
+                        {focusGroups.map(group => (group.length > 1
+                          ? (
+                            <div key={`g${group[0].id}`} className={styles.linkGroup} aria-label={`משימות מחוברות: ${group.map(t => `#${t.id}`).join(', ')}`}>
+                              <span className={styles.linkGroupRail} aria-hidden="true"><LinkIcon size={12} /></span>
+                              {group.map(renderFocus)}
+                            </div>
+                          )
+                          : renderFocus(group[0])))}
+                      </div>
+                    )
                     : (
                       <div className={styles.focusHint}>
                         <StarIcon size={20} />
@@ -765,6 +934,16 @@ export function ManagementCenter() {
                         <span className={styles.nextRule} />
                       </div>
                       <div className={styles.nextList}>{nextTasks.map(renderNext)}</div>
+                    </div>
+                  )}
+                  {waitingTasks.length > 0 && (
+                    <div className={styles.nextArea}>
+                      <div className={styles.nextHead} dir="ltr">
+                        <span className={`${styles.nextLabel} ${styles.waitLabel}`}>WAITING</span>
+                        <span className={styles.nextHeadTitle} dir="rtl">בהמתנה</span>
+                        <span className={`${styles.nextRule} ${styles.waitRule}`} />
+                      </div>
+                      <div className={styles.nextList}>{waitingTasks.map(renderWaiting)}</div>
                     </div>
                   )}
                   {otherTasks.length > 0 && <div className={styles.taskList}>{otherTasks.map(renderRow)}</div>}
@@ -783,6 +962,7 @@ export function ManagementCenter() {
       {modalTask && (() => {
         const pill = statusPill(modalTask);
         const now = nowStatus(modalTask);
+        const modalLinks = linksOf(modalTask).map(id => ({ id, task: tasks?.find(x => x.id === id) }));
         return (
           <div className={styles.overlay} onMouseDown={e => { if (e.target === e.currentTarget) setModalTaskId(null); }}>
             <div className={`${styles.modal} ${styles.taskModal}`} role="dialog" aria-modal="true" aria-label={`#${modalTask.id} ${modalTask.title}`}>
@@ -798,7 +978,31 @@ export function ManagementCenter() {
               </div>
               <div className={styles.taskModalTitle} dir={textDir(modalTask.title)}>{modalTask.title}</div>
               {now && (
-                <div className={styles.taskModalNow} dir="rtl"><strong>עכשיו:</strong> {now}</div>
+                <div className={styles.taskModalNow} dir="rtl"><strong>{isWaiting(modalTask) ? 'מחכה:' : 'עכשיו:'}</strong> {now}</div>
+              )}
+              {modalLinks.length > 0 && (
+                <div className={styles.modalLinks} dir="rtl">
+                  <span className={styles.modalLinksLabel}><LinkIcon size={14} /> מחובר ל:</span>
+                  <div className={styles.modalLinksList}>
+                    {modalLinks.map(({ id, task: other }) => {
+                      if (!other) {
+                        return (
+                          <Link key={id} to={`/tasks/${id}`} className={styles.modalLink}>
+                            <span className={styles.modalLinkId}>#{id}</span>
+                          </Link>
+                        );
+                      }
+                      const p = statusPill(other);
+                      return (
+                        <button key={id} type="button" className={styles.modalLink} onClick={() => openTask(other)}>
+                          <span className={styles.modalLinkId}>#{id}</span>
+                          <span className={styles.modalLinkTitle} dir={textDir(other.title)}>{other.title}</span>
+                          <span className={`${styles.pill} ${styles.pillSmall} ${p.cls}`}>{p.text}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
               <div className={styles.taskModalRule} />
               <div className={styles.taskModalBody}>

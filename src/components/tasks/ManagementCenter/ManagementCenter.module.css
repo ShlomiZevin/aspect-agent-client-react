@@ -644,22 +644,22 @@
 .focusList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .focusCard {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 12px;
   min-height: 0;
-  padding: 14px 18px 14px 10px;
-  border: 1px solid rgba(174, 128, 255, .34);
-  border-radius: 12px;
+  padding: 8px 12px 8px 8px;
+  border: 1px solid rgba(174, 128, 255, .3);
+  border-radius: 11px;
   background:
     radial-gradient(70% 90% at 20% 45%, rgba(158, 80, 239, .2), transparent 70%),
     linear-gradient(180deg, rgba(123, 57, 197, .2), rgba(80, 40, 140, .14));
-  box-shadow: 0 0 22px -10px rgba(174, 128, 255, .6), inset 0 1px 0 rgba(255, 255, 255, .04);
+  box-shadow: 0 0 18px -10px rgba(174, 128, 255, .5), inset 0 1px 0 rgba(255, 255, 255, .04);
   transition: box-shadow .25s, border-color .25s;
 }
 
@@ -676,20 +676,20 @@
   pointer-events: none;
 }
 
-.bracket { width: 12px; height: 12px; }
-.bTL { top: 10px; left: 6px; border-top-width: 1px; border-left-width: 1px; }
-.bBL { bottom: 10px; left: 6px; border-bottom-width: 1px; border-left-width: 1px; }
-.bBR { bottom: 10px; left: 106px; border-bottom-width: 1px; border-right-width: 1px; }
-.bTR { top: 10px; right: 10px; border-top-width: 1px; border-right-width: 1px; }
+.bracket { width: 9px; height: 9px; }
+.bTL { top: 6px; left: 5px; border-top-width: 1px; border-left-width: 1px; }
+.bBL { bottom: 6px; left: 5px; border-bottom-width: 1px; border-left-width: 1px; }
+.bBR { bottom: 6px; left: 76px; border-bottom-width: 1px; border-right-width: 1px; }
+.bTR { top: 6px; right: 7px; border-top-width: 1px; border-right-width: 1px; }
 
 .ringBtn {
   flex: none;
   display: flex;
   align-self: center;
-  margin: 0 4px;
+  margin: 0 2px;
   padding: 0;
-  width: 96px;
-  height: 96px;
+  width: 68px;
+  height: 68px;
   border: 0;
   border-radius: 50%;
   background: none;
@@ -755,6 +755,26 @@
 
 @keyframes mcSpin { to { transform: rotate(360deg); } }
 
+.focusMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+}
+
+.focusMetaOpen {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
 .focusBody {
   padding: 0;
   border: 0;
@@ -766,7 +786,6 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  align-self: flex-start;
   color: inherit;
   text-decoration: none;
 }
@@ -774,18 +793,19 @@
 .focusMeta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
 }
 
 .focusId {
-  font-size: 16px;
+  font-size: 14.5px;
   color: #A98EE0;
   font-variant-numeric: tabular-nums;
 }
 
 .focusTitle {
-  margin-top: 8px;
-  font-size: 20px;
+  margin-top: 5px;
+  font-size: 17px;
   font-weight: 600;
   line-height: 1.22;
   color: #FBF9FE;
@@ -800,13 +820,13 @@
 .focusRule {
   display: block;
   height: 1px;
-  margin: 9px 0 7px;
-  background: rgba(174, 128, 255, .3);
+  margin: 6px 0 4px;
+  background: rgba(174, 128, 255, .22);
 }
 
 .focusNow {
-  font-size: 14.5px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.45;
   color: #CFC6DC;
   text-align: right;
   unicode-bidi: isolate;
@@ -969,6 +989,148 @@
 .focusNextBtn { align-self: flex-end; margin: 0 -8px -6px 0; }
 
 .starBtnSmall { width: 34px; height: 40px; color: rgba(168, 132, 238, .7); }
+.starBtnOn { color: #C7A2FF; filter: drop-shadow(0 0 5px rgba(174, 128, 255, .7)); }
+
+/* ── Waiting: started, now held by something outside. Sand, not violet: not "working". ── */
+.waitLabel { color: rgba(226, 190, 128, .8); }
+.waitRule { background: linear-gradient(90deg, rgba(226, 190, 128, .22), rgba(226, 190, 128, .05)); }
+
+.waitRow {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 6px 0 2px;
+  border: 1px dashed rgba(226, 190, 128, .22);
+  border-radius: 9px;
+  background: rgba(226, 190, 128, .035);
+  transition: border-color .2s, background .2s;
+}
+
+.waitRow:hover { border-color: rgba(226, 190, 128, .4); background: rgba(226, 190, 128, .06); }
+
+/* In focus, but waiting: keep the violet focus edge so it reads as part of the focus set. */
+.waitRowFocus {
+  border-style: solid;
+  border-color: rgba(174, 128, 255, .24);
+  border-left: 2px solid rgba(199, 162, 255, .6);
+  background: linear-gradient(90deg, rgba(123, 57, 197, .1), rgba(226, 190, 128, .03) 75%);
+}
+
+.waitRowFocus:hover { border-color: rgba(174, 128, 255, .38); border-left-color: rgba(199, 162, 255, .8); }
+
+.waitLink {
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  align-self: stretch;
+  padding: 5px 6px 5px 2px;
+  color: inherit;
+}
+
+.waitPill { gap: 5px; }
+
+.waitTitle {
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.3;
+  color: #D9D2E6;
+  text-align: left;
+  unicode-bidi: isolate;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color .2s;
+}
+
+.waitLink:hover .waitTitle { color: #fff; }
+
+.waitFor {
+  font-size: 13px;
+  line-height: 1.35;
+  color: rgba(232, 205, 160, .72);
+  text-align: left;
+  unicode-bidi: isolate;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.waitTitle[dir="rtl"], .waitFor[dir="rtl"] { text-align: right; }
+
+/* ── Connected tasks ── */
+.linkChips {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.linkChipsCompact { padding: 0 4px; }
+
+.linkChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid rgba(174, 128, 255, .26);
+  border-radius: 999px;
+  background: rgba(123, 57, 197, .12);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  color: #CDB6F5;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color .2s, color .2s, box-shadow .2s;
+}
+
+.linkChip:hover { border-color: var(--lilac); color: #fff; box-shadow: 0 0 10px -3px rgba(174, 128, 255, .7); }
+.linkChip svg { flex: none; }
+.linkMore { font-size: 12.5px; color: var(--faint); }
+
+/* Connected focus tasks: one group, joined by a rail on the left with a link knot. */
+.linkGroup {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-left: 14px;
+}
+
+.linkGroupRail {
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 2px;
+  width: 9px;
+  border: 1px solid rgba(174, 128, 255, .45);
+  border-right: 0;
+  border-radius: 6px 0 0 6px;
+  pointer-events: none;
+}
+
+.linkGroupRail svg {
+  position: absolute;
+  top: 50%;
+  left: -7px;
+  transform: translateY(-50%);
+  padding: 1px;
+  border-radius: 50%;
+  background: var(--night);
+  color: #C7A2FF;
+  filter: drop-shadow(0 0 4px rgba(174, 128, 255, .8));
+}
 
 /* ── Ongoing: the thin rows ── */
 .taskList { margin-top: 22px; }
@@ -1039,7 +1201,7 @@
   white-space: nowrap;
 }
 
-.pillSquare { min-width: 0; height: 26px; padding: 0 12px; border-radius: 7px; font-size: 14.5px; }
+.pillSquare { min-width: 0; height: 22px; padding: 0 9px; border-radius: 6px; font-size: 13px; }
 .pillSmall { min-width: 0; height: 24px; padding: 0 10px; font-size: 13px; font-weight: 600; }
 
 .pillProgress {
@@ -1058,6 +1220,12 @@
   background: rgba(220, 60, 110, .22);
   color: #FFC2D4;
   box-shadow: inset 0 0 0 1px rgba(255, 120, 160, .3);
+}
+
+.pillWaiting {
+  background: rgba(226, 190, 128, .13);
+  color: #EBD3A6;
+  box-shadow: inset 0 0 0 1px rgba(226, 190, 128, .22);
 }
 
 .taskText {
@@ -1277,6 +1445,67 @@
 
 .taskModalNow strong { color: #fff; }
 
+/* Connected tasks in the modal (read-only; each opens that task) */
+.modalLinks {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.modalLinksLabel {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.modalLinksList {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modalLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(123, 57, 197, .08);
+  font: inherit;
+  color: inherit;
+  text-decoration: none;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+
+.modalLink:hover { border-color: var(--lilac); background: rgba(123, 57, 197, .16); }
+.modalLinkId { flex: none; font-size: 14.5px; color: #A98EE0; font-variant-numeric: tabular-nums; direction: ltr; }
+
+.modalLinkTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  color: #E4DDF0;
+  unicode-bidi: isolate;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modalLinkTitle[dir="ltr"] { text-align: left; }
+
 .taskModalRule {
   flex: none;
   height: 1px;
@@ -1432,12 +1661,12 @@
   .taskModal { max-height: calc(100dvh - 32px); padding: 0 16px 16px; }
   .taskModalTitle { font-size: 21px; }
 
-  .focusCard { gap: 12px; padding: 12px 12px 12px 8px; }
-  .ringBtn { width: 78px; height: 78px; margin: 0; }
+  .focusCard { gap: 10px; padding: 8px 10px 8px 6px; }
+  .ringBtn { width: 58px; height: 58px; margin: 0; }
   .bracket { display: none; }
-  .focusTitle { font-size: 17px; }
-  .focusNow { font-size: 13.5px; }
-  .focusId { font-size: 14px; }
+  .focusTitle { font-size: 15.5px; }
+  .focusNow { font-size: 12.5px; }
+  .focusId { font-size: 13px; }
 
   .taskList { margin-top: 14px; }
   .taskRow { height: 56px; }
@@ -1454,6 +1683,12 @@
   .nextTitle { font-size: 14.5px; }
   .nextId { font-size: 13.5px; min-width: 34px; }
   .pillSmall { height: 22px; padding: 0 8px; font-size: 12px; }
+  .waitPillText { display: none; }          /* phone: the hourglass alone says "waiting" */
+  .waitPill { padding: 0 7px; }
+  .waitLink { gap: 8px; }
+  .waitTitle { font-size: 14.5px; }
+  .waitFor { font-size: 12.5px; }
+  .linkChipsCompact { padding: 0 2px; }
 
   .footer { padding: 18px 8px 28px; }
 }
