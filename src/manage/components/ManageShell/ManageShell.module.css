@@ -1,51 +1,22 @@
-/* The management center (task #985) — design D (round3/D-*-sunburst.jpg):
-   a dark plum top bar, a soft lavender right panel, white paper. */
+/* The management center's frame (task #985) — design round4/opt1.
+   Colours and type: src/manage/tokens.css. */
 
 .root {
-  --m-plum: #4a1a4e;
-  --m-plum-hover: #3a1240;
-  --m-bar: #3f1543;
-  --m-ink: #3a1240;
-  --m-text: #2b2233;
-  --m-muted: #675d70;
-  --m-faint: #958ca0;
-  --m-line: #e9e2f1;
-  --m-bg: #ffffff;
-  --m-panel: #f6f2fb;
-  --m-lav-50: #fbf9fe;
-  --m-lav-100: #f3eefa;
-  --m-lav-200: #e9e0f5;
-  --m-lav-300: #d6c8ea;
-  --m-lav-ink: #6b3e93;
-  --m-pink-bg: #fde9ef;
-  --m-pink-line: #f5c7d4;
-  --m-pink-ink: #8f1d3a;
-  --m-pink: #c2264f;
-  --m-green-bg: #eaf6ea;
-  --m-green-line: #cde8cf;
-  --m-green-ink: #1e6e2b;
-  --m-green: #2f8f3f;
-  --m-shadow: 0 4px 18px rgba(70, 30, 90, 0.07), 0 1px 3px rgba(70, 30, 90, 0.05);
-  --m-radius: 16px;
-
   height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--m-bg);
-  color: var(--m-text);
-  font-family: 'Assistant', 'Heebo', 'Segoe UI', Arial, sans-serif;
-  line-height: 1.45;
 }
 
 /* ── Top bar ───────────────────────────────────────────────── */
 
 .topbar {
-  flex: 0 0 72px;
+  flex: 0 0 48px;
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 0 28px;
+  gap: 12px;
+  padding: 0 20px;
   background: var(--m-bar);
   color: #fff;
 }
@@ -56,53 +27,59 @@
 }
 
 .logo {
-  height: 40px;
+  height: 24px;
   width: auto;
   display: block;
 }
 
 .topSep {
-  width: 1.5px;
-  height: 32px;
-  background: rgba(255, 255, 255, 0.45);
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.35);
 }
 
 .centerName {
-  font-size: 27px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.1px;
 }
 
-.team {
+.user {
   margin-inline-start: auto;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
 }
 
-.teamPill {
+.userEmail {
+  font-size: var(--m-fs-sm);
+  color: var(--m-side-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.signOut {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 999px;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.teamExit {
-  border: none;
-  background: none;
-  color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+  color: #fff;
   font: inherit;
-  font-size: 14px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  font-size: var(--m-fs-sm);
   cursor: pointer;
 }
 
-/* ── Body: panel + page ───────────────────────────────────── */
+.signOut:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Body: side panel + main ───────────────────────────────── */
 
 .body {
   flex: 1;
@@ -111,170 +88,112 @@
 }
 
 .panel {
-  flex: 0 0 318px;
+  flex: 0 0 232px;
   display: flex;
   flex-direction: column;
-  padding: 30px 18px 24px;
-  background: var(--m-panel);
-  border-inline-end: 1px solid var(--m-line);
+  gap: 14px;
+  padding: 16px 12px;
+  background: var(--m-side);
+  color: var(--m-side-text);
   overflow-y: auto;
 }
 
-.sectionTitle {
-  padding: 0 6px 14px;
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--m-ink);
+/* The scope control */
+.scope {
+  position: relative;
+  display: block;
 }
 
-.worlds {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  /* many agents scroll here, so the world's menu below stays in view */
-  max-height: calc(100vh - 360px);
-  overflow-y: auto;
-  margin: 0 -6px;
-  padding: 2px 6px 6px;
-}
-
-.world {
+.scopeSelect,
+.scopeStatic {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex: 0 0 auto;
-  min-height: 72px;
-  padding: 11px 14px;
-  border-radius: 14px;
-  background: #fff;
-  border: 1px solid var(--m-line);
-  box-shadow: 0 2px 8px rgba(70, 30, 90, 0.05);
-  color: var(--m-text);
-  text-decoration: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.world:hover {
-  border-color: var(--m-lav-300);
-  box-shadow: var(--m-shadow);
-}
-
-.worldOn,
-.worldOn:hover {
-  background: var(--m-plum);
-  border-color: var(--m-plum);
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--m-side-line);
+  border-radius: 8px;
+  background: var(--m-side-field);
   color: #fff;
-  box-shadow: 0 6px 16px rgba(74, 26, 78, 0.28);
-}
-
-.worldIcon {
-  flex: 0 0 auto;
-  display: inline-flex;
-  color: var(--m-plum);
-}
-
-.worldOn .worldIcon {
-  color: #fff;
-}
-
-.worldText {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.worldName {
-  font-size: 18px;
-  unicode-bidi: plaintext;
-  text-align: right;
-  font-weight: 800;
-  line-height: 1.25;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.worldSub {
-  font-size: 14.5px;
-  color: var(--m-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: right;
-}
-
-.worldOn .worldSub {
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.status {
-  flex: 0 0 auto;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 13px;
+  font: inherit;
+  font-size: var(--m-fs);
   font-weight: 700;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.statusOk {
-  background: var(--m-green-bg);
-  color: var(--m-green-ink);
+.scopeSelect {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-inline-end: 30px;
+  cursor: pointer;
 }
 
-.statusAct {
-  background: var(--m-pink-bg);
-  color: var(--m-pink-ink);
+.scopeSelect:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 
-.statusOnDark.statusOk {
-  background: rgba(255, 255, 255, 0.16);
-  color: #d9f5dc;
+.scopeSelect:focus-visible {
+  outline: 2px solid #c9a7e0;
+  outline-offset: 1px;
 }
 
-.statusOnDark.statusAct {
-  background: #fde9ef;
-  color: var(--m-pink-ink);
+.scopeSelect option {
+  color: var(--m-text);
+  background: #fff;
+  font-weight: 400;
 }
 
-.divider {
-  height: 1px;
-  margin: 26px 6px 24px;
-  background: var(--m-lav-300);
+.scopeChevron {
+  position: absolute;
+  inset-inline-end: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--m-side-muted);
+  pointer-events: none;
 }
 
+/* The menu */
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
+  padding-top: 12px;
+  border-top: 1px solid var(--m-side-line);
 }
 
 .navItem {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  color: var(--m-text);
-  font-size: 18px;
-  font-weight: 600;
+  gap: 10px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: var(--m-side-text);
+  font-size: var(--m-fs);
   text-decoration: none;
 }
 
 .navItem:hover {
-  background: var(--m-lav-100);
+  background: var(--m-side-hover);
 }
 
 .navItemActive,
 .navItemActive:hover {
-  background: var(--m-lav-200);
-  color: var(--m-ink);
-  font-weight: 800;
+  background: var(--m-side-active);
+  color: #fff;
+  font-weight: 700;
 }
 
 .navIcon {
   display: inline-flex;
-  color: var(--m-ink);
+  flex: 0 0 auto;
+  color: var(--m-side-muted);
+}
+
+.navItemActive .navIcon {
+  color: #fff;
 }
 
 .navLabel {
@@ -288,10 +207,22 @@
   overflow-y: auto;
 }
 
-/* ── Phone ─────────────────────────────────────────────────── */
+/* A plain message in the main area (no agents / not yours). */
+.notice {
+  margin: 24px;
+  padding: 16px 18px;
+  border: 1px solid var(--m-line);
+  border-radius: var(--m-radius);
+  background: var(--m-card);
+  color: var(--m-muted);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-.mobileBar {
-  display: none;
+.noticeLink {
+  color: var(--m-lav-ink);
+  font-weight: 700;
 }
 
 .srOnly {
@@ -300,74 +231,84 @@
   height: 1px;
   overflow: hidden;
   clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ── Phone ─────────────────────────────────────────────────── */
+
+.mobileBar {
+  display: none;
 }
 
 @media (max-width: 860px) {
   .topbar {
-    flex-basis: 58px;
-    padding: 0 16px;
-    gap: 12px;
+    flex-basis: 44px;
+    padding: 0 12px;
+    gap: 8px;
   }
-  .logo { height: 30px; }
-  .topSep { height: 24px; }
-  .centerName { font-size: 20px; }
-  .teamExit { display: none; }
-  .teamPill { font-size: 13px; padding: 3px 10px; }
-  .panel { display: none; }
+
+  .logo {
+    height: 20px;
+  }
+
+  .centerName {
+    font-size: 14px;
+  }
+
+  .userEmail {
+    display: none;
+  }
+
+  .panel {
+    display: none;
+  }
 
   .mobileBar {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: 10px;
-    padding: 12px 16px;
-    background: var(--m-panel);
-    border-bottom: 1px solid var(--m-line);
+    padding: 8px 12px;
+    background: var(--m-side);
+    color: var(--m-side-text);
+    border-top: 1px solid var(--m-side-line);
   }
-  .mobileWorld {
-    position: relative;
-    display: block;
+
+  .scopeCompact {
+    flex: 0 1 46%;
+    min-width: 0;
   }
-  .mobileWorld select {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 100%;
-    height: 48px;
-    padding: 0 16px 0 44px;
-    border: none;
-    border-radius: 12px;
-    background: var(--m-plum);
-    color: #fff;
-    font: inherit;
-    font-size: 18px;
-    font-weight: 800;
+
+  .scopeCompact .scopeSelect,
+  .scopeCompact .scopeStatic {
+    height: 32px;
   }
-  .mobileChevron {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #fff;
-    pointer-events: none;
-  }
+
   .mobileNav {
+    flex: 1;
+    min-width: 0;
     display: flex;
-    gap: 8px;
+    gap: 4px;
     overflow-x: auto;
+    scrollbar-width: none;
   }
+
   .mobileNavItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     flex: 0 0 auto;
-    padding: 7px 14px;
-    border-radius: 999px;
-    background: #fff;
-    border: 1px solid var(--m-line);
-    color: var(--m-text);
-    font-size: 15px;
-    font-weight: 600;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 8px;
+    color: var(--m-side-text);
+    font-size: var(--m-fs-sm);
     text-decoration: none;
+    white-space: nowrap;
   }
+
   .mobileNavActive {
-    background: var(--m-lav-200);
-    color: var(--m-ink);
-    font-weight: 800;
+    background: var(--m-side-active);
+    color: #fff;
+    font-weight: 700;
   }
 }

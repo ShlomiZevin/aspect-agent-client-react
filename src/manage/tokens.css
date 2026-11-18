@@ -1,0 +1,64 @@
+/* The management center's look in one place (task #985) — every manage
+   component reads these. Restyling = changing values here.
+   Design: customer-errors-designs/round4/opt1-sunburst.jpg — a dark
+   aubergine frame (top bar + side panel), white cards on a pale page,
+   small type, dense tables. */
+
+[data-manage-root] {
+  /* Frame */
+  --m-bar: #30113a;
+  --m-side: #2a0f31;
+  --m-side-line: rgba(255, 255, 255, 0.1);
+  --m-side-text: #ece3f1;
+  --m-side-muted: #b7a5c2;
+  --m-side-hover: rgba(255, 255, 255, 0.07);
+  --m-side-active: #4d2657;
+  --m-side-field: rgba(255, 255, 255, 0.08);
+
+  /* Page */
+  --m-bg: #f6f4f9;
+  --m-card: #ffffff;
+  --m-line: #ebe6f0;
+  --m-line-strong: #ddd4e6;
+  --m-row-hover: #faf8fc;
+  --m-text: #231a2b;
+  --m-muted: #6c6276;
+  --m-faint: #998fa3;
+
+  /* Accents */
+  --m-plum: #4a1a4e;
+  --m-plum-hover: #3a1240;
+  --m-lav-100: #f3eefa;
+  --m-lav-200: #e7ddf3;
+  --m-lav-ink: #6b3e93;
+  --m-pink-bg: #fdecf1;
+  --m-pink-row: #fff7f9;
+  --m-pink-line: #f4c9d5;
+  --m-pink-ink: #a01f45;
+  --m-pink: #c2264f;
+  --m-green-bg: #ebf6ec;
+  --m-green-line: #cfe8d2;
+  --m-green-ink: #1f6d2c;
+  --m-green: #2f8f3f;
+  --m-amber-bg: #fdf2d8;
+  --m-amber-ink: #8a5800;
+  --m-grey-bg: #f0edf3;
+  --m-grey-ink: #5e5568;
+
+  /* Shape + type */
+  --m-radius: 10px;
+  --m-radius-sm: 6px;
+  --m-shadow: 0 1px 2px rgba(50, 20, 60, 0.05);
+  --m-shadow-pop: 0 18px 50px rgba(40, 10, 50, 0.22), 0 2px 8px rgba(40, 10, 50, 0.1);
+  --m-font: 'Assistant', 'Heebo', 'Segoe UI', Arial, sans-serif;
+  --m-fs: 13px;
+  --m-fs-sm: 12px;
+  --m-fs-xs: 11px;
+  --m-fs-title: 18px;
+  --m-fs-kpi: 24px;
+
+  font-family: var(--m-font);
+  font-size: var(--m-fs);
+  color: var(--m-text);
+  line-height: 1.45;
+}

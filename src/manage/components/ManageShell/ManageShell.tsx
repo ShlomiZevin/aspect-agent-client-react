@@ -1,82 +1,88 @@
 /**
- * The management center's frame (task #985) — design D (round3):
- *   top bar      Lybi | מרכז הניהול  (+ the team-view state when unlocked)
- *   right panel  "מה להציג" — the WORLD: all agents, or one agent (top of the
- *                hierarchy) · "בתצוגה הזו" — that world's pages (the registry)
- *   main         the page
- * On a phone the panel folds into a bar under the top bar: a world switcher
- * and the page menu. Colour tokens for every manage page live on `.root`.
+ * The management center's frame (task #985), design round4/opt1:
+ *   top bar     Lybi | מרכז הניהול · the signed-in address + sign out
+ *   side panel  the SCOPE on top (a dropdown — every-agent: "כל הסוכנים" +
+ *               every agent; 2+ agents: theirs; one agent: just its name),
+ *               then the MENU — the pages of the registry (pages.ts)
+ *   main        the page
+ * On a phone the side panel folds into a bar under the top bar with the
+ * same scope control and menu. Colours: src/manage/tokens.css.
  */
 
 import type { ReactNode } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import type { ManagePageDef } from '../../pages';
-import type { ManageAgentSummary } from '../../../types/manage';
-import { IconBuilding, IconChevronDown, IconGrid, IconUnlock } from '../../icons';
+import type { ManageMe } from '../../../types/manage';
+import { IconChevronDown, IconSignOut } from '../../icons';
+import { scopePath } from '../../links';
 import { COPY } from '../../copy';
 import styles from './ManageShell.module.css';
 
 interface Props {
+  me: ManageMe;
   scope: 'agent' | 'all';
   agentSlug: string | null;
-  /** Agents the chooser offers (null while loading). Locked: just the current one. */
-  worlds: ManageAgentSummary[] | null;
-  unlocked: boolean;
   pages: ManagePageDef[];
-  /** The page now open — a world switch keeps it. */
+  /** The page now open — a scope switch keeps it. */
   currentPage: string;
-  onLock: () => void;
+  onSignOut: () => void;
   children: ReactNode;
 }
 
-const worldPath = (world: string, page: string) => `/manage/${encodeURIComponent(world)}/${page}`;
+/** The scope control: a dropdown, or just the agent's name when there is nothing to choose. */
+function ScopeControl({ me, current, currentPage, compact }: { me: ManageMe; current: string; currentPage: string; compact?: boolean }) {
+  const navigate = useNavigate();
+  // Archived agents stay out of the list unless one is open.
+  const agents = me.agents.filter(a => !a.archived || a.slug === current);
+  const options = [
+    ...(me.all ? [{ value: 'all', label: COPY.allAgents }] : []),
+    ...agents.map(a => ({ value: a.slug, label: a.name })),
+  ];
+  const cls = `${styles.scope} ${compact ? styles.scopeCompact : ''}`;
 
-function Status({ need, light }: { need: number; light: boolean }) {
-  return need > 0
-    ? <span className={`${styles.status} ${styles.statusAct} ${light ? styles.statusOnDark : ''}`}>{COPY.statusAct(need)}</span>
-    : <span className={`${styles.status} ${styles.statusOk} ${light ? styles.statusOnDark : ''}`}>{COPY.statusOk}</span>;
+  if (options.length <= 1) {
+    const only = options[0] || { label: current };
+    return <div className={cls}><span className={styles.scopeStatic} dir="auto">{only.label}</span></div>;
+  }
+  return (
+    <label className={cls}>
+      <span className={styles.srOnly}>{COPY.scopeLabel}</span>
+      <select className={styles.scopeSelect} value={current} onChange={e => navigate(scopePath(e.target.value, currentPage))}>
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      <IconChevronDown size={14} className={styles.scopeChevron} />
+    </label>
+  );
 }
 
-export function ManageShell({ scope, agentSlug, worlds, unlocked, pages, currentPage, onLock, children }: Props) {
-  const navigate = useNavigate();
-  const base = worldPath(scope === 'all' ? 'all' : agentSlug || '', '');
-  // Locked: only the agent in the address. Unlocked: every agent.
-  const agents: ManageAgentSummary[] = worlds && worlds.length
-    ? worlds
-    : agentSlug ? [{ slug: agentSlug, name: agentSlug, archived: false, conversations: 0, problems: 0, needsAction: 0 }] : [];
-  const statusKnown = worlds !== null;
-  const allNeed = agents.reduce((n, a) => n + a.needsAction, 0);
+export function ManageShell({ me, scope, agentSlug, pages, currentPage, onSignOut, children }: Props) {
   const current = scope === 'all' ? 'all' : agentSlug || '';
+  const base = current ? scopePath(current, '') : '';
 
   return (
-    <div className={styles.root} dir="rtl" lang="he">
+    <div className={styles.root} data-manage-root dir="rtl" lang="he">
       <header className={styles.topbar}>
-        <Link to={worldPath(current, currentPage)} className={styles.brand}>
+        <Link to={current ? scopePath(current, currentPage) : '/manage'} className={styles.brand}>
           <img className={styles.logo} src="/img/lybi-logo-white.png" alt={COPY.brandAlt} />
         </Link>
         <span className={styles.topSep} aria-hidden />
         <span className={styles.centerName}>{COPY.centerName}</span>
-        {unlocked && (
-          <div className={styles.team}>
-            <span className={styles.teamPill}><IconUnlock size={17} />{COPY.teamView}</span>
-            <button type="button" className={styles.teamExit} onClick={onLock}>{COPY.teamViewExit}</button>
-          </div>
-        )}
+        <div className={styles.user}>
+          <span className={styles.userEmail} dir="ltr" title={me.name}>{me.email}</span>
+          <button type="button" className={styles.signOut} onClick={onSignOut}>
+            <IconSignOut size={14} />
+            <span>{COPY.signOut}</span>
+          </button>
+        </div>
       </header>
 
-      {/* Phone: the world stays visible at the top, with a switcher and the page menu. */}
+      {/* Phone: the side panel folds into this bar. */}
       <div className={styles.mobileBar}>
-        <label className={styles.mobileWorld}>
-          <span className={styles.srOnly}>{COPY.switchWorld}</span>
-          <select value={current} onChange={e => navigate(worldPath(e.target.value, currentPage))}>
-            <option value="all">{COPY.allAgents}</option>
-            {agents.map(a => <option key={a.slug} value={a.slug}>{a.name}</option>)}
-          </select>
-          <IconChevronDown size={18} className={styles.mobileChevron} />
-        </label>
-        <nav className={styles.mobileNav}>
-          {pages.map(p => (
+        {current && <ScopeControl me={me} current={current} currentPage={currentPage} compact />}
+        <nav className={styles.mobileNav} aria-label={COPY.menuLabel}>
+          {base && pages.map(p => (
             <NavLink key={p.path} to={`${base}${p.path}`} className={({ isActive }) => `${styles.mobileNavItem} ${isActive ? styles.mobileNavActive : ''}`}>
+              <p.Icon size={14} />
               {p.label}
             </NavLink>
           ))}
@@ -85,39 +91,15 @@ export function ManageShell({ scope, agentSlug, worlds, unlocked, pages, current
 
       <div className={styles.body}>
         <aside className={styles.panel}>
-          <div className={styles.sectionTitle}>{COPY.worldsTitle}</div>
-          <div className={styles.worlds}>
-            <Link to={worldPath('all', currentPage)} className={`${styles.world} ${scope === 'all' ? styles.worldOn : ''}`}>
-              <span className={styles.worldIcon}><IconGrid size={28} /></span>
-              <span className={styles.worldText}>
-                <span className={styles.worldName}>{COPY.allAgents}</span>
-                <span className={styles.worldSub}>{COPY.allAgentsSub}</span>
-              </span>
-              {unlocked && statusKnown && <Status need={allNeed} light={scope === 'all'} />}
-            </Link>
-            {(unlocked || scope === 'agent') && agents.map(a => (
-              <Link key={a.slug} to={worldPath(a.slug, currentPage)} className={`${styles.world} ${a.slug === agentSlug ? styles.worldOn : ''}`}>
-                <span className={styles.worldIcon}><IconBuilding size={28} /></span>
-                <span className={styles.worldText}>
-                  <span className={styles.worldName} dir="auto">{a.name}</span>
-                  <span className={styles.worldSub} dir="ltr">{a.slug}</span>
-                </span>
-                {statusKnown && <Status need={a.needsAction} light={a.slug === agentSlug} />}
-              </Link>
-            ))}
-          </div>
-
-          <div className={styles.divider} />
-
-          <div className={styles.sectionTitle}>{COPY.thisViewTitle}</div>
-          <nav className={styles.nav}>
-            {pages.map(p => (
+          {current && <ScopeControl me={me} current={current} currentPage={currentPage} />}
+          <nav className={styles.nav} aria-label={COPY.menuLabel}>
+            {base && pages.map(p => (
               <NavLink
                 key={p.path}
                 to={`${base}${p.path}`}
                 className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
               >
-                <span className={styles.navIcon}><p.Icon size={24} /></span>
+                <span className={styles.navIcon}><p.Icon size={16} /></span>
                 <span className={styles.navLabel}>{p.label}</span>
               </NavLink>
             ))}

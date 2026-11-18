@@ -1,11 +1,8 @@
-/** Where a problem row leads — the existing Admin pages (task #985). */
+/** Where the management center links out (task #985). */
 
-import type { CustomerProblem } from '../types/manage';
+/** The Builder, opened on this conversation — "חקירה ב-Builder" (Lybi team only, new tab). */
+export const builderConversationHref = (agentSlug: string, conversationId: number) =>
+  `/${encodeURIComponent(agentSlug)}/builder?c=${conversationId}`;
 
-/** Admin → Conversations, opened on this conversation (`?c=`). */
-export const conversationHref = (p: CustomerProblem) =>
-  `/${encodeURIComponent(p.agentSlug)}/builder/admin/conversations?c=${p.conversationId}`;
-
-/** Admin → Errors — the technical side. */
-export const errorsHref = (p: CustomerProblem) =>
-  `/${encodeURIComponent(p.agentSlug)}/builder/admin/errors`;
+/** A page of the center in a scope ('all' or an agent slug). */
+export const scopePath = (scope: string, page: string) => `/manage/${encodeURIComponent(scope)}/${page}`;

@@ -53,6 +53,51 @@ export interface ManageAgentSummary {
   needsAction: number;
 }
 
+/** GET /api/manage/me — who is signed in and what they may open. */
+export interface ManageMe {
+  email: string;
+  name: string;
+  picture: string | null;
+  /** An every-agent grant (the Lybi team): "כל הסוכנים" + every agent. */
+  all: boolean;
+  /** Every agent (all) or the person's own, by display name. */
+  agents: Array<{ slug: string; name: string; archived: boolean }>;
+}
+
+/** POST /api/manage/auth/google */
+export interface ManageSignIn {
+  token: string;
+  expiresAt: string;
+  me: ManageMe;
+}
+
+/** GET /api/manage/agents/:slug/conversations/:id — the "צפייה" window. */
+export interface ManageConversation {
+  id: number;
+  agentSlug: string;
+  agentName: string;
+  customerName: string | null;
+  audience: 'real' | 'test';
+  channel: string | null;
+  status: string | null;
+  startedAt: string | null;
+  lastActivityAt: string | null;
+  lastCustomerAt: string | null;
+  /** Customer + agent messages with text. */
+  messageCount: number;
+  customerMessages: number;
+  /** The crew the conversation is in now, by name. */
+  phase: string | null;
+  /** The last few, oldest first. */
+  messages: Array<{ role: 'customer' | 'agent'; text: string; at: string | null }>;
+  shownMessages: number;
+}
+
+/** The `code` of a refused /api/manage call. */
+export type ManageErrorCode =
+  | 'signed_out' | 'no_access' | 'no_agent_access' | 'no_agent' | 'not_all'
+  | 'no_conversation' | 'google_failed';
+
 export interface CustomerProblemsResponse {
   scope: 'agent' | 'all';
   agent: ManageAgentSummary | null;

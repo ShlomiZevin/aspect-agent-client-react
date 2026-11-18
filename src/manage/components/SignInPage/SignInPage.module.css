@@ -1,0 +1,158 @@
+/* The management center's door (task #985). Tokens: src/manage/tokens.css. */
+
+.root {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--m-bg);
+}
+
+.topbar {
+  flex: 0 0 48px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  background: var(--m-bar);
+  color: #fff;
+}
+
+.logo {
+  height: 24px;
+  width: auto;
+  display: block;
+}
+
+.topSep {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.centerName {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh 16px 24px;
+}
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  padding: 28px 28px 20px;
+  border: 1px solid var(--m-line);
+  border-radius: var(--m-radius);
+  background: var(--m-card);
+  box-shadow: var(--m-shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.title {
+  margin: 0 0 6px;
+  font-size: var(--m-fs-title);
+  font-weight: 700;
+  color: var(--m-text);
+  line-height: 1.35;
+}
+
+.email {
+  color: var(--m-plum);
+}
+
+.sub {
+  margin: 0;
+  color: var(--m-muted);
+  font-size: var(--m-fs);
+}
+
+.badge {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 10px;
+  border-radius: 50%;
+  background: var(--m-pink-bg);
+  color: var(--m-pink-ink);
+  font-weight: 800;
+}
+
+.other {
+  margin: 18px 0 0;
+  color: var(--m-text);
+  font-size: var(--m-fs-sm);
+  font-weight: 700;
+}
+
+.googleArea {
+  margin-top: 16px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.googleSlot {
+  min-height: 40px;
+}
+
+.busy {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.hint {
+  margin: 8px 0 0;
+  min-height: 18px;
+  color: var(--m-faint);
+  font-size: var(--m-fs-sm);
+}
+
+.quiet {
+  margin: 0;
+  color: var(--m-muted);
+}
+
+.button {
+  margin-top: 14px;
+  height: 32px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--m-plum);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--m-plum-hover);
+}
+
+@media (max-width: 860px) {
+  .topbar {
+    flex-basis: 44px;
+    padding: 0 12px;
+  }
+
+  .logo {
+    height: 20px;
+  }
+
+  .main {
+    padding-top: 8vh;
+  }
+}

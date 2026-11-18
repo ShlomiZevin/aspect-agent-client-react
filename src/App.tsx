@@ -33,7 +33,7 @@ const IntelligenceHomePage = lazy(() => import('./pages/IntelligenceHomePage').t
 // Lybi HQ — our internal company brain. Its own subtree under src/hq/, lazy so
 // no customer-facing route ever downloads it. Never a product surface.
 const HQApp = lazy(() => import('./hq/HQApp').then(m => ({ default: m.HQApp })));
-// Management center for non-technical users (task #985) — /manage/<slug>, /manage/all.
+// Management center for non-technical users (task #985) — /manage, /manage/<slug>, /manage/all.
 // Its own subtree under src/manage/, lazy like HQ.
 const ManageApp = lazy(() => import('./manage/ManageApp').then(m => ({ default: m.ManageApp })));
 
@@ -518,8 +518,17 @@ function AppContent() {
         />
         <Route path="/tasks/:taskId" element={<TaskBoardPage />} />
 
-        {/* Management center for non-technical users (task #985): one agent, or
-            /manage/all for the Lybi team (super-admin unlock, like /users). */}
+        {/* Management center for non-technical users (task #985): Google
+            sign-in; /manage lands on "all" (every-agent grant) or the
+            person's first agent. */}
+        <Route
+          path="/manage"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <ManageApp />
+            </Suspense>
+          }
+        />
         <Route
           path="/manage/:agentSlug/*"
           element={
