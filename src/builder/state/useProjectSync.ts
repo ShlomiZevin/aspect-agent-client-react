@@ -66,6 +66,10 @@ export function bodyOfAgent(agent: AgentDoc): AgentBody {
     // Model route (#984) — THE copy that persists it. Direct == absent, in
     // lockstep with BuilderContext.bodyOfAgent.
     ...(agent.modelRoute === 'vertex' ? { modelRoute: 'vertex' as const } : {}),
+    // Data protection (#986) — THE copy that persists it. Absent = off, in
+    // lockstep with BuilderContext.bodyOfAgent. Without this a Builder save
+    // would silently drop settings made through the MCP.
+    ...(agent.dataProtection ? { dataProtection: agent.dataProtection } : {}),
   };
 }
 
@@ -78,6 +82,9 @@ export function bodyOfCrew(crew: CrewDoc): CrewBody {
     persona: crew.persona,
     addons: crew.addons,
     fields: crew.fields,
+    // Data protection override (#986) — THE copy that persists it. Empty ==
+    // absent, in lockstep with BuilderContext.bodyOf.
+    ...(crew.dataProtection ? { dataProtection: crew.dataProtection } : {}),
   };
 }
 

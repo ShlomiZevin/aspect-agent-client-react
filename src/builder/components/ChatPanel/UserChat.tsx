@@ -25,6 +25,7 @@ import {
   listConversations,
   renameConversation,
   stopRuntimeTurn,
+  recordProtectionBlock,
   type ConversationAudience,
   type ConversationListItem,
   type ConversationMessage,
@@ -44,6 +45,8 @@ import { ChatSettingsPopover, useChatSettings } from './ChatSettings';
 // is fully scoped under `.lybi-chat`, so we mount it inside a scoped
 // wrapper div and nothing leaks into the builder's styles.
 import { ReportModal } from '../../../live-chat/components/ReportModal';
+import { checkMessage } from '@protection/detectors.mjs';
+import { detectorNames } from '../../../live-chat/protection';
 import { I18N } from '../../../live-chat/i18n';
 import '../../../live-chat/liveChat.css';
 import styles from './ChatPanel.module.css';
@@ -83,6 +86,10 @@ interface Turn {
   /** Live web searches this turn (task #967) — "Searching the web: '…'"
    *  lines above the answer. Live only; the run card keeps them after reload. */
   webSearches?: LiveWebSearch[];
+  /** Task #986: data protection stopped this message — in the browser
+   *  ('client', nothing was sent) or on the server ('server', nothing was
+   *  saved, no add-on ran). `message` is what the customer would see. */
+  protection?: { side: 'client' | 'server'; detectors: string[]; message: string };
 }
 
 interface LiveWebSearch {
@@ -511,6 +518,15 @@ export function UserChat() {
   // simultaneously, "last" is the wrong target for older streams.
   const makeHandleEvent = (turnId: string) => (e: RuntimeEvent) => {
     switch (e.type) {
+      case 'protection.blocked':
+        // #986: the server stopped it — not saved, no add-on ran. The
+        // bubble keeps the text so the author sees what was stopped.
+        updateTurn(turnId, t => ({ ...t, protection: { side: 'server', detectors: e.detectors, message: e.message } }));
+        if (latestSendTurnIdRef.current === turnId) {
+          setAwaitingTalker(false);
+          latestSendTurnIdRef.current = null;
+        }
+        return;
       case 'conversation':
         setConversationId(e.conversationId);
         updateTurn(turnId, t => ({ ...t, userMessageId: e.messageId }));
@@ -736,6 +752,33 @@ export function UserChat() {
       return;
     }
     setErrorMsg(null);
+
+    // Data protection (#986) — in the browser first, against the WORKING
+    // copy (agent + the crew this turn goes to), like the server does with
+    // the same bodies. A match sends nothing and is recorded (ids only).
+    {
+      const wcAgent = doc.agents.find(a => a.slug === slug);
+      const wcCrewId = currentCrewId || wcAgent?.defaultCrewId || wcAgent?.crews[0]?.id || null;
+      const wcCrew = wcCrewId ? wcAgent?.crews.find(c => c.id === wcCrewId) ?? null : null;
+      const block = wcAgent ? checkMessage(text, bodyOfAgent(wcAgent), wcCrew ? bodyOfCrew(wcCrew) : null, 'he') : null;
+      if (block) {
+        setInput('');
+        setTurns(prev => [...prev, {
+          id: `turn_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          userText: text,
+          userMessageId: null,
+          assistantText: '',
+          assistantMessageId: null,
+          runs: [],
+          runsLoaded: true,
+          dcResolutions: [],
+          protection: { side: 'client', detectors: block.detectors, message: block.message },
+        }]);
+        void recordProtectionBlock({ agentSlug: slug, surface: 'builder', detectors: block.detectors, conversationId, lang: 'he' });
+        return;
+      }
+    }
+
     setAwaitingTalker(true);
     setInFlightCount(c => c + 1);
     setInput('');
@@ -1239,6 +1282,29 @@ function Turn({ turn, rtl, showTimeline, runHidden, awaiting, onExpand, onReport
           <span className={styles.stopNoticeIcon}>⏹</span>
           Stopped — reply not saved
         </div>
+      )}
+      {/* Data protection (#986): the same system pill as a Stop, then the
+          fixed message exactly as the customer gets it. */}
+      {turn.protection && (
+        <>
+          <div
+            className={styles.stopNotice}
+            title={turn.protection.side === 'client'
+              ? 'Caught in the browser — the text never reached the server.'
+              : 'Caught on the server — the message was not saved and no add-on ran.'}
+          >
+            <span className={styles.stopNoticeIcon}>🛡</span>
+            Data protection ({turn.protection.side === 'client' ? 'browser' : 'server'}) — {detectorNames(turn.protection.detectors, 'en')} · not saved
+          </div>
+          <Bubble
+            text={turn.protection.message}
+            who="bot"
+            rtl={rtl}
+            deleteControls={false}
+            onDeleteSelf={() => {}}
+            onDeleteFromHere={() => {}}
+          />
+        </>
       )}
     </div>
   );

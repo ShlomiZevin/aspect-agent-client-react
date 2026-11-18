@@ -31,6 +31,7 @@ import { getLibraryEntry } from '../../state/addonLibrary';
 import { AddonModal } from '../AddonModal/AddonModal';
 import { AddStepModal, type AddStepChoice } from '../AddStepModal/AddStepModal';
 import { AgentComboChip } from './AgentComboChip';
+import { DataProtectionGateCard } from '../DataProtection/DataProtection';
 import { formatTrigger } from '../Trigger/triggerFormat';
 import { FilterModal } from '../Filter/FilterModal';
 import { FilterChipBadge } from '../Filter/FilterChipBadge';
@@ -249,8 +250,18 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                     chain (each entry click → read-only modal) and an
                     "Open agent" link. Not present at agent scope
                     (you're already editing it there). */}
+                {/* Data protection gate (task #986) — fixed FIRST card at
+                    both scopes: it runs before the agent cortex and every
+                    crew chain, in code. Click → the agent's settings (agent
+                    scope) or this crew's exception (crew scope). */}
+                {lane.id === 'main' && (
+                  <DataProtectionGateCard agent={agent} crew={isAgentScope ? null : crew} compact={compact} />
+                )}
                 {!isAgentScope && lane.id === 'main' && (
-                  <AgentComboChip agent={agent} compact={compact} />
+                  <>
+                    <span className={styles.arrow}><span aria-hidden="true">→</span></span>
+                    <AgentComboChip agent={agent} compact={compact} />
+                  </>
                 )}
                 {items.length === 0 && compact && (
                   <span className={styles.compactEmpty}>
@@ -475,7 +486,10 @@ export function ChainCanvas({ agent, crew, readOnly = false, compact = false, he
                 // lane cards whose right card isn't a Talker.
                 const renderConnector = (i: number, joinsPrev: boolean) => {
                   const instance = items[i];
-                  const drawLeadingArrow = isMainLane && (i > 0 || (!isAgentScope && i === 0));
+                  // Every main-lane card, the first one too: a fixed card
+                  // always sits before it (the data protection gate; at crew
+                  // scope also the Agent combo chip).
+                  const drawLeadingArrow = isMainLane;
                   if (!drawLeadingArrow) return null;
                   const canToggleJoin = interactiveLane
                     && i > 0

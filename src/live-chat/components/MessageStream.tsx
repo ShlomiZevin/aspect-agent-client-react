@@ -3,6 +3,7 @@ import type { LiveTurn } from '../useLiveChat';
 import type { Dict, Lang } from '../i18n';
 import { MessageBubble } from './MessageBubble';
 import { WelcomeBoxes } from './WelcomeBoxes';
+import { ProtectionNotice } from './ProtectionNotice';
 
 interface Props {
   turns: LiveTurn[];
@@ -21,10 +22,14 @@ interface Props {
   onReport: (messageText: string) => void;
   onDelete: (turn: LiveTurn) => void;
   onDeleteFromHere: (turn: LiveTurn) => void;
+  /** Data protection notice (#986): back to the composer to edit. */
+  onEditBlocked: () => void;
+  /** Data protection notice (#986): the one-tap "blocked by mistake". */
+  onReportMistake: (turn: LiveTurn) => void;
 }
 
 export function MessageStream({
-  turns, t, lang, debug, showWelcome, welcomeComposer, botLabel, crewNames, defaultCrewName, onPick, onExpandThink, onReport, onDelete, onDeleteFromHere,
+  turns, t, lang, debug, showWelcome, welcomeComposer, botLabel, crewNames, defaultCrewName, onPick, onExpandThink, onReport, onDelete, onDeleteFromHere, onEditBlocked, onReportMistake,
 }: Props) {
   const streamRef = useRef<HTMLDivElement>(null);
   const wasAtBottom = useRef(true);
@@ -46,7 +51,17 @@ export function MessageStream({
     <div className="stream" ref={streamRef} onScroll={onScroll}>
       <div className="stream-inner">
         {showWelcome && <WelcomeBoxes t={t} lang={lang} composer={welcomeComposer} onPick={onPick} />}
-        {turns.map(turn => (
+        {turns.map(turn => (turn.protection ? (
+          <div key={turn.id} className="msg bot protect-row">
+            <ProtectionNotice
+              protection={turn.protection}
+              t={t}
+              lang={lang}
+              onEdit={onEditBlocked}
+              onMistake={() => onReportMistake(turn)}
+            />
+          </div>
+        ) : (
           <MessageBubble
             key={turn.id}
             turn={turn}
@@ -60,7 +75,7 @@ export function MessageStream({
             onDelete={() => onDelete(turn)}
             onDeleteFromHere={() => onDeleteFromHere(turn)}
           />
-        ))}
+        )))}
       </div>
     </div>
   );

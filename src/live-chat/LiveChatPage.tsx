@@ -14,6 +14,7 @@ import { getOwnerUserId } from './identity';
 import { I18N, dirOf } from './i18n';
 import { useLiveSettings } from './useLiveSettings';
 import { useLiveChat, type LiveTurn } from './useLiveChat';
+import { publishedSource, type ProtectionSource } from './protection';
 import { useBranding } from './useBranding';
 import { brandCssVars } from './branding';
 import { clientById } from './liveConfig';
@@ -79,7 +80,16 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
   // before the first Publish. Applies to both `/:agent/live` and the
   // login-gated `/:agent/go` (restricted) — customers always get
   // published, never the builder's in-progress active version.
-  const chat = useLiveChat({ slug, ownerUserId, version: 'published' });
+  const [input, setInput] = useState('');
+  // Data protection (#986): the published bodies (agent + crews) for the
+  // check before sending — filled when the agent loads (below). A stopped
+  // message's text comes back into the box unless something new is there.
+  const [protection, setProtection] = useState<ProtectionSource | null>(null);
+  const [composerFocus, setComposerFocus] = useState(0);
+  const onDraftBack = useCallback((text: string) => {
+    setInput(cur => (cur.trim() ? cur : text));
+  }, []);
+  const chat = useLiveChat({ slug, ownerUserId, version: 'published', protection, lang: settings.lang, onDraftBack });
 
   // Live Brain — the customer-facing panels for this conversation. They
   // arrive live on the chat stream (`brain.snapshot`) and hydrate once
@@ -98,7 +108,6 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
   const brandName = brand.agentName || clientById(settings.client).name[settings.lang];
 
   // ── overlay / UI state ───────────────────────────────────────────
-  const [input, setInput] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [brainOpen, setBrainOpen] = useState(false);
@@ -138,6 +147,7 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
           (a?.defaultCrewId && names[a.defaultCrewId]) || Object.values(names)[0] || '',
         );
         setAgentDisplayName(a?.name || slug);
+        setProtection(publishedSource(a));
         setGate(a && a.activeVersionId ? 'ready' : 'no-active');
       })
       .catch(() => { if (!cancelled) setGate('error'); });
@@ -363,6 +373,7 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
                     uiDir={dir}
                     ctrlEnter={settings.ctrlEnter}
                     variant="card"
+                    focusKey={composerFocus}
                     onChange={setInput}
                     onSend={onSend}
                     onToggleCtrlEnter={() => setSetting({ ctrlEnter: !settings.ctrlEnter })}
@@ -376,6 +387,8 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
                 onReport={text => setReportFor(text)}
                 onDelete={turn => setPendingDelete({ turn, mode: 'self' })}
                 onDeleteFromHere={turn => setPendingDelete({ turn, mode: 'fromHere' })}
+                onEditBlocked={() => setComposerFocus(n => n + 1)}
+                onReportMistake={turn => { void chat.reportBlockMistake(turn); }}
               />
               {chat.error && <div className="err-chip">{chat.error}</div>}
               {/* Bottom composer only once the conversation has started —
@@ -387,6 +400,7 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
                   busy={chat.busy}
                   uiDir={dir}
                   ctrlEnter={settings.ctrlEnter}
+                  focusKey={composerFocus}
                   onChange={setInput}
                   onSend={onSend}
                   onToggleCtrlEnter={() => setSetting({ ctrlEnter: !settings.ctrlEnter })}

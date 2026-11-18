@@ -15,10 +15,21 @@ interface Props {
   onChange: (v: string) => void;
   onSend: () => void;
   onToggleCtrlEnter: () => void;
+  /** Bump to put the cursor in the box (e.g. "Edit the message" on a data
+   *  protection notice, #986). Ignored on mount. */
+  focusKey?: number;
 }
 
-export function Composer({ t, value, busy, uiDir, ctrlEnter, variant = 'bottom', onChange, onSend, onToggleCtrlEnter }: Props) {
+export function Composer({ t, value, busy, uiDir, ctrlEnter, variant = 'bottom', onChange, onSend, onToggleCtrlEnter, focusKey = 0 }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
+
+  // Asked to focus (#986): the cursor goes to the END of the kept text.
+  useEffect(() => {
+    if (!focusKey || !ref.current) return;
+    const el = ref.current;
+    el.focus({ preventScroll: true });
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [focusKey]);
 
   // The cursor lives in the text box (task #883). The box is never
   // switched off while the agent answers — that is what used to throw
@@ -33,9 +44,13 @@ export function Composer({ t, value, busy, uiDir, ctrlEnter, variant = 'bottom',
     if (hasKeyboard) ref.current?.focus({ preventScroll: true });
   }, []);
 
-  // Back to one line once the message is sent.
+  // Back to one line once the message is sent; grown to fit when text is
+  // put back from outside (a data protection block returns it, #986).
   useEffect(() => {
-    if (!value && ref.current) ref.current.style.height = 'auto';
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    if (value) el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
   }, [value]);
 
   // Nothing is sent — and nothing typed is lost — while the agent is

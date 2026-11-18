@@ -99,6 +99,19 @@ export interface Dict {
   notReadyNoActiveSub: string;
   notReadyNoActiveCta: string;
   loadError: string;
+  // Data protection notice (task #986) — design D.
+  /** Card title. */
+  protectTitle: string;
+  /** Before the detector names: "We noticed:". */
+  protectDetected: string;
+  /** The reassurance line: not sent/saved, the text is back in the box. */
+  protectKept: string;
+  /** "Edit the message" — puts the cursor back in the composer. */
+  protectEdit: string;
+  /** "Blocked by mistake" — the one-tap report. */
+  protectMistake: string;
+  /** After the tap. */
+  protectThanks: string;
 }
 
 export const I18N: Record<Lang, Dict> = {
@@ -185,6 +198,12 @@ export const I18N: Record<Lang, Dict> = {
     notReadyNoActiveSub: 'כדי לעלות ל-Live צריך לשמור גרסה פעילה (Active) לסוכן.',
     notReadyNoActiveCta: 'פתח ב-Builder',
     loadError: 'טעינת הסוכן נכשלה',
+    protectTitle: 'רגע קטן לעצור ולשמור עליך',
+    protectDetected: 'זיהינו:',
+    protectKept: 'ההודעה לא נשלחה ולא נשמרה. הטקסט שלך מחכה בתיבת הכתיבה — אפשר לנסח אותו מחדש בלי המידע הזה.',
+    protectEdit: 'לערוך את ההודעה',
+    protectMistake: 'נחסם בטעות',
+    protectThanks: 'תודה, נבדוק את זה',
   },
   en: {
     brain: 'Live Brain',
@@ -269,6 +288,12 @@ export const I18N: Record<Lang, Dict> = {
     notReadyNoActiveSub: 'Publish an active version of this agent to go live.',
     notReadyNoActiveCta: 'Open in builder',
     loadError: 'Failed to load agent',
+    protectTitle: 'A short pause to keep you safe',
+    protectDetected: 'We noticed:',
+    protectKept: 'Your message wasn\'t sent or saved. Your text is waiting in the message box — you can write it again without that information.',
+    protectEdit: 'Edit the message',
+    protectMistake: 'Blocked by mistake',
+    protectThanks: 'Thanks, we\'ll look into it',
   },
 };
 

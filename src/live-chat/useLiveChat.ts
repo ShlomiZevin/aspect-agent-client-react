@@ -29,9 +29,27 @@ import {
   type ProfilerPanelData,
   type ProfilerFrame,
   type ProfilerAskConfig,
+  recordProtectionBlock,
+  reportProtectionMistake,
 } from '../builder/state/builderApi';
 import { useProactivePush } from '../builder/state/useProactivePush';
 import { sendRuntimeMessage, type RuntimeEvent } from '../builder/state/runtimeStream';
+import { checkOutgoing, type ProtectionSource } from './protection';
+
+/**
+ * A message data protection stopped (task #986) — in the browser before
+ * sending ('client') or on the server ('server'). Its turn shows the
+ * notice instead of the message; the text goes back to the composer.
+ */
+export interface LiveProtection {
+  side: 'client' | 'server';
+  /** null until the browser block is recorded, or when the record failed. */
+  blockId: number | null;
+  detectors: string[];
+  message: string;
+  /** The "blocked by mistake" tap. */
+  mistake: 'idle' | 'sending' | 'thanks';
+}
 
 export interface ThinkRun {
   instanceId: string;
@@ -62,6 +80,9 @@ export interface LiveTurn {
   /** Live web searches (task #967) — shown in the thinking bubble until the
    *  answer starts. */
   webSearches?: Array<{ id: string; query: string | null; kind?: string; status: 'searching' | 'done' | 'error' }>;
+  /** Set when data protection stopped this turn's message (#986). Such a
+   *  turn has no user text (nothing was sent or saved) and no reply. */
+  protection?: LiveProtection;
 }
 
 function pairMessagesToTurns(messages: ConversationMessage[]): LiveTurn[] {
@@ -155,6 +176,8 @@ export interface UseLiveChat {
   /** True while a Profiler hard-refresh is running. */
   profilerRefreshing: boolean;
   send: (text: string) => Promise<void>;
+  /** The customer's one tap "blocked by mistake" on a stopped turn (#986). */
+  reportBlockMistake: (turn: LiveTurn) => Promise<void>;
   renameConversation: (id: number, name: string) => Promise<void>;
   deleteConversations: (ids: number[]) => Promise<void>;
   newChat: () => void;
@@ -170,9 +193,32 @@ interface Args {
   slug: string;
   ownerUserId: string;
   version: 'viewing' | 'active' | 'published';
+  /** Data protection (#986): the bodies of the version this chat runs, for
+   *  the check before sending. null/absent → no browser check (the server
+   *  still checks). */
+  protection?: ProtectionSource | null;
+  /** The chat's language — the notice's message and the server's. */
+  lang?: string;
+  /** A stopped message's text, handed back so the composer can show it again. */
+  onDraftBack?: (text: string) => void;
 }
 
-export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
+export function useLiveChat({ slug, ownerUserId, version, protection = null, lang = 'he', onDraftBack }: Args): UseLiveChat {
+  // Data protection inputs, read by `send` and the stream handlers without
+  // re-creating them on every render.
+  const protectionRef = useRef<ProtectionSource | null>(protection);
+  const langRef = useRef(lang);
+  const draftBackRef = useRef(onDraftBack);
+  useEffect(() => {
+    protectionRef.current = protection;
+    langRef.current = lang;
+    draftBackRef.current = onDraftBack;
+  }, [protection, lang, onDraftBack]);
+  // The open conversation's current crew — the browser check uses the same
+  // agent + crew merge as the server. Learned from the `conversation` event,
+  // transitions, and the conversation list's metadata (on open / reload).
+  const currentCrewIdRef = useRef<string | null>(null);
+  const convListRef = useRef<ConversationListItem[]>([]);
   const [turns, setTurns] = useState<LiveTurn[]>([]);
   const [convList, setConvList] = useState<ConversationListItem[]>([]);
   const [conversationId, setConversationIdState] = useState<number | null>(null);
@@ -253,7 +299,13 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
   const reloadConvList = useCallback(async () => {
     if (!slug) return;
     try {
-      setConvList(await listConversations({ agentSlug: slug, ownerUserId, source: 'live' }));
+      const list = await listConversations({ agentSlug: slug, ownerUserId, source: 'live' });
+      convListRef.current = list;
+      // The server's word on the open conversation's current crew (#986).
+      const open = list.find(c => c.id === conversationIdRef.current);
+      const crew = open?.metadata && typeof open.metadata.currentCrewId === 'string' ? open.metadata.currentCrewId : null;
+      if (open && crew) currentCrewIdRef.current = crew;
+      setConvList(list);
     } catch (err) {
       console.warn('[live] listConversations failed:', err);
     }
@@ -262,6 +314,7 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
   // Reset + (re)load the conversation list whenever the agent changes.
   useEffect(() => {
     setConversationId(null);
+    currentCrewIdRef.current = null;
     setTurns([]);
     setConvList([]);
     setError(null);
@@ -272,11 +325,27 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
   }, [slug, reloadConvList, resetLivePanels, resetProfilerPanels, setConversationId, releaseComposer]);
 
   /** The SSE handler of ONE send — bound to its turn and conversation. */
-  const makeHandleEvent = useCallback((turnId: string, convId: number) => (e: RuntimeEvent) => {
+  const makeHandleEvent = useCallback((turnId: string, convId: number, sentText: string) => (e: RuntimeEvent) => {
     const onScreen = () => conversationIdRef.current === convId;
     switch (e.type) {
+      case 'protection.blocked':
+        // The server stopped it (#986): nothing was saved, no add-on ran.
+        // The bubble drops the text (it was never accepted), the notice
+        // takes its place, and the text goes back to the composer.
+        updateTurn(turnId, t => ({
+          ...t,
+          userText: '',
+          thinkingLabel: null,
+          protection: { side: 'server', blockId: e.blockId, detectors: e.detectors, message: e.message, mistake: 'idle' },
+        }));
+        if (onScreen()) draftBackRef.current?.(sentText);
+        replyDone(turnId);
+        return;
       case 'conversation':
-        if (onScreen()) setConversationId(e.conversationId);
+        if (onScreen()) {
+          setConversationId(e.conversationId);
+          if (e.currentCrewId) currentCrewIdRef.current = e.currentCrewId;
+        }
         updateTurn(turnId, t => ({
           ...t,
           userMessageId: e.messageId,
@@ -309,6 +378,7 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
         });
         return;
       case 'addon.output':
+        if (e.transition?.to && onScreen()) currentCrewIdRef.current = e.transition.to;
         updateTurn(turnId, t => {
           // A transition router can move the conversation to a new crew —
           // reflect that as the responding crew for this turn.
@@ -393,6 +463,31 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     if (!text || awaitingReplyRef.current || loadingRef.current || !slug) return;
     setError(null);
     const turnId = `turn_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    // Data protection (#986) — BEFORE anything leaves the browser: the same
+    // detectors and agent + current-crew settings the server uses. A match
+    // sends nothing; the notice takes the turn's place, the text goes back
+    // to the composer, and the block is recorded (detector ids only).
+    const block = checkOutgoing(text, protectionRef.current, currentCrewIdRef.current, langRef.current);
+    if (block) {
+      setTurns(prev => [...prev, {
+        ...newLiveTurn(turnId, ''),
+        thinkingLabel: null,
+        protection: { side: 'client', blockId: null, detectors: block.detectors, message: block.message, mistake: 'idle' },
+      }]);
+      draftBackRef.current?.(text);
+      const blockId = await recordProtectionBlock({
+        agentSlug: slug,
+        surface: 'live',
+        detectors: block.detectors,
+        conversationId: conversationIdRef.current,
+        lang: langRef.current,
+      });
+      if (blockId !== null) {
+        updateTurn(turnId, t => (t.protection ? { ...t, protection: { ...t.protection, blockId } } : t));
+      }
+      return;
+    }
     latestSendRef.current = turnId;
     awaitingReplyRef.current = true;
     setAwaitingReply(true);
@@ -422,7 +517,8 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
         ownerUserId,
         userMessage: text,
         version,
-        onEvent: makeHandleEvent(turnId, convId),
+        lang: langRef.current,
+        onEvent: makeHandleEvent(turnId, convId, text),
       });
     } catch (err) {
       // Not when the customer has moved to another conversation meanwhile.
@@ -450,6 +546,10 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
       const msgs = await fetchConversationMessages({ agentSlug: slug, conversationId: id });
       setTurns(pairMessagesToTurns(msgs));
       setConversationId(id);
+      // Its current crew, for the data protection check (#986).
+      const listed = convListRef.current.find(c => c.id === id);
+      const listedCrew = listed?.metadata && typeof listed.metadata.currentCrewId === 'string' ? listed.metadata.currentCrewId : null;
+      currentCrewIdRef.current = listedCrew;
       // Hydrate the Live Brain from stored state — the ONE fetch this
       // feature needs (past turns didn't stream to this client). New
       // turns update it live, panel by panel, via `brain.panel`.
@@ -547,6 +647,7 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
 
   const newChat = useCallback(() => {
     setConversationId(null);
+    currentCrewIdRef.current = null;
     setTurns([]);
     setError(null);
     // A reply still on its way belongs to the conversation left behind.
@@ -633,12 +734,25 @@ export function useLiveChat({ slug, ownerUserId, version }: Args): UseLiveChat {
     }
   }, [conversationId, slug, reloadConvList]);
 
+  const reportBlockMistake = useCallback(async (turn: LiveTurn) => {
+    const p = turn.protection;
+    if (!p || p.blockId === null || p.mistake !== 'idle' || !slug) return;
+    const blockId = p.blockId;
+    updateTurn(turn.id, t => (t.protection ? { ...t, protection: { ...t.protection, mistake: 'sending' } } : t));
+    try {
+      await reportProtectionMistake({ agentSlug: slug, blockId });
+      updateTurn(turn.id, t => (t.protection ? { ...t, protection: { ...t.protection, mistake: 'thanks' } } : t));
+    } catch {
+      updateTurn(turn.id, t => (t.protection ? { ...t, protection: { ...t.protection, mistake: 'idle' } } : t));
+    }
+  }, [slug, updateTurn]);
+
   const clearError = useCallback(() => setError(null), []);
 
   return {
     turns, convList, conversationId, busy, error, livePanels, liveFrame,
     profilerPanels, profilerFrame, profilerAsk, askProfiler, refreshProfiler, profilerRefreshing,
-    send, newChat, refresh, loadConversation, loadThinkRuns,
+    send, reportBlockMistake, newChat, refresh, loadConversation, loadThinkRuns,
     renameConversation, deleteConversations, deleteTurn, deleteFromHere, clearError,
   };
 }

@@ -19,6 +19,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SchemaSectionModal } from './SchemaSectionModal';
 import { ModelRouteControl } from './ModelRouteControl';
+import { DataProtectionRow } from '../DataProtection/DataProtection';
 import type { SchemaSectionKind } from '../SchemaPanel/SchemaPanel';
 import type { AgentDoc } from '../../types';
 import styles from './AgentSetupArea.module.css';
@@ -61,6 +62,9 @@ export function AgentSetupArea({ agent }: Props) {
       {/* Model route: Direct / Vertex (task #984, beta) — an agent setting,
           not a page: its own row, above the chips. */}
       <ModelRouteControl agent={agent} />
+      {/* Data protection (task #986) — the same kind of agent setting, the
+          same row pattern, right under the model route. */}
+      <DataProtectionRow agent={agent} />
       <div className={styles.chips}>
         <button
           type="button"

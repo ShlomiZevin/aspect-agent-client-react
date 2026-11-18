@@ -24,7 +24,8 @@
     "baseUrl": ".",
     "paths": {
       "@addons/*": ["../aspect-agent-server/builder/addons/*"],
-      "@triggers/*": ["../aspect-agent-server/builder/triggers/*"]
+      "@triggers/*": ["../aspect-agent-server/builder/triggers/*"],
+      "@protection/*": ["../aspect-agent-server/builder/protection/*"]
     },
 
     /* Linting */

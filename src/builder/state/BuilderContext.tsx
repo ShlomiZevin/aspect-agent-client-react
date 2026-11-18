@@ -84,6 +84,9 @@ export function bodyOf(crew: CrewDoc): CrewBody {
     persona: crew.persona,
     addons: crew.addons,
     fields: crew.fields,
+    // Data protection override (#986) — empty == absent, in lockstep with
+    // useProjectSync.bodyOfCrew (the copy that persists it).
+    ...(crew.dataProtection ? { dataProtection: crew.dataProtection } : {}),
   };
 }
 
@@ -173,6 +176,9 @@ export function bodyOfAgent(agent: AgentDoc): AgentBody {
     // Model route (#984): Direct == absent, so agents saved before it
     // compare equal (no phantom "unsaved changes").
     ...(agent.modelRoute === 'vertex' ? { modelRoute: 'vertex' as const } : {}),
+    // Data protection (#986): absent = off, so agents saved before it
+    // compare equal (no phantom "unsaved changes").
+    ...(agent.dataProtection ? { dataProtection: agent.dataProtection } : {}),
   };
 }
 
@@ -566,7 +572,7 @@ interface BuilderState {
   // Agent-level
   updateAgent: (
     agentId: ID,
-    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets' | 'liveBrain' | 'profiler' | 'triggers' | 'modelRoute'>>,
+    patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets' | 'liveBrain' | 'profiler' | 'triggers' | 'modelRoute' | 'dataProtection'>>,
   ) => void;
   /**
    * Rename a declared domain. Cascades through `agent.domains`,
@@ -650,7 +656,7 @@ interface BuilderState {
   updateCrew: (
     agentId: ID,
     crewId: ID,
-    patch: Partial<Pick<CrewDoc, 'name' | 'description' | 'spec' | 'persona'>>,
+    patch: Partial<Pick<CrewDoc, 'name' | 'description' | 'spec' | 'persona' | 'dataProtection'>>,
   ) => void;
 
   // Addons inside a crew
@@ -1457,7 +1463,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
 
   // ── Agent ──
   const updateAgent = useCallback(
-    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets' | 'liveBrain' | 'profiler' | 'triggers' | 'modelRoute'>>) => {
+    (agentId: ID, patch: Partial<Pick<AgentDoc, 'name' | 'spec' | 'persona' | 'personas' | 'defaultCrewId' | 'fields' | 'domains' | 'tags' | 'parameters' | 'enums' | 'snippets' | 'liveBrain' | 'profiler' | 'triggers' | 'modelRoute' | 'dataProtection'>>) => {
       setDoc(d => ({
         ...d,
         agents: d.agents.map(a => (a.id === agentId ? { ...a, ...patch } : a)),
@@ -1677,7 +1683,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
     (
       agentId: ID,
       crewId: ID,
-      patch: Partial<Pick<CrewDoc, 'name' | 'description' | 'spec' | 'persona'>>,
+      patch: Partial<Pick<CrewDoc, 'name' | 'description' | 'spec' | 'persona' | 'dataProtection'>>,
     ) => {
       setDoc(d => ({
         ...d,

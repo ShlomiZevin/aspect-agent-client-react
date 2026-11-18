@@ -656,3 +656,58 @@
 .lybi-chat .web-search { font-size: 12.5px; line-height: 1.4; color: var(--text-2); word-break: break-word; }
 .lybi-chat .web-search.live { animation: lybiWebSearchPulse 1.4s ease-in-out infinite; }
 @keyframes lybiWebSearchPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+/* ---------- data protection notice (task #986, design D) ----------
+ * A warm card in the stream where the stopped message would have been: the
+ * shield, the agent's explanation, a reassurance strip and two actions.
+ * Colours come from the brand tokens; the mistake button and its thanks
+ * line share one box so the tap never moves anything. */
+.lybi-chat[data-theme="light"] { --protect-soft-1: #F4ECFD; --protect-soft-2: #D9C2F5; --protect-ring: #C3A2EC; --protect-card: linear-gradient(160deg, #FFFFFF 0%, #F7F0FE 100%); --protect-strip: #F1E8FB; }
+.lybi-chat[data-theme="dark"]  { --protect-soft-1: rgba(214, 186, 247, .35); --protect-soft-2: rgba(176, 123, 232, .55); --protect-ring: rgba(195, 162, 236, .6); --protect-card: rgba(255, 255, 255, .07); --protect-strip: rgba(176, 123, 232, .16); }
+.lybi-chat .protect-card {
+  width: min(520px, 100%); margin: 2px 0 6px; padding: 18px 18px 16px;
+  background: var(--protect-card); border: 1px solid var(--border); border-radius: 22px;
+  box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px;
+  animation: lybiProtectIn .28s ease-out;
+}
+@keyframes lybiProtectIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.lybi-chat .protect-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.lybi-chat .msg.protect-row { max-width: min(560px, 100%); }
+.lybi-chat .protect-title { font-size: 22px; font-weight: 800; line-height: 1.3; color: var(--text); min-width: 0; }
+/* The heart rides on the title's last line instead of wrapping alone. */
+.lybi-chat .protect-title .protect-heart { vertical-align: -3px; margin-inline-start: 7px; }
+.lybi-chat .protect-heart { width: 22px; height: 22px; color: var(--pur2); flex-shrink: 0; display: inline-block; }
+.lybi-chat .protect-heart.small { width: 17px; height: 17px; }
+.lybi-chat .protect-art { width: 84px; height: 84px; flex-shrink: 0; }
+.lybi-chat .protect-msg { margin: 0; font-size: 16px; line-height: 1.6; color: var(--text-2); text-align: start; }
+.lybi-chat .protect-detected { margin: -4px 0 0; font-size: 13.5px; color: var(--text-3); }
+.lybi-chat .protect-detected-label { font-weight: 700; color: var(--text-2); }
+.lybi-chat .protect-kept {
+  display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+  background: var(--protect-strip); border-radius: 14px;
+  font-size: 14px; line-height: 1.5; color: var(--text-2);
+}
+.lybi-chat .protect-kept-icon { width: 24px; height: 24px; color: var(--pur); flex-shrink: 0; }
+.lybi-chat[data-theme="dark"] .protect-kept-icon { color: #D6BAF7; }
+.lybi-chat .protect-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.lybi-chat .protect-btn {
+  min-height: 46px; padding: 8px 12px; border-radius: 14px;
+  border: 1px solid var(--border-2); background: var(--surface);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 15px; font-weight: 700; color: var(--text);
+  transition: background .15s, border-color .15s;
+}
+.lybi-chat button.protect-btn:hover:not(:disabled) { background: var(--surface-2); border-color: var(--pur2); }
+.lybi-chat button.protect-btn:disabled { opacity: .55; cursor: default; }
+.lybi-chat .protect-btn-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.lybi-chat .protect-thanks { border-style: dashed; color: var(--pur2); font-weight: 700; }
+.lybi-chat[data-theme="dark"] .protect-thanks { color: #D6BAF7; }
+.lybi-chat[data-embed="1"] .protect-title { font-size: 18px; }
+.lybi-chat[data-embed="1"] .protect-art { width: 64px; height: 64px; }
+@media (max-width: 860px) {
+  .lybi-chat .msg.protect-row { max-width: 100%; width: 100%; }
+  .lybi-chat .protect-card { width: 100%; padding: 16px 14px 14px; border-radius: 18px; }
+  .lybi-chat .protect-title { font-size: 19px; }
+  .lybi-chat .protect-art { width: 68px; height: 68px; }
+  .lybi-chat .protect-btn { font-size: 14px; }
+}

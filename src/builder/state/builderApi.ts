@@ -1593,6 +1593,9 @@ export function runtimeMessageStream(args: {
    * cascade target against UNSAVED edits, not the saved DB body.
    */
   overrideCrewBodies?: Record<string, unknown>;
+  /** The chat's language ('he' | 'en') — picks the data protection
+   *  message when the server stops the message (#986). */
+  lang?: string;
 }): Promise<Response> {
   return fetch(
     `${BASE_URL}/api/agents/${args.agentSlug}/conversations/${args.conversationId}/messages`,
@@ -1603,6 +1606,7 @@ export function runtimeMessageStream(args: {
         ownerUserId: args.ownerUserId,
         userMessage: args.userMessage,
         version: args.version || 'viewing',
+        ...(args.lang ? { lang: args.lang } : {}),
         ...(args.overrideCrewId   ? { overrideCrewId:   args.overrideCrewId   } : {}),
         ...(args.overrideAgentBody ? { overrideAgentBody: args.overrideAgentBody } : {}),
         ...(args.overrideCrewBody  ? { overrideCrewBody:  args.overrideCrewBody  } : {}),
@@ -1610,6 +1614,41 @@ export function runtimeMessageStream(args: {
       }),
     },
   );
+}
+
+// ─── Data protection (task #986) ──────────────────────────────────
+
+/**
+ * Record a message the BROWSER stopped (the text never left it) —
+ * detector ids only. Resolves to the block id, or null when the record
+ * failed (the block itself already happened; nothing to retry).
+ */
+export async function recordProtectionBlock(args: {
+  agentSlug: string;
+  surface: 'live' | 'builder';
+  detectors: string[];
+  conversationId?: number | null;
+  lang?: string;
+}): Promise<number | null> {
+  try {
+    const res = await http<{ blockId?: number }>(`/api/agents/${args.agentSlug}/protection-events`, {
+      method: 'POST',
+      body: JSON.stringify({
+        surface: args.surface,
+        detectors: args.detectors,
+        ...(args.conversationId ? { conversationId: args.conversationId } : {}),
+        ...(args.lang ? { lang: args.lang } : {}),
+      }),
+    });
+    return typeof res?.blockId === 'number' ? res.blockId : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The customer's one tap "blocked by mistake" — only records. */
+export async function reportProtectionMistake(args: { agentSlug: string; blockId: number }): Promise<void> {
+  await http(`/api/agents/${args.agentSlug}/protection-events/${args.blockId}/mistake`, { method: 'POST', body: '{}' });
 }
 
 // ─── Alfred (in-builder AI helper) ────────────────────────────────

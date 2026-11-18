@@ -52,6 +52,10 @@ export default defineConfig({
       // descriptor JSON is read by the server AND the client, so the two
       // halves can't drift on names, icons or defaults.
       '@triggers': path.resolve(__dirname, '../aspect-agent-server/builder/triggers'),
+      // Same trick, for CODE (task #986): the data protection detectors
+      // (builder/protection/detectors.mjs) — the browser runs the exact
+      // rules the server gate runs, so the two sides can never disagree.
+      '@protection': path.resolve(__dirname, '../aspect-agent-server/builder/protection'),
       // Same trick again, for prose rather than code: the agent-building
       // instructions the "Work with your AI" wizard hands out are the
       // SAME file a developer reads in the server repo. Imported with

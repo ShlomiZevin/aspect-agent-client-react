@@ -203,6 +203,10 @@ export type RuntimeEvent =
     }
   /** Task #816: the turn was stopped by the user — no reply persisted. */
   | { type: 'turn.stopped' }
+  /** Task #986: data protection stopped the message on the server — it was
+   *  NOT saved and no add-on ran. `message` is the agent's fixed text in the
+   *  request's language; `blockId` is null when the record failed. */
+  | { type: 'protection.blocked'; conversationId: number; blockId: number | null; detectors: string[]; message: string }
   | { type: 'done'; totalMs: number };
 
 export interface SendArgs {
@@ -228,6 +232,8 @@ export interface SendArgs {
    *  unsaved edits to the target. Include EVERY crew you might land on
    *  during the turn (cheapest is "all of them"). */
   overrideCrewBodies?: Record<string, unknown>;
+  /** The chat's language ('he' | 'en') — picks the data protection message (#986). */
+  lang?: string;
   onEvent: (event: RuntimeEvent) => void;
   signal?: AbortSignal;
 }
