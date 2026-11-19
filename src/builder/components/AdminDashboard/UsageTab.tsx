@@ -86,6 +86,17 @@ function seconds(ms: number | null): string {
   return ms >= 100_000 ? `${Math.round(ms / 1000)}s` : `${(ms / 1000).toFixed(1)}s`;
 }
 
+/** An interaction's run time: the first call's start to the last call's end. */
+function runTime(runs: UsageRun[]): number | null {
+  let start = Infinity, end = -Infinity;
+  for (const r of runs) {
+    if (r.durationMs == null) continue;
+    start = Math.min(start, r.at - r.durationMs);
+    end = Math.max(end, r.at);
+  }
+  return end > start ? end - start : null;
+}
+
 const timeFmt = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 const dayFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short' });
 const startedFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
@@ -209,6 +220,12 @@ function ConversationDetail({ state, oneDay, linked }: {
             <span className={styles.turnMeta}>
               {int(g.calls)} call{g.calls === 1 ? '' : 's'}{searchesNote(g.searches)} · {compact(g.input)} / {compact(g.output)} tokens · {groupCost(g)}
               {g.unpriced > 0 && g.unpriced < g.calls && ` + ${g.unpriced} unpriced`}
+              {g.interaction != null && (() => {
+                const ms = runTime(g.runs);
+                return ms != null && (
+                  <span title="From the first call's start to the last call's end (offline add-ons included)."> · {seconds(ms)} run time</span>
+                );
+              })()}
             </span>
           </div>
           <div className={styles.nestedSheet}>

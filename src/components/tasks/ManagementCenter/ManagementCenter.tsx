@@ -32,6 +32,24 @@ import styles from './ManagementCenter.module.css';
  *    board's `linkedTasks`, read both ways) show a chip that opens the other
  *    task, and connected focus tasks are drawn as one group. Links are
  *    read-only here.
+ *    Two hand-off states sit beside them, each a compact row with one button
+ *    that takes the task off this panel:
+ *    – READY FOR YOU TO CHECK (top of the panel): any task tagged `check`
+ *      (the team lead sets it: on staging, waiting for Shlomi's check before
+ *      release). Its now: line says what to check. "נבדק" removes `check`
+ *      and adds `checked`; the team lead then releases it. Until it is
+ *      released, a `checked` task is off this panel altogether (if it goes
+ *      back to work instead, the team lead removes `checked`).
+ *    – RELEASED (bottom of the panel): a task released in the last 14 days —
+ *      the board's own rule: status done and `deployedAt` set and not older
+ *      than its `doneAt` (a reopened task is not released) — and not tagged
+ *      `off-table`. "ירד מהשולחן" adds `off-table`. `deployedReviewedBy`
+ *      is What's New's and is never read or written here.
+ *    A task in one of these states shows ONLY there (check wins over
+ *    released): never as a focus card, in next, waiting or the rows, even
+ *    if it still carries `focus` / `next` (see handOff()).
+ *    Every tag change here is optimistic, made on a fresh read that keeps all
+ *    other tags, and re-read from the board if the save fails.
  * Look: the Lybi team page (public/lybi-site/team) — its font, violet tokens,
  * glow values and light threads. No sounds (Shlomi, 17.11).
  */
@@ -43,6 +61,10 @@ const FOCUS_TAG = 'focus';
 const NEXT_TAG = 'next';
 type MarkTag = typeof FOCUS_TAG | typeof NEXT_TAG;
 const WAITING_TAG = 'waiting';
+const CHECK_TAG = 'check';
+const CHECKED_TAG = 'checked';
+const OFF_TABLE_TAG = 'off-table';
+const RELEASED_DAYS = 14;
 const MAX_LINK_CHIPS = 2;
 const OPEN_KEY = 'lybi-center-agenda-open';
 
@@ -76,6 +98,38 @@ function workRank(task: Task): number {
 /** Started, and now waiting on something outside (Google, a decision, a meeting). */
 function isWaiting(task: Task): boolean {
   return task.status === 'in_progress' && task.tags.includes(WAITING_TAG);
+}
+
+/** Released, by the board's rule: done, deployed, and the release is not older than the last Done. */
+function releasedAt(task: Task): Date | null {
+  if (task.status !== 'done' || !task.deployedAt) return null;
+  const deployed = new Date(task.deployedAt);
+  if (Number.isNaN(deployed.getTime())) return null;
+  if (task.doneAt && deployed < new Date(task.doneAt)) return null;
+  return deployed;
+}
+
+/**
+ * The hand-off state a task is in on this panel, if any. A task in a hand-off
+ * state shows only in that section — never as focus, next, waiting or a row,
+ * whatever other tags it carries. `check` wins over released.
+ * 'checked' = Shlomi checked it and it waits for the team lead's release: it is
+ * off his panel (no section) until it is released.
+ */
+type HandOff = 'check' | 'checked' | 'released';
+function handOff(task: Task, now: number): HandOff | null {
+  if (task.tags.includes(CHECK_TAG)) return 'check';
+  const released = releasedAt(task);
+  if (released) {
+    const fresh = now - released.getTime() <= RELEASED_DAYS * 86_400_000;
+    return fresh && !task.tags.includes(OFF_TABLE_TAG) ? 'released' : null;
+  }
+  if (task.tags.includes(CHECKED_TAG)) return 'checked';
+  return null;
+}
+
+function formatDay(d: Date): string {
+  return `${d.getDate()}.${d.getMonth() + 1}`;
 }
 
 function statusPill(task: Task): { cls: string; text: string } {
@@ -380,17 +434,18 @@ export function ManagementCenter() {
   }, [upsert, showToast]);
 
   /**
-   * Star / next: add or remove only that tag, on a fresh read, keeping every
-   * other tag. Marking one removes the other (a task is focus or next).
+   * Every tag change on this panel: optimistic, then applied again on a fresh
+   * read so every other tag (and any concurrent edit) stays; on failure the
+   * task is re-read from the board (the rollback). One change per task at a
+   * time — its buttons are disabled in place meanwhile.
    */
-  const toggleMark = useCallback(async (task: Task, tag: MarkTag) => {
+  const retag = useCallback(async (task: Task, change: (tags: string[]) => string[]) => {
     if (busyStar.has(task.id)) return;
-    const want = !task.tags.includes(tag);
     setBusyStar(prev => new Set(prev).add(task.id));
-    setTasks(prev => prev && prev.map(t => (t.id === task.id ? { ...t, tags: withMark(t.tags, tag, want) } : t)));
+    setTasks(prev => prev && prev.map(t => (t.id === task.id ? { ...t, tags: change(t.tags) } : t)));
     try {
       const fresh = await getTask(task.id);
-      const tags = withMark(fresh.tags, tag, want);
+      const tags = change(fresh.tags);
       const same = tags.length === fresh.tags.length && tags.every(x => fresh.tags.includes(x));
       if (same) { upsert(fresh); return; }
       upsert(await updateTask(task.id, { tags }));
@@ -401,21 +456,51 @@ export function ManagementCenter() {
       setBusyStar(prev => { const next = new Set(prev); next.delete(task.id); return next; });
     }
   }, [busyStar, upsert, showToast]);
+
+  /** Star / next: add or remove only that tag. Marking one removes the other (a task is focus or next). */
+  const toggleMark = (task: Task, tag: MarkTag) => {
+    const want = !task.tags.includes(tag);
+    return retag(task, tags => withMark(tags, tag, want));
+  };
   const toggleFocus = (task: Task) => toggleMark(task, FOCUS_TAG);
   const toggleNext = (task: Task) => toggleMark(task, NEXT_TAG);
+  /** "נבדק": `check` → `checked`; the team lead releases it from there. */
+  const markChecked = (task: Task) =>
+    retag(task, tags => [...tags.filter(x => x !== CHECK_TAG && x !== CHECKED_TAG), CHECKED_TAG]);
+  /** "ירד מהשולחן": a released task leaves the panel. */
+  const takeOffTable = (task: Task) =>
+    retag(task, tags => [...tags.filter(x => x !== OFF_TABLE_TAG), OFF_TABLE_TAG]);
 
   // ── Ongoing ──
+  // Hand-off states first: a task that is ready to check or released shows only
+  // in its own section, so every list below drops it (even with focus / next).
+  const handOffs = useMemo(() => {
+    const map = new Map<number, HandOff>();
+    if (!tasks) return map;
+    const now = Date.now();
+    tasks
+      .filter(t => t.type !== 'agenda' && t.type !== 'goal' && !t.isDraft)
+      .forEach(t => { const state = handOff(t, now); if (state) map.set(t.id, state); });
+    return map;
+  }, [tasks]);
+  const checkTasks = useMemo(() => (tasks || [])
+    .filter(t => handOffs.get(t.id) === 'check')
+    .sort((a, b) => (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) || b.id - a.id), [tasks, handOffs]);
+  const releasedTasks = useMemo(() => (tasks || [])
+    .filter(t => handOffs.get(t.id) === 'released')
+    .sort((a, b) => (releasedAt(b)?.getTime() ?? 0) - (releasedAt(a)?.getTime() ?? 0) || b.id - a.id), [tasks, handOffs]);
   const working = useMemo(() => {
     if (!tasks) return [];
     return tasks
       .filter(t => t.type !== 'agenda' && t.type !== 'goal' && !t.isDraft && t.status !== 'done')
+      .filter(t => !handOffs.has(t.id))
       // Claude's open tasks, any Blocker, and anything the team lead is tracking with a now: line
       .filter(t => t.priority === 'blocker' || t.assignee === 'Claude' || nowStatus(t) !== null)
       .sort((a, b) =>
         workRank(a) - workRank(b) ||
         (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) ||
         b.id - a.id);
-  }, [tasks]);
+  }, [tasks, handOffs]);
   // Connections, read both ways (a link written on either task counts for both).
   const linkMap = useMemo(() => {
     const map = new Map<number, Set<number>>();
@@ -442,9 +527,9 @@ export function ManagementCenter() {
     if (!tasks) return [];
     return tasks
       .filter(t => t.type !== 'agenda' && t.type !== 'goal' && !t.isDraft && t.status !== 'done')
-      .filter(t => t.tags.includes(NEXT_TAG) && !t.tags.includes(FOCUS_TAG))
+      .filter(t => t.tags.includes(NEXT_TAG) && !t.tags.includes(FOCUS_TAG) && !handOffs.has(t.id))
       .sort((a, b) => (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) || b.id - a.id);
-  }, [tasks]);
+  }, [tasks, handOffs]);
   const unmarked = working.filter(t => !t.tags.includes(FOCUS_TAG) && !t.tags.includes(NEXT_TAG));
   const waitingTasks = unmarked.filter(isWaiting);
   const otherTasks = unmarked.filter(t => !isWaiting(t));
@@ -697,6 +782,53 @@ export function ManagementCenter() {
     );
   };
 
+  /**
+   * A hand-off row (ready to check / released): slimmer than a focus card, one
+   * button that takes the task off the panel. The button keeps its width and
+   * is disabled in place while the change saves.
+   */
+  const renderHandOff = (t: Task, kind: 'check' | 'released') => {
+    const busy = busyStar.has(t.id);
+    const now = nowStatus(t);
+    const released = kind === 'released' ? releasedAt(t) : null;
+    const sub = kind === 'check'
+      ? (now || 'לא נכתב מה לבדוק')
+      : (released ? `שוחרר ב־${formatDay(released)}` : 'שוחרר');
+    return (
+      <div key={t.id} className={`${styles.handRow} ${kind === 'check' ? styles.handRowCheck : styles.handRowReleased}`} dir="ltr">
+        <button
+          type="button"
+          className={`${styles.handBtn} ${kind === 'check' ? styles.handBtnCheck : ''}`}
+          title={kind === 'check' ? 'בדקתי — אפשר לשחרר' : 'להוריד מהלוח שלי'}
+          disabled={busy}
+          onClick={() => void (kind === 'check' ? markChecked(t) : takeOffTable(t))}
+          dir="rtl"
+        >
+          {kind === 'check' && <CheckIcon size={13} />}
+          <span>{kind === 'check' ? 'נבדק' : 'ירד מהשולחן'}</span>
+        </button>
+        <button type="button" className={styles.waitLink} title={kind === 'check' && now ? `${t.title}\nלבדוק: ${now}` : t.title} onClick={() => openTask(t)}>
+          <span className={styles.nextText}>
+            <span className={styles.waitTitle} dir={textDir(t.title)}>{t.title}</span>
+            <span className={styles.handSub} dir={textDir(sub)}>{sub}</span>
+          </span>
+          <span className={styles.nextId}>#{t.id}</span>
+        </button>
+        {renderLinks(t, true)}
+      </div>
+    );
+  };
+
+  /** A section head in the panel's quieter style (NEXT / WAITING), with a count. */
+  const renderSectionHead = (label: string, title: string, count: number, tone?: string) => (
+    <div className={styles.nextHead} dir="ltr">
+      <span className={`${styles.nextLabel} ${tone || ''}`}>{label}</span>
+      <span className={styles.nextHeadTitle} dir="rtl">{title}</span>
+      <span className={styles.sectionCount}>{count}</span>
+      <span className={styles.nextRule} />
+    </div>
+  );
+
   const renderFocus = (t: Task) => {
     if (isWaiting(t)) return renderWaiting(t);
     const now = nowStatus(t);
@@ -904,7 +1036,15 @@ export function ManagementCenter() {
                   <div className={styles.skeletonBar} />
                 </div>
               )}
-              {tasks && working.length === 0 && nextTasks.length === 0 && <div className={styles.empty}>אין משימות בטיפול כרגע.</div>}
+              {tasks && checkTasks.length > 0 && (
+                <div className={`${styles.nextArea} ${styles.handAreaTop}`}>
+                  {renderSectionHead('CHECK', 'מוכן לבדיקה שלך', checkTasks.length, styles.checkLabel)}
+                  <div className={styles.nextList}>{checkTasks.map(t => renderHandOff(t, 'check'))}</div>
+                </div>
+              )}
+              {tasks && working.length === 0 && nextTasks.length === 0 && checkTasks.length === 0 && releasedTasks.length === 0 && (
+                <div className={styles.empty}>אין משימות בטיפול כרגע.</div>
+              )}
               {tasks && (working.length > 0 || nextTasks.length > 0) && (
                 <>
                   {focusTasks.length > 0
@@ -948,6 +1088,12 @@ export function ManagementCenter() {
                   )}
                   {otherTasks.length > 0 && <div className={styles.taskList}>{otherTasks.map(renderRow)}</div>}
                 </>
+              )}
+              {tasks && releasedTasks.length > 0 && (
+                <div className={`${styles.nextArea} ${styles.handAreaBottom}`}>
+                  {renderSectionHead('RELEASED', 'שוחרר', releasedTasks.length, styles.releasedLabel)}
+                  <div className={styles.nextList}>{releasedTasks.map(t => renderHandOff(t, 'released'))}</div>
+                </div>
               )}
             </div>
           </div>

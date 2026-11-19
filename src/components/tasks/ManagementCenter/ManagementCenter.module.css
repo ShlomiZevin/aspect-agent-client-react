@@ -1064,6 +1064,111 @@
 
 .waitTitle[dir="rtl"], .waitFor[dir="rtl"] { text-align: right; }
 
+/* ── Hand-off rows: ready for you to check (top, cool cyan) / released (bottom, quiet) ── */
+.handAreaTop { margin: 0 0 20px; }
+.handAreaBottom { margin-top: 24px; }
+
+.sectionCount {
+  flex: none;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(216, 210, 226, .08);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkLabel { color: rgba(143, 211, 232, .85); }
+.releasedLabel { color: rgba(216, 210, 226, .5); }
+
+.handRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 48px;
+  padding: 0 6px 0 6px;
+  border-radius: 9px;
+  transition: border-color .2s, background .2s;
+}
+
+.handRowCheck {
+  border: 1px solid rgba(143, 211, 232, .22);
+  border-left: 2px solid rgba(143, 211, 232, .55);
+  background: linear-gradient(90deg, rgba(143, 211, 232, .07), rgba(143, 211, 232, .015) 70%);
+}
+
+.handRowCheck:hover { border-color: rgba(143, 211, 232, .36); border-left-color: rgba(143, 211, 232, .75); }
+
+.handRowReleased {
+  border: 1px solid var(--line-soft);
+  background: rgba(216, 210, 226, .02);
+}
+
+.handRowReleased:hover { border-color: var(--line); background: rgba(216, 210, 226, .04); }
+
+/* One fixed width per section, so the label never resizes the row; disabled in place while saving. */
+.handBtn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 96px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: rgba(123, 57, 197, .08);
+  color: #DCCBF7;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color .2s, box-shadow .2s, background .2s, opacity .2s;
+}
+
+.handBtn:hover:not(:disabled) {
+  border-color: var(--lilac);
+  background: rgba(123, 57, 197, .18);
+  box-shadow: 0 0 12px -3px rgba(174, 128, 255, .6);
+}
+
+.handBtnCheck {
+  min-width: 72px;
+  border-color: rgba(143, 211, 232, .45);
+  background: rgba(143, 211, 232, .1);
+  color: #CBEFFA;
+}
+
+.handBtnCheck:hover:not(:disabled) {
+  border-color: rgba(143, 211, 232, .8);
+  background: rgba(143, 211, 232, .18);
+  box-shadow: 0 0 12px -3px rgba(143, 211, 232, .6);
+}
+
+.handBtn:disabled { cursor: progress; opacity: .55; }
+
+.handSub {
+  font-size: 13px;
+  line-height: 1.35;
+  color: rgba(216, 210, 226, .55);
+  text-align: left;
+  unicode-bidi: isolate;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.handRowCheck .handSub { color: rgba(190, 228, 240, .75); }
+.handSub[dir="rtl"] { text-align: right; }
+.handRowReleased .waitTitle { color: #BFB6CD; }
+
 /* ── Connected tasks ── */
 .linkChips {
   flex: none;
@@ -1688,6 +1793,9 @@
   .waitLink { gap: 8px; }
   .waitTitle { font-size: 14.5px; }
   .waitFor { font-size: 12.5px; }
+  .handSub { font-size: 12.5px; }
+  .handBtn { min-width: 84px; padding: 0 8px; font-size: 12.5px; }
+  .handBtnCheck { min-width: 64px; }
   .linkChipsCompact { padding: 0 2px; }
 
   .footer { padding: 18px 8px 28px; }
