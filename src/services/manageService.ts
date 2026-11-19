@@ -11,6 +11,7 @@ import { getBaseURL } from './api';
 import { clearToken, getToken } from '../manage/session';
 import type {
   CustomerProblemsResponse, ManageConversation, ManageErrorCode, ManageMe, ManageSignIn, ProblemRange,
+  ManageUser, ManageUserDetail, ManageUsersResponse,
 } from '../types/manage';
 
 const ROOT = () => `${import.meta.env.DEV && !import.meta.env.VITE_API_URL ? 'http://localhost:3000' : getBaseURL()}/api/manage`;
@@ -83,4 +84,27 @@ export const manageService = {
   /** One customer conversation's basic facts — the "צפייה" window. */
   getConversation: (agentSlug: string, conversationId: number) =>
     request<ManageConversation>(`/agents/${encodeURIComponent(agentSlug)}/conversations/${conversationId}`),
+
+  /** One agent's customer-chat users (real + test). */
+  getAgentUsers: (agentSlug: string) =>
+    request<ManageUsersResponse>(`/agents/${encodeURIComponent(agentSlug)}/users`),
+
+  /** Every agent's users (every-agent grant only). */
+  getAllUsers: () => request<ManageUsersResponse>('/users'),
+
+  /** One user + their customer conversations on that agent. */
+  getUser: (agentSlug: string, userId: number) =>
+    request<ManageUserDetail>(`/agents/${encodeURIComponent(agentSlug)}/users/${userId}`),
+
+  /** Suspend (true) / reactivate (false) — the same operation as Admin → Users. */
+  setUserSuspended: (agentSlug: string, userId: number, suspended: boolean) =>
+    request<{ user: ManageUser }>(`/agents/${encodeURIComponent(agentSlug)}/users/${userId}/suspend`, { method: 'POST', body: JSON.stringify({ suspended }) }),
+
+  /** Real customer (true) / test user (false) — #968. */
+  setUserRealCustomer: (agentSlug: string, userId: number, real: boolean) =>
+    request<{ user: ManageUser }>(`/agents/${encodeURIComponent(agentSlug)}/users/${userId}/real-customer`, { method: 'POST', body: JSON.stringify({ real }) }),
+
+  /** Delete the user and their conversations. */
+  deleteUser: (agentSlug: string, userId: number) =>
+    request<{ deleted: true; userId: number; conversations: number }>(`/agents/${encodeURIComponent(agentSlug)}/users/${userId}`, { method: 'DELETE' }),
 };

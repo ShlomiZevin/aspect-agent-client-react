@@ -1,0 +1,105 @@
+/* The user window (#999) — the conversation window's frame
+   (ConversationModal.module.css) + the user's conversation list.
+   Tokens: src/manage/tokens.css. */
+
+.ltr {
+  text-align: right;
+  unicode-bidi: plaintext;
+}
+
+.tagSuspended {
+  padding: 0 7px;
+  border-radius: 4px;
+  background: var(--m-amber-bg);
+  color: var(--m-amber-ink);
+  font-size: var(--m-fs-xs);
+  font-weight: 700;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border: 1px solid var(--m-line);
+  border-radius: 8px;
+}
+
+.table th {
+  padding: 6px 8px;
+  background: #faf8fc;
+  border-bottom: 1px solid var(--m-line);
+  color: var(--m-muted);
+  font-size: var(--m-fs-xs);
+  font-weight: 700;
+  text-align: start;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--m-line);
+  font-size: var(--m-fs-sm);
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table tbody tr:hover td {
+  background: var(--m-row-hover);
+}
+
+.cNo { width: 56px; color: var(--m-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cWhen { width: 112px; color: var(--m-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cNum { width: 56px; text-align: center !important; font-variant-numeric: tabular-nums; }
+.cGo { width: 64px; text-align: end; }
+
+.clip {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.view {
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--m-line-strong);
+  border-radius: var(--m-radius-sm);
+  background: var(--m-card);
+  color: var(--m-plum);
+  font: inherit;
+  font-size: var(--m-fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.view:hover {
+  background: var(--m-lav-100);
+  border-color: var(--m-lav-200);
+}
+
+.note {
+  margin: 6px 0 0;
+  font-size: var(--m-fs-xs);
+  color: var(--m-faint);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .table th,
+  .table td { padding-inline: 5px; }
+  .cNo { width: 44px; }
+  .cWhen { width: 78px; }
+  .cNum { width: 40px; }
+  .cGo { width: 56px; }
+}

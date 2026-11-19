@@ -1,0 +1,340 @@
+/* "משתמשים" (#999, #982, #991) — the problems page's header and cards
+   (CustomerProblemsPage.module.css) + this table. Tokens: src/manage/tokens.css.
+   The page flows and the main area scrolls; every column has a fixed width
+   except the user's name, which clips — nothing sits on top of another
+   column. On a phone the rows become small cards. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 20px 18px;
+  box-sizing: border-box;
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: opacity 0.15s;
+}
+
+section.card {
+  max-height: none;
+}
+
+/* ── The test part: folded by default ─────────────────────────── */
+
+header.foldHead {
+  padding: 0;
+}
+
+header.foldHeadClosed {
+  border-bottom: 0;
+}
+
+.fold {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.fold:hover {
+  background: var(--m-row-hover);
+}
+
+.foldTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--m-muted);
+}
+
+.foldClosed {
+  transform: rotate(90deg);
+  transition: transform 0.15s;
+}
+
+.foldOpen {
+  transition: transform 0.15s;
+}
+
+.foldAction {
+  flex: 0 0 auto;
+  color: var(--m-lav-ink);
+  font-size: var(--m-fs-sm);
+  font-weight: 600;
+}
+
+.testCard {
+  background: #fdfcfe;
+}
+
+.note {
+  margin: 0;
+  font-size: var(--m-fs-xs);
+  color: var(--m-faint);
+}
+
+/* ── The table ────────────────────────────────────────────────── */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.table th {
+  padding: 7px 10px;
+  background: #faf8fc;
+  border-bottom: 1px solid var(--m-line);
+  color: var(--m-muted);
+  font-size: var(--m-fs-xs);
+  font-weight: 700;
+  text-align: start;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--m-line);
+  vertical-align: middle;
+  overflow: hidden;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.row {
+  cursor: pointer;
+}
+
+.row:hover td {
+  background: var(--m-row-hover);
+}
+
+.rowSuspended td {
+  color: var(--m-faint);
+}
+
+.emptyRow td {
+  padding: 16px 14px;
+  color: var(--m-muted);
+}
+
+/* Columns — fixed widths; the user column takes the rest. */
+.cUser { width: auto; }
+.cPhone { width: 118px; }
+.cAgent { width: 128px; }
+.cNum { width: 58px; text-align: center !important; font-variant-numeric: tabular-nums; }
+.cWhen { width: 112px; white-space: nowrap; text-overflow: ellipsis; color: var(--m-muted); font-size: var(--m-fs-sm); font-variant-numeric: tabular-nums; }
+.cActions { width: 222px; }
+
+/* Line 2 under the name: suspended / shared tags, then the email or id. */
+.userLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 1px;
+}
+
+.userName {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--m-text);
+  font: inherit;
+  font-weight: 600;
+  text-align: start;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.userName:hover {
+  color: var(--m-lav-ink);
+  text-decoration: underline;
+}
+
+.rowSuspended .userName {
+  color: var(--m-muted);
+}
+
+.userSub {
+  display: block;
+  min-width: 0;
+  font-size: var(--m-fs-xs);
+  color: var(--m-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+  unicode-bidi: plaintext;
+}
+
+.tagShared {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.tagSuspended {
+  flex: 0 0 auto;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--m-amber-bg);
+  color: var(--m-amber-ink);
+  font-size: var(--m-fs-xs);
+  font-weight: 700;
+}
+
+.ltr {
+  unicode-bidi: plaintext;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--m-fs-sm);
+}
+
+.clip {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--m-fs-sm);
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.act {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--m-line-strong);
+  border-radius: var(--m-radius-sm);
+  background: var(--m-card);
+  color: var(--m-plum);
+  font: inherit;
+  font-size: var(--m-fs-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.act:hover:not(:disabled) {
+  background: var(--m-lav-100);
+  border-color: var(--m-lav-200);
+}
+
+.actDelete {
+  padding: 0 6px;
+  color: var(--m-muted);
+}
+
+.actDelete:hover:not(:disabled) {
+  background: var(--m-pink-bg);
+  border-color: var(--m-pink-line);
+  color: var(--m-pink-ink);
+}
+
+.act:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ── Narrower desktop ─────────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .table th,
+  .table td { padding-inline: 7px; }
+  .cPhone { width: 106px; }
+  .cAgent { width: 104px; }
+  .cWhen { width: 100px; }
+  .cActions { width: 212px; }
+}
+
+/* ── Phone: rows become small cards ───────────────────────────── */
+
+@media (max-width: 860px) {
+  .page {
+    padding: 12px 12px 20px;
+    gap: 12px;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table,
+  .table tbody {
+    display: block;
+  }
+
+  .table tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--m-line);
+  }
+
+  .table td {
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
+    overflow: visible;
+  }
+
+  .table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .table td[data-label]::before {
+    content: attr(data-label) ' ';
+    color: var(--m-faint);
+    font-size: var(--m-fs-xs);
+  }
+
+  .table td.cUser {
+    flex: 1 0 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .table td.cUser::before {
+    content: none;
+  }
+
+  .table td.cActions {
+    flex: 1 0 100%;
+    margin-top: 2px;
+  }
+
+  .emptyRow td {
+    padding: 0;
+  }
+}

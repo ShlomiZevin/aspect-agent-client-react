@@ -102,6 +102,68 @@ export const COPY = {
   noConversation: 'לתקלה הזו אין שיחה.',
   noMessages: 'אין הודעות להצגה.',
 
+  // The users page (#999, #982, #991)
+  usersMenu: 'משתמשים',
+  realTitle: 'לקוחות אמיתיים',
+  testTitle: 'משתמשי בדיקה',
+  testHint: 'צוות, בדיקות וסקריפטים',
+  showTest: 'הצגה',
+  hideTest: 'הסתרה',
+  colUser: 'משתמש',
+  colPhone: 'טלפון',
+  colCreated: 'נוצר',
+  colLastActive: 'פעילות אחרונה',
+  colActions: 'פעולות',
+  noName: 'ללא שם',
+  suspendedTag: 'מושעה',
+  sharedTag: 'גם בסוכנים אחרים',
+  sharedTitle: 'המשתמש משויך גם לסוכנים אחרים, ולכן אפשר לשנות אותו רק ב־Admin',
+  actSuspend: 'השעיה',
+  actReactivate: 'החזרה',
+  actMakeReal: 'לקוח אמיתי',
+  actMakeTest: 'לבדיקות',
+  actDelete: 'מחיקה',
+  emptyReal: 'אין עדיין לקוחות אמיתיים.',
+  emptyTest: 'אין משתמשי בדיקה.',
+  usersTruncated: (n: number) => `מוצגים ${n} המשתמשים שהיו פעילים לאחרונה`,
+  testUser: 'משתמש בדיקה',
+
+  // Confirming an action
+  confirmSuspendTitle: (name: string) => `להשעות את ${name}?`,
+  confirmSuspendBody: 'לא יהיה אפשר לשוחח עם הסוכן עד שיחזירו את המשתמש. שום דבר לא נמחק.',
+  confirmReactivateTitle: (name: string) => `להחזיר את ${name}?`,
+  confirmReactivateBody: 'אפשר יהיה לשוחח עם הסוכן שוב.',
+  confirmRealTitle: (name: string) => `לסמן את ${name} כלקוח אמיתי?`,
+  confirmRealBody: 'מעכשיו השיחות החדשות ייחשבו שיחות של לקוח אמיתי, והודעות אוטומטיות יוכלו להגיע אליהן. שיחות קיימות נשארות כמו שהן.',
+  confirmTestTitle: (name: string) => `להעביר את ${name} למשתמשי בדיקה?`,
+  confirmTestBody: 'מעכשיו השיחות החדשות ייחשבו שיחות בדיקה, והודעות אוטומטיות לא יגיעו אליהן. שיחות קיימות נשארות כמו שהן.',
+  confirmDeleteTitle: (name: string) => `למחוק את ${name}?`,
+  confirmDeleteBody: (n: number) => (n > 1
+    ? `המשתמש ו־${n} השיחות יימחקו לצמיתות. אי אפשר לבטל את זה.`
+    : n === 1
+      ? 'המשתמש והשיחה יימחקו לצמיתות. אי אפשר לבטל את זה.'
+      : 'המשתמש יימחק לצמיתות. אי אפשר לבטל את זה.'),
+  cancel: 'ביטול',
+  working: 'רגע…',
+  actionFailed: 'הפעולה לא הצליחה. אפשר לנסות שוב.',
+  actionShared: 'המשתמש משויך גם לסוכנים אחרים, ולכן אפשר לשנות אותו רק ב־Admin.',
+
+  // The user window
+  userNo: (id: number) => `משתמש ⁨#${id}⁩`,
+  fPhone: 'טלפון',
+  fEmail: 'אימייל',
+  fCreated: 'נוצר',
+  fConversations: 'שיחות',
+  userConversations: 'שיחות עם הסוכן',
+  noUserConversations: 'עדיין אין שיחות.',
+  userLoading: 'טוענים את המשתמש…',
+  userFailed: 'לא הצלחנו לטעון את פרטי המשתמש.',
+  colConversation: 'שיחה',
+  colStarted: 'התחילה',
+  colMessages: 'הודעות',
+  colPhase: 'שלב',
+  newestConversations: (n: number) => `מוצגות ${n} השיחות האחרונות`,
+
   // Time
   justNow: 'ממש עכשיו',
   minutesAgo: (m: number) => (m === 1 ? 'לפני דקה' : `לפני ${m} דקות`),

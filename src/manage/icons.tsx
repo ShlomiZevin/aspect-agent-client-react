@@ -46,6 +46,15 @@ export const IconSignOut = (p: P) => (
 export const IconAgent = (p: P) => (
   <Svg {...p}><rect x="4.5" y="7" width="15" height="11" rx="3" /><path d="M12 7V4.5" /><circle cx="9.3" cy="12.5" r="1" fill="currentColor" /><circle cx="14.7" cy="12.5" r="1" fill="currentColor" /></Svg>
 );
+/** Two people — the users page. */
+export const IconUsers = (p: P) => (
+  <Svg {...p}><circle cx="9" cy="8.5" r="3.2" /><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0" /><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8" /><path d="M17.5 14.3a5.5 5.5 0 0 1 3 5.2" /></Svg>
+);
+export const IconPause = (p: P) => (<Svg {...p}><path d="M9 5.5v13M15 5.5v13" /></Svg>);
+export const IconPlay = (p: P) => (<Svg {...p}><path d="M8 5.5l10.5 6.5L8 18.5z" /></Svg>);
+export const IconTrash = (p: P) => (
+  <Svg {...p}><path d="M4.5 7h15" /><path d="M9.5 7V5a1.5 1.5 0 0 1 1.5-1.5h2A1.5 1.5 0 0 1 14.5 5v2" /><path d="M6.5 7l.8 11.6A2 2 0 0 0 9.3 20.5h5.4a2 2 0 0 0 2-1.9L17.5 7" /><path d="M10.2 11v5.5M13.8 11v5.5" /></Svg>
+);
 export const IconGrid = (p: P) => (
   <Svg {...p}><rect x="4" y="4" width="6.5" height="6.5" rx="1.4" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.4" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.4" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.4" /></Svg>
 );

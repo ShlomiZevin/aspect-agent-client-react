@@ -105,7 +105,7 @@
 }
 
 .table th {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-sm);
   text-align: left;
   font-weight: 600;
   color: var(--text-secondary);
@@ -116,23 +116,25 @@
   text-overflow: ellipsis;
 }
 
-/* Column widths */
-.table th:nth-child(1) { width: 70px; }  /* Source */
-.table th:nth-child(2) { width: 120px; } /* External ID */
-.table th:nth-child(3) { width: 120px; } /* Phone */
-.table th:nth-child(4) { width: 120px; } /* Name */
-.table th:nth-child(5) { width: 70px; }  /* Role */
-.table th:nth-child(6) { width: 90px; }  /* Subscription */
-.table th:nth-child(7) { width: 100px; } /* Tenant */
-.table th:nth-child(8) { width: 90px; }  /* Conversations */
-.table th:nth-child(9) { width: 90px; }  /* Created */
-.table th:nth-child(10) { width: 90px; } /* Last Active */
-.table th:nth-child(11) { width: 80px; } /* Actions */
+/* Column widths. #991: the fixed widths used to add up to more than a
+   laptop screen, so the table overflowed and the pinned Actions column
+   (#989) sat on top of Created / Last Active. Now External ID, Phone and
+   Name have no width — they share what is left and clip with "…" — the
+   short columns are tighter, and cells use the small padding, so the whole
+   table fits a laptop screen. Actions stays pinned only as a fallback for
+   very narrow windows. */
+.table th:nth-child(1) { width: 64px; }  /* Source */
+.table th:nth-child(5) { width: 56px; }  /* Role */
+.table th:nth-child(6) { width: 96px; }  /* Subscription */
+.table th:nth-child(7) { width: 96px; }  /* Tenant */
+.table th:nth-child(8) { width: 104px; } /* Conversations */
+.table th:nth-child(9) { width: 104px; } /* Created */
+.table th:nth-child(10) { width: 104px; } /* Last Active */
 /* By class, after the positional rules: the optional "Real customer"
    column (#968, builder agents) shifts the positions, and Actions must
    keep room for its three buttons whichever columns are shown. */
-.table th.realCol { width: 120px; }
-.table th.actionsCol { width: 150px; }
+.table th.realCol { width: 112px; }
+.table th.actionsCol { width: 128px; }
 /* #989: Actions (pause / delete) stay in view when the table is wider
    than the screen — pinned to the row's end instead of off-screen. */
 .table th.actionsCol,
@@ -145,7 +147,7 @@
 .table td.actionsCell { background-color: var(--surface); overflow: visible; }
 
 .table td {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-sm);
   border-bottom: 1px solid var(--border);
   color: var(--text-primary);
   vertical-align: middle;

@@ -96,7 +96,61 @@ export interface ManageConversation {
 /** The `code` of a refused /api/manage call. */
 export type ManageErrorCode =
   | 'signed_out' | 'no_access' | 'no_agent_access' | 'no_agent' | 'not_all'
-  | 'no_conversation' | 'google_failed';
+  | 'no_conversation' | 'google_failed' | 'no_user' | 'user_shared';
+
+/**
+ * One person of an agent's customer chat (tasks #999, #982) — mirrors
+ * builder/services/manageUsers.js. On "all" a person on two agents is two rows.
+ */
+export interface ManageUser {
+  id: number;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  externalId: string | null;
+  /** 'real' = marked "Real customer" (#968); everyone else is a test user. */
+  audience: 'real' | 'test';
+  suspended: boolean;
+  suspendedAt: string | null;
+  agentSlug: string;
+  agentName: string;
+  /** Customer-chat conversations on this agent. */
+  conversations: number;
+  createdAt: string | null;
+  lastActiveAt: string | null;
+  /** Also belongs to another agent — the actions refuse (they act on the person). */
+  shared: boolean;
+}
+
+/** GET /api/manage/agents/:slug/users · GET /api/manage/users */
+export interface ManageUsersResponse {
+  scope: 'agent' | 'all';
+  agentSlug: string | null;
+  filter?: string | null;
+  users: ManageUser[];
+  real: number;
+  test: number;
+  truncated: boolean;
+  limit: number;
+  checkedAt: string;
+}
+
+/** One of a user's customer conversations (the user window's list). */
+export interface ManageUserConversation {
+  id: number;
+  startedAt: string | null;
+  lastActivityAt: string | null;
+  audience: 'real' | 'test';
+  phase: string | null;
+  messageCount: number;
+}
+
+/** GET /api/manage/agents/:slug/users/:id */
+export interface ManageUserDetail {
+  user: ManageUser;
+  conversations: ManageUserConversation[];
+  shownConversations: number;
+}
 
 export interface CustomerProblemsResponse {
   scope: 'agent' | 'all';

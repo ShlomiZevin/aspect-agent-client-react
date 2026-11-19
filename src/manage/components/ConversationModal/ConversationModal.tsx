@@ -4,6 +4,7 @@
  * and the last few messages as the customer saw them
  * (GET /api/manage/agents/:slug/conversations/:id). The Lybi team also gets
  * "חקירה ב-Builder", which opens the Builder on that conversation in a new tab.
+ * The Users page (#999) opens it from a user's conversation list, without a problem.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -15,29 +16,47 @@ import { shortWhen } from '../../when';
 import { builderConversationHref } from '../../links';
 import s from './ConversationModal.module.css';
 
-interface Props {
-  problem: CustomerProblem;
+/** Which conversation to show, and what is known before it loads. */
+export interface ConversationRef {
+  agentSlug: string;
+  agentName: string;
+  conversationId: number | null;
+  customerName: string | null;
+  audience: 'real' | 'test' | null;
+}
+
+/**
+ * Opened from a problem (the problems page — the problem shows on top) or
+ * from a user's conversation list (the Users page — `conversation` only).
+ */
+type Props = {
   /** The Lybi team (every-agent grant) — sees the Builder link. */
   canInvestigate: boolean;
   now: Date;
   onClose: () => void;
-}
+} & ({ problem: CustomerProblem; conversation?: undefined } | { problem?: undefined; conversation: ConversationRef });
 
 type Loaded = { data?: ManageConversation; error?: boolean };
 
-export function ConversationModal({ problem: p, canInvestigate, now, onClose }: Props) {
+const refOf = (p: CustomerProblem): ConversationRef => ({
+  agentSlug: p.agentSlug, agentName: p.agentName, conversationId: p.conversationId,
+  customerName: p.customerName, audience: p.audience,
+});
+
+export function ConversationModal({ problem: p, conversation, canInvestigate, now, onClose }: Props) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const closeBtn = useRef<HTMLButtonElement>(null);
-  const act = p.action.tone === 'act';
+  const ref = conversation || refOf(p as CustomerProblem);
+  const act = p?.action.tone === 'act';
 
   useEffect(() => {
-    if (!p.conversationId) return;
+    if (!ref.conversationId) return;
     let alive = true;
-    manageService.getConversation(p.agentSlug, p.conversationId)
+    manageService.getConversation(ref.agentSlug, ref.conversationId)
       .then(data => { if (alive) setLoaded({ data }); })
       .catch(() => { if (alive) setLoaded({ error: true }); });
     return () => { alive = false; };
-  }, [p.agentSlug, p.conversationId]);
+  }, [ref.agentSlug, ref.conversationId]);
 
   useEffect(() => {
     closeBtn.current?.focus();
@@ -47,8 +66,9 @@ export function ConversationModal({ problem: p, canInvestigate, now, onClose }: 
   }, [onClose]);
 
   const c = loaded?.data;
-  const customer = c?.customerName || p.customerName || (p.conversationId ? COPY.customerNo(p.conversationId) : COPY.kind[p.type]);
-  const audience = c?.audience || p.audience;
+  const customer = c?.customerName || ref.customerName
+    || (ref.conversationId ? COPY.customerNo(ref.conversationId) : (p ? COPY.kind[p.type] : ''));
+  const audience = c?.audience || ref.audience;
 
   return (
     <div className={s.backdrop} data-manage-root dir="rtl" lang="he" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -57,8 +77,8 @@ export function ConversationModal({ problem: p, canInvestigate, now, onClose }: 
           <div className={s.headText}>
             <h2 id="manage-conv-title" className={s.title}>{customer}</h2>
             <div className={s.headMeta}>
-              {p.conversationId && <span>{COPY.conversationNo(p.conversationId)}</span>}
-              <span dir="auto">{p.agentName}</span>
+              {ref.conversationId && <span>{COPY.conversationNo(ref.conversationId)}</span>}
+              <span dir="auto">{ref.agentName}</span>
               {audience && (
                 <span className={audience === 'real' ? s.tagReal : s.tagTest}>
                   {audience === 'real' ? COPY.realCustomer : COPY.testConversation}
@@ -72,16 +92,18 @@ export function ConversationModal({ problem: p, canInvestigate, now, onClose }: 
         </header>
 
         <div className={s.body}>
-          <section className={`${s.problem} ${act ? s.problemAct : ''}`}>
-            <div className={s.problemTitle}>{p.title}</div>
-            <div className={s.problemChips}>
-              <span className={`${s.chip} ${act ? s.chipAct : s.chipOk}`}>{p.action.text}</span>
-              <span className={s.outcome}>{p.outcome}</span>
-            </div>
-            <div className={s.problemWhen}>{COPY.fWhen}: {shortWhen(p.at, now)}</div>
-          </section>
+          {p && (
+            <section className={`${s.problem} ${act ? s.problemAct : ''}`}>
+              <div className={s.problemTitle}>{p.title}</div>
+              <div className={s.problemChips}>
+                <span className={`${s.chip} ${act ? s.chipAct : s.chipOk}`}>{p.action.text}</span>
+                <span className={s.outcome}>{p.outcome}</span>
+              </div>
+              <div className={s.problemWhen}>{COPY.fWhen}: {shortWhen(p.at, now)}</div>
+            </section>
+          )}
 
-          {!p.conversationId ? (
+          {!ref.conversationId ? (
             <p className={s.quiet}>{COPY.noConversation}</p>
           ) : !loaded ? (
             <p className={s.quiet}>{COPY.convLoading}</p>
@@ -118,8 +140,8 @@ export function ConversationModal({ problem: p, canInvestigate, now, onClose }: 
         </div>
 
         <footer className={s.foot}>
-          {canInvestigate && p.conversationId && (
-            <a className={s.investigate} href={builderConversationHref(p.agentSlug, p.conversationId)} target="_blank" rel="noopener noreferrer">
+          {canInvestigate && ref.conversationId && (
+            <a className={s.investigate} href={builderConversationHref(ref.agentSlug, ref.conversationId)} target="_blank" rel="noopener noreferrer">
               <IconExternal size={14} />
               {COPY.investigate}
             </a>

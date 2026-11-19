@@ -1,0 +1,50 @@
+/* The confirmation window — the conversation window's frame
+   (ConversationModal.module.css), narrower. Tokens: src/manage/tokens.css. */
+
+.dialog {
+  max-width: 440px;
+}
+
+.text {
+  margin: 0;
+  color: var(--m-text);
+  line-height: 1.55;
+}
+
+.error {
+  margin: 0;
+  min-height: 1.45em;
+  font-size: var(--m-fs-sm);
+  color: var(--m-pink-ink);
+}
+
+.confirm {
+  min-width: 84px;
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--m-radius-sm);
+  background: var(--m-plum);
+  color: #fff;
+  font: inherit;
+  font-size: var(--m-fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.confirm:hover:not(:disabled) {
+  background: var(--m-plum-hover);
+}
+
+.danger {
+  background: var(--m-pink);
+}
+
+.danger:hover:not(:disabled) {
+  background: var(--m-pink-ink);
+}
+
+.confirm:disabled {
+  opacity: 0.7;
+  cursor: default;
+}

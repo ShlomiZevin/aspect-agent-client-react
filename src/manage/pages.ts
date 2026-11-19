@@ -7,7 +7,8 @@
 
 import type { ComponentType } from 'react';
 import { CustomerProblemsPage } from './pages/CustomerProblemsPage/CustomerProblemsPage';
-import { IconAlert } from './icons';
+import { UsersPage } from './pages/UsersPage/UsersPage';
+import { IconAlert, IconUsers } from './icons';
 import { COPY } from './copy';
 import type { ManageMe } from '../types/manage';
 
@@ -30,4 +31,5 @@ export interface ManagePageDef {
 
 export const MANAGE_PAGES: ManagePageDef[] = [
   { path: 'customer-problems', label: COPY.problemsMenu, Icon: IconAlert, Component: CustomerProblemsPage },
+  { path: 'users', label: COPY.usersMenu, Icon: IconUsers, Component: UsersPage },
 ];
