@@ -1,0 +1,47 @@
+/* Data protection (#986) — layout only. The chips themselves are the KB
+   retriever's toggle chips; the group label is its knob label. */
+
+.detectorsHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+}
+
+.headRight {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.groupRow {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  align-items: start;
+  gap: 8px;
+}
+
+.groupRow > :first-child {
+  padding-top: 7px;
+}
+
+.dim {
+  opacity: 0.55;
+}
+
+/* The crew tag slot is always there (hidden while the chip follows the
+   agent), so overriding a detector never resizes the chip. */
+.tagHidden {
+  visibility: hidden;
+}
+
+.resetHidden {
+  visibility: hidden;
+}

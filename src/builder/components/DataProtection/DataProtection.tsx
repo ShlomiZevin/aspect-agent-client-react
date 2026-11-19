@@ -5,9 +5,11 @@
  *   DataProtectionRow       the agent setting, next to "Model route" in the
  *                           agent page's Setup card — same segmented Off/On,
  *                           a summary, and the Web-search "Edit" button.
- *   DataProtectionModal     the settings: the switch, one toggle per detector,
- *                           the blocked message he/en (agent) — or the crew's
- *                           exception: follow the agent / on / off per detector.
+ *   DataProtectionModal     the settings: the switch, the detectors as chips
+ *                           under their groups (the KB retriever's chips — the
+ *                           list grows), the blocked message he/en (agent) — or
+ *                           the crew's exception: a chip click steps follow the
+ *                           agent → the other way → pinned → follow.
  *   DataProtectionGateCard  a fixed first card in the Cortex (the Agent combo
  *                           chip's card style): "this runs before everything,
  *                           in code". Click → the settings above.
@@ -19,19 +21,23 @@
  */
 
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import {
+  DETECTOR_GROUPS,
   DETECTORS,
   DEFAULT_BLOCKED_MESSAGE,
   MAX_MESSAGE_LENGTH,
   resolveSettings,
 } from '@protection/detectors.mjs';
-import type { DetectorId } from '@protection/detectors.mjs';
+import type { DetectorDef, DetectorId } from '@protection/detectors.mjs';
 import { useBuilder } from '../../state/BuilderContext';
 import { Modal } from '../Modal/Modal';
 import type { AgentDoc, CrewDoc, DataProtectionSettings, CrewDataProtection } from '../../types';
 import rowStyles from '../Canvas/AgentSetupArea.module.css';
 import ws from '../WebSearch/WebSearchSetting.module.css';
 import cardStyles from '../ChainCanvas/AgentComboChip.module.css';
+import kb from '../../plugins/kbRetriever/KbRetrieverConfig.module.css';
+import dps from './DataProtection.module.css';
 
 const SHIELD = '🛡';
 const GATE_COLOR = '#0f766e';
@@ -143,6 +149,7 @@ function AgentSettingsModal({ agent, onClose }: { agent: AgentDoc; onClose: () =
     });
   };
   const tooLong = he.length > MAX_MESSAGE_LENGTH || en.length > MAX_MESSAGE_LENGTH;
+  const agentOnCount = DETECTORS.filter(d => isOn(d.id, d.defaultOn)).length;
 
   const save = () => {
     updateAgent(agent.id, {
@@ -176,20 +183,32 @@ function AgentSettingsModal({ agent, onClose }: { agent: AgentDoc; onClose: () =
         </div>
 
         <div className={ws.field}>
-          <span className={ws.label} title="A crew can override these for messages that arrive while it is the current crew — open that crew's Data protection card.">
-            Detectors
-          </span>
-          {DETECTORS.map(det => {
-            const on = isOn(det.id, det.defaultOn);
-            return (
-              <div key={det.id} className={ws.row} title={det.matches.en}>
-                <Toggle on={on} onChange={v => flip(det.id, det.defaultOn, v)} label={det.name.en} dim={!enabled} />
-                <span className={`${ws.summary} ${on && enabled ? '' : ws.summaryOff}`}>
-                  {det.name.en}{typeof switches[det.id] === 'boolean' ? '' : ' · default'}
-                </span>
-              </div>
-            );
-          })}
+          <div className={dps.detectorsHead}>
+            <span className={ws.label} title="A crew can override these for messages that arrive while it is the current crew — open that crew's Data protection card.">
+              Detectors
+            </span>
+            <span className={dps.headRight}>
+              <span className={ws.note}>{agentOnCount} of {DETECTORS.length} on</span>
+            </span>
+          </div>
+          <DetectorGroups dim={!enabled}>
+            {det => {
+              const on = isOn(det.id, det.defaultOn);
+              const isDefault = typeof switches[det.id] !== 'boolean';
+              return (
+                <button
+                  key={det.id}
+                  type="button"
+                  className={`${kb.chip} ${on ? kb.chipOn : ''}`}
+                  aria-pressed={on}
+                  onClick={() => flip(det.id, det.defaultOn, !on)}
+                  title={`${det.matches.en}\n\n${on ? 'On' : 'Off'}${isDefault ? ' (default)' : ''}. Click: ${on ? 'off' : 'on'}.`}
+                >
+                  {det.name.en}
+                </button>
+              );
+            }}
+          </DetectorGroups>
         </div>
 
         <label className={ws.field}>
@@ -239,6 +258,12 @@ function CrewExceptionModal({ agent, crew, onClose }: { agent: AgentDoc; crew: C
     });
   };
 
+  const overrides = Object.keys(choices).length;
+  const crewOnCount = DETECTORS.filter(d => {
+    const c = choiceOf(d.id);
+    return c === 'follow' ? agentWould.has(d.id) : c === 'on';
+  }).length;
+
   const save = () => {
     const next: CrewDataProtection | undefined = Object.keys(choices).length ? { detectors: choices } : undefined;
     updateCrew(agent.id, crew.id, { dataProtection: next });
@@ -270,31 +295,86 @@ function CrewExceptionModal({ agent, crew, onClose }: { agent: AgentDoc; crew: C
             : 'Agent: off — nothing is checked in any crew. Exceptions apply once it is on (agent page → Setup).'}
         </span>
         <div className={ws.field}>
-          <span className={ws.label}>Detectors in this crew</span>
-          {DETECTORS.map(det => {
-            const c = choiceOf(det.id);
-            const follows = agentWould.has(det.id);
-            const effective = c === 'follow' ? follows : c === 'on';
-            return (
-              <div key={det.id} className={ws.row} title={det.matches.en}>
-                <span className={`${ws.summary} ${effective && agentResolved.enabled ? '' : ws.summaryOff}`}>{det.name.en}</span>
-                <select
-                  className={ws.select}
-                  style={{ width: 210, flex: '0 0 auto' }}
-                  value={c}
-                  onChange={e => setChoice(det.id, e.target.value as CrewChoice)}
-                  aria-label={`${det.name.en} in this crew`}
+          <div className={dps.detectorsHead}>
+            <span className={ws.label} title="Click a detector to step it: follow the agent → the other way in this crew → the agent's way, pinned → follow the agent.">
+              Detectors in this crew
+            </span>
+            <span className={dps.headRight}>
+              <span className={ws.note}>{crewOnCount} of {DETECTORS.length} on</span>
+              <button
+                type="button"
+                className={`${kb.showAll} ${overrides ? '' : dps.resetHidden}`}
+                onClick={() => setChoices({})}
+                tabIndex={overrides ? 0 : -1}
+                aria-hidden={!overrides}
+              >
+                Reset to agent
+              </button>
+            </span>
+          </div>
+          <DetectorGroups dim={!agentResolved.enabled}>
+            {det => {
+              const c = choiceOf(det.id);
+              const follows = agentWould.has(det.id);
+              const effective = c === 'follow' ? follows : c === 'on';
+              return (
+                <button
+                  key={det.id}
+                  type="button"
+                  className={`${kb.chip} ${effective ? kb.chipOn : ''}`}
+                  aria-pressed={effective}
+                  onClick={() => setChoice(det.id, nextChoice(c, follows))}
+                  title={`${det.matches.en}\n\n${crewChipState(c, follows)}`}
                 >
-                  <option value="follow">Follow the agent ({follows ? 'on' : 'off'})</option>
-                  <option value="on">On in this crew</option>
-                  <option value="off">Off in this crew</option>
-                </select>
-              </div>
-            );
-          })}
+                  {det.name.en}
+                  <span className={`${kb.chipCount} ${c === 'follow' ? dps.tagHidden : ''}`}>crew</span>
+                </button>
+              );
+            }}
+          </DetectorGroups>
         </div>
       </div>
     </Modal>
+  );
+}
+
+/**
+ * A crew chip's click cycle: follow the agent → the other way in this crew →
+ * the agent's way, pinned (so a later agent change won't move it) → follow.
+ */
+function nextChoice(c: CrewChoice, agentOn: boolean): CrewChoice {
+  if (c === 'follow') return agentOn ? 'off' : 'on';
+  const pinnedSame = (c === 'on') === agentOn;
+  return pinnedSame ? 'follow' : (agentOn ? 'on' : 'off');
+}
+
+/** The crew chip's tooltip line: where it is now and what the next click does. */
+function crewChipState(c: CrewChoice, agentOn: boolean): string {
+  const word = (v: boolean) => (v ? 'on' : 'off');
+  const next = nextChoice(c, agentOn);
+  const then = next === 'follow' ? 'follow the agent' : `${next} for this crew`;
+  if (c === 'follow') return `Following the agent (${word(agentOn)}). Click: ${then}.`;
+  const here = c === 'on';
+  return here === agentOn
+    ? `${here ? 'On' : 'Off'} for this crew, pinned (the agent is ${word(agentOn)} too). Click: ${then}.`
+    : `${here ? 'On' : 'Off'} for this crew (the agent: ${word(agentOn)}). Click: ${then}.`;
+}
+
+/** Detectors under their group labels, as wrapping chips. */
+function DetectorGroups({ dim, children }: { dim: boolean; children: (det: DetectorDef) => ReactNode }) {
+  return (
+    <div className={`${dps.groups} ${dim ? dps.dim : ''}`}>
+      {DETECTOR_GROUPS.map(group => {
+        const dets = DETECTORS.filter(d => d.group === group.id);
+        if (!dets.length) return null;
+        return (
+          <div key={group.id} className={dps.groupRow}>
+            <span className={kb.knobLabel}>{group.name.en}</span>
+            <div className={kb.chips}>{dets.map(det => children(det))}</div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

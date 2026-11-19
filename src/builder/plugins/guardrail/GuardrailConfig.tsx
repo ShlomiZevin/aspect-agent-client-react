@@ -42,6 +42,7 @@ export function GuardrailConfigComponent({
   const mentionOptions = useMentionOptions(agentId, { onCreateSnippet: () => openCreateSnippet(agentId) });
   const { doc } = useBuilder();
   const crews = doc.agents.find(a => a.id === agentId)?.crews ?? [];
+  const otherCrews = crews.filter(c => c.id !== crewId);
   const [expanded, setExpanded] = useState(false);
 
   const offline = instance.lane === 'offline';
@@ -123,7 +124,9 @@ export function GuardrailConfigComponent({
           onChange={e => patch({ escalateTo: e.target.value || null })}
         >
           <option value="">Stay in this crew</option>
-          {crews.filter(c => c.id !== crewId).map(c => <option key={c.id} value={c.id}>Move to “{c.name}”</option>)}
+          {otherCrews.map(c => <option key={c.id} value={c.id}>Move to “{c.name}”</option>)}
+          {/* One crew only: show the option exists, so it doesn't look missing. */}
+          {otherCrews.length === 0 && <option value="" disabled>No other crew yet — add one to move there</option>}
         </select>
       </InlineField>
 

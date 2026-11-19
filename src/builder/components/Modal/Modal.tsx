@@ -9,7 +9,7 @@
  * chip canvas's on/off switch could leak through visually.
  */
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './Modal.module.css';
 
@@ -67,18 +67,49 @@ export function Modal({
   }, [open, onClose, dismissible]);
 
   const mousedownOnOverlayRef = useRef(false);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Centre the box on WHOLE device pixels. Flex centring put it at
+  // (window - height) / 2 — e.g. 28.59px for a 94vh box — so everything
+  // inside sat on fractional pixels and Chrome redrew a hovered pill or an
+  // opened select a pixel off (#986 note 3). Re-placed whenever the box or
+  // the window changes size (content growing, the resize corner, zoom).
+  // Before paint, so it never shows in the wrong place.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const overlay = overlayRef.current;
+    const modal = modalRef.current;
+    if (!overlay || !modal) return;
+    const place = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const snap = (v: number) => Math.max(0, Math.round(v * dpr) / dpr);
+      const box = modal.getBoundingClientRect();
+      modal.style.left = `${snap((overlay.clientWidth - box.width) / 2)}px`;
+      modal.style.top = `${snap((overlay.clientHeight - box.height) / 2)}px`;
+    };
+    place();
+    const ro = new ResizeObserver(place);
+    ro.observe(modal);
+    ro.observe(overlay);
+    window.addEventListener('resize', place);
+    return () => { ro.disconnect(); window.removeEventListener('resize', place); };
+  }, [open]);
 
   if (!open) return null;
 
   // Fullscreen flips the modal box dimensions to fill nearly the
   // viewport. The width prop is ignored in that mode — the host
   // wants the maximum drawing surface. `resize: both` allows
-  // drag-from-the-bottom-right corner; the parent overlay's flex-
-  // center keeps the modal centered so growing the box visually
-  // expands in all directions equally.
+  // drag-from-the-bottom-right corner; the placement above re-centres
+  // the modal so growing the box visually expands in all directions
+  // equally. Window shares are rounded DOWN to whole pixels (96vw / 94vh
+  // are fractional on most windows) so the box itself is whole too.
+  const W = 'round(down, 96vw, 1px)';
+  const H = 'round(down, 94vh, 1px)';
   const modalStyle: React.CSSProperties = fullscreen
-    ? { width: '96vw', height: '94vh', maxWidth: '96vw', maxHeight: '94vh' }
-    : { width, resize: 'both', overflow: 'auto', minWidth: 320, minHeight: 200, maxWidth: '96vw', maxHeight: '94vh' };
+    ? { width: W, height: H, maxWidth: W, maxHeight: H }
+    : { width, resize: 'both', overflow: 'auto', minWidth: 320, minHeight: 200, maxWidth: W, maxHeight: H };
   const bodyClass = noBodyPadding ? `${styles.body} ${styles.bodyTight}` : styles.body;
 
   // Click-vs-drag disambiguation: the modal frame uses `resize: both`
@@ -90,6 +121,7 @@ export function Modal({
   // drag that drifted out).
   return createPortal(
     <div
+      ref={overlayRef}
       className={styles.overlay}
       onMouseDown={e => { mousedownOnOverlayRef.current = e.target === e.currentTarget; }}
       onClick={e => {
@@ -97,6 +129,7 @@ export function Modal({
       }}
     >
       <div
+        ref={modalRef}
         className={styles.modal}
         style={modalStyle}
         onMouseDown={e => e.stopPropagation()}
