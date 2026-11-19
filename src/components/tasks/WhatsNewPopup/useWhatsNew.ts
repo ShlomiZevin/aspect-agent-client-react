@@ -40,7 +40,8 @@ function readIdentity(): string | null {
  * - Opens by itself on first load and when the person comes back after being away.
  * - A release that lands while they are working never opens it: it announces itself
  *   (`incoming` — the corner message) and then stays as a badge until "Got it".
- * - "Got it" moves the watermark to the newest item shown.
+ * - "Got it" moves the watermark to the newest item shown; "Got it" on one item
+ *   (New tab) dismisses just that task for this person.
  *
  * `auto` = all of the above (Builder V2 pages). Without it the hook stays quiet and
  * only answers the task board's What's New button.
@@ -228,5 +229,20 @@ export function useWhatsNew(auto: boolean) {
     }
   }, [refresh]);
 
-  return { identity, items, incoming, isOpen, open, close, gotIt, dismissIncoming, chooseName };
+  // "Got it" on one item: only that task leaves the list; the watermark stays where it is.
+  const gotItOne = useCallback(async (taskId: number) => {
+    const id = readIdentity();
+    if (!id) return;
+    setItems(prev => prev.filter(t => t.id !== taskId));
+    setIncoming(prev => prev.filter(t => t.id !== taskId));
+    try {
+      await taskService.dismissWhatsNewItem(id, taskId);
+    } catch {
+      // Not saved: the refresh below brings the item back.
+    } finally {
+      refresh();
+    }
+  }, [refresh]);
+
+  return { identity, items, incoming, isOpen, open, close, gotIt, gotItOne, dismissIncoming, chooseName };
 }

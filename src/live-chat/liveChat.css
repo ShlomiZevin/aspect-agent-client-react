@@ -11,12 +11,14 @@
  */
 
 .lybi-chat {
-  --mag: #E0198A;
-  --pur: #5B1E8A;
-  --pur2: #9A2295;
-  --ink: #0A0420;
-  /* Noa's brand gradient (exact stops from the mockup). */
-  --grad: linear-gradient(135deg, #E0198A 0%, #9A2295 50%, #5B1E8A 100%);
+  --mag: #6635D5;
+  --pur: #9E50EF;
+  --pur2: #7B39C5;
+  --ink: #100B1B;
+  --mag-ink: var(--mag);    /* brand colour used as TEXT (links, hovers); lifted in dark */
+  /* Lybi brand gradient — Violet Spectrum brand ground
+     (lybi-website/design-system/tokens.css). */
+  --grad: linear-gradient(135deg, #6635D5 0%, #7B39C5 50%, #9E50EF 100%);
 
   font-family: 'Assistant', system-ui, sans-serif;
   position: fixed;
@@ -48,7 +50,7 @@
   --surface: #FFFFFF;       /* cards */
   --surface-2: #FBF5FF;     /* ghost / sunken */
   --surface-3: #F2EAF9;     /* ghost-deep */
-  --text: #1A0A38;          /* text-1 (strong) */
+  --text: #23182F;          /* text-1 (strong) */
   --text-2: #423655;        /* text-2 (body) */
   --text-3: #665A7D;        /* text-3 (muted) */
   --border: #E0D6EF;        /* line (subtle) */
@@ -64,7 +66,7 @@
 /* Dark theme — Noa's glassy system: a flat navy page with translucent
    WHITE surfaces/text/borders (not magenta-tinted solids). */
 .lybi-chat[data-theme="dark"] {
-  --bg: #0A0420;                          /* lybi-dark */
+  --bg: #100B1B;                          /* lybi-dark */
   --surface: rgba(255, 255, 255, .06);    /* glass-fill */
   --surface-2: rgba(255, 255, 255, .09);
   --surface-3: rgba(255, 255, 255, .13);
@@ -75,10 +77,13 @@
   --border-2: rgba(255, 255, 255, .28);   /* hairline-dark */
   --bot-bub: rgba(255, 255, 255, .06);
   --bot-bub-border: rgba(255, 255, 255, .10);
-  --user-bub: rgba(176, 123, 232, .16);   /* lilac glass on navy */
+  --user-bub: rgba(174, 128, 255, .16);   /* lilac glass on navy */
   --bub-border: rgba(255, 255, 255, .28);  /* hairline — the stronger edge */
   --shadow: 0 8px 34px rgba(0, 0, 0, .5);
   --logo-filter: brightness(0) invert(1);
+  /* The brand primary is too dark to read as text on navy — lift it to a
+     lilac (keeps working for custom brand colours too). */
+  --mag-ink: color-mix(in srgb, var(--mag) 45%, #fff);
 }
 
 .lybi-chat * { box-sizing: border-box; }
@@ -164,9 +169,29 @@
 }
 .lybi-chat .mode-tag {
   font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px;
-  background: #E0198A1a; color: var(--mag); border: 1px solid var(--mag); display: none;
+  background: color-mix(in srgb, var(--mag) 10%, transparent); color: var(--mag-ink); border: 1px solid var(--mag); display: none;
 }
 .lybi-chat[data-mode="debug"] .mode-tag { display: inline-flex; }
+
+/* Text size (#980): A− / A+ in the top bar scale the message text and the
+ * composer only (font-size × --lc-fs), never the chrome. The steps match
+ * FONT_SCALES in useLiveSettings.ts. */
+.lybi-chat { --lc-fs: 1; }
+.lybi-chat[data-font="1"] { --lc-fs: 1.15; }
+.lybi-chat[data-font="2"] { --lc-fs: 1.3; }
+.lybi-chat .font-size { display: inline-flex; align-items: center; flex-shrink: 0; }
+.lybi-chat .icon-btn.font-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; font-size: 14px; font-weight: 700; line-height: 1; }
+.lybi-chat .icon-btn.font-btn.big { font-size: 18px; }
+.lybi-chat .icon-btn.font-btn .font-sign { font-size: 12px; font-weight: 700; margin-inline-start: 1px; }
+.lybi-chat .icon-btn.font-btn:disabled { opacity: .35; cursor: default; background: none; color: var(--text-2); }
+.lybi-chat[data-embed="1"] .icon-btn.font-btn { width: 30px; }
+/* Phones: global.css pins every input to 16px !important (no iOS focus zoom) —
+ * keep that floor, and still let the composer grow with the choice. */
+@media (max-width: 768px) {
+  .lybi-chat .composer textarea { font-size: max(16px, calc(15px * var(--lc-fs))) !important; }
+  .lybi-chat[data-embed="1"] .composer textarea { font-size: max(16px, calc(14px * var(--lc-fs))) !important; }
+  .lybi-chat .composer-card-input { font-size: max(16px, calc(19px * var(--lc-fs))) !important; }
+}
 
 /* messages */
 .lybi-chat .stream { flex: 1; overflow-y: auto; padding: 30px 20px 28px; scroll-behavior: smooth; }
@@ -201,7 +226,7 @@
 .lybi-chat .crew-label { text-align: left; }   /* bot — left wall */
 .lybi-chat .sender-label { text-align: right; } /* customer — right wall */
 .lybi-chat .bubble {
-  padding: 14px 18px; border-radius: 16px; font-size: 16.5px; line-height: 1.65;
+  padding: 14px 18px; border-radius: 16px; font-size: calc(16.5px * var(--lc-fs)); line-height: 1.65;
   word-wrap: break-word; overflow-wrap: anywhere;
 }
 /* text direction follows the message content (dir="auto"), independent of
@@ -211,7 +236,10 @@
    bubble's larger size/spacing so the agent text isn't smaller than the user's. */
 .lybi-chat .bubble-md,
 .lybi-chat .bubble-md p,
-.lybi-chat .bubble-md li { font-size: 16px; line-height: 1.7; }
+.lybi-chat .bubble-md li { font-size: calc(16px * var(--lc-fs)); line-height: 1.7; }
+/* The rest of the markdown (tables, code) keeps its own size, scaled with the text-size choice. */
+.lybi-chat .bubble-md > div { font-size: calc(13px * var(--lc-fs)); }
+.lybi-chat .bubble-md code { font-size: calc(12px * var(--lc-fs)); }
 .lybi-chat .bubble-md p { margin: 0 0 .5em; }
 .lybi-chat .bubble-md p:last-child { margin-bottom: 0; }
 /* Noa "בועות שקטות" (quiet bubbles): both calm, full-ink text, a 1px
@@ -221,11 +249,11 @@
 .lybi-chat .msg.bot .bubble {
   background: var(--bot-bub); color: var(--text);
   border: 1px solid var(--bub-border);
-  border-left: 3px solid var(--mag);            /* Lybi's pink identity rail */
+  border-left: 3px solid var(--mag);            /* Lybi's brand identity rail */
   border-bottom-left-radius: 5px;               /* down-tail on the rail side */
   box-shadow: 0 4px 16px rgba(26, 10, 56, .08);
 }
-.lybi-chat .msg.bot .bubble a { color: var(--mag); text-decoration: underline; }
+.lybi-chat .msg.bot .bubble a { color: var(--mag-ink); text-decoration: underline; }
 .lybi-chat .msg.user .bubble {
   background: var(--user-bub); color: var(--text);
   border: 1px solid var(--bub-border); padding: 12px 17px;
@@ -243,7 +271,7 @@
 .lybi-chat .bubble p:last-child { margin-bottom: 0; }
 .lybi-chat .bubble ul, .lybi-chat .bubble ol { margin: .4em 0; padding-inline-start: 1.4em; }
 .lybi-chat .bubble pre { white-space: pre-wrap; }
-.lybi-chat .bubble a { color: var(--mag); }
+.lybi-chat .bubble a { color: var(--mag-ink); }
 .lybi-chat .bubble h1, .lybi-chat .bubble h2, .lybi-chat .bubble h3 { font-size: 1.02em; margin: .4em 0 .2em; }
 
 /* Empty-state welcome (Noa): intro line under a small round brand mark, the
@@ -271,7 +299,7 @@
 }
 .lybi-chat .composer-card-input {
   width: 100%; border: 0 !important; background: transparent !important; resize: none;
-  font-family: inherit; font-size: 19px; line-height: 1.5; color: var(--text);
+  font-family: inherit; font-size: calc(19px * var(--lc-fs)); line-height: 1.5; color: var(--text);
   outline: 0 !important; box-shadow: none !important; -webkit-appearance: none; appearance: none;
   padding: 0; margin-bottom: 16px; min-height: 30px; max-height: 160px;
 }
@@ -284,7 +312,7 @@
   flex: none; white-space: nowrap;
   font-size: 14px; font-weight: 700; color: #fff; background: var(--grad);
   border: 0; border-radius: 100px; padding: 8px 20px; cursor: pointer;
-  box-shadow: 0 8px 22px rgba(224, 25, 138, .26);
+  box-shadow: 0 8px 22px rgba(102, 53, 213, .26);
   transition: transform .1s, opacity .15s;
 }
 .lybi-chat .send-pill:hover:not(:disabled) { transform: translateY(-1px); }
@@ -319,7 +347,7 @@
   padding: 4px 9px; border-radius: 100px; color: var(--text-2);
   border: 1px solid var(--border); background: var(--surface-2); transition: .15s;
 }
-.lybi-chat .mini-btn:hover { color: var(--mag); border-color: var(--mag); }
+.lybi-chat .mini-btn:hover { color: var(--mag-ink); border-color: var(--mag); }
 .lybi-chat .mini-btn svg { width: 13px; height: 13px; }
 
 /* debug thinking */
@@ -335,7 +363,7 @@
 .lybi-chat .think-body { width: 100%; }
 .lybi-chat .think-body .tstep { margin-bottom: 7px; }
 .lybi-chat .think-body .tstep:last-child { margin-bottom: 0; }
-.lybi-chat .think-body .tk { color: var(--mag); font-weight: 700; }
+.lybi-chat .think-body .tk { color: var(--mag-ink); font-weight: 700; }
 .lybi-chat .think-body .trun-head { color: var(--text); font-weight: 700; margin: 9px 0 5px; }
 .lybi-chat .think-body .trun-head:first-child { margin-top: 0; }
 
@@ -353,7 +381,7 @@
 .lybi-chat .composer-inner:focus-within { border-color: var(--border); box-shadow: none; }
 .lybi-chat .composer textarea {
   flex: 1; border: 0 !important; background: transparent !important; resize: none; color: var(--text);
-  font-family: inherit; font-size: 15px; line-height: 1.5; max-height: 140px; padding: 8px 0; min-height: 22px;
+  font-family: inherit; font-size: calc(15px * var(--lc-fs)); line-height: 1.5; max-height: 140px; padding: 8px 0; min-height: 22px;
   outline: 0 !important; box-shadow: none !important; -webkit-appearance: none; appearance: none;
 }
 .lybi-chat .composer textarea:focus,
@@ -462,7 +490,7 @@
   margin-inline-start: 5px; vertical-align: -2px; cursor: help; transition: .15s;
 }
 .lybi-chat .login-info svg { width: 100%; height: 100%; display: block; }
-.lybi-chat .login-info:hover { color: var(--mag); opacity: 1; }
+.lybi-chat .login-info:hover { color: var(--mag-ink); opacity: 1; }
 .lybi-chat .login-error {
   font-size: 12.5px; font-weight: 600; color: #dc2626; background: rgba(220,38,38,.08);
   border-radius: 9px; padding: 8px 12px; text-align: center;
@@ -569,7 +597,7 @@
 .lybi-chat .brand-presets { display: flex; flex-wrap: wrap; gap: 8px; }
 .lybi-chat .brand-preset { display: flex; align-items: center; border: 1px solid var(--border-2); border-radius: 100px; overflow: hidden; }
 .lybi-chat .brand-preset-load { padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--text); }
-.lybi-chat .brand-preset-load:hover { color: var(--mag); }
+.lybi-chat .brand-preset-load:hover { color: var(--mag-ink); }
 .lybi-chat .brand-preset-del { padding: 6px 9px; font-size: 12px; color: var(--text-3); border-inline-start: 1px solid var(--border); }
 .lybi-chat .brand-preset-del:hover { color: #dc2626; }
 .lybi-chat .brand-empty { font-size: 13px; color: var(--text-3); }
@@ -600,7 +628,7 @@
   border-radius: 20px; padding: 34px 28px; box-shadow: var(--shadow);
 }
 .lybi-chat .gate-card .ge { font-size: 38px; margin-bottom: 12px; }
-.lybi-chat .gate-card h2 { font-size: 19px; font-weight: 800; margin: 0 0 8px; }
+.lybi-chat .gate-card h2 { font-size: 19px; font-weight: 800; margin: 0 0 8px; color: var(--text); }
 .lybi-chat .gate-card p { font-size: 14px; color: var(--text-2); margin: 0 0 20px; line-height: 1.5; }
 .lybi-chat .gate-slug {
   display: inline-block; font-family: ui-monospace, Menlo, monospace; font-size: 13px;
@@ -618,15 +646,15 @@
 .lybi-chat[data-embed="1"] .msg { gap: 8px; max-width: 92%; }
 .lybi-chat[data-embed="1"] .avatar { width: 28px; height: 28px; border-radius: 9px; font-size: 12px; }
 .lybi-chat[data-embed="1"] .avatar svg { width: 15px; height: 15px; }
-.lybi-chat[data-embed="1"] .bubble { padding: 10px 13px; border-radius: 14px; font-size: 14px; line-height: 1.55; }
+.lybi-chat[data-embed="1"] .bubble { padding: 10px 13px; border-radius: 14px; font-size: calc(14px * var(--lc-fs)); line-height: 1.55; }
 .lybi-chat[data-embed="1"] .bubble-md,
 .lybi-chat[data-embed="1"] .bubble-md p,
-.lybi-chat[data-embed="1"] .bubble-md li { font-size: 14px; line-height: 1.55; }
+.lybi-chat[data-embed="1"] .bubble-md li { font-size: calc(14px * var(--lc-fs)); line-height: 1.55; }
 .lybi-chat[data-embed="1"] .crew-label { font-size: 10.5px; }
 .lybi-chat[data-embed="1"] .composer { padding: 8px 12px 10px; }
 .lybi-chat[data-embed="1"] .composer-inner { padding: 5px 5px 5px 14px; border-radius: 20px; }
 .lybi-chat[data-embed="1"][dir="rtl"] .composer-inner { padding: 5px 14px 5px 5px; }
-.lybi-chat[data-embed="1"] .composer textarea { font-size: 14px; padding: 6px 0; }
+.lybi-chat[data-embed="1"] .composer textarea { font-size: calc(14px * var(--lc-fs)); padding: 6px 0; }
 .lybi-chat[data-embed="1"] .send-btn { width: 36px; height: 36px; }
 .lybi-chat[data-embed="1"] .send-btn svg { width: 16px; height: 16px; }
 .lybi-chat[data-embed="1"] .composer-foot { margin-top: 5px; }
@@ -663,7 +691,7 @@
  * Colours come from the brand tokens; the mistake button and its thanks
  * line share one box so the tap never moves anything. */
 .lybi-chat[data-theme="light"] { --protect-soft-1: #F4ECFD; --protect-soft-2: #D9C2F5; --protect-ring: #C3A2EC; --protect-card: linear-gradient(160deg, #FFFFFF 0%, #F7F0FE 100%); --protect-strip: #F1E8FB; }
-.lybi-chat[data-theme="dark"]  { --protect-soft-1: rgba(214, 186, 247, .35); --protect-soft-2: rgba(176, 123, 232, .55); --protect-ring: rgba(195, 162, 236, .6); --protect-card: rgba(255, 255, 255, .07); --protect-strip: rgba(176, 123, 232, .16); }
+.lybi-chat[data-theme="dark"]  { --protect-soft-1: rgba(214, 186, 247, .35); --protect-soft-2: rgba(174, 128, 255, .55); --protect-ring: rgba(195, 162, 236, .6); --protect-card: rgba(255, 255, 255, .07); --protect-strip: rgba(174, 128, 255, .16); }
 .lybi-chat .protect-card {
   width: min(520px, 100%); margin: 2px 0 6px; padding: 18px 18px 16px;
   background: var(--protect-card); border: 1px solid var(--border); border-radius: 22px;

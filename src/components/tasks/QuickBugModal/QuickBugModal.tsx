@@ -10,6 +10,17 @@ interface QuickBugModalProps {
   onSubmit: (data: CreateTaskData) => Promise<void>;
   currentDomain: string;
   conversationUrl?: string;
+  /** Link text for the conversation in the description (default: the URL). */
+  conversationLabel?: string;
+}
+
+/** The person's board name ("who you are" — same key the task board uses), else the anonymous id. */
+function openerIdentity(): string {
+  try {
+    const name = localStorage.getItem('aspect_commenter_identity');
+    if (name) return name;
+  } catch { /* fall through */ }
+  return getUserId();
 }
 
 const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
@@ -27,7 +38,7 @@ const TYPE_OPTIONS: { value: TaskType; label: string }[] = [
   { value: 'idea', label: 'Idea' },
 ];
 
-export function QuickBugModal({ isOpen, onClose, onSubmit, currentDomain, conversationUrl }: QuickBugModalProps) {
+export function QuickBugModal({ isOpen, onClose, onSubmit, currentDomain, conversationUrl, conversationLabel }: QuickBugModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<TaskType>('bug');
@@ -44,12 +55,12 @@ export function QuickBugModal({ isOpen, onClose, onSubmit, currentDomain, conver
       setIsDraft(getDraftDefault());
       // Set default description with conversation link if available
       if (conversationUrl) {
-        setDescription(`<p><br></p><p>---</p><p>Conversation: <a href="${conversationUrl}" target="_blank">${conversationUrl}</a></p>`);
+        setDescription(`<p><br></p><p>---</p><p>Conversation: <a href="${conversationUrl}" target="_blank">${conversationLabel || conversationUrl}</a></p>`);
       } else {
         setDescription('');
       }
     }
-  }, [isOpen, conversationUrl]);
+  }, [isOpen, conversationUrl, conversationLabel]);
 
   // Handle Escape key
   useEffect(() => {
@@ -81,7 +92,7 @@ export function QuickBugModal({ isOpen, onClose, onSubmit, currentDomain, conver
         tags: [],
         isDraft,
         createdBy: getUserId(),
-        opener: getUserId(),
+        opener: openerIdentity(),
       });
       onClose();
     } finally {

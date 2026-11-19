@@ -17,7 +17,7 @@
 .body :global(strong) { font-weight: 700; color: var(--lb-ink, #1e1633); }
 .body :global(h1), .body :global(h2), .body :global(h3) { font-size: 13px; font-weight: 700; margin: 8px 0 4px; }
 .body :global(h1:first-child), .body :global(h2:first-child), .body :global(h3:first-child) { margin-top: 0; }
-.body :global(a) { color: var(--lb-accent, #E0198A); }
+.body :global(a) { color: var(--lb-accent, #6635D5); }
 .body :global(code) { font-size: 12px; background: var(--lb-surface, #f4f2f9); padding: 1px 5px; border-radius: 5px; }
 .body :global(table) { width: 100%; border-collapse: collapse; font-size: 12px; }
 .body :global(th), .body :global(td) { border: 1px solid var(--lb-line, #ece9f2); padding: 4px 7px; text-align: start; }
@@ -99,7 +99,7 @@
 }
 :global([data-look='brain']) .tagOn {
   font-weight: 700; transform: none;
-  background: var(--lb-chip-on, #5B1E8A);
+  background: var(--lb-chip-on, #7B39C5);
   border-color: transparent; color: #fff;
   box-shadow: var(--lb-chip-on-shadow, none);
 }
@@ -119,11 +119,11 @@
 .legend { display: inline-flex; align-items: center; gap: 12px; }
 .legendItem { display: inline-flex; align-items: center; gap: 5px; }
 .swatch { width: 9px; height: 9px; border-radius: 3px; display: block; }
-.swatchOn { background: var(--lb-chip-on, #5B1E8A); }
+.swatchOn { background: var(--lb-chip-on, #7B39C5); }
 .swatchOff { background: var(--lb-chip-off, #fff); border: 1px solid var(--lb-chip-off-line, #C9BAE3); }
 
 .tagOn {
-  background: linear-gradient(135deg, #E0198A, #5B1E8A);
+  background: linear-gradient(135deg, #6635D5, #9E50EF);
   color: #fff; font-weight: 700; border-color: transparent;
   transform: translateY(-1px);
 }
@@ -141,7 +141,7 @@
   background: #FFF6E0; color: #B8860B; }
 .flash { animation: lbFlash .9s ease; }
 @keyframes lbFlash {
-  0%   { background: color-mix(in srgb, var(--lb-accent, #E0198A) 30%, transparent); }
+  0%   { background: color-mix(in srgb, var(--lb-accent, #6635D5) 30%, transparent); }
   100% { background: transparent; }
 }
 
@@ -156,7 +156,7 @@
 /* Live Brain look — Noa's big mono value beside the bar. */
 :global([data-look="brain"]) .barNum { font-size: 15px; }
 .track { height: 7px; border-radius: 100px; background: var(--lb-line); overflow: hidden; }
-.fill { height: 100%; border-radius: 999px; background: var(--lb-grad, linear-gradient(90deg, #E0198A, #7C3AED)); transition: width .9s cubic-bezier(.4, 0, .2, 1); }
+.fill { height: 100%; border-radius: 999px; background: var(--lb-grad, linear-gradient(90deg, #6635D5, #7C3AED)); transition: width .9s cubic-bezier(.4, 0, .2, 1); }
 
 /* ── cards ── */
 .cards { display: flex; flex-direction: column; gap: 8px; }
@@ -190,7 +190,7 @@
 .jK { font-size: 12px; color: var(--lb-muted); flex: none; }
 .jV { font-size: 12.5px; font-weight: 700; color: var(--lb-ink); text-align: end; }
 .jVLong { font-weight: 500; white-space: normal; }
-.jPill { font-size: 11.5px; font-weight: 700; color: #5B1E8A; background: var(--lb-eyebrow-bg); padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.jPill { font-size: 11.5px; font-weight: 700; color: #7B39C5; background: var(--lb-eyebrow-bg); padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
 .jReady { margin-top: 12px; background: var(--lb-tint); border-radius: 11px; padding: 12px 13px; }
 .jReadyHead { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 7px; }
 .jReadyLab { font-size: 11.5px; font-weight: 700; color: var(--lb-ink); }

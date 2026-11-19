@@ -6,7 +6,7 @@
   --surface-2: #f7f8fa;
   --accent: #7c3aed;
   --accent-soft: #f3ecfe;
-  --magenta: #E0198A;
+  --lybi-accent: #6635D5;
   padding: 14px 22px 40px;
   color: var(--ink);
   font-family: inherit;
@@ -22,7 +22,7 @@
 .masterToggle input { position: absolute; opacity: 0; width: 0; height: 0; }
 .switch { width: 34px; height: 20px; border-radius: 100px; background: var(--border, #d5d0e0); position: relative; transition: background .15s; flex: none; }
 .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
-.masterToggle input:checked + .switch { background: #E0198A; }
+.masterToggle input:checked + .switch { background: var(--lybi-accent); }
 .masterToggle input:checked + .switch::after { transform: translateX(14px); }
 .switchLabel { font-size: 12px; font-weight: 700; color: var(--muted); min-width: 22px; }
 
@@ -170,7 +170,7 @@ kbd { font-family: ui-monospace, Menlo, monospace; font-size: 10px; padding: 1px
 .previewEmoji { font-size: 14px; }
 .previewTitle { flex: 1; font-size: 13px; font-weight: 700; }
 .previewSourceChip { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); padding: 2px 5px; border-radius: 5px; }
-.previewSourceAddon { color: var(--magenta); border-color: color-mix(in srgb, var(--magenta) 30%, var(--line)); background: color-mix(in srgb, var(--magenta) 8%, transparent); }
+.previewSourceAddon { color: var(--lybi-accent); border-color: color-mix(in srgb, var(--lybi-accent) 30%, var(--line)); background: color-mix(in srgb, var(--lybi-accent) 8%, transparent); }
 
 .inspector { border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; background: var(--surface); }
 .inspectorHead { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 6px; }
@@ -254,7 +254,7 @@ kbd { font-family: ui-monospace, Menlo, monospace; font-size: 10px; padding: 1px
 .kvRow { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
 .kvK { color: var(--muted); }
 .kvV { font-weight: 600; text-align: right; }
-.tag { display: inline-block; font-size: 11px; font-weight: 600; color: var(--magenta); background: color-mix(in srgb, var(--magenta) 11%, transparent); padding: 2px 8px; border-radius: 999px; }
+.tag { display: inline-block; font-size: 11px; font-weight: 600; color: var(--lybi-accent); background: color-mix(in srgb, var(--lybi-accent) 11%, transparent); padding: 2px 8px; border-radius: 999px; }
 
 .goals { display: flex; flex-direction: column; gap: 8px; }
 .goal { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; }
@@ -276,7 +276,7 @@ kbd { font-family: ui-monospace, Menlo, monospace; font-size: 10px; padding: 1px
 .needs { display: flex; gap: 14px; align-items: center; }
 .donut {
   width: 96px; height: 96px; flex: none; border-radius: 50%;
-  background: conic-gradient(var(--magenta) calc(var(--v) * 1%), #dfe3ec 0);
+  background: conic-gradient(var(--lybi-accent) calc(var(--v) * 1%), #dfe3ec 0);
   display: grid; place-items: center; position: relative;
 }
 .donut::before { content: ""; position: absolute; inset: 13px; border-radius: 50%; background: var(--surface); }

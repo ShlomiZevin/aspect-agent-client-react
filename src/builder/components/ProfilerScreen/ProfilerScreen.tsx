@@ -457,7 +457,7 @@ export function ProfilerScreen() {
             <div key={p.id} className={styles.chip} onClick={() => setEditingId(p.id)} role="button" tabIndex={0}
               onKeyDown={e => { if (e.key === 'Enter') setEditingId(p.id); }}>
               <span className={styles.chipBadge} aria-hidden>
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#9A2295" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#7B39C5" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                   <path d={ICON_PATH[p.render] ?? ICON_PATH.text} />
                 </svg>
               </span>

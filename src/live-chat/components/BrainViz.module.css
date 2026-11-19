@@ -24,11 +24,11 @@
 .icon {
   width: 26px; height: 26px; flex: none; border-radius: 8px;
   display: grid; place-items: center;
-  background: linear-gradient(135deg, #E0198A 0%, #5B1E8A 100%);
+  background: linear-gradient(135deg, #6635D5 0%, #9E50EF 100%);
 }
 .icon img { width: 15px; height: 15px; display: block; filter: brightness(0) invert(1); }
 .title {
-  font-size: 14.5px; font-weight: 700; color: var(--lb-title, #1A0A38);
+  font-size: 14.5px; font-weight: 700; color: var(--lb-title, #23182F);
   min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .spacer { flex: 1; }
@@ -45,9 +45,9 @@
 .viz {
   --neu-ring:   #C9BAE3;
   --neu-ring-2: #DCD1EE;
-  --neu-glow:   rgba(224, 25, 138, .16);
+  --neu-glow:   rgba(102, 53, 213, .16);
   --neu-fill:   #FBF5FF;
-  --neu-pulse:  rgba(224, 25, 138, .5);
+  --neu-pulse:  rgba(102, 53, 213, .5);
   --neu-pulse-2: rgba(124, 77, 214, .4);
   --neu-label:  #5B4A73;
   --neu-dim:    #9B7FC7;
@@ -59,10 +59,10 @@
 :global(.lybi-chat[data-theme="dark"]) .viz {
   --neu-ring:   rgba(255, 255, 255, .22);
   --neu-ring-2: rgba(255, 255, 255, .16);
-  --neu-glow:   rgba(224, 25, 138, .28);
+  --neu-glow:   rgba(102, 53, 213, .28);
   --neu-fill:   transparent;
-  --neu-pulse:  rgba(240, 96, 176, .55);
-  --neu-pulse-2: rgba(176, 123, 232, .45);
+  --neu-pulse:  rgba(174, 128, 255, .55);
+  --neu-pulse-2: rgba(174, 128, 255, .45);
   --neu-label:  rgba(255, 255, 255, .62);
   --neu-dim:    rgba(255, 255, 255, .28);
 }
@@ -116,7 +116,7 @@
 .mark { position: relative; width: 10px; height: 10px; display: block; }
 .halo {
   position: absolute; inset: -8px; border-radius: 100px;
-  border: 1.5px solid rgba(224, 25, 138, .85);
+  border: 1.5px solid rgba(102, 53, 213, .85);
   animation: lbHalo 6s linear infinite;
 }
 .dot { position: absolute; inset: 0; border-radius: 100px; animation: lbDot 6s linear infinite; }
@@ -148,7 +148,7 @@
 }
 @keyframes lbDot {
   0%, 100% { background: var(--neu-dim); box-shadow: none; transform: scale(1); }
-  5%       { background: #E0198A; box-shadow: 0 0 0 4px rgba(224, 25, 138, .24); transform: scale(1.25); }
+  5%       { background: #6635D5; box-shadow: 0 0 0 4px rgba(102, 53, 213, .24); transform: scale(1.25); }
   17%      { background: var(--neu-dim); box-shadow: none; transform: scale(1); }
 }
 @keyframes lbHalo {

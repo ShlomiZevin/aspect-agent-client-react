@@ -21,7 +21,7 @@ const KB_RETRIEVER_PLUGIN_ID = 'kb-retriever';
 // Live Brain / Profiler panels are internal plugins (no client descriptor),
 // so give them a family accent + fallback icon here instead of the ugly "?".
 const PANEL_FAMILY: Record<string, { accent: string; icon: string }> = {
-  'live-brain-panel': { accent: '#E0198A', icon: '🧠' },
+  'live-brain-panel': { accent: '#6635D5', icon: '🧠' },
   'profiler-panel':   { accent: '#7C3AED', icon: '👤' },
 };
 

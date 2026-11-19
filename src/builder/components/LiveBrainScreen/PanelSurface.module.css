@@ -2,7 +2,7 @@
  * PanelSurface — Noa's Profiler look (exact tokens from the file). Sticky
  * header + card list; the CONTAINER (frame / scrim / drawer) provides the
  * scroll, border-radius and shadow.
- *   accent #E0198A · purple #5B1E8A · ink #1A0A38 · muted #9A8FAA
+ *   (Lybi Violet Spectrum) accent #6635D5 · violet #7B39C5 · radiant #9E50EF · ink #23182F · muted #9A8FAA
  *   surface #F2EAF9 · border #EAE4F2 · bar grad 90deg · icon grad 135deg
  */
 
@@ -11,18 +11,18 @@
      these up too. A dark override follows, keyed on the customer chat's
      data-theme so the panels turn glassy in dark mode and stay light in the
      builder / light chat. */
-  --lb-accent: #E0198A; --lb-accent-2: #5B1E8A;
-  --lb-grad: linear-gradient(90deg, #E0198A, #5B1E8A);
-  --lb-ink: #1A0A38; --lb-muted: #9A8FAA;
+  --lb-accent: #6635D5; --lb-accent-2: #9E50EF;
+  --lb-grad: linear-gradient(90deg, #6635D5, #9E50EF);
+  --lb-ink: #23182F; --lb-muted: #9A8FAA;
   --lb-line: #EAE4F2; --lb-surface: #F2EAF9; --lb-panel: #fff;
   --lb-mono: "JetBrains Mono", ui-monospace, "SF Mono", "Roboto Mono", Menlo, monospace;
   /* Live Brain chip states (Noa's light theme block). */
-  --lb-chip-on: #5B1E8A; --lb-chip-on-shadow: none;
+  --lb-chip-on: #7B39C5; --lb-chip-on-shadow: none;
   --lb-chip-off: #fff; --lb-chip-off-line: #C9BAE3; --lb-chip-off-text: #5B4A73;
   --lb-body2: #423655; --lb-track: #EAE1F5; --lb-card-fill: #FBF5FF;
-  --lb-page: #FAFAFF; --lb-head: #fff; --lb-title: #1A0A38; --lb-sub: #5C5070;
+  --lb-page: #FAFAFF; --lb-head: #fff; --lb-title: #23182F; --lb-sub: #5C5070;
   --lb-label: #665A7D; --lb-divider: #EAE4F2; --lb-card-line: #EAE4F2;
-  --lb-tint: #FBF5FF; --lb-eyebrow: #9A2295; --lb-eyebrow-bg: rgba(154, 34, 149, .10);
+  --lb-tint: #FBF5FF; --lb-eyebrow: #7B39C5; --lb-eyebrow-bg: rgba(123, 57, 197, .10);
   --lb-chev: #C3B8D4; --lb-scroll: #E3D7F0; --lb-scroll-h: #C3B8D4;
 
   background: var(--lb-page);
@@ -53,16 +53,16 @@
   --lb-ink: rgba(255, 255, 255, .88); --lb-muted: rgba(255, 255, 255, .45);
   --lb-line: rgba(255, 255, 255, .14); --lb-surface: rgba(255, 255, 255, .06);
   --lb-panel: rgba(255, 255, 255, .055);
-  --lb-page: #0A0420; --lb-head: rgba(255, 255, 255, .04); --lb-title: #fff;
+  --lb-page: #100B1B; --lb-head: rgba(255, 255, 255, .04); --lb-title: #fff;
   --lb-sub: rgba(255, 255, 255, .70); --lb-label: rgba(255, 255, 255, .62);
   --lb-divider: rgba(255, 255, 255, .10); --lb-card-line: rgba(255, 255, 255, .22);
-  --lb-tint: rgba(255, 255, 255, .06); --lb-eyebrow: #B07BE8;
-  --lb-eyebrow-bg: rgba(176, 123, 232, .15);
+  --lb-tint: rgba(255, 255, 255, .06); --lb-eyebrow: #AE80FF;
+  --lb-eyebrow-bg: rgba(174, 128, 255, .15);
   --lb-chev: rgba(255, 255, 255, .40); --lb-scroll: rgba(255, 255, 255, .16);
   --lb-scroll-h: rgba(255, 255, 255, .28);
   /* On dark the ON chip carries the full brand gradient + its glow. */
-  --lb-chip-on: linear-gradient(135deg, #E0198A 0%, #9A2295 100%);
-  --lb-chip-on-shadow: 0 6px 16px rgba(224, 25, 138, .30);
+  --lb-chip-on: linear-gradient(135deg, #6635D5 0%, #7B39C5 100%);
+  --lb-chip-on-shadow: 0 6px 16px rgba(102, 53, 213, .30);
   --lb-chip-off: transparent; --lb-chip-off-line: rgba(255, 255, 255, .18);
   --lb-chip-off-text: rgba(255, 255, 255, .45);
   --lb-body2: rgba(255, 255, 255, .80); --lb-track: rgba(255, 255, 255, .14);
@@ -87,18 +87,18 @@
 /* Noa's 3px brand accent line across the top of the header. */
 .head::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(135deg, #E0198A, #9A2295 50%, #5B1E8A);
+  background: linear-gradient(135deg, #6635D5, #7B39C5 50%, #9E50EF);
 }
 .logo {
   width: 38px; height: 38px; flex: none; border-radius: 11px; display: grid; place-items: center;
   font-size: 19px; color: #fff;
-  background: linear-gradient(135deg, #E0198A, #9A2295 50%, #5B1E8A);
-  box-shadow: 0 7px 16px -7px rgba(224, 25, 138, .6);
+  background: linear-gradient(135deg, #6635D5, #7B39C5 50%, #9E50EF);
+  box-shadow: 0 7px 16px -7px rgba(102, 53, 213, .6);
 }
 /* Noa's Profiler mark — line-art on a SOFT tinted tile. */
 .logoSoft {
   width: 34px; height: 34px; border-radius: 9px; box-shadow: none;
-  background: linear-gradient(135deg, rgba(224, 25, 138, .12), rgba(91, 30, 138, .14));
+  background: linear-gradient(135deg, rgba(102, 53, 213, .12), rgba(158, 80, 239, .14));
 }
 .mark { flex: 1; min-width: 0; }
 .title { font-size: 16px; font-weight: 800; letter-spacing: -.01em; color: var(--lb-title); line-height: 1.1; }
@@ -111,7 +111,7 @@
   background: var(--lb-panel); color: var(--lb-muted); cursor: pointer; line-height: 1;
   display: grid; place-items: center; transition: color .15s, border-color .15s;
 }
-.close:hover { color: #E0198A; border-color: rgba(224, 25, 138, .5); }
+.close:hover { color: #6635D5; border-color: rgba(102, 53, 213, .5); }
 
 /* ── body — the ONLY scroll region ── */
 .body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 14px 14px 22px; }
@@ -128,7 +128,7 @@
 .cardWrap { position: relative; }
 /* Gentle "just updated" blink — a soft magenta tint fading in then out
    over the card body. Sibling overlay so it isn't clipped; replays on key. */
-.pulse { position: absolute; inset: 0; border-radius: 14px; pointer-events: none; z-index: 2; background: rgba(224, 25, 138, .09); animation: lbBlink 1.3s ease forwards; }
+.pulse { position: absolute; inset: 0; border-radius: 14px; pointer-events: none; z-index: 2; background: rgba(102, 53, 213, .09); animation: lbBlink 1.3s ease forwards; }
 @keyframes lbBlink { 0% { opacity: 0 } 22% { opacity: 1 } 100% { opacity: 0 } }
 /* "Born" — the card materializes: blur-in + a clear scale-up + rise +
    fade, on a smooth decelerating curve (no bounce). Noticeable but elegant. */
@@ -143,12 +143,12 @@
   55%  { opacity: 1; }
   100% { opacity: 1; transform: none; filter: blur(0); }
 }
-.cardSel { border-color: rgba(224, 25, 138, .55); box-shadow: 0 0 0 2px rgba(224, 25, 138, .18); }
+.cardSel { border-color: rgba(102, 53, 213, .55); box-shadow: 0 0 0 2px rgba(102, 53, 213, .18); }
 .cardHead { display: flex; align-items: center; gap: 10px; width: 100%; text-align: start; background: none; border: 0; cursor: pointer; padding: 13px 15px; font: inherit; }
 .cardIcon {
   width: 30px; height: 30px; flex: none; border-radius: 8px; display: grid; place-items: center;
   color: var(--lb-eyebrow);
-  background: linear-gradient(135deg, rgba(224, 25, 138, .12), rgba(91, 30, 138, .14));
+  background: linear-gradient(135deg, rgba(102, 53, 213, .12), rgba(158, 80, 239, .14));
 }
 
 /* ── Live Brain look (Noa's "Live Brain Panels") — distinct from the
@@ -160,8 +160,8 @@
    close. The Profiler keeps its soft tile + 16px title. ── */
 .lookBrain .logo {
   width: 32px; height: 32px; border-radius: 10px;
-  background: linear-gradient(135deg, #E0198A 0%, #9A2295 50%, #5B1E8A 100%);
-  box-shadow: 0 6px 18px rgba(224, 25, 138, .32);
+  background: linear-gradient(135deg, #6635D5 0%, #7B39C5 50%, #9E50EF 100%);
+  box-shadow: 0 6px 18px rgba(102, 53, 213, .32);
 }
 .lookBrain .logo img {
   width: 20px; height: 20px; display: block;
@@ -197,7 +197,7 @@
   margin: 9px 0 0; padding: 0; border: 0; background: none; cursor: pointer;
   font: inherit; font-size: 12.5px; font-weight: 700; color: var(--lb-eyebrow);
 }
-.moreBtn.moreBtn:hover { color: #E0198A; }
+.moreBtn.moreBtn:hover { color: #6635D5; }
 
 /* ── HTML panel (not one of Noa's five — it follows TEXT).
    The author's HTML is left completely alone: whatever colours, cards or
@@ -221,7 +221,7 @@
 }
 .brainHtml :global(blockquote) {
   margin: 0 0 10px; padding: 10px 13px; border-radius: 11px;
-  background: var(--lb-tint); border-inline-start: 3px solid #E0198A;
+  background: var(--lb-tint); border-inline-start: 3px solid #6635D5;
 }
 .brainHtml :global(table) { width: 100%; border-collapse: collapse; font-size: 13px; }
 .brainHtml :global(th), .brainHtml :global(td) {
@@ -237,7 +237,7 @@
 .lookBrain .cardHead { background: var(--lb-tint); border-bottom: 1px solid var(--lb-line); }
 .lookBrain .cardIcon {
   width: 26px; height: 26px; border-radius: 8px; color: #fff;
-  background: linear-gradient(135deg, #E0198A 0%, #5B1E8A 100%);
+  background: linear-gradient(135deg, #6635D5 0%, #9E50EF 100%);
 }
 .lookBrain .cardTitle { font-size: 14.5px; }
 /* Noa's collapse control is a real button, not a bare glyph: a bordered
@@ -276,7 +276,7 @@
 .cardBody { padding: 2px 15px 15px; }
 /* Noa's narrative summary — a soft lilac box with a gradient rail. */
 .narrative { position: relative; margin: 0 15px 15px; padding: 13px 14px 13px 17px; background: var(--lb-tint); border-radius: 11px; overflow: hidden; }
-.narrative::before { content: ''; position: absolute; top: 0; bottom: 0; inset-inline-start: 0; width: 3px; background: linear-gradient(#E0198A, #5B1E8A); }
+.narrative::before { content: ''; position: absolute; top: 0; bottom: 0; inset-inline-start: 0; width: 3px; background: linear-gradient(#6635D5, #9E50EF); }
 
 @media (prefers-reduced-motion: reduce) {
   .pulse, .card { animation: none; }

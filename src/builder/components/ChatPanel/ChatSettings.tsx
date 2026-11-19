@@ -162,7 +162,7 @@ export function ChatSettingsPopover({ open, onClose, triggerRef, settings, onCha
       {showAddonRunsToggle && settings.showAddonRuns && (
         <div className={styles.subGroup}>
           <ToggleRow label="Chat chain" dot="#9aa1ab" value={settings.runChain} onChange={v => onChange('runChain', v)} />
-          <ToggleRow label="Live Brain" dot="#E0198A" value={settings.runBrain} onChange={v => onChange('runBrain', v)} />
+          <ToggleRow label="Live Brain" dot="#6635D5" value={settings.runBrain} onChange={v => onChange('runBrain', v)} />
           <ToggleRow label="Profiler" dot="#7C3AED" value={settings.runProfiler} onChange={v => onChange('runProfiler', v)} />
         </div>
       )}

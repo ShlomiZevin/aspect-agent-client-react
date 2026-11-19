@@ -60,6 +60,8 @@ export interface Dict {
   loginBtn: string;
   loginError: string;
   logout: string;
+  fontSmaller: string;
+  fontLarger: string;
   select: string;
   deleteChat: string;
   deleteChatConfirm: string;
@@ -159,6 +161,8 @@ export const I18N: Record<Lang, Dict> = {
     loginBtn: 'כניסה',
     loginError: 'שם או סיסמה שגויים',
     logout: 'התנתקות',
+    fontSmaller: 'הקטנת הטקסט',
+    fontLarger: 'הגדלת הטקסט',
     select: 'בחירה',
     deleteChat: 'מחיקת שיחה',
     deleteChatConfirm: 'למחוק את השיחה?',
@@ -249,6 +253,8 @@ export const I18N: Record<Lang, Dict> = {
     loginBtn: 'Sign in',
     loginError: 'Wrong name or password',
     logout: 'Log out',
+    fontSmaller: 'Smaller text',
+    fontLarger: 'Larger text',
     select: 'Select',
     deleteChat: 'Delete chat',
     deleteChatConfirm: 'Delete this chat?',

@@ -43,7 +43,7 @@ const BRAIN_TYPE_LABEL: Partial<Record<PanelRender, string>> = {
   text: 'Text',
 };
 // Noa uses SVG line-icons (NOT emoji) in a soft gradient tile — one per
-// render type. 24×24 viewBox, stroke coloured by CSS (#9A2295).
+// render type. 24×24 viewBox, stroke coloured by CSS (#7B39C5).
 export const ICON_PATH: Record<PanelRender, string> = {
   text:   'M4 6h16M4 11h16M4 16h9',                                   // list / narrative
   html:   'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10z',        // sparkle
@@ -301,7 +301,7 @@ export function PanelSurface({
           {closeOnLeft && closeBtn}
           <span className={`${s.logo} ${iconSvg ? s.logoSoft : ''}`} aria-hidden>
             {iconSvg
-              ? <svg viewBox="0 0 60 60" width="22" height="22" fill="none" stroke="#9A2295" strokeWidth="2.4" strokeLinecap="round"><path d={iconSvg} /></svg>
+              ? <svg viewBox="0 0 60 60" width="22" height="22" fill="none" stroke="#7B39C5" strokeWidth="2.4" strokeLinecap="round"><path d={iconSvg} /></svg>
               : icon}
           </span>
           <div className={s.mark}>

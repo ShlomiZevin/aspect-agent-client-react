@@ -11,7 +11,7 @@
 }
 .liveDot {
   width: 5px; height: 5px; border-radius: 100px; flex: none;
-  background: #F060B0; box-shadow: 0 0 0 3px rgba(240, 96, 176, .22);
+  background: #9E50EF; box-shadow: 0 0 0 3px rgba(158, 80, 239, .22);
 }
 
 /* (Noa's header also has a Light/Dark toggle — ours lives in the chat's

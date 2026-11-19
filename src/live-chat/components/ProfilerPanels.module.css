@@ -11,19 +11,19 @@
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; border-radius: 100px; border: 0; cursor: pointer;
   font: inherit; font-size: 12.5px; font-weight: 700; color: #fff;
-  background: linear-gradient(135deg, #E0198A, #9A2295 55%, #5B1E8A);
-  box-shadow: 0 6px 14px -7px rgba(224, 25, 138, .8);
+  background: linear-gradient(135deg, #6635D5, #7B39C5 55%, #9E50EF);
+  box-shadow: 0 6px 14px -7px rgba(102, 53, 213, .8);
   transition: transform .12s, box-shadow .12s;
 }
-.askBtn:hover { transform: translateY(-1px); box-shadow: 0 9px 18px -8px rgba(224, 25, 138, .9); }
+.askBtn:hover { transform: translateY(-1px); box-shadow: 0 9px 18px -8px rgba(102, 53, 213, .9); }
 .askBtn:active { transform: translateY(0); }
 
 /* Noa's Refresh — an outline purple pill on the header meta row. */
 .refreshPill.refreshPill {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 13px; border-radius: 100px; cursor: pointer;
-  font: inherit; font-size: 12.5px; font-weight: 700; color: #5B1E8A;
-  background: #fff; border: 1.5px solid #5B1E8A;
+  font: inherit; font-size: 12.5px; font-weight: 700; color: #7B39C5;
+  background: #fff; border: 1.5px solid #7B39C5;
   transition: background .12s;
 }
 .refreshPill:hover:not(:disabled) { background: #FAF5FF; }
@@ -36,7 +36,7 @@
   background: #fff; color: #9A8FAA; cursor: pointer;
   display: grid; place-items: center; transition: color .15s, border-color .15s;
 }
-.iconBtn:hover:not(:disabled) { color: #E0198A; border-color: rgba(224, 25, 138, .5); }
+.iconBtn:hover:not(:disabled) { color: #6635D5; border-color: rgba(102, 53, 213, .5); }
 .iconBtn:disabled { cursor: default; opacity: .7; }
 .spinning svg { animation: pfSpin .8s linear infinite; transform-origin: center; }
 @keyframes pfSpin { to { transform: rotate(360deg); } }
@@ -66,17 +66,17 @@
 .askHead { flex: none; display: flex; align-items: center; gap: 10px; margin-bottom: 13px; }
 .askIcon {
   width: 26px; height: 26px; flex: none; border-radius: 7px; display: grid; place-items: center;
-  background: linear-gradient(135deg, #E0198A, #5B1E8A);
+  background: linear-gradient(135deg, #6635D5, #9E50EF);
 }
 .askTitleWrap { flex: 1; min-width: 0; }
-.askTitle { font-size: 13.5px; font-weight: 800; color: #1A0A38; }
+.askTitle { font-size: 13.5px; font-weight: 800; color: #23182F; }
 .askSub { font-size: 10.5px; color: #9A8FAA; margin-top: 1px; }
 .askClose.askClose {
   width: 28px; height: 28px; flex: none; border-radius: 8px; border: 1px solid #EAE4F2;
   background: #fff; color: #9A8FAA; cursor: pointer; font-size: 14px; line-height: 1;
   display: grid; place-items: center; transition: color .15s, border-color .15s;
 }
-.askClose:hover { color: #E0198A; border-color: rgba(224, 25, 138, .5); }
+.askClose:hover { color: #6635D5; border-color: rgba(102, 53, 213, .5); }
 
 .askBody { flex: 1; min-height: 0; overflow-y: auto; padding: 2px 0 4px; }
 .askHint { font-size: 12.5px; line-height: 1.5; color: #5C5070; margin-bottom: 12px; }
@@ -89,14 +89,14 @@
   font: inherit; font-size: 12.5px; font-weight: 600; color: #2A1442; cursor: pointer;
   transition: border-color .14s, box-shadow .14s, transform .1s;
 }
-.chip:hover { border-color: rgba(224, 25, 138, .5); box-shadow: 0 4px 12px -8px rgba(224, 25, 138, .8); transform: translateY(-1px); }
-.chipQ { flex: none; font-size: 13px; font-weight: 800; color: #9A2295; }
+.chip:hover { border-color: rgba(102, 53, 213, .5); box-shadow: 0 4px 12px -8px rgba(102, 53, 213, .8); transform: translateY(-1px); }
+.chipQ { flex: none; font-size: 13px; font-weight: 800; color: #7B39C5; }
 
 /* answer thread — chat bubbles (question right, answer left) */
 .thread { display: flex; flex-direction: column; gap: 11px; }
 .qBubble {
   align-self: flex-end; max-width: 88%; font-size: 12.5px; font-weight: 600; line-height: 1.45;
-  color: #fff; background: linear-gradient(135deg, #7C4DD6, #5B1E8A);
+  color: #fff; background: linear-gradient(135deg, #7C4DD6, #9E50EF);
   padding: 10px 13px; border-radius: 13px; border-bottom-right-radius: 4px;
 }
 .aBubble {
@@ -106,7 +106,7 @@
 }
 .aTag {
   font-family: var(--lb-mono, ui-monospace, "SF Mono", Menlo, monospace);
-  font-size: 8px; font-weight: 700; letter-spacing: 1px; color: #9A2295; margin-bottom: 5px;
+  font-size: 8px; font-weight: 700; letter-spacing: 1px; color: #7B39C5; margin-bottom: 5px;
 }
 .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #C3B8D4; animation: askBlink 1s infinite ease-in-out; }
 .dot:nth-child(2) { animation-delay: .16s; }
@@ -123,11 +123,11 @@
   padding: 10px 15px; border-radius: 100px; border: 1px solid #EAE4F2; background: #FBF5FF;
   outline: none; transition: border-color .14s, background .14s;
 }
-.askInput:focus { border-color: #9A2295; background: #fff; }
+.askInput:focus { border-color: #7B39C5; background: #fff; }
 .askSend.askSend {
   width: 38px; height: 38px; flex: none; border-radius: 50%; border: 0; cursor: pointer;
   display: grid; place-items: center; color: #fff;
-  background: linear-gradient(135deg, #E0198A, #9A2295 55%, #5B1E8A);
+  background: linear-gradient(135deg, #6635D5, #7B39C5 55%, #9E50EF);
   transition: transform .12s, opacity .12s;
 }
 .askSend:hover:not(:disabled) { transform: scale(1.05); }

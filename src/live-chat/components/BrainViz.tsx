@@ -33,14 +33,14 @@ const NODES = [
 // Her drifting particles — hand-placed, not generated, so the field reads as
 // composed rather than random.
 const MOTES = [
-  { top: '23%', left: '15%', size: 4, color: '#E0198A', dur: 5.0, delay: 0 },
-  { top: '60%', left: '46%', size: 3, color: '#8A2290', dur: 6.3, delay: 0.7 },
-  { top: '27%', left: '77%', size: 2, color: '#F060B0', dur: 7.6, delay: 1.4 },
-  { top: '64%', left: '24%', size: 3, color: '#B07BE8', dur: 8.9, delay: 2.1 },
-  { top: '31%', left: '55%', size: 2, color: '#F060B0', dur: 5.0, delay: 2.8 },
-  { top: '68%', left: '86%', size: 3, color: '#8A2290', dur: 6.3, delay: 3.5 },
-  { top: '35%', left: '33%', size: 4, color: '#E0198A', dur: 7.6, delay: 4.2 },
-  { top: '72%', left: '64%', size: 3, color: '#8A2290', dur: 8.9, delay: 4.9 },
+  { top: '23%', left: '15%', size: 4, color: '#6635D5', dur: 5.0, delay: 0 },
+  { top: '60%', left: '46%', size: 3, color: '#7B39C5', dur: 6.3, delay: 0.7 },
+  { top: '27%', left: '77%', size: 2, color: '#AE80FF', dur: 7.6, delay: 1.4 },
+  { top: '64%', left: '24%', size: 3, color: '#AE80FF', dur: 8.9, delay: 2.1 },
+  { top: '31%', left: '55%', size: 2, color: '#AE80FF', dur: 5.0, delay: 2.8 },
+  { top: '68%', left: '86%', size: 3, color: '#7B39C5', dur: 6.3, delay: 3.5 },
+  { top: '35%', left: '33%', size: 4, color: '#6635D5', dur: 7.6, delay: 4.2 },
+  { top: '72%', left: '64%', size: 3, color: '#7B39C5', dur: 8.9, delay: 4.9 },
 ];
 
 export function BrainViz({ lang = 'he' }: { lang?: 'he' | 'en' }) {

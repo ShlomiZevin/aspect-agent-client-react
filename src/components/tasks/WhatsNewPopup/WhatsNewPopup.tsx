@@ -75,7 +75,7 @@ function groupByDay(list: WhatsNewItem[]) {
  * itself; elsewhere only the task board's What's New button opens it. Hebrew, RTL.
  */
 export function WhatsNewPopup({ auto }: { auto: boolean }) {
-  const { identity, items, incoming, isOpen, open, close, gotIt, dismissIncoming, chooseName } = useWhatsNew(auto);
+  const { identity, items, incoming, isOpen, open, close, gotIt, gotItOne, dismissIncoming, chooseName } = useWhatsNew(auto);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [tab, setTab] = useState<'new' | 'all'>('new');
   const [history, setHistory] = useState<WhatsNewItem[] | null>(null);
@@ -258,16 +258,31 @@ export function WhatsNewPopup({ auto }: { auto: boolean }) {
                   const expanded = expandedId === item.id;
                   return (
                     <div key={item.id} className={`${styles.item} ${expanded ? styles.itemOpen : ''}`}>
-                      <button
-                        type="button"
-                        className={styles.itemRow}
-                        onClick={() => setExpandedId(expanded ? null : item.id)}
-                        aria-expanded={expanded}
-                      >
-                        <span className={styles.dot} aria-hidden="true" />
-                        <span className={styles.itemText}>{item.whatsNewHeadline || item.title}</span>
-                        <Chevron open={expanded} />
-                      </button>
+                      <div className={styles.itemLine}>
+                        <button
+                          type="button"
+                          className={styles.itemRow}
+                          onClick={() => setExpandedId(expanded ? null : item.id)}
+                          aria-expanded={expanded}
+                        >
+                          <span className={styles.dot} aria-hidden="true" />
+                          <span className={styles.itemText}>{item.whatsNewHeadline || item.title}</span>
+                          <Chevron open={expanded} />
+                        </button>
+                        {tab === 'new' && (
+                          <button
+                            type="button"
+                            className={styles.itemGotIt}
+                            onClick={() => {
+                              if (expanded) setExpandedId(null);
+                              gotItOne(item.id);
+                            }}
+                            title="הבנתי — רק את העדכון הזה"
+                          >
+                            הבנתי
+                          </button>
+                        )}
+                      </div>
                       {expanded && (
                         <div className={styles.details}>
                           {item.whatChanged ? (

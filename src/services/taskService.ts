@@ -197,6 +197,16 @@ export async function markWhatsNewSeen(identity: string, until: string): Promise
   });
 }
 
+/**
+ * "Got it" on one What's New item — only that task leaves the person's list
+ */
+export async function dismissWhatsNewItem(identity: string, taskId: number): Promise<void> {
+  await apiRequest(`/api/tasks/${taskId}/dismiss-deployed`, {
+    method: 'POST',
+    body: JSON.stringify({ identity }),
+  });
+}
+
 // ─── Release ────────────────────────────────────────────────────────
 
 /**

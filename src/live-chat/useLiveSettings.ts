@@ -16,7 +16,12 @@ export interface LiveSettings {
   mode: 'normal' | 'debug';
   /** When true, Enter inserts a newline and Ctrl/Cmd+Enter sends. */
   ctrlEnter: boolean;
+  /** Message + composer text size step (index into FONT_SCALES), set with A− / A+ (#980). */
+  fontStep: number;
 }
+
+/** Text sizes the customer can pick: normal, larger, largest. */
+export const FONT_SCALES = [1, 1.15, 1.3] as const;
 
 const KEY = 'lybi-live:settings';
 
@@ -27,13 +32,17 @@ const DEFAULTS: LiveSettings = {
   scenario: SCENARIOS[0]?.id ?? 'account',
   mode: 'normal',
   ctrlEnter: false,
+  fontStep: 0,
 };
 
 function load(): LiveSettings {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return DEFAULTS;
-    return { ...DEFAULTS, ...(JSON.parse(raw) as Partial<LiveSettings>) };
+    const merged = { ...DEFAULTS, ...(JSON.parse(raw) as Partial<LiveSettings>) };
+    const step = Number(merged.fontStep);
+    merged.fontStep = Number.isInteger(step) && step >= 0 && step < FONT_SCALES.length ? step : 0;
+    return merged;
   } catch {
     return DEFAULTS;
   }

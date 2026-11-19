@@ -328,7 +328,7 @@ function Journey({ journey }: { journey: NonNullable<PanelValues['journey']> }) 
           )}
           {journey.next ? (
             <div className={styles.jNext}>
-              <svg className={styles.jNextIcon} viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#9A2295" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              <svg className={styles.jNextIcon} viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#7B39C5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
               <span className={styles.jNextText}><strong>Suggested next step:</strong> {journey.next}</span>
             </div>
           ) : null}

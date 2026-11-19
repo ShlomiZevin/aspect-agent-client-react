@@ -4,7 +4,7 @@
  */
 
 .lybi-embed {
-  --eg: linear-gradient(135deg, #E0198A 0%, #8A2290 55%, #5B1E8A 100%);
+  --eg: linear-gradient(135deg, #6635D5 0%, #7B39C5 55%, #9E50EF 100%);
   --eink: #1A0F2B; --emut: #6B5B7E; --eline: rgba(90, 30, 138, .12);
   font-family: 'Assistant', system-ui, sans-serif;
   position: fixed; inset: 0; overflow-y: auto; background: #FBF8FC; color: var(--eink);
@@ -22,8 +22,8 @@
 .lybi-embed .site-links { display: flex; gap: 22px; margin-inline-start: 20px; flex: 1; }
 .lybi-embed .site-links a { color: var(--emut); font-size: 14.5px; font-weight: 600; text-decoration: none; }
 .lybi-embed .site-links a:hover { color: var(--eink); }
-.lybi-embed .site-link-btn { font-size: 13.5px; font-weight: 700; color: #8A2290; }
-.lybi-embed .site-link-btn:hover { color: #E0198A; }
+.lybi-embed .site-link-btn { font-size: 13.5px; font-weight: 700; color: #7B39C5; }
+.lybi-embed .site-link-btn:hover { color: #6635D5; }
 .lybi-embed .site-cta { padding: 9px 20px; border-radius: 100px; background: var(--eg); color: #fff; font-weight: 700; font-size: 14px; }
 @media (max-width: 720px) { .lybi-embed .site-links { display: none; } }
 
@@ -33,7 +33,7 @@
 }
 .lybi-embed .hero-badge {
   display: inline-block; padding: 6px 14px; border-radius: 100px; font-size: 12.5px; font-weight: 700;
-  color: #8A2290; background: rgba(224, 25, 138, .1); border: 1px solid rgba(224, 25, 138, .3); margin-bottom: 20px;
+  color: #7B39C5; background: rgba(102, 53, 213, .1); border: 1px solid rgba(102, 53, 213, .3); margin-bottom: 20px;
 }
 .lybi-embed .site-hero h1 { font-size: 46px; font-weight: 800; line-height: 1.12; margin: 0 0 18px; letter-spacing: -1px; }
 .lybi-embed .site-hero h1 .grad {
@@ -57,7 +57,7 @@
 .lybi-embed .widget { position: fixed; inset-block-end: 24px; inset-inline-end: 24px; z-index: 50; }
 .lybi-embed .widget-launcher {
   width: 62px; height: 62px; border-radius: 50%; background: var(--eg); color: #fff;
-  display: grid; place-items: center; box-shadow: 0 12px 34px rgba(224, 25, 138, .42);
+  display: grid; place-items: center; box-shadow: 0 12px 34px rgba(102, 53, 213, .42);
   transition: transform .15s; margin-inline-start: auto;
 }
 .lybi-embed .widget-launcher:hover { transform: scale(1.06); }

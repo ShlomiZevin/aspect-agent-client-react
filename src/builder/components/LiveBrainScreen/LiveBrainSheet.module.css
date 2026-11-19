@@ -28,7 +28,7 @@
   background: #fff; color: #9A8FAA; cursor: pointer; font-size: 17px; line-height: 1;
   display: grid; place-items: center; transition: color .15s, border-color .15s;
 }
-.close:hover { color: #E0198A; border-color: rgba(224, 25, 138, .5); }
+.close:hover { color: #6635D5; border-color: rgba(102, 53, 213, .5); }
 
 @media (prefers-reduced-motion: reduce) {
   .overlay, .sheet { animation: none; }

@@ -12,7 +12,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { fetchProject } from '../builder/state/builderApi';
 import { getOwnerUserId } from './identity';
 import { I18N, dirOf } from './i18n';
-import { useLiveSettings } from './useLiveSettings';
+import { useLiveSettings, FONT_SCALES } from './useLiveSettings';
 import { useLiveChat, type LiveTurn } from './useLiveChat';
 import { publishedSource, type ProtectionSource } from './protection';
 import { useBranding } from './useBranding';
@@ -303,6 +303,7 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
       data-mode={embed || restricted ? 'normal' : settings.mode}
       data-client={settings.client}
       data-embed={embed ? '1' : undefined}
+      data-font={settings.fontStep || undefined}
       style={brandCssVars(brand.colors) as React.CSSProperties}
     >
       <div className="app">
@@ -355,6 +356,9 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
             onViewEmbed={() => navigate(`/${slug}/embed`)}
             onOpenFull={onOpenFull}
             settingsBtnRef={settingsBtnRef}
+            fontStep={settings.fontStep}
+            fontSteps={FONT_SCALES.length}
+            onFontStep={step => setSetting({ fontStep: Math.min(Math.max(step, 0), FONT_SCALES.length - 1) })}
           />
 
           {gate === 'ready' && (

@@ -18,6 +18,9 @@
  *    - Bottom: a turn strip with crew changes and failures marked.
  *    "Open in Builder" in the header; layers switch on and off.
  *
+ * "+ Task" (row and reader header, #979) opens the board's Quick Add modal
+ * with a link to the conversation — ConversationTaskButton.
+ *
  * `?c=<id>` opens a conversation (Admin → Errors uses it), `&turn=<n>` a turn.
  * Designed with Leonardo: lybi-website/art-source/ui/conversation-reader/
  * (round 2: Reaction Rail + "evolved from the pick"). Data:
@@ -43,6 +46,7 @@ import {
 import { formatDuration } from '../../formatDuration';
 import { ExportConversationModal } from '../ChatPanel/ExportConversationModal';
 import { AudiencePill } from '../AudiencePill/AudiencePill';
+import { ConversationTaskButton } from './ConversationTaskButton';
 import { MarkdownBody } from '../ChatPanel/MarkdownBody';
 import styles from './ConversationsTab.module.css';
 import s from './AdminConversations.module.css';
@@ -232,6 +236,7 @@ function ConversationList({ agentSlug, userId, backHref, params, update }: Props
                 <td className={s.rowActions}>
                   <Link to={builderHref(agentSlug, c.id)} className={s.builderLink} onClick={e => e.stopPropagation()}
                     title="Open this conversation in the Builder">Open in Builder ↗</Link>
+                  <ConversationTaskButton agentSlug={agentSlug} conversationId={c.id} className={`${s.builderLink} ${s.taskBtn}`} />
                 </td>
               </tr>
             ))}
@@ -448,6 +453,7 @@ function ConversationReader({ agentSlug, conversationId, turn, onTurn, onBack }:
           <Link to={builderHref(agentSlug, conversationId)} className={s.primaryBtn} title="Open this conversation in the Builder">Open in Builder ↗</Link>
           <button type="button" className={s.exportBtn} onClick={() => setExportOpen(true)}
             title="Download or copy this conversation as JSON — to hand to an AI for analysis">⤓ Export</button>
+          <ConversationTaskButton agentSlug={agentSlug} conversationId={conversationId} className={s.exportBtn} />
         </div>
       </header>
 

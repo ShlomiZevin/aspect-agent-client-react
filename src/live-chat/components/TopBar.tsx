@@ -33,12 +33,16 @@ interface Props {
    *  desktop chat, carrying the current conversation. */
   onOpenFull: () => void;
   settingsBtnRef: React.RefObject<HTMLButtonElement | null>;
+  /** Text size step (#980): A− / A+ for the customer. */
+  fontStep: number;
+  fontSteps: number;
+  onFontStep: (step: number) => void;
 }
 
 export function TopBar({
   t, logo, brandName, agentName, logoFilterable, debug, embed, restricted, brainOpen, profilerOpen,
   onHistory, onNewChat, onToggleBrain, onToggleProfiler, onSettings, onOpenBuilder, onViewEmbed, onOpenFull, onLogout,
-  settingsBtnRef,
+  settingsBtnRef, fontStep, fontSteps, onFontStep,
 }: Props) {
   return (
     <header className="topbar">
@@ -73,6 +77,28 @@ export function TopBar({
           <IconExpand />
         </button>
       )}
+      {/* Text size (#980) — always A− then A+, left to right, in both directions.
+          At the ends the button is disabled in place, so nothing moves. */}
+      <div className="font-size" dir="ltr">
+        <button
+          className="icon-btn font-btn"
+          onClick={() => onFontStep(fontStep - 1)}
+          disabled={fontStep <= 0}
+          aria-label={t.fontSmaller}
+          title={t.fontSmaller}
+        >
+          A<span className="font-sign">−</span>
+        </button>
+        <button
+          className="icon-btn font-btn big"
+          onClick={() => onFontStep(fontStep + 1)}
+          disabled={fontStep >= fontSteps - 1}
+          aria-label={t.fontLarger}
+          title={t.fontLarger}
+        >
+          A<span className="font-sign">+</span>
+        </button>
+      </div>
       <button className="icon-btn" onClick={onNewChat} aria-label="new chat" title={t.newChat}>
         <IconNewChat />
       </button>

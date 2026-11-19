@@ -24,11 +24,32 @@ export interface Brand {
   colors: BrandColors;
 }
 
+/** Lybi's Violet Spectrum (lybi-website/design-system/tokens.css):
+ *  Electric → Violet → Radiant, the brand-ground gradient. */
 export const DEFAULT_COLORS: BrandColors = {
+  primary: '#6635D5',
+  secondary: '#7B39C5',
+  tertiary: '#9E50EF',
+};
+
+/** The pre-2026-11 Lybi default (magenta → plum). Every saved brand
+ *  carries its colours, so a browser that saved the untouched old default
+ *  would keep the old look forever — treat that exact palette as "the
+ *  default" and move it to the current one on load. */
+const LEGACY_DEFAULT_COLORS: BrandColors = {
   primary: '#E0198A',
   secondary: '#8A2290',
   tertiary: '#5B1E8A',
 };
+
+function migrateColors(c: BrandColors | undefined): BrandColors {
+  if (!c) return { ...DEFAULT_COLORS };
+  const same = (a: string, b: string) => (a || '').toLowerCase() === b.toLowerCase();
+  const legacy = same(c.primary, LEGACY_DEFAULT_COLORS.primary)
+    && same(c.secondary, LEGACY_DEFAULT_COLORS.secondary)
+    && same(c.tertiary, LEGACY_DEFAULT_COLORS.tertiary);
+  return legacy ? { ...DEFAULT_COLORS } : c;
+}
 
 /** The built-in "system" look. Starts empty (no name / no logo) so the
  *  branding editor shows nothing until the user configures something —
@@ -74,7 +95,8 @@ export function isHex(v: string): boolean {
 export function loadPresets(): Brand[] {
   try {
     const raw = localStorage.getItem(PRESETS_KEY);
-    return raw ? (JSON.parse(raw) as Brand[]) : [];
+    const list = raw ? (JSON.parse(raw) as Brand[]) : [];
+    return list.map(b => ({ ...b, colors: migrateColors(b.colors) }));
   } catch {
     return [];
   }
@@ -92,7 +114,8 @@ export function loadActiveBrand(): Brand {
   try {
     const raw = localStorage.getItem(ACTIVE_KEY);
     if (!raw) return { ...DEFAULT_BRAND };
-    return { ...DEFAULT_BRAND, ...(JSON.parse(raw) as Partial<Brand>) };
+    const saved = JSON.parse(raw) as Partial<Brand>;
+    return { ...DEFAULT_BRAND, ...saved, colors: migrateColors(saved.colors) };
   } catch {
     return { ...DEFAULT_BRAND };
   }
