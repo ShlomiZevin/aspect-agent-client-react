@@ -1131,14 +1131,14 @@
 .handRowChecked:hover .waitLink { opacity: .85; }
 
 /* Checked: a filled green status mark, clearly not the "לסמן נבדק" action. */
-.handBtnDone {
+.handBtnCheck.handBtnDone {
   border-color: #3FBF7F;
   background: #2E9E66;
   color: #fff;
   font-weight: 700;
 }
 
-.handBtnDone:hover:not(:disabled) {
+.handBtnCheck.handBtnDone:hover:not(:disabled) {
   border-color: rgba(143, 211, 232, .45);
   background: rgba(143, 211, 232, .08);
   color: #CBEFFA;
