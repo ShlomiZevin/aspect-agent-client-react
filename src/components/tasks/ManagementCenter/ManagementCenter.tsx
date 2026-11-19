@@ -22,6 +22,9 @@ import styles from './ManagementCenter.module.css';
  *    Topics start open, details closed; the state is remembered per browser.
  *    Ticks and notes go through PATCH /api/tasks/:id/agenda-line, which never
  *    overwrites concurrent edits. Topic text is never edited here.
+ *  • ACTION ITEMS (right, under the agenda) — what came out of a meeting:
+ *    type 'agenda' tagged actionsFor:<anyone> (never agendaFor, so they stay
+ *    off the agenda). Same list, same ticks and notes; a tick = done.
  *  • ONGOING (left) — open tasks Claude is on, any Blocker, and any open task
  *    with a now: tag. Tasks tagged `focus` lead as hero cards; the star on any
  *    task adds / removes only that tag. Right after them, quieter, come the
@@ -81,6 +84,8 @@ const CHECKED_TAG = 'checked';
 const OFF_TABLE_TAG = 'off-table';
 const RELEASED_DAYS = 14;
 const MAX_LINK_CHIPS = 2;
+/** Tag prefix of a meeting's action-items topic (type 'agenda'). */
+const ACTIONS_PREFIX = 'actionsFor:';
 const OPEN_KEY = 'lybi-center-agenda-open';
 
 type LineBlock = Extract<AgendaBlock, { kind: 'line' }>;
@@ -565,10 +570,10 @@ export function ManagementCenter() {
   const otherTasks = unmarked.filter(t => !isWaiting(t));
 
   // ── Agenda — one topic at a time, in board order (finished topics stay in place) ──
-  const topics = useMemo<Topic[]>(() => {
+  const topicsTagged = useCallback((prefix: string): Topic[] => {
     if (!tasks) return [];
     return tasks
-      .filter(t => t.type === 'agenda' && !t.isDraft && !t.tags.includes('agendaMeta') && t.tags.some(tag => tag.startsWith('agendaFor:')))
+      .filter(t => t.type === 'agenda' && !t.isDraft && !t.tags.includes('agendaMeta') && t.tags.some(tag => tag.startsWith(prefix)))
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id - b.id)
       .map(task => {
         const blocks = parseAgenda(task.description);
@@ -578,6 +583,10 @@ export function ManagementCenter() {
         return { task, blocks, total: lines.length, ticked, done };
       });
   }, [tasks]);
+  const topics = useMemo(() => topicsTagged('agendaFor:'), [topicsTagged]);
+  // Action items from a meeting: same shape, their own tag, their own panel.
+  const actions = useMemo(() => topicsTagged(ACTIONS_PREFIX), [topicsTagged]);
+  const isAction = (t: Topic) => t.task.tags.some(tag => tag.startsWith(ACTIONS_PREFIX));
 
   const modalTask = modalTaskId !== null ? tasks?.find(t => t.id === modalTaskId) ?? null : null;
 
@@ -664,7 +673,7 @@ export function ManagementCenter() {
             type="button"
             role="checkbox"
             aria-checked={line.checked}
-            aria-label={line.checked ? 'בטל סימון' : 'סמן כנדון'}
+            aria-label={line.checked ? 'בטל סימון' : isAction(t) ? 'סמן כבוצע' : 'סמן כנדון'}
             className={styles.check}
             onClick={() => tickLine(t, line)}
           >
@@ -722,7 +731,7 @@ export function ManagementCenter() {
         <button type="button" className={styles.topicRow} aria-expanded={open} onClick={() => setTopicOpen(t, !open)}>
           <span className={styles.topicChev}><ChevronIcon dir={open ? 'down' : 'left'} size={18} /></span>
           <span className={styles.topicTitle} dir={textDir(t.task.title)}><TopicTitle title={t.task.title} /></span>
-          {t.done && <span className={styles.topicCheck} title="נדון"><CheckIcon size={12} /></span>}
+          {t.done && <span className={styles.topicCheck} title={isAction(t) ? 'בוצע' : 'נדון'}><CheckIcon size={12} /></span>}
           <span className={styles.spacer} />
           <span className={styles.topicCount} dir="ltr">{t.ticked}/{t.total}</span>
         </button>
@@ -1038,6 +1047,7 @@ export function ManagementCenter() {
       <div className={`${styles.hud} ${styles.hudTop}`} aria-hidden="true" />
 
       <main className={styles.grid}>
+        <div className={styles.rightCol}>
         {/* ── THE AGENDA (right): topics → subtopics → details, one collapsible list ── */}
         <section className={`${styles.panel} ${styles.agendaPanel}`} aria-label="אג'נדה לפגישה הבאה">
           <div className={styles.panelHead} dir="ltr">
@@ -1071,6 +1081,26 @@ export function ManagementCenter() {
             </div>
           </div>
         </section>
+
+        {/* ── ACTION ITEMS (right, under the agenda): what came out of the meeting ── */}
+        {actions.length > 0 && (
+          <section className={`${styles.panel} ${styles.actionsPanel}`} aria-label="משימות מהפגישה">
+            <div className={styles.panelHead} dir="ltr">
+              <span className={`${styles.label} ${styles.labelActions}`}>ACTION ITEMS</span>
+              <span className={styles.rule} />
+              <span className={styles.actionsCount} dir="rtl">
+                {actions.reduce((n, a) => n + a.total - a.ticked, 0)} פתוחות
+              </span>
+              <span className={styles.marks}>///</span>
+            </div>
+            <div className={styles.scroll}>
+              <div className={`${styles.scrollInner} ${styles.listInner}`} dir="rtl">
+                {actions.map(renderTopic)}
+              </div>
+            </div>
+          </section>
+        )}
+        </div>
 
         {/* ── ONGOING (left) ── */}
         <section className={`${styles.panel} ${styles.ongoingPanel}`} aria-label="בעבודה עכשיו">
