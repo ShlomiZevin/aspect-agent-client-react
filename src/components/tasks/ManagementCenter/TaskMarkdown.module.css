@@ -1,0 +1,18 @@
+/* A description saved as HTML by the board's rich editor. */
+.html {
+  font-size: 15px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.html img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 8px 0;
+  border-radius: 6px;
+  border: 1px solid rgba(174, 128, 255, .25);
+}
+
+.html p { margin: 0 0 8px; }
+.html a { color: #CDB4FF; text-decoration: underline; }

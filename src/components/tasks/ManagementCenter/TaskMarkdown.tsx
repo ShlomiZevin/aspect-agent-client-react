@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Linkify } from './Linkify';
 import { textDir } from './textDir';
 import styles from './ManagementCenter.module.css';
+import html from './TaskMarkdown.module.css';
 
 /**
  * A task description, rendered readably — headings, bullets (nested by
@@ -28,7 +29,26 @@ const CHECK_RE = /^(\s*)[-*]\s+\[( |x|X)\]\s*(.*)$/;
 const BULLET_RE = /^(\s*)(?:[-*•]|\d+[.)])\s+(.*)$/;
 const QUOTE_RE = /^\s*>\s?(.*)$/;
 
+/** The board's rich editor saves HTML (pasted screenshots become <img> tags). */
+const HTML_RE = /<(img|p|div|br|ul|ol|li|strong|em|b|i|h[1-6]|span|a)(?=[\s>/])[^>]*>/i;
+
+/** Drop what must never run: scripts, inline handlers, javascript: links. */
+function cleanHtml(src: string): string {
+  const doc = new DOMParser().parseFromString(src, 'text/html');
+  doc.querySelectorAll('script, style, iframe, object, embed').forEach(n => n.remove());
+  doc.querySelectorAll('*').forEach(el => {
+    for (const a of Array.from(el.attributes)) {
+      if (a.name.startsWith('on') || /^\s*javascript:/i.test(a.value)) el.removeAttribute(a.name);
+    }
+    if (el.tagName === 'A') { el.setAttribute('target', '_blank'); el.setAttribute('rel', 'noopener noreferrer'); }
+  });
+  return doc.body.innerHTML;
+}
+
 export function TaskMarkdown({ text }: { text: string }) {
+  if (HTML_RE.test(text)) {
+    return <div className={html.html} dir="auto" dangerouslySetInnerHTML={{ __html: cleanHtml(text) }} />;
+  }
   const lines = text.replace(/\r\n/g, '\n').split('\n');
   const out: ReactNode[] = [];
   let para: string[] = [];
