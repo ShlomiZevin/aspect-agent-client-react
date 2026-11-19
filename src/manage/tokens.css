@@ -11,7 +11,7 @@
   --m-side-line: rgba(255, 255, 255, 0.1);
   --m-side-text: #ece3f1;
   --m-side-muted: #b7a5c2;
-  --m-side-hover: rgba(255, 255, 255, 0.07);
+  --m-side-hover: rgba(255, 255, 255, 0.12);
   --m-side-active: #4d2657;
   --m-side-field: rgba(255, 255, 255, 0.08);
   /* The scope field: light on the dark panel, so it reads at a glance */

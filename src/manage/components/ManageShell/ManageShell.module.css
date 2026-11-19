@@ -160,8 +160,10 @@
   text-decoration: none;
 }
 
+/* The colour is restated: the site-wide a:hover would turn the text blue. */
 .navItem:hover {
   background: var(--m-side-hover);
+  color: #fff;
 }
 
 .navItemActive,

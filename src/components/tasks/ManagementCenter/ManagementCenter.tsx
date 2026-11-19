@@ -850,8 +850,7 @@ export function ManagementCenter() {
             onClick={() => void (kind === 'check' ? markChecked(t) : takeOffTable(t))}
             dir="rtl"
           >
-            {kind === 'check' && <CheckIcon size={13} />}
-            <span>{kind === 'check' ? 'נבדק' : 'ירד מהשולחן'}</span>
+            <span>{kind === 'check' ? 'לסמן נבדק' : 'ירד מהשולחן'}</span>
           </button>
         )}
         <div className={styles.waitLink} title={title} {...openProps(() => openTask(t))}>
