@@ -4,7 +4,9 @@ import { Link } from 'react-router-dom';
 import type { Task } from '../../../types/task';
 import { getTask, getTasks, updateAgendaLine, updateTask } from '../../../services/taskService';
 import { useBoardStream } from '../../../hooks/useBoardStream';
-import { applyLineChange, parseAgenda, splitBold } from './agendaParse';
+import { applyLineChange, parseAgenda } from './agendaParse';
+import { Linkify, RichText } from './Linkify';
+import { openProps } from './openProps';
 import type { AgendaBlock } from './agendaParse';
 import { TaskMarkdown } from './TaskMarkdown';
 import { textDir } from './textDir';
@@ -28,7 +30,12 @@ import styles from './ManagementCenter.module.css';
  *    or next, never both. Clicking a task opens a read-only modal.
  *    A started task that is now waiting on something (status in_progress +
  *    tag `waiting`) gets its own label and a compact row whose now: line says
- *    what it waits for — also when it is in focus. Connected tasks (the
+ *    what it waits for — also when it is in focus. A `waiting-on:<who>` tag
+ *    beside `waiting` says on whom, as the row's pill: `waiting-on:us`
+ *    "אצלנו – בהמתנה" (parked by our side, muted), `waiting-on:Shlomi`
+ *    "מחכה לך" (him — the loudest), anything else "מחכה ל<who>" (amber;
+ *    Noa → נועה, Hila → הילה, other names as written). Without it: the plain
+ *    "בהמתנה". The waiting section lists him first, then outside, then us. Connected tasks (the
  *    board's `linkedTasks`, read both ways) show a chip that opens the other
  *    task, and connected focus tasks are drawn as one group. Links are
  *    read-only here.
@@ -37,17 +44,22 @@ import styles from './ManagementCenter.module.css';
  *    – READY FOR YOU TO CHECK (top of the panel): any task tagged `check`
  *      (the team lead sets it: on staging, waiting for Shlomi's check before
  *      release). Its now: line says what to check. "נבדק" removes `check`
- *      and adds `checked`; the team lead then releases it. Until it is
- *      released, a `checked` task is off this panel altogether (if it goes
- *      back to work instead, the team lead removes `checked`).
+ *      and adds `checked`; the task stays in this section, after the ones
+ *      still to check, dimmed and marked "נבדק – ממתין לשחרור" — clicking
+ *      that mark undoes it (back to `check`). Once the team lead releases
+ *      it, it moves to RELEASED (released wins over `checked`).
  *    – RELEASED (bottom of the panel): a task released in the last 14 days —
  *      the board's own rule: status done and `deployedAt` set and not older
  *      than its `doneAt` (a reopened task is not released) — and not tagged
  *      `off-table`. "ירד מהשולחן" adds `off-table`. `deployedReviewedBy`
  *      is What's New's and is never read or written here.
- *    A task in one of these states shows ONLY there (check wins over
- *    released): never as a focus card, in next, waiting or the rows, even
+ *    A task in one of these states shows ONLY there (`check` wins over
+ *    released, released wins over `checked`): never as a focus card, in next, waiting or the rows, even
  *    if it still carries `focus` / `next` (see handOff()).
+ *    URLs in now: lines, agenda lines, details and the task modal are real
+ *    links (new tab, shortened; Linkify.tsx), so rows are not <button>s:
+ *    each is a role="button" container that opens the task on click, Enter
+ *    or Space, and a link inside it never opens the task.
  *    Every tag change here is optimistic, made on a fresh read that keeps all
  *    other tags, and re-read from the board if the save fails.
  * Look: the Lybi team page (public/lybi-site/team) — its font, violet tokens,
@@ -61,6 +73,9 @@ const FOCUS_TAG = 'focus';
 const NEXT_TAG = 'next';
 type MarkTag = typeof FOCUS_TAG | typeof NEXT_TAG;
 const WAITING_TAG = 'waiting';
+const WAITING_ON_PREFIX = 'waiting-on:';
+/** Known names in Hebrew for "מחכה ל…"; anything else is shown as written (Google stays Google). */
+const WHO_HE: Record<string, string> = { noa: 'נועה', hila: 'הילה', kosta: 'קוסטה' };
 const CHECK_TAG = 'check';
 const CHECKED_TAG = 'checked';
 const OFF_TABLE_TAG = 'off-table';
@@ -112,9 +127,9 @@ function releasedAt(task: Task): Date | null {
 /**
  * The hand-off state a task is in on this panel, if any. A task in a hand-off
  * state shows only in that section — never as focus, next, waiting or a row,
- * whatever other tags it carries. `check` wins over released.
- * 'checked' = Shlomi checked it and it waits for the team lead's release: it is
- * off his panel (no section) until it is released.
+ * whatever other tags it carries. `check` wins over released, released wins
+ * over `checked`. 'checked' = Shlomi checked it and it waits for the team
+ * lead's release: it stays in the check section, marked, until released.
  */
 type HandOff = 'check' | 'checked' | 'released';
 function handOff(task: Task, now: number): HandOff | null {
@@ -132,9 +147,25 @@ function formatDay(d: Date): string {
   return `${d.getDate()}.${d.getMonth() + 1}`;
 }
 
+/**
+ * Who a waiting task waits on, from its `waiting-on:<who>` tag: `us` (parked by
+ * our side), `Shlomi` (him — the loudest pill), anyone else (outside, amber).
+ * No tag = the plain "בהמתנה". rank orders the waiting section: him, outside, us.
+ */
+type WaitKind = 'shlomi' | 'outside' | 'us' | 'plain';
+function waitingOn(task: Task): { kind: WaitKind; label: string; cls: string; rank: number } {
+  const tag = task.tags.find(t => t.toLowerCase().startsWith(WAITING_ON_PREFIX));
+  const who = tag ? tag.slice(WAITING_ON_PREFIX.length).trim() : '';
+  const key = who.toLowerCase();
+  if (!who) return { kind: 'plain', label: 'בהמתנה', cls: styles.pillWaiting, rank: 1 };
+  if (key === 'us') return { kind: 'us', label: 'אצלנו – בהמתנה', cls: styles.pillWaitUs, rank: 2 };
+  if (key === 'shlomi' || who === 'שלומי') return { kind: 'shlomi', label: 'מחכה לך', cls: styles.pillWaitYou, rank: 0 };
+  return { kind: 'outside', label: `מחכה ל${WHO_HE[key] ?? who}`, cls: styles.pillWaiting, rank: 1 };
+}
+
 function statusPill(task: Task): { cls: string; text: string } {
   if (task.priority === 'blocker') return { cls: styles.pillBlocker, text: 'Blocker' };
-  if (isWaiting(task)) return { cls: styles.pillWaiting, text: 'בהמתנה' };
+  if (isWaiting(task)) { const w = waitingOn(task); return { cls: w.cls, text: w.label }; }
   if (task.status === 'in_progress') return { cls: styles.pillProgress, text: 'בעבודה' };
   if (task.status === 'done') return { cls: styles.pillTodo, text: 'הושלמה' };
   return { cls: styles.pillTodo, text: 'טרם התחלנו' };
@@ -202,13 +233,6 @@ function formatClock(d: Date): string {
   return `${d.getDate()}.${d.getMonth() + 1} · ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-function Bold({ text }: { text: string }) {
-  return (
-    <>
-      {splitBold(text).map((p, i) => (p.bold ? <strong key={i}>{p.text}</strong> : <span key={i}>{p.text}</span>))}
-    </>
-  );
-}
 
 function TopicTitle({ title }: { title: string }) {
   // "… (#984)" — keep the reference, quietly
@@ -467,6 +491,9 @@ export function ManagementCenter() {
   /** "נבדק": `check` → `checked`; the team lead releases it from there. */
   const markChecked = (task: Task) =>
     retag(task, tags => [...tags.filter(x => x !== CHECK_TAG && x !== CHECKED_TAG), CHECKED_TAG]);
+  /** Undo "נבדק": back to `check`. */
+  const unmarkChecked = (task: Task) =>
+    retag(task, tags => [...tags.filter(x => x !== CHECK_TAG && x !== CHECKED_TAG), CHECK_TAG]);
   /** "ירד מהשולחן": a released task leaves the panel. */
   const takeOffTable = (task: Task) =>
     retag(task, tags => [...tags.filter(x => x !== OFF_TABLE_TAG), OFF_TABLE_TAG]);
@@ -483,9 +510,11 @@ export function ManagementCenter() {
       .forEach(t => { const state = handOff(t, now); if (state) map.set(t.id, state); });
     return map;
   }, [tasks]);
+  // To check first, then the ones already checked and waiting for release.
   const checkTasks = useMemo(() => (tasks || [])
-    .filter(t => handOffs.get(t.id) === 'check')
-    .sort((a, b) => (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) || b.id - a.id), [tasks, handOffs]);
+    .filter(t => { const h = handOffs.get(t.id); return h === 'check' || h === 'checked'; })
+    .sort((a, b) => Number(handOffs.get(a.id) === 'checked') - Number(handOffs.get(b.id) === 'checked')
+      || (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) || b.id - a.id), [tasks, handOffs]);
   const releasedTasks = useMemo(() => (tasks || [])
     .filter(t => handOffs.get(t.id) === 'released')
     .sort((a, b) => (releasedAt(b)?.getTime() ?? 0) - (releasedAt(a)?.getTime() ?? 0) || b.id - a.id), [tasks, handOffs]);
@@ -531,7 +560,8 @@ export function ManagementCenter() {
       .sort((a, b) => (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) || b.id - a.id);
   }, [tasks, handOffs]);
   const unmarked = working.filter(t => !t.tags.includes(FOCUS_TAG) && !t.tags.includes(NEXT_TAG));
-  const waitingTasks = unmarked.filter(isWaiting);
+  // Waiting on him first, then on someone outside (or unsaid), then parked by us.
+  const waitingTasks = unmarked.filter(isWaiting).sort((a, b) => waitingOn(a).rank - waitingOn(b).rank);
   const otherTasks = unmarked.filter(t => !isWaiting(t));
 
   // ── Agenda — one topic at a time, in board order (finished topics stay in place) ──
@@ -645,7 +675,7 @@ export function ManagementCenter() {
             dir={textDir(line.text)}
             onClick={expandable ? () => setSubOpen(t, line, !open) : undefined}
           >
-            <Bold text={line.text} />
+            <RichText text={line.text} />
           </span>
           <button
             type="button"
@@ -666,17 +696,17 @@ export function ManagementCenter() {
                   <li key={`q${i}`} dir={textDir(labeled.text)}>
                     <strong className={labeled.kind === 'recommendation' ? styles.recTag : styles.detailTag}>
                       {labeled.word}{labeled.date ? ` (${labeled.date})` : ''}:
-                    </strong> <Bold text={labeled.text} />
+                    </strong> <RichText text={labeled.text} />
                   </li>
                 );
               }
-              return <li key={`q${i}`} dir={textDir(q)}><Bold text={q} /></li>;
+              return <li key={`q${i}`} dir={textDir(q)}><RichText text={q} /></li>;
             })}
             {line.note && (
-              <li dir={textDir(line.note)}><strong className={styles.detailTag}>הערה:</strong> {line.note}</li>
+              <li dir={textDir(line.note)}><strong className={styles.detailTag}>הערה:</strong> <Linkify text={line.note} /></li>
             )}
             {line.details.map((d, i) => (
-              <li key={`d${i}`} dir={textDir(d)}><Bold text={d} /></li>
+              <li key={`d${i}`} dir={textDir(d)}><RichText text={d} /></li>
             ))}
           </ul>
         )}
@@ -701,7 +731,7 @@ export function ManagementCenter() {
             {t.blocks.map((b, i) => {
               if (b.kind === 'line') return renderSub(t, b);
               if (b.kind === 'heading') return <li key={`h${i}`} className={styles.group} dir={textDir(b.text)}>{b.text}</li>;
-              return <li key={`t${i}`} className={styles.smallText} dir={textDir(b.text)}><Bold text={b.text} /></li>;
+              return <li key={`t${i}`} className={styles.smallText} dir={textDir(b.text)}><RichText text={b.text} /></li>;
             })}
           </ul>
         )}
@@ -744,8 +774,9 @@ export function ManagementCenter() {
   const renderWaiting = (t: Task) => {
     const now = nowStatus(t);
     const inFocus = t.tags.includes(FOCUS_TAG);
+    const wait = waitingOn(t);
     return (
-      <div key={t.id} className={`${styles.waitRow} ${inFocus ? styles.waitRowFocus : ''}`} dir="ltr">
+      <div key={t.id} className={`${styles.waitRow} ${wait.kind === 'shlomi' ? styles.waitRowYou : ''} ${inFocus ? styles.waitRowFocus : ''}`} dir="ltr">
         <button
           type="button"
           className={`${styles.starBtn} ${styles.starBtnSmall} ${inFocus ? styles.starBtnOn : ''}`}
@@ -767,16 +798,16 @@ export function ManagementCenter() {
         >
           <NextIcon size={20} />
         </button>
-        <button type="button" className={styles.waitLink} title={now ? `${t.title}\nמחכה: ${now}` : t.title} onClick={() => openTask(t)}>
-          <span className={`${styles.pill} ${styles.pillSmall} ${styles.pillWaiting} ${styles.waitPill}`}>
-            <HourglassIcon size={13} /> <span className={styles.waitPillText}>בהמתנה</span>
+        <div className={styles.waitLink} title={now ? `${t.title}\n${wait.label}: ${now}` : `${t.title}\n${wait.label}`} {...openProps(() => openTask(t))}>
+          <span className={`${styles.pill} ${styles.pillSmall} ${wait.cls} ${styles.waitPill}`}>
+            <HourglassIcon size={13} /> <span className={styles.waitPillText} dir="rtl">{wait.label}</span>
           </span>
           <span className={styles.nextText}>
             <span className={styles.waitTitle} dir={textDir(t.title)}>{t.title}</span>
-            <span className={styles.waitFor} dir={textDir(now || 'מחכה')}>{now || 'מחכה — לא נכתב למה'}</span>
+            <span className={styles.waitFor} dir={textDir(now || 'מחכה')}>{now ? <Linkify text={now} /> : 'מחכה — לא נכתב למה'}</span>
           </span>
           <span className={styles.nextId}>#{t.id}</span>
-        </button>
+        </div>
         {renderLinks(t, true)}
       </div>
     );
@@ -790,30 +821,52 @@ export function ManagementCenter() {
   const renderHandOff = (t: Task, kind: 'check' | 'released') => {
     const busy = busyStar.has(t.id);
     const now = nowStatus(t);
+    const checked = kind === 'check' && t.tags.includes(CHECKED_TAG) && !t.tags.includes(CHECK_TAG);
     const released = kind === 'released' ? releasedAt(t) : null;
-    const sub = kind === 'check'
-      ? (now || 'לא נכתב מה לבדוק')
-      : (released ? `שוחרר ב־${formatDay(released)}` : 'שוחרר');
+    const rowCls = kind === 'released' ? styles.handRowReleased : checked ? styles.handRowChecked : styles.handRowCheck;
+    const title = kind === 'check' && !checked && now ? `${t.title}\nלבדוק: ${now}` : t.title;
     return (
-      <div key={t.id} className={`${styles.handRow} ${kind === 'check' ? styles.handRowCheck : styles.handRowReleased}`} dir="ltr">
-        <button
-          type="button"
-          className={`${styles.handBtn} ${kind === 'check' ? styles.handBtnCheck : ''}`}
-          title={kind === 'check' ? 'בדקתי — אפשר לשחרר' : 'להוריד מהלוח שלי'}
-          disabled={busy}
-          onClick={() => void (kind === 'check' ? markChecked(t) : takeOffTable(t))}
-          dir="rtl"
-        >
-          {kind === 'check' && <CheckIcon size={13} />}
-          <span>{kind === 'check' ? 'נבדק' : 'ירד מהשולחן'}</span>
-        </button>
-        <button type="button" className={styles.waitLink} title={kind === 'check' && now ? `${t.title}\nלבדוק: ${now}` : t.title} onClick={() => openTask(t)}>
+      <div key={t.id} className={`${styles.handRow} ${rowCls}`} dir="ltr">
+        {checked ? (
+          // Same slot and width as the "נבדק" button: the mark itself is the undo.
+          <button
+            type="button"
+            className={`${styles.handBtn} ${styles.handBtnCheck} ${styles.handBtnDone}`}
+            title="נבדק — ממתין לשחרור. לחיצה מבטלת ומחזירה לבדיקה"
+            aria-label="נבדק — לבטל ולהחזיר לבדיקה"
+            disabled={busy}
+            onClick={() => void unmarkChecked(t)}
+            dir="rtl"
+          >
+            <span className={styles.handDoneMark}><CheckIcon size={13} /> נבדק</span>
+            <span className={styles.handUndo}>ביטול</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={`${styles.handBtn} ${kind === 'check' ? styles.handBtnCheck : ''}`}
+            title={kind === 'check' ? 'בדקתי — אפשר לשחרר' : 'להוריד מהלוח שלי'}
+            disabled={busy}
+            onClick={() => void (kind === 'check' ? markChecked(t) : takeOffTable(t))}
+            dir="rtl"
+          >
+            {kind === 'check' && <CheckIcon size={13} />}
+            <span>{kind === 'check' ? 'נבדק' : 'ירד מהשולחן'}</span>
+          </button>
+        )}
+        <div className={styles.waitLink} title={title} {...openProps(() => openTask(t))}>
           <span className={styles.nextText}>
             <span className={styles.waitTitle} dir={textDir(t.title)}>{t.title}</span>
-            <span className={styles.handSub} dir={textDir(sub)}>{sub}</span>
+            {kind === 'released' && (
+              <span className={styles.handSub} dir="rtl">{released ? `שוחרר ב־${formatDay(released)}` : 'שוחרר'}</span>
+            )}
+            {checked && <span className={styles.handSub} dir="rtl">נבדק – ממתין לשחרור</span>}
+            {kind === 'check' && !checked && (
+              <span className={styles.handSub} dir={now ? textDir(now) : 'rtl'}>{now ? <Linkify text={now} /> : 'לא נכתב מה לבדוק'}</span>
+            )}
           </span>
           <span className={styles.nextId}>#{t.id}</span>
-        </button>
+        </div>
         {renderLinks(t, true)}
       </div>
     );
@@ -858,15 +911,15 @@ export function ManagementCenter() {
             </button>
             {renderLinks(t)}
           </div>
-          <button type="button" className={styles.focusBody} onClick={() => openTask(t)}>
+          <div className={styles.focusBody} {...openProps(() => openTask(t))}>
             <span className={styles.focusTitle} dir={textDir(t.title)} title={t.title}>{t.title}</span>
             <span className={styles.focusRule} />
             {now && (
               <span className={styles.focusNow} dir="rtl" title={now}>
-                <strong>עכשיו:</strong> {now}
+                <strong>עכשיו:</strong> <Linkify text={now} />
               </span>
             )}
-          </button>
+          </div>
         </div>
         <button
           type="button"
@@ -899,14 +952,14 @@ export function ManagementCenter() {
         >
           <NextIcon filled size={20} />
         </button>
-        <button type="button" className={styles.nextLink} title={now ? `${t.title}\nעכשיו: ${now}` : t.title} onClick={() => openTask(t)}>
+        <div className={styles.nextLink} title={now ? `${t.title}\nעכשיו: ${now}` : t.title} {...openProps(() => openTask(t))}>
           <span className={`${styles.pill} ${styles.pillSmall} ${pill.cls}`}>{pill.text}</span>
           <span className={styles.nextText}>
             <span className={styles.nextTitle} dir={textDir(t.title)}>{t.title}</span>
-            {now && <span className={styles.taskNow} dir={textDir(now)}>{now}</span>}
+            {now && <span className={styles.taskNow} dir={textDir(now)}><Linkify text={now} /></span>}
           </span>
           <span className={styles.nextId}>#{t.id}</span>
-        </button>
+        </div>
         {renderLinks(t, true)}
         <button
           type="button"
@@ -947,15 +1000,15 @@ export function ManagementCenter() {
         >
           <NextIcon />
         </button>
-        <button type="button" className={styles.taskLink} title={now ? `${t.title}\nעכשיו: ${now}` : t.title} onClick={() => openTask(t)}>
+        <div className={styles.taskLink} title={now ? `${t.title}\nעכשיו: ${now}` : t.title} {...openProps(() => openTask(t))}>
           <span className={`${styles.pill} ${pill.cls}`}>{pill.text}</span>
           <span className={styles.taskText}>
             <span className={styles.taskTitle} dir={textDir(t.title)}>{t.title}</span>
-            {now && <span className={styles.taskNow} dir={textDir(now)}>{now}</span>}
+            {now && <span className={styles.taskNow} dir={textDir(now)}><Linkify text={now} /></span>}
           </span>
           <span className={styles.vsep} />
           <span className={styles.taskId}>#{t.id}</span>
-        </button>
+        </div>
         {renderLinks(t, true)}
       </div>
     );
@@ -1124,7 +1177,7 @@ export function ManagementCenter() {
               </div>
               <div className={styles.taskModalTitle} dir={textDir(modalTask.title)}>{modalTask.title}</div>
               {now && (
-                <div className={styles.taskModalNow} dir="rtl"><strong>{isWaiting(modalTask) ? 'מחכה:' : 'עכשיו:'}</strong> {now}</div>
+                <div className={styles.taskModalNow} dir="rtl"><strong>{isWaiting(modalTask) ? 'מחכה:' : 'עכשיו:'}</strong> <Linkify text={now} /></div>
               )}
               {modalLinks.length > 0 && (
                 <div className={styles.modalLinks} dir="rtl">
@@ -1175,7 +1228,7 @@ export function ManagementCenter() {
               <span className={styles.spacer} />
               <span className={styles.marks}>///</span>
             </div>
-            <div className={styles.modalLine} dir={textDir(noteDraft.text)}><Bold text={noteDraft.text} /></div>
+            <div className={styles.modalLine} dir={textDir(noteDraft.text)}><RichText text={noteDraft.text} /></div>
             <textarea
               className={styles.modalInput}
               autoFocus

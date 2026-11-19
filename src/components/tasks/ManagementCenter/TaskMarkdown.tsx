@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
+import { Linkify } from './Linkify';
 import { textDir } from './textDir';
 import styles from './ManagementCenter.module.css';
 
 /**
  * A task description, rendered readably — headings, bullets (nested by
  * indent), checklists, quotes, code fences, paragraphs with line breaks,
- * **bold** and `code`. Each block picks its own direction (Hebrew → RTL).
+ * **bold**, `code` and links (Linkify). Each block picks its own direction (Hebrew → RTL).
  * Deliberately small: board descriptions are markdown-ish, not full markdown.
  */
 
@@ -14,9 +15,9 @@ function Inline({ text }: { text: string }) {
   return (
     <>
       {parts.map((p, i) => {
-        if (p.startsWith('**') && p.endsWith('**') && p.length > 4) return <strong key={i}>{p.slice(2, -2)}</strong>;
+        if (p.startsWith('**') && p.endsWith('**') && p.length > 4) return <strong key={i}><Linkify text={p.slice(2, -2)} /></strong>;
         if (p.startsWith('`') && p.endsWith('`') && p.length > 2) return <code key={i} className={styles.mdCode}>{p.slice(1, -1)}</code>;
-        return <span key={i}>{p}</span>;
+        return <span key={i}><Linkify text={p} /></span>;
       })}
     </>
   );
