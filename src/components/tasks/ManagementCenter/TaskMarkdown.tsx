@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { stripAnchor } from './agendaParse';
 import { Linkify } from './Linkify';
 import { textDir } from './textDir';
 import styles from './ManagementCenter.module.css';
@@ -49,7 +50,8 @@ export function TaskMarkdown({ text }: { text: string }) {
   if (HTML_RE.test(text)) {
     return <div className={html.html} dir="auto" dangerouslySetInnerHTML={{ __html: cleanHtml(text) }} />;
   }
-  const lines = text.replace(/\r\n/g, '\n').split('\n');
+  // Agenda lines that carry comments end with an id marker — never shown.
+  const lines = text.replace(/\r\n/g, '\n').split('\n').map(stripAnchor);
   const out: ReactNode[] = [];
   let para: string[] = [];
   let k = 0;

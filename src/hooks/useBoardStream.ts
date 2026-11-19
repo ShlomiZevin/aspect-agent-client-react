@@ -1,11 +1,15 @@
 import { useEffect, useRef } from 'react';
 import type { Task, TaskComment } from '../types/task';
+import type { AgendaComment } from '../services/agendaCommentsService';
 import { API_BASE } from '../services/notificationsService';
 
 export type BoardEvent =
   | { type: 'task_created'; task: Task }
   | { type: 'task_updated'; task: Task }
-  | { type: 'comment_added'; taskId: number; comment: TaskComment };
+  | { type: 'comment_added'; taskId: number; comment: TaskComment }
+  // Comments on agenda lines (action items) — services/agendaComments.service.js
+  | { type: 'agenda_comment'; action: 'added' | 'edited'; taskId: number; comment: AgendaComment }
+  | { type: 'agenda_comment'; action: 'deleted'; taskId: number; id: number };
 
 const RECONNECT_DELAY_MS = 3_000;
 

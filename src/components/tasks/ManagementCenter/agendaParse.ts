@@ -12,17 +12,35 @@
  * index the server's agenda-line endpoint uses. Indented `  - ` detail lines
  * are never counted.
  *
+ * A line people commented on ends with its stable id, an HTML comment
+ * (`- [ ] a point <!-- line:3fa9c1 -->`, stamped by the server — see
+ * aspect-agent-server/services/agendaLines.js). It is never part of a line's
+ * `text`; it is the line's `key`, which its comments point at.
+ *
  * parseAgenda turns one description into display blocks. applyLineChange is
- * the client mirror of the server's applyAgendaLineChange (task.service.js),
+ * the client mirror of the server's applyAgendaLineChange (agendaLines.js),
  * used only for the optimistic update — the server's result always wins.
  */
 
 export type AgendaBlock =
   | { kind: 'heading'; text: string }
-  | { kind: 'line'; index: number; text: string; checked: boolean; quotes: string[]; note: string | null; details: string[] }
+  | { kind: 'line'; index: number; text: string; key: string | null; checked: boolean; quotes: string[]; note: string | null; details: string[] }
   | { kind: 'text'; text: string };
 
 const CHECK_RE = /^(\s*)[-*] \[( |x|X)\] ?(.*)$/;
+const ANCHOR_RE = /\s*<!--\s*line:([a-z0-9]{4,16})\s*-->\s*$/i;
+
+/** "a point <!-- line:3fa9c1 -->" → { text: 'a point', key: '3fa9c1' } */
+export function splitAnchor(rest: string): { text: string; key: string | null } {
+  const m = rest.match(ANCHOR_RE);
+  if (!m || m.index === undefined) return { text: rest.trim(), key: null };
+  return { text: rest.slice(0, m.index).trim(), key: m[1].toLowerCase() };
+}
+
+/** A line's id marker, removed — for anything that renders raw description text. */
+export function stripAnchor(line: string): string {
+  return line.replace(ANCHOR_RE, '');
+}
 const QUOTE_RE = /^\s*>\s?(.*)$/;
 const NOTE_RE = /^\s*>\s*הערה:\s*(.*)$/;
 const DETAIL_RE = /^\s+[-*•]\s+(.*)$/;          // indented bullet without a box
@@ -41,7 +59,8 @@ export function parseAgenda(description: string | undefined | null): AgendaBlock
   for (const raw of lines) {
     const check = raw.match(CHECK_RE);
     if (check) {
-      current = { kind: 'line', index: index++, text: check[3].trim(), checked: check[2] !== ' ', quotes: [], note: null, details: [] };
+      const { text, key } = splitAnchor(check[3]);
+      current = { kind: 'line', index: index++, text, key, checked: check[2] !== ' ', quotes: [], note: null, details: [] };
       blocks.push(current);
       continue;
     }
@@ -86,7 +105,7 @@ export function applyLineChange(
   const items: { lineNo: number; text: string }[] = [];
   lines.forEach((line, lineNo) => {
     const m = line.match(CHECK_RE);
-    if (m) items.push({ lineNo, text: m[3].trim() });
+    if (m) items.push({ lineNo, text: splitAnchor(m[3]).text });
   });
   const want = change.text.trim();
   let target = items[change.index]?.text === want ? items[change.index] : null;

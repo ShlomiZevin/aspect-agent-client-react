@@ -1,15 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import type { Task } from '../../../types/task';
 import { getTask, getTasks, updateAgendaLine, updateTask } from '../../../services/taskService';
 import { useBoardStream } from '../../../hooks/useBoardStream';
-import { applyLineChange, parseAgenda } from './agendaParse';
+import { applyLineChange } from './agendaParse';
+import { CommentThread, OrphanThreads } from './CommentThread';
+import { useActionComments } from './useActionComments';
+import type { TopicThreads } from './commentModel';
+import { CheckIcon, ChevronIcon, CloseIcon, CommentIcon, PencilIcon, ShareIcon } from './icons';
 import { Linkify, RichText } from './Linkify';
 import { openProps } from './openProps';
-import type { AgendaBlock } from './agendaParse';
 import { TaskMarkdown } from './TaskMarkdown';
 import { textDir } from './textDir';
+import { Threads } from './Threads';
+import { ACTIONS_PREFIX, AGENDA_PREFIX, isActionTopic, topicsTagged } from './topics';
+import type { LineBlock, Topic } from './topics';
 import styles from './ManagementCenter.module.css';
 
 /**
@@ -24,7 +29,12 @@ import styles from './ManagementCenter.module.css';
  *    overwrites concurrent edits. Topic text is never edited here.
  *  • ACTION ITEMS (right, under the agenda) — what came out of a meeting:
  *    type 'agenda' tagged actionsFor:<anyone> (never agendaFor, so they stay
- *    off the agenda). Same list, same ticks and notes; a tick = done.
+ *    off the agenda). Same list and ticks; a tick = done. Instead of a note,
+ *    each line has a comment thread (Noa, Hila, Shlomi — who and when on
+ *    every remark; an old note shows as Shlomi's remark): the speech bubble
+ *    with its count opens / closes it (remembered like the details), or opens
+ *    the composer when there is none yet. The head links to the shared page
+ *    /tasks/actions (ActionItemsPage.tsx). Comments: useActionComments.tsx.
  *  • ONGOING (left) — open tasks Claude is on, any Blocker, and any open task
  *    with a now: tag. Tasks tagged `focus` lead as hero cards; the star on any
  *    task adds / removes only that tag. Right after them, quieter, come the
@@ -84,15 +94,16 @@ const CHECKED_TAG = 'checked';
 const OFF_TABLE_TAG = 'off-table';
 const RELEASED_DAYS = 14;
 const MAX_LINK_CHIPS = 2;
-/** Tag prefix of a meeting's action-items topic (type 'agenda'). */
-const ACTIONS_PREFIX = 'actionsFor:';
 const OPEN_KEY = 'lybi-center-agenda-open';
+/** The shared action-items page (Noa and Hila comment there). */
+const ACTIONS_PAGE = '/tasks/actions';
 
-type LineBlock = Extract<AgendaBlock, { kind: 'line' }>;
 type NoteDraft = { taskId: number; index: number; text: string; value: string; hadNote: boolean };
-type Topic = { task: Task; blocks: AgendaBlock[]; total: number; ticked: number; done: boolean };
-/** Open / closed overrides: t = topic id → open, d = "<topicId>:<line index>" → details open. */
-type OpenPrefs = { t: Record<string, boolean>; d: Record<string, boolean> };
+/**
+ * Open / closed overrides: t = topic id → open, d = "<topicId>:<line index>" →
+ * details open, c = "<topicId>:<line key or #index>" → comment thread open.
+ */
+type OpenPrefs = { t: Record<string, boolean>; d: Record<string, boolean>; c: Record<string, boolean> };
 
 /** Focus and next exclude each other: setting one drops the other; every other tag stays. */
 function withMark(tags: string[], tag: MarkTag, want: boolean): string[] {
@@ -228,9 +239,9 @@ function asLabeled(quote: string): { kind: LabelKind; word: string; date: string
 function readOpenPrefs(): OpenPrefs {
   try {
     const parsed = JSON.parse(localStorage.getItem(OPEN_KEY) || 'null');
-    if (parsed && typeof parsed === 'object') return { t: parsed.t || {}, d: parsed.d || {} };
+    if (parsed && typeof parsed === 'object') return { t: parsed.t || {}, d: parsed.d || {}, c: parsed.c || {} };
   } catch { /* private mode / bad value */ }
-  return { t: {}, d: {} };
+  return { t: {}, d: {}, c: {} };
 }
 
 function formatClock(d: Date): string {
@@ -250,34 +261,7 @@ function TopicTitle({ title }: { title: string }) {
   );
 }
 
-/* ── Icons ── (RTL: "next" points left, "previous" right; collapsed ‹, open ⌄) */
-const CheckIcon = ({ size = 16 }: { size?: number }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
-
-const ChevronIcon = ({ dir, size = 20 }: { dir: 'left' | 'right' | 'down'; size?: number }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    {dir === 'down' && <polyline points="6 9 12 15 18 9" />}
-    {dir === 'left' && <polyline points="15 6 9 12 15 18" />}
-    {dir === 'right' && <polyline points="9 6 15 12 9 18" />}
-  </svg>
-);
-
-const CloseIcon = () => (
-  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-    <line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" />
-  </svg>
-);
-
-const PencilIcon = () => (
-  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
-    <line x1="14.5" y1="5.5" x2="18.5" y2="9.5" />
-  </svg>
-);
-
+/* ── Icons ── (shared ones live in icons.tsx) */
 /** "Up next": two chevrons pointing the way the page reads on (left, RTL). */
 const NextIcon = ({ filled = false, size = 22 }: { filled?: boolean; size?: number }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={filled ? 2.4 : 1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -339,66 +323,6 @@ function FocusRing() {
   );
 }
 
-/**
- * The background light threads, mirrored from the design (flares at the top
- * and bottom of the agenda side). Two layers drift very slowly.
- */
-function Threads() {
-  const top = [
-    'M -60 210 C 180 170, 420 92, 596 62 S 930 -6, 1160 -60',
-    'M 210 -60 C 380 10, 500 44, 596 62 S 820 150, 1120 300',
-    'M -40 70 C 190 46, 400 74, 596 62 C 720 54, 830 18, 920 -60',
-    'M 600 -60 C 760 60, 1060 70, 1600 150',
-    'M 420 140 C 500 100, 560 74, 596 62 C 640 46, 700 10, 740 -60',
-  ];
-  const bottom = [
-    'M -60 1010 C 150 994, 330 954, 491 935 S 900 852, 1620 1000',
-    'M -40 870 C 180 914, 370 946, 491 935 C 650 920, 770 990, 920 1090',
-    'M 180 1090 C 300 1006, 410 958, 491 935 S 630 860, 720 760',
-    'M 860 1060 C 1080 962, 1320 936, 1620 972',
-    'M -60 640 C 40 760, 120 900, 220 1090',
-  ];
-  const rays = [[596, 62], [491, 935]].flatMap(([cx, cy]) =>
-    [-62, -20, 18, 64, 118, 170, 228].map(a => {
-      const r = 70 + ((a + 400) % 50);
-      const rad = (a * Math.PI) / 180;
-      return `M ${cx} ${cy} L ${cx + Math.cos(rad) * r} ${cy + Math.sin(rad) * r}`;
-    }));
-  const strand = (d: string, i: number, strong: boolean) => (
-    <g key={i}>
-      <path d={d} className={styles.threadGlow} style={{ opacity: strong ? 0.16 : 0.07 } as CSSProperties} />
-      <path d={d} className={styles.threadCore} style={{ opacity: strong ? 0.42 : 0.17 } as CSSProperties} />
-    </g>
-  );
-  return (
-    <svg className={styles.threads} viewBox="0 0 1536 1024" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      <defs>
-        <radialGradient id="mcFlare" cx="50%" cy="50%" r="50%">
-          <stop offset="0" stopColor="#ffffff" stopOpacity="0.9" />
-          <stop offset="0.1" stopColor="#f1e6ff" stopOpacity="0.6" />
-          <stop offset="0.28" stopColor="#ae80ff" stopOpacity="0.22" />
-          <stop offset="1" stopColor="#7b39c5" stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id="mcHalo" cx="50%" cy="50%" r="50%">
-          <stop offset="0" stopColor="#9e50ef" stopOpacity="0.13" />
-          <stop offset="1" stopColor="#7b39c5" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="mcRay" x1="0" x2="1">
-          <stop offset="0" stopColor="#d8beff" stopOpacity="0.5" />
-          <stop offset="1" stopColor="#d8beff" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <circle cx="596" cy="62" r="260" fill="url(#mcHalo)" />
-      <circle cx="491" cy="935" r="260" fill="url(#mcHalo)" />
-      <g className={styles.driftA}>{top.map((d, i) => strand(d, i, i < 2))}</g>
-      <g className={styles.driftB}>{bottom.map((d, i) => strand(d, i, i < 2))}</g>
-      <g className={styles.rays}>{rays.map((d, i) => <path key={i} d={d} />)}</g>
-      <circle className={styles.flare} cx="596" cy="62" r="22" fill="url(#mcFlare)" />
-      <circle className={styles.flare} cx="491" cy="935" r="20" fill="url(#mcFlare)" />
-    </svg>
-  );
-}
-
 export function ManagementCenter() {
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -438,10 +362,6 @@ export function ManagementCenter() {
       return prev.some(x => x.id === t.id) ? prev.map(x => (x.id === t.id ? t : x)) : [...prev, t];
     });
   }, []);
-
-  useBoardStream(true, event => {
-    if (event.type === 'task_created' || event.type === 'task_updated') upsert(event.task);
-  });
 
   const showToast = useCallback((text: string) => {
     setToast(text);
@@ -570,23 +490,18 @@ export function ManagementCenter() {
   const otherTasks = unmarked.filter(t => !isWaiting(t));
 
   // ── Agenda — one topic at a time, in board order (finished topics stay in place) ──
-  const topicsTagged = useCallback((prefix: string): Topic[] => {
-    if (!tasks) return [];
-    return tasks
-      .filter(t => t.type === 'agenda' && !t.isDraft && !t.tags.includes('agendaMeta') && t.tags.some(tag => tag.startsWith(prefix)))
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id - b.id)
-      .map(task => {
-        const blocks = parseAgenda(task.description);
-        const lines = blocks.filter((b): b is LineBlock => b.kind === 'line');
-        const ticked = lines.filter(l => l.checked).length;
-        const done = task.isCompleted || task.status === 'done' || (lines.length > 0 && ticked === lines.length);
-        return { task, blocks, total: lines.length, ticked, done };
-      });
-  }, [tasks]);
-  const topics = useMemo(() => topicsTagged('agendaFor:'), [topicsTagged]);
+  const topics = useMemo(() => topicsTagged(tasks, AGENDA_PREFIX), [tasks]);
   // Action items from a meeting: same shape, their own tag, their own panel.
-  const actions = useMemo(() => topicsTagged(ACTIONS_PREFIX), [topicsTagged]);
-  const isAction = (t: Topic) => t.task.tags.some(tag => tag.startsWith(ACTIONS_PREFIX));
+  const actions = useMemo(() => topicsTagged(tasks, ACTIONS_PREFIX), [tasks]);
+  const isAction = isActionTopic;
+
+  // Comments on the action items: one more level under each line (useActionComments.tsx).
+  const comments = useActionComments(actions.map(a => a.task.id), { onTask: upsert, onError: showToast });
+
+  useBoardStream(true, event => {
+    if (event.type === 'task_created' || event.type === 'task_updated') upsert(event.task);
+    comments.onBoardEvent(event);
+  });
 
   const modalTask = modalTaskId !== null ? tasks?.find(t => t.id === modalTaskId) ?? null : null;
 
@@ -602,7 +517,12 @@ export function ManagementCenter() {
   const topicOpen = (t: Topic) => openPrefs.t[t.task.id] ?? true;
   const subKey = (t: Topic, line: LineBlock) => `${t.task.id}:${line.index}`;
   const subOpen = (t: Topic, line: LineBlock) => openPrefs.d[subKey(t, line)] ?? false;
-  const hasDetails = (line: LineBlock) => line.details.length > 0 || line.quotes.length > 0 || !!line.note;
+  // An action line's note is not a detail: it shows in the line's comment thread, signed.
+  const hasDetails = (t: Topic, line: LineBlock) =>
+    line.details.length > 0 || line.quotes.length > 0 || (!!line.note && !isAction(t));
+  // Comment threads (action items) start open; the bubble closes / reopens one, remembered.
+  const threadKey = (t: Topic, line: LineBlock) => `${t.task.id}:${line.key ?? `#${line.index}`}`;
+  const threadOpen = (t: Topic, line: LineBlock) => openPrefs.c[threadKey(t, line)] ?? true;
 
   const savePrefs = useCallback((next: OpenPrefs) => {
     setOpenPrefs(next);
@@ -613,14 +533,16 @@ export function ManagementCenter() {
     savePrefs({ ...openPrefs, t: { ...openPrefs.t, [t.task.id]: open } });
   const setSubOpen = (t: Topic, line: LineBlock, open: boolean) =>
     savePrefs({ ...openPrefs, d: { ...openPrefs.d, [subKey(t, line)]: open } });
+  const setThreadOpen = (t: Topic, line: LineBlock, open: boolean) =>
+    savePrefs({ ...openPrefs, c: { ...openPrefs.c, [threadKey(t, line)]: open } });
 
   const allOpen = topics.length > 0 && topics.every(t =>
-    topicOpen(t) && t.blocks.every(b => b.kind !== 'line' || !hasDetails(b) || subOpen(t, b)));
+    topicOpen(t) && t.blocks.every(b => b.kind !== 'line' || !hasDetails(t, b) || subOpen(t, b)));
   const setAll = (open: boolean) => {
-    const next: OpenPrefs = { t: { ...openPrefs.t }, d: { ...openPrefs.d } };
+    const next: OpenPrefs = { t: { ...openPrefs.t }, d: { ...openPrefs.d }, c: { ...openPrefs.c } };
     topics.forEach(t => {
       next.t[t.task.id] = open;
-      t.blocks.forEach(b => { if (b.kind === 'line' && hasDetails(b)) next.d[subKey(t, b)] = open; });
+      t.blocks.forEach(b => { if (b.kind === 'line' && hasDetails(t, b)) next.d[subKey(t, b)] = open; });
     });
     savePrefs(next);
   };
@@ -651,10 +573,23 @@ export function ManagementCenter() {
     if (task) void changeLine(task, { index: noteDraft.index, text: noteDraft.text, note: '' });
   };
 
-  /** Level 2 — a subtopic (a `- [ ]` line) with its level-3 details. */
-  const renderSub = (t: Topic, line: LineBlock) => {
-    const expandable = hasDetails(line);
+  /**
+   * Level 2 — a subtopic (a `- [ ]` line) with its level-3 details and, on an
+   * action item, its comment thread (`threads`). Rows under a line keep the
+   * line's direction; only each detail's own text picks its direction.
+   */
+  const renderSub = (t: Topic, line: LineBlock, threads?: TopicThreads) => {
+    const expandable = hasDetails(t, line);
     const open = expandable && subOpen(t, line);
+    const action = isAction(t);
+    const thread = threads?.byIndex.get(line.index) ?? [];
+    const count = thread.length;
+    const tOpen = count > 0 && threadOpen(t, line);
+    const lineDir = textDir(line.text);
+    const iso = (text: string, rich = true) => (
+      <span className={styles.iso} dir={textDir(text)}>{rich ? <RichText text={text} /> : <Linkify text={text} />}</span>
+    );
+    const commentLabel = count === 0 ? 'הוספת תגובה' : tOpen ? 'הסתרת התגובות' : 'הצגת התגובות';
     return (
       <li key={`l${line.index}`} className={`${styles.sub} ${line.checked ? styles.subDone : ''}`}>
         <div className={styles.subRow}>
@@ -686,46 +621,65 @@ export function ManagementCenter() {
           >
             <RichText text={line.text} />
           </span>
-          <button
-            type="button"
-            className={`${styles.noteBtn} ${line.note ? styles.noteBtnHas : ''}`}
-            aria-label={line.note ? 'עריכת הערה' : 'הוספת הערה'}
-            title={line.note ? 'עריכת הערה' : 'הוספת הערה'}
-            onClick={() => openNote(t.task, line)}
-          >
-            <PencilIcon />
-          </button>
+          {action ? (
+            // Fixed width whether it shows a count or a plus — nothing moves when the first comment lands.
+            <button
+              type="button"
+              className={`${styles.commentBtn} ${count ? styles.commentBtnHas : ''} ${tOpen ? styles.commentBtnOpen : ''}`}
+              aria-label={commentLabel}
+              aria-expanded={count ? tOpen : undefined}
+              title={commentLabel}
+              onClick={() => (count ? setThreadOpen(t, line, !tOpen) : comments.startAdd(t, line))}
+            >
+              <CommentIcon size={16} />
+              <span className={styles.commentCount}>{count || '+'}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={`${styles.noteBtn} ${line.note ? styles.noteBtnHas : ''}`}
+              aria-label={line.note ? 'עריכת הערה' : 'הוספת הערה'}
+              title={line.note ? 'עריכת הערה' : 'הוספת הערה'}
+              onClick={() => openNote(t.task, line)}
+            >
+              <PencilIcon />
+            </button>
+          )}
         </div>
         {open && (
-          <ul className={styles.details}>
+          <ul className={styles.details} dir={lineDir}>
             {line.quotes.map((q, i) => {
               const labeled = asLabeled(q);
               if (labeled) {
                 return (
-                  <li key={`q${i}`} dir={textDir(labeled.text)}>
+                  <li key={`q${i}`}>
                     <strong className={labeled.kind === 'recommendation' ? styles.recTag : styles.detailTag}>
                       {labeled.word}{labeled.date ? ` (${labeled.date})` : ''}:
-                    </strong> <RichText text={labeled.text} />
+                    </strong> {iso(labeled.text)}
                   </li>
                 );
               }
-              return <li key={`q${i}`} dir={textDir(q)}><RichText text={q} /></li>;
+              return <li key={`q${i}`}>{iso(q)}</li>;
             })}
-            {line.note && (
-              <li dir={textDir(line.note)}><strong className={styles.detailTag}>הערה:</strong> <Linkify text={line.note} /></li>
+            {line.note && !action && (
+              <li><strong className={styles.detailTag}>הערה של שלומי:</strong> {iso(line.note, false)}</li>
             )}
             {line.details.map((d, i) => (
-              <li key={`d${i}`} dir={textDir(d)}><RichText text={d} /></li>
+              <li key={`d${i}`}>{iso(d)}</li>
             ))}
           </ul>
+        )}
+        {tOpen && (
+          <CommentThread flow={comments} entries={thread} lineText={line.text} line={line} topic={t} />
         )}
       </li>
     );
   };
 
-  /** Level 1 — a topic, with its subtopics. */
+  /** Level 1 — a topic, with its subtopics (and, on action items, their comment threads). */
   const renderTopic = (t: Topic) => {
     const open = topicOpen(t);
+    const threads = isAction(t) ? comments.threadsFor(t) : undefined;
     return (
       <section key={t.task.id} className={`${styles.topic} ${t.done ? styles.topicDone : ''}`}>
         <button type="button" className={styles.topicRow} aria-expanded={open} onClick={() => setTopicOpen(t, !open)}>
@@ -738,12 +692,13 @@ export function ManagementCenter() {
         {open && (
           <ul className={styles.subs}>
             {t.blocks.map((b, i) => {
-              if (b.kind === 'line') return renderSub(t, b);
+              if (b.kind === 'line') return renderSub(t, b, threads);
               if (b.kind === 'heading') return <li key={`h${i}`} className={styles.group} dir={textDir(b.text)}>{b.text}</li>;
               return <li key={`t${i}`} className={styles.smallText} dir={textDir(b.text)}><RichText text={b.text} /></li>;
             })}
           </ul>
         )}
+        {open && threads && <OrphanThreads flow={comments} topic={t} orphans={threads.orphans} />}
       </section>
     );
   };
@@ -1091,6 +1046,16 @@ export function ManagementCenter() {
               <span className={styles.actionsCount} dir="rtl">
                 {actions.reduce((n, a) => n + a.total - a.ticked, 0)} פתוחות
               </span>
+              <Link
+                to={ACTIONS_PAGE}
+                target="_blank"
+                rel="noopener"
+                className={styles.shareLink}
+                title="עמוד התגובות — לשליחה לנועה ולהילה"
+                dir="rtl"
+              >
+                <ShareIcon /> <span>עמוד לשיתוף</span>
+              </Link>
               <span className={styles.marks}>///</span>
             </div>
             <div className={styles.scroll}>
@@ -1280,6 +1245,8 @@ export function ManagementCenter() {
           </div>
         </div>
       )}
+
+      {comments.modals}
 
       {toast && <div className={styles.toast} role="status">{toast}</div>}
     </div>

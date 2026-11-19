@@ -258,7 +258,8 @@
     inset 0 0 30px -18px rgba(120, 220, 170, .3);
 }
 
-.labelActions { color: #8FE3B8; }
+/* .label is declared after this, so the tone needs both classes to win */
+.label.labelActions { color: #8FE3B8; text-shadow: 0 0 10px rgba(120, 220, 170, .35); }
 
 .actionsCount {
   flex: none;
@@ -1894,6 +1895,424 @@
   .linkChipsCompact { padding: 0 2px; }
 
   .footer { padding: 18px 8px 28px; }
+}
+
+/* ══ Action items: comments under each line (actionComments.tsx) ══ */
+
+/* A detail's / remark's own text: isolated, so a Latin note under a Hebrew
+   line keeps the row right-to-left (label and bullet stay on the right). */
+.iso { unicode-bidi: isolate; }
+.details[dir="ltr"] li { text-align: left; }
+
+/* Avatars — one tone per person */
+.avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 700;
+  line-height: 1;
+  color: #160E24;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .14), 0 0 12px -5px rgba(255, 255, 255, .6);
+  user-select: none;
+}
+
+.avShlomi { background: linear-gradient(180deg, #CDB3FF, #A47BF0); }
+.avNoa { background: linear-gradient(180deg, #ADF0CF, #6CD1A0); }
+.avHila { background: linear-gradient(180deg, #FFD6A8, #F0AC6A); }
+.avOther { background: linear-gradient(180deg, #DCD6E5, #A69CB6); }
+
+/* The bubble on an action line: the count, or + when there is none yet.
+   Same box either way — nothing moves when the first comment lands. */
+.commentBtn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 50px;
+  height: 28px;
+  margin-top: -1px;
+  padding: 0;
+  border: 1px solid rgba(143, 227, 184, .38);
+  border-radius: 7px;
+  background: rgba(80, 200, 140, .06);
+  color: #BFEFD6;
+  font-size: 13.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s, border-color .2s, box-shadow .2s, background .2s;
+}
+
+.subRow:hover .commentBtn,
+.subRow:focus-within .commentBtn,
+.commentBtnHas { opacity: 1; }
+
+.commentBtn:hover {
+  border-color: #8FE3B8;
+  background: rgba(80, 200, 140, .16);
+  box-shadow: 0 0 12px -2px rgba(120, 220, 170, .6);
+}
+
+.commentBtnHas { background: rgba(80, 200, 140, .14); color: #E2F9EC; }
+.commentBtnOpen { border-color: rgba(143, 227, 184, .7); }
+.commentCount { min-width: 14px; text-align: center; }
+
+@media (hover: none) {
+  .commentBtn { opacity: .8; }
+}
+
+/* Level 3 on an action item — the thread: who · when, then the remark */
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 2px 0 12px;
+  padding: 0;
+  padding-inline-start: 64px; /* under the line's text */
+  list-style: none;
+}
+
+.comment {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 1px;
+  padding-block: 8px 9px;
+  padding-inline: 10px 8px;
+  border: 1px solid rgba(143, 227, 184, .14);
+  border-inline-start: 2px solid rgba(143, 227, 184, .5);
+  border-radius: 9px;
+  background: rgba(80, 200, 140, .04);
+  text-align: right;
+}
+
+.comment > .avatar { grid-row: 1 / span 2; align-self: start; margin-top: 1px; }
+
+/* An old note, folded in as Shlomi's remark: violet, like the center's own marks */
+.commentNote {
+  border-color: rgba(174, 128, 255, .16);
+  border-inline-start-color: rgba(174, 128, 255, .6);
+  background: rgba(123, 57, 197, .06);
+}
+
+.commentHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.commentAuthor {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #F1ECF8;
+  white-space: nowrap;
+}
+
+.commentWhen {
+  font-size: 12.5px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.commentTag {
+  padding: 0 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--accent);
+}
+
+.commentActions {
+  display: flex;
+  gap: 2px;
+  opacity: .45;
+  transition: opacity .15s;
+}
+
+.comment:hover .commentActions,
+.comment:focus-within .commentActions { opacity: 1; }
+
+@media (hover: none) {
+  .commentActions { opacity: .85; }
+}
+
+.commentAct {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: #D9CCF0;
+  cursor: pointer;
+  transition: border-color .2s, background .2s, color .2s;
+}
+
+.commentAct:hover { border-color: var(--line-strong); background: rgba(123, 57, 197, .16); color: #fff; }
+.commentActDanger:hover { border-color: rgba(255, 157, 184, .5); background: rgba(255, 120, 160, .1); color: #FFB8CB; }
+
+.commentBody {
+  grid-column: 2 / 4;
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: #DED6E9;
+  text-align: right;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  unicode-bidi: isolate;
+}
+
+.threadAddRow { display: flex; }
+
+.threadAdd {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px dashed rgba(143, 227, 184, .42);
+  border-radius: 8px;
+  background: transparent;
+  color: #BFEFD6;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .2s, background .2s, color .2s;
+}
+
+.threadAdd:hover { border-style: solid; border-color: #8FE3B8; background: rgba(80, 200, 140, .1); color: #fff; }
+
+/* Comments whose line was rewritten away — kept under the topic */
+.orphans { padding: 0 0 12px; padding-inline-start: 26px; }
+.orphanHead { padding: 6px 4px 6px; padding-inline-start: 40px; font-size: 14px; color: var(--faint); }
+.orphanLabel { font-weight: 600; }
+.orphanText { color: var(--muted); unicode-bidi: isolate; }
+.orphan .thread { padding-inline-start: 40px; }
+
+/* ACTION ITEMS head: the link to the shared page */
+.shareLink {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid rgba(143, 227, 184, .38);
+  border-radius: 7px;
+  background: rgba(80, 200, 140, .06);
+  color: #BFEFD6;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color .2s, box-shadow .2s, color .2s;
+}
+
+.shareLink:hover { border-color: #8FE3B8; color: #fff; box-shadow: 0 0 12px -3px rgba(120, 220, 170, .6); }
+
+/* ── Comment modals: write / edit, remove, who ── */
+.commentModal { max-width: 560px; }
+.confirmModal { max-width: 460px; }
+.nameModal { max-width: 400px; }
+
+.labelDanger { color: #FF9DB8; text-shadow: 0 0 10px rgba(255, 120, 160, .35); }
+
+.modalMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 30px;
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.modalWho { display: inline-flex; align-items: center; gap: 8px; }
+.modalHint { font-size: 12px; color: var(--faint); letter-spacing: .02em; }
+
+/* Reserved: an error appears without moving the buttons */
+.modalError {
+  min-height: 22px;
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 22px;
+  color: #FFB8CB;
+}
+
+.modalError + .modalActions { margin-top: 8px; }
+
+.fixedBtn { min-width: 108px; }
+.primaryBtn:disabled,
+.ghostBtn:disabled,
+.dangerSolidBtn:disabled,
+.closeBtn:disabled,
+.linkBtn:disabled { opacity: .5; cursor: default; }
+.primaryBtn:disabled:hover { background: var(--electric); }
+
+.dangerSolidBtn {
+  min-height: 40px;
+  padding: 7px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: #C2416B;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: background .2s, box-shadow .2s;
+}
+
+.dangerSolidBtn:hover:not(:disabled) { background: #D44E7A; box-shadow: 0 0 16px -4px rgba(255, 120, 160, .7); }
+
+.confirmQuote {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(16, 11, 27, .6);
+}
+
+.confirmWho { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 700; color: #F1ECF8; }
+
+.confirmBody {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 6px 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--muted);
+  text-align: right;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  unicode-bidi: isolate;
+}
+
+.nameHint { margin: -6px 0 14px; font-size: 15px; color: var(--muted); }
+
+/* Reserved for three names, so the list doesn't jump when it loads */
+.nameList { display: flex; flex-direction: column; gap: 8px; min-height: 172px; }
+.nameList .skeletonBar { height: 52px; }
+
+.nameBtn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 52px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(123, 57, 197, .06);
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 600;
+  text-align: right;
+  cursor: pointer;
+  transition: border-color .2s, background .2s, box-shadow .2s;
+}
+
+.nameBtn:hover { border-color: var(--lilac); background: rgba(123, 57, 197, .16); box-shadow: 0 0 14px -4px rgba(174, 128, 255, .7); }
+.nameBtnOn { border-color: rgba(174, 128, 255, .6); }
+
+/* ══ The shared action-items page (/tasks/actions): same look, one long scrolling page ══ */
+/* The app's html / body / #root don't scroll, so the page is its own scroller. */
+.page.sharePage {
+  display: block;
+  height: 100vh;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 56px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(174, 128, 255, .38) transparent;
+}
+
+.sharePage .bg,
+.sharePage .corner { position: fixed; }
+
+.shareTop {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 26px 8px 0;
+}
+
+.shareWho {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.shareMain { max-width: 1000px; margin: 28px auto 0; }
+.sharePanel { max-height: none; }
+.shareList { padding: 0 22px 22px; }
+
+.shareTopicHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 12px 4px 6px;
+}
+
+.shareTopicHead .topicTitle { margin: 0; }
+.shareLines { padding-inline-start: 4px; }
+.shareLine { padding: 4px 0 2px; }
+.shareLine .details,
+.shareLine .thread { padding-inline-start: 36px; } /* under the line's text (no chevron here) */
+
+/* The tick is shown, not changed, on the shared page */
+.checkStatic { cursor: default; }
+.checkStatic:hover .box { border-color: rgba(190, 160, 240, .55); box-shadow: none; }
+.subDone .checkStatic:hover .box { border-color: #C4A2FF; box-shadow: 0 0 10px -2px rgba(174, 128, 255, .7); }
+
+.shareCount {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 44px;
+  height: 26px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #BFEFD6;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 860px) {
+  .thread { padding-inline-start: 30px; }
+  .orphanHead, .orphan .thread { padding-inline-start: 16px; }
+  .comment { padding-inline: 8px 6px; }
+  .commentBody { font-size: 15px; }
+  .shareLink span { display: none; } /* phone: the icon alone */
+  .modalHint { display: none; }       /* no Ctrl+Enter on a phone */
+
+  .shareTop { padding: 18px 4px 12px; }
+  .shareMain { margin-top: 14px; }
+  .shareList { padding: 0 10px 14px; }
+  .shareWho { gap: 8px; font-size: 14px; }
+  .shareLine .details,
+  .shareLine .thread { padding-inline-start: 0; }
 }
 
 /* ── Calm motion only, and none when asked ── */

@@ -11,6 +11,8 @@ const BuilderPage = lazy(() => import('./pages/BuilderPage').then(m => ({ defaul
 const AspectTaskBoard = lazy(() => import('./taskboard/components/TaskBoardRoute/TaskBoardRoute').then(m => ({ default: m.TaskBoardRoute })));
 // Shlomi's management center (/tasks/center) — tasks in work + the call agenda.
 const ManagementCenter = lazy(() => import('./components/tasks/ManagementCenter').then(m => ({ default: m.ManagementCenter })));
+// The meeting's action items, shared with Noa and Hila to comment on (/tasks/actions).
+const ActionItemsPage = lazy(() => import('./components/tasks/ManagementCenter').then(m => ({ default: m.ActionItemsPage })));
 const BuilderHomePage = lazy(() => import('./pages/BuilderHomePage').then(m => ({ default: m.BuilderHomePage })));
 // Customer-facing Live chat — its own subtree, lazy-loaded.
 const LiveChatPage = lazy(() => import('./pages/LiveChatPage').then(m => ({ default: m.LiveChatPage })));
@@ -520,6 +522,15 @@ function AppContent() {
           element={
             <Suspense fallback={<PageLoader />}>
               <ManagementCenter />
+            </Suspense>
+          }
+        />
+        {/* The meeting's action items — the page Noa and Hila comment on (static path wins over :taskId) */}
+        <Route
+          path="/tasks/actions"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <ActionItemsPage />
             </Suspense>
           }
         />
