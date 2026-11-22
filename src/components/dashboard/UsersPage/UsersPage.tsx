@@ -6,9 +6,33 @@ import { SignInAccounts } from '../../../auth';
 import { AddUserModal } from '../AddUserModal';
 import { LinkWhatsAppModal } from '../LinkWhatsAppModal';
 import { DeleteUserModal } from '../DeleteUserModal';
+import { AutoSuspendModal } from '../AutoSuspendModal';
 import { UserConversationsModal } from '../UserConversationsModal';
 import { AdminPage, adminUi } from '../AdminPage';
 import styles from './UsersPage.module.css';
+
+/**
+ * The user's suspension right now (#909, #1002). The server's `suspension`
+ * is as of the request; an auto-suspend time that passes while the page is
+ * open flips the row here too (the server enforces it at the same moment).
+ */
+function liveSuspension(user: AdminUser, now: number) {
+  const s = user.suspension;
+  if (!s) {
+    const at = user.metadata?.suspendedAt;
+    return { suspended: !!at, suspendedAt: at ? String(at) : null, autoSuspendAt: null as string | null, auto: false };
+  }
+  if (!s.suspended && s.autoSuspendAt && Date.parse(s.autoSuspendAt) <= now) {
+    return { suspended: true, suspendedAt: s.autoSuspendAt, autoSuspendAt: null, auto: true };
+  }
+  return s;
+}
+
+/** Time left, compact: "47h", "42m". */
+function timeLeft(iso: string, now: number) {
+  const mins = Math.max(1, Math.ceil((Date.parse(iso) - now) / 60000));
+  return mins >= 60 ? `${Math.floor(mins / 60)}h` : `${mins}m`;
+}
 
 interface UsersPageProps {
   baseURL: string;
@@ -186,12 +210,26 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
     setLinkModalUser(null);
   };
 
+  // Auto-suspend (#1002): a clock for the time-left pills — every 30 s,
+  // so a limit that passes while the page is open turns the row Suspended.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+  const [autoSuspendUser, setAutoSuspendUser] = useState<{ user: AdminUser; at: string } | null>(null);
+  const handleAutoSuspendCleared = (updated: AdminUser) => {
+    setUsers(prev => prev.map(u => (u.id === updated.id ? { ...u, ...updated } : u)));
+    setAutoSuspendUser(null);
+  };
+
   // Suspend / reactivate (#909): the user and their conversations stay.
+  // Reactivating also clears an auto-suspend (#1002), on the server.
   const [suspendingId, setSuspendingId] = useState<number | null>(null);
   const toggleSuspended = async (user: AdminUser) => {
     setSuspendingId(user.id);
     try {
-      const updated = await setUserSuspended(user.id, !user.metadata?.suspendedAt, baseURL);
+      const updated = await setUserSuspended(user.id, !liveSuspension(user, Date.now()).suspended, baseURL);
       setUsers(prev => prev.map(u => (u.id === updated.id ? { ...u, ...updated } : u)));
     } catch (err) {
       console.error('Error suspending user:', err);
@@ -444,7 +482,9 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
           <tbody>
             {users.map(user => {
               const isSynthetic = user.metadata?.synthetic === true;
-              const suspended = !!user.metadata?.suspendedAt;
+              const suspension = liveSuspension(user, now);
+              const suspended = suspension.suspended;
+              const autoSuspendAt = suspension.autoSuspendAt;
               return (
               <tr key={user.id} className={suspended ? styles.suspendedRow : undefined}>
                 <td>
@@ -461,9 +501,20 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
                   )}
                   {suspended && (
                     <span className={styles.suspendedBadge}
-                      title={`Suspended ${formatDate(String(user.metadata?.suspendedAt))} — can't chat; conversations kept`}>
+                      title={`${suspension.auto ? 'Auto-suspended' : 'Suspended'} ${formatDate(suspension.suspendedAt)} — can't chat; conversations kept`}>
                       Suspended
                     </span>
+                  )}
+                  {!suspended && autoSuspendAt && (
+                    <button
+                      type="button"
+                      className={styles.autoSuspendPill}
+                      onClick={() => setAutoSuspendUser({ user, at: autoSuspendAt })}
+                      title={`Auto-suspends ${new Date(autoSuspendAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} — click to turn off`}
+                      aria-label="Auto-suspend"
+                    >
+                      ⏱ {timeLeft(autoSuspendAt, now)}
+                    </button>
                   )}
                 </td>
                 <td className={styles.externalId} title={user.externalId}>
@@ -610,6 +661,16 @@ export function UsersPage({ baseURL, defaultTenant, agentName, superAdmin = fals
           user={deleteModalUser}
           onClose={() => setDeleteModalUser(null)}
           onDeleted={handleUserDeleted}
+        />
+      )}
+
+      {autoSuspendUser && (
+        <AutoSuspendModal
+          baseURL={baseURL}
+          user={autoSuspendUser.user}
+          autoSuspendAt={autoSuspendUser.at}
+          onClose={() => setAutoSuspendUser(null)}
+          onCleared={handleAutoSuspendCleared}
         />
       )}
 

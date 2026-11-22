@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createUser } from '../../../services/adminService';
-import type { AdminUser, CreateUserPayload, UserRole, UserSubscription } from '../../../types/admin';
+import type { AdminUser, AutoSuspendHours, CreateUserPayload, UserRole, UserSubscription } from '../../../types/admin';
 import styles from './AddUserModal.module.css';
 
 interface AddUserModalProps {
@@ -19,6 +19,9 @@ export function AddUserModal({ baseURL, tenant, onClose, onUserAdded }: AddUserM
     subscription: 'demo',
     role: 'user',
   });
+  // Auto-suspend (#1002): the user is suspended by itself this long after
+  // creation. 48 h by default; Off is one pick away.
+  const [autoSuspendHours, setAutoSuspendHours] = useState<AutoSuspendHours>(48);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +53,7 @@ export function AddUserModal({ baseURL, tenant, onClose, onUserAdded }: AddUserM
         tenant: tenant || undefined,
         subscription: formData.subscription,
         role: formData.role,
+        autoSuspendHours,
       };
 
       const newUser = await createUser(payload, baseURL);
@@ -138,6 +142,21 @@ export function AddUserModal({ baseURL, tenant, onClose, onUserAdded }: AddUserM
                 <option value="admin">Admin</option>
               </select>
             </div>
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="add-user-auto-suspend">Auto-suspend</label>
+            <select
+              id="add-user-auto-suspend"
+              className={styles.select}
+              value={autoSuspendHours === null ? '' : String(autoSuspendHours)}
+              onChange={e => setAutoSuspendHours(e.target.value === '' ? null : (Number(e.target.value) as 24 | 48))}
+              title="The user is suspended automatically when the time is up — they can't chat, nothing is deleted"
+            >
+              <option value="">Off</option>
+              <option value="24">After 24 h</option>
+              <option value="48">After 48 h</option>
+            </select>
           </div>
 
           {error && <div className={styles.error}>{error}</div>}

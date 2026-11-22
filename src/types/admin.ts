@@ -26,7 +26,24 @@ export interface AdminUser {
   updatedAt: string;
   /** Computed: number of active conversations */
   conversationCount: number;
+  /** Computed by the server as of the request (#909, #1002) — read this, not metadata.suspendedAt. */
+  suspension?: UserSuspension;
 }
+
+/** A user's suspension as the server works it out (builder/runtime/userSuspension.js). */
+export interface UserSuspension {
+  /** Can't chat right now. */
+  suspended: boolean;
+  /** Since when — the auto-suspend time when the limit did it. */
+  suspendedAt: string | null;
+  /** An auto-suspend still ahead; null when off or already passed. */
+  autoSuspendAt: string | null;
+  /** Suspended by the auto-suspend time, not by hand. */
+  auto: boolean;
+}
+
+/** Auto-suspend a new user after this many hours (#1002); null = off. */
+export type AutoSuspendHours = 24 | 48 | null;
 
 export interface AdminUserDetails extends AdminUser {
   conversations: AdminConversation[];
@@ -73,6 +90,7 @@ export interface CreateUserPayload {
   tenant?: string;
   subscription?: UserSubscription;
   role?: UserRole;
+  autoSuspendHours?: AutoSuspendHours;
 }
 
 export interface UpdateUserPayload {

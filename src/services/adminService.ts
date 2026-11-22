@@ -166,6 +166,21 @@ export async function setUserSuspended(
 }
 
 /**
+ * Turn a user's auto-suspend off (#1002) — the 24 h / 48 h limit picked
+ * in Add user. The user keeps chatting until an admin suspends them.
+ */
+export async function clearUserAutoSuspend(
+  userId: number,
+  baseURL?: string
+): Promise<AdminUser> {
+  return apiRequest<AdminUser>(
+    `/api/admin/users/${userId}/auto-suspend`,
+    { method: 'DELETE' },
+    baseURL || getBaseURL()
+  );
+}
+
+/**
  * Mark a user as a real customer (#968). Their NEW customer-chat
  * conversations are then born real, and triggers may reach them; past
  * conversations keep the mark they were born with.

@@ -382,5 +382,9 @@
 /* Suspended users (#909): kept, greyed out, marked. */
 .suspendedRow td { color: #9ca3af; }
 .suspendedBadge { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #fff4dc; color: #a15c00; font-size: 11px; font-weight: 600; white-space: nowrap; }
+/* #1002: time left to an auto-suspend — the Suspended badge's size and
+   place (never both on one row), so a row never grows when it flips. */
+.autoSuspendPill { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; border: none; background: var(--background, #f3f4f6); color: var(--text-secondary); font-family: inherit; font-size: 11px; font-weight: 600; line-height: inherit; white-space: nowrap; cursor: pointer; }
+.autoSuspendPill:hover { background: #fff4dc; color: #a15c00; }
 .actionButton.suspendButton:hover { color: #a15c00; border-color: #f6e3b4; background: #fffaf0; }
 .actionButton:disabled { opacity: .5; cursor: default; }
