@@ -1,13 +1,15 @@
 /**
  * The "צפייה" window (task #985): one problem and its conversation's basic
  * facts — who, when, how many messages, which phase it is in, real or test,
- * and the last few messages as the customer saw them
- * (GET /api/manage/agents/:slug/conversations/:id). The Lybi team also gets
+ * and the WHOLE conversation as the customer saw it, each problem marked
+ * under the message it happened on (#1001 follow-up; opened from a problem,
+ * it scrolls to that one) (GET /api/manage/agents/:slug/conversations/:id).
+ * A fixed-height window: the conversation scrolls inside, nothing resizes. The Lybi team also gets
  * "חקירה ב-Builder", which opens the Builder on that conversation in a new tab.
  * The Users page (#999) opens it from a user's conversation list, without a problem.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CustomerProblem, ManageConversation } from '../../../types/manage';
 import { manageService } from '../../../services/manageService';
 import { IconClose, IconExternal } from '../../icons';
@@ -37,6 +39,22 @@ type Props = {
 } & ({ problem: CustomerProblem; conversation?: undefined } | { problem?: undefined; conversation: ConversationRef });
 
 type Loaded = { data?: ManageConversation; error?: boolean };
+type Marked = ManageConversation['problems'][number];
+
+/** A problem in the conversation, where it happened (same words as the problems page). */
+function Marker({ x, on }: { x: Marked; on: boolean }) {
+  const act = x.action.tone === 'act';
+  return (
+    <li className={`${s.marker} ${act ? s.markerAct : ''} ${on ? s.markerOn : ''}`} data-problem={x.id}>
+      <span className={s.markerHead}>
+        <span className={s.markerKind}>{COPY.kind[x.type] || x.type}</span>
+        <span className={s.markerTitle}>{x.title}</span>
+      </span>
+      {x.detail && <span className={s.markerDetail}>{x.detail}</span>}
+      <span className={`${s.chip} ${act ? s.chipAct : s.chipOk}`}>{x.action.text}</span>
+    </li>
+  );
+}
 
 const refOf = (p: CustomerProblem): ConversationRef => ({
   agentSlug: p.agentSlug, agentName: p.agentName, conversationId: p.conversationId,
@@ -46,6 +64,7 @@ const refOf = (p: CustomerProblem): ConversationRef => ({
 export function ConversationModal({ problem: p, conversation, canInvestigate, now, onClose }: Props) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const closeBtn = useRef<HTMLButtonElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const ref = conversation || refOf(p as CustomerProblem);
   const act = p?.action.tone === 'act';
 
@@ -66,13 +85,26 @@ export function ConversationModal({ problem: p, conversation, canInvestigate, no
   }, [onClose]);
 
   const c = loaded?.data;
+  // Problems by the message they sit under (null = before the first message).
+  const marks = useMemo(() => {
+    const by = new Map<number | null, Marked[]>();
+    for (const x of c?.problems || []) by.set(x.anchorMessageId, [...(by.get(x.anchorMessageId) || []), x]);
+    return by;
+  }, [c]);
+
+  // Opened from a problem: bring its marker into view once the conversation is in.
+  useEffect(() => {
+    if (!c || !p) return;
+    const el = bodyRef.current?.querySelector(`[data-problem="${CSS.escape(p.id)}"]`);
+    if (el) el.scrollIntoView({ block: 'center' });
+  }, [c, p]);
   const customer = c?.customerName || ref.customerName
     || (ref.conversationId ? COPY.customerNo(ref.conversationId) : (p ? COPY.kind[p.type] : ''));
   const audience = c?.audience || ref.audience;
 
   return (
     <div className={s.backdrop} data-manage-root dir="rtl" lang="he" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className={s.dialog} role="dialog" aria-modal="true" aria-labelledby="manage-conv-title">
+      <div className={`${s.dialog} ${ref.conversationId ? s.dialogTall : ''}`} role="dialog" aria-modal="true" aria-labelledby="manage-conv-title">
         <header className={s.head}>
           <div className={s.headText}>
             <h2 id="manage-conv-title" className={s.title}>{customer}</h2>
@@ -91,7 +123,7 @@ export function ConversationModal({ problem: p, conversation, canInvestigate, no
           </button>
         </header>
 
-        <div className={s.body}>
+        <div ref={bodyRef} className={s.body}>
           {p && (
             <section className={`${s.problem} ${act ? s.problemAct : ''}`}>
               <div className={s.problemTitle}>{p.title}</div>
@@ -122,16 +154,17 @@ export function ConversationModal({ problem: p, conversation, canInvestigate, no
               </dl>
 
               <section className={s.messages}>
-                <h3 className={s.messagesTitle}>{COPY.lastMessages}</h3>
-                {c.messages.length === 0 ? (
+                <h3 className={s.messagesTitle}>
+                  {COPY.lastMessages}
+                  {c.truncated && <span className={s.messagesNote}>{COPY.messagesTruncated(c.shownMessages)}</span>}
+                </h3>
+                {c.messages.length === 0 && !(c.problems || []).length ? (
                   <p className={s.quiet}>{COPY.noMessages}</p>
                 ) : (
                   <ol className={s.thread}>
-                    {c.messages.map((m, i) => (
-                      <li key={i} className={m.role === 'customer' ? s.msgCustomer : s.msgAgent}>
-                        <span className={s.msgWho}>{m.role === 'customer' ? COPY.roleCustomer : COPY.roleAgent} · {shortWhen(m.at, now)}</span>
-                        <p className={s.msgText} dir="auto">{m.text}</p>
-                      </li>
+                    {(marks.get(null) || []).map(x => <Marker key={x.id} x={x} on={x.id === p?.id} />)}
+                    {c.messages.map(m => (
+                      <Turn key={m.id} m={m} now={now} marks={marks.get(m.id)} openId={p?.id} />
                     ))}
                   </ol>
                 )}
@@ -151,5 +184,20 @@ export function ConversationModal({ problem: p, conversation, canInvestigate, no
         </footer>
       </div>
     </div>
+  );
+}
+
+/** One message, then any problem that happened on it. */
+function Turn({ m, now, marks, openId }: {
+  m: ManageConversation['messages'][number]; now: Date; marks?: Marked[]; openId?: string;
+}) {
+  return (
+    <>
+      <li className={m.role === 'customer' ? s.msgCustomer : s.msgAgent}>
+        <span className={s.msgWho}>{m.role === 'customer' ? COPY.roleCustomer : COPY.roleAgent} · {shortWhen(m.at, now)}</span>
+        <p className={s.msgText} dir="auto">{m.text}</p>
+      </li>
+      {(marks || []).map(x => <Marker key={x.id} x={x} on={x.id === openId} />)}
+    </>
   );
 }

@@ -42,6 +42,8 @@ export interface CustomerProblem {
   title: string;
   /** Errors: which part failed and why, one plain line (#1001) — never empty on an error; null otherwise. */
   detail: string | null;
+  /** The message it happened on (the turn's reply, or the unanswered customer message); null when unknown. */
+  messageId?: number | null;
   action: ProblemAction;
   /** How it ended, one line under the customer's message. */
   outcome: string;
@@ -127,9 +129,13 @@ export interface ManageConversation {
   customerMessages: number;
   /** The crew the conversation is in now, by name. */
   phase: string | null;
-  /** The last few, oldest first. */
-  messages: Array<{ role: 'customer' | 'agent'; text: string; at: string | null }>;
+  /** The whole conversation, oldest first (#1001 follow-up; the newest 1,000 when longer). */
+  messages: Array<{ id: number; role: 'customer' | 'agent'; text: string; at: string | null }>;
   shownMessages: number;
+  /** More messages than shown. */
+  truncated: boolean;
+  /** Its customer-chat problems, oldest first — each shown under `anchorMessageId` (null = before the first message). */
+  problems: Array<CustomerProblem & { anchorMessageId: number | null }>;
 }
 
 /** The `code` of a refused /api/manage call. */

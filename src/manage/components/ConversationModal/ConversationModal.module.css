@@ -24,6 +24,12 @@
   overflow: hidden;
 }
 
+/* Showing a conversation: always this tall, so loading → the whole
+   conversation never resizes the window; the body scrolls (#1001). */
+.dialogTall {
+  height: min(86vh, 760px);
+}
+
 .head {
   flex: 0 0 auto;
   display: flex;
@@ -181,6 +187,62 @@
   font-size: var(--m-fs-sm);
   font-weight: 700;
   color: var(--m-muted);
+}
+
+.messagesNote {
+  margin-inline-start: 8px;
+  font-weight: 400;
+  color: var(--m-faint);
+}
+
+/* A problem, under the message it happened on (#1001) — the problems page's words. */
+.marker {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 7px 10px;
+  border: 1px dashed var(--m-line-strong);
+  border-radius: 8px;
+  background: var(--m-grey-bg);
+  font-size: var(--m-fs-sm);
+}
+
+.markerAct {
+  border-color: var(--m-pink-line);
+  background: var(--m-pink-row);
+}
+
+/* The one this window was opened from. */
+.markerOn {
+  border-style: solid;
+  box-shadow: 0 0 0 2px var(--m-lav-200);
+}
+
+.markerHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.markerKind {
+  flex: 0 0 auto;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--m-lav-100);
+  color: var(--m-lav-ink);
+  font-size: var(--m-fs-xs);
+  font-weight: 700;
+}
+
+.markerTitle {
+  font-weight: 700;
+  color: var(--m-text);
+}
+
+.markerDetail {
+  color: var(--m-lav-ink);
 }
 
 .thread {
