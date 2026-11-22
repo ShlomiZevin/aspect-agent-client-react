@@ -1,0 +1,112 @@
+/* The period toggle + the from–to window (#1001). The window uses the
+   conversation window's frame (ConversationModal.module.css), narrower.
+   Tokens: src/manage/tokens.css. */
+
+.toggle {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--m-line-strong);
+  border-radius: 999px;
+  background: var(--m-card);
+}
+
+.btn {
+  height: 26px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--m-muted);
+  font: inherit;
+  font-size: var(--m-fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.on {
+  background: var(--m-plum);
+  color: #fff;
+}
+
+/* Fixed width: "טווח" and "11.10–22.11" take the same room — the header never moves. */
+.rangeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 112px;
+  padding: 0 10px;
+}
+
+.rangeText {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+}
+
+.dialog {
+  max-width: 400px;
+}
+
+.body {
+  gap: 6px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--m-fs-sm);
+  font-weight: 600;
+  color: var(--m-muted);
+}
+
+.field input {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--m-line-strong);
+  border-radius: var(--m-radius-sm);
+  background: var(--m-card);
+  color: var(--m-text);
+  font: inherit;
+  font-size: var(--m-fs);
+}
+
+.field input:focus {
+  outline: 2px solid var(--m-lav-200);
+  border-color: var(--m-lav-ink);
+}
+
+.error {
+  margin: 0;
+  min-height: 1.45em;
+  font-size: var(--m-fs-sm);
+  color: var(--m-pink-ink);
+}
+
+.apply {
+  min-width: 84px;
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--m-radius-sm);
+  background: var(--m-plum);
+  color: #fff;
+  font: inherit;
+  font-size: var(--m-fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.apply:hover {
+  background: var(--m-plum-hover);
+}

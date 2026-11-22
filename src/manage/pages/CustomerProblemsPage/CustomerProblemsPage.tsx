@@ -1,9 +1,11 @@
 /**
  * "תקלות בשיחות עם לקוחות" — the management center's first page (task #985),
  * design round4/opt1 (compact, one desktop screen):
- *   header   the page title + scope · today / this week · updated + refresh
- *   tiles    real counts only: needs handling, all fine, customer
- *            conversations, problems, slow replies, problems in test chats
+ *   header   the page title + scope · today / this week / a from–to period
+ *            (#1001, in the address) · updated + refresh
+ *   tiles    real counts, in conversations: needs handling, all fine,
+ *            customer conversations, problems, slow replies, problems in test
+ *            chats — each opens the conversations page on that category (#1001)
  *   table    every problem — the ones that need handling first — with
  *            "צפייה" opening the conversation window
  *   all      + every agent's status, compact
@@ -11,47 +13,55 @@
  */
 
 import { useEffect, useState, type ReactNode } from 'react';
-import type { CustomerProblem, CustomerProblemsResponse, ProblemRange } from '../../../types/manage';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import type { ConversationFilter, CustomerProblem, CustomerProblemsResponse, ProblemPeriod } from '../../../types/manage';
 import { ManageApiError, manageService } from '../../../services/manageService';
 import type { ManagePageProps } from '../../pages';
 import { IconAlert, IconChat, IconCheckCircle, IconClock, IconFlask, IconRefresh } from '../../icons';
 import { COPY } from '../../copy';
 import { agoText, dateLine } from '../../when';
+import { scopePath } from '../../links';
+import { periodFromParams, periodKey, periodLabel, periodToParams } from '../../period';
 import { ProblemsTable } from './ProblemsTable';
 import { AgentsTable } from './AgentsTable';
 import { ConversationModal } from '../../components/ConversationModal/ConversationModal';
+import { PeriodPicker } from '../../components/PeriodPicker/PeriodPicker';
 import s from './CustomerProblemsPage.module.css';
 
 const REFRESH_MS = 2 * 60 * 1000;
 
 type Loaded = { key: string; data?: CustomerProblemsResponse; error?: unknown };
 
-function Tile({ label, value, unit, icon, tone }: {
-  label: string; value: number; unit: string; icon: ReactNode; tone?: 'need' | 'ok';
+/** A tile — a button that opens the conversations page on its category (#1001). */
+function Tile({ label, value, unit, icon, tone, onOpen }: {
+  label: string; value: number; unit: string; icon: ReactNode; tone?: 'need' | 'ok'; onOpen: () => void;
 }) {
   return (
-    <div className={`${s.tile} ${tone === 'need' ? s.tileNeed : tone === 'ok' ? s.tileOk : ''}`}>
+    <button type="button" onClick={onOpen} title={COPY.tileOpenTitle}
+      className={`${s.tile} ${s.tileBtn} ${tone === 'need' ? s.tileNeed : tone === 'ok' ? s.tileOk : ''}`}>
       <span className={s.tileLabel}>{icon}{label}</span>
       <span className={s.tileValue}>{value.toLocaleString('he-IL')}</span>
       <span className={s.tileUnit}>{unit}</span>
-    </div>
+    </button>
   );
 }
 
 export function CustomerProblemsPage({ scope, agentSlug, me }: ManagePageProps) {
-  const [range, setRange] = useState<ProblemRange>('today');
+  const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
+  const period = periodFromParams(params);
   const [tick, setTick] = useState(0);
   const [now, setNow] = useState(() => new Date());
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [open, setOpen] = useState<CustomerProblem | null>(null);
 
-  const key = `${scope}|${agentSlug}|${range}|${tick}`;
+  const key = `${scope}|${agentSlug}|${periodKey(period)}|${tick}`;
 
   useEffect(() => {
     let alive = true;
     const load = scope === 'all'
-      ? manageService.getAllProblems(range)
-      : manageService.getAgentProblems(agentSlug || '', range);
+      ? manageService.getAllProblems(period)
+      : manageService.getAgentProblems(agentSlug || '', period);
     load
       .then(data => { if (alive) { setLoaded({ key, data }); setNow(new Date()); } })
       .catch(error => { if (alive) setLoaded({ key, error }); });
@@ -72,16 +82,19 @@ export function CustomerProblemsPage({ scope, agentSlug, me }: ManagePageProps) 
   const loading = !current;
   const error = current?.error;
 
+  const setPeriod = (p: ProblemPeriod) => setParams(periodToParams(p, params), { replace: true });
+  // A tile → the conversations page, same scope and period, filtered (#1001).
+  const openConversations = (filter: ConversationFilter) => {
+    const sp = periodToParams(period);
+    if (filter !== 'all') sp.set('filter', filter);
+    const q = sp.toString();
+    navigate(`${scopePath(scope === 'all' ? 'all' : agentSlug || '', 'conversations')}${q ? `?${q}` : ''}`);
+  };
+
   const scopeName = scope === 'all' ? COPY.allAgents : (me.agents.find(a => a.slug === agentSlug)?.name || data?.agent?.name || agentSlug || '');
   const problems = data?.problems || [];
-  const act = problems.filter(p => p.action.tone === 'act');
-  // Conversations, not rows: one customer may have had two problems.
-  const needConversations = new Set(act.map(p => p.conversationId ?? p.id)).size;
-  const scopeAgents = data ? (scope === 'all' ? data.agents : data.agents.filter(a => a.slug === agentSlug)) : [];
-  const served = scopeAgents.reduce((n, a) => n + a.conversations, 0);
-  const okConversations = Math.max(served - needConversations, 0);
-  const slowCount = problems.filter(p => p.type === 'slow_reply').length;
-  const testCount = problems.filter(p => p.audience === 'test').length;
+  const counts = data?.conversationCounts;
+  const unit = periodLabel(period, now);
 
   return (
     <div className={s.page}>
@@ -91,14 +104,7 @@ export function CustomerProblemsPage({ scope, agentSlug, me }: ManagePageProps) 
           <span className={s.scopeName} dir="auto">{scopeName}</span>
         </div>
         <div className={s.controls}>
-          <div className={s.toggle} role="tablist">
-            {(['today', 'week'] as ProblemRange[]).map(r => (
-              <button key={r} type="button" role="tab" aria-selected={range === r}
-                className={`${s.toggleBtn} ${range === r ? s.toggleOn : ''}`} onClick={() => setRange(r)}>
-                {r === 'today' ? COPY.today : COPY.week}
-              </button>
-            ))}
-          </div>
+          <PeriodPicker period={period} onChange={setPeriod} now={now} />
           <span className={s.date}>{dateLine(now)}</span>
           <button type="button" className={s.refresh} onClick={() => setTick(n => n + 1)} title={COPY.refresh}>
             <IconRefresh size={14} className={loading ? s.spin : undefined} />
@@ -111,17 +117,17 @@ export function CustomerProblemsPage({ scope, agentSlug, me }: ManagePageProps) 
         <div className={s.message}>
           {error instanceof ManageApiError && error.code === 'no_agent' ? COPY.noAgentAccess : COPY.loadFailed}
         </div>
-      ) : !data ? (
+      ) : !data || !counts ? (
         <div className={s.message}>{COPY.loading}</div>
       ) : (
         <>
           <section className={s.tiles} aria-label={COPY.problemsMenu}>
-            <Tile tone="need" label={COPY.kpiNeed} value={needConversations} unit={COPY.unitConversations} icon={<IconAlert size={14} />} />
-            <Tile tone="ok" label={COPY.kpiOk} value={okConversations} unit={COPY.unitConversations} icon={<IconCheckCircle size={14} />} />
-            <Tile label={COPY.kpiServed} value={served} unit={range === 'today' ? COPY.today : COPY.week} icon={<IconChat size={14} />} />
-            <Tile label={COPY.kpiProblems} value={problems.length} unit={range === 'today' ? COPY.today : COPY.week} icon={<IconAlert size={14} />} />
-            <Tile label={COPY.kpiSlow} value={slowCount} unit={COPY.unitSlow} icon={<IconClock size={14} />} />
-            <Tile label={COPY.kpiTest} value={testCount} unit={COPY.unitTest} icon={<IconFlask size={14} />} />
+            <Tile tone="need" label={COPY.kpiNeed} value={counts.act} unit={COPY.unitConversations} icon={<IconAlert size={14} />} onOpen={() => openConversations('act')} />
+            <Tile tone="ok" label={COPY.kpiOk} value={counts.ok} unit={COPY.unitConversations} icon={<IconCheckCircle size={14} />} onOpen={() => openConversations('ok')} />
+            <Tile label={COPY.kpiServed} value={counts.all} unit={unit} icon={<IconChat size={14} />} onOpen={() => openConversations('all')} />
+            <Tile label={COPY.kpiProblems} value={counts.problems} unit={unit} icon={<IconAlert size={14} />} onOpen={() => openConversations('problems')} />
+            <Tile label={COPY.kpiSlow} value={counts.slow} unit={COPY.unitSlow} icon={<IconClock size={14} />} onOpen={() => openConversations('slow')} />
+            <Tile label={COPY.kpiTest} value={counts.test} unit={COPY.unitTest} icon={<IconFlask size={14} />} onOpen={() => openConversations('test')} />
           </section>
 
           <div className={`${s.lower} ${scope === 'all' ? s.lowerAll : ''} ${loading ? s.stale : ''}`}>
@@ -129,11 +135,11 @@ export function CustomerProblemsPage({ scope, agentSlug, me }: ManagePageProps) 
               problems={problems}
               now={now}
               showAgent={scope === 'all'}
-              range={range}
-              onShowWeek={() => setRange('week')}
+              range={period.range}
+              onShowWeek={() => setPeriod({ range: 'week' })}
               onOpen={setOpen}
             />
-            {scope === 'all' && <AgentsTable agents={data.agents} range={range} />}
+            {scope === 'all' && <AgentsTable agents={data.agents} periodText={unit} />}
           </div>
         </>
       )}

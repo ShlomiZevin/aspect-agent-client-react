@@ -59,31 +59,7 @@
   flex-wrap: wrap;
 }
 
-.toggle {
-  display: inline-flex;
-  padding: 2px;
-  border: 1px solid var(--m-line-strong);
-  border-radius: 999px;
-  background: var(--m-card);
-}
-
-.toggleBtn {
-  height: 26px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--m-muted);
-  font: inherit;
-  font-size: var(--m-fs-sm);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.toggleOn {
-  background: var(--m-plum);
-  color: #fff;
-}
+/* The period toggle: components/PeriodPicker (#1001). */
 
 .date {
   font-size: var(--m-fs-sm);
@@ -143,6 +119,28 @@
   min-width: 0;
 }
 
+/* A tile opens the conversations page on its category (#1001): a button,
+   reset to look exactly like the tile; hover/focus change colour only. */
+.tileBtn {
+  width: 100%;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.tileBtn:hover {
+  border-color: var(--m-lav-200);
+  background-color: var(--m-row-hover);
+}
+
+.tileBtn:focus-visible {
+  outline: 2px solid var(--m-lav-ink);
+  outline-offset: 1px;
+}
+
 .tileNeed {
   background: var(--m-pink-bg);
   border-color: var(--m-pink-line);
@@ -164,6 +162,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.tileNeed.tileBtn:hover { border-color: var(--m-pink); background-color: var(--m-pink-bg); }
+.tileOk.tileBtn:hover { border-color: var(--m-green); background-color: var(--m-green-bg); }
 
 .tileNeed .tileLabel { color: var(--m-pink-ink); }
 .tileOk .tileLabel { color: var(--m-green-ink); }
@@ -314,6 +315,18 @@
   overflow: hidden;
   font-weight: 600;
   color: var(--m-text);
+}
+
+/* Which part failed and why (#1001) — one line under the sentence. */
+.detail {
+  display: block;
+  min-width: 0;
+  margin-top: 1px;
+  font-size: var(--m-fs-sm);
+  color: var(--m-lav-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .whatSub {

@@ -5,12 +5,12 @@
  */
 
 import { Link } from 'react-router-dom';
-import type { ManageAgentSummary, ProblemRange } from '../../../types/manage';
+import type { ManageAgentSummary } from '../../../types/manage';
 import { COPY } from '../../copy';
 import { scopePath } from '../../links';
 import s from './CustomerProblemsPage.module.css';
 
-export function AgentsTable({ agents, range }: { agents: ManageAgentSummary[]; range: ProblemRange }) {
+export function AgentsTable({ agents, periodText }: { agents: ManageAgentSummary[]; periodText: string }) {
   // Live agents, plus an archived one only if it still had activity; busiest first.
   const rows = agents
     .filter(a => !a.archived || a.conversations > 0 || a.problems > 0)
@@ -20,7 +20,7 @@ export function AgentsTable({ agents, range }: { agents: ManageAgentSummary[]; r
     <section className={`${s.card} ${s.agentsCard}`}>
       <header className={s.cardHead}>
         <h2 className={s.cardTitle}>{COPY.agentsTitle} <span className={s.count}>({rows.length})</span></h2>
-        <span className={s.cardHint}>{range === 'today' ? COPY.today : COPY.week}</span>
+        <span className={s.cardHint}>{periodText}</span>
       </header>
       <div className={s.tableWrap}>
         <table className={`${s.table} ${s.agentsTable}`}>

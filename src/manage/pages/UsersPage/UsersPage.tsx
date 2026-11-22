@@ -8,6 +8,8 @@
  *   actions  suspend / reactivate · real customer ↔ test · delete — each
  *            confirmed in ConfirmModal; the same operations as Admin → Users
  *   click    the user window (UserModal) → a conversation (ConversationModal)
+ *   add      "הוספת משתמש" (AddUserModal) — name, phone, auto-suspend (#1002)
+ *   ⏱ pill   time left to the user's auto-suspend; click → turn it off (ConfirmModal)
  * Data: GET /api/manage/agents/:slug/users · /api/manage/users
  * (builder/services/manageUsers.js). Look: the problems page (its header and
  * card styles are shared) + UsersPage.module.css.
@@ -17,20 +19,37 @@ import { useEffect, useState, type MouseEvent } from 'react';
 import type { ManageUser, ManageUserConversation, ManageUsersResponse } from '../../../types/manage';
 import { ManageApiError, manageService } from '../../../services/manageService';
 import type { ManagePageProps } from '../../pages';
-import { IconChevronDown, IconPause, IconPlay, IconRefresh, IconTrash } from '../../icons';
+import { IconChevronDown, IconClock, IconPause, IconPlay, IconRefresh, IconTrash } from '../../icons';
 import { COPY } from '../../copy';
 import { agoText, shortWhen } from '../../when';
 import { ConversationModal } from '../../components/ConversationModal/ConversationModal';
 import { ConfirmModal } from '../../components/ConfirmModal/ConfirmModal';
 import { UserModal } from '../../components/UserModal/UserModal';
+import { AddUserModal } from '../../components/AddUserModal/AddUserModal';
 import p from '../CustomerProblemsPage/CustomerProblemsPage.module.css';
 import s from './UsersPage.module.css';
 
 type Loaded = { key: string; data?: ManageUsersResponse; error?: unknown };
-type Action = 'suspend' | 'reactivate' | 'real' | 'test' | 'delete';
+type Action = 'suspend' | 'reactivate' | 'real' | 'test' | 'delete' | 'autoOff';
 
 const rowKey = (u: ManageUser) => `${u.id}:${u.agentSlug}`;
 const nameOf = (u: ManageUser) => u.name || u.phone || COPY.userNo(u.id);
+
+/**
+ * Auto-suspend (#1002): the server's row is as of the load; an auto-suspend
+ * time that passes while the page is open turns the row suspended here too
+ * (the server enforces it at that same moment).
+ */
+function liveUser(u: ManageUser, clock: number): ManageUser {
+  if (u.suspended || !u.autoSuspendAt || Date.parse(u.autoSuspendAt) > clock) return u;
+  return { ...u, suspended: true, suspendedAt: u.autoSuspendAt, autoSuspendAt: null, autoSuspended: true };
+}
+
+/** Time left to an auto-suspend, compact: "47 ש׳", "42 ד׳". */
+function timeLeft(iso: string, clock: number) {
+  const mins = Math.max(1, Math.ceil((Date.parse(iso) - clock) / 60000));
+  return mins >= 60 ? COPY.autoLeftHours(Math.floor(mins / 60)) : COPY.autoLeftMinutes(mins);
+}
 
 function UserRow({ u, now, showAgent, onOpen, onAction }: {
   u: ManageUser; now: Date; showAgent: boolean;
@@ -45,9 +64,21 @@ function UserRow({ u, now, showAgent, onOpen, onAction }: {
         <button type="button" className={s.userName} dir="auto" title={u.name || undefined} onClick={e => { e.stopPropagation(); onOpen(u); }}>
           {u.name || COPY.noName}
         </button>
-        {(sub || u.suspended || u.shared) && (
+        {(sub || u.suspended || u.shared || u.autoSuspendAt) && (
           <span className={s.userLine}>
-            {u.suspended && <span className={s.tagSuspended}>{COPY.suspendedTag}</span>}
+            {u.suspended && (
+              <span className={s.tagSuspended} title={u.autoSuspended && u.suspendedAt ? COPY.autoSuspendedTitle(shortWhen(u.suspendedAt, now)) : undefined}>
+                {COPY.suspendedTag}
+              </span>
+            )}
+            {/* In the Suspended tag's place (never both), so the row keeps its size when it flips. */}
+            {!u.suspended && u.autoSuspendAt && (
+              <button type="button" className={s.tagAuto} disabled={locked} onClick={act('autoOff')}
+                title={locked ? COPY.sharedTitle : COPY.autoTitle(shortWhen(u.autoSuspendAt, now))} aria-label={COPY.fAutoSuspend}>
+                <IconClock size={11} />
+                <span dir="rtl">{timeLeft(u.autoSuspendAt, now.getTime())}</span>
+              </button>
+            )}
             {u.shared && <span className={`${p.testTag} ${s.tagShared}`} title={COPY.sharedTitle}>{COPY.sharedTag}</span>}
             {sub && <span className={s.userSub} dir="ltr" title={sub}>{sub}</span>}
           </span>
@@ -116,6 +147,14 @@ export function UsersPage({ scope, agentSlug, me }: ManagePageProps) {
   const [openUser, setOpenUser] = useState<ManageUser | null>(null);
   const [openConv, setOpenConv] = useState<ManageUserConversation | null>(null);
   const [confirm, setConfirm] = useState<{ user: ManageUser; action: Action } | null>(null);
+  const [adding, setAdding] = useState(false);
+  // The rows' clock (#1002): the auto-suspend time left, and a row turns
+  // suspended when its time passes with the page open. Every 30 s.
+  const [clock, setClock] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setClock(new Date()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const key = `${scope}|${agentSlug}|${tick}`;
 
@@ -136,7 +175,8 @@ export function UsersPage({ scope, agentSlug, me }: ManagePageProps) {
   const error = current?.error;
 
   const scopeName = scope === 'all' ? COPY.allAgents : (me.agents.find(a => a.slug === agentSlug)?.name || agentSlug || '');
-  const list = users || [];
+  const rowsNow = clock > now ? clock : now;
+  const list = (users || []).map(u => liveUser(u, rowsNow.getTime()));
   const real = list.filter(u => u.audience === 'real');
   const test = list.filter(u => u.audience === 'test');
   const showAgent = scope === 'all';
@@ -147,9 +187,11 @@ export function UsersPage({ scope, agentSlug, me }: ManagePageProps) {
       await manageService.deleteUser(u.agentSlug, u.id);
       setUsers(prev => (prev || []).filter(x => rowKey(x) !== rowKey(u)));
     } else {
-      const r = a === 'suspend' || a === 'reactivate'
-        ? await manageService.setUserSuspended(u.agentSlug, u.id, a === 'suspend')
-        : await manageService.setUserRealCustomer(u.agentSlug, u.id, a === 'real');
+      const r = a === 'autoOff'
+        ? await manageService.clearAutoSuspend(u.agentSlug, u.id)
+        : a === 'suspend' || a === 'reactivate'
+          ? await manageService.setUserSuspended(u.agentSlug, u.id, a === 'suspend')
+          : await manageService.setUserRealCustomer(u.agentSlug, u.id, a === 'real');
       setUsers(prev => (prev || []).map(x => (rowKey(x) === rowKey(u) && r.user ? r.user : x)));
     }
     setConfirm(null);
@@ -162,6 +204,11 @@ export function UsersPage({ scope, agentSlug, me }: ManagePageProps) {
       case 'reactivate': return { title: COPY.confirmReactivateTitle(n), body: COPY.confirmReactivateBody, label: COPY.actReactivate };
       case 'real': return { title: COPY.confirmRealTitle(n), body: COPY.confirmRealBody, label: COPY.actMakeReal };
       case 'test': return { title: COPY.confirmTestTitle(n), body: COPY.confirmTestBody, label: COPY.actMakeTest };
+      case 'autoOff': return {
+        title: COPY.confirmAutoOffTitle(n),
+        body: COPY.confirmAutoOffBody(u.autoSuspendAt ? shortWhen(u.autoSuspendAt, rowsNow) : '—'),
+        label: COPY.actAutoOff,
+      };
       default: return { title: COPY.confirmDeleteTitle(n), body: COPY.confirmDeleteBody(u.conversations), label: COPY.actDelete };
     }
   };
@@ -174,6 +221,7 @@ export function UsersPage({ scope, agentSlug, me }: ManagePageProps) {
           <span className={p.scopeName} dir="auto">{scopeName}</span>
         </div>
         <div className={p.controls}>
+          <button type="button" className={s.addBtn} onClick={() => setAdding(true)}>+ {COPY.addUser}</button>
           <button type="button" className={p.refresh} onClick={() => setTick(n => n + 1)} title={COPY.refresh}>
             <IconRefresh size={14} className={loading ? p.spin : undefined} />
             <span>{COPY.updated} {data ? agoText(data.checkedAt, now) : '…'}</span>
@@ -193,7 +241,7 @@ export function UsersPage({ scope, agentSlug, me }: ManagePageProps) {
             <header className={p.cardHead}>
               <h2 className={p.cardTitle}>{COPY.realTitle} <span className={p.count}>({real.length})</span></h2>
             </header>
-            <UsersTable users={real} now={now} showAgent={showAgent} empty={COPY.emptyReal}
+            <UsersTable users={real} now={rowsNow} showAgent={showAgent} empty={COPY.emptyReal}
               onOpen={setOpenUser} onAction={(user, action) => setConfirm({ user, action })} />
           </section>
 
@@ -209,7 +257,7 @@ export function UsersPage({ scope, agentSlug, me }: ManagePageProps) {
               </button>
             </header>
             {showTest && (
-              <UsersTable users={test} now={now} showAgent={showAgent} empty={COPY.emptyTest}
+              <UsersTable users={test} now={rowsNow} showAgent={showAgent} empty={COPY.emptyTest}
                 onOpen={setOpenUser} onAction={(user, action) => setConfirm({ user, action })} />
             )}
           </section>
@@ -232,6 +280,19 @@ export function UsersPage({ scope, agentSlug, me }: ManagePageProps) {
           onClose={() => setOpenConv(null)}
         />
       )}
+      {adding && (
+        <AddUserModal
+          agentSlug={scope === 'all' ? null : (agentSlug || null)}
+          me={me}
+          onAdded={user => {
+            // A new user is a test user (until marked real): open that part so the row is in view.
+            setUsers(prev => [user, ...(prev || []).filter(x => rowKey(x) !== rowKey(user))]);
+            if (user.audience === 'test') setShowTest(true);
+            setAdding(false);
+          }}
+          onClose={() => setAdding(false)}
+        />
+      )}
       {confirm && (() => {
         const w = confirmWords(confirm.user, confirm.action);
         return (
@@ -242,7 +303,8 @@ export function UsersPage({ scope, agentSlug, me }: ManagePageProps) {
             danger={confirm.action === 'delete'}
             onConfirm={() => runAction(confirm.user, confirm.action)}
             onClose={() => setConfirm(null)}
-            failText={err => (err instanceof ManageApiError && err.code === 'user_shared' ? COPY.actionShared : COPY.actionFailed)}
+            failText={err => (err instanceof ManageApiError && err.code === 'user_shared' ? COPY.actionShared
+              : err instanceof ManageApiError && err.code === 'already_suspended' ? COPY.autoOffTooLate : COPY.actionFailed)}
           />
         );
       })()}

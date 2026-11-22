@@ -1,7 +1,7 @@
 /**
  * Every customer problem in one compact table (task #985, design round4/opt1):
- * time · agent (all only) · what happened (+ customer and their last
- * message) · kind · what to do · "צפייה". The ones that need handling come
+ * time · agent (all only) · what happened (+ which part and why — #1001 —
+ * and the customer and their last message) · kind · what to do · "צפייה". The ones that need handling come
  * first, highlighted; then "לידיעה בלבד". Every sentence is the server's.
  */
 
@@ -31,6 +31,7 @@ function Row({ p, now, showAgent, onOpen }: { p: CustomerProblem; now: Date; sho
       {showAgent && <td className={s.cAgent}><span className={s.clip} dir="auto" title={p.agentName}>{p.agentName}</span></td>}
       <td className={s.cWhat}>
         <span className={s.what} title={p.title}>{p.title}</span>
+        {p.detail && <span className={s.detail} title={p.detail}>{p.detail}</span>}
         {(customer || p.lastCustomerMessage) && (
           <span className={s.whatSub}>
             {customer && <span className={s.customer}>{customer}</span>}
@@ -79,7 +80,7 @@ export function ProblemsTable({ problems, now, showAgent, range, onShowWeek, onO
                 <td colSpan={cols}>
                   <span className={s.empty}>
                     <IconCheckCircle size={16} />
-                    {range === 'today' ? COPY.emptyToday : COPY.emptyWeek}
+                    {range === 'today' ? COPY.emptyToday : range === 'week' ? COPY.emptyWeek : COPY.emptyRange}
                     {range === 'today' && <button type="button" className={s.linkBtn} onClick={onShowWeek}>{COPY.showWeek}</button>}
                   </span>
                 </td>

@@ -58,3 +58,7 @@ export const IconTrash = (p: P) => (
 export const IconGrid = (p: P) => (
   <Svg {...p}><rect x="4" y="4" width="6.5" height="6.5" rx="1.4" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.4" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.4" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.4" /></Svg>
 );
+/** A calendar — the period toggle's from–to (#1001). */
+export const IconCalendar = (p: P) => (
+  <Svg {...p}><rect x="4" y="5.5" width="16" height="14.5" rx="2" /><path d="M4 10h16" /><path d="M8.5 3.5v4M15.5 3.5v4" /></Svg>
+);

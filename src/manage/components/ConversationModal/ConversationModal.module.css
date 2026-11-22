@@ -111,6 +111,17 @@
   color: var(--m-text);
 }
 
+/* Which part failed and why (#1001). */
+.problemDetail {
+  margin-top: 3px;
+  font-size: var(--m-fs-sm);
+  color: var(--m-lav-ink);
+}
+
+.problemDetail span {
+  font-weight: 700;
+}
+
 .problemChips {
   display: flex;
   flex-wrap: wrap;

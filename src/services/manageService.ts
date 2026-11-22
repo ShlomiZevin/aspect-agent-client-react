@@ -10,9 +10,14 @@
 import { getBaseURL } from './api';
 import { clearToken, getToken } from '../manage/session';
 import type {
-  CustomerProblemsResponse, ManageConversation, ManageErrorCode, ManageMe, ManageSignIn, ProblemRange,
-  ManageUser, ManageUserDetail, ManageUsersResponse,
+  CustomerProblemsResponse, ManageConversation, ManageErrorCode, ManageMe, ManageSignIn, ProblemPeriod,
+  ManageUser, ManageUserDetail, ManageUsersResponse, ManageConversationsResponse,
 } from '../types/manage';
+
+/** ?range=today|week, or ?from=&to= (#1001). */
+const periodQuery = (p: ProblemPeriod) => (p.range === 'custom'
+  ? `from=${encodeURIComponent(p.from)}&to=${encodeURIComponent(p.to)}`
+  : `range=${p.range}`);
 
 const ROOT = () => `${import.meta.env.DEV && !import.meta.env.VITE_API_URL ? 'http://localhost:3000' : getBaseURL()}/api/manage`;
 
@@ -73,13 +78,21 @@ export const manageService = {
   /** Who is signed in, and what they may open. */
   getMe: () => request<ManageMe>('/me'),
 
-  /** One agent's customer-chat problems. */
-  getAgentProblems: (agentSlug: string, range: ProblemRange) =>
-    request<CustomerProblemsResponse>(`/agents/${encodeURIComponent(agentSlug)}/customer-problems?range=${range}`),
+  /** One agent's customer conversations of the period + their problems. */
+  getAgentProblems: (agentSlug: string, period: ProblemPeriod) =>
+    request<CustomerProblemsResponse>(`/agents/${encodeURIComponent(agentSlug)}/customer-problems?${periodQuery(period)}`),
 
   /** Every agent (every-agent grant only). */
-  getAllProblems: (range: ProblemRange) =>
-    request<CustomerProblemsResponse>(`/customer-problems?range=${range}`),
+  getAllProblems: (period: ProblemPeriod) =>
+    request<CustomerProblemsResponse>(`/customer-problems?${periodQuery(period)}`),
+
+  /** One agent's customer conversations of the period (#1001). */
+  getAgentConversations: (agentSlug: string, period: ProblemPeriod) =>
+    request<ManageConversationsResponse>(`/agents/${encodeURIComponent(agentSlug)}/conversations?${periodQuery(period)}`),
+
+  /** Every agent's customer conversations of the period (every-agent grant only). */
+  getAllConversations: (period: ProblemPeriod) =>
+    request<ManageConversationsResponse>(`/conversations?${periodQuery(period)}`),
 
   /** One customer conversation's basic facts — the "צפייה" window. */
   getConversation: (agentSlug: string, conversationId: number) =>
@@ -103,6 +116,14 @@ export const manageService = {
   /** Real customer (true) / test user (false) — #968. */
   setUserRealCustomer: (agentSlug: string, userId: number, real: boolean) =>
     request<{ user: ManageUser }>(`/agents/${encodeURIComponent(agentSlug)}/users/${userId}/real-customer`, { method: 'POST', body: JSON.stringify({ real }) }),
+
+  /** Add a user for one agent (#1002) — the same operation as Admin → Users → Add user. */
+  createUser: (agentSlug: string, body: { name: string; phone: string; autoSuspendHours: 24 | 48 | null }) =>
+    request<{ user: ManageUser }>(`/agents/${encodeURIComponent(agentSlug)}/users`, { method: 'POST', body: JSON.stringify(body) }),
+
+  /** Turn the user's auto-suspend off (#1002). */
+  clearAutoSuspend: (agentSlug: string, userId: number) =>
+    request<{ user: ManageUser }>(`/agents/${encodeURIComponent(agentSlug)}/users/${userId}/auto-suspend`, { method: 'DELETE' }),
 
   /** Delete the user and their conversations. */
   deleteUser: (agentSlug: string, userId: number) =>

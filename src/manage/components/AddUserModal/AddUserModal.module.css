@@ -1,0 +1,42 @@
+/* "הוספת משתמש" (#1002) — the confirmation window's frame + a small form.
+   Tokens: src/manage/tokens.css. */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: var(--m-fs-sm);
+  font-weight: 700;
+  color: var(--m-muted);
+}
+
+.input {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--m-line-strong);
+  border-radius: var(--m-radius-sm);
+  background: var(--m-card);
+  color: var(--m-text);
+  font: inherit;
+  font-size: var(--m-fs);
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--m-lav-ink);
+  box-shadow: 0 0 0 2px var(--m-lav-200);
+}
+
+.input::placeholder {
+  color: var(--m-faint);
+}
+
+/* Phone numbers read left to right, aligned with the Hebrew labels. */
+.ltr {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

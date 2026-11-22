@@ -206,6 +206,54 @@ header.foldHeadClosed {
   font-weight: 700;
 }
 
+/* #1002: time left to the auto-suspend — the Suspended tag's size and place
+   (never both on one row), a button that opens "turn off". */
+.tagAuto {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--m-grey-bg);
+  color: var(--m-grey-ink);
+  font: inherit;
+  font-size: var(--m-fs-xs);
+  font-weight: 700;
+  line-height: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tagAuto:hover:not(:disabled) {
+  background: var(--m-amber-bg);
+  color: var(--m-amber-ink);
+}
+
+.tagAuto:disabled {
+  cursor: default;
+}
+
+/* "הוספת משתמש" in the header, beside "עודכן". */
+.addBtn {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--m-radius-sm);
+  background: var(--m-plum);
+  color: #fff;
+  font: inherit;
+  font-size: var(--m-fs-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.addBtn:hover {
+  background: var(--m-plum-hover);
+}
+
 .ltr {
   unicode-bidi: plaintext;
   font-variant-numeric: tabular-nums;

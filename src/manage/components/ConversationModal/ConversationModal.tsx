@@ -95,6 +95,7 @@ export function ConversationModal({ problem: p, conversation, canInvestigate, no
           {p && (
             <section className={`${s.problem} ${act ? s.problemAct : ''}`}>
               <div className={s.problemTitle}>{p.title}</div>
+              {p.detail && <div className={s.problemDetail}><span>{COPY.fDetail}:</span> {p.detail}</div>}
               <div className={s.problemChips}>
                 <span className={`${s.chip} ${act ? s.chipAct : s.chipOk}`}>{p.action.text}</span>
                 <span className={s.outcome}>{p.outcome}</span>

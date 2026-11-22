@@ -1,0 +1,86 @@
+/* The conversations page (#1001) — the problems page's look
+   (CustomerProblemsPage.module.css) plus these few. Tokens: src/manage/tokens.css. */
+
+/* As tall as its rows, then it scrolls inside (like the problems card). */
+.card {
+  flex: 0 1 auto;
+  min-height: 0;
+  transition: opacity 0.15s;
+}
+
+/* A clean conversation: the line is quiet. */
+.whatOk {
+  font-weight: 500;
+  color: var(--m-muted);
+}
+
+/* "ועוד 2 תקלות" after the sentence. */
+.more {
+  margin-inline-start: 6px;
+  font-size: var(--m-fs-xs);
+  font-weight: 600;
+  color: var(--m-muted);
+}
+
+/* Real customer (test conversations use the problems page's dashed tag). */
+.realTag {
+  flex: 0 0 auto;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--m-lav-100);
+  font-size: var(--m-fs-xs);
+  font-weight: 700;
+  color: var(--m-lav-ink);
+}
+
+.convNo {
+  flex: 0 0 auto;
+  font-size: var(--m-fs-xs);
+  color: var(--m-faint);
+}
+
+/* A problem, nothing to do. */
+.statusInfo {
+  background: var(--m-lav-100);
+  color: var(--m-lav-ink);
+  border: 1px solid var(--m-lav-200);
+}
+
+/* The active filter, in the card's header — clears in one click. */
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 4px 0 8px;
+  border: 1px solid var(--m-lav-200);
+  border-radius: 999px;
+  background: var(--m-lav-100);
+  font-size: var(--m-fs-xs);
+  color: var(--m-lav-ink);
+}
+
+.filterLabel {
+  color: var(--m-muted);
+}
+
+.filterName {
+  font-weight: 700;
+}
+
+.filterClear {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--m-lav-ink);
+  cursor: pointer;
+}
+
+.filterClear:hover {
+  background: var(--m-lav-200);
+}
