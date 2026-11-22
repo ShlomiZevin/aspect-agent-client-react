@@ -20,6 +20,7 @@ import { useMemo, useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
 import { SnippetModal } from './SnippetModal';
 import { conditionLine } from '../Filter/filterFormat';
+import { useIsListField } from '../../state/useIsListField';
 import type { AddonFilter, ID, SnippetDef } from '../../types';
 import styles from './ExpandedPromptView.module.css';
 
@@ -90,12 +91,12 @@ function segmentPrompt(text: string): Segment[] {
   return out;
 }
 
-function snippetFilterShort(filter: AddonFilter | undefined): string {
+function snippetFilterShort(filter: AddonFilter | undefined, isListField?: (name: string) => boolean): string {
   if (!filter || !Array.isArray(filter.conditions) || filter.conditions.length === 0) {
     return 'No filter — always renders';
   }
   const verb = filter.mode === 'exclude' ? 'Skip when' : 'Render when';
-  const first = conditionLine(filter.conditions[0]);
+  const first = conditionLine(filter.conditions[0], isListField);
   if (filter.conditions.length === 1) return `${verb} ${first}`;
   const extra = filter.conditions.length - 1;
   return `${verb} ${first} (+${extra} more)`;
@@ -103,6 +104,7 @@ function snippetFilterShort(filter: AddonFilter | undefined): string {
 
 export function ExpandedPromptView({ agentId, text, rows, storageKey }: Props) {
   const { doc } = useBuilder();
+  const isListField = useIsListField();
   const agent = doc.agents.find(a => a.id === agentId);
 
   const byName = useMemo(() => {
@@ -181,7 +183,7 @@ export function ExpandedPromptView({ agentId, text, rows, storageKey }: Props) {
                       <span className={styles.blockDisplayName}> · {snip.displayName}</span>
                     )}
                   </span>
-                  <span className={styles.blockFilter}>{snippetFilterShort(snip.filter)}</span>
+                  <span className={styles.blockFilter}>{snippetFilterShort(snip.filter, isListField)}</span>
                   <span className={styles.blockEditHint}>edit ↗</span>
                 </span>
                 <span className={styles.blockBody}>

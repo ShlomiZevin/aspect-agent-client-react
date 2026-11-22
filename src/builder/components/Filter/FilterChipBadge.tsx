@@ -15,6 +15,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { conditionLine, filterHeadline, isFilterActive } from './filterFormat';
+import { useIsListField } from '../../state/useIsListField';
 import type { AddonFilter } from '../../types';
 import styles from './FilterChipBadge.module.css';
 
@@ -39,6 +40,7 @@ interface Props {
 const CLOSE_DELAY_MS = 80;
 
 export function FilterChipBadge({ filter, chipHovered, onOpen }: Props) {
+  const isListField = useIsListField();
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<number | null>(null);
   // Anchor for the portalled popup. The chip card uses
@@ -150,7 +152,7 @@ export function FilterChipBadge({ filter, chipHovered, onOpen }: Props) {
               {filter!.conditions.map((c, i) => (
                 <span key={i} className={styles.popupRow}>
                   <span className={styles.popupBullet} aria-hidden>•</span>
-                  <span className={styles.popupCond}>{conditionLine(c)}</span>
+                  <span className={styles.popupCond}>{conditionLine(c, isListField)}</span>
                 </span>
               ))}
             </span>

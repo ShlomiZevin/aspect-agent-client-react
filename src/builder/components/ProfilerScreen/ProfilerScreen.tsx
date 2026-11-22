@@ -24,6 +24,7 @@ import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../MentionTextarea/useMentionOptions';
 import { FilterEditor } from '../Filter/FilterEditor';
 import { filterShortSummary, filterTooltip, isFilterActive } from '../Filter/filterFormat';
+import { useIsListField } from '../../state/useIsListField';
 import { RENDER_OPTIONS, returnsFor, snippetFor, buildDisplayPanels, PanelLogs } from '../LiveBrainScreen/panelRenderers';
 import { ICON_PATH, cleanLabel, type DisplayPanel } from '../LiveBrainScreen/PanelSurface';
 import { PanelSheet } from '../LiveBrainScreen/LiveBrainSheet';
@@ -273,6 +274,7 @@ function TriggerSelect({ trigger, onChange }: { trigger: OfflineTrigger; onChang
 
 export function ProfilerScreen() {
   const { doc, updateAgent, previewConversationId, profilerPanelEvent } = useBuilder();
+  const isListField = useIsListField();
   const confirm = useConfirm();
   const agent = doc.agents[0];
   const slug = agent?.slug;
@@ -545,10 +547,10 @@ export function ProfilerScreen() {
                   type="button"
                   className={`${addon.filterLauncher} ${isFilterActive(panelFilter) ? addon.filterLauncherActive : ''}`}
                   onClick={() => setFilterOpen(true)}
-                  title={filterTooltip(panelFilter)}
+                  title={filterTooltip(panelFilter, isListField)}
                 >
                   <span aria-hidden className={addon.filterLauncherIcon}>▽</span>
-                  <span className={addon.filterLauncherText}>{filterShortSummary(panelFilter)}</span>
+                  <span className={addon.filterLauncherText}>{filterShortSummary(panelFilter, isListField)}</span>
                   <span className={addon.filterLauncherEdit}>{isFilterActive(panelFilter) ? 'Edit' : 'Add'}</span>
                 </button>
               </div>

@@ -40,6 +40,16 @@ export function orderByEnum(values: unknown, enumDef: EnumTypeDef | null | undef
     .map(x => x.v);
 }
 
+/** How the condition ops read on a multi-value field (#947) — the editor,
+ *  the Rules summary, the crew map and the server's run-card "why" line
+ *  (conditionMatcher LIST_WORDS) all say these words. */
+export const LIST_OP_WORDS: Partial<Record<string, string>> = {
+  'equals':     'includes',
+  'not-equals': "doesn't include",
+  'in':         'includes any of',
+  'not-in':     'includes none of',
+};
+
 /** How a multi-value field reads inline: `a, b`. */
 export function formatList(values: unknown): string {
   return valuesOf(values).join(', ');

@@ -21,7 +21,7 @@ import { lintFormula } from './formulaLint';
 import { FormulaHelpButton } from './FormulaHelp';
 import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
 import { SYSTEM_FIELDS } from '../../registry/systemFields';
-import { isMultiField } from '../../state/multiValue';
+import { isMultiField, LIST_OP_WORDS } from '../../state/multiValue';
 import type { FieldDef, FieldOp, ID, TransitionCondition } from '../../types';
 import styles from './ConditionsEditor.module.css';
 
@@ -61,12 +61,7 @@ const OP_LABELS: Record<FieldOp, string> = {
 
 /** A multi-value field (#947) is read as "contains" — same ops, the
  *  screen words say what they do on a list. */
-const MULTI_OP_LABELS: Partial<Record<FieldOp, string>> = {
-  'equals':     'includes',
-  'not-equals': "doesn't include",
-  'in':         'includes any of',
-  'not-in':     'includes none of',
-};
+const MULTI_OP_LABELS = LIST_OP_WORDS;
 
 // Emptiness checks apply to every field type — they're the only ops
 // that can match a field that was never collected.

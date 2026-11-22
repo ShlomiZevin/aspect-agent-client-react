@@ -15,6 +15,7 @@ import { useMemo, useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
 import { SnippetModal } from './SnippetModal';
 import { conditionLine } from '../Filter/filterFormat';
+import { useIsListField } from '../../state/useIsListField';
 import type { AddonFilter, ID, SnippetDef } from '../../types';
 import styles from './SnippetsUsedFooter.module.css';
 
@@ -24,12 +25,12 @@ interface Props {
   text: string;
 }
 
-function snippetFilterShort(filter: AddonFilter | undefined): string {
+function snippetFilterShort(filter: AddonFilter | undefined, isListField?: (name: string) => boolean): string {
   if (!filter || !Array.isArray(filter.conditions) || filter.conditions.length === 0) {
     return 'No filter — always renders';
   }
   const verb = filter.mode === 'exclude' ? 'Skip when' : 'Render when';
-  const first = conditionLine(filter.conditions[0]);
+  const first = conditionLine(filter.conditions[0], isListField);
   if (filter.conditions.length === 1) return `${verb} ${first}`;
   const extra = filter.conditions.length - 1;
   return `${verb} ${first} (+${extra} more)`;
@@ -52,6 +53,7 @@ function extractSnippetRefs(text: string): string[] {
 
 export function SnippetsUsedFooter({ agentId, text }: Props) {
   const { doc } = useBuilder();
+  const isListField = useIsListField();
   const agent = doc.agents.find(a => a.id === agentId);
   const refs = useMemo(() => extractSnippetRefs(text), [text]);
 
@@ -88,7 +90,7 @@ export function SnippetsUsedFooter({ agentId, text }: Props) {
           ? snip.content.slice(0, 200) + (snip.content.length > 200 ? '…' : '')
           : '(empty)';
         const tip = gated
-          ? `${snippetFilterShort(snip.filter)}\n\n${preview}`
+          ? `${snippetFilterShort(snip.filter, isListField)}\n\n${preview}`
           : preview;
         return (
           <button

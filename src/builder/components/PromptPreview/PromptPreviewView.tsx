@@ -15,6 +15,7 @@ import { useBuilder } from '../../state/BuilderContext';
 import { getPlugin } from '../../registry/plugins';
 import { Modal } from '../Modal/Modal';
 import { filterShortSummary } from '../Filter/filterFormat';
+import { useIsListField } from '../../state/useIsListField';
 import { buildPreviewNodes, type PreviewContext, type PreviewNode } from './previewSegments';
 import type { AddonInstance, CrewDoc, EnumTypeDef, FieldDef, ID } from '../../types';
 import { isMultiField } from '../../state/multiValue';
@@ -69,6 +70,7 @@ const DKIND_META: Record<string, { icon: string; word: string }> = {
 
 export function PromptPreviewView({ instance, config, agentId, crewId, rows, storageKey }: Props) {
   const { doc } = useBuilder();
+  const isListField = useIsListField();
   const surfaceHeight = useMemo(() => computeSurfaceHeight(rows, storageKey), [rows, storageKey]);
   const agent = doc.agents.find(a => a.id === agentId);
   const crew  = crewId ? agent?.crews.find(c => c.id === crewId) ?? null : null;
@@ -102,8 +104,8 @@ export function PromptPreviewView({ instance, config, agentId, crewId, rows, sto
   }, [agent, crew, instance, config]);
 
   const nodes = useMemo(
-    () => (ctx ? buildPreviewNodes(ctx, filterShortSummary) : []),
-    [ctx],
+    () => (ctx ? buildPreviewNodes(ctx, f => filterShortSummary(f, isListField)) : []),
+    [ctx, isListField],
   );
 
   if (!agent || !ctx) return null;

@@ -15,6 +15,7 @@
 import type {
   AgentDoc, AddonInstance, CrewDoc, ID, RulesAddonConfig, TransitionCondition, TransitionRouterConfig,
 } from '../../types';
+import { isMultiField, LIST_OP_WORDS } from '../../state/multiValue';
 
 export const ANY_CREW = '*';
 
@@ -79,7 +80,7 @@ function formulaText(expr: string): string {
     .trim();
 }
 
-export function conditionText(c: TransitionCondition): string {
+export function conditionText(c: TransitionCondition, isListField: (name: string) => boolean = () => false): string {
   if (c.type === 'fields-collected') {
     const fs = (c.fields ?? []).map(humanize);
     return fs.length ? `${fs.join(', ')} ${fs.length === 1 ? 'is' : 'are'} known` : 'always';
@@ -88,6 +89,12 @@ export function conditionText(c: TransitionCondition): string {
   if (c.type === 'formula') return formulaText(c.expr || '') || 'always';
   if (c.type === 'field') {
     const f = humanize(c.field);
+    // A multi-value field (#947) reads "includes …", like the editor.
+    const listWord = isListField(c.field) ? LIST_OP_WORDS[c.op] : undefined;
+    if (listWord) {
+      const operand = c.op === 'in' || c.op === 'not-in' ? listText(c.values) : valueText(c.value);
+      return `${f} ${listWord} ${operand}`;
+    }
     switch (c.op) {
       case 'is-null': return `${f} is still unknown`;
       case 'is-not-null': return `${f} is known`;
@@ -103,7 +110,11 @@ export function conditionText(c: TransitionCondition): string {
   return '';
 }
 
-function movesFromChain(addons: AddonInstance[] | undefined, from: ID, crewId: ID | null, out: CrewMove[]) {
+function movesFromChain(
+  addons: AddonInstance[] | undefined, from: ID, crewId: ID | null, out: CrewMove[],
+  isListField: (name: string) => boolean,
+) {
+  const cond = (c: TransitionCondition) => conditionText(c, isListField);
   for (const inst of addons ?? []) {
     if (inst.enabled === false) continue;
     if (inst.pluginId === 'rules') {
@@ -116,7 +127,7 @@ function movesFromChain(addons: AddonInstance[] | undefined, from: ID, crewId: I
             id: `${inst.instanceId}:${rule.id || i}:${act.target}`,
             from, to: act.target, toExists: true,
             sameTurn: act.fireImmediately !== false,
-            when: (rule.conditions ?? []).map(conditionText).filter(Boolean),
+            when: (rule.conditions ?? []).map(cond).filter(Boolean),
             source: { crewId, instanceId: inst.instanceId, label: `${cfg.name || 'Rules'} · rule ${i + 1}` },
           });
         }
@@ -128,7 +139,7 @@ function movesFromChain(addons: AddonInstance[] | undefined, from: ID, crewId: I
         id: `${inst.instanceId}:${cfg.target}`,
         from, to: cfg.target, toExists: true,
         sameTurn: cfg.fireImmediately !== false,
-        when: (cfg.conditions ?? []).map(conditionText).filter(Boolean),
+        when: (cfg.conditions ?? []).map(cond).filter(Boolean),
         source: { crewId, instanceId: inst.instanceId, label: cfg.name || 'Transition Router' },
       });
     }
@@ -139,8 +150,12 @@ export function buildCrewMap(agent: AgentDoc): CrewMap {
   const crews = agent.crews ?? [];
   const ids = new Set(crews.map(c => c.id));
   const moves: CrewMove[] = [];
-  movesFromChain(agent.cortex, ANY_CREW, null, moves);
-  for (const crew of crews) movesFromChain(crew.addons, crew.id, crew.id, moves);
+  // Multi-value fields (#947): agent fields + every crew's own fields.
+  const listFields = new Set(
+    [...(agent.fields ?? []), ...crews.flatMap(c => c.fields ?? [])].filter(isMultiField).map(f => f.name));
+  const isListField = (name: string) => listFields.has(name);
+  movesFromChain(agent.cortex, ANY_CREW, null, moves, isListField);
+  for (const crew of crews) movesFromChain(crew.addons, crew.id, crew.id, moves, isListField);
   for (const m of moves) m.toExists = ids.has(m.to);
 
   const startId = agent.defaultCrewId && ids.has(agent.defaultCrewId) ? agent.defaultCrewId : (crews[0]?.id ?? null);

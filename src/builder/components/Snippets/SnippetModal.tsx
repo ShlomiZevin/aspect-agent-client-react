@@ -30,6 +30,7 @@ import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
 import { useMentionOptions } from '../MentionTextarea/useMentionOptions';
 import { FilterEditor } from '../Filter/FilterEditor';
 import { conditionLine } from '../Filter/filterFormat';
+import { useIsListField } from '../../state/useIsListField';
 import type {
   AddonFilter,
   ID,
@@ -63,19 +64,20 @@ function newSnippetId(): ID {
  *  label only narrates conditions + polarity for now; mirror the
  *  shape of `filterShortSummary` so the future cap addition is a
  *  one-line edit here. */
-function snippetFilterLabel(filter: AddonFilter | undefined): string {
+function snippetFilterLabel(filter: AddonFilter | undefined, isListField?: (name: string) => boolean): string {
   const hasConds = !!filter && Array.isArray(filter.conditions) && filter.conditions.length > 0;
   if (!hasConds) {
     return 'No filter — snippet renders whenever referenced';
   }
   const verb = filter!.mode === 'exclude' ? 'Skip when' : 'Render when';
-  const first = conditionLine(filter!.conditions[0]);
+  const first = conditionLine(filter!.conditions[0], isListField);
   const extra = filter!.conditions.length - 1;
   return extra > 0 ? `${verb} ${first} (+${extra} more)` : `${verb} ${first}`;
 }
 
 export function SnippetModal({ open, onClose, agentId, initial }: Props) {
   const { doc, updateAgent, applyTokenRenameCascade } = useBuilder();
+  const isListField = useIsListField();
   const confirm = useConfirm();
   const mentionOptions = useMentionOptions(agentId);
 
@@ -233,7 +235,7 @@ export function SnippetModal({ open, onClose, agentId, initial }: Props) {
             onClick={() => setFilterOpen(true)}
           >
             <span aria-hidden className={styles.filterLauncherIcon}>▽</span>
-            <span className={styles.filterLauncherText}>{snippetFilterLabel(filter)}</span>
+            <span className={styles.filterLauncherText}>{snippetFilterLabel(filter, isListField)}</span>
             <span className={styles.filterLauncherEdit}>
               {filterActive ? 'Edit' : 'Add'}
             </span>

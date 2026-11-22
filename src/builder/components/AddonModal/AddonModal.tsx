@@ -35,6 +35,7 @@ import { AddonOutputSection } from '../AddonOutput/AddonOutputSection';
 import { AddonTriggerSection } from '../Trigger/AddonTriggerSection';
 import { FilterModal } from '../Filter/FilterModal';
 import { filterShortSummary, filterTooltip } from '../Filter/filterFormat';
+import { useIsListField } from '../../state/useIsListField';
 import { FIELD_REASONER_PLUGIN_ID } from '../../plugins/fieldReasoner/addon.fieldReasoner';
 import type { AddonContext, AddonInstance, ID, OutputType } from '../../types';
 import styles from './AddonModal.module.css';
@@ -66,6 +67,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
 
 export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly = false }: Props) {
   const { saveCrewVersion, saveAgentVersion, setAgentAddonExcludedCrews, doc } = useBuilder();
+  const isListField = useIsListField();
   const muts = useAddonMutations(agentId, crewId);
   const isAgentScope = crewId === null;
   const agent = doc.agents.find(a => a.id === agentId);
@@ -321,11 +323,11 @@ export function AddonModal({ open, onClose, agentId, crewId, instance, readOnly 
                     type="button"
                     className={`${styles.filterLauncher} ${hasFilter ? styles.filterLauncherActive : ''}`}
                     onClick={() => setFilterOpen(true)}
-                    title={filterTooltip(filter)}
+                    title={filterTooltip(filter, isListField)}
                   >
                     <span aria-hidden className={styles.filterLauncherIcon}>▽</span>
                     <span className={styles.filterLauncherText}>
-                      {filterShortSummary(filter)}
+                      {filterShortSummary(filter, isListField)}
                     </span>
                     <span className={styles.filterLauncherEdit}>{hasFilter ? 'Edit' : 'Add'}</span>
                   </button>

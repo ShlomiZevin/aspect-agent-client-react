@@ -17,7 +17,7 @@ import { useBuilder } from '../../state/BuilderContext';
 import { InlineField } from '../../components/AddonModal/InlineField';
 import { ComboPicker } from '../../components/Conditions/ComboPicker';
 import { ConditionsEditor, MultiChipPicker } from '../../components/Conditions/ConditionsEditor';
-import { isMultiField, valuesOf } from '../../state/multiValue';
+import { isMultiField, LIST_OP_WORDS, valuesOf } from '../../state/multiValue';
 import { FormulaHelpButton } from '../../components/Conditions/FormulaHelp';
 import { lintFormula } from '../../components/Conditions/formulaLint';
 import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
@@ -41,7 +41,11 @@ const OP_SIGNS: Record<string, string> = {
 };
 
 /** One-line human summary for a collapsed rule card. */
-function summarizeRule(rule: RuleDef, crewName: (id: string) => string): { when: string; then: string } {
+function summarizeRule(
+  rule: RuleDef,
+  crewName: (id: string) => string,
+  isListField: (name: string) => boolean = () => false,
+): { when: string; then: string } {
   const conditions = rule.conditions ?? [];
   const when = conditions.length === 0
     ? 'Always'
@@ -54,7 +58,9 @@ function summarizeRule(rule: RuleDef, crewName: (id: string) => string): { when:
           // with a blank right-hand side.
           const multi = c.op === 'in' || c.op === 'not-in';
           const operand = multi ? (c.values ?? []).map(String).join(' | ') : String(c.value ?? '');
-          return `${c.field} ${OP_SIGNS[c.op] ?? c.op} ${operand}`.trim();
+          // A multi-value field (#947) reads "includes …", like the editor.
+          const sign = (isListField(c.field) && LIST_OP_WORDS[c.op]) || OP_SIGNS[c.op] || c.op;
+          return `${c.field} ${sign} ${operand}`.trim();
         }
         if (c.type === 'formula') return c.expr || '(empty formula)';
         if (c.type === 'fields-collected') return `has ${c.fields.join(', ')}`;
@@ -496,7 +502,8 @@ export function RulesConfigComponent({
 
       {rules.map((rule, idx) => {
         const open = openRules.has(rule.id);
-        const summary = summarizeRule(rule, tid => crews.find(c => c.id === tid)?.name ?? tid);
+        const summary = summarizeRule(rule, tid => crews.find(c => c.id === tid)?.name ?? tid,
+          name => isMultiField(fieldByName.get(name)));
         return (
         <div key={rule.id} className={`${styles.rule} ${rule.enabled === false ? styles.ruleDisabled : ''}`}>
           <div

@@ -10,6 +10,12 @@
  */
 
 import type { AddonFilter, TransitionCondition } from '../../types';
+import { LIST_OP_WORDS } from '../../state/multiValue';
+
+/** Optional "is this a multi-value field?" check (#947, `useIsListField`).
+ *  On such a field the ops read like the editor: includes / doesn't
+ *  include / includes any of / includes none of. */
+type IsListField = (name: string) => boolean;
 
 /** True when this filter actually gates anything. Centralised so the
  *  chip-badge, AddonModal launcher, and tooltips agree on the
@@ -55,7 +61,7 @@ export function filterHeadline(filter: AddonFilter | undefined): string {
  *  - 1 condition       → "[Cap: 3 / conv · ] Run when <readable cond>"
  *  - 2+ conditions     → "[Cap: 3 / conv · ] Run when <readable cond> (+N more)"
  */
-export function filterShortSummary(filter: AddonFilter | undefined): string {
+export function filterShortSummary(filter: AddonFilter | undefined, isListField?: IsListField): string {
   if (!isFilterActive(filter)) return 'No filter — addon runs every turn';
   const hasCap = typeof filter!.cap === 'number' && filter!.cap > 0;
   const hasConds = filter!.conditions.length > 0;
@@ -63,7 +69,7 @@ export function filterShortSummary(filter: AddonFilter | undefined): string {
   if (hasCap) parts.push(capLabel(filter!.cap as number));
   if (hasConds) {
     const verb = filter!.mode === 'exclude' ? 'Skip when' : 'Run when';
-    const first = conditionLine(filter!.conditions[0]);
+    const first = conditionLine(filter!.conditions[0], isListField);
     const extra = filter!.conditions.length - 1;
     parts.push(extra > 0 ? `${verb} ${first} (+${extra} more)` : `${verb} ${first}`);
   }
@@ -71,7 +77,7 @@ export function filterShortSummary(filter: AddonFilter | undefined): string {
 }
 
 /** Render one condition as a short readable line. */
-export function conditionLine(c: TransitionCondition): string {
+export function conditionLine(c: TransitionCondition, isListField?: IsListField): string {
   if (c.type === 'fields-collected') {
     const fs = (c.fields ?? []).join(', ');
     return fs ? `fields collected: ${fs}` : 'fields collected (none picked)';
@@ -79,11 +85,12 @@ export function conditionLine(c: TransitionCondition): string {
   if (c.type === 'field') {
     if (c.op === 'is-null') return `${c.field} is empty`;
     if (c.op === 'is-not-null') return `${c.field} has a value`;
+    const op = (isListField?.(c.field) && LIST_OP_WORDS[c.op]) || c.op;
     if (c.op === 'in' || c.op === 'not-in') {
       const vals = (c.values ?? []).map(v => String(v)).join(', ');
-      return `${c.field} ${c.op} [${vals}]`;
+      return `${c.field} ${op} [${vals}]`;
     }
-    return `${c.field} ${c.op} ${JSON.stringify(c.value)}`;
+    return `${c.field} ${op} ${JSON.stringify(c.value)}`;
   }
   if (c.type === 'formula') {
     return c.expr || '(empty formula)';
@@ -100,12 +107,12 @@ export function conditionLine(c: TransitionCondition): string {
  * (which most browsers do), giving the author a quick preview on
  * hover without opening the modal.
  */
-export function filterTooltip(filter: AddonFilter | undefined): string {
+export function filterTooltip(filter: AddonFilter | undefined, isListField?: IsListField): string {
   const head = filterHeadline(filter);
   if (!isFilterActive(filter)) return head;
   const lines: string[] = [];
   if (filter!.conditions.length > 0) {
-    for (const c of filter!.conditions) lines.push(`  • ${conditionLine(c)}`);
+    for (const c of filter!.conditions) lines.push(`  • ${conditionLine(c, isListField)}`);
   }
   return lines.length > 0 ? `${head}\n${lines.join('\n')}` : head;
 }
