@@ -38,6 +38,7 @@ import {
   type BrainSummarizerCard,
   type BrainThinkingCard,
 } from '../../state/useBrainSnapshot';
+import { isMultiField, orderByEnum, valuesOf } from '../../state/multiValue';
 import type { EnumTypeDef, FieldDef } from '../../types';
 import styles from './BrainPanel.module.css';
 
@@ -355,13 +356,28 @@ function MemorySection({
                               autoFocus
                               value=""
                               onChange={e => {
-                                if (e.target.value) setPendingSeed(fd.name, e.target.value, fd.domain);
+                                const picked = e.target.value;
+                                if (picked && isMultiField(fd)) {
+                                  // Several values (#947): each pick toggles the value
+                                  // in the starting list; an emptied list is no seed.
+                                  const cur = valuesOf(seed?.value);
+                                  const next = orderByEnum(
+                                    cur.includes(picked) ? cur.filter(x => x !== picked) : [...cur, picked], en);
+                                  if (next.length) setPendingSeed(fd.name, next, fd.domain);
+                                  else clearPendingSeed(fd.name);
+                                } else if (picked) {
+                                  setPendingSeed(fd.name, picked, fd.domain);
+                                }
                                 setEditingSeedFor(null);
                               }}
                               onBlur={() => setEditingSeedFor(null)}
                             >
                               <option value="">— pick —</option>
-                              {values.map(v => <option key={v} value={v}>{v}</option>)}
+                              {values.map(v => (
+                                <option key={v} value={v}>
+                                  {isMultiField(fd) && valuesOf(seed?.value).includes(v) ? `✓ ${v}` : v}
+                                </option>
+                              ))}
                             </select>
                           );
                         }
@@ -540,7 +556,7 @@ function DynamicContextSection({ hits }: { hits: BrainDcHit[] }) {
           would resolve to empty right now.
         </div>
       ) : (
-        hits.map(hit => <DcCard key={`${hit.enumDef.id}/${hit.fieldName}`} hit={hit} />)
+        hits.map(hit => <DcCard key={`${hit.enumDef.id}/${hit.fieldName}/${hit.liveValue}`} hit={hit} />)
       )}
     </section>
   );
@@ -548,7 +564,7 @@ function DynamicContextSection({ hits }: { hits: BrainDcHit[] }) {
 
 function DcCard({ hit }: { hit: BrainDcHit }) {
   const { expandedBodies, toggleBody } = useBrain();
-  const keyPrefix = `${hit.enumDef.id}/${hit.fieldName}`;
+  const keyPrefix = `${hit.enumDef.id}/${hit.fieldName}/${hit.liveValue}`;
   const isExpanded = (key: string) => expandedBodies.has(`${keyPrefix}/${key}`);
   const toggle = (key: string) => toggleBody(`${keyPrefix}/${key}`);
 

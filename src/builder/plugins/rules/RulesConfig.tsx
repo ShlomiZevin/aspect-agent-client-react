@@ -16,7 +16,8 @@ import type { PluginConfigProps } from '../../registry/plugins';
 import { useBuilder } from '../../state/BuilderContext';
 import { InlineField } from '../../components/AddonModal/InlineField';
 import { ComboPicker } from '../../components/Conditions/ComboPicker';
-import { ConditionsEditor } from '../../components/Conditions/ConditionsEditor';
+import { ConditionsEditor, MultiChipPicker } from '../../components/Conditions/ConditionsEditor';
+import { isMultiField, valuesOf } from '../../state/multiValue';
 import { FormulaHelpButton } from '../../components/Conditions/FormulaHelp';
 import { lintFormula } from '../../components/Conditions/formulaLint';
 import { MentionTextarea } from '../../components/MentionTextarea/MentionTextarea';
@@ -260,6 +261,17 @@ export function RulesConfigComponent({
     const target = fieldByName.get(action.field ?? '');
     const enumValues = enumValuesFor(target);
     const set = (v: string) => updateAction(ruleIdx, actionIdx, { value: v });
+    // Multi-value field (#947): the value is the WHOLE new selection —
+    // a list, picked with chips. Nothing picked = clear (use Clear field).
+    if (isMultiField(target) && enumValues.length > 0) {
+      return (
+        <MultiChipPicker
+          options={enumValues}
+          values={valuesOf(action.value)}
+          onChange={values => updateAction(ruleIdx, actionIdx, { value: values })}
+        />
+      );
+    }
     const current = String(action.value ?? '');
     if (target?.type === 'enum' && enumValues.length > 0) {
       return (

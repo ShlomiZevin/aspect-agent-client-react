@@ -294,6 +294,10 @@ export const GUIDE_GROUPS: GuideGroup[] = [
         en: 'A Choice field is the mini version: just a list of allowed values, no briefings. Its list is named after the field: gender → gender_choices. Same tokens work on it.',
         he: 'שדה Choice הוא הגרסה המיני: רק רשימת ערכים מותרים, בלי תדריכים. הרשימה נקראת על שם השדה: gender ← gender_choices. אותם טוקנים עובדים עליה.',
       },
+      {
+        en: 'A field set to "Several values" can hold more than one value. Then dc gives one block per SELECTED value, each headed with its value (### value). Values that are not selected are never injected.',
+        he: 'שדה שהוגדר "כמה ערכים" יכול להחזיק יותר מערך אחד. אז dc נותן מקטע לכל ערך שנבחר, עם כותרת של הערך (### value). ערכים שלא נבחרו לא מוזרקים.',
+      },
     ],
     entries: [
       {

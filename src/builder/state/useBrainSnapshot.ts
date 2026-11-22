@@ -28,6 +28,7 @@
 
 import { useMemo } from 'react';
 import { useBuilder } from './BuilderContext';
+import { isMultiField, orderByEnum, valuesOf } from './multiValue';
 import type {
   EnumTypeDef,
   EnumValueDef,
@@ -216,28 +217,34 @@ export function useBrainSnapshot(): BrainSnapshot {
       if (!enumDef) continue;                   // orphan enumType — skip
       const live = valueOf(field);
       if (live === undefined || live === null) continue;
-      const liveStr = String(live);
-      const matchedValue = enumDef.values.find(v => String(v.value) === liveStr) || null;
-      if (!matchedValue) {
-        // Live value doesn't match any declared value — no hit (we
-        // surface only positive lookups in the panel, matching the
-        // runtime's silent-empty semantics for unmatched dc tokens).
-        continue;
+      // A multi-value field (#947) gets one hit per selected value — the
+      // runtime's {{dc:…}} injects one block per value, in enum order.
+      const multi = isMultiField(field);
+      const liveList = multi ? orderByEnum(valuesOf(live), enumDef) : [String(live)];
+      for (const liveStr of liveList) {
+        const matchedValue = enumDef.values.find(v => String(v.value) === liveStr) || null;
+        if (!matchedValue) {
+          // Live value doesn't match any declared value — no hit (we
+          // surface only positive lookups in the panel, matching the
+          // runtime's silent-empty semantics for unmatched dc tokens).
+          continue;
+        }
+        if (multi && matchedValue.enabled === false) continue;
+        const umbrella = matchedValue.umbrellaText ?? '';
+        const sections: BrainDcSectionResolution[] = (enumDef.sections ?? []).map(s => ({
+          name: s.name,
+          body: matchedValue.sectionTexts?.[s.name] ?? '',
+        }));
+        const anyContent = umbrella.trim().length > 0
+          || sections.some(s => s.body.trim().length > 0);
+        if (!anyContent) continue;                // matched but bodies empty → not a hit
+        dcHits.push({
+          enumDef,
+          fieldName: field.name,
+          liveValue: liveStr,
+          matched: { value: matchedValue, umbrella, sections },
+        });
       }
-      const umbrella = matchedValue.umbrellaText ?? '';
-      const sections: BrainDcSectionResolution[] = (enumDef.sections ?? []).map(s => ({
-        name: s.name,
-        body: matchedValue.sectionTexts?.[s.name] ?? '',
-      }));
-      const anyContent = umbrella.trim().length > 0
-        || sections.some(s => s.body.trim().length > 0);
-      if (!anyContent) continue;                // matched but bodies empty → not a hit
-      dcHits.push({
-        enumDef,
-        fieldName: field.name,
-        liveValue: liveStr,
-        matched: { value: matchedValue, umbrella, sections },
-      });
     }
 
     // ── Thinking cards — long-form plans the Thinker writes per turn.
@@ -331,6 +338,8 @@ export function useBrainCounts(): { filled: number; total: number; dcHits: numbe
 export function formatBrainValue(v: unknown): string {
   if (v === null || v === undefined) return '';
   if (typeof v === 'string') return v;
+  // A multi-value field's list (#947) reads `a, b`, like {{field:…}}.
+  if (Array.isArray(v) && v.every(x => typeof x === 'string')) return v.join(', ');
   if (typeof v === 'number' || typeof v === 'boolean') return String(v);
   try { return JSON.stringify(v); } catch { return String(v); }
 }

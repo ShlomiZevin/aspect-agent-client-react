@@ -102,6 +102,8 @@ interface Draft {
    *  field; `choiceValues` are the list entries typed inline. */
   isChoice: boolean;
   choiceValues: string[];
+  /** "Several values" (#947) — only for Choice / Targeted KB. */
+  multiple: boolean;
   tags: string[];
 }
 
@@ -120,6 +122,7 @@ const emptyDraft = (source: FieldSource = 'explicit', type: FieldType = 'string'
   enumType: '',
   isChoice: false,
   choiceValues: [],
+  multiple: false,
   tags: [],
 });
 
@@ -266,6 +269,7 @@ export function AddFieldModal({
       ...(choiceEnum
         ? { enumType: choiceEnum.id }
         : draft.type === 'enum' && draft.enumType ? { enumType: draft.enumType } : {}),
+      ...((draft.isChoice || draft.type === 'enum') && draft.multiple ? { multiple: true } : {}),
       ...(draft.tags.length > 0 ? { tags: draft.tags } : {}),
     };
     const created = addFieldToScope(
@@ -438,6 +442,30 @@ export function AddFieldModal({
           </label>
 
         </div>
+
+        {/* "Several values" (#947). Always rendered — disabled for
+            non-list types — so the modal never resizes on a type change. */}
+        {(() => {
+          const isEnumType = draft.isChoice || draft.type === 'enum';
+          return (
+            <div className={styles.field}>
+              <label
+                className={`${styles.connectLaterLabel} ${isEnumType ? '' : styles.connectLaterLabelDisabled}`}
+                title={isEnumType
+                  ? 'The field can hold several values at once. {{dc:…}} then injects every selected value, each under its own heading.'
+                  : 'Only a Choice or a Targeted KB field can hold several values'}
+              >
+                <input
+                  type="checkbox"
+                  checked={isEnumType && draft.multiple}
+                  disabled={!isEnumType}
+                  onChange={e => setDraft(d => ({ ...d, multiple: e.target.checked }))}
+                />
+                Several values
+              </label>
+            </div>
+          );
+        })()}
 
         {/* Choice values — the quick inline list. Saved as a real
             field-owned Targeted KB entry named after the field. */}

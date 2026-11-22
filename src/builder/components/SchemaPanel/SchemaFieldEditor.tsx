@@ -238,7 +238,7 @@ export function SchemaFieldEditor({
     } else {
       const t = raw as FieldType;
       if (initial.type === t && !initial.enumType) return;
-      writePatch({ type: t, enumType: undefined });
+      writePatch({ type: t, enumType: undefined, multiple: undefined });
     }
   };
 
@@ -387,6 +387,30 @@ export function SchemaFieldEditor({
           </select>
         </div>
       </div>
+
+      {/* "Several values" (#947) — Choice / Targeted KB only; not on a
+          pinned field. Always rendered (disabled otherwise) so the panel
+          never jumps on a type / source change. */}
+      {(() => {
+        const canMulti = initial.type === 'enum' && initial.source !== 'pinned';
+        return (
+          <label
+            className={styles.hint}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: canMulti ? 'pointer' : 'not-allowed', opacity: canMulti ? 1 : 0.5 }}
+            title={canMulti
+              ? 'The field can hold several values at once. {{dc:…}} then injects every selected value, each under its own heading.'
+              : 'Only a Choice or a Targeted KB field (not pinned) can hold several values'}
+          >
+            <input
+              type="checkbox"
+              checked={canMulti && initial.multiple === true}
+              disabled={!canMulti}
+              onChange={e => writePatch({ multiple: e.target.checked ? true : undefined })}
+            />
+            Several values
+          </label>
+        );
+      })()}
 
       {/* Choice values — inline editor, auto-commits like the rest of
           this page (each change writes through to the owned enum). */}

@@ -12,7 +12,7 @@ import { getPlugin } from '../../registry/plugins';
 import { useBuilder } from '../../state/BuilderContext';
 import { KbRetrieverRunBody, type KbParsed } from './KbRetrieverRunBody';
 import { formatDuration } from '../../formatDuration';
-import type { WebSearchRun } from '../../state/runtimeStream';
+import type { TargetedKbLookup, WebSearchRun } from '../../state/runtimeStream';
 import type { GuardrailVerdict } from '../../types';
 import styles from './AddonRunCard.module.css';
 
@@ -83,6 +83,9 @@ export interface AddonRunSnapshot {
    *  its declared values). rawOutput still shows what the model
    *  returned; this section explains why it didn't land in memory. */
   rejectedWrites?: Array<{ field: string; value: unknown; allowed: string[] }>;
+  /** Every {{dc:…}} lookup this run's prompt resolved (#947): the values
+   *  selected at that moment and the ones whose content was injected. */
+  targetedKb?: TargetedKbLookup[];
   parseError?: string;
   /** How many raw messages reached the LLM as history on this run.
    *  Filled from the `addon.prompt` event (live) or the persisted
@@ -644,6 +647,12 @@ export function AddonRunCard({ run }: Props) {
             </Section>
           )}
 
+          {!kbParsed && (run.targetedKb?.length ?? 0) > 0 && (
+            <Section title="Targeted KB">
+              <TargetedKbSection lookups={run.targetedKb!} />
+            </Section>
+          )}
+
           {run.webSearch && (run.webSearch.searches.length > 0 || (run.webSearch.blockedDomains?.length ?? 0) > 0) && (
             <Section title="Web search">
               <WebSearchSection ws={run.webSearch} />
@@ -711,6 +720,49 @@ export function AddonRunCard({ run }: Props) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Targeted KB lookups (#947): one row per {{dc:…}} token the prompt
+ * resolved — the field's selected value(s), which of them were actually
+ * injected (solid) vs selected but empty for that slot (faded), and the
+ * injected text behind a toggle.
+ */
+function TargetedKbSection({ lookups }: { lookups: TargetedKbLookup[] }) {
+  return (
+    <div className={styles.tkbList}>
+      {lookups.map((l, i) => {
+        const token = `{{dc:${l.fieldName}${l.section ? `:${l.section}` : ''}}}`;
+        const injected = new Set(l.injected);
+        return (
+          <div key={i} className={styles.tkbRow}>
+            <div className={styles.tkbHead}>
+              <code className={styles.writeField}>{token}</code>
+              {l.values.length === 0 ? (
+                <span className={styles.memoryNote}>no value selected — nothing injected</span>
+              ) : (
+                l.values.map(v => (
+                  <span
+                    key={v}
+                    className={`${styles.tkbChip} ${injected.has(v) ? '' : styles.tkbChipEmpty}`}
+                    title={injected.has(v) ? 'Injected' : 'Selected, but nothing to inject for this slot'}
+                  >
+                    {v}
+                  </span>
+                ))
+              )}
+            </div>
+            {l.text && (
+              <details className={styles.tkbDetails}>
+                <summary>{l.text.length.toLocaleString()} chars injected</summary>
+                <pre className={styles.pre}>{l.text}</pre>
+              </details>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

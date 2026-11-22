@@ -32,6 +32,7 @@ import type {
   PersonaDef,
   SnippetDef,
 } from '../../types';
+import { isMultiField } from '../../state/multiValue';
 
 export type PreviewNode =
   | { kind: 'prose'; text: string }
@@ -188,11 +189,16 @@ function buildFieldsSchema(fields: FieldDef[], enums: EnumTypeDef[]): string {
       const def = findEnumById(enums, f.enumType);
       const vals = def ? def.values.map(v => v.value).filter(Boolean) : [];
       if (vals.length > 0) props.push(`values=[${vals.join(', ')}]`);
+      // Mirrors the server's schema line for a multi-value field (#947).
+      if (isMultiField(f)) props.push('multiple=true');
     }
     props.push(`source=${f.source}`);
     const head = `- ${f.name} (${props.join(', ')})`;
     const how = (f.howToExtract ?? '').trim();
-    return how ? `${head}: ${how}` : head;
+    const line = how ? `${head}: ${how}` : head;
+    return isMultiField(f)
+      ? `${line}\n  (several values: return a JSON array of EVERY value that applies now — the full list, it replaces the previous one; [] clears it; leave the key out when nothing changed)`
+      : line;
   }).join('\n');
 }
 

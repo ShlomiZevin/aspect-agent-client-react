@@ -33,6 +33,8 @@ import {
 } from '../../state/choiceList';
 import { ChoiceValuesInput } from './ChoiceValuesInput';
 import { DomainInput } from './DomainInput';
+import { MultiChipPicker } from '../Conditions/ConditionsEditor';
+import { formatList, isMultiField, orderByEnum, valuesOf } from '../../state/multiValue';
 import {
   validateFieldName,
   stripInvalid,
@@ -111,10 +113,13 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
   // written through to the owned enum on Save.
   const [isChoice, setIsChoice] = useState(false);
   const [choiceValues, setChoiceValues] = useState<string[]>([]);
+  // "Several values" (#947) — only for Choice / Targeted KB fields.
+  const [multiple, setMultiple] = useState(false);
   const [domain, setDomain] = useState('');
   const [selectedExtractors, setSelectedExtractors] = useState<Set<ID>>(new Set());
   const [editingLive, setEditingLive] = useState(false);
   const [liveDraft, setLiveDraft] = useState('');
+  const [liveDraftList, setLiveDraftList] = useState<string[]>([]);
   // Explicit "save it unconnected — I'll wire it later" mark (not persisted).
   const [connectLater, setConnectLater] = useState(false);
 
@@ -130,6 +135,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
     const owned = ownedChoiceEnum(agent, f);
     setIsChoice(!!owned);
     setChoiceValues(owned ? choiceValuesOf(owned) : []);
+    setMultiple(f.multiple === true);
     setDomain(f.domain ?? '');
     setSelectedExtractors(new Set(crewField.extractors.map(e => e.instanceId)));
     setEditingLive(false);
@@ -155,6 +161,15 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
   const liveValue = findLiveValue(conversationMemory.memory, original.name);
   const hasLive = liveValue !== undefined;
   const canEditLive = previewConversationId !== null;
+  // Multi-value (#947): the live value is a list, edited with chips over
+  // the field's (saved) enum values.
+  const liveMulti = isMultiField(original);
+  const liveEnum = liveMulti ? (agent?.enums ?? []).find(e => e.id === original.enumType) : undefined;
+  const liveOptions = (liveEnum?.values ?? [])
+    .filter(v => v && v.enabled !== false && typeof v.value === 'string' && v.value)
+    .map(v => v.value);
+  const showLive = (v: unknown) => (liveMulti ? formatList(v) : liveValueToString(v));
+  const isEnumType = isChoice || type === 'enum';
 
   // A field is connected when an extractor is ticked OR some addon's prompt
   // mentions it via {{fieldname:NAME}} (e.g. a Thinker that returns it —
@@ -166,9 +181,21 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
 
   const startEditLive = () => {
     setLiveDraft(liveValueToString(liveValue));
+    setLiveDraftList(valuesOf(liveValue));
     setEditingLive(true);
   };
   const saveLive = async () => {
+    if (liveMulti) {
+      // The whole selection; nothing picked = clear (never store []).
+      const list = orderByEnum(liveDraftList, liveEnum);
+      if (list.length === 0) {
+        await updateConversationMemoryField({ field: original.name, clear: true });
+      } else {
+        await updateConversationMemoryField({ field: original.name, value: list, domain: original.domain ?? null });
+      }
+      setEditingLive(false);
+      return;
+    }
     const raw = liveDraft.trim();
     let v: unknown = raw;
     if (type === 'int') {
@@ -262,6 +289,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
         definition:   definition.trim() || undefined,
         domain: domain.trim() || undefined,
         enumType: isChoice ? effectiveEnumType : (type === 'enum' && enumType ? enumType : undefined),
+        multiple: isEnumType && multiple ? true : undefined,
       },
     );
     // 2. Sync the "extracted by" set.
@@ -329,7 +357,13 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
                 <button type="button" className={styles.liveBtn} onClick={startEditLive}>Set value</button>
               )}
             </div>
-            {editingLive ? (
+            {editingLive && liveMulti ? (
+              <div className={styles.liveEditRow}>
+                <MultiChipPicker options={liveOptions} values={liveDraftList} onChange={setLiveDraftList} />
+                <button type="button" className={styles.liveSave} onClick={saveLive}>Save value</button>
+                <button type="button" className={styles.liveBtn} onClick={() => setEditingLive(false)}>Cancel</button>
+              </div>
+            ) : editingLive ? (
               <div className={styles.liveEditRow}>
                 <input
                   className={styles.input}
@@ -343,7 +377,7 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
               </div>
             ) : (
               <div className={styles.liveValueChip}>
-                {hasLive ? liveValueToString(liveValue) : <em className={styles.liveEmpty}>—</em>}
+                {hasLive ? showLive(liveValue) : <em className={styles.liveEmpty}>—</em>}
               </div>
             )}
           </div>
@@ -445,6 +479,25 @@ export function FieldEditorModal({ crewField, onClose, agentId, crewId }: Props)
             </select>
           </label>
 
+        </div>
+
+        {/* "Several values" (#947). Always rendered — disabled for
+            non-list types — so the modal never resizes on a type change. */}
+        <div className={styles.field}>
+          <label
+            className={`${styles.connectLaterLabel} ${isEnumType ? '' : styles.connectLaterLabelDisabled}`}
+            title={isEnumType
+              ? 'The field can hold several values at once. {{dc:…}} then injects every selected value, each under its own heading.'
+              : 'Only a Choice or a Targeted KB field can hold several values'}
+          >
+            <input
+              type="checkbox"
+              checked={isEnumType && multiple}
+              disabled={!isEnumType}
+              onChange={e => setMultiple(e.target.checked)}
+            />
+            Several values
+          </label>
         </div>
 
         {/* Choice values — inline editor for the field-owned list.

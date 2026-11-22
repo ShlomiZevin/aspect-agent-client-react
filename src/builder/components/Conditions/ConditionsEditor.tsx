@@ -21,6 +21,7 @@ import { lintFormula } from './formulaLint';
 import { FormulaHelpButton } from './FormulaHelp';
 import { MentionTextarea } from '../MentionTextarea/MentionTextarea';
 import { SYSTEM_FIELDS } from '../../registry/systemFields';
+import { isMultiField } from '../../state/multiValue';
 import type { FieldDef, FieldOp, ID, TransitionCondition } from '../../types';
 import styles from './ConditionsEditor.module.css';
 
@@ -56,6 +57,15 @@ const OP_LABELS: Record<FieldOp, string> = {
   'not-in':       'is not one of',
   'is-null':      'is empty',
   'is-not-null':  'has a value',
+};
+
+/** A multi-value field (#947) is read as "contains" — same ops, the
+ *  screen words say what they do on a list. */
+const MULTI_OP_LABELS: Partial<Record<FieldOp, string>> = {
+  'equals':     'includes',
+  'not-equals': "doesn't include",
+  'in':         'includes any of',
+  'not-in':     'includes none of',
 };
 
 // Emptiness checks apply to every field type — they're the only ops
@@ -375,6 +385,7 @@ function FieldBody({
   const isNumeric = matched?.type === 'int';
   const multiValue = isMultiValueOp(cond.op);
   const noValue = isNoValueOp(cond.op);
+  const listField = isMultiField(matched);
 
   return (
     <>
@@ -402,7 +413,7 @@ function FieldBody({
         }}
       >
         {allowedOps.map(op => (
-          <option key={op} value={op}>{OP_LABELS[op]}</option>
+          <option key={op} value={op}>{(listField && MULTI_OP_LABELS[op]) || OP_LABELS[op]}</option>
         ))}
       </select>
 
@@ -564,7 +575,7 @@ function FormulaBody({
 
 /* ─── Reusable: chip multi-picker for in / not-in over enum ─────── */
 
-function MultiChipPicker({
+export function MultiChipPicker({
   options, values, onChange,
 }: {
   options: string[];

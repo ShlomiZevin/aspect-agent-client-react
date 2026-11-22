@@ -68,7 +68,8 @@ interface DcResolution {
   /** `null` for the umbrella `{{dc:F}}`, the section name for
    *  `{{dc:F:S}}`, or `'*'` for the all-sections join. */
   section: string | null;
-  matched: string | null; // null = no value matched on the enum
+  /** null = no value matched on the enum; a list on a multi-value field (#947). */
+  matched: string | string[] | null;
   text: string;
 }
 
@@ -198,6 +199,9 @@ function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
     webSearch?: WebSearchRun;
     /** Guardrail verdict (#963). */
     guardrail?: AddonRunSnapshot['guardrail'];
+    rejectedWrites?: AddonRunSnapshot['rejectedWrites'];
+    /** Targeted KB lookups (#947). */
+    targetedKb?: AddonRunSnapshot['targetedKb'];
   };
   return {
     instanceId:   r.instanceId,
@@ -219,6 +223,8 @@ function snapshotFromPersisted(r: PersistedAddonRun): AddonRunSnapshot {
     error:        d.error,
     webSearch:    d.webSearch,
     guardrail:    d.guardrail,
+    rejectedWrites: d.rejectedWrites,
+    targetedKb:   d.targetedKb,
   };
 }
 
@@ -613,6 +619,8 @@ export function UserChat() {
           historyCount: e.historyCount,
           webSearch:    e.webSearch,
           guardrail:    e.guardrail,
+          rejectedWrites: e.rejectedWrites,
+          targetedKb:   e.targetedKb,
         }));
         // Talker just finished — release the input gate IF this stream
         // is the latest send. Older sends' Talker outputs (which would

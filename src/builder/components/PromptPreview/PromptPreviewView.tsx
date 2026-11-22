@@ -17,6 +17,7 @@ import { Modal } from '../Modal/Modal';
 import { filterShortSummary } from '../Filter/filterFormat';
 import { buildPreviewNodes, type PreviewContext, type PreviewNode } from './previewSegments';
 import type { AddonInstance, CrewDoc, EnumTypeDef, FieldDef, ID } from '../../types';
+import { isMultiField } from '../../state/multiValue';
 import styles from './PromptPreviewView.module.css';
 
 interface Props {
@@ -257,8 +258,18 @@ function DcViewer({ field, section, fieldPool, enums }: {
   return (
     <div className={styles.dc}>
       <div className={styles.dcIntro}>
-        At runtime this resolves to whatever value <code>{field}</code> currently holds on enum
-        {' '}<code>{enumDef.name}</code>. One of these branches fires:
+        {isMultiField(fieldDef) ? (
+          <>
+            <code>{field}</code> holds several values (enum <code>{enumDef.name}</code>). At runtime
+            {' '}EVERY selected value&apos;s branch is injected, each under its own <code>### value</code> heading;
+            {' '}unselected values are left out:
+          </>
+        ) : (
+          <>
+            At runtime this resolves to whatever value <code>{field}</code> currently holds on enum
+            {' '}<code>{enumDef.name}</code>. One of these branches fires:
+          </>
+        )}
       </div>
       <div className={styles.dcList}>
         {enumDef.values.map(v => {

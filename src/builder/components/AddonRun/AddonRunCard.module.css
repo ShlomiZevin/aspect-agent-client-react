@@ -634,3 +634,46 @@
   color: #b45309;
   font-weight: 500;
 }
+
+/* Task #947: Targeted KB lookups — which values were selected and what
+   each {{dc:…}} token actually injected. */
+.tkbList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tkbRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tkbHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.tkbChip {
+  font-size: 10.5px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4338ca;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.tkbChipEmpty {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
+.tkbDetails summary {
+  font-size: 10.5px;
+  color: var(--text-tertiary, #9ca3af);
+  cursor: pointer;
+  margin: 2px 0 4px;
+}

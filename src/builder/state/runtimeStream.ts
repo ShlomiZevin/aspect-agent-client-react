@@ -10,6 +10,22 @@ import { runtimeMessageStream, type LiveBrainPanelData, type ProfilerPanelData }
 import type { GuardrailVerdict } from '../types';
 
 /** One source a web search returned (task #967). */
+/**
+ * One {{dc:FIELD[:SECTION|*]}} lookup an add-on's prompt resolved (task
+ * #947) — kept on the run (`addon.output` / `addon_runs.run_data`) so the
+ * run card shows which values were selected and what was injected.
+ *   values   — the field's value(s) at that moment
+ *   injected — the values whose content went into the prompt
+ */
+export interface TargetedKbLookup {
+  fieldName: string;
+  section: string | null;
+  values: string[];
+  injected: string[];
+  text: string;
+  multiple?: true;
+}
+
 export interface WebSearchSource { url: string; title: string | null }
 
 /**
@@ -124,6 +140,11 @@ export type RuntimeEvent =
       /** Guardrail (#963): the verdict and what was applied. */
       guardrail?: GuardrailVerdict;
       parseError?: string;
+      /** Field writes the enum guard dropped (#805; per member on a
+       *  multi-value field, #947). */
+      rejectedWrites?: Array<{ field: string; value: unknown; allowed: string[] }>;
+      /** Every {{dc:…}} lookup this run's prompt resolved (#947). */
+      targetedKb?: TargetedKbLookup[];
       transition?: { to: string; reason?: string };
       broke?: boolean;
       /** Which lane this addon ran in. Surfaced on addon.output so a
@@ -201,8 +222,12 @@ export type RuntimeEvent =
       instanceId: string;
       fieldName: string;
       section: string | null;
-      matched: string | null;
+      /** A multi-value field (#947): the values whose blocks rendered. */
+      matched: string | string[] | null;
       text: string;
+      /** Multi-value field only: the whole selection at that moment. */
+      values?: string[];
+      multiple?: true;
     }
   /** Task #816: the turn was stopped by the user — no reply persisted. */
   | { type: 'turn.stopped' }
