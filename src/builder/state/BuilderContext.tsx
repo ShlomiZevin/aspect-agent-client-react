@@ -56,6 +56,11 @@ import {
   cascadeThinkingDomainTokens,
   deleteAgentTag,
 } from './promptTokenCascade';
+// Version bodies and every "unsaved?" comparison (canonical on both sides).
+import {
+  agentBodiesEqual, applyAgentBody, applyCrewBody, bodyOfAgent, bodyOfCrew,
+  canonicalAgentBody, canonicalCrewBody, crewBodiesEqual, stableStringify,
+} from './entityBody';
 
 // ─── Factories ─────────────────────────────────────────────────────
 
@@ -73,20 +78,6 @@ function defaultTalker(): AddonInstance<TalkerConfig> {
     context: defaultContextFor(talkerPlugin),
     outputType: defaultOutputTypeFor(talkerPlugin),
     promptTemplate: talkerPlugin.defaultPromptTemplate,
-  };
-}
-
-export function bodyOf(crew: CrewDoc): CrewBody {
-  return {
-    name: crew.name,
-    description: crew.description,
-    spec: crew.spec,
-    persona: crew.persona,
-    addons: crew.addons,
-    fields: crew.fields,
-    // Data protection override (#986) — empty == absent, in lockstep with
-    // useProjectSync.bodyOfCrew (the copy that persists it).
-    ...(crew.dataProtection ? { dataProtection: crew.dataProtection } : {}),
   };
 }
 
@@ -116,77 +107,6 @@ function emptyCrew(name = 'Welcome'): CrewDoc {
 }
 
 /**
- * Stable JSON stringify — sorts object keys so two equal objects
- * produce the same string regardless of key insertion order. Needed
- * because Postgres `jsonb` doesn't preserve key order when round-
- * tripped, so the server-returned version body has keys in a
- * different order than what the client's `bodyOf*` returns even
- * when the values are identical.
- */
-function stableStringify(value: unknown): string {
-  return JSON.stringify(value, (_k, v) => {
-    if (v && typeof v === 'object' && !Array.isArray(v)) {
-      return Object.fromEntries(
-        Object.keys(v as Record<string, unknown>)
-          .sort()
-          .map(k => [k, (v as Record<string, unknown>)[k]]),
-      );
-    }
-    return v;
-  });
-}
-
-/** Deep-ish equality good enough for CrewBody. Key-order-independent. */
-function bodiesEqual(a: CrewBody, b: CrewBody): boolean {
-  return stableStringify(a) === stableStringify(b);
-}
-
-export function bodyOfAgent(agent: AgentDoc): AgentBody {
-  return {
-    name: agent.name,
-    slug: agent.slug,
-    spec: agent.spec,
-    persona: agent.persona,
-    personas: agent.personas ?? [],
-    defaultCrewId: agent.defaultCrewId,
-    fields: agent.fields,
-    domains: agent.domains ?? [],
-    // Same empty==absent trick as liveBrain below — agents that never
-    // declared tags keep comparing equal to their pre-tags version bodies.
-    ...((agent.tags?.length) ? { tags: agent.tags } : {}),
-    parameters: agent.parameters ?? [],
-    enums: agent.enums ?? [],
-    cortex: agent.cortex ?? [],
-    snippets: agent.snippets ?? [],
-    // Only snapshot liveBrain once it has panels, so agents that never
-    // used the feature compare equal to their pre-liveBrain version
-    // bodies (no spurious "dirty" on load). Empty == absent.
-    ...((agent.liveBrain?.panels?.length || agent.liveBrain?.frame || agent.liveBrain?.enabled === false) ? { liveBrain: agent.liveBrain } : {}),
-    // Same empty==absent trick for the Profiler — without this, any agent
-    // with a profiler shows a permanent phantom "unsaved changes" (the
-    // working copy carries `profiler`, the compared body wouldn't).
-    ...((agent.profiler?.panels?.length || agent.profiler?.frame || agent.profiler?.ask || agent.profiler?.enabled === false) ? { profiler: agent.profiler } : {}),
-    // Same empty==absent trick for Triggers. Without it every agent that
-    // has never used the feature would carry an empty `triggers` key the
-    // saved version body doesn't have, and show a permanent phantom
-    // "unsaved changes" the moment the builder loads.
-    ...((agent.triggers?.triggers?.length || agent.triggers?.enabled === false) ? { triggers: agent.triggers } : {}),
-    // CREWS sidebar tree (#855) — display only. Same empty==absent trick.
-    ...(Object.keys(agent.crewTree?.parents ?? {}).length ? { crewTree: agent.crewTree } : {}),
-    // Model route (#984): Direct == absent, so agents saved before it
-    // compare equal (no phantom "unsaved changes").
-    ...(agent.modelRoute === 'vertex' ? { modelRoute: 'vertex' as const } : {}),
-    // Data protection (#986): absent = off, so agents saved before it
-    // compare equal (no phantom "unsaved changes").
-    ...(agent.dataProtection ? { dataProtection: agent.dataProtection } : {}),
-  };
-}
-
-function agentBodiesEqual(a: AgentBody, b: AgentBody): boolean {
-  return stableStringify(a) === stableStringify(b);
-}
-
-/**
  * The client's visible working copies of one agent + its crews, in the
  * shape the Alfred endpoints accept (`workingBodies`). Shared by the
  * brainstorm chat, Apply preview, and Apply generation so all Alfred
@@ -200,7 +120,7 @@ export function workingBodiesOf(
   if (!agent) return undefined;
   return {
     agent: { id: agent.id, body: bodyOfAgent(agent) },
-    crews: agent.crews.map(c => ({ id: c.id, body: bodyOf(c) })),
+    crews: agent.crews.map(c => ({ id: c.id, body: bodyOfCrew(c) })),
   };
 }
 
@@ -312,15 +232,18 @@ function fingerprint(body: unknown): string {
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
 }
 
-/** `_meta.baseline` for a folder write — each entity's SAVED snapshot. */
+/**
+ * `_meta.baseline` for a folder write — each entity's SAVED snapshot, in
+ * canonical form (entityBody.ts) so `editedInFile` compares like with like.
+ */
 function draftBaseline(doc: ProjectDoc): Record<string, string> {
   const out: Record<string, string> = {};
   for (const agent of doc.agents) {
     const va = agent.versions.find(v => v.id === agent.viewingVersionId);
-    if (va) out[agent.id] = fingerprint(va.body);
+    if (va) out[agent.id] = fingerprint(canonicalAgentBody(va.body));
     for (const crew of agent.crews) {
       const vc = crew.versions.find(v => v.id === crew.viewingVersionId);
-      if (vc) out[crew.id] = fingerprint(vc.body);
+      if (vc) out[crew.id] = fingerprint(canonicalCrewBody(vc.body));
     }
   }
   return out;
@@ -385,7 +308,7 @@ function mergeFolderContent(
       tookAny = true;
       crews.push({
         ...inCrew,
-        versions: [{ ...v0, body: bodyOf(inCrew) }],
+        versions: [{ ...v0, body: bodyOfCrew(inCrew) }],
         activeVersionId: v0.id,
         viewingVersionId: v0.id,
       });
@@ -413,9 +336,9 @@ function editedInFile(found: { meta: { baseline?: Record<string, string> }; doc:
   }
   const edited = new Set<ID>();
   for (const agent of found.doc.agents) {
-    if (baseline[agent.id] !== fingerprint(bodyOfAgent(agent))) edited.add(agent.id);
+    if (baseline[agent.id] !== fingerprint(canonicalAgentBody(agent))) edited.add(agent.id);
     for (const crew of agent.crews) {
-      if (baseline[crew.id] !== fingerprint(bodyOf(crew))) edited.add(crew.id);
+      if (baseline[crew.id] !== fingerprint(canonicalCrewBody(crew))) edited.add(crew.id);
     }
   }
   return id => edited.has(id);
@@ -427,10 +350,10 @@ export const __folderDraftInternals = { mergeFolderContent, editedInFile, draftB
 function draftHasUnsavedWork(draft: ProjectDoc): boolean {
   for (const agent of draft.agents) {
     const viewingA = agent.versions.find(v => v.id === agent.viewingVersionId);
-    if (!viewingA || !agentBodiesEqual(bodyOfAgent(agent), viewingA.body)) return true;
+    if (!viewingA || !agentBodiesEqual(agent, viewingA.body)) return true;
     for (const crew of agent.crews) {
       const viewingC = crew.versions.find(v => v.id === crew.viewingVersionId);
-      if (!viewingC || !bodiesEqual(bodyOf(crew), viewingC.body)) return true;
+      if (!viewingC || !crewBodiesEqual(crew, viewingC.body)) return true;
     }
   }
   return false;
@@ -2343,7 +2266,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
           ...a,
           crews: a.crews.map(c => {
             if (c.id !== crewId) return c;
-            const body = bodyOf(c);
+            const body = bodyOfCrew(c);
             const updated: CrewDoc = {
               ...c,
               versions: c.versions.map(v =>
@@ -2370,7 +2293,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
         parentAgentId: agentId,
         entity:        'crew',
         entityId:      crewId,
-        savedBody:     bodyOf(updatedCrew),
+        savedBody:     bodyOfCrew(updatedCrew),
         attribution:   opts?.attribution,
       });
     }
@@ -2405,7 +2328,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
                 number: nextNumber,
                 description: description?.trim() || undefined,
                 createdAt: new Date().toISOString(),
-                body: bodyOf(c),
+                body: bodyOfCrew(c),
               };
               created = v;
               const updated: CrewDoc = {
@@ -2428,7 +2351,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
           parentAgentId: agentId,
           entity:        'crew',
           entityId:      crewId,
-          savedBody:     bodyOf(updatedCrew),
+          savedBody:     bodyOfCrew(updatedCrew),
           attribution:   opts?.attribution,
         });
       }
@@ -2541,14 +2464,14 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   );
 
   // Dirty compares the working copy against the VIEWING snapshot —
-  // that's what Save writes to.
+  // that's what Save writes to. Both sides canonical (entityBody.ts).
   const isCrewDirty = useCallback(
     (agentId: ID, crewId: ID): boolean => {
       const crew = doc.agents.find(a => a.id === agentId)?.crews.find(c => c.id === crewId);
       if (!crew) return false;
       const viewing = crew.versions.find(v => v.id === crew.viewingVersionId);
       if (!viewing) return true;
-      return !bodiesEqual(bodyOf(crew), viewing.body);
+      return !crewBodiesEqual(crew, viewing.body);
     },
     [doc],
   );
@@ -2572,16 +2495,8 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
               if (c.id !== crewId) return c;
               const viewing = c.versions.find(v => v.id === c.viewingVersionId);
               if (!viewing) return c;
-              const body = viewing.body;
-              return {
-                ...c,
-                name:        body.name,
-                description: body.description,
-                spec:        body.spec,
-                persona:     body.persona,
-                addons:      Array.isArray(body.addons) ? body.addons : [],
-                fields:      Array.isArray(body.fields) ? body.fields : [],
-              };
+              // Every body section, as a fresh load would (entityBody.ts).
+              return applyCrewBody(c, viewing.body);
             }),
           };
         }),
@@ -2922,7 +2837,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
       if (!agent) return false;
       const viewing = agent.versions.find(v => v.id === agent.viewingVersionId);
       if (!viewing) return true;
-      return !agentBodiesEqual(bodyOfAgent(agent), viewing.body);
+      return !agentBodiesEqual(agent, viewing.body);
     },
     [doc],
   );
@@ -2943,9 +2858,10 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
   }, [isAgentDirty, isCrewDirty, saveAgentVersion, saveCrewVersion]);
 
   /**
-   * Revert the agent's working copy (shell fields only — crews live
-   * elsewhere) to the viewing version's body. Also drops any pending
-   * Alfred apply target for this agent.
+   * Revert the agent's working copy (its body — crews live elsewhere) to
+   * the viewing version's body: every section, as a fresh load would
+   * (entityBody.ts `applyAgentBody`). Also drops any pending Alfred apply
+   * target for this agent.
    */
   const discardAgentChanges = useCallback((agentId: ID) => {
     setDoc(d => {
@@ -2955,16 +2871,7 @@ export function BuilderProvider({ agentSlug, ownerUserId, initialDoc, children }
           if (a.id !== agentId) return a;
           const viewing = a.versions.find(v => v.id === a.viewingVersionId);
           if (!viewing) return a;
-          const body = viewing.body;
-          return {
-            ...a,
-            name:          body.name,
-            slug:          body.slug,
-            spec:          body.spec,
-            persona:       body.persona,
-            defaultCrewId: body.defaultCrewId,
-            fields:        Array.isArray(body.fields) ? body.fields : [],
-          };
+          return applyAgentBody(a, viewing.body);
         }),
       };
       docRef.current = next;

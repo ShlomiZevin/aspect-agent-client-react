@@ -51,7 +51,7 @@
 
 import { useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
-import { bodyOfAgent, bodyOfCrew } from '../../state/useProjectSync';
+import { bodyOfAgent, bodyOfCrew } from '../../state/entityBody';
 import { checkTrigger, fireTrigger } from '../../state/triggersApi';
 import { useActivityLog } from './activityLog';
 import type { AgentDoc, AgentTrigger } from '../../types';

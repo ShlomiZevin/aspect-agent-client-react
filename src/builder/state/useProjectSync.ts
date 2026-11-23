@@ -20,73 +20,11 @@ import * as api from './builderApi';
 import type {
   AgentBody,
   AgentDoc,
-  CrewBody,
   CrewDoc,
   ID,
 } from '../types';
-
-/**
- * Build the version-body slice of an AgentDoc. Exported so the
- * runtime-preview path can ship the *working copy* of the body
- * alongside a chat request — the server then runs the dirty version
- * instead of the saved one. Kept in lockstep with the snapshot the
- * save path produces (same shape, same field order).
- */
-export function bodyOfAgent(agent: AgentDoc): AgentBody {
-  return {
-    name: agent.name,
-    slug: agent.slug,
-    spec: agent.spec,
-    persona: agent.persona,
-    personas: agent.personas ?? [],
-    defaultCrewId: agent.defaultCrewId,
-    fields: agent.fields,
-    domains: agent.domains ?? [],
-    parameters: agent.parameters ?? [],
-    enums: agent.enums ?? [],
-    cortex: agent.cortex ?? [],
-    snippets: agent.snippets ?? [],
-    // Snapshot liveBrain only when it has panels — keeps this in lockstep
-    // with BuilderContext.bodyOfAgent so the save body and the dirty-check
-    // body match. (This is what actually persists panels to the server.)
-    ...((agent.liveBrain?.panels?.length || agent.liveBrain?.frame || agent.liveBrain?.enabled === false) ? { liveBrain: agent.liveBrain } : {}),
-    // Same for the Profiler — WITHOUT this the save body omits it, which
-    // both wipes a saved profiler AND makes the runtime override drop it
-    // (no auto-update, no runs). Empty == absent. `enabled:false` also
-    // persists so a disabled surface stays disabled.
-    ...((agent.profiler?.panels?.length || agent.profiler?.frame || agent.profiler?.ask || agent.profiler?.enabled === false) ? { profiler: agent.profiler } : {}),
-    // Triggers (proactive). Same rule, same reason — and this is THE
-    // copy that persists: omitting it here means a trigger you author
-    // is never written to the server at all, while the builder keeps
-    // showing it from the in-memory working copy until you reload.
-    ...((agent.triggers?.triggers?.length || agent.triggers?.enabled === false) ? { triggers: agent.triggers } : {}),
-    // CREWS sidebar tree (#855) — display only; empty == absent, in
-    // lockstep with BuilderContext.bodyOfAgent.
-    ...(Object.keys(agent.crewTree?.parents ?? {}).length ? { crewTree: agent.crewTree } : {}),
-    // Model route (#984) — THE copy that persists it. Direct == absent, in
-    // lockstep with BuilderContext.bodyOfAgent.
-    ...(agent.modelRoute === 'vertex' ? { modelRoute: 'vertex' as const } : {}),
-    // Data protection (#986) — THE copy that persists it. Absent = off, in
-    // lockstep with BuilderContext.bodyOfAgent. Without this a Builder save
-    // would silently drop settings made through the MCP.
-    ...(agent.dataProtection ? { dataProtection: agent.dataProtection } : {}),
-  };
-}
-
-/** Mirror of `bodyOfAgent` for crews. Same exported-for-runtime-preview reason. */
-export function bodyOfCrew(crew: CrewDoc): CrewBody {
-  return {
-    name: crew.name,
-    description: crew.description,
-    spec: crew.spec,
-    persona: crew.persona,
-    addons: crew.addons,
-    fields: crew.fields,
-    // Data protection override (#986) — THE copy that persists it. Empty ==
-    // absent, in lockstep with BuilderContext.bodyOf.
-    ...(crew.dataProtection ? { dataProtection: crew.dataProtection } : {}),
-  };
-}
+// The save body — the same projection the dirty check canonicalises with.
+import { bodyOfAgent, bodyOfCrew } from './entityBody';
 
 export interface ProjectSyncApi {
   pushSaveAgentVersion: (agent: AgentDoc) => Promise<void>;

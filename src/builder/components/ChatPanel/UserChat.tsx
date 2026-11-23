@@ -31,7 +31,7 @@ import {
   type ConversationMessage,
   type PersistedAddonRun,
 } from '../../state/builderApi';
-import { bodyOfAgent, bodyOfCrew } from '../../state/useProjectSync';
+import { bodyOfAgent, bodyOfCrew } from '../../state/entityBody';
 import { sendRuntimeMessage, type RuntimeEvent, type WebSearchRun } from '../../state/runtimeStream';
 import { AddonRunTimeline, type RunCat } from '../AddonRun/AddonRunTimeline';
 import { webSearchLine, type AddonRunSnapshot } from '../AddonRun/AddonRunCard';

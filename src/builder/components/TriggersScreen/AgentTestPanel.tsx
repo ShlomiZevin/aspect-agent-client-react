@@ -40,7 +40,7 @@
 
 import { useState } from 'react';
 import { useBuilder } from '../../state/BuilderContext';
-import { bodyOfAgent, bodyOfCrew } from '../../state/useProjectSync';
+import { bodyOfAgent, bodyOfCrew } from '../../state/entityBody';
 import { fireRound } from '../../state/triggersApi';
 import { useActivityLog, stateOfOutcome } from './activityLog';
 import styles from './TriggersScreen.module.css';
