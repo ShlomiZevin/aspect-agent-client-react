@@ -1335,7 +1335,7 @@ export async function stopLoadTest(args: { id: number; by: string }): Promise<Lo
 // Shapes mirror builder/services/errorCenter.js.
 
 export type ErrorArea = 'turn' | 'addon' | 'model' | 'offline' | 'trigger' | 'profiler' | 'live-brain' | 'simulation' | 'server';
-export type ErrorKind = 'model_no_credit' | 'model_rate_limit' | 'model_timeout' | 'model_refusal' | 'model_bad_answer' | 'model_other' | 'database' | 'external' | 'server_unavailable' | 'user_input' | 'code';
+export type ErrorKind = 'model_no_credit' | 'model_rate_limit' | 'model_timeout' | 'model_refusal' | 'model_bad_answer' | 'model_other' | 'database' | 'external' | 'server_unavailable' | 'connection_lost' | 'user_input' | 'code';
 export type ErrorSource = 'builder' | 'customer' | 'simulation';
 
 /** One kind of problem: every repeat of it counted on one line. */
@@ -1596,6 +1596,10 @@ export function runtimeMessageStream(args: {
   /** The chat's language ('he' | 'en') — picks the data protection
    *  message when the server stops the message (#986). */
   lang?: string;
+  /** Which chat is asking (#1011). 'go' = the login-gated customer chat:
+   *  the server sends only what it renders (no prompts, no raw outputs).
+   *  Absent → the full stream (Builder, /live, embed). */
+  surface?: 'go';
 }): Promise<Response> {
   return fetch(
     `${BASE_URL}/api/agents/${args.agentSlug}/conversations/${args.conversationId}/messages`,
@@ -1607,6 +1611,7 @@ export function runtimeMessageStream(args: {
         userMessage: args.userMessage,
         version: args.version || 'viewing',
         ...(args.lang ? { lang: args.lang } : {}),
+        ...(args.surface ? { surface: args.surface } : {}),
         ...(args.overrideCrewId   ? { overrideCrewId:   args.overrideCrewId   } : {}),
         ...(args.overrideAgentBody ? { overrideAgentBody: args.overrideAgentBody } : {}),
         ...(args.overrideCrewBody  ? { overrideCrewBody:  args.overrideCrewBody  } : {}),
@@ -1643,6 +1648,25 @@ export async function recordProtectionBlock(args: {
     return typeof res?.blockId === 'number' ? res.blockId : null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * The customer chat lost a turn's reply stream (#978) — one Error Center row
+ * per drop. Resolves true once the server kept it; never throws (the caller
+ * retries while the connection is still down).
+ */
+export async function reportStreamDrop(args: {
+  agentSlug: string;
+  conversationId: number;
+  userMessageId: number | null;
+  browserError?: string;
+}): Promise<boolean> {
+  try {
+    await http('/api/errors/client-drop', { method: 'POST', body: JSON.stringify(args) });
+    return true;
+  } catch {
+    return false;
   }
 }
 

@@ -31,10 +31,38 @@ import {
   type ProfilerAskConfig,
   recordProtectionBlock,
   reportProtectionMistake,
+  reportStreamDrop,
 } from '../builder/state/builderApi';
 import { useProactivePush } from '../builder/state/useProactivePush';
 import { sendRuntimeMessage, type RuntimeEvent } from '../builder/state/runtimeStream';
 import { checkOutgoing, type ProtectionSource } from './protection';
+import { I18N } from './i18n';
+
+// A dropped connection (task #978): how often the chat reads the
+// conversation while it waits for a reply the stream lost, and when it
+// gives up (the server's "no reply" rule is 3 minutes too).
+const REPLY_POLL_MS = 3000;
+const REPLY_GIVE_UP_MS = 3 * 60 * 1000;
+/** A message the server still doesn't have this long after the drop never reached it. */
+const NOT_SENT_GRACE_MS = 15 * 1000;
+const dictFor = (lang: string) => I18N[lang === 'en' ? 'en' : 'he'];
+
+/** One turn waiting for the reply its stream lost (#978). */
+interface Recovery {
+  turnId: string;
+  convId: number;
+  /** The customer's message, when known (`conversation` event / history). */
+  userMessageId: number | null;
+  /** The reply row, when known (a conversation opened mid-turn). */
+  assistantMessageId: number | null;
+  /** Unknown message: the newest message id on screen before the send. */
+  afterId: number;
+  /** When the wait started — the give-up clock. */
+  since: number;
+  /** Report the drop to the error center (once) — a send that lost its stream. */
+  report: boolean;
+  browserError?: string;
+}
 
 /**
  * A message data protection stopped (task #986) — in the browser before
@@ -201,9 +229,12 @@ interface Args {
   lang?: string;
   /** A stopped message's text, handed back so the composer can show it again. */
   onDraftBack?: (text: string) => void;
+  /** 'go' on the login-gated customer chat (#1011): the server sends only
+   *  what that chat renders. Absent on /live and the embed (full stream). */
+  surface?: 'go';
 }
 
-export function useLiveChat({ slug, ownerUserId, version, protection = null, lang = 'he', onDraftBack }: Args): UseLiveChat {
+export function useLiveChat({ slug, ownerUserId, version, protection = null, lang = 'he', onDraftBack, surface }: Args): UseLiveChat {
   // Data protection inputs, read by `send` and the stream handlers without
   // re-creating them on every render.
   const protectionRef = useRef<ProtectionSource | null>(protection);
@@ -458,6 +489,102 @@ export function useLiveChat({ slug, ownerUserId, version, protection = null, lan
     }
   }, [updateTurn, replyDone, reloadConvList, setConversationId]);
 
+  // ── A dropped connection (task #978) ─────────────────────────────
+  // A phone switching WiFi ↔ mobile data kills the reply stream, but the
+  // server never notices: the turn runs on and saves the reply. So the
+  // turn stays waiting (the dots, the composer locked) and the chat reads
+  // the conversation until that reply is saved. A conversation opened
+  // mid-turn (its reply row is still empty) waits the same way. Only a
+  // reply that never comes gets a plain message — never a browser error.
+  const turnsRef = useRef<LiveTurn[]>([]);
+  useEffect(() => { turnsRef.current = turns; }, [turns]);
+  const recoveringRef = useRef<Set<string>>(new Set());
+  const aliveRef = useRef(true);
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => { aliveRef.current = false; };
+  }, []);
+
+  const recoverReply = useCallback(async (r: Recovery) => {
+    latestSendRef.current = r.turnId;
+    awaitingReplyRef.current = true;
+    setAwaitingReply(true);
+    // Back to the dots — a half-streamed text is replaced by the saved reply.
+    updateTurn(r.turnId, t => ({ ...t, assistantText: '', thinkingLabel: t.thinkingLabel ?? '' }));
+    if (recoveringRef.current.has(r.turnId)) return;
+    recoveringRef.current.add(r.turnId);
+
+    const startedAt = Date.now();
+    let userMessageId = r.userMessageId;
+    let reported = !r.report;
+    let outcome: 'reply' | 'noReply' | 'notSent' | 'lost' | 'gone' = 'lost';
+    const stillHere = () => aliveRef.current && conversationIdRef.current === r.convId
+      && turnsRef.current.some(t => t.id === r.turnId);
+    const report = () => reportStreamDrop({ agentSlug: slug, conversationId: r.convId, userMessageId, browserError: r.browserError });
+    try {
+      while (Date.now() - r.since < REPLY_GIVE_UP_MS) {
+        if (!reported && userMessageId !== null) reported = await report();
+        await new Promise(res => setTimeout(res, REPLY_POLL_MS));
+        if (!stillHere()) { outcome = 'gone'; return; }
+        let msgs: ConversationMessage[];
+        try {
+          msgs = await fetchConversationMessages({ agentSlug: slug, conversationId: r.convId });
+        } catch {
+          continue; // still offline — try again
+        }
+        if (!stillHere()) { outcome = 'gone'; return; }
+
+        let reply: ConversationMessage | null = null;
+        if (r.assistantMessageId !== null) {
+          reply = msgs.find(m => m.id === r.assistantMessageId) ?? null;
+          // The server drops the empty row of a turn that ended with no reply.
+          if (!reply) { outcome = 'noReply'; return; }
+        } else {
+          let uIdx = -1;
+          for (let i = msgs.length - 1; i >= 0; i--) {
+            const m = msgs[i];
+            if (userMessageId !== null ? m.id === userMessageId : (m.role === 'user' && m.id > r.afterId)) { uIdx = i; break; }
+          }
+          if (uIdx === -1) {
+            if (userMessageId === null && Date.now() - startedAt > NOT_SENT_GRACE_MS) { outcome = 'notSent'; return; }
+            continue;
+          }
+          userMessageId = msgs[uIdx].id;
+          const next = msgs[uIdx + 1];
+          reply = next && next.role === 'assistant' ? next : null;
+          if (!reply) {
+            if (Date.now() - startedAt > NOT_SENT_GRACE_MS) { outcome = 'noReply'; return; }
+            continue;
+          }
+        }
+        if (reply.content) {
+          const saved = reply;
+          const uid = userMessageId;
+          updateTurn(r.turnId, t => ({
+            ...t,
+            userMessageId: t.userMessageId ?? uid,
+            assistantText: saved.content,
+            assistantMessageId: saved.id,
+            thinkingLabel: null,
+            thinkLoaded: false,
+          }));
+          outcome = 'reply';
+          reloadConvList();
+          return;
+        }
+      }
+    } finally {
+      recoveringRef.current.delete(r.turnId);
+      if (!reported && userMessageId !== null && outcome !== 'gone') void report();
+      if (outcome !== 'gone' && stillHere()) {
+        if (outcome !== 'reply') updateTurn(r.turnId, t => ({ ...t, thinkingLabel: null }));
+        if (outcome === 'lost') setError(dictFor(langRef.current).replyLost);
+        if (outcome === 'notSent') setError(dictFor(langRef.current).notSent);
+      }
+      replyDone(r.turnId);
+    }
+  }, [slug, updateTurn, replyDone, reloadConvList]);
+
   const send = useCallback(async (raw: string) => {
     const text = raw.trim();
     if (!text || awaitingReplyRef.current || loadingRef.current || !slug) return;
@@ -493,6 +620,10 @@ export function useLiveChat({ slug, ownerUserId, version, protection = null, lan
     setAwaitingReply(true);
     setStreamsOpen(n => n + 1);
     let sentConvId: number | null = null;
+    // What the stream said before it ended — a dropped connection (#978).
+    const seen = { userMessageId: null as number | null, final: false };
+    const afterId = turnsRef.current.reduce((max, t) => Math.max(max, t.userMessageId ?? 0, t.assistantMessageId ?? 0), 0);
+    let recovering = false;
     try {
       let convId = conversationIdRef.current;
       if (convId === null) {
@@ -518,21 +649,48 @@ export function useLiveChat({ slug, ownerUserId, version, protection = null, lan
         userMessage: text,
         version,
         lang: langRef.current,
-        onEvent: makeHandleEvent(turnId, convId, text),
+        surface,
+        onEvent: (handle => (e: RuntimeEvent) => {
+          if (e.type === 'conversation') seen.userMessageId = e.messageId;
+          else if (e.type === 'assistant.message' || e.type === 'turn.stopped' || e.type === 'protection.blocked'
+            || e.type === 'done' || (e.type === 'addon.error' && e.instanceId === null)) seen.final = true;
+          handle(e);
+        })(makeHandleEvent(turnId, convId, text)),
       });
+      // Every turn ends with a final event; a stream that closed without
+      // one was cut (a proxy, a network switch) — same as a broken one.
+      if (!seen.final) throw new Error('The reply stream closed before the turn ended');
     } catch (err) {
-      // Not when the customer has moved to another conversation meanwhile.
-      if (sentConvId === null || conversationIdRef.current === sentConvId) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
+      // Never the browser's own words ("network error") — task #978.
+      const browserError = err instanceof Error ? err.message : String(err);
+      if (sentConvId === null) {
+        setError(dictFor(langRef.current).notSent); // the conversation could not even be created
+      } else if (conversationIdRef.current === sentConvId && !seen.final) {
+        // Not when the customer has moved to another conversation meanwhile,
+        // nor when the reply was already final (the stream broke in its tail).
+        if (browserError.startsWith('runtime stream failed')) {
+          setError(dictFor(langRef.current).notSent); // the server refused it before the turn began
+        } else {
+          // The stream broke — the server may well have the message and be
+          // writing the reply: keep waiting and read it from the server.
+          recovering = true;
+          void recoverReply({
+            turnId, convId: sentConvId, userMessageId: seen.userMessageId, assistantMessageId: null,
+            afterId, since: Date.now(), report: true, browserError,
+          });
+        }
       }
     } finally {
       setStreamsOpen(n => Math.max(0, n - 1));
-      // Defensive: the stream closed without a final-reply event (network
-      // error, no Talker) — never leave the composer or the dots stuck.
-      updateTurn(turnId, t => (t.thinkingLabel === null ? t : { ...t, thinkingLabel: null }));
-      replyDone(turnId);
+      // Defensive: the stream closed without a final-reply event (no
+      // Talker) — never leave the composer or the dots stuck. A recovering
+      // turn (#978) keeps both until its reply is read back.
+      if (!recovering) {
+        updateTurn(turnId, t => (t.thinkingLabel === null ? t : { ...t, thinkingLabel: null }));
+        replyDone(turnId);
+      }
     }
-  }, [slug, ownerUserId, version, makeHandleEvent, updateTurn, replyDone, setConversationId]);
+  }, [slug, ownerUserId, version, surface, makeHandleEvent, updateTurn, replyDone, setConversationId, recoverReply]);
 
   const loadConversation = useCallback(async (id: number) => {
     if (!slug) return;
@@ -544,8 +702,23 @@ export function useLiveChat({ slug, ownerUserId, version, protection = null, lan
     setError(null);
     try {
       const msgs = await fetchConversationMessages({ agentSlug: slug, conversationId: id });
-      setTurns(pairMessagesToTurns(msgs));
+      const loaded = pairMessagesToTurns(msgs);
+      setTurns(loaded);
       setConversationId(id);
+      // Opened mid-turn (#978) — e.g. a reload while the reply was on its
+      // way: the turn's reply row is saved empty when it starts. Show the
+      // dots and read it back until it fills (not for an old empty row).
+      const last = msgs[msgs.length - 1];
+      if (last && last.role === 'assistant' && last.content === '') {
+        const since = Math.min(Date.parse(last.createdAt) || 0, Date.now());
+        const turn = loaded.find(t => t.assistantMessageId === last.id);
+        if (turn && Date.now() - since < REPLY_GIVE_UP_MS) {
+          void recoverReply({
+            turnId: turn.id, convId: id, userMessageId: turn.userMessageId, assistantMessageId: last.id,
+            afterId: 0, since, report: false,
+          });
+        }
+      }
       // Its current crew, for the data protection check (#986).
       const listed = convListRef.current.find(c => c.id === id);
       const listedCrew = listed?.metadata && typeof listed.metadata.currentCrewId === 'string' ? listed.metadata.currentCrewId : null;
@@ -583,7 +756,7 @@ export function useLiveChat({ slug, ownerUserId, version, protection = null, lan
       loadingRef.current = false;
       setLoading(false);
     }
-  }, [slug, ownerUserId, version, resetLivePanels, resetProfilerPanels, releaseComposer, setConversationId]);
+  }, [slug, ownerUserId, version, resetLivePanels, resetProfilerPanels, releaseComposer, setConversationId, recoverReply]);
 
   const refresh = useCallback(async () => {
     await reloadConvList();

@@ -84,6 +84,7 @@ const KIND_LABEL: Record<ErrorKind, string> = {
   database: 'Database',
   external: 'External service',
   server_unavailable: 'Server unavailable',
+  connection_lost: 'Connection lost',
   user_input: 'User input',
   code: 'Our code',
 };
@@ -97,6 +98,7 @@ const KIND_TITLE: Record<ErrorKind, string> = {
   database: 'Reading or writing the database failed',
   external: 'Another service could not be reached',
   server_unavailable: 'Our server could not take the request — busy or down',
+  connection_lost: "The customer's connection dropped while the reply was on its way — the chat fetched the saved reply by itself",
   user_input: 'Something in what the user sent',
   code: 'A bug or a broken setup on our side',
 };

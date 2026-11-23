@@ -262,6 +262,10 @@ export interface SendArgs {
   overrideCrewBodies?: Record<string, unknown>;
   /** The chat's language ('he' | 'en') — picks the data protection message (#986). */
   lang?: string;
+  /** 'go' = the login-gated customer chat (#1011): the server trims every
+   *  event to what that chat renders (builder/runtime/streamSurface.js) —
+   *  no addon.prompt, and addon.output without prompt/rawOutput/parsedOutput. */
+  surface?: 'go';
   onEvent: (event: RuntimeEvent) => void;
   signal?: AbortSignal;
 }

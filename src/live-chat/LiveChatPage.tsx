@@ -89,7 +89,9 @@ export function LiveChatPage({ restricted = false, ownerUserIdOverride, onLogout
   const onDraftBack = useCallback((text: string) => {
     setInput(cur => (cur.trim() ? cur : text));
   }, []);
-  const chat = useLiveChat({ slug, ownerUserId, version: 'published', protection, lang: settings.lang, onDraftBack });
+  // /go gets a trimmed stream (#1011) — no prompts / raw outputs / panels;
+  // /live and the embed keep the full one (Debug mode renders it).
+  const chat = useLiveChat({ slug, ownerUserId, version: 'published', protection, lang: settings.lang, onDraftBack, surface: restricted ? 'go' : undefined });
 
   // Live Brain — the customer-facing panels for this conversation. They
   // arrive live on the chat stream (`brain.snapshot`) and hydrate once

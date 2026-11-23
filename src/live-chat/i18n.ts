@@ -37,6 +37,10 @@ export interface Dict {
   thinking: string;
   /** "Searching the web" — before a web search's query (task #967). */
   searchingWeb: string;
+  /** The connection dropped and the reply never came back (#978). */
+  replyLost: string;
+  /** The message never reached us (offline / server busy) (#978). */
+  notSent: string;
   quickTitle: string;
   /** Welcome/empty-state headline (Noa: "I run a conversation, not a form"). */
   welcomeIntro: string;
@@ -142,6 +146,8 @@ export const I18N: Record<Lang, Dict> = {
     placeholder: 'כתוב/כתבי לליבי…',
     thinking: 'חושב…',
     searchingWeb: 'מחפש ברשת',
+    replyLost: 'החיבור נקטע ולא הצלחנו להציג את התשובה. אפשר לרענן את הדף או לשלוח שוב.',
+    notSent: 'ההודעה לא נשלחה. כדאי לבדוק את החיבור לאינטרנט ולנסות שוב.',
     quickTitle: 'איך אפשר לעזור?',
     welcomeIntro: 'אני ליבי. אני מנהלת שיחה, לא טופס.',
     welcomePlaceholder: 'ספרו לי במילים שלכם מה מביא אתכם…',
@@ -234,6 +240,8 @@ export const I18N: Record<Lang, Dict> = {
     placeholder: 'Write to Lybi…',
     thinking: 'Thinking…',
     searchingWeb: 'Searching the web',
+    replyLost: "The connection dropped and we couldn't show the reply. Please refresh the page or send your message again.",
+    notSent: "Your message wasn't sent. Please check your internet connection and try again.",
     quickTitle: 'How can I help?',
     welcomeIntro: "I'm Lybi. I run a conversation, not a form.",
     welcomePlaceholder: 'Tell me in your own words what brings you here…',
