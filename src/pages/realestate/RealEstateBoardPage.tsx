@@ -14,6 +14,7 @@ import { realestateService, type BoardData } from '../../services/realestateServ
 import { askAgent, greeting, shekels, buildingLetter, unitKind } from './shared';
 import { Icon, Ring } from './ui';
 import { IsoBuildings } from './IsoBuildings';
+import { RealEstateTopbar } from './RealEstateTopbar';
 import styles from './RealEstateBoardPage.module.css';
 
 type View = 'buildings' | 'floors' | 'list';
@@ -62,25 +63,7 @@ export function RealEstateBoardPage() {
 
   return (
     <div className={styles.page} dir="rtl">
-      <header className={styles.topbar}>
-        <div className={styles.brand}>
-          <svg className={styles.mark} viewBox="0 0 48 40" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-            <path d="M6 38V18l8-6v26M14 38V8l10-6v36M24 38V12l10 5v21M34 38V20l8 4v14M2 38h44" />
-          </svg>
-          <div><strong>אופק יזמות</strong><small>יזמות · פיתוח · מגורים</small></div>
-        </div>
-        <nav className={styles.tabs}>
-          <Link to="/realestate/board" className={styles.tabActive}>לוח מכירות חי</Link>
-          <Link to="/realestate/brief">היועץ החכם שלי</Link>
-          <Link to="/realestate/intelligence">ניתוחי מכירות</Link>
-          <Link to="/realestate/intelligence/center">דוחות</Link>
-          <Link to="/realestate">שאל את ה-AI</Link>
-        </nav>
-        <div className={styles.user}>
-          <span className={styles.bell}><Icon name="bell" size={19} /><i /></span>
-          <span className={styles.userChip}><Icon name="user" size={16} /> מנכ״ל <Icon name="chevronDown" size={14} /></span>
-        </div>
-      </header>
+      <RealEstateTopbar active="board" />
 
       {error && <div className={styles.error}>לא הצלחתי לטעון את הלוח: {error}</div>}
 

@@ -1,6 +1,6 @@
 .page {
-  display: grid;
-  grid-template-columns: 236px 1fr;
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background: #f6f2ea;
   color: #1d2430;
@@ -272,10 +272,9 @@
 }
 
 @media (max-width: 760px) {
-  .page { grid-template-columns: 1fr; }
-  .page > aside { display: none; }
   .hero { padding: 20px 16px 0; }
   .heroImage { width: 100%; opacity: 0.25; }
+  .dateChip { position: relative; top: 0; left: 0; width: fit-content; margin-bottom: 16px; }
   .heroText { width: 100%; }
   .kpis { grid-template-columns: 1fr; }
   .sections { padding: 16px 16px 0; }

@@ -11,7 +11,7 @@ import { useDocumentMeta } from '../../hooks';
 import { realestateService, type BriefData } from '../../services/realestateService';
 import { askAgent, greeting, buildingLetter } from './shared';
 import { Icon } from './ui';
-import { RealEstateSidebar } from './RealEstateSidebar';
+import { RealEstateTopbar } from './RealEstateTopbar';
 import styles from './RealEstateBriefPage.module.css';
 
 export function RealEstateBriefPage() {
@@ -35,7 +35,7 @@ export function RealEstateBriefPage() {
 
   return (
     <div className={styles.page} dir="rtl">
-      <RealEstateSidebar active="brief" />
+      <RealEstateTopbar active="brief" />
 
       <main className={styles.main}>
         <header className={styles.hero}>
