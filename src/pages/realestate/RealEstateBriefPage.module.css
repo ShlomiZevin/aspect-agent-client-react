@@ -100,9 +100,16 @@
   gap: 14px;
   padding: 16px 18px;
   background: #fff;
+  border: none;
   border-radius: 14px;
   box-shadow: 0 6px 20px rgba(30, 40, 60, 0.08);
+  font: inherit;
+  color: inherit;
+  text-align: right;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
+.kpi:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(30, 40, 60, 0.14); }
 .kpi strong { display: block; font-size: 19px; font-weight: 800; }
 .kpi small { display: block; margin-top: 2px; font-size: 13px; color: #6b7280; }
 .kpiIcon {
@@ -128,6 +135,7 @@
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 4px 18px rgba(30, 40, 60, 0.06);
+  scroll-margin-top: 80px; /* clear of the sticky top bar when a KPI card scrolls here */
 }
 
 .sectionHead { display: flex; gap: 12px; align-items: flex-start; }
@@ -268,7 +276,6 @@
   cursor: pointer;
   flex-shrink: 0;
 }
-.mic { color: #6b7280; flex-shrink: 0; }
 
 @media (max-width: 1200px) {
   .callRow { grid-template-columns: 200px 1fr 110px; }

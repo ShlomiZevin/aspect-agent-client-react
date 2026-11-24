@@ -27,6 +27,9 @@ export function RealEstateBriefPage() {
     return () => { alive = false; };
   }, []);
 
+  // The KPI cards lead to the section that explains them.
+  const goTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const q = question.trim() || 'אילו לידים צפויים להבשיל החודש?';
@@ -42,7 +45,7 @@ export function RealEstateBriefPage() {
           <div className={styles.heroImage} />
           <div className={styles.dateChip}>
             <span className={styles.dateRow}><Icon name="calendar" size={16} /> {data?.date || ''}</span>
-            <span className={styles.scopeRow}><Icon name="chevronDown" size={14} /> תמונת מצב: כלל הפרויקטים</span>
+            <span className={styles.scopeRow}>תמונת מצב: כלל הפרויקטים</span>
           </div>
           <div className={styles.heroText}>
             <div className={styles.titleRow}>
@@ -57,25 +60,25 @@ export function RealEstateBriefPage() {
 
           {data && (
             <div className={styles.kpis}>
-              <div className={styles.kpi}>
+              <button type="button" className={styles.kpi} onClick={() => goTo('brief-calls')}>
                 <span className={`${styles.kpiIcon} ${styles.kpiGreen}`}><Icon name="phone" size={22} /></span>
                 <div><strong>{data.kpis.calls.count} שיחות קריטיות להיום</strong><small>{data.kpis.calls.sub}</small></div>
-              </div>
-              <div className={styles.kpi}>
+              </button>
+              <button type="button" className={styles.kpi} onClick={() => goTo('brief-stuck')}>
                 <span className={`${styles.kpiIcon} ${styles.kpiSand}`}><Icon name="home" size={22} /></span>
                 <div><strong>{data.kpis.stuck.count} דירות תקועות</strong><small>{data.kpis.stuck.sub}</small></div>
-              </div>
-              <div className={styles.kpi}>
+              </button>
+              <button type="button" className={styles.kpi} onClick={() => goTo('brief-leakage')}>
                 <span className={`${styles.kpiIcon} ${styles.kpiRed}`}><Icon name="percent" size={22} /></span>
                 <div><strong>זליגת הנחות: {data.kpis.leakage.amount}</strong><small>{data.kpis.leakage.sub}</small></div>
-              </div>
+              </button>
             </div>
           )}
         </header>
 
         {data && (
           <div className={styles.sections}>
-            <section className={styles.section}>
+            <section id="brief-calls" className={styles.section}>
               <div className={styles.sectionHead}>
                 <span className={styles.num}>1</span>
                 <div><h2>למי כדאי להתקשר היום?</h2><p>{data.calls.length} לידים בשלב מתקדם שאף אחד לא דיבר איתם כבר כמה ימים.</p></div>
@@ -97,7 +100,7 @@ export function RealEstateBriefPage() {
               </div>
             </section>
 
-            <section className={styles.section}>
+            <section id="brief-stuck" className={styles.section}>
               <div className={styles.sectionHead}>
                 <span className={styles.num}>2</span>
                 <div><h2>אילו דירות תקועות — ולמה?</h2><p>הדירות שנמצאות הכי הרבה זמן על המדף, עם הסיבה המרכזית והמלצה מה לעשות.</p></div>
@@ -119,7 +122,7 @@ export function RealEstateBriefPage() {
               </div>
             </section>
 
-            <section className={`${styles.section} ${styles.leakSection}`}>
+            <section id="brief-leakage" className={`${styles.section} ${styles.leakSection}`}>
               <div className={styles.sectionHead}>
                 <span className={styles.num}>3</span>
                 <div><h2>איפה ההנחות "זולגות" כסף?</h2><p>תבנית הנחות שמתרחבת בשקט, ומשחקת את שורת הרווח.</p></div>
@@ -140,7 +143,6 @@ export function RealEstateBriefPage() {
         <form className={styles.ask} onSubmit={submit}>
           <button type="submit" className={styles.send} aria-label="שלח"><Icon name="send" size={18} /></button>
           <input value={question} onChange={e => setQuestion(e.target.value)} placeholder='רוצה שאבדוק משהו נוסף? למשל: "אילו לידים צפויים להבשיל החודש?"' />
-          <Icon name="mic" size={20} className={styles.mic} />
         </form>
       </main>
     </div>

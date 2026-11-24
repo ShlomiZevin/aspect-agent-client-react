@@ -33,11 +33,7 @@ export function RealEstateTopbar({ active, extra }: { active: Screen; extra?: Re
         <Link to="/realestate" className={tab('chat')}><Icon name="sparkle" size={15} /> שאל את ה-AI</Link>
       </nav>
 
-      <div className={styles.user}>
-        {extra}
-        <span className={styles.bell}><Icon name="bell" size={19} /><i /></span>
-        <span className={styles.userChip}><Icon name="user" size={16} /> מנכ״ל <Icon name="chevronDown" size={14} /></span>
-      </div>
+      <div className={styles.user}>{extra}</div>
     </header>
   );
 }

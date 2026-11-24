@@ -45,22 +45,13 @@
 }
 .tab svg { color: #c8a165; }
 
-.user { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
-.bell { position: relative; display: grid; }
-.bell i { position: absolute; top: -2px; left: -2px; width: 8px; height: 8px; border-radius: 50%; background: #e8a33c; }
-.userChip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  font-size: 14px;
-}
+/* Same width as the brand, so the tabs stay centred on the page. */
+.user { display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-shrink: 0; min-width: 160px; }
 
 @media (max-width: 1280px) {
   .topbar { gap: 16px; padding: 0 18px; }
-  .brand small, .userChip, .bell { display: none; }
+  .brand small { display: none; }
+  .user { min-width: 0; }
   .tab { padding: 20px 8px; font-size: 14px; }
 }
 
