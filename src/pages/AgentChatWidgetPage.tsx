@@ -52,6 +52,7 @@ import '../styles/themes/freeda-theme.css';
 import '../styles/themes/hypertoy-theme.css';
 import '../styles/themes/newdeli-theme.css';
 import '../styles/themes/tevanaot-theme.css';
+import '../styles/themes/realestate-theme.css';
 import '../styles/themes/thestock-theme.css';
 import '../styles/themes/zer4u-theme.css';
 import '../styles/themes/zolstock-theme.css';

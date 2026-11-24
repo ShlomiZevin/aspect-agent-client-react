@@ -15,3 +15,4 @@ export { hypertoyConfig } from './hypertoy.config';
 export { zolstockConfig } from './zolstock.config';
 export { superhistConfig } from './superhist.config';
 export { tevanaotConfig } from './tevanaot.config';
+export { realestateConfig } from './realestate.config';

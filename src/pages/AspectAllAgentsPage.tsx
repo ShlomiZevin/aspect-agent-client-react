@@ -45,6 +45,8 @@ const DATA_AGENTS: AgentEntry[] = [
 const DEMO_AGENTS: AgentEntry[] = [
   { slug: 'aspect', path: '/aspect', config: AGENT_REGISTRY.aspect, dataset: 'aspect',
     about: 'Demo with made-up data: TechZone electronics, an FMCG chain and a fashion chain.' },
+  { slug: 'realestate', path: '/realestate', config: AGENT_REGISTRY.realestate, dataset: 'realestate',
+    about: 'Demo with made-up data: Ofek Development, a residential developer. Leads, buyers, apartments.' },
   { slug: 'onezero', path: '/aspect/onezero', config: oneZeroConfig,
     about: 'Demo: churn prediction and prevention for a digital bank.' },
 ];

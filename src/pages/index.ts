@@ -39,6 +39,7 @@ export { AgentChatWidgetPage } from './AgentChatWidgetPage';
 export { ZolStockPage } from './ZolStockPage';
 export { SuperHistPage } from './SuperHistPage';
 export { TevaNaotPage } from './TevaNaotPage';
+export { RealEstatePage } from './RealEstatePage';
 export { CrewBuilderMockupPage } from './CrewBuilderMockupPage';
 export { BuilderPage } from './BuilderPage';
 export { BuilderHomePage } from './BuilderHomePage';

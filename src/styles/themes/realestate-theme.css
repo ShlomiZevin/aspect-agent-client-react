@@ -1,0 +1,42 @@
+/* Ofek Development Theme — deep architectural navy with a warm brass accent */
+.theme-realestate {
+  --primary-color: #1f3a5f;
+  --primary-hover: #172d4a;
+  --primary-light: rgba(31, 58, 95, 0.1);
+  --secondary-color: #c8a165;
+  --success-color: #16a34a;
+  --warning-color: #d99a2b;
+  --error-color: #ef4444;
+
+  --background: #ffffff;
+  --surface: #f7f6f3;
+  --surface-light: #efece6;
+  --border: #e3ded4;
+
+  --text-primary: #16202c;
+  --text-secondary: #4a5563;
+  --text-muted: #8c949e;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.09);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.12);
+
+  --gradient: linear-gradient(135deg, #1f3a5f, #3b5f8c);
+}
+
+.theme-realestate[data-theme="dark"] {
+  --primary-color: #8fb0d8;
+  --primary-hover: #7a9dc8;
+  --primary-light: rgba(143, 176, 216, 0.15);
+  --secondary-color: #d6b47e;
+  --background: #12161c;
+  --surface: #1a2029;
+  --surface-light: #252d38;
+  --border: #252d38;
+  --text-primary: #f2f4f7;
+  --text-secondary: #c9d0da;
+  --text-muted: #8c949e;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+}
