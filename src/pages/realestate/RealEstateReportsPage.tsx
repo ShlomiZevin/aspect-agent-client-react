@@ -6,9 +6,10 @@
  * demo's own look.
  */
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useUserContext } from '../../context/UserContext';
 import { useDocumentMeta } from '../../hooks';
-import { realestateService, type ReportBlock, type ReportDetail, type ReportSummary } from '../../services/realestateService';
+import { realestateService, type ReportBlock, type ReportDetail, type ReportProgress, type ReportSummary } from '../../services/realestateService';
 import { useRealEstateChat } from './chatContext';
 import { REPORTS_PATH } from './shared';
 import { RealEstateTopbar } from './RealEstateTopbar';
@@ -19,6 +20,68 @@ import styles from './RealEstateReportsPage.module.css';
 const CATEGORY_HE: Record<string, string> = { 'Margin alert': 'רווחיות', Trend: 'הזדמנות', Risk: 'סיכון', Inventory: 'מלאי ותמחור' };
 const categoryHe = (label: string) => CATEGORY_HE[label] || 'תובנה';
 const SCENARIO_CLASS: Record<string, string> = { current: 'scCurrent', good: 'scGood', neutral: 'scNeutral', negative: 'scBad' };
+
+// Ready-made topics for a new report — questions that take a real investigation, not a quick lookup.
+const REPORT_TOPICS = [
+  'למה ההמרה בחיפה ירדה מאז מאי 2026, ומה צריך לשנות?',
+  'אילו קמפיינים מחזירים את ההשקעה ואילו שורפים כסף?',
+  'מתי כל פרויקט יימכר עד הסוף בקצב הנוכחי, ואיפה יש סיכון?',
+  'מי הרוכשים שלנו — גיל, מקצוע, עשירון ומטרת הרכישה — ולמי כדאי לכוון?',
+];
+const STAGE_HE: Record<string, string> = { plan: 'מתכנן את הניתוח', query: 'שולף את הנתונים', aggregate: 'מסכם את התוצאות', synthesize: 'כותב את הדוח', verify: 'בודק את המספרים', done: 'הדוח מוכן' };
+
+/** "דוח חדש": a topic or a typed question -> a real investigation (about a minute) -> the new report. */
+function NewReport({ userId }: { userId: string }) {
+  const navigate = useNavigate();
+  const [prompt, setPrompt] = useState('');
+  const [running, setRunning] = useState<string | null>(null);
+  const [progress, setProgress] = useState<ReportProgress | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const start = (text: string) => {
+    const question = text.trim();
+    if (!question || running) return;
+    const jobId = crypto.randomUUID();
+    setRunning(question); setError(null); setProgress(null);
+    const poll = setInterval(() => {
+      realestateService.getReportProgress(jobId).then(setProgress).catch(() => { /* not started yet */ });
+    }, 1500);
+    realestateService.createReport(question, userId, jobId)
+      .then(id => navigate(`${REPORTS_PATH}/${id}`))
+      .catch(e => { setError(e.message); setRunning(null); })
+      .finally(() => clearInterval(poll));
+  };
+
+  if (running) {
+    const pct = progress?.percent ?? 2;
+    const eta = progress?.etaMs ? Math.max(5, Math.round(progress.etaMs / 1000)) : null;
+    return (
+      <section className={styles.newReport}>
+        <h2><Icon name="sparkle" size={18} /> כותב דוח חדש</h2>
+        <p className={styles.runningQ}>{running}</p>
+        <div className={styles.progressTrack}><i style={{ width: `${pct}%` }} /></div>
+        <p className={styles.progressText}>
+          {STAGE_HE[progress?.stage || 'plan'] || 'עובד על זה'}… {pct}%{eta ? ` · עוד כ־${eta} שניות` : ''}
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className={styles.newReport}>
+      <h2><Icon name="sparkle" size={18} /> דוח חדש</h2>
+      <p>בחרו נושא או כתבו שאלה — ה-AI יחקור את הנתונים ויכתוב דוח מלא תוך כדקה.</p>
+      <div className={styles.topics}>
+        {REPORT_TOPICS.map(t => <button key={t} type="button" onClick={() => start(t)}>{t}</button>)}
+      </div>
+      <form className={styles.newForm} onSubmit={e => { e.preventDefault(); start(prompt); }}>
+        <input value={prompt} onChange={e => setPrompt(e.target.value)} placeholder="או כתבו שאלה משלכם, למשל: איזה איש מכירות סוגר הכי מהר?" />
+        <button type="submit" disabled={!prompt.trim()}>צור דוח</button>
+      </form>
+      {error && <p className={styles.newError}>לא הצלחתי לכתוב את הדוח: {error}. נסו שוב או נושא אחר.</p>}
+    </section>
+  );
+}
 
 function compact(n: number, unit?: string): string {
   const abs = Math.abs(n);
@@ -99,16 +162,16 @@ function Block({ block }: { block: ReportBlock }) {
   }
 }
 
-function ReportView({ id }: { id: string }) {
+function ReportView({ id, userId }: { id: string; userId: string }) {
   const { openChat } = useRealEstateChat();
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
-    realestateService.getReport(id).then(r => { if (alive) setReport(r); }).catch(e => { if (alive) setError(e.message); });
+    realestateService.getReport(id, userId).then(r => { if (alive) setReport(r); }).catch(e => { if (alive) setError(e.message); });
     return () => { alive = false; };
-  }, [id]);
+  }, [id, userId]);
 
   if (error) return <div className={styles.error}>לא הצלחתי לטעון את הדוח: {error}</div>;
   if (!report) return <div className={styles.loading}>טוען את הדוח…</div>;
@@ -158,15 +221,15 @@ function ReportView({ id }: { id: string }) {
   );
 }
 
-function ReportList() {
+function ReportList({ userId }: { userId: string }) {
   const [reports, setReports] = useState<ReportSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
-    realestateService.getReports().then(r => { if (alive) setReports(r); }).catch(e => { if (alive) setError(e.message); });
+    realestateService.getReports(userId).then(r => { if (alive) setReports(r); }).catch(e => { if (alive) setError(e.message); });
     return () => { alive = false; };
-  }, []);
+  }, [userId]);
 
   return (
     <>
@@ -174,13 +237,17 @@ function ReportList() {
         <h1>דוחות</h1>
         <p>מה ה-AI מצא כשעבר על הלידים, העסקאות והדירות — כל דוח עם המספרים, הסיבה ומה לעשות.</p>
       </div>
+      <NewReport userId={userId} />
       {error && <div className={styles.error}>לא הצלחתי לטעון את הדוחות: {error}</div>}
       {!reports && !error && <div className={styles.loading}>טוען דוחות…</div>}
       <div className={styles.grid}>
         {reports?.map(r => (
           <Link key={r.id} to={`${REPORTS_PATH}/${r.id}`} className={styles.tile}>
             <div className={styles.tileTop}>
-              <span className={styles.chip}>{categoryHe(r.categoryLabel)}</span>
+              <span className={styles.chips}>
+                <span className={styles.chip}>{categoryHe(r.categoryLabel)}</span>
+                {!r.shared && <span className={styles.chipNew}>הדוח שלך</span>}
+              </span>
               <span className={styles.confidence}>ביטחון {r.confidence}%</span>
             </div>
             <h2>{r.headline}</h2>
@@ -198,13 +265,15 @@ function ReportList() {
 
 export function RealEstateReportsPage() {
   const { reportId } = useParams<{ reportId?: string }>();
+  // The visitor's anonymous user (the chat's): their own reports live under it.
+  const { userId } = useUserContext();
   useDocumentMeta({ title: 'אופק יזמות — דוחות', favicon: '/img/realestate-logo.svg', description: 'AI reports for Ofek Development' });
 
   return (
     <div className={styles.page} dir="rtl">
       <RealEstateTopbar active="reports" />
       <main className={styles.main}>
-        {reportId ? <ReportView id={reportId} /> : <ReportList />}
+        {!userId ? <div className={styles.loading}>טוען…</div> : reportId ? <ReportView id={reportId} userId={userId} /> : <ReportList userId={userId} />}
       </main>
     </div>
   );

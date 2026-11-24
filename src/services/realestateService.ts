@@ -80,6 +80,8 @@ export interface ReportSummary {
   impactValue: string;
   impactLabel: string;
   impactDirection: 'positive' | 'negative' | 'neutral';
+  /** True for the dataset's shared reports; absent on the visitor's own. */
+  shared?: boolean;
   chartPreview?: { categories: string[]; series: { points: number[] }[] };
 }
 
@@ -98,13 +100,28 @@ export interface ReportDetail extends ReportSummary {
   confidenceBasis?: string;
 }
 
-// The reports the dataset's nightly bootstrap wrote; they belong to the "system"
-// user, so every visitor reads the same set without signing in.
-const REPORTS_USER = 'system';
+/** Live progress of a report being written (server: investigation-progress.service.js). */
+export interface ReportProgress {
+  stage: 'plan' | 'query' | 'aggregate' | 'synthesize' | 'verify' | 'done' | 'failed';
+  percent: number;
+  done: boolean;
+  failed: boolean;
+  etaMs?: number;
+}
+
+// Reports belong to the visitor's anonymous chat user: the list is their own
+// new reports plus the dataset's shared ones (written by the "system" user at
+// bootstrap), so nobody sees another visitor's reports and nobody signs in.
+const q = (userId: string) => `userId=${encodeURIComponent(userId)}`;
 
 export const realestateService = {
   getBoard: () => apiRequest<BoardData>('/api/realestate/board', {}, BASE),
   getBrief: () => apiRequest<BriefData>('/api/realestate/brief', {}, BASE),
-  getReports: () => apiRequest<{ insights: ReportSummary[] }>(`/api/insights/realestate/insights?userId=${REPORTS_USER}`, {}, BASE).then(r => r.insights),
-  getReport: (id: string) => apiRequest<ReportDetail>(`/api/insights/realestate/${encodeURIComponent(id)}?userId=${REPORTS_USER}`, {}, BASE),
+  getReports: (userId: string) => apiRequest<{ insights: ReportSummary[] }>(`/api/insights/realestate/insights?${q(userId)}`, {}, BASE).then(r => r.insights),
+  getReport: (id: string, userId: string) => apiRequest<ReportDetail>(`/api/insights/realestate/${encodeURIComponent(id)}?${q(userId)}`, {}, BASE),
+  /** Writes a new report (about a minute); resolves with its id. Poll getReportProgress(jobId) meanwhile. */
+  createReport: (prompt: string, userId: string, jobId: string) =>
+    apiRequest<{ insightIds: string[] }>('/api/insights/realestate/investigate', { method: 'POST', body: JSON.stringify({ prompt, userId, jobId }) }, BASE)
+      .then(r => r.insightIds[0]),
+  getReportProgress: (jobId: string) => apiRequest<ReportProgress>(`/api/insights/realestate/progress/${encodeURIComponent(jobId)}`, {}, BASE),
 };
