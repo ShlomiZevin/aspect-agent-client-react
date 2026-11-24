@@ -71,6 +71,11 @@ export interface AgentConfig {
    * just "Aspect" there. Every other client keeps the suffix.
    */
   welcomeHeading?: string;
+  /**
+   * The line under it, when the shared retail one ("sales, profit, products,
+   * stores and inventory") is wrong for this business — the real-estate demo.
+   */
+  welcomeSubheading?: string;
 
   quickQuestions: QuickQuestion[];
   inputPlaceholder: string;

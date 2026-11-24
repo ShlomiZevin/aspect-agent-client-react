@@ -104,7 +104,7 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
       <div className={styles.hero}>
         <span className={styles.mark}>✦</span>
         <div className={styles.title}>{t('intel.welcome.title')} {welcomeName}</div>
-        <div className={styles.subtitle}>{t('intel.welcome.subtitle')}</div>
+        <div className={styles.subtitle}>{config?.welcomeSubheading || t('intel.welcome.subtitle')}</div>
       </div>
 
       <div className={styles.questionsLabel}>{t('intel.welcome.quickQuestions')}</div>

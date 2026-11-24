@@ -57,6 +57,10 @@ import '../styles/themes/thestock-theme.css';
 import '../styles/themes/zer4u-theme.css';
 import '../styles/themes/zolstock-theme.css';
 
+/** Agents whose chat widget opens without a sign-in: demos on made-up data,
+ *  shown to prospects by link (the real-estate demo, /aspect/realestate). */
+const PUBLIC_DEMO_AGENTS = new Set(['realestate']);
+
 export const PREFILL_STORAGE_KEY = 'aspect_intelligence_prefill';
 /** Set alongside the prefill when it came from a quick-question tile: the
  * question is sent `hidden`, so only the agent's reply shows. */
@@ -183,9 +187,8 @@ export function AgentChatWidgetPage() {
   // The Intelligence Center's Data Chat — closed to anonymous visitors like the
   // shell around it (task #113). Inside the IC the session is already there,
   // so this only shows when someone opens the widget address directly.
-  return (
-    <SignInGate tenant={agent ?? ''} agentName="Aspect Intelligence" required>
-      {() => (
+  // Except a public demo (fictional data, shown without any sign-in) — see PUBLIC_DEMO_AGENTS.
+  const chat = () => (
         <ThemeProvider storagePrefix={config.storagePrefix}>
           <LanguageProvider storagePrefix={config.storagePrefix}>
             <UserProvider storagePrefix={config.storagePrefix} baseURL={config.baseURL}>
@@ -274,7 +277,11 @@ export function AgentChatWidgetPage() {
             </UserProvider>
           </LanguageProvider>
         </ThemeProvider>
-      )}
+  );
+  if (agent && PUBLIC_DEMO_AGENTS.has(agent)) return chat();
+  return (
+    <SignInGate tenant={agent ?? ''} agentName="Aspect Intelligence" required>
+      {chat}
     </SignInGate>
   );
 }

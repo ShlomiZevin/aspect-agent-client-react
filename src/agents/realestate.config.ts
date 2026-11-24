@@ -25,6 +25,9 @@ export const realestateConfig: AgentConfig = {
   welcomeTitle: 'ברוכים הבאים לאופק יזמות',
   welcomeMessage: 'שאלו אותי כל דבר על לידים, רוכשים, דירות, קמפיינים וצוות המכירות.',
   inputPlaceholder: 'שאלו על הפרויקטים...',
+  // The chat widget's welcome (not "<name> BI" over the shared retail line).
+  welcomeHeading: 'אופק יזמות',
+  welcomeSubheading: 'שאלו אותי על לידים, רוכשים, דירות, קמפיינים וצוות המכירות.',
 
   quickQuestions: [
     { icon: '📞', textKey: 'quick.realestate.callToday.text', questionKey: 'quick.realestate.callToday.question' },
