@@ -15,9 +15,14 @@ export function useImportStatus(baseURL: string, schema: string): boolean {
 
     const check = () => {
       fetch(`${baseURL}/api/admin/data-loader/${schema}/status`)
-        .then(r => r.json())
-        .then((data: StatusResponse) => {
-          if (!cancelled) setIsImporting(data?.status?.status === 'running');
+        .then(r => {
+          // 404 = this schema has no data loader (a demo dataset), so it never
+          // imports: stop asking instead of logging a 404 every 20 seconds.
+          if (r.status === 404) { clearInterval(interval); return null; }
+          return r.json();
+        })
+        .then((data: StatusResponse | null) => {
+          if (!cancelled && data) setIsImporting(data.status?.status === 'running');
         })
         .catch(() => {});
     };
