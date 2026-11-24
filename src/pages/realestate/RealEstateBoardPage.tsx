@@ -21,6 +21,8 @@ type View = 'buildings' | 'floors' | 'list';
 const DEFAULT_PROJECT = 3; // Haifa — the project with a story to tell
 const INSIGHT_ICONS = ['trendUp', 'users', 'alert'];
 const KIND_LABEL: Record<string, string> = { sold: 'נמכרה', reserved: 'בהזמנה', free: 'פנויה', stuck: 'תקועה — מחיר מעל השוק' };
+/** The legend's narrow column takes the short form; the card and the list keep the full one. */
+const LEGEND_LABEL: Record<string, string> = { ...KIND_LABEL, stuck: 'תקועה · מעל השוק' };
 
 export function RealEstateBoardPage() {
   useDocumentMeta({ title: 'אופק יזמות — לוח מכירות חי', favicon: '/img/realestate-logo.svg', description: 'Live sales board for Ofek Development' });
@@ -110,7 +112,7 @@ export function RealEstateBoardPage() {
             <div className={styles.side}>
               <div className={styles.legend}>
                 {(['sold', 'reserved', 'free', 'stuck'] as const).map(k => (
-                  <span key={k}><i className={styles[`dot_${k}`]} /> {KIND_LABEL[k]}</span>
+                  <span key={k}><i className={styles[`dot_${k}`]} /> {LEGEND_LABEL[k]}</span>
                 ))}
               </div>
               <div className={styles.views}>

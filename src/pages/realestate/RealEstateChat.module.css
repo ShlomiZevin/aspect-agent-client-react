@@ -14,6 +14,10 @@
   overflow: hidden;
 }
 
+/* One crew, so ChatContainer's crew strip is a lone "Ofek Development" pill
+   in an empty band — the top bar already says whose chat this is. */
+.body :global([class*="crewHeader"]) { display: none; }
+
 .newChat {
   display: inline-flex;
   align-items: center;
