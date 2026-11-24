@@ -297,7 +297,7 @@
   } };
 
   /* ================= Forms (same endpoint and rules as the main site) ================= */
-  var API = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? '' : 'https://aspect-agent-server-1018338671074.europe-west1.run.app';
+  var API = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? '' : 'https://lybi-server-700084613835.me-west1.run.app';
   var PERSONAL = ['gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.co.uk', 'yahoo.co.il', 'yahoo.fr', 'ymail.com', 'rocketmail.com', 'hotmail.com', 'hotmail.co.uk', 'hotmail.co.il', 'outlook.com', 'outlook.co.il', 'live.com', 'live.co.uk', 'msn.com', 'icloud.com', 'me.com', 'mac.com', 'aol.com', 'proton.me', 'protonmail.com', 'pm.me', 'gmx.com', 'gmx.de', 'mail.com', 'fastmail.com', 'yandex.com', 'yandex.ru', 'mail.ru', 'qq.com', '163.com', '126.com', 'walla.co.il', 'walla.com', 'nana.co.il', '012.net.il', '013.net.il', 'netvision.net.il', 'bezeqint.net'];
   function workEmail(raw) {
     var e = String(raw || '').trim(), m = e.match(/^[^\s@]+@([A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?\.[A-Za-z]{2,})$/);

@@ -82,7 +82,7 @@ document.addEventListener('click',e=>{
 main.addEventListener('input',e=>{if(e.target.id==='demo-email'){e.target.removeAttribute('aria-invalid');document.getElementById('demo-status').textContent='';}});
 // Both forms go to the existing Lybi contact endpoint (emails the team).
 // Local dev proxies /api to the local server; everywhere else uses Cloud Run.
-const API=/^(localhost|127\.0\.0\.1)$/.test(location.hostname)?'':'https://aspect-agent-server-1018338671074.europe-west1.run.app';
+const API=/^(localhost|127\.0\.0\.1)$/.test(location.hostname)?'':'https://lybi-server-700084613835.me-west1.run.app';
 async function sendContact(payload){
  const r=await fetch(API+'/api/lybi/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
  if(!r.ok)throw new Error('HTTP '+r.status);
