@@ -100,6 +100,8 @@ export interface AgentConfig {
     hideHistoryManagement?: boolean;
     /** Hide the debug-mode toggle button in the header (customer-facing surfaces). */
     hideDebugToggle?: boolean;
+    /** Hide the composer's attach and microphone buttons — a demo where they are noise. */
+    hideComposerExtras?: boolean;
   };
 
   // Theming

@@ -20,7 +20,6 @@ import styles from './RealEstateBoardPage.module.css';
 
 type View = 'buildings' | 'floors' | 'list';
 const DEFAULT_PROJECT = 3; // Haifa — the project with a story to tell
-const INSIGHT_ICONS = ['trendUp', 'users', 'alert'];
 const KIND_LABEL: Record<string, string> = { sold: 'נמכרה', reserved: 'בהזמנה', free: 'פנויה', stuck: 'תקועה — מחיר מעל השוק' };
 /** The legend's narrow column takes the short form; the card and the list keep the full one. */
 const LEGEND_LABEL: Record<string, string> = { ...KIND_LABEL, stuck: 'תקועה · מעל השוק' };
@@ -82,9 +81,10 @@ export function RealEstateBoardPage() {
 
             <aside className={styles.insights}>
               <h3><Icon name="sparkle" size={18} /> תובנות AI ללילה האחרון</h3>
-              {data.insights.map((ins, i) => (
-                <Link key={ins.id} to={`${REPORTS_PATH}/${ins.id}`} className={styles.insight}>
-                  <Icon name={INSIGHT_ICONS[i % INSIGHT_ICONS.length]} size={18} />
+              {/* One-line findings composed from the data; the full reports are on the reports page. */}
+              {data.insights.map(ins => (
+                <Link key={ins.id} to={REPORTS_PATH} className={styles.insight}>
+                  <Icon name={ins.icon} size={18} />
                   <span>{ins.title}</span>
                 </Link>
               ))}

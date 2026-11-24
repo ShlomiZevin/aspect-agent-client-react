@@ -185,6 +185,7 @@ export function ChatInput() {
           rows={1}
         />
 
+        {!config.features.hideComposerExtras && (<>
         {/* Attach file */}
         <input
           ref={fileInputRef}
@@ -236,6 +237,7 @@ export function ChatInput() {
             </svg>
           )}
         </button>
+        </>)}
 
         <button
           type="submit"

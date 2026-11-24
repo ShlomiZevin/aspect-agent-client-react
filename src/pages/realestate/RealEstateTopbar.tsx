@@ -5,11 +5,11 @@
  */
 import { Link } from 'react-router-dom';
 import { useRealEstateChat } from './chatContext';
-import { BRIEF_PATH, BOARD_PATH, REPORTS_PATH } from './shared';
+import { BRIEF_PATH, BOARD_PATH, MARKET_PATH, REPORTS_PATH } from './shared';
 import { Icon } from './ui';
 import styles from './RealEstateTopbar.module.css';
 
-type Page = 'brief' | 'board' | 'reports';
+type Page = 'brief' | 'board' | 'market' | 'reports';
 
 export function RealEstateTopbar({ active }: { active: Page }) {
   const { openChat } = useRealEstateChat();
@@ -26,6 +26,7 @@ export function RealEstateTopbar({ active }: { active: Page }) {
       <nav className={styles.tabs}>
         <Link to={BRIEF_PATH} className={tab('brief')}>היועץ החכם שלי</Link>
         <Link to={BOARD_PATH} className={tab('board')}>לוח מכירות חי</Link>
+        <Link to={MARKET_PATH} className={tab('market')}>רוכשים ושיווק</Link>
         <Link to={REPORTS_PATH} className={tab('reports')}>דוחות</Link>
         <button type="button" className={styles.tab} onClick={() => openChat()}><Icon name="sparkle" size={15} /> שאל את ה-AI</button>
       </nav>

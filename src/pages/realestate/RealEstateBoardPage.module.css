@@ -14,7 +14,8 @@
 
 .error { margin: 24px 32px; padding: 14px 18px; border-radius: 12px; background: #fdecea; color: #a5281c; }
 
-.main { width: 100%; max-width: 1760px; margin: 0 auto; padding: 16px 32px 20px; display: flex; flex-direction: column; gap: 10px; }
+/* Bottom padding keeps the last row clear of the floating chat button. */
+.main { width: 100%; max-width: 1760px; margin: 0 auto; padding: 16px 32px 100px; display: flex; flex-direction: column; gap: 10px; }
 
 /* ── Headline, KPIs, insights ─────────────────────────── */
 .top {
@@ -200,7 +201,19 @@
 }
 
 /* Grows with a tall screen instead of leaving the buildings small in an empty plaza. */
-.scene { min-width: 0; height: clamp(440px, calc(100vh - 560px), 640px); }
+.scene { min-width: 0; height: clamp(400px, calc(100vh - 470px), 640px); }
+
+/* A laptop screen (900px tall): tighten the top so the buildings sit in the first screen. */
+@media (max-height: 960px) {
+  .main { padding-top: 10px; gap: 6px; }
+  .headline h1 { font-size: 28px; }
+  .headline p { font-size: 15px; }
+  .kpi strong { font-size: 24px; }
+  .insights { padding: 12px 16px 8px; }
+  .insights h3 { font-size: 16px; margin-bottom: 4px; }
+  .insight { padding: 6px 4px; font-size: 13px; }
+  .projectHead h2 { font-size: 23px; }
+}
 
 .floorsView { display: flex; justify-content: center; gap: 18px; overflow-x: auto; height: 100%; padding: 6px 2px; }
 .floorsBuilding { padding: 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.88); height: fit-content; }

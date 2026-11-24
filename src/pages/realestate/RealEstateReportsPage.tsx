@@ -83,6 +83,23 @@ function NewReport({ userId }: { userId: string }) {
   );
 }
 
+/**
+ * The reports are written by a model and spell figures out in full ("₪12,770,955",
+ * "2,034 דקות", "+3.03pp"). Shown to a developer, they read as the same figures
+ * the brief and board round: ₪12.8M, 34 שעות, +3.03 נק׳.
+ */
+const toNum = (s: string) => Number(s.replace(/,/g, ''));
+function say(text: string | undefined | null): string {
+  if (!text) return '';
+  return text
+    .replace(/₪\s?(\d{1,3}(?:,\d{3}){2,}|\d{7,})/g, (_, n) => `₪${(toNum(n) / 1e6).toFixed(1)}M`)
+    .replace(/(\d{1,3}(?:,\d{3}){2,})\s?₪/g, (_, n) => `₪${(toNum(n) / 1e6).toFixed(1)}M`)
+    .replace(/₪\s?(\d{2,3}),(\d{3})(?![\d,])/g, (_, a, b) => `₪${Math.round(toNum(a + b) / 1e3)}K`)
+    .replace(/(\d+(?:\.\d+)?)K\s?דקות/g, (_, n) => `${Math.round(Number(n) * 1000 / 60)} שעות`)
+    .replace(/(\d{1,3}(?:,\d{3})+|\d{3,})\s?דקות/g, (m, n) => (toNum(n) >= 120 ? `${Math.round(toNum(n) / 60)} שעות` : m))
+    .replace(/([+-]?\d+(?:\.\d+)?)\s?pp\b/g, '$1 נק׳');
+}
+
 function compact(n: number, unit?: string): string {
   const abs = Math.abs(n);
   const s = abs >= 1e6 ? `${(n / 1e6).toFixed(abs >= 1e7 ? 1 : 2)}M` : abs >= 1e4 ? `${Math.round(n / 1e3)}K` : n.toLocaleString('he-IL', { maximumFractionDigits: 2 });
@@ -96,7 +113,7 @@ function Bars({ categories, points, unit }: { categories: string[]; points: numb
     <div className={styles.bars}>
       {categories.map((c, i) => (
         <div key={c} className={styles.barRow}>
-          <span className={styles.barLabel}>{c}</span>
+          <span className={styles.barLabel}>{say(c)}</span>
           <span className={styles.barTrack}><i style={{ width: `${Math.max(2, (Math.abs(points[i] ?? 0) / max) * 100)}%` }} /></span>
           <span className={styles.barValue}>{compact(points[i] ?? 0, unit)}</span>
         </div>
@@ -110,21 +127,21 @@ function Block({ block }: { block: ReportBlock }) {
     case 'stat_callout':
       return (
         <div className={styles.stat}>
-          <small>{block.label}</small>
-          <strong>{block.value}</strong>
-          {block.description && <p>{block.description}</p>}
+          <small>{say(block.label)}</small>
+          <strong>{say(block.value)}</strong>
+          {block.description && <p>{say(block.description)}</p>}
         </div>
       );
     case 'ranked_list':
       return (
         <div className={styles.card}>
-          {block.title && <h3>{block.title}</h3>}
+          {block.title && <h3>{say(block.title)}</h3>}
           <div className={styles.bars}>
             {block.items.map(it => (
               <div key={it.label} className={styles.barRow}>
-                <span className={styles.barLabel}>{it.label}</span>
+                <span className={styles.barLabel}>{say(it.label)}</span>
                 <span className={styles.barTrack}><i style={{ width: `${Math.max(2, Math.min(100, it.pct))}%` }} /></span>
-                <span className={styles.barValue}>{it.value}{block.unit ? <small> {block.unit}</small> : null}</span>
+                <span className={styles.barValue}>{say(it.value)}{block.unit ? <small> {block.unit}</small> : null}</span>
               </div>
             ))}
           </div>
@@ -135,9 +152,9 @@ function Block({ block }: { block: ReportBlock }) {
         <div className={styles.compare}>
           {block.items.map(it => (
             <div key={it.label} className={`${styles.compareItem} ${it.direction === 'positive' ? styles.good : it.direction === 'negative' ? styles.bad : ''}`}>
-              <small>{it.label}</small>
-              <strong>{it.value}</strong>
-              {it.sub && <p>{it.sub}</p>}
+              <small>{say(it.label)}</small>
+              <strong>{say(it.value)}</strong>
+              {it.sub && <p>{say(it.sub)}</p>}
             </div>
           ))}
         </div>
@@ -149,9 +166,9 @@ function Block({ block }: { block: ReportBlock }) {
           <div className={styles.scenarios}>
             {block.items.map(it => (
               <div key={it.key} className={`${styles.scenario} ${styles[SCENARIO_CLASS[it.key] || 'scNeutral']}`}>
-                <small>{it.label}</small>
-                <strong>{it.value}</strong>
-                {it.description && <p>{it.description}</p>}
+                <small>{say(it.label)}</small>
+                <strong>{say(it.value)}</strong>
+                {it.description && <p>{say(it.description)}</p>}
               </div>
             ))}
           </div>
@@ -160,6 +177,13 @@ function Block({ block }: { block: ReportBlock }) {
     default:
       return null;
   }
+}
+
+/** The chart is skipped when a ranked list in the report already shows the same categories. */
+function chartRepeatsList(report: ReportDetail): boolean {
+  const cats = new Set(report.chart?.categories ?? []);
+  return report.blocks.some(b => b.type === 'ranked_list' && b.items.length > 0
+    && b.items.filter(it => cats.has(it.label)).length >= 0.7 * Math.min(b.items.length, cats.size));
 }
 
 function ReportView({ id, userId }: { id: string; userId: string }) {
@@ -182,19 +206,19 @@ function ReportView({ id, userId }: { id: string; userId: string }) {
       <div className={styles.reportHead}>
         <div>
           <span className={styles.chip}>{categoryHe(report.categoryLabel)}</span>
-          <h1>{report.title}</h1>
-          <p className={styles.headline}>{report.headline}</p>
+          <h1>{say(report.title)}</h1>
+          <p className={styles.headline}>{say(report.headline)}</p>
         </div>
         <div className={`${styles.impact} ${report.impactDirection === 'positive' ? styles.good : styles.bad}`}>
-          <strong>{report.impactValue}</strong>
-          <small>{report.impactLabel}</small>
+          <strong>{say(report.impactValue)}</strong>
+          <small>{say(report.impactLabel)}</small>
           <span className={styles.confidence}>רמת ביטחון {report.confidence}%</span>
         </div>
       </div>
 
-      {report.chart && report.chart.series[0] && (
+      {report.chart && report.chart.series[0] && !chartRepeatsList(report) && (
         <div className={styles.card}>
-          <h3>{report.chart.title}</h3>
+          <h3>{say(report.chart.title)}</h3>
           <Bars categories={report.chart.categories} points={report.chart.series[0].points} unit={report.chart.unit} />
         </div>
       )}
@@ -208,9 +232,9 @@ function ReportView({ id, userId }: { id: string; userId: string }) {
           <h3>איך הגענו לזה</h3>
           {/* Step titles only: the descriptions name SQL views, columns and formulas. */}
           <ol className={styles.steps}>
-            {report.reasoning.map(s => <li key={s.title}><strong>{s.title}</strong></li>)}
+            {report.reasoning.map(s => <li key={s.title}><strong>{say(s.title)}</strong></li>)}
           </ol>
-          {report.confidenceBasis && <p className={styles.basis}>{report.confidenceBasis}</p>}
+          {report.confidenceBasis && <p className={styles.basis}>{say(report.confidenceBasis)}</p>}
         </div>
       )}
 
@@ -250,10 +274,10 @@ function ReportList({ userId }: { userId: string }) {
               </span>
               <span className={styles.confidence}>ביטחון {r.confidence}%</span>
             </div>
-            <h2>{r.headline}</h2>
+            <h2>{say(r.headline)}</h2>
             <div className={`${styles.tileImpact} ${r.impactDirection === 'positive' ? styles.good : styles.bad}`}>
-              <strong>{r.impactValue}</strong>
-              <small>{r.impactLabel}</small>
+              <strong>{say(r.impactValue)}</strong>
+              <small>{say(r.impactLabel)}</small>
             </div>
             <span className={styles.open}>לדוח המלא <Icon name="chevronLeft" size={14} /></span>
           </Link>

@@ -55,7 +55,35 @@ export interface BoardData {
   date: string;
   kpis: { totalUnits: number; soldUnits: number; pctSold: number; soldLast30Days: number };
   projects: BoardProject[];
-  insights: { id: string; title: string; headline: string }[];
+  /** Three short overnight findings, composed from the data (not report titles). */
+  insights: { id: string; icon: string; title: string }[];
+}
+
+/** A group of stuck apartments that share a cause (project, size, type, side). */
+export interface StuckGroup {
+  unitId: number;
+  projectId: number;
+  project: string;
+  rooms: number;
+  type: string;
+  direction: string;
+  units: number;
+  minDays: number;
+  maxDays: number;
+  title: string;
+  reason: string;
+  action: string;
+}
+
+/** A share of buyers in one bucket. */
+export interface Share { label: string; n: number; pct: number }
+
+export interface MarketData {
+  buyers: { purpose: Share[]; age: Share[]; decile: Share[]; homes: Share[]; gender: Share[]; profession: Share[] };
+  sources: { source: string; leads: number; deals: number; conversionPct: number; costPerDeal: number | null }[];
+  projects: { name: string; city: string; region: string; pctSold: number; monthlyPace: number; leads: number; pricePerSqm: number }[];
+  rooms: { rooms: number; demand: number; freeUnits: number; avgSqm: number }[];
+  segments: { segment: string; best: string; bestRate: number; worst: string; worstRate: number }[];
 }
 
 export interface BriefData {
@@ -67,8 +95,8 @@ export interface BriefData {
     leakage: { amount: string; sub: string };
   };
   calls: { leadId: number; name: string; phone: string; project: string; rep: string; score: number; daysWithoutContact: number; reason: string }[];
-  stuck: { unitId: number; projectId: number; project: string; city: string; building: number; floor: number; number: number; rooms: number; type: string; direction: string; price: number; daysOnMarket: number; premiumPct: number; reason: string; action: string }[];
-  leakage: { amount: string; amountSub: string; bullets: string[]; reps: { name: string; avgDiscountPct: number; aboveAvg: number }[] };
+  stuck: StuckGroup[];
+  leakage: { amount: string; amountSub: string; bullets: string[] };
 }
 
 /** An Intelligence report (server: insights/routes/insights.routes.js), as the demo reads it. */
@@ -117,6 +145,7 @@ const q = (userId: string) => `userId=${encodeURIComponent(userId)}`;
 export const realestateService = {
   getBoard: () => apiRequest<BoardData>('/api/realestate/board', {}, BASE),
   getBrief: () => apiRequest<BriefData>('/api/realestate/brief', {}, BASE),
+  getMarket: () => apiRequest<MarketData>('/api/realestate/market', {}, BASE),
   getReports: (userId: string) => apiRequest<{ insights: ReportSummary[] }>(`/api/insights/realestate/insights?${q(userId)}`, {}, BASE).then(r => r.insights),
   getReport: (id: string, userId: string) => apiRequest<ReportDetail>(`/api/insights/realestate/${encodeURIComponent(id)}?${q(userId)}`, {}, BASE),
   /** Writes a new report (2-3 minutes); resolves with its id. Poll getReportProgress(jobId) meanwhile. */

@@ -64,6 +64,7 @@ export const realestateConfig: AgentConfig = {
     hasFileUpload: false,
     hasChatHistory: true,
     hideQuickQuestionsInUI: true,
+    hideComposerExtras: true,
   },
 
   themeClass: 'theme-realestate',

@@ -179,6 +179,8 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
             if (files.length) { e.preventDefault(); attachments.add(files); }
           }}
         />
+        {/* Attach + mic — off for a demo where they are noise (features.hideComposerExtras). */}
+        {!config?.features.hideComposerExtras && (<>
         <input
           ref={fileInputRef}
           type="file"
@@ -201,6 +203,7 @@ export function ChatWelcome({ datasetId, onSend }: Props) {
         <svg className={styles.micIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 19v3" />
         </svg>
+        </>)}
         <button className={styles.sendBtn} disabled={(!text.trim() && attachments.ready.length === 0) || attachments.uploading} onClick={submit} aria-label={t('intel.welcome.send')}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
         </button>

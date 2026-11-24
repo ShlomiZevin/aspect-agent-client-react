@@ -18,7 +18,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  padding-bottom: 24px;
+  padding-bottom: 110px; /* clear of the floating chat button */
 }
 
 /* ── Hero ─────────────────────────────────────────────── */

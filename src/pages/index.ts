@@ -43,6 +43,7 @@ export { RealEstateLayout } from './realestate/RealEstateLayout';
 export { RealEstateBoardPage } from './realestate/RealEstateBoardPage';
 export { RealEstateBriefPage } from './realestate/RealEstateBriefPage';
 export { RealEstateReportsPage } from './realestate/RealEstateReportsPage';
+export { RealEstateMarketPage } from './realestate/RealEstateMarketPage';
 export { CrewBuilderMockupPage } from './CrewBuilderMockupPage';
 export { BuilderPage } from './BuilderPage';
 export { BuilderHomePage } from './BuilderHomePage';

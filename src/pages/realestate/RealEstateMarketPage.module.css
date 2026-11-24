@@ -1,0 +1,90 @@
+/* The app shell locks html/body (overflow hidden), so the page is its own scroller. */
+.page {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  background: #f6f2ea;
+  color: #1d2430;
+  font-family: 'Heebo', system-ui, sans-serif;
+}
+
+/* Bottom padding keeps the last card clear of the floating chat button. */
+.main { width: 100%; max-width: 1440px; margin: 0 auto; padding: 28px 36px 110px; }
+.loading, .error { margin: 30px 0; padding: 16px 20px; border-radius: 14px; background: #fff; color: #5d6574; }
+.error { background: #fdecea; color: #a5281c; }
+
+.head h1 { margin: 0; font-size: 34px; font-weight: 800; }
+.head p { margin: 6px 0 20px; font-size: 17px; color: #3a4250; }
+
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 8px; }
+.kpi { padding: 16px 18px; border-radius: 16px; background: #13213a; color: #e9e4da; }
+.kpi strong { display: block; font-size: 28px; font-weight: 800; color: #fff; direction: ltr; text-align: right; unicode-bidi: isolate; }
+.kpi small { font-size: 13.5px; color: #c8a165; }
+
+.groupTitle { margin: 26px 0 12px; font-size: 20px; font-weight: 800; color: #1f3a5f; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+
+.card { padding: 18px 20px; border-radius: 18px; background: #fff; box-shadow: 0 4px 18px rgba(30, 40, 60, 0.06); }
+.card header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.card h2 { margin: 0; font-size: 17px; font-weight: 800; }
+.note { margin: -4px 0 12px; font-size: 13px; color: #6b7280; }
+.askLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid #ddd6ca;
+  background: #faf7f1;
+  color: #1f3a5f;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.askLink svg { color: #c8a165; }
+.askLink:hover { border-color: #1f3a5f; }
+
+.bars { display: flex; flex-direction: column; gap: 9px; }
+.barRow { display: grid; grid-template-columns: 120px 1fr 64px; align-items: center; gap: 10px; font-size: 14px; }
+.barLabel { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.barTrack { height: 12px; border-radius: 6px; background: #f0ebe2; overflow: hidden; }
+.barTrack i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(270deg, #1f3a5f, #c8a165); }
+.barTrack i.good { background: #3f8f5b; }
+.barTrack i.bad { background: #c0392b; }
+.barValue { font-weight: 700; direction: ltr; text-align: left; unicode-bidi: isolate; }
+.grid2 .barRow { grid-template-columns: 130px 1fr 80px; }
+
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th { text-align: right; font-weight: 600; color: #6b7280; padding: 6px 8px; border-bottom: 1px solid #f0ebe2; }
+.table td { padding: 9px 8px; border-bottom: 1px solid #f6f2ea; }
+.table td small { display: block; font-size: 12px; color: #6b7280; }
+
+.pairs { display: flex; flex-direction: column; gap: 14px; }
+.pair { display: grid; grid-template-columns: 90px 1fr; gap: 10px; align-items: center; }
+.pairLabel { font-weight: 700; font-size: 15px; }
+.pairLabel small { display: block; font-weight: 400; font-size: 12px; color: #6b7280; }
+.pairBars { display: flex; flex-direction: column; gap: 4px; }
+.pairBars span { display: block; min-width: fit-content; padding: 3px 8px; border-radius: 6px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.demand { background: #1f3a5f; color: #fff; }
+.supply { background: #e8dcc4; color: #5a4520; }
+
+.segments { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.segment { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 14px; background: #faf7f1; }
+.segment strong { font-size: 16px; }
+.best, .worst { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.best { color: #237a42; font-weight: 700; }
+.worst { color: #a5281c; }
+
+@media (max-width: 1100px) {
+  .grid3 { grid-template-columns: repeat(2, 1fr); }
+  .segments { grid-template-columns: repeat(2, 1fr); }
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 760px) {
+  .main { padding: 18px 16px 100px; }
+  .grid3, .grid2, .segments, .kpis { grid-template-columns: 1fr; }
+}

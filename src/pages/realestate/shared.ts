@@ -5,6 +5,7 @@
 export const BRIEF_PATH = '/aspect/realestate';
 export const BOARD_PATH = '/aspect/realestate/board';
 export const REPORTS_PATH = '/aspect/realestate/reports';
+export const MARKET_PATH = '/aspect/realestate/market';
 
 export function greeting(): string {
   const h = new Date().getHours();

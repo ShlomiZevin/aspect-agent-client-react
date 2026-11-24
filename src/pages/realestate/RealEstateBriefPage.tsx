@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentMeta } from '../../hooks';
 import { realestateService, type BriefData } from '../../services/realestateService';
-import { greeting, buildingLetter, BOARD_PATH } from './shared';
+import { greeting, BOARD_PATH } from './shared';
 import { useRealEstateChat } from './chatContext';
 import { Icon } from './ui';
 import { RealEstateTopbar } from './RealEstateTopbar';
@@ -77,7 +77,7 @@ export function RealEstateBriefPage() {
             <section id="brief-calls" className={styles.section}>
               <div className={styles.sectionHead}>
                 <span className={styles.num}>1</span>
-                <div><h2>למי כדאי להתקשר היום?</h2><p>{data.calls.length} לידים בשלב מתקדם שאף אחד לא דיבר איתם כבר כמה ימים.</p></div>
+                <div><h2>למי כדאי להתקשר היום?</h2><p>{data.calls.length} לידים חמים, מדורגים לפי הסיכוי לסגור — ואף אחד לא דיבר איתם כבר כמה ימים.</p></div>
               </div>
               <div className={styles.rows}>
                 {data.calls.map(c => (
@@ -88,7 +88,7 @@ export function RealEstateBriefPage() {
                     </div>
                     <div className={styles.reason}>{c.reason}<span className={styles.silence}>ללא קשר {c.daysWithoutContact} ימים</span></div>
                     <div className={styles.score}>ציון ליד <span className={styles.scoreChip}>{c.score}</span></div>
-                    <button type="button" className={styles.darkBtn} onClick={() => openChat(`תכין אותי לשיחה עם ${c.name} מ${c.project}: מי זה, מה הוא מחפש, מה התקציב, ואיזו הטבה הכי סוגרת את הסגמנט שלו`)}>
+                    <button type="button" className={styles.darkBtn} onClick={() => openChat(`תכין אותי לשיחה עם ${c.name} מ${c.project}: פרופיל, מה מחפשים, תקציב, ואיזו הטבה הכי סוגרת את הסגמנט`)}>
                       <Icon name="phone" size={15} /> הכן שיחה
                     </button>
                   </div>
@@ -99,14 +99,14 @@ export function RealEstateBriefPage() {
             <section id="brief-stuck" className={styles.section}>
               <div className={styles.sectionHead}>
                 <span className={styles.num}>2</span>
-                <div><h2>אילו דירות תקועות — ולמה?</h2><p>הדירות שנמצאות הכי הרבה זמן על המדף, עם הסיבה המרכזית והמלצה מה לעשות.</p></div>
+                <div><h2>אילו דירות תקועות — ולמה?</h2><p>מעל 180 יום על המדף ובמחיר גבוה ב־10% ומעלה מעסקאות דומות — מקובצות לפי סיבה, עם מה לעשות במקום להוריד מחיר.</p></div>
               </div>
               <div className={styles.rows}>
                 {data.stuck.map(s => (
                   <div key={s.unitId} className={`${styles.row} ${styles.stuckRow}`}>
                     <div className={styles.who}>
                       <img className={styles.thumb} src={`/img/realestate/p${s.projectId}.jpg`} alt="" />
-                      <div><strong>דירה {s.number}, בניין {buildingLetter(s.building)}</strong><small>{s.project} · {s.rooms} חד׳ · קומה {s.floor} · {s.daysOnMarket} ימים</small></div>
+                      <div><strong>{s.title}</strong><small>{s.minDays === s.maxDays ? `${s.maxDays} ימים על המדף` : `${s.minDays}–${s.maxDays} ימים על המדף`}</small></div>
                     </div>
                     <span className={styles.reasonChip}>{s.reason}</span>
                     <div className={styles.action}>{s.action}</div>
