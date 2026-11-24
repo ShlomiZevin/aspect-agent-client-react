@@ -36,8 +36,9 @@
   left: 24px;
   bottom: 24px;
   z-index: 50;
-  width: min(520px, calc(100vw - 48px));
-  height: min(760px, calc(100vh - 110px));
+  /* Wide enough for the answers' tables; never over the top bar. */
+  width: min(600px, calc(100vw - 48px));
+  height: min(880px, calc(100vh - 110px));
   display: flex;
   flex-direction: column;
   border-radius: 20px;
