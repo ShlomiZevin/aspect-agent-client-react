@@ -118,17 +118,12 @@ export function ActionItemsPage() {
   const renderTopic = (t: Topic) => {
     const threads = comments.threadsFor(t);
     return (
-      <section key={t.task.id} className={`${styles.topic} ${styles.shareTopic} ${t.done ? styles.topicDone : ''}`}>
-        <div className={styles.shareTopicHead}>
-          <h2 className={styles.topicTitle} dir={textDir(t.task.title)}>{t.task.title}</h2>
-          {t.done && <span className={styles.topicCheck} title="בוצע"><CheckIcon size={12} /></span>}
-          <span className={styles.spacer} />
-          <span className={styles.topicCount} dir="ltr">{t.ticked}/{t.total}</span>
-        </div>
-        <ul className={`${styles.subs} ${styles.shareLines}`}>
+      // One standing list: the items show directly; `**group**` lines group related items.
+      <section key={t.task.id} className={`${styles.topic} ${styles.shareTopic}`}>
+        <ul className={`${styles.subs} ${styles.shareLines} ${styles.actionSubs}`}>
           {t.blocks.map((b, i) => {
             if (b.kind === 'line') return renderLine(t, b, threads);
-            if (b.kind === 'heading') return <li key={`h${i}`} className={styles.group} dir={textDir(b.text)}>{b.text}</li>;
+            if (b.kind === 'heading') return <li key={`h${i}`} className={`${styles.group} ${styles.actionGroup}`} dir={textDir(b.text)}>{b.text}</li>;
             return <li key={`t${i}`} className={styles.smallText} dir={textDir(b.text)}><RichText text={b.text} /></li>;
           })}
         </ul>
@@ -195,7 +190,7 @@ export function ActionItemsPage() {
                 <button type="button" className={styles.linkBtn} onClick={comments.reload}>לנסות שוב</button>
               </div>
             )}
-            {topics.map(renderTopic)}
+            {topics.filter(t => !t.done).map(renderTopic)}
           </div>
         </section>
       </main>

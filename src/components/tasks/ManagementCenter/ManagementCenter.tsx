@@ -703,6 +703,27 @@ export function ManagementCenter() {
     );
   };
 
+  /**
+   * Action items — one standing list (Shlomi, 2026-11-24): the items show
+   * directly, no topic row to open. A `**group**` line inside the list is a
+   * group of related items (e.g. "הכנת אבטחה"); items before any group stand alone.
+   */
+  const renderActionList = (t: Topic) => {
+    const threads = comments.threadsFor(t);
+    return (
+      <section key={t.task.id} className={styles.actionList}>
+        <ul className={`${styles.subs} ${styles.actionSubs}`}>
+          {t.blocks.map((b, i) => {
+            if (b.kind === 'line') return renderSub(t, b, threads);
+            if (b.kind === 'heading') return <li key={`h${i}`} className={`${styles.group} ${styles.actionGroup}`} dir={textDir(b.text)}>{b.text}</li>;
+            return <li key={`t${i}`} className={styles.smallText} dir={textDir(b.text)}><RichText text={b.text} /></li>;
+          })}
+        </ul>
+        <OrphanThreads flow={comments} topic={t} orphans={threads.orphans} />
+      </section>
+    );
+  };
+
   /** "מחובר ל־#986" chips: open the connected task (read-only; links are edited on the board). */
   const renderLinks = (t: Task, compact = false) => {
     const ids = linksOf(t);
@@ -1060,7 +1081,7 @@ export function ManagementCenter() {
             </div>
             <div className={styles.scroll}>
               <div className={`${styles.scrollInner} ${styles.listInner}`} dir="rtl">
-                {actions.map(renderTopic)}
+                {actions.filter(a => !a.done).map(renderActionList)}
               </div>
             </div>
           </section>

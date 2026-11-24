@@ -659,6 +659,16 @@
   unicode-bidi: isolate;
 }
 
+/* Action items: the standing list shows its items directly (no topic row) */
+.actionList + .actionList { border-top: 1px solid var(--line-soft); }
+.actionSubs { padding-inline-start: 0; padding-top: 4px; }
+.actionGroup {
+  margin-top: 10px;
+  padding: 14px 4px 4px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 14px;
+}
+
 .smallText {
   padding: 8px 4px;
   font-size: 14.5px;
