@@ -71,7 +71,40 @@ export interface BriefData {
   leakage: { amount: string; amountSub: string; bullets: string[]; reps: { name: string; avgDiscountPct: number; aboveAvg: number }[] };
 }
 
+/** An Intelligence report (server: insights/routes/insights.routes.js), as the demo reads it. */
+export interface ReportSummary {
+  id: string;
+  categoryLabel: string;
+  confidence: number;
+  headline: string;
+  impactValue: string;
+  impactLabel: string;
+  impactDirection: 'positive' | 'negative' | 'neutral';
+  chartPreview?: { categories: string[]; series: { points: number[] }[] };
+}
+
+export type ReportBlock =
+  | { type: 'stat_callout'; label: string; value: string; description?: string }
+  | { type: 'ranked_list'; title?: string; unit?: string; items: { label: string; value: string; pct: number }[] }
+  | { type: 'comparison'; items: { label: string; value: string; sub?: string; direction?: string }[] }
+  | { type: 'scenarios'; items: { key: string; label: string; value: string; description?: string }[] };
+
+export interface ReportDetail extends ReportSummary {
+  title: string;
+  chart?: { title: string; unit?: string; categories: string[]; series: { key: string; label: string; points: number[] }[] };
+  blocks: ReportBlock[];
+  reasoning: { title: string; description: string }[];
+  sourceNote?: string;
+  confidenceBasis?: string;
+}
+
+// The reports the dataset's nightly bootstrap wrote; they belong to the "system"
+// user, so every visitor reads the same set without signing in.
+const REPORTS_USER = 'system';
+
 export const realestateService = {
   getBoard: () => apiRequest<BoardData>('/api/realestate/board', {}, BASE),
   getBrief: () => apiRequest<BriefData>('/api/realestate/brief', {}, BASE),
+  getReports: () => apiRequest<{ insights: ReportSummary[] }>(`/api/insights/realestate/insights?userId=${REPORTS_USER}`, {}, BASE).then(r => r.insights),
+  getReport: (id: string) => apiRequest<ReportDetail>(`/api/insights/realestate/${encodeURIComponent(id)}?userId=${REPORTS_USER}`, {}, BASE),
 };

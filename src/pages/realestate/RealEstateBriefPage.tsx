@@ -2,14 +2,15 @@
  * "היועץ החכם שלי" — the real-estate demo's AI advisor morning brief (design C,
  * GPT Image 2.6, picked 2026-11-24): who to call today, which apartments are
  * stuck and why, where discounts leak money. Every figure and sentence comes
- * from /api/realestate/brief; the actions hand off to the agent's chat or the
- * live board.
+ * from /api/realestate/brief; the actions open the chat modal with the
+ * question, or the live board on the apartment.
  */
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentMeta } from '../../hooks';
 import { realestateService, type BriefData } from '../../services/realestateService';
-import { askAgent, greeting, buildingLetter } from './shared';
+import { greeting, buildingLetter, BOARD_PATH } from './shared';
+import { useRealEstateChat } from './chatContext';
 import { Icon } from './ui';
 import { RealEstateTopbar } from './RealEstateTopbar';
 import styles from './RealEstateBriefPage.module.css';
@@ -17,9 +18,9 @@ import styles from './RealEstateBriefPage.module.css';
 export function RealEstateBriefPage() {
   useDocumentMeta({ title: 'אופק יזמות — היועץ החכם שלי', favicon: '/img/realestate-logo.svg', description: 'AI sales advisor for Ofek Development' });
   const navigate = useNavigate();
+  const { openChat } = useRealEstateChat();
   const [data, setData] = useState<BriefData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [question, setQuestion] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -30,11 +31,6 @@ export function RealEstateBriefPage() {
   // The KPI cards lead to the section that explains them.
   const goTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    const q = question.trim() || 'אילו לידים צפויים להבשיל החודש?';
-    askAgent(q);
-  };
 
   return (
     <div className={styles.page} dir="rtl">
@@ -92,7 +88,7 @@ export function RealEstateBriefPage() {
                     </div>
                     <div className={styles.reason}>{c.reason}<span className={styles.silence}>ללא קשר {c.daysWithoutContact} ימים</span></div>
                     <div className={styles.score}>ציון ליד <span className={styles.scoreChip}>{c.score}</span></div>
-                    <button type="button" className={styles.darkBtn} onClick={() => askAgent(`תכין אותי לשיחה עם ${c.name} מ${c.project}: מי זה, מה הוא מחפש, מה התקציב, ואיזו הטבה הכי סוגרת את הסגמנט שלו`)}>
+                    <button type="button" className={styles.darkBtn} onClick={() => openChat(`תכין אותי לשיחה עם ${c.name} מ${c.project}: מי זה, מה הוא מחפש, מה התקציב, ואיזו הטבה הכי סוגרת את הסגמנט שלו`)}>
                       <Icon name="phone" size={15} /> הכן שיחה
                     </button>
                   </div>
@@ -114,7 +110,7 @@ export function RealEstateBriefPage() {
                     </div>
                     <span className={styles.reasonChip}>{s.reason}</span>
                     <div className={styles.action}>{s.action}</div>
-                    <button type="button" className={styles.outlineBtn} onClick={() => navigate(`/realestate/board?project=${s.projectId}&unit=${s.unitId}`)}>
+                    <button type="button" className={styles.outlineBtn} onClick={() => navigate(`${BOARD_PATH}?project=${s.projectId}&unit=${s.unitId}`)}>
                       ללוח הדירות <Icon name="chevronLeft" size={14} />
                     </button>
                   </div>
@@ -133,17 +129,13 @@ export function RealEstateBriefPage() {
                 <strong>{data.leakage.amount}</strong>
                 <small>{data.leakage.amountSub}</small>
               </div>
-              <button type="button" className={styles.darkBtnTall} onClick={() => askAgent('איזה איש מכירות נותן הכי הרבה הנחות, כמה זה עולה לנו, ומה הייתה התקרה הנכונה?')}>
+              <button type="button" className={styles.darkBtnTall} onClick={() => openChat('איזה איש מכירות נותן הכי הרבה הנחות, כמה זה עולה לנו, ומה הייתה התקרה הנכונה?')}>
                 לצפייה בפרטים ולהמלצות תיקון <Icon name="chevronLeft" size={14} />
               </button>
             </section>
           </div>
         )}
 
-        <form className={styles.ask} onSubmit={submit}>
-          <button type="submit" className={styles.send} aria-label="שלח"><Icon name="send" size={18} /></button>
-          <input value={question} onChange={e => setQuestion(e.target.value)} placeholder='רוצה שאבדוק משהו נוסף? למשל: "אילו לידים צפויים להבשיל החודש?"' />
-        </form>
       </main>
     </div>
   );

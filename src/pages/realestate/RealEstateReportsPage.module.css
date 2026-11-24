@@ -1,0 +1,138 @@
+/* The app shell locks html/body (overflow hidden), so the page is its own scroller. */
+.page {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  background: #f6f2ea;
+  color: #1d2430;
+  font-family: 'Heebo', system-ui, sans-serif;
+}
+
+.main { width: 100%; max-width: 1320px; margin: 0 auto; padding: 28px 36px 110px; }
+
+.loading, .error { margin: 30px 0; padding: 16px 20px; border-radius: 14px; background: #fff; color: #5d6574; }
+.error { background: #fdecea; color: #a5281c; }
+
+.chip {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #f4ecdf;
+  color: #8a6a3a;
+  font-size: 13px;
+  font-weight: 700;
+}
+.confidence { font-size: 12.5px; color: #6b7280; }
+.good strong { color: #237a42; }
+.bad strong { color: #b3321f; }
+
+/* ── List ── */
+.listHead h1 { margin: 0; font-size: 34px; font-weight: 800; }
+.listHead p { margin: 6px 0 22px; font-size: 17px; color: #3a4250; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 18px; }
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 22px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 6px 22px rgba(30, 40, 60, 0.07);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+.tile:hover { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(30, 40, 60, 0.13); }
+.tileTop { display: flex; align-items: center; justify-content: space-between; }
+.tile h2 { margin: 0; font-size: 17.5px; font-weight: 700; line-height: 1.45; flex: 1; }
+.tileImpact strong { display: block; font-size: 26px; font-weight: 800; direction: ltr; text-align: right; unicode-bidi: isolate; }
+.tileImpact small { font-size: 13px; color: #6b7280; }
+.open { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 700; color: #1f3a5f; }
+
+/* ── One report ── */
+.report { display: flex; flex-direction: column; gap: 18px; }
+.back { display: inline-flex; align-items: center; gap: 4px; width: fit-content; color: #1f3a5f; font-weight: 700; text-decoration: none; font-size: 14.5px; }
+.back:hover { text-decoration: underline; }
+.reportHead {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 24px;
+  align-items: start;
+  padding: 24px 26px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 6px 22px rgba(30, 40, 60, 0.07);
+}
+.reportHead h1 { margin: 10px 0 8px; font-size: 26px; font-weight: 800; line-height: 1.35; }
+.headline { margin: 0; font-size: 16px; color: #3a4250; line-height: 1.6; }
+.impact { display: flex; flex-direction: column; gap: 4px; padding: 18px; border-radius: 16px; background: #faf7f1; text-align: center; }
+.impact strong { font-size: 30px; font-weight: 800; direction: ltr; unicode-bidi: isolate; }
+.impact small { font-size: 13.5px; color: #5d6574; }
+
+.card { padding: 20px 22px; border-radius: 18px; background: #fff; box-shadow: 0 4px 18px rgba(30, 40, 60, 0.06); }
+.card h3 { margin: 0 0 14px; font-size: 18px; font-weight: 800; }
+.blocks { display: flex; flex-direction: column; gap: 18px; }
+
+.bars { display: flex; flex-direction: column; gap: 9px; }
+.barRow { display: grid; grid-template-columns: 200px 1fr 130px; align-items: center; gap: 12px; font-size: 14px; }
+.barLabel { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.barTrack { height: 14px; border-radius: 7px; background: #f0ebe2; overflow: hidden; }
+.barTrack i { display: block; height: 100%; border-radius: 7px; background: linear-gradient(90deg, #c8a165, #1f3a5f); }
+.barValue { font-weight: 700; direction: ltr; text-align: right; unicode-bidi: isolate; }
+.barValue small { font-weight: 500; color: #6b7280; }
+
+.stat { padding: 20px 22px; border-radius: 18px; background: #13213a; color: #e9e4da; }
+.stat small { font-size: 14px; color: #c8a165; }
+.stat strong { display: block; margin: 4px 0; font-size: 40px; font-weight: 800; color: #fff; direction: ltr; text-align: right; }
+.stat p { margin: 0; font-size: 15px; line-height: 1.6; }
+
+.compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.compareItem { padding: 18px 20px; border-radius: 16px; background: #fff; box-shadow: 0 4px 18px rgba(30, 40, 60, 0.06); border-top: 4px solid #cfc7b8; }
+.compareItem.good { border-top-color: #3f8f5b; }
+.compareItem.bad { border-top-color: #c0392b; }
+.compareItem small { font-size: 14px; color: #3a4250; font-weight: 600; }
+.compareItem strong { display: block; margin: 6px 0 4px; font-size: 26px; font-weight: 800; direction: ltr; text-align: right; unicode-bidi: isolate; }
+.compareItem p { margin: 0; font-size: 13.5px; color: #5d6574; line-height: 1.5; }
+
+.scenarios { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.scenario { padding: 14px 16px; border-radius: 14px; background: #faf7f1; border-inline-start: 4px solid #cfc7b8; }
+.scenario small { font-size: 13px; font-weight: 700; color: #5d6574; }
+.scenario strong { display: block; margin: 4px 0; font-size: 17px; font-weight: 800; }
+.scenario p { margin: 0; font-size: 13.5px; color: #3a4250; line-height: 1.5; }
+.scCurrent { border-inline-start-color: #1f3a5f; }
+.scGood { border-inline-start-color: #3f8f5b; }
+.scNeutral { border-inline-start-color: #c8a165; }
+.scBad { border-inline-start-color: #c0392b; }
+
+.steps { margin: 0; padding-inline-start: 22px; display: flex; flex-direction: column; gap: 10px; }
+.steps strong { font-size: 15px; }
+.steps p { margin: 2px 0 0; font-size: 14px; color: #3a4250; line-height: 1.55; }
+.basis { margin: 14px 0 0; font-size: 13px; color: #6b7280; }
+
+.askBtn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 999px;
+  background: #13213a;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.askBtn svg { color: #c8a165; }
+.askBtn:hover { box-shadow: 0 6px 18px rgba(19, 33, 58, 0.3); }
+
+@media (max-width: 900px) {
+  .main { padding: 18px 16px 100px; }
+  .grid { grid-template-columns: 1fr; }
+  .reportHead { grid-template-columns: 1fr; }
+  /* Label on its own line above the bar, so long names aren't cut. */
+  .barRow { grid-template-columns: 1fr auto; row-gap: 4px; font-size: 13px; }
+  .barLabel { grid-column: 1 / -1; white-space: normal; }
+}

@@ -1,0 +1,122 @@
+/* The pages scroll inside their own container (the app shell locks html/body). */
+.shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Floating launcher, bottom-left (the reading end of an RTL page) ── */
+.launcher {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 22px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #1f3a5f, #13213a);
+  color: #fff;
+  font-family: 'Heebo', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 10px 30px rgba(19, 33, 58, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.launcher svg { color: #c8a165; }
+.launcher:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(19, 33, 58, 0.42); }
+
+/* ── Chat panel ── */
+.panel {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 50;
+  width: min(520px, calc(100vw - 48px));
+  height: min(760px, calc(100vh - 110px));
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--background, #f6f2ea);
+  box-shadow: 0 24px 70px rgba(19, 33, 58, 0.35);
+  font-family: 'Heebo', system-ui, sans-serif;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(16px) scale(0.98);
+  transform-origin: bottom left;
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+}
+.panelOpen { opacity: 1; visibility: visible; transform: none; }
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px 12px 12px;
+  background: #13213a;
+  color: #e9e4da;
+  flex-shrink: 0;
+}
+.headIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(200, 161, 101, 0.16);
+  color: #c8a165;
+  flex-shrink: 0;
+}
+.headText { flex: 1; min-width: 0; }
+.headText strong { display: block; color: #fff; font-size: 16px; font-weight: 800; line-height: 1.2; }
+.headText small { display: block; color: #c8a165; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.headBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid rgba(200, 161, 101, 0.6);
+  border-radius: 999px;
+  background: none;
+  color: #e9e4da;
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.headBtn:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.close:hover { background: rgba(255, 255, 255, 0.18); }
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* One crew: ChatContainer's crew strip would be a lone pill — the panel header says whose chat this is. */
+.body :global([class*="crewHeader"]) { display: none; }
+/* The welcome's big logo too: in a panel it pushes the ready-made questions out of view. */
+.body :global([class*="_iconImage_"]) { display: none; }
+
+@media (max-width: 640px) {
+  .panel { left: 0; bottom: 0; width: 100vw; height: 100dvh; border-radius: 0; }
+  .launcher { left: 16px; bottom: 16px; padding: 12px 18px; }
+}

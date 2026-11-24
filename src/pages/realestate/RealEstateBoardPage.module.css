@@ -57,14 +57,15 @@
   padding: 9px 4px;
   border-bottom: 1px solid #eeeaf4;
   color: #1d2430;
-  text-decoration: none;
   font-size: 13.5px;
   line-height: 1.45;
 }
+.insight { color: #1d2430; text-decoration: none; border-radius: 8px; transition: background 0.12s ease; }
+.insight:hover { background: #f6f2fb; }
+.insight:hover span { text-decoration: underline; }
+.insightsMore { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13.5px; color: #6b4fc6; text-decoration: none; font-weight: 700; }
+.insightsMore:hover { text-decoration: underline; }
 .insight svg { color: #3f8f5b; flex-shrink: 0; margin-top: 2px; }
-.insight span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.insight:hover span { color: #13213a; text-decoration: underline; }
-.insightsMore { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13.5px; color: #6b4fc6; text-decoration: none; font-weight: 600; }
 
 .kpis {
   grid-area: kpis;

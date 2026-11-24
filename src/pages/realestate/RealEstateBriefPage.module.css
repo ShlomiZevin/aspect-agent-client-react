@@ -240,42 +240,6 @@
 .leakIcon { color: #c0392b; }
 .darkBtnTall { padding: 14px 16px; background: #16202e; color: #fff; border: none; border-radius: 14px; white-space: normal; text-align: center; }
 
-/* ── Ask bar ──────────────────────────────────────────── */
-.ask {
-  position: sticky;
-  bottom: 14px;
-  margin: 18px 36px 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 10px 8px 18px;
-  background: #fff;
-  border-radius: 999px;
-  box-shadow: 0 8px 28px rgba(30, 40, 60, 0.14);
-}
-.ask input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  outline: none;
-  font: inherit;
-  font-size: 15px;
-  background: transparent;
-  color: #1d2430;
-}
-.ask input::placeholder { color: #8a8f99; }
-.send {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: none;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, #c8a165, #a9843f);
-  color: #fff;
-  cursor: pointer;
-  flex-shrink: 0;
-}
 
 @media (max-width: 1200px) {
   .callRow { grid-template-columns: 200px 1fr 110px; }
@@ -292,6 +256,5 @@
   .heroText { width: 100%; }
   .kpis { grid-template-columns: 1fr; }
   .sections { padding: 16px 16px 0; }
-  .ask { margin: 16px 16px 0; }
   .callRow, .stuckRow { grid-template-columns: 1fr; }
 }

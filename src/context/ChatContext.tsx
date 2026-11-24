@@ -109,9 +109,12 @@ interface ChatProviderProps {
    * stamp instead — this prop only seeds the first turns.
    */
   moduleScope?: ModuleScope | null;
+  /** false: keep the conversation out of the URL (a chat in a modal over other
+   *  pages). See useConversation. */
+  urlSync?: boolean;
 }
 
-export function ChatProvider({ children, restrictedMode = false, storagePrefix, moduleScope: moduleScopeProp = null }: ChatProviderProps) {
+export function ChatProvider({ children, restrictedMode = false, storagePrefix, moduleScope: moduleScopeProp = null, urlSync = true }: ChatProviderProps) {
   const { config, selectedTheme, setSelectedTheme } = useAgentContext();
   const { language } = useLanguage();
   const { userId, switchUser } = useUserContext();
@@ -289,7 +292,8 @@ export function ChatProvider({ children, restrictedMode = false, storagePrefix, 
     effectivePrefix,
     config.agentName,
     userId,
-    config.baseURL
+    config.baseURL,
+    urlSync
   );
 
   // Crew state management

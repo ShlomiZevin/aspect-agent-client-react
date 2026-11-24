@@ -11,7 +11,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useDocumentMeta } from '../../hooks';
 import { realestateService, type BoardData } from '../../services/realestateService';
-import { askAgent, greeting, shekels, buildingLetter, unitKind } from './shared';
+import { greeting, shekels, buildingLetter, unitKind, REPORTS_PATH } from './shared';
+import { useRealEstateChat } from './chatContext';
 import { Icon, Ring } from './ui';
 import { IsoBuildings } from './IsoBuildings';
 import { RealEstateTopbar } from './RealEstateTopbar';
@@ -27,6 +28,7 @@ const LEGEND_LABEL: Record<string, string> = { ...KIND_LABEL, stuck: 'תקועה
 export function RealEstateBoardPage() {
   useDocumentMeta({ title: 'אופק יזמות — לוח מכירות חי', favicon: '/img/realestate-logo.svg', description: 'Live sales board for Ofek Development' });
   const [params, setParams] = useSearchParams();
+  const { openChat } = useRealEstateChat();
   const [data, setData] = useState<BoardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<View>('buildings');
@@ -81,12 +83,12 @@ export function RealEstateBoardPage() {
             <aside className={styles.insights}>
               <h3><Icon name="sparkle" size={18} /> תובנות AI ללילה האחרון</h3>
               {data.insights.map((ins, i) => (
-                <Link key={ins.id} to={`/realestate/intelligence/insight/${ins.id}`} className={styles.insight}>
+                <Link key={ins.id} to={`${REPORTS_PATH}/${ins.id}`} className={styles.insight}>
                   <Icon name={INSIGHT_ICONS[i % INSIGHT_ICONS.length]} size={18} />
                   <span>{ins.title}</span>
                 </Link>
               ))}
-              <Link to="/realestate/intelligence/center" className={styles.insightsMore}><Icon name="arrowLeft" size={14} /> לכל התובנות וההמלצות לפעולה</Link>
+              <Link to={REPORTS_PATH} className={styles.insightsMore}><Icon name="arrowLeft" size={14} /> לכל הדוחות</Link>
             </aside>
 
             <div className={styles.kpis}>
@@ -137,7 +139,7 @@ export function RealEstateBoardPage() {
                   <span className={`${styles.status} ${styles[`status_${unitKind(selected)}`]}`}>{KIND_LABEL[unitKind(selected)]}</span>
                   {selected.status === 'פנויה' && <small className={styles.days}>על המדף {selected.daysOnMarket} ימים</small>}
                   {selected.stuck && selected.premiumPct != null && <small className={styles.days}>{selected.premiumPct}% מעל עסקאות דומות</small>}
-                  <button type="button" className={styles.askBtn} onClick={() => askAgent(selected.status === 'נמכרה'
+                  <button type="button" className={styles.askBtn} onClick={() => openChat(selected.status === 'נמכרה'
                     ? `מי קנה את דירה ${selected.number} בבניין ${selected.building} ב${project.name}, באיזה מחיר ובאיזו הנחה?`
                     : `למה דירה ${selected.number} בבניין ${selected.building} ב${project.name} (${selected.rooms} חדרים, ${selected.direction}) לא נמכרת, ומה כדאי לעשות?`)}>
                     <Icon name="sparkle" size={15} /> שאל את ה-AI על הדירה

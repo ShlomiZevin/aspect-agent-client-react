@@ -33,9 +33,14 @@ export function useConversation(
   storagePrefix: string,
   agentName: string,
   userId: string | null,
-  baseURL?: string
+  baseURL?: string,
+  /** false: the conversation lives in localStorage only and the URL is never
+   *  touched — for a chat in a modal over other pages, where navigating to
+   *  `<page>/conversations/<id>` would leave the page the visitor is on. */
+  urlSync = true
 ): UseConversationReturn {
-  const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>();
+  const params = useParams<{ conversationId?: string }>();
+  const urlConversationId = urlSync ? params.conversationId : undefined;
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -66,6 +71,10 @@ export function useConversation(
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
+    if (!urlSync) {
+      if (!storedConversationId) setStoredConversationId(crypto.randomUUID());
+      return;
+    }
     // If no URL conversation ID but we have a stored one, update URL
     if (!urlConversationId && storedConversationId) {
       const basePath = getBasePath();
@@ -82,7 +91,7 @@ export function useConversation(
     else if (urlConversationId && urlConversationId !== storedConversationId) {
       setStoredConversationId(urlConversationId);
     }
-  }, [urlConversationId, storedConversationId, setStoredConversationId, navigate, getBasePath]);
+  }, [urlSync, urlConversationId, storedConversationId, setStoredConversationId, navigate, getBasePath]);
 
   const loadConversations = useCallback(async () => {
     if (!userId) return;
@@ -111,16 +120,14 @@ export function useConversation(
   const createNewChat = useCallback(() => {
     const newId = crypto.randomUUID();
     setStoredConversationId(newId);
-    const basePath = getBasePath();
-    navigate(`${basePath}/conversations/${newId}`);
+    if (urlSync) navigate(`${getBasePath()}/conversations/${newId}`);
     return newId;
-  }, [setStoredConversationId, navigate, getBasePath]);
+  }, [urlSync, setStoredConversationId, navigate, getBasePath]);
 
   const switchToChat = useCallback(
     async (chatId: string): Promise<Message[]> => {
       setStoredConversationId(chatId);
-      const basePath = getBasePath();
-      navigate(`${basePath}/conversations/${chatId}`);
+      if (urlSync) navigate(`${getBasePath()}/conversations/${chatId}`);
 
       try {
         const history = await getConversationHistory(chatId, baseURL);
@@ -130,7 +137,7 @@ export function useConversation(
         return [];
       }
     },
-    [setStoredConversationId, navigate, getBasePath, baseURL]
+    [urlSync, setStoredConversationId, navigate, getBasePath, baseURL]
   );
 
   const deleteChat = useCallback(

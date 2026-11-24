@@ -1,19 +1,10 @@
 /**
- * Shared bits of the real-estate demo screens: the greeting, ₪ formatting, and
- * the hand-off of a question to the agent's chat.
+ * Shared bits of the real-estate demo screens: their paths, the greeting and
+ * ₪ formatting.
  */
-/** Read by AskHandoff on the /realestate chat page. */
-export const ASK_STORAGE_KEY = 'realestate_ask';
-
-/**
- * Opens the agent's chat page and sends `question` there. The public
- * /realestate chat, not /realestate/chat-widget: the widget sits behind the
- * Intelligence sign-in, and these screens are shown without one.
- */
-export function askAgent(question: string) {
-  try { sessionStorage.setItem(ASK_STORAGE_KEY, question); } catch { /* private mode: the chat opens empty */ }
-  window.location.assign('/realestate');
-}
+export const BRIEF_PATH = '/aspect/realestate';
+export const BOARD_PATH = '/aspect/realestate/board';
+export const REPORTS_PATH = '/aspect/realestate/reports';
 
 export function greeting(): string {
   const h = new Date().getHours();
