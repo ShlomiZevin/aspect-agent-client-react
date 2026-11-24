@@ -4,6 +4,7 @@ import { AppLayout } from '../components/layout';
 import { ChatContainer } from '../components/chat';
 import { realestateConfig } from '../agents';
 import { useDocumentMeta } from '../hooks';
+import { AskHandoff } from './realestate/AskHandoff';
 
 export function RealEstatePage() {
   useDocumentMeta({
@@ -18,6 +19,7 @@ export function RealEstatePage() {
         <UserProvider storagePrefix={realestateConfig.storagePrefix} baseURL={realestateConfig.baseURL}>
           <AgentProvider config={realestateConfig}>
             <ChatProvider>
+              <AskHandoff />
               <AppLayout>
                 <ChatContainer crewMode="tabs" crewPosition="right" />
               </AppLayout>

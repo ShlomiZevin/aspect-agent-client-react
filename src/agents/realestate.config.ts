@@ -18,12 +18,13 @@ export const realestateConfig: AgentConfig = {
     src: '/img/realestate-logo.svg',
     alt: 'Ofek Development Logo',
   },
-  headerTitle: 'Ofek Development',
-  headerSubtitle: 'AI-powered sales intelligence',
+  // Hebrew on purpose: the demo is shown to an Israeli developer in Hebrew.
+  headerTitle: 'אופק יזמות',
+  headerSubtitle: 'בינה עסקית למכירות',
   welcomeIcon: '/img/realestate-logo.svg',
-  welcomeTitle: 'Welcome to Ofek Development Intelligence',
-  welcomeMessage: 'Ask me anything about leads, buyers, apartments, campaigns and your sales team.',
-  inputPlaceholder: 'Ask about your projects...',
+  welcomeTitle: 'ברוכים הבאים לאופק יזמות',
+  welcomeMessage: 'שאלו אותי כל דבר על לידים, רוכשים, דירות, קמפיינים וצוות המכירות.',
+  inputPlaceholder: 'שאלו על הפרויקטים...',
 
   quickQuestions: [
     { icon: '📞', textKey: 'quick.realestate.callToday.text', questionKey: 'quick.realestate.callToday.question' },

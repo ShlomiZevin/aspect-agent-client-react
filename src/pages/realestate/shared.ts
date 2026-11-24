@@ -2,12 +2,17 @@
  * Shared bits of the real-estate demo screens: the greeting, ₪ formatting, and
  * the hand-off of a question to the agent's chat.
  */
-import { PREFILL_STORAGE_KEY } from '../AgentChatWidgetPage';
+/** Read by AskHandoff on the /realestate chat page. */
+export const ASK_STORAGE_KEY = 'realestate_ask';
 
-/** Opens the agent's chat and sends `question` there (same hand-off Intelligence uses). */
+/**
+ * Opens the agent's chat page and sends `question` there. The public
+ * /realestate chat, not /realestate/chat-widget: the widget sits behind the
+ * Intelligence sign-in, and these screens are shown without one.
+ */
 export function askAgent(question: string) {
-  try { sessionStorage.setItem(PREFILL_STORAGE_KEY, question); } catch { /* private mode: the chat opens empty */ }
-  window.location.assign('/realestate/chat-widget');
+  try { sessionStorage.setItem(ASK_STORAGE_KEY, question); } catch { /* private mode: the chat opens empty */ }
+  window.location.assign('/realestate');
 }
 
 export function greeting(): string {
