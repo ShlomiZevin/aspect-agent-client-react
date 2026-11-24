@@ -30,7 +30,7 @@ const REPORT_TOPICS = [
 ];
 const STAGE_HE: Record<string, string> = { plan: 'מתכנן את הניתוח', query: 'שולף את הנתונים', aggregate: 'מסכם את התוצאות', synthesize: 'כותב את הדוח', verify: 'בודק את המספרים', done: 'הדוח מוכן' };
 
-/** "דוח חדש": a topic or a typed question -> a real investigation (about a minute) -> the new report. */
+/** "דוח חדש": a topic or a typed question -> a real investigation (2-3 minutes) -> the new report. */
 function NewReport({ userId }: { userId: string }) {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState('');
@@ -70,7 +70,7 @@ function NewReport({ userId }: { userId: string }) {
   return (
     <section className={styles.newReport}>
       <h2><Icon name="sparkle" size={18} /> דוח חדש</h2>
-      <p>בחרו נושא או כתבו שאלה — ה-AI יחקור את הנתונים ויכתוב דוח מלא תוך כדקה.</p>
+      <p>בחרו נושא או כתבו שאלה — ה-AI יחקור את הנתונים ויכתוב דוח מלא תוך 2–3 דקות.</p>
       <div className={styles.topics}>
         {REPORT_TOPICS.map(t => <button key={t} type="button" onClick={() => start(t)}>{t}</button>)}
       </div>

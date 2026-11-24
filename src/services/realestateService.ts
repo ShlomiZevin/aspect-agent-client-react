@@ -119,7 +119,7 @@ export const realestateService = {
   getBrief: () => apiRequest<BriefData>('/api/realestate/brief', {}, BASE),
   getReports: (userId: string) => apiRequest<{ insights: ReportSummary[] }>(`/api/insights/realestate/insights?${q(userId)}`, {}, BASE).then(r => r.insights),
   getReport: (id: string, userId: string) => apiRequest<ReportDetail>(`/api/insights/realestate/${encodeURIComponent(id)}?${q(userId)}`, {}, BASE),
-  /** Writes a new report (about a minute); resolves with its id. Poll getReportProgress(jobId) meanwhile. */
+  /** Writes a new report (2-3 minutes); resolves with its id. Poll getReportProgress(jobId) meanwhile. */
   createReport: (prompt: string, userId: string, jobId: string) =>
     apiRequest<{ insightIds: string[] }>('/api/insights/realestate/investigate', { method: 'POST', body: JSON.stringify({ prompt, userId, jobId }) }, BASE)
       .then(r => r.insightIds[0]),
