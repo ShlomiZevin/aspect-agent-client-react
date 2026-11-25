@@ -9,6 +9,7 @@ import type { ComponentType } from 'react';
 import { CustomerProblemsPage } from './pages/CustomerProblemsPage/CustomerProblemsPage';
 import { ConversationsPage } from './pages/ConversationsPage/ConversationsPage';
 import { UsersPage } from './pages/UsersPage/UsersPage';
+import { GatePage, GATE_MENU_LABEL, IconGate } from './pages/GatePage';
 import { IconAlert, IconChat, IconUsers } from './icons';
 import { COPY } from './copy';
 import type { ManageMe } from '../types/manage';
@@ -34,4 +35,5 @@ export const MANAGE_PAGES: ManagePageDef[] = [
   { path: 'customer-problems', label: COPY.problemsMenu, Icon: IconAlert, Component: CustomerProblemsPage },
   { path: 'conversations', label: COPY.conversationsMenu, Icon: IconChat, Component: ConversationsPage },
   { path: 'users', label: COPY.usersMenu, Icon: IconUsers, Component: UsersPage },
+  { path: 'gate', label: GATE_MENU_LABEL, Icon: IconGate, Component: GatePage },
 ];
