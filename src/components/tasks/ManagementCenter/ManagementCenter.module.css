@@ -993,6 +993,28 @@
   background: linear-gradient(90deg, rgba(174, 128, 255, .22), rgba(174, 128, 255, .06));
 }
 
+/* A head that opens / closes its section (RELEASED): same box as .nextHead, now a button */
+.nextHeadToggle {
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background .2s;
+}
+.nextHeadToggle:hover { background: rgba(174, 128, 255, .06); }
+.nextHeadToggle:hover .nextRule { background: linear-gradient(90deg, rgba(174, 128, 255, .4), rgba(174, 128, 255, .14)); }
+.nextHeadToggle:focus-visible { outline: 1px solid var(--lilac); outline-offset: 2px; }
+.nextHeadChev {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+}
+
 .nextList {
   display: flex;
   flex-direction: column;

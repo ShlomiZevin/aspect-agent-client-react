@@ -63,7 +63,8 @@ import styles from './ManagementCenter.module.css';
  *      still to check, dimmed and marked "נבדק – ממתין לשחרור" — clicking
  *      that mark undoes it (back to `check`). Once the team lead releases
  *      it, it moves to RELEASED (released wins over `checked`).
- *    – RELEASED (bottom of the panel): a task released in the last 14 days —
+ *    – RELEASED (bottom of the panel, closed by default — its head row opens
+ *      it, remembered per browser): a task released in the last 14 days —
  *      the board's own rule: status done and `deployedAt` set and not older
  *      than its `doneAt` (a reopened task is not released) — and not tagged
  *      `off-table`. "ירד מהשולחן" adds `off-table`. `deployedReviewedBy`
@@ -97,6 +98,8 @@ const OFF_TABLE_TAG = 'off-table';
 const RELEASED_DAYS = 14;
 const MAX_LINK_CHIPS = 2;
 const OPEN_KEY = 'lybi-center-agenda-open';
+/** RELEASED starts closed (Shlomi, 27.11: "I don't want to see them in general"); "1" = this viewer opened it. */
+const RELEASED_OPEN_KEY = 'lybi-center-released-open';
 /** The shared action-items page (Noa and Hila comment there). */
 const ACTIONS_PAGE = '/tasks/actions';
 
@@ -246,6 +249,10 @@ function readOpenPrefs(): OpenPrefs {
   return { t: {}, d: {}, c: {} };
 }
 
+function readReleasedOpen(): boolean {
+  try { return localStorage.getItem(RELEASED_OPEN_KEY) === '1'; } catch { return false; }
+}
+
 function formatClock(d: Date): string {
   const p = (n: number) => String(n).padStart(2, '0');
   return `${d.getDate()}.${d.getMonth() + 1} · ${p(d.getHours())}:${p(d.getMinutes())}`;
@@ -330,6 +337,7 @@ export function ManagementCenter() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [openPrefs, setOpenPrefs] = useState<OpenPrefs>(readOpenPrefs);
   const sections = useSectionCollapse();
+  const [releasedOpen, setReleasedOpenState] = useState(readReleasedOpen);
   const [noteDraft, setNoteDraft] = useState<NoteDraft | null>(null);
   const [modalTaskId, setModalTaskId] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -863,14 +871,42 @@ export function ManagementCenter() {
   };
 
   /** A section head in the panel's quieter style (NEXT / WAITING), with a count. */
-  const renderSectionHead = (label: string, title: string, count: number, tone?: string) => (
-    <div className={styles.nextHead} dir="ltr">
-      <span className={`${styles.nextLabel} ${tone || ''}`}>{label}</span>
-      <span className={styles.nextHeadTitle} dir="rtl">{title}</span>
-      <span className={styles.sectionCount}>{count}</span>
-      <span className={styles.nextRule} />
-    </div>
-  );
+  const setReleasedOpen = (open: boolean) => {
+    setReleasedOpenState(open);
+    try {
+      if (open) localStorage.setItem(RELEASED_OPEN_KEY, '1');
+      else localStorage.removeItem(RELEASED_OPEN_KEY);
+    } catch { /* private mode */ }
+  };
+
+  /** A section's head; with `toggle` it is a row that opens / closes the section (chevron at the end, same height). */
+  const renderSectionHead = (
+    label: string, title: string, count: number, tone?: string,
+    toggle?: { open: boolean; onToggle: () => void },
+  ) => {
+    const inner = (
+      <>
+        <span className={`${styles.nextLabel} ${tone || ''}`}>{label}</span>
+        <span className={styles.nextHeadTitle} dir="rtl">{title}</span>
+        <span className={styles.sectionCount}>{count}</span>
+        <span className={styles.nextRule} />
+        {toggle && <span className={styles.nextHeadChev}><ChevronIcon dir={toggle.open ? 'down' : 'left'} size={16} /></span>}
+      </>
+    );
+    if (!toggle) return <div className={styles.nextHead} dir="ltr">{inner}</div>;
+    return (
+      <button
+        type="button"
+        className={`${styles.nextHead} ${styles.nextHeadToggle}`}
+        dir="ltr"
+        aria-expanded={toggle.open}
+        title={toggle.open ? 'הסתרה' : 'הצגה'}
+        onClick={toggle.onToggle}
+      >
+        {inner}
+      </button>
+    );
+  };
 
   const renderFocus = (t: Task) => {
     if (isWaiting(t)) return renderWaiting(t);
@@ -1166,8 +1202,9 @@ export function ManagementCenter() {
               )}
               {tasks && releasedTasks.length > 0 && (
                 <div className={`${styles.nextArea} ${styles.handAreaBottom}`}>
-                  {renderSectionHead('RELEASED', 'שוחרר', releasedTasks.length, styles.releasedLabel)}
-                  <div className={styles.nextList}>{releasedTasks.map(t => renderHandOff(t, 'released'))}</div>
+                  {renderSectionHead('RELEASED', 'שוחרר', releasedTasks.length, styles.releasedLabel,
+                    { open: releasedOpen, onToggle: () => setReleasedOpen(!releasedOpen) })}
+                  {releasedOpen && <div className={styles.nextList}>{releasedTasks.map(t => renderHandOff(t, 'released'))}</div>}
                 </div>
               )}
             </div>
