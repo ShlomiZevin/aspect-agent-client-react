@@ -13,17 +13,18 @@
  *   └───────────────────┴─────────────────────────────────────────┘
  *
  * People think in knowledge bases, not in functions — so the unit is a
- * KB (a Pinecone namespace), and the whole pipeline (add → chunk →
+ * KB (a namespace in the environment's own vector store — pgvector in
+ * its database since #1014), and the whole pipeline (add → chunk →
  * index → retrieve → inject) reads top-to-bottom for the selected KB.
  * Every atom stays visible/playable (chunk preview, similarity scores,
  * the exact injected block) — see memory: project_kb_playable_atoms.
  *
- * Low-level Pinecone infra (connection, index create/activate/delete)
- * is demoted behind a ⚙ gear; a setup card shows only when unconfigured.
+ * The store is part of the environment's database, so there is no
+ * connection or index to manage; a setup card shows only when the store is
+ * not set up there (migration 075).
  *
- * Reuses the existing `pineconeService` client (talks to /api/pinecone/*),
- * so no server changes. KBs are still the GLOBAL namespace list for the
- * active index — per-agent scoping is the parked Stage-B decision.
+ * Reuses the existing `pineconeService` client (talks to /api/pinecone/* —
+ * the paths kept their Pinecone-era name).
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -44,7 +45,6 @@ import {
   type VectorData,
   type QueryResponse,
 } from '../../../services/pineconeService';
-import { IndexSettingsModal } from './IndexSettingsModal';
 // import { LinkedAgents } from './KBLinkedAgents'; // temporarily hidden
 import { useConfirm } from '../Confirm/Confirm';
 import { formatDuration } from '../../formatDuration';
@@ -72,7 +72,6 @@ interface KBEntry {
 export function KBWorkbench({ agentSlug, agentId }: Props) {
   const [status, setStatus] = useState<ConnectionStatus | null>(null);
   const [statusLoaded, setStatusLoaded] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const confirm = useConfirm();
 
   const [kbs, setKbs] = useState<KBEntry[]>([]);
@@ -169,11 +168,11 @@ export function KBWorkbench({ agentSlug, agentId }: Props) {
     return (
       <div className={styles.setupWrap}>
         <div className={styles.setupCard}>
-          <div className={styles.setupTitle}>Pinecone isn’t configured</div>
+          <div className={styles.setupTitle}>The knowledge store isn’t set up here</div>
           <p className={styles.setupBody}>
-            Add your Pinecone API key to the server’s <code>.env</code>, then restart:
+            Knowledge bases live in this environment’s database. Run its migration, then re-check:
           </p>
-          <pre className={styles.setupPre}>PINECONE_API_KEY=your-key-here{'\n'}PINECONE_INDEX_NAME=your-index</pre>
+          <pre className={styles.setupPre}>node db/migrations/run-075-kb-vectors-store.js --env &lt;environment&gt;</pre>
           <button type="button" className={styles.btn} onClick={refreshStatus}>Re-check</button>
         </div>
       </div>
@@ -186,12 +185,6 @@ export function KBWorkbench({ agentSlug, agentId }: Props) {
       <aside className={styles.rail}>
         <div className={styles.railHead}>
           <span className={styles.railTitle}>Knowledge Bases</span>
-          <button
-            type="button"
-            className={styles.gearBtn}
-            title="Index & connection settings"
-            onClick={() => setSettingsOpen(true)}
-          >⚙</button>
         </div>
 
         <NewKBButton agentSlug={agentSlug} onCreate={handleCreateKB} />
@@ -238,12 +231,6 @@ export function KBWorkbench({ agentSlug, agentId }: Props) {
             </div>
           ))}
         </div>
-
-        {status.indexName && (
-          <div className={styles.railFoot}>
-            index: <strong>{status.indexName}</strong>
-          </div>
-        )}
       </aside>
 
       {/* ── Right: the selected KB ───────────────────────────────── */}
@@ -252,14 +239,6 @@ export function KBWorkbench({ agentSlug, agentId }: Props) {
           ? <KBDetail key={selected} namespace={selected} onIndexed={handleIndexed} />
           : <div className={styles.detailEmpty}>Pick a knowledge base, or create one.</div>}
       </main>
-
-      {settingsOpen && (
-        <IndexSettingsModal
-          status={status}
-          onClose={() => setSettingsOpen(false)}
-          onChanged={() => { refreshStatus(); refreshKbs(); }}
-        />
-      )}
     </div>
   );
 }

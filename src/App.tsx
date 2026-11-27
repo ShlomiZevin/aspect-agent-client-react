@@ -38,8 +38,6 @@ const HQApp = lazy(() => import('./hq/HQApp').then(m => ({ default: m.HQApp })))
 // Management center for non-technical users (task #985) — /lybi/manage, /lybi/manage/<slug>,
 // /lybi/manage/all. Its own subtree under src/manage/, lazy like HQ.
 const ManageApp = lazy(() => import('./manage/ManageApp').then(m => ({ default: m.ManageApp })));
-// pgvector proof of concept — the agent's KB searched in Pinecone and pgvector side by side.
-const PgvectorPocPage = lazy(() => import('./pages/PgvectorPocPage').then(m => ({ default: m.PgvectorPocPage })));
 
 /** Old /manage/... links → /lybi/manage/..., same rest of path, query and hash. */
 function ManageLegacyRedirect() {
@@ -299,14 +297,6 @@ function AppContent() {
           element={
             <Suspense fallback={<PageLoader />}>
               <LiveBrainMockPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="/:agent/pgvector-poc"
-          element={
-            <Suspense fallback={<PageLoader />}>
-              <PgvectorPocPage />
             </Suspense>
           }
         />
