@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Lybi – אבטחה במוצר</title>
+<meta name="description" content="האבטחה של Lybi כפי שהיא נראית במוצר: ה־Builder, מרכז הניהול והצ׳אט ללקוח – מי רואה מה, ומה הבנק שולט בו בעצמו.">
+<meta name="theme-color" content="#100B1B">
+<link rel="icon" href="/img/lybi-spiral.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../security.css">
+<!--
+  Lybi security — product document (task #1021). Same facts as ../technical/, told as features.
+  Checked against the code on 27.11.2026. Planned work only under "בדרך".
+-->
+</head>
+<body>
+
+<header class="hdr">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="/img/lybi-spiral-white.svg" alt="">Lybi <span>· אבטחה במוצר</span></a>
+    <nav class="nav" aria-label="ניווט במסמך">
+      <a href="#places">שלושה מקומות</a>
+      <a href="#builder">ה־Builder</a>
+      <a href="#manage">מרכז הניהול</a>
+      <a href="#chat">הצ׳אט ללקוח</a>
+      <a href="#who">מי רואה מה</a>
+      <a href="#control">מה הבנק שולט בו</a>
+      <a href="#road">בדרך</a>
+    </nav>
+    <button class="pdf" type="button" onclick="window.print()" aria-label="הורדה כ־PDF">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3v10M5.5 8.5 10 13l4.5-4.5M4 16.5h12"/></svg><span class="lbl">הורדה כ־PDF</span>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+
+<div class="cover">
+  <div class="wrap">
+    <p class="kicker">Lybi · אבטחה במוצר</p>
+    <h1>האבטחה, <b>כמו שהיא נראית במוצר</b></h1>
+    <p class="lead">איפה כל הגנה יושבת, מי רואה מה, ומה הבנק שולט בו בעצמו. לצוותי אבטחת מידע, IT וסיכונים, ולהנהלה.</p>
+    <div class="meta"><span><b>מצב נכון ל־</b>27.11.2026</span><span><b>גרסה</b> 1</span><span><b>הפירוט הטכני:</b> <a href="../technical/">המסמך הטכני</a></span></div>
+    <p class="truth">כל מה שמתואר כאן קיים במוצר היום. מה שמתוכנן מופיע בנפרד, בסעיף "בדרך".</p>
+  </div>
+</div>
+
+<section id="places">
+  <div class="wrap">
+    <p class="sn">1</p>
+    <h2>שלושה מקומות</h2>
+    <div class="points">
+      <div class="pt"><h4>ה־Builder</h4><p>הכלי הפנימי של צוות Lybi. כאן בונים את הסוכנים, ומגדירים לכל סוכן את ההגנות שלו.</p></div>
+      <div class="pt"><h4>מרכז הניהול</h4><p>המקום של הבנק. משתמשים והרשאות, שיחות, תקלות ו־Lybi Gate. בעברית ובשפה פשוטה.</p></div>
+      <div class="pt"><h4>הצ׳אט ללקוח</h4><p>מה שהלקוח של הבנק רואה. ההגנה הראשונה רצה כאן, עוד במכשיר של הלקוח.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="builder">
+  <div class="wrap">
+    <p class="sn">2</p>
+    <h2>ה־Builder – ההגנות של כל סוכן</h2>
+    <p class="intro">כל הגנה היא הגדרה גלויה של הסוכן. אין שלבים נסתרים, ואפשר לראות כל הגדרה ולשנות אותה.</p>
+    <div class="tw"><table>
+      <thead><tr><th>מה</th><th>מה זה עושה</th></tr></thead>
+      <tbody>
+        <tr><td><b>הגנה על מידע אישי</b></td><td>
+          <ul class="list">
+            <li>מתג לכל סוכן, ובתוכו בחירה של מה לחסום: מספר זהות, כרטיס אשראי, IBAN, חשבון בנק, דרכון, טלפון, מייל.</li>
+            <li>הזיהוי נעשה בקוד ובודק ספרות ביקורת. אין מודל בדרך.</li>
+            <li>אפשר לכתוב את ההודעה שהלקוח רואה כשההודעה שלו נחסמת.</li>
+          </ul>
+        </td></tr>
+        <tr><td><b>חריג לכל שלב בשיחה</b></td><td>שלב שצריך לאסוף, למשל, מספר זהות, מכבה לעצמו רק את הגלאי הזה. בשאר השיחה ההגנה נשארת.</td></tr>
+        <tr><td><b>מסלול מודלים</b></td><td>ישירות לספקי המודלים, או דרך Vertex AI ב־Google Cloud <span class="tag t-beta">BETA</span>.</td></tr>
+        <tr><td><b>בדיקת התשובה</b></td><td>שלב Guardrail: מודל שבודק את התשובה לפני שהיא מגיעה ללקוח.</td></tr>
+        <tr><td><b>גרסאות ופרסום</b></td><td>כל שינוי נשמר כגרסה. הלקוחות פוגשים רק גרסה שפורסמה, כולל הגדרות ההגנה.</td></tr>
+        <tr><td><b>מה קרה בכל תור</b></td><td>לכל הודעה רואים מה כל שלב קיבל, מה החזיר ובאיזה מודל.</td></tr>
+        <tr><td><b>דוח חסימות</b></td><td>כמה הודעות נחסמו, בדפדפן או בשרת, באיזה גלאי, וכמה לקוחות דיווחו "נחסם בטעות". בלי הטקסט שנחסם.</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section id="manage">
+  <div class="wrap">
+    <p class="sn">3</p>
+    <h2>מרכז הניהול – המקום של הבנק</h2>
+    <p class="intro">נכנסים עם חשבון Google של כתובת שקיבלה הרשאה. ההרשאה נבדקת בכל פעולה, וביטול שלה סוגר את הגישה מיד.</p>
+    <div class="tw"><table>
+      <thead><tr><th>מסך</th><th>מה הבנק עושה בו</th></tr></thead>
+      <tbody>
+        <tr><td><b>הרשאות</b></td><td>לכל כתובת: גישה לכל הסוכנים, או רק לסוכנים מסוימים. צוות Lybi מוסיף ומבטל הרשאות.</td></tr>
+        <tr><td><b>משתמשים</b></td><td>
+          <ul class="list">
+            <li>מוסיפים את מי שנכנס לצ׳אט ללקוח (שם וטלפון).</li>
+            <li>מגדירים השעיה אוטומטית אחרי 24 או 48 שעות, או משעים ידנית.</li>
+            <li>מסמנים לקוח אמיתי או בדיקה.</li>
+            <li>מוחקים משתמש, יחד עם השיחות וההודעות שלו.</li>
+          </ul>
+        </td></tr>
+        <tr><td><b>שיחות</b></td><td>כל שיחה עם לקוח בתקופה שבוחרים, והמצב שלה.</td></tr>
+        <tr><td><b>תקלות</b></td><td>תקלות בשיחות, תשובות שלא הגיעו ותשובות איטיות, בשפה פשוטה.</td></tr>
+        <tr><td><b>Lybi Gate</b> <span class="tag t-beta">בטא</span></td><td>
+          <ul class="list">
+            <li>מחליטים, שדה אחרי שדה, מה עובר, מה מוסתר, מה מוחלף באסימון, מה מוצפן במפתח של הבנק ומה מצומצם.</li>
+            <li>חותמים על המדיניות, שנשמרת לפי גרסאות.</li>
+            <li>מנהלים מפתחות API ואת החיבורים לבנק.</li>
+            <li>רואים יומן חי ומנסים רשומה לדוגמה.</li>
+          </ul>
+          עדיין לא מחובר לסוכנים.
+        </td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section id="chat">
+  <div class="wrap">
+    <p class="sn">4</p>
+    <h2>הצ׳אט ללקוח</h2>
+    <ul class="list">
+      <li><b>החסימה מתחילה במכשיר.</b> הודעה עם מידע רגיש לא נשלחת. הלקוח רואה הודעה מוסברת, הטקסט נשאר אצלו לעריכה, ואפשר לסמן "נחסם בטעות".</li>
+      <li><b>השרת בודק שוב</b> לפני שמשהו נשמר או מגיע למודל. הודעה שנחסמה לא נשמרת בכלל.</li>
+      <li><b>הלקוח מקבל רק את התשובה.</b> בצ׳אט עם כניסה, הדפדפן לא מקבל את ההנחיות, את הפלט הפנימי או את מאגר הידע.</li>
+      <li><b>כניסה מוגדרת מראש:</b> רק משתמש שהבנק הוסיף נכנס, עם שם וטלפון. משתמש מושעה לא נכנס.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="who">
+  <div class="wrap">
+    <p class="sn">5</p>
+    <h2>מי רואה מה</h2>
+    <div class="tw"><table>
+      <thead><tr><th>מי</th><th>מה רואה</th><th>מה לא רואה</th></tr></thead>
+      <tbody>
+        <tr><td><b>לקוח הקצה</b></td><td>את השיחה שלו</td><td>שיחות של אחרים; ההנחיות והשלבים הפנימיים (בצ׳אט עם כניסה)</td></tr>
+        <tr><td><b>איש הבנק – סוכנים מסוימים</b></td><td>שיחות, תקלות ומשתמשים של הסוכנים האלה; Lybi Gate</td><td>סוכנים אחרים</td></tr>
+        <tr><td><b>איש הבנק – כל הסוכנים</b></td><td>שיחות, תקלות ומשתמשים של כל הסוכנים; Lybi Gate</td><td>—</td></tr>
+        <tr><td><b>צוות Lybi</b></td><td>הגדרות הסוכנים, השיחות ומה קרה בכל תור – כדי לבנות, לבדוק ולתקן</td><td>הודעות שנחסמו (הן לא נשמרות)</td></tr>
+        <tr><td><b>המודל</b></td><td>מה שעבר את החסימה. ב־Lybi Gate: רק מה שהמדיניות מתירה</td><td>הודעות שנחסמו; ב־Lybi Gate: שדות מוסתרים ומוצפנים</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section id="control">
+  <div class="wrap">
+    <p class="sn">6</p>
+    <h2>מה הבנק שולט בו בעצמו</h2>
+    <div class="tw"><table>
+      <thead><tr><th>היום, בלי צוות Lybi</th><th>היום, דרך צוות Lybi</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><ul class="list"><li>מי נכנס לצ׳אט ללקוח: הוספה, השעיה ומחיקה</li><li>צפייה בשיחות ובתקלות</li><li>Lybi Gate: מדיניות השדות, חתימה, מפתחות וחיבורים</li></ul></td>
+          <td><ul class="list"><li>הרשאות למרכז הניהול</li><li>הגדרות ההגנה של כל סוכן ומסלול המודלים</li><li>מחיקת שיחה בודדת</li></ul></td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section id="road">
+  <div class="wrap">
+    <p class="sn">7</p>
+    <h2>בדרך <span class="tag t-warn">מתוכנן – עוד לא קיים</span></h2>
+    <div class="road">
+      <div class="ri"><h4>תקופת שמירה – מסך הגדרות</h4><p>הבנק קובע כמה זמן נשמר מידע, ומה שמעבר לתקופה נמחק אוטומטית.</p></div>
+      <div class="ri"><h4>השחרה</h4><p>מספר זהות ודרכון מוסתרים במסכי הניהול וביומנים.</p></div>
+      <div class="ri"><h4>רמות הגנה לכל שדה</h4><p>לכל שדה רמה: לא נשלח למודלים, לא נשמר, מצומצם ועוד. ב־Builder, במרכז הניהול וב־Lybi Gate. בשלב הצעה.</p></div>
+      <div class="ri"><h4>Lybi Gate מחובר לסוכנים</h4><p>הסוכן פונה לבנק באמצע שיחה, ומידע מהבנק נכנס – הכול דרך השער.</p></div>
+      <div class="ri"><h4>כניסה והרשאות ל־Builder</h4><p>זהות לכל איש צוות, גם בסביבות של לקוחות.</p></div>
+      <div class="ri"><h4>סביבה ייעודית לכל בנק</h4><p>שרת, בסיס נתונים ואתר נפרדים לכל בנק.</p></div>
+      <div class="ri"><h4>התראה על חסימה</h4><p>התראה לצוות כשמידע רגיש נחסם.</p></div>
+      <div class="ri"><h4>מאגר הידע בתוך הסביבה</h4><p>ווקטורים בבסיס הנתונים של הסביבה, במקום שירות חיצוני.</p></div>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer><div class="wrap">Lybi · אבטחה במוצר · מצב נכון ל־27.11.2026. המסמך מתאר את המערכת ולא מהווה התחייבות חוזית.</div></footer>
+
+<script>
+(function(){var l=[].slice.call(document.querySelectorAll('.nav a')),m={};l.forEach(function(a){m[a.getAttribute('href').slice(1)]=a});if(!('IntersectionObserver'in window))return;var o=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){l.forEach(function(a){a.classList.remove('on')});m[e.target.id]&&m[e.target.id].classList.add('on')}})},{rootMargin:'-40% 0px -55% 0px'});Object.keys(m).forEach(function(id){var s=document.getElementById(id);s&&o.observe(s)})})();
+</script>
+</body>
+</html>

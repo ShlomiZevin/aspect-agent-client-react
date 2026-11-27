@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Lybi – אבטחה: המסמך הטכני</title>
+<meta name="description" content="איך Lybi בנויה ומאובטחת: ארכיטקטורה, איפה כל מידע נשמר וכמה זמן, הגנה על מידע אישי, Lybi Gate, גישה והרשאות – ומה בדרך.">
+<meta name="theme-color" content="#100B1B">
+<link rel="icon" href="/img/lybi-spiral.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../security.css">
+<!--
+  Lybi security — technical document (task #1021). Every statement here was checked against the code on
+  27.11.2026 (aspect-agent-server: db/schema, db/migrations, builder/, gate/, services/; BUILDER_V2.md §60–§68).
+  Planned work is only in "בדרך". No secrets, keys, IPs or project numbers belong on this page.
+-->
+</head>
+<body>
+
+<header class="hdr">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="/img/lybi-spiral-white.svg" alt="">Lybi <span>· אבטחה – המסמך הטכני</span></a>
+    <nav class="nav" aria-label="ניווט במסמך">
+      <a href="#summary">בקצרה</a>
+      <a href="#arch">ארכיטקטורה</a>
+      <a href="#data">איך המידע נשמר</a>
+      <a href="#pii">הגנה על מידע אישי</a>
+      <a href="#gate">Lybi Gate</a>
+      <a href="#access">גישה והרשאות</a>
+      <a href="#road">בדרך</a>
+    </nav>
+    <button class="pdf" type="button" onclick="window.print()" aria-label="הורדה כ־PDF">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3v10M5.5 8.5 10 13l4.5-4.5M4 16.5h12"/></svg><span class="lbl">הורדה כ־PDF</span>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+
+<div class="cover">
+  <div class="wrap">
+    <p class="kicker">Lybi · מסמך אבטחה טכני</p>
+    <h1>איך Lybi בנויה, <b>ואיך המידע שלכם מוגן</b></h1>
+    <p class="lead">לצוותי אבטחת מידע, IT וסיכונים. ארכיטקטורה, כל סוג מידע שנשמר – איפה, מה וכמה זמן – הגנה על מידע אישי, Lybi Gate, גישה והרשאות.</p>
+    <div class="meta"><span><b>מצב נכון ל־</b>27.11.2026</span><span><b>גרסה</b> 1</span><span><b>מסמך משלים:</b> <a href="../product/">האבטחה כפי שהיא נראית במוצר</a></span></div>
+    <p class="truth">המסמך מתאר רק מה שקיים בקוד היום. מה שמתוכנן מופיע בנפרד, בסעיף "בדרך", ומסומן כך.</p>
+  </div>
+</div>
+
+<!-- 1 -->
+<section id="summary">
+  <div class="wrap">
+    <p class="sn">1</p>
+    <h2>בקצרה</h2>
+    <div class="points">
+      <div class="pt"><h4>סביבה נפרדת</h4><p>לכל סביבה פרויקט Google Cloud משלה: שרת, בסיס נתונים, אתר ומפתחות מודלים. השרת ובסיס הנתונים באזור תל אביב.</p></div>
+      <div class="pt"><h4>מידע רגיש נעצר בקוד</h4><p>גלאים בקוד – בלי מודל – עוצרים מספר זהות, כרטיס אשראי ו־IBAN עוד בדפדפן, ושוב בשרת לפני כל שמירה או מודל.</p></div>
+      <div class="pt"><h4>כל תור ניתן לבדיקה</h4><p>לכל הודעה נשמר מה כל שלב קיבל ומה החזיר. אין שלבים נסתרים.</p></div>
+      <div class="pt"><h4>גישה לפי הרשאה</h4><p>מרכז הניהול נפתח רק בכניסת Google עם כתובת שקיבלה הרשאה. ההרשאה נבדקת מחדש בכל בקשה.</p></div>
+      <div class="pt"><h4>מסלול מודלים לבחירה</h4><p>לכל סוכן: ישירות לספקי המודלים, או דרך Vertex AI ב־Google Cloud <span class="tag t-beta">BETA</span>.</p></div>
+      <div class="pt"><h4>שמירת מידע</h4><p>היום המידע נשמר עד מחיקה, חוץ ממרכז השגיאות (30 יום). מסך הגדרת תקופת שמירה – בדרך.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="arch">
+  <div class="wrap">
+    <p class="sn">2</p>
+    <h2>ארכיטקטורה</h2>
+    <p class="intro">Lybi רצה על Google Cloud. כל סביבה היא פרויקט Google Cloud נפרד, עם השרת, בסיס הנתונים, האתר והמפתחות שלה. סביבה חדשה – למשל לבנק – מוקמת לפי מתכון קבוע.</p>
+
+    <div class="diagram" aria-label="תרשים זרימה">
+      <svg viewBox="0 0 1000 300" font-family="Assistant, Arial" font-size="15" text-anchor="middle">
+        <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9E50EF"/></marker></defs>
+        <rect x="830" y="110" width="150" height="70" rx="12" fill="#F6F4F9" stroke="#D3CAE0"/><text x="905" y="140" font-weight="700" fill="#23182F">דפדפן הלקוח</text><text x="905" y="162" fill="#625A6C" font-size="13">חסימת מידע רגיש #1</text>
+        <rect x="610" y="20" width="170" height="60" rx="12" fill="#fff" stroke="#D3CAE0"/><text x="695" y="47" font-weight="700" fill="#23182F">האתר</text><text x="695" y="67" fill="#625A6C" font-size="13">Firebase Hosting</text>
+        <rect x="560" y="110" width="220" height="70" rx="12" fill="#efe6ff" stroke="#9E50EF"/><text x="670" y="140" font-weight="700" fill="#23182F">השרת – Cloud Run</text><text x="670" y="162" fill="#625A6C" font-size="13">תל אביב · חסימת מידע רגיש #2</text>
+        <rect x="300" y="20" width="200" height="60" rx="12" fill="#fff" stroke="#D3CAE0"/><text x="400" y="47" font-weight="700" fill="#23182F">בסיס הנתונים</text><text x="400" y="67" fill="#625A6C" font-size="13">Cloud SQL PostgreSQL · תל אביב</text>
+        <rect x="300" y="115" width="200" height="60" rx="12" fill="#fff" stroke="#D3CAE0"/><text x="400" y="142" font-weight="700" fill="#23182F">קבצים</text><text x="400" y="162" fill="#625A6C" font-size="13">Cloud Storage</text>
+        <rect x="300" y="210" width="200" height="60" rx="12" fill="#fff" stroke="#D3CAE0"/><text x="400" y="237" font-weight="700" fill="#23182F">מאגר ידע – וקטורים</text><text x="400" y="257" fill="#625A6C" font-size="13">Pinecone (מעבר ל־pgvector בדרך)</text>
+        <rect x="20" y="70" width="220" height="70" rx="12" fill="#fff" stroke="#D3CAE0"/><text x="130" y="98" font-weight="700" fill="#23182F">ספקי המודלים – ישירות</text><text x="130" y="120" fill="#625A6C" font-size="13">OpenAI · Anthropic · Google</text>
+        <rect x="20" y="170" width="220" height="70" rx="12" fill="#fff" stroke="#D3CAE0"/><text x="130" y="198" font-weight="700" fill="#23182F">Vertex AI <tspan fill="#6635D5">BETA</tspan></text><text x="130" y="220" fill="#625A6C" font-size="13">בפרויקט Google Cloud של הסביבה</text>
+        <g stroke="#9E50EF" stroke-width="2" fill="none" marker-end="url(#ar)">
+          <path d="M830 145 L784 145"/><path d="M830 125 C800 70 800 55 784 52"/>
+          <path d="M560 130 L504 60"/><path d="M560 145 L504 145"/><path d="M560 160 L504 235"/>
+          <path d="M560 125 C420 100 300 100 244 105"/><path d="M560 165 C420 200 300 205 244 205"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="tw"><table>
+      <thead><tr><th>רכיב</th><th>מה זה</th><th>פרטים</th></tr></thead>
+      <tbody>
+        <tr><td><b>השרת</b></td><td>Google Cloud Run</td><td>אזור תל אביב. שירות נפרד לכל סביבה. כל הקריאות ב־HTTPS.</td></tr>
+        <tr><td><b>בסיס הנתונים</b></td><td>Google Cloud SQL – PostgreSQL 15</td><td>אזור תל אביב. בסיס נפרד לכל סביבה. השרת מתחבר דרך המחבר של Cloud SQL. הצפנה במנוחה – ברירת המחדל של Google.</td></tr>
+        <tr><td><b>האתר</b></td><td>Firebase Hosting</td><td>אתר נפרד לכל סביבה, שמדבר רק עם השרת של אותה סביבה.</td></tr>
+        <tr><td><b>קבצים</b></td><td>Google Cloud Storage</td><td>קבצי מאגרי ידע וקבצים שמצורפים למפרט של סוכן. הצפנה במנוחה – ברירת המחדל של Google.</td></tr>
+        <tr><td><b>מפתחות וסודות</b></td><td>משתני סביבה של השירות</td><td>נפרדים לכל סביבה, ומוגדרים בשירות ב־Cloud Run. מפתחות ספקי המודלים (OpenAI, Anthropic, Google) נפרדים לכל סביבה. שירותים משותפים לכל הסביבות: מאגר הווקטורים (Pinecone, בהפרדה לפי מאגר), שליחת מייל ויצירת תמונות.</td></tr>
+        <tr><td><b>CORS</b></td><td>רשימה סגורה</td><td>השרת מקבל קריאות מדפדפן רק מכתובות האתר שברשימה הקבועה בקוד, וכן מאתרי שותפים שנרשמו במפורש.</td></tr>
+        <tr><td><b>ספקי המודלים</b></td><td>Direct או Vertex – לכל סוכן</td><td><b>Direct:</b> קריאה ישירה ל־OpenAI, ל־Anthropic ול־Google, עם המפתחות של הסביבה. <b>Vertex</b> <span class="tag t-beta">BETA</span>: אותם מודלים ואותן בקשות, דרך Vertex AI בפרויקט Google Cloud של הסביבה. ההגדרה היא חלק מגרסת הסוכן, והלקוחות מקבלים אותה רק אחרי פרסום. אזור העיבוד של המודל נקבע לפי המודל והספק; אין כיום התחייבות לעיבוד בתוך ישראל.</td></tr>
+        <tr><td><b>מאגר הידע</b></td><td>קבצים, embeddings ווקטורים</td><td>הקבצים ב־Cloud Storage. ה־embeddings נוצרים אצל OpenAI. הווקטורים נשמרים היום ב־Pinecone. מעבר לווקטורים בתוך בסיס הנתונים של הסביבה (pgvector) – <span class="tag t-warn">בדרך</span>.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>מה רואה כל ערוץ</h3>
+    <ul class="list">
+      <li><b>הצ׳אט ללקוח</b>, בכתובת עם כניסה: הדפדפן מקבל את התשובה בלבד. לא את ההנחיות, לא את הפלט הפנימי של השלבים ולא את מאגר הידע.</li>
+      <li><b>ה־Builder</b>, סביבת הבדיקות ומצב הצ׳אט המוטמע (embed): הזרם המלא, כולל ההנחיות והפלט של כל שלב – כדי שהצוות יוכל לבדוק כל תור.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="data">
+  <div class="wrap">
+    <p class="sn">3</p>
+    <h2>איך המידע נשמר</h2>
+    <p class="intro">כל המידע של סביבה נשמר בבסיס הנתונים שלה, באזור תל אביב. היוצאים מהכלל הם הקבצים (Cloud Storage), הווקטורים של מאגר הידע (Pinecone) ויומני השרת (Cloud Logging). הטבלה מפרטת כל סוג מידע: מה הוא מחזיק, כמה זמן הוא נשמר, ומה קורה כשמוחקים לקוח.</p>
+
+    <div class="tw"><table>
+      <thead><tr><th>מידע</th><th>מה נשמר</th><th>כמה זמן</th><th>במחיקת לקוח</th></tr></thead>
+      <tbody>
+        <tr><td><b>לקוחות הצ׳אט</b><span class="tbl">users</span></td><td>שם, טלפון, מייל אם נמסר, מזהה, תפקיד, פעילות אחרונה</td><td>עד מחיקה</td><td><span class="tag t-ok">נמחק</span></td></tr>
+        <tr><td><b>שיחות</b><span class="tbl">conversations</span></td><td>הלקוח, הסוכן, הערוץ, המצב, סימון לקוח אמיתי או בדיקה, השלב הנוכחי</td><td>עד מחיקה</td><td><span class="tag t-ok">נמחק</span></td></tr>
+        <tr><td><b>הודעות</b><span class="tbl">messages</span></td><td>הטקסט המלא של הלקוח ושל הסוכן. הודעה שנחסמה בגלל מידע רגיש לא נשמרת</td><td>עד מחיקה</td><td><span class="tag t-ok">נמחק</span></td></tr>
+        <tr><td><b>זיכרון השיחה</b><span class="tbl">context_data</span></td><td>השדות שחולצו מהשיחה, ה־Live Brain וה־Profiler – לפי שיחה ולפי לקוח</td><td>עד מחיקה</td><td><span class="tag t-warn">לא נמחק כיום</span></td></tr>
+        <tr><td><b>ריצות השלבים</b><span class="tbl">addon_runs</span></td><td>לכל שלב בכל תור: ההנחיה המלאה שנשלחה למודל, הפלט שחזר, זמנים ושגיאות</td><td>עד מחיקה</td><td><span class="tag t-warn">לא נמחק כיום</span> (נמחק במחיקת שיחה)</td></tr>
+        <tr><td><b>טריגרים</b><span class="tbl">trigger_events</span></td><td>מתי טריגר הופעל, למה, ומה היה התדריך לפנייה היזומה</td><td>עד מחיקה</td><td><span class="tag t-warn">לא נמחק כיום</span></td></tr>
+        <tr><td><b>שלבי חשיבה (מנגנון קודם)</b><span class="tbl">thinking_steps</span></td><td>תיאור שלבים של המנגנון הקודם</td><td>עד מחיקה</td><td><span class="tag t-ok">נמחק</span></td></tr>
+        <tr><td><b>מרכז השגיאות</b><span class="tbl">error_events</span></td><td>שגיאות ותקלות עם הקשר טכני (סוכן, שיחה, שלב)</td><td><span class="tag t-ok">30 יום – נמחק אוטומטית</span></td><td>—</td></tr>
+        <tr><td><b>חסימות מידע רגיש</b><span class="tbl">protection_events</span></td><td>רק שמות הגלאים שהופעלו, הצד (דפדפן או שרת), הערוץ והזמן. אף פעם לא הערך או טקסט</td><td>עד מחיקה</td><td>אין בה מידע אישי</td></tr>
+        <tr><td><b>שימוש במודלים</b><span class="tbl">llm_usage</span></td><td>איזה מודל, כמה טוקנים, כמה זמן, לאיזו שיחה. בלי תוכן</td><td>עד מחיקה</td><td>אין בה תוכן</td></tr>
+        <tr><td><b>הרשאות למרכז הניהול</b><span class="tbl">manage_access</span></td><td>כתובת מייל, לאיזה סוכן (או לכולם), מי נתן ומתי</td><td>עד ביטול</td><td>—</td></tr>
+        <tr><td><b>הגדרות הסוכנים</b><span class="tbl">builder_agents · builder_crews + גרסאות</span></td><td>הנחיות, שלבים, מודלים וכללים. לא מידע של לקוחות. כל גרסה נשמרת</td><td>כל הגרסאות</td><td>—</td></tr>
+        <tr><td><b>מאגרי ידע</b><span class="tbl">knowledge_bases · knowledge_base_files · dynamic_kb_files</span></td><td>קבצי הידע שהארגון העלה (Cloud Storage) והפרטים עליהם; הווקטורים ב־Pinecone</td><td>עד מחיקה ידנית</td><td>—</td></tr>
+        <tr><td><b>קבצי מפרט</b><span class="tbl">builder_spec_files</span></td><td>קבצים שמצורפים למפרט של סוכן והטקסט שחולץ מהם. לא מגיעים לסוכן שרץ מול לקוחות</td><td>עד מחיקה ידנית</td><td>—</td></tr>
+        <tr><td><b>הגדרות הסביבה</b><span class="tbl">provider_config</span></td><td>הגדרות שאפשר לשנות בלי פריסה, וסוד החתימה של הכניסה למרכז הניהול</td><td>קבוע</td><td>—</td></tr>
+        <tr><td><b>Lybi Gate</b> <span class="tag t-beta">בטא</span><span class="tbl">gate_*</span></td><td>מדיניות חתומה לפי גרסאות; מפתחות (טביעה בלבד); חיבורים (הסוד מוצפן); רשומות אחרי המדיניות; יומן בלי ערכים</td><td>עד מחיקה</td><td>—</td></tr>
+        <tr><td><b>יומני השרת</b><span class="tbl">Cloud Logging</span></td><td>יומני הריצה של השרת</td><td>לפי ברירת המחדל של Google Cloud</td><td>—</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>מחיקה ושמירה – מה אפשר היום</h3>
+    <ul class="list">
+      <li><b>מחיקת לקוח</b> (ממרכז הניהול, מסך המשתמשים): מוחקת את הלקוח, את השיחות שלו, את ההודעות ואת שלבי החשיבה.</li>
+      <li><b>מחיקת שיחה</b> (מתוך ה־Builder): מוחקת את השיחה, את ההודעות ואת ריצות השלבים שלה.</li>
+      <li><b>נמחק אוטומטית:</b> מרכז השגיאות, אחרי 30 יום.</li>
+      <li><b>לא ניתן להגדיר היום:</b> תקופת שמירה. כל השאר נשמר עד שמוחקים.</li>
+    </ul>
+    <p class="note warn"><b>מה עוד לא נמחק במחיקת לקוח:</b> זיכרון השיחה, ריצות השלבים ואירועי הטריגרים שלו. מסך הגדרות לתקופת השמירה, עם מחיקה אוטומטית, מופיע בסעיף "בדרך".</p>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="pii">
+  <div class="wrap">
+    <p class="sn">4</p>
+    <h2>הגנה על מידע אישי</h2>
+    <p class="intro">מידע אישי רגיש שלקוח מקליד נעצר בקוד – מהיר, צפוי וללא מודל – לפני שהוא נשמר או מגיע למודל כלשהו. אותה רשימת גלאים רצה גם בדפדפן וגם בשרת.</p>
+
+    <div class="tw"><table>
+      <thead><tr><th>גלאי</th><th>מה הוא מזהה</th><th>פועל כברירת מחדל</th></tr></thead>
+      <tbody>
+        <tr><td><b>מספר תעודת זהות</b></td><td>9 ספרות עם ספרת ביקורת תקינה</td><td><span class="tag t-ok">כן</span></td></tr>
+        <tr><td><b>כרטיס אשראי</b></td><td>13–19 ספרות שעוברות את בדיקת Luhn</td><td><span class="tag t-ok">כן</span></td></tr>
+        <tr><td><b>IBAN</b></td><td>קוד מדינה וספרות ביקורת שעוברים את בדיקת mod-97</td><td><span class="tag t-ok">כן</span></td></tr>
+        <tr><td><b>חשבון בנק</b></td><td>6–13 ספרות מיד אחרי מילה כמו "חשבון"</td><td><span class="tag t-grey">לא</span></td></tr>
+        <tr><td><b>דרכון</b></td><td>6–9 ספרות מיד אחרי המילה "דרכון"</td><td><span class="tag t-grey">לא</span></td></tr>
+        <tr><td><b>טלפון</b></td><td>נייד או קווי ישראלי, או מספר עם קידומת מדינה</td><td><span class="tag t-grey">לא</span></td></tr>
+        <tr><td><b>מייל</b></td><td>כתובת מייל</td><td><span class="tag t-grey">לא</span></td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">הטקסט מנורמל לפני הבדיקה: ספרות ערביות ופרסיות, סימני כיווניות נסתרים שמקלדת עברית מכניסה, וכל סוגי המקפים.</p>
+
+    <h3>שתי נקודות עצירה</h3>
+    <ul class="list">
+      <li><b>בדפדפן:</b> לפני כל שליחה לשרת. הודעה שנחסמת לא יוצאת מהמכשיר של הלקוח, ולכן לא מגיעה אלינו בכלל. הלקוח רואה הודעה מוסברת, הטקסט נשאר אצלו לעריכה, ואפשר לסמן "נחסם בטעות".</li>
+      <li><b>בשרת:</b> בדלת אחת שכל הערוצים עוברים בה – הצ׳אט ללקוח, הצ׳אט המוטמע, ה־Builder, ה־MCP, סימולציות ובדיקות עומס. הבדיקה רצה לפני שמשהו נכתב. אם יש התאמה: אין שורת הודעה, אין שלב, אין מודל.</li>
+    </ul>
+    <h3>מה נרשם על חסימה</h3>
+    <p>רק שמות הגלאים, הצד (דפדפן או שרת), הערוץ והזמן. אף פעם לא הערך עצמו, לא טביעה שלו ולא טקסט מההודעה. הקוד שרושם את החסימה בכלל לא מקבל את הטקסט.</p>
+    <h3>הגדרות</h3>
+    <ul class="list">
+      <li>ההגנה מופעלת לכל סוכן, וכל גלאי מופעל או כבוי בנפרד.</li>
+      <li>שלב בשיחה שצריך לאסוף, למשל, מספר זהות, יכול לכבות לעצמו את הגלאי הזה.</li>
+      <li>ההגדרות הן חלק מגרסת הסוכן. הלקוחות מקבלים אותן רק אחרי פרסום.</li>
+      <li>דוח חסימות לכל סוכן: כמה נחסם, באיזה צד, איזה גלאי, וכמה דווחו כטעות.</li>
+    </ul>
+    <h3>שכבה נוספת: בדיקת התשובה במודל</h3>
+    <p>אחרי בדיקות הקוד, סוכן יכול להפעיל שלב Guardrail: מודל שבודק את התשובה לפני שהיא מגיעה ללקוח, לפי הנחיה שמוגדרת לסוכן.</p>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="gate">
+  <div class="wrap">
+    <p class="sn">5</p>
+    <h2>Lybi Gate <span class="tag t-beta">בטא</span></h2>
+    <p class="intro">שער לכל מידע שעובר בין הבנק ל־Lybi, בשני הכיוונים. כל רשומה עוברת לפי מדיניות שדות חתומה. בגרסת הבטא השער עובד לבדו, ועדיין לא מחובר לסוכנים.</p>
+    <div class="tw"><table>
+      <thead><tr><th>פעולה על שדה</th><th>מה נשמר ב־Lybi</th><th>מה מודל יכול לקבל</th></tr></thead>
+      <tbody>
+        <tr><td><b>עובר</b></td><td>הערך כמו שהוא</td><td>הערך</td></tr>
+        <tr><td><b>מוסתר</b></td><td>כלום</td><td>כלום</td></tr>
+        <tr><td><b>אסימון</b></td><td>אסימון קבוע (HMAC-SHA-256), והערך מוצפן במפתח הציבורי של הבנק</td><td>האסימון</td></tr>
+        <tr><td><b>מוצפן</b></td><td>הערך מוצפן במפתח הציבורי של הבנק (RSA-OAEP)</td><td>כלום</td></tr>
+        <tr><td><b>מצומצם</b></td><td>גרסה מצומצמת (גיל, טווח, עיר, טקסט עם אסימונים), והמקור מוצפן לבנק</td><td>הגרסה המצומצמת</td></tr>
+      </tbody>
+    </table></div>
+    <ul class="list">
+      <li><b>שדה שהמדיניות לא מכירה מוסתר</b>, ונוסף לטיוטה כדי שהבנק יחליט עליו.</li>
+      <li><b>המדיניות נחתמת</b> (ECDSA P-256) ונשמרת לפי גרסאות. אפשר לאמת כל גרסה.</li>
+      <li><b>רשומות נכנסות</b> ב־API עם מפתח. המפתח מוצג פעם אחת, ונשמרת רק טביעה שלו. אפשר גם להעלות קובץ.</li>
+      <li><b>פניות של Lybi לבנק</b>, באמצע שיחה או בהעברה בסיום: יוצא האסימון או הערך המוצפן – לעולם לא ערך גלוי, אלא אם השדה מוגדר "עובר". גם תשובת הבנק עוברת במדיניות לפני שמשהו אחר רואה אותה.</li>
+      <li><b>הסוד של כל חיבור</b> נשמר מוצפן (AES-256-GCM).</li>
+      <li><b>יומן</b> לכל קריאה נכנסת ויוצאת ולכל שינוי: שמות שדות, פעולות וספירות. בלי ערכים.</li>
+      <li><b>המפתח הפרטי של הבנק לא מגיע ל־Lybi.</b> בגרסת הבטא, בנק הדגמה שלנו משחק את צד הבנק.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="access">
+  <div class="wrap">
+    <p class="sn">6</p>
+    <h2>גישה והרשאות</h2>
+    <div class="tw"><table>
+      <thead><tr><th>מי</th><th>איך נכנסים</th><th>מה פתוח</th></tr></thead>
+      <tbody>
+        <tr><td><b>אנשי הבנק – מרכז הניהול</b></td><td>
+          <ul class="list">
+            <li>כניסה עם Google, והשרת מאמת את הכתובת מול Google.</li>
+            <li>מקבלים אסימון כניסה חתום (HMAC-SHA-256) ל־30 יום.</li>
+            <li>בכל בקשה השרת בודק את האסימון וקורא מחדש את ההרשאה, כך שביטול הרשאה סוגר את הגישה מיד.</li>
+          </ul>
+        </td><td>לפי ההרשאה של הכתובת: כל הסוכנים, או סוכנים מסוימים. צוות Lybi נותן את ההרשאות.</td></tr>
+        <tr><td><b>לקוחות הקצה – הצ׳אט</b></td><td>בצ׳אט עם כניסה: שם וטלפון של משתמש שהוגדר מראש. אפשר להשעות משתמש, להגדיר השעיה אוטומטית אחרי 24 או 48 שעות, ולסמן לקוח אמיתי או בדיקה.</td><td>השיחה שלהם בלבד</td></tr>
+        <tr><td><b>מערכות הבנק – Lybi Gate</b></td><td>מפתח API לכל מערכת. נשמרת טביעה בלבד, ואפשר לבטל מפתח מיד.</td><td>שליחת רשומות בלבד</td></tr>
+        <tr><td><b>צוות Lybi – Builder ו־MCP</b></td><td>כלים פנימיים של צוות Lybi לבנייה ולבדיקה של סוכנים. ניהול זהויות והרשאות לכל איש צוות – בדרך.</td><td>הגדרות הסוכנים, השיחות והבדיקות של הסביבה</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="road">
+  <div class="wrap">
+    <p class="sn">7</p>
+    <h2>בדרך <span class="tag t-warn">מתוכנן – עוד לא קיים</span></h2>
+    <p class="intro">עבודות שנמצאות בתוכנית העבודה. כל עוד הן כאן, הן לא חלק מהמצב שתואר למעלה.</p>
+    <div class="road">
+      <div class="ri"><h4>תקופת שמירה ומחיקה אוטומטית</h4><p>מסך הגדרות שקובע כמה זמן נשמר מידע, ומוחק אוטומטית בסוף התקופה.</p></div>
+      <div class="ri"><h4>השחרה</h4><p>הסתרה של שדות רגישים, כמו מספר זהות ודרכון, במסכי הניהול וביומנים.</p></div>
+      <div class="ri"><h4>כניסה והרשאות ל־Builder</h4><p>זהות לכל איש צוות, גם בסביבות של לקוחות.</p></div>
+      <div class="ri"><h4>סביבה ייעודית לכל בנק</h4><p>שרת, בסיס נתונים ואתר נפרדים לכל בנק, לפי המתכון הקיים.</p></div>
+      <div class="ri"><h4>מאגר הידע בתוך הסביבה</h4><p>ווקטורים בבסיס הנתונים של הסביבה (pgvector), במקום שירות חיצוני.</p></div>
+      <div class="ri"><h4>Vertex AI במלואו</h4><p>המסלול קיים ב־BETA. המכסות לחלק מהמודלים ממתינות לאישור של Google.</p></div>
+      <div class="ri"><h4>רמות הגנה לכל שדה</h4><p>לכל שדה רמה: לא נשלח למודלים, לא נשמר, מצומצם ועוד. ב־Builder, במרכז הניהול וב־Lybi Gate. בשלב הצעה.</p></div>
+      <div class="ri"><h4>חיבור Lybi Gate לסוכנים</h4><p>תוסף API שפונה לבנק באמצע השיחה, ופרוטוקול קבוע להזרמת מידע מהבנק – דרך השער.</p></div>
+      <div class="ri"><h4>התראה על חסימה</h4><p>התראה לצוות כשמידע רגיש נחסם.</p></div>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer><div class="wrap">Lybi · מסמך אבטחה טכני · מצב נכון ל־27.11.2026. המסמך מתאר את המערכת ולא מהווה התחייבות חוזית.</div></footer>
+
+<script>
+(function(){var l=[].slice.call(document.querySelectorAll('.nav a')),m={};l.forEach(function(a){m[a.getAttribute('href').slice(1)]=a});if(!('IntersectionObserver'in window))return;var o=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){l.forEach(function(a){a.classList.remove('on')});m[e.target.id]&&m[e.target.id].classList.add('on')}})},{rootMargin:'-40% 0px -55% 0px'});Object.keys(m).forEach(function(id){var s=document.getElementById(id);s&&o.observe(s)})})();
+</script>
+</body>
+</html>
