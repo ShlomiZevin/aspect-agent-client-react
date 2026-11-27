@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Task } from '../../../types/task';
 import { getTasks } from '../../../services/taskService';
 import { useBoardStream } from '../../../hooks/useBoardStream';
+import { ActionSections, SectionsToggle } from './ActionSections';
+import { useSectionCollapse } from './useSectionCollapse';
 import { Avatar, CommentThread, OrphanThreads } from './CommentThread';
 import { personName } from './commentModel';
 import { useActionComments } from './useActionComments';
@@ -80,6 +82,7 @@ export function ActionItemsPage() {
 
   const topics = useMemo(() => topicsTagged(tasks, ACTIONS_PREFIX), [tasks]);
   const comments = useActionComments(topics.map(t => t.task.id), { onTask: upsert, onError: showToast });
+  const sections = useSectionCollapse();
 
   useBoardStream(true, event => {
     if ((event.type === 'task_created' || event.type === 'task_updated') && event.task.type === 'agenda') upsert(event.task);
@@ -118,15 +121,17 @@ export function ActionItemsPage() {
   const renderTopic = (t: Topic) => {
     const threads = comments.threadsFor(t);
     return (
-      // One standing list: the items show directly; `**group**` lines group related items.
+      // One standing list; `**section**` lines are collapsible section rows (ActionSections.tsx).
       <section key={t.task.id} className={`${styles.topic} ${styles.shareTopic}`}>
-        <ul className={`${styles.subs} ${styles.shareLines} ${styles.actionSubs}`}>
-          {t.blocks.map((b, i) => {
-            if (b.kind === 'line') return renderLine(t, b, threads);
-            if (b.kind === 'heading') return <li key={`h${i}`} className={`${styles.group} ${styles.actionGroup}`} dir={textDir(b.text)}>{b.text}</li>;
-            return <li key={`t${i}`} className={styles.smallText} dir={textDir(b.text)}><RichText text={b.text} /></li>;
-          })}
-        </ul>
+        <ActionSections
+          topic={t}
+          threads={threads}
+          collapse={sections}
+          listClass={`${styles.subs} ${styles.shareLines} ${styles.actionSubs}`}
+          renderItem={(b, i) => (b.kind === 'line'
+            ? renderLine(t, b, threads)
+            : <li key={`t${i}`} className={styles.smallText} dir={textDir(b.text)}><RichText text={b.text} /></li>)}
+        />
         <OrphanThreads flow={comments} topic={t} orphans={threads.orphans} />
       </section>
     );
@@ -167,6 +172,7 @@ export function ActionItemsPage() {
             <span className={`${styles.label} ${styles.labelActions}`}>ACTION ITEMS</span>
             <span className={styles.rule} />
             {tasks && <span className={styles.actionsCount} dir="rtl">{open} פתוחות</span>}
+            <SectionsToggle topics={topics.filter(t => !t.done)} collapse={sections} />
             <span className={styles.marks}>///</span>
           </div>
           <div className={styles.shareList} dir="rtl">

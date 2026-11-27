@@ -4,6 +4,8 @@ import type { Task } from '../../../types/task';
 import { getTask, getTasks, updateAgendaLine, updateTask } from '../../../services/taskService';
 import { useBoardStream } from '../../../hooks/useBoardStream';
 import { applyLineChange } from './agendaParse';
+import { ActionSections, SectionsToggle } from './ActionSections';
+import { useSectionCollapse } from './useSectionCollapse';
 import { CommentThread, OrphanThreads } from './CommentThread';
 import { useActionComments } from './useActionComments';
 import type { TopicThreads } from './commentModel';
@@ -327,6 +329,7 @@ export function ManagementCenter() {
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [openPrefs, setOpenPrefs] = useState<OpenPrefs>(readOpenPrefs);
+  const sections = useSectionCollapse();
   const [noteDraft, setNoteDraft] = useState<NoteDraft | null>(null);
   const [modalTaskId, setModalTaskId] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -705,20 +708,23 @@ export function ManagementCenter() {
 
   /**
    * Action items — one standing list (Shlomi, 2026-11-24): the items show
-   * directly, no topic row to open. A `**group**` line inside the list is a
-   * group of related items (e.g. "הכנת אבטחה"); items before any group stand alone.
+   * directly, no topic row to open. A `**section**` line inside the list is a
+   * collapsible section row (e.g. "הכנת אבטחה", ActionSections.tsx); items
+   * before any section stand alone at the top.
    */
   const renderActionList = (t: Topic) => {
     const threads = comments.threadsFor(t);
     return (
       <section key={t.task.id} className={styles.actionList}>
-        <ul className={`${styles.subs} ${styles.actionSubs}`}>
-          {t.blocks.map((b, i) => {
-            if (b.kind === 'line') return renderSub(t, b, threads);
-            if (b.kind === 'heading') return <li key={`h${i}`} className={`${styles.group} ${styles.actionGroup}`} dir={textDir(b.text)}>{b.text}</li>;
-            return <li key={`t${i}`} className={styles.smallText} dir={textDir(b.text)}><RichText text={b.text} /></li>;
-          })}
-        </ul>
+        <ActionSections
+          topic={t}
+          threads={threads}
+          collapse={sections}
+          listClass={`${styles.subs} ${styles.actionSubs}`}
+          renderItem={(b, i) => (b.kind === 'line'
+            ? renderSub(t, b, threads)
+            : <li key={`t${i}`} className={styles.smallText} dir={textDir(b.text)}><RichText text={b.text} /></li>)}
+        />
         <OrphanThreads flow={comments} topic={t} orphans={threads.orphans} />
       </section>
     );
@@ -1067,6 +1073,7 @@ export function ManagementCenter() {
               <span className={styles.actionsCount} dir="rtl">
                 {actions.reduce((n, a) => n + a.total - a.ticked, 0)} פתוחות
               </span>
+              <SectionsToggle topics={actions.filter(a => !a.done)} collapse={sections} />
               <Link
                 to={ACTIONS_PAGE}
                 target="_blank"
